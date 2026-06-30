@@ -1,825 +1,50 @@
 "use client";
+
+/**
+ * EditorItem.tsx
+ * ────────────────
+ * View del editor de ítems. Solo orquesta: conecta hooks con
+ * componentes, no contiene lógica de fetching ni duplicación.
+ *
+ * Componentes extraídos a components/Items/:
+ *   PickerImagenItemBtn  → botón mobile de imagen
+ *   SelectorGrupoUnico   → reemplaza a SelectorCategoriaGrupo +
+ *                          SelectorOrigenGrupo (eran duplicados)
+ *   PanelTerritorio      → ya no fetchea, recibe catálogo por props
+ *   PanelCiudades        → ya no fetchea catálogo, solo la relación
+ *                          item_ciudades vía useCiudadesItem
+ *
+ * Hooks extraídos a hooks/:
+ *   useItemCatalogosUbicacion → catálogo compartido de reinos/ciudades
+ *   useCiudadesItem           → relación item_ciudades
+ *   useGrupoSelector          → reemplaza useTiposDeGrupoItems +
+ *                                useOrigenesDeGrupoItems (duplicados)
+ *
+ * Ruta destino:
+ *   src/features/editorGarlia/views/EditorItem.tsx
+ */
+
 import Image from "next/image";
 
-import {
-  Package,
-  Save,
-  Trash2,
-  Loader2,
-  X,
-  MapPin,
-  Globe,
-  Camera,
-  ChevronDown,
-  Pencil,
-  Search,
-} from "lucide-react";
-import React, { useState, useEffect, useCallback } from "react";
+import { Package, Save, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 import {
   MarkdownEditor,
   WikiEntity,
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { PanelCiudades } from "@/features/editorGarlia/components/Items/PanelCiudades";
+import { PanelTerritorio } from "@/features/editorGarlia/components/Items/PanelTerritorio";
+import { PickerImagenItemBtn } from "@/features/editorGarlia/components/Items/PickerImagenItemBtn";
+import { SelectorGrupoUnico } from "@/features/editorGarlia/components/Items/SelectorGrupoUnico";
+import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/useItemCatalogosUbicacion";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 
 import { type Item, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
-
-// ─── Tipos comunes ────────────────────────────────────────────────────────────
-type ReinoMin = { id: string; nombre: string };
-
-// ─── Panel Territorio: solo reinos ───────────────────────────────────────────
-
-function PanelTerritorio({
-  value,
-  onChange,
-  onNavigateReino,
-}: {
-  value: string[];
-  onChange: (ids: string[]) => void;
-  onNavigateReino?: (id: string) => void;
-}) {
-  const [allReinos, setAllReinos] = useState<ReinoMin[]>([]);
-  const [loadingReinos, setLoadingReinos] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    supabase
-      .from("reinos")
-      .select("id, nombre")
-      .order("nombre")
-      .then(({ data }) => {
-        setAllReinos(data ?? []);
-        setLoadingReinos(false);
-      });
-  }, []);
-
-  const handleToggle = async (id: string, add: boolean) => {
-    setSaving(true);
-    onChange(add ? [...value, id] : value.filter((x) => x !== id));
-    setSaving(false);
-  };
-
-  return (
-    <SeccionEntidad
-      allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-      emptyLabel="Sin territorio asignado"
-      fallbackIcon={<Globe size={9} />}
-      groups={[]}
-      icon={<Globe size={9} />}
-      label="Territorio"
-      loading={loadingReinos}
-      saving={saving}
-      selectedIds={value}
-      onEntityClick={(id) => onNavigateReino?.(id)}
-      onToggle={handleToggle}
-    />
-  );
-}
-
-// ─── Panel Ciudades ───────────────────────────────────────────────────────────
-
-function PanelCiudades({
-  reinosSeleccionados,
-  itemId,
-  onNavigateCiudad,
-}: {
-  reinosSeleccionados: string[];
-  itemId: string;
-  onNavigateCiudad?: (id: string) => void;
-}) {
-  const {
-    rows: ciudadRows,
-    loading: loadingCiudades,
-    add: addCiudad,
-    remove: removeCiudad,
-  } = useCiudadesItem(itemId);
-  const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    supabase
-      .from("ciudades")
-      .select("id, nombre, reino_id")
-      .order("nombre")
-      .then(({ data }) => setAllCiudades(data ?? []));
-  }, []);
-
-  const ciudadesConReino = allCiudades.filter(
-    (c) =>
-      c.reino_id &&
-      (reinosSeleccionados.length === 0 ||
-        reinosSeleccionados.includes(c.reino_id)),
-  );
-
-  const handleToggle = async (id: string, add: boolean) => {
-    setSaving(true);
-    if (add) {
-      const c = allCiudades.find((x) => x.id === id);
-      if (c) await addCiudad(c);
-    } else {
-      const row = ciudadRows.find((r) => r.ciudadId === id);
-      if (row) await removeCiudad(row.rowId);
-    }
-    setSaving(false);
-  };
-
-  return (
-    <SeccionEntidad
-      allEntities={ciudadesConReino.map((c) => ({
-        id: c.id,
-        nombre: c.nombre,
-      }))}
-      emptyLabel={
-        reinosSeleccionados.length > 0
-          ? "Sin ciudades en estos reinos"
-          : "Sin ciudades"
-      }
-      fallbackIcon={<MapPin size={9} />}
-      groups={[]}
-      icon={<MapPin size={9} />}
-      label={
-        reinosSeleccionados.length > 0
-          ? `Ciudades (${reinosSeleccionados.length})`
-          : "Ciudades"
-      }
-      loading={loadingCiudades}
-      saving={saving}
-      selectedIds={ciudadRows.map((r) => r.ciudadId)}
-      onEntityClick={(id) => onNavigateCiudad?.(id)}
-      onToggle={handleToggle}
-    />
-  );
-}
-
-// ─── Hook: ciudades donde se encuentra el ítem (item_ciudades) ─────────────────
-
-type CiudadMin = { id: string; nombre: string; reino_id?: string | null };
-type ItemCiudadRow = { rowId: string; ciudadId: string; ciudadNombre: string };
-
-function useCiudadesItem(itemId: string) {
-  const [rows, setRows] = useState<ItemCiudadRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("item_ciudades")
-      .select("id, ciudad_id, ciudades!ciudad_id(nombre)")
-      .eq("item_id", itemId);
-
-    setRows(
-      (data ?? []).map((r: any) => ({
-        rowId: r.id,
-        ciudadId: r.ciudad_id,
-        ciudadNombre:
-          (Array.isArray(r.ciudades)
-            ? r.ciudades[0]?.nombre
-            : r.ciudades?.nombre) ?? "—",
-      })),
-    );
-    setLoading(false);
-  }, [itemId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const add = async (l: CiudadMin) => {
-    if (rows.some((r) => r.ciudadId === l.id)) return;
-    const { data, error } = await supabase
-      .from("item_ciudades")
-      .insert([{ item_id: itemId, ciudad_id: l.id }])
-      .select()
-      .single();
-    if (!error && data) {
-      setRows((prev) => [
-        ...prev,
-        { rowId: data.id, ciudadId: l.id, ciudadNombre: l.nombre },
-      ]);
-    }
-  };
-
-  const remove = async (rowId: string) => {
-    await supabase.from("item_ciudades").delete().eq("id", rowId);
-    setRows((prev) => prev.filter((r) => r.rowId !== rowId));
-  };
-
-  return { rows, loading, add, remove };
-}
-
-// ─── Botón mobile para cambiar imagen del ítem ────────────────────────────────
-
-function PickerImagenItemBtn({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white-custom rounded-2xl shadow-2xl border border-primary/15 w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
-                <Camera size={11} /> Imagen del objeto
-              </h3>
-              <button
-                className="text-primary/30 hover:text-primary transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <SimpleImagePicker
-              onClose={() => setOpen(false)}
-              onSelect={(url) => {
-                onChange(url);
-                setOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <button
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-bg-main/80 backdrop-blur-sm border border-primary/20 text-primary/50 hover:text-primary hover:bg-bg-main transition-all shadow-md"
-        title="Cambiar imagen"
-        onClick={() => setOpen(true)}
-      >
-        <Camera size={13} />
-      </button>
-    </>
-  );
-}
-
-// ─── SelectorCategoriaGrupo ───────────────────────────────────────────────────
-// Reemplaza al ComboSelector de "Categoría" en EditorItem.
-// Carga grupos_mundo de tipo "items" con subtipo === "Tipo".
-// - Click en el nombre del grupo seleccionado  → navega al grupo (onSelectGrupo)
-// - Click en el lápiz                          → abre dropdown para cambiar
-// - El valor guardado en form.categoria        → nombre del grupo (compatibilidad BD)
-
-type GrupoTipoMin = { id: string; nombre: string };
-
-function useTiposDeGrupoItems() {
-  const [grupos, setGrupos] = useState<GrupoTipoMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase
-      .from("grupos_mundo")
-      .select("id, nombre")
-      .eq("tipo", "items")
-      .eq("subtipo", "Tipo")
-      .order("nombre")
-      .then(({ data }) => {
-        setGrupos(
-          (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre })),
-        );
-        setLoading(false);
-      });
-  }, []);
-
-  return { grupos, loading };
-}
-
-function SelectorCategoriaGrupo({
-  value,
-  onChange,
-  onSelectGrupo,
-}: {
-  value: string | null;
-  onChange: (nombre: string | null) => void;
-  onSelectGrupo?: (grupoId: string) => void;
-}) {
-  const { grupos, loading } = useTiposDeGrupoItems();
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const grupoActual = grupos.find((g) => g.nombre === value) ?? null;
-
-  const disponibles = grupos.filter(
-    (g) =>
-      g.nombre !== value &&
-      g.nombre.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const border =
-    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus =
-    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="space-y-1">
-      {/* Label */}
-      <div className="flex items-center gap-1.5">
-        <Package
-          size={9}
-          style={{
-            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-          }}
-        />
-        <span
-          className="text-[8px] font-black uppercase tracking-[0.25em]"
-          style={{
-            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-          }}
-        >
-          Categoría
-        </span>
-      </div>
-
-      {loading ? (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)]"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border,
-          }}
-        >
-          <Loader2 className="animate-spin text-primary/30" size={10} />
-          <span className="text-[10px] text-primary/30">Cargando…</span>
-        </div>
-      ) : grupoActual ? (
-        /* ── Valor asignado: nombre clickeable + lápiz ─────────────────────── */
-        <div
-          className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border,
-          }}
-        >
-          {/* Click en nombre → navegar al grupo */}
-          <button
-            className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
-            style={{ color: "var(--primary)" }}
-            title="Ir al grupo"
-            type="button"
-            onClick={() => onSelectGrupo?.(grupoActual.id)}
-          >
-            <span className="truncate">{grupoActual.nombre}</span>
-          </button>
-          {/* Lápiz → abrir dropdown */}
-          <button
-            className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
-            style={{
-              borderLeft:
-                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title="Cambiar categoría"
-            type="button"
-            onClick={() => {
-              setOpen((o) => !o);
-              setSearch("");
-            }}
-          >
-            <Pencil size={10} />
-          </button>
-        </div>
-      ) : (
-        /* ── Sin valor: trigger vacío ───────────────────────────────────────── */
-        <button
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border: open ? borderFocus : border,
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className="font-black uppercase text-[10px] tracking-wide">
-            Sin categoría
-          </span>
-          <ChevronDown
-            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            size={12}
-            style={{ opacity: 0.5 }}
-          />
-        </button>
-      )}
-
-      {/* Dropdown */}
-      {open && (
-        <div
-          className="rounded-[var(--radius-btn)] overflow-hidden"
-          style={{
-            border,
-            background: "var(--bg-main)",
-            boxShadow:
-              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          {/* Buscador */}
-          <div
-            className="flex items-center gap-2 px-3 py-2"
-            style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            <Search
-              size={11}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                flexShrink: 0,
-              }}
-            />
-            <input
-              autoFocus
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              placeholder="Buscar categoría…"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Escape" && (setOpen(false), setSearch(""))
-              }
-            />
-            {search && (
-              <button
-                className="opacity-30 hover:opacity-70 transition-opacity"
-                type="button"
-                onClick={() => setSearch("")}
-              >
-                <X size={10} style={{ color: "var(--primary)" }} />
-              </button>
-            )}
-          </div>
-
-          {/* Lista */}
-          <div className="max-h-48 overflow-y-auto">
-            {/* Opción "quitar" si hay valor */}
-            {grupoActual && (
-              <button
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-                type="button"
-                onMouseDown={() => {
-                  onChange(null);
-                  setOpen(false);
-                  setSearch("");
-                }}
-              >
-                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X className="opacity-50" size={9} />
-                </span>
-                Sin categoría
-              </button>
-            )}
-
-            {grupos.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                No hay grupos de tipo «Tipo» creados
-              </p>
-            ) : disponibles.length === 0 && !grupoActual ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search
-                  ? `Sin resultados para "${search}"`
-                  : "Todas las categorías ya asignadas"}
-              </p>
-            ) : disponibles.length === 0 && grupoActual ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search
-                  ? `Sin resultados para "${search}"`
-                  : "No hay otras categorías"}
-              </p>
-            ) : (
-              disponibles.map((g) => (
-                <button
-                  key={g.id}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 50%, transparent)",
-                  }}
-                  type="button"
-                  onMouseDown={() => {
-                    onChange(g.nombre);
-                    setOpen(false);
-                    setSearch("");
-                  }}
-                >
-                  <span className="truncate">{g.nombre}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── SelectorOrigenGrupo ─────────────────────────────────────────────────────
-// Análogo a SelectorCategoriaGrupo pero carga grupos_mundo con subtipo "Origen".
-// El valor guardado en form.origen es el nombre del grupo (string | null).
-
-function useOrigenesDeGrupoItems() {
-  const [grupos, setGrupos] = useState<GrupoTipoMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase
-      .from("grupos_mundo")
-      .select("id, nombre")
-      .eq("tipo", "items")
-      .eq("subtipo", "Origen")
-      .order("nombre")
-      .then(({ data }) => {
-        setGrupos(
-          (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre })),
-        );
-        setLoading(false);
-      });
-  }, []);
-
-  return { grupos, loading };
-}
-
-function SelectorOrigenGrupo({
-  value,
-  onChange,
-  onSelectGrupo,
-}: {
-  value: string | null;
-  onChange: (nombre: string | null) => void;
-  onSelectGrupo?: (grupoId: string) => void;
-}) {
-  const { grupos, loading } = useOrigenesDeGrupoItems();
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const grupoActual = grupos.find((g) => g.nombre === value) ?? null;
-
-  const disponibles = grupos.filter(
-    (g) =>
-      g.nombre !== value &&
-      g.nombre.toLowerCase().includes(search.toLowerCase()),
-  );
-
-  const border =
-    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus =
-    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="space-y-1">
-      {/* Label */}
-      <div className="flex items-center gap-1.5">
-        <Package
-          size={9}
-          style={{
-            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-          }}
-        />
-        <span
-          className="text-[8px] font-black uppercase tracking-[0.25em]"
-          style={{
-            color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-          }}
-        >
-          Origen
-        </span>
-      </div>
-
-      {loading ? (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-btn)]"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border,
-          }}
-        >
-          <Loader2 className="animate-spin text-primary/30" size={10} />
-          <span className="text-[10px] text-primary/30">Cargando…</span>
-        </div>
-      ) : grupoActual ? (
-        /* ── Valor asignado: nombre clickeable + lápiz ─────────────────────── */
-        <div
-          className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border,
-          }}
-        >
-          {/* Click en nombre → navegar al grupo */}
-          <button
-            className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
-            style={{ color: "var(--primary)" }}
-            title="Ir al grupo de origen"
-            type="button"
-            onClick={() => onSelectGrupo?.(grupoActual.id)}
-          >
-            <span className="truncate">{grupoActual.nombre}</span>
-          </button>
-          {/* Lápiz → abrir dropdown */}
-          <button
-            className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
-            style={{
-              borderLeft:
-                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-            title="Cambiar origen"
-            type="button"
-            onClick={() => {
-              setOpen((o) => !o);
-              setSearch("");
-            }}
-          >
-            <Pencil size={10} />
-          </button>
-        </div>
-      ) : (
-        /* ── Sin valor: trigger vacío ───────────────────────────────────────── */
-        <button
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-            border: open ? borderFocus : border,
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-        >
-          <span className="font-black uppercase text-[10px] tracking-wide">
-            Sin origen
-          </span>
-          <ChevronDown
-            className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            size={12}
-            style={{ opacity: 0.5 }}
-          />
-        </button>
-      )}
-
-      {/* Dropdown */}
-      {open && (
-        <div
-          className="rounded-[var(--radius-btn)] overflow-hidden"
-          style={{
-            border,
-            background: "var(--bg-main)",
-            boxShadow:
-              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          {/* Buscador */}
-          <div
-            className="flex items-center gap-2 px-3 py-2"
-            style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            <Search
-              size={11}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                flexShrink: 0,
-              }}
-            />
-            <input
-              autoFocus
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
-              placeholder="Buscar origen…"
-              style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Escape" && (setOpen(false), setSearch(""))
-              }
-            />
-            {search && (
-              <button
-                className="opacity-30 hover:opacity-70 transition-opacity"
-                type="button"
-                onClick={() => setSearch("")}
-              >
-                <X size={10} style={{ color: "var(--primary)" }} />
-              </button>
-            )}
-          </div>
-
-          {/* Lista */}
-          <div className="max-h-48 overflow-y-auto">
-            {/* Opción "quitar" si hay valor */}
-            {grupoActual && (
-              <button
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-                type="button"
-                onMouseDown={() => {
-                  onChange(null);
-                  setOpen(false);
-                  setSearch("");
-                }}
-              >
-                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                  <X className="opacity-50" size={9} />
-                </span>
-                Sin origen
-              </button>
-            )}
-
-            {grupos.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                No hay grupos de tipo «Origen» creados
-              </p>
-            ) : disponibles.length === 0 && !grupoActual ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search
-                  ? `Sin resultados para "${search}"`
-                  : "Todas las opciones ya asignadas"}
-              </p>
-            ) : disponibles.length === 0 && grupoActual ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
-                {search
-                  ? `Sin resultados para "${search}"`
-                  : "No hay otros orígenes"}
-              </p>
-            ) : (
-              disponibles.map((g) => (
-                <button
-                  key={g.id}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 50%, transparent)",
-                  }}
-                  type="button"
-                  onMouseDown={() => {
-                    onChange(g.nombre);
-                    setOpen(false);
-                    setSearch("");
-                  }}
-                >
-                  <span className="truncate">{g.nombre}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── EditorItem ───────────────────────────────────────────────────────────────
 
 export function EditorItem({
   item,
@@ -844,6 +69,9 @@ export function EditorItem({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
+
+  // Catálogo compartido de reinos/ciudades — un solo fetch para ambos paneles
+  const { allReinos, allCiudades, loadingReinos } = useItemCatalogosUbicacion();
 
   useEffect(() => {
     setForm(item);
@@ -945,7 +173,7 @@ export function EditorItem({
           <div className="flex flex-col sm:flex-row gap-5">
             {/* Columna izquierda: imagen */}
             <div className="w-full sm:w-96 sm:shrink-0">
-              {/* Mobile: imagen con botón flotante (igual que personaje) */}
+              {/* Mobile: imagen con botón flotante */}
               <div
                 className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
                 style={{ aspectRatio: "1 / 1" }}
@@ -986,7 +214,11 @@ export function EditorItem({
 
             {/* Columna derecha: categoría + origen + descripción */}
             <div className="flex-1 min-w-0 space-y-4">
-              <SelectorCategoriaGrupo
+              <SelectorGrupoUnico
+                emptyLabel="Sin categoría"
+                label="Categoría"
+                noGruposLabel="No hay categorías de ítems creadas"
+                subtipo="Tipo"
                 value={form.categoria ?? null}
                 onChange={(nombre) =>
                   setForm((f) => ({ ...f, categoria: nombre ?? "" }))
@@ -994,12 +226,16 @@ export function EditorItem({
                 onSelectGrupo={onSelectGrupo}
               />
 
-              {/* Origen + Ciudades en dos columnas */}
+              {/* Origen + Territorio + Ciudades en tres columnas */}
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Columna Origen — solo para ítems */}
                 {tabla === "items" && (
                   <div className="flex-1 min-w-0">
-                    <SelectorOrigenGrupo
+                    <SelectorGrupoUnico
+                      emptyLabel="Sin origen"
+                      label="Origen"
+                      noGruposLabel="No hay orígenes de ítems creados"
+                      subtipo="Origen"
                       value={form.origen ?? null}
                       onChange={(nombre) =>
                         setForm((f) => ({
@@ -1010,11 +246,12 @@ export function EditorItem({
                       onSelectGrupo={onSelectGrupo}
                     />
                   </div>
-                )}{" "}
-                {/* fin tabla === "items" */}
+                )}
                 {/* Columna Territorio */}
                 <div className="flex-1 min-w-0">
                   <PanelTerritorio
+                    allReinos={allReinos}
+                    loadingReinos={loadingReinos}
                     value={form.reino_ids ?? []}
                     onChange={(ids) =>
                       setForm((f) => ({ ...f, reino_ids: ids }))
@@ -1025,6 +262,7 @@ export function EditorItem({
                 {/* Columna Ciudades */}
                 <div className="flex-1 min-w-0">
                   <PanelCiudades
+                    allCiudades={allCiudades}
                     itemId={form.id}
                     reinosSeleccionados={form.reino_ids ?? []}
                     onNavigateCiudad={onNavigateCiudad}

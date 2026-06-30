@@ -330,6 +330,14 @@ function SnippetOverlayInner({
 
   useEffect(() => {
     measure();
+    // Segunda medición en el siguiente frame: insertSnippet (en el editor
+    // padre) mueve el cursor dentro de su propio requestAnimationFrame,
+    // lo que puede desplazar el scroll del textarea DESPUÉS de que esta
+    // primera medición síncrona ya corrió. Sin esto, los chips quedaban
+    // posicionados con el scroll viejo y solo se veía bien la parte
+    // inicial del texto.
+    const raf = requestAnimationFrame(measure);
+    return () => cancelAnimationFrame(raf);
   }, [measure]);
   useEffect(() => {
     const ta = taRef.current;
