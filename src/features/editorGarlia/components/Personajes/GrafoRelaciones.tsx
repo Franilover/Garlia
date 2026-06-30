@@ -56,20 +56,26 @@ function GrafoD3({
       .filter((e: EnlaceRelacion) => esFamilia(e.tipo))
       .map((e: EnlaceRelacion) => e.target);
 
-    const posiciones: Record<
-      string,
-      { x: number; y: number; fixed: boolean }
-    > = {};
+    const posiciones: Record<string, { x: number; y: number; fixed: boolean }> =
+      {};
     posiciones[centroId] = { x: cx, y: cy, fixed: true };
 
-    const enlacesFam = datos.enlaces.filter((e: EnlaceRelacion) => esFamilia(e.tipo));
-    const enlacesLib = datos.enlaces.filter((e: EnlaceRelacion) => !esFamilia(e.tipo));
+    const enlacesFam = datos.enlaces.filter((e: EnlaceRelacion) =>
+      esFamilia(e.tipo),
+    );
+    const enlacesLib = datos.enlaces.filter(
+      (e: EnlaceRelacion) => !esFamilia(e.tipo),
+    );
 
     const famArriba = enlacesFam
-      .filter((e: EnlaceRelacion) => TIPOS_FAM_ARRIBA.includes(e.tipo.toLowerCase()))
+      .filter((e: EnlaceRelacion) =>
+        TIPOS_FAM_ARRIBA.includes(e.tipo.toLowerCase()),
+      )
       .map((e: EnlaceRelacion) => e.target);
     const famAbajo = enlacesFam
-      .filter((e: EnlaceRelacion) => !TIPOS_FAM_ARRIBA.includes(e.tipo.toLowerCase()))
+      .filter(
+        (e: EnlaceRelacion) => !TIPOS_FAM_ARRIBA.includes(e.tipo.toLowerCase()),
+      )
       .map((e: EnlaceRelacion) => e.target);
 
     famArriba.forEach((id: string, i: number) => {
@@ -261,7 +267,12 @@ function GrafoD3({
               d.fy = null;
             }
           }) as unknown as (
-          selection: d3.Selection<SVGGElement | d3.BaseType, any, SVGGElement, unknown>,
+          selection: d3.Selection<
+            SVGGElement | d3.BaseType,
+            any,
+            SVGGElement,
+            unknown
+          >,
         ) => void,
       );
 
@@ -319,7 +330,9 @@ function GrafoD3({
       .attr("letter-spacing", "0.04em")
       .attr("fill", primary)
       .attr("fill-opacity", (d) => (d.esCentro ? 0.9 : 0.65))
-      .text((d) => (d.nombre.length > 14 ? d.nombre.slice(0, 13) + "…" : d.nombre));
+      .text((d) =>
+        d.nombre.length > 14 ? d.nombre.slice(0, 13) + "…" : d.nombre,
+      );
 
     nodeG
       .selectAll("g.nodo")
@@ -349,7 +362,9 @@ function GrafoD3({
     };
   }, [datos, centroId, width, height, primary, bgMain, accent]);
 
-  return <svg ref={svgRef} className="w-full h-full" height={height} width={width} />;
+  return (
+    <svg ref={svgRef} className="w-full h-full" height={height} width={width} />
+  );
 }
 
 // ─── Modal principal ──────────────────────────────────────────────────────────

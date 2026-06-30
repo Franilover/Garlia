@@ -178,7 +178,9 @@ function SnippetChip({
           left: pos.left,
           width: pos.width || 4,
           height: pos.height || 20,
-          background: "var(--bg-menu,#1a1730)",
+          // Usa la var que el editor expone; si no está definida, cae al fondo
+          // del contenedor más cercano (que ya es transparente sobre el editor)
+          background: "var(--editor-bg, var(--bg-menu, var(--background)))",
           pointerEvents: "none",
           zIndex: 1,
         }}
@@ -197,9 +199,12 @@ function SnippetChip({
           gap: 4,
           padding: "0 6px 0 5px",
           borderRadius: 999,
-          background: hovered ? bgHov : def.bg,
-          border: `1px solid ${def.border}`,
-          color: def.text,
+          background: hovered
+            ? "color-mix(in srgb, var(--color-primary, var(--primary)) 18%, transparent)"
+            : "color-mix(in srgb, var(--color-primary, var(--primary)) 9%, transparent)",
+          border:
+            "1px solid color-mix(in srgb, var(--color-primary, var(--primary)) 28%, transparent)",
+          color: "var(--color-primary, var(--primary))",
           fontSize: 10,
           fontWeight: 700,
           fontFamily: "var(--font-sans,system-ui)",
@@ -208,7 +213,9 @@ function SnippetChip({
           cursor: onEdit ? "pointer" : "default",
           userSelect: "none",
           transition: "background .12s, box-shadow .12s",
-          boxShadow: hovered ? `0 2px 10px ${def.border}` : "none",
+          boxShadow: hovered
+            ? "0 2px 10px color-mix(in srgb, var(--color-primary, var(--primary)) 30%, transparent)"
+            : "none",
           zIndex: 2,
         }}
         title={onEdit ? `Editar ${def.label}` : def.label}
@@ -218,10 +225,11 @@ function SnippetChip({
       >
         <span
           style={{
-            width: 5,
-            height: 5,
+            width: 4,
+            height: 4,
             borderRadius: "50%",
-            background: def.dot,
+            background: "var(--color-primary, var(--primary))",
+            opacity: 0.7,
             flexShrink: 0,
           }}
         />

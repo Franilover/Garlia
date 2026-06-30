@@ -900,7 +900,14 @@ const PanelEditor = ({
         <div
           ref={scrollRef}
           className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`}
-          style={{ WebkitOverflowScrolling: "touch" }}
+          style={{
+            WebkitOverflowScrolling: "touch",
+            // Expone el color de fondo real del editor para que el overlay
+            // de snippets (SnippetOverlay) sepa exactamente qué color usar
+            // al tapar el raw text [[...]] detrás de cada chip.
+            // @ts-expect-error: custom property
+            "--editor-bg": "var(--bg-main, var(--background))",
+          }}
         >
           <div ref={caretMirrorRef} aria-hidden="true" />
           <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
