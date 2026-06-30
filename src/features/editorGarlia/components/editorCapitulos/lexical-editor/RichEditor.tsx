@@ -49,8 +49,16 @@ import { ChoiceNode } from "./nodes/ChoiceNode";
 import { UseNode } from "./nodes/UseNode";
 import { GateNode } from "./nodes/GateNode";
 import { SectionNode } from "./nodes/SectionNode";
-import { snippetEditHandler, type SnippetEditRequest } from "./nodes/sharedTypes";
-import { rawTextToLexicalTree, serializeRootToRaw, insertSnippetNode } from "./richTextSerializer";
+import {
+  snippetEditHandler,
+  type SnippetEditRequest,
+} from "./nodes/sharedTypes";
+import {
+  rawTextToLexicalTree,
+  serializeRootToRaw,
+  insertSnippetNode,
+} from "./richTextSerializer";
+import { SlashCommandPlugin, type SlashMatch } from "./SlashCommandPlugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -71,6 +79,19 @@ export interface RichEditorProps {
   insertRef?: React.MutableRefObject<((raw: string) => void) | null>;
   /** Handler de edición de un snippet existente → abre SnippetCommandPalette */
   onSnippetEdit?: (req: SnippetEditRequest<any>) => void;
+  /**
+   * Se llama cuando el usuario escribe "/" para abrir el menú de comandos.
+   * El padre (EditorCapitulos) abre su <SnippetCommandPalette/> en
+   * anchorRect. Al elegir un comando, debe llamar a removeSlashQuery()
+   * (expuesto vía slashRemoveRef) antes de insertar el snippet, para
+   * borrar el "/texto" que quedó escrito.
+   */
+  onOpenPalette?: (
+    anchorRect: { top: number; left: number },
+    query: string,
+  ) => void;
+  /** Se llama con null cuando el "/" deja de coincidir (se cierra el menú) */
+  onClosePalette?: () => void;
   /** Entidades para autocompletado de wikilinks (opcional) */
   wikiEntities?: { name: string; type: string }[];
 }
@@ -120,16 +141,21 @@ function InitialContentPlugin({ initialRaw }: { initialRaw: string }) {
 
 function InsertSnippetPlugin({
   insertRef,
+  slashRemoveRef,
 }: {
   insertRef: React.MutableRefObject<((raw: string) => void) | null>;
+  slashRemoveRef: React.MutableRefObject<(() => void) | null>;
 }) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
     insertRef.current = (raw: string) => {
+      // Si había un "/query" pendiente de cuando se abrió la palette,
+      // lo borramos antes de insertar el nodo del snippet elegido.
+      slashRemoveRef.current?.();
       editor.update(() => insertSnippetNode(raw));
     };
-  }, [editor, insertRef]);
+  }, [editor, insertRef, slashRemoveRef]);
 
   return null;
 }
@@ -148,17 +174,11 @@ function ToolbarPlugin({
   const [editor] = useLexicalComposerContext();
 
   const formatBold = () => {
-    editor.dispatchCommand(
-      require("lexical").FORMAT_TEXT_COMMAND,
-      "bold",
-    );
+    editor.dispatchCommand(require("lexical").FORMAT_TEXT_COMMAND, "bold");
   };
 
   const formatItalic = () => {
-    editor.dispatchCommand(
-      require("lexical").FORMAT_TEXT_COMMAND,
-      "italic",
-    );
+    editor.dispatchCommand(require("lexical").FORMAT_TEXT_COMMAND, "italic");
   };
 
   const btnStyle = (active?: boolean): React.CSSProperties => ({
@@ -199,15 +219,30 @@ function ToolbarPlugin({
         flexWrap: "wrap",
       }}
     >
-      <button style={btnStyle()} title="Negrita (Ctrl+B)" type="button" onClick={formatBold}>
+      <button
+        style={btnStyle()}
+        title="Negrita (Ctrl+B)"
+        type="button"
+        onClick={formatBold}
+      >
         <strong>B</strong>
       </button>
-      <button style={btnStyle()} title="Cursiva (Ctrl+I)" type="button" onClick={formatItalic}>
+      <button
+        style={btnStyle()}
+        title="Cursiva (Ctrl+I)"
+        type="button"
+        onClick={formatItalic}
+      >
         <em>I</em>
       </button>
 
       <div
-        style={{ width: 1, height: 16, background: "var(--border)", margin: "0 4px" }}
+        style={{
+          width: 1,
+          height: 16,
+          background: "var(--border)",
+          margin: "0 4px",
+        }}
       />
 
       {modeBtn("edit", "Editar")}
@@ -232,6 +267,8 @@ export function RichEditor({
   autoFocus = false,
   insertRef,
   onSnippetEdit,
+  onOpenPalette,
+  onClosePalette,
   wikiEntities,
 }: RichEditorProps) {
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
@@ -246,6 +283,21 @@ export function RichEditor({
   // Ref interno para insertar snippets (si el padre no pasa el suyo)
   const internalInsertRef = useRef<((raw: string) => void) | null>(null);
   const activeInsertRef = insertRef ?? internalInsertRef;
+
+  // Borra el "/query" pendiente del documento — InsertSnippetPlugin lo
+  // invoca automáticamente antes de insertar el nodo elegido.
+  const slashRemoveRef = useRef<(() => void) | null>(null);
+
+  const handleSlashMatch = useCallback(
+    (match: SlashMatch | null) => {
+      if (match) {
+        onOpenPalette?.(match.anchorRect, match.query);
+      } else {
+        onClosePalette?.();
+      }
+    },
+    [onOpenPalette, onClosePalette],
+  );
 
   const initialConfig = useMemo(
     () => ({
@@ -329,11 +381,7 @@ export function RichEditor({
           {mode !== "preview" && (
             <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
               <RichTextPlugin
-                contentEditable={
-                  <ContentEditable
-                    style={editorStyle}
-                  />
-                }
+                contentEditable={<ContentEditable style={editorStyle} />}
                 placeholder={
                   <div
                     style={{
@@ -342,7 +390,8 @@ export function RichEditor({
                       left: 12,
                       fontSize: 11,
                       fontFamily: "var(--font-mono)",
-                      color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+                      color:
+                        "color-mix(in srgb, var(--foreground) 25%, transparent)",
                       pointerEvents: "none",
                       userSelect: "none",
                     }}
@@ -356,7 +405,14 @@ export function RichEditor({
               <HistoryPlugin />
               {autoFocus && <AutoFocusPlugin />}
               <InitialContentPlugin initialRaw={value} />
-              <InsertSnippetPlugin insertRef={activeInsertRef} />
+              <InsertSnippetPlugin
+                insertRef={activeInsertRef}
+                slashRemoveRef={slashRemoveRef}
+              />
+              <SlashCommandPlugin
+                onMatch={handleSlashMatch}
+                removeMatchRef={slashRemoveRef}
+              />
               <OnChangePlugin onChange={handleChange} />
             </div>
           )}

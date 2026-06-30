@@ -30,6 +30,8 @@ type SnippetType =
 interface PaletteProps {
   anchorRect: { top: number; left: number };
   initialRaw?: string;
+  /** Texto pre-cargado en el buscador principal (ej. lo escrito tras "/") */
+  initialQuery?: string;
   listaCapitulos?: { id: string; orden: number; titulo_capitulo: string }[];
   listaSecciones?: { id: string; label: string }[];
   onInsert: (raw: string) => void;
@@ -1537,12 +1539,13 @@ function FormSound({
 export function SnippetCommandPalette({
   anchorRect,
   initialRaw,
+  initialQuery = "",
   listaCapitulos = [],
   listaSecciones = [],
   onInsert,
   onClose,
 }: PaletteProps) {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const [activeIdx, setActiveIdx] = useState(0);
   const [selectedType, setSelectedType] = useState<SnippetType | null>(() => {
     if (!initialRaw) return null;

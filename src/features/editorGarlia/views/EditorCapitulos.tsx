@@ -232,6 +232,7 @@ const PanelEditor = ({
   const [palette, setPalette] = useState<{
     anchorRect: { top: number; left: number };
     initialRaw?: string;
+    initialQuery?: string;
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const timer = useRef<any>(null);
@@ -405,11 +406,23 @@ const PanelEditor = ({
     [listaSnippetCaps],
   );
 
-  const openPalette = useCallback((initialRaw?: string) => {
-    // Con Lexical ya no hay textarea ni caret que medir —
-    // la palette se ancla a una posición fija centrada.
-    setPalette({ anchorRect: { top: 200, left: 300 }, initialRaw });
-  }, []);
+  const openPalette = useCallback(
+    (
+      initialRaw?: string,
+      anchorRect?: { top: number; left: number },
+      initialQuery?: string,
+    ) => {
+      // Con Lexical ya no hay textarea ni caret que medir —
+      // si no nos pasan un anchorRect real (ej. desde "/" en RichEditor),
+      // la palette se ancla a una posición fija centrada.
+      setPalette({
+        anchorRect: anchorRect ?? { top: 200, left: 300 },
+        initialRaw,
+        initialQuery,
+      });
+    },
+    [],
+  );
 
   // Helper: convierte payload de un nodo editado → raw [[kind|...]]
   // para pasárselo a SnippetCommandPalette como initialRaw
@@ -906,6 +919,10 @@ const PanelEditor = ({
               value={contenido}
               onChange={onChange}
               onSnippetEdit={handleSnippetEdit}
+              onOpenPalette={(anchorRect, query) =>
+                openPalette(undefined, anchorRect, query)
+              }
+              onClosePalette={() => setPalette(null)}
             />
           </div>
         </div>
@@ -937,6 +954,7 @@ const PanelEditor = ({
         <SnippetCommandPalette
           anchorRect={palette.anchorRect}
           initialRaw={palette.initialRaw}
+          initialQuery={palette.initialQuery}
           listaCapitulos={listaSnippetCaps}
           listaSecciones={listaSecciones}
           onClose={() => {
