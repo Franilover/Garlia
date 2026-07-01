@@ -67,18 +67,44 @@ export function SlashCommandPlugin({
   const [editor] = useLexicalComposerContext();
   const activeRef = useRef(false);
 
+  // Borra el "/query" actual del documento, si lo hay, sin importar
+  // dónde esté enfocado el DOM ahora mismo — usamos la selección lógica
+  // que Lexical sigue conservando en su EditorState aunque el foco DOM
+  // se haya movido al <input> del popover.
+  const clearSlashQuery = useCallback(() => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection) || !selection.isCollapsed()) return;
+      const node = selection.anchor.getNode();
+      if (!$isTextNode(node)) return;
+
+      const offset = selection.anchor.offset;
+      const textBeforeCursor = node.getTextContent().slice(0, offset);
+      const match = SLASH_RE.exec(textBeforeCursor);
+      if (!match) return;
+
+      const matchStart =
+        offset - match[0].length + (match[0].startsWith(" ") ? 1 : 0);
+      node.spliceText(matchStart, offset - matchStart, "", true);
+    });
+  }, [editor]);
+
   // El padre llama esto cuando SnippetCommandPalette se cierra por
-  // click-outside, Escape dentro del popover, o tras insertar un
-  // snippet — reactiva la detección de "/" para la próxima vez.
+  // CUALQUIER motivo: click-outside, Escape en el popover, o tras
+  // insertar un snippet. SIEMPRE borra el "/query" residual del
+  // documento (si quedó alguno) y reactiva la detección para el
+  // próximo "/". Antes esto solo reseteaba activeRef y dejaba el "/"
+  // escrito si el usuario cerraba sin elegir nada.
   useEffect(() => {
     if (!notifyClosedRef) return;
     notifyClosedRef.current = () => {
       activeRef.current = false;
+      clearSlashQuery();
     };
     return () => {
       notifyClosedRef.current = null;
     };
-  }, [notifyClosedRef]);
+  }, [notifyClosedRef, clearSlashQuery]);
 
   const checkForSlashMatch = useCallback(
     (editorState: import("lexical").EditorState) => {
@@ -142,26 +168,12 @@ export function SlashCommandPlugin({
     if (!removeMatchRef) return;
     removeMatchRef.current = () => {
       activeRef.current = false;
-      editor.update(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection) || !selection.isCollapsed()) return;
-        const node = selection.anchor.getNode();
-        if (!$isTextNode(node)) return;
-
-        const offset = selection.anchor.offset;
-        const textBeforeCursor = node.getTextContent().slice(0, offset);
-        const match = SLASH_RE.exec(textBeforeCursor);
-        if (!match) return;
-
-        const matchStart =
-          offset - match[0].length + (match[0].startsWith(" ") ? 1 : 0);
-        node.spliceText(matchStart, offset - matchStart, "", true);
-      });
+      clearSlashQuery();
     };
     return () => {
       removeMatchRef.current = null;
     };
-  }, [editor, removeMatchRef]);
+  }, [removeMatchRef, clearSlashQuery]);
 
   useEffect(() => {
     return editor.registerUpdateListener(({ editorState }) => {
@@ -169,19 +181,23 @@ export function SlashCommandPlugin({
     });
   }, [editor, checkForSlashMatch]);
 
-  // Escape cierra el menú si está abierto
+  // Escape cierra el menú si está abierto (fallback: solo dispara si el
+  // foco DOM sigue en el editor, lo cual ya no es lo habitual ahora que
+  // el popover toma foco al abrirse — el cierre real pasa por
+  // notifyClosedRef desde EditorCapitulos).
   useEffect(() => {
     return editor.registerCommand(
       KEY_ESCAPE_COMMAND,
       () => {
         if (!activeRef.current) return false;
         activeRef.current = false;
+        clearSlashQuery();
         onMatch(null);
         return true;
       },
       COMMAND_PRIORITY_LOW,
     );
-  }, [editor, onMatch]);
+  }, [editor, onMatch, clearSlashQuery]);
 
   return null;
 }
