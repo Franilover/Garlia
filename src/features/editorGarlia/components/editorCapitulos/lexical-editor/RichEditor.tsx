@@ -92,6 +92,14 @@ export interface RichEditorProps {
   ) => void;
   /** Se llama con null cuando el "/" deja de coincidir (se cierra el menú) */
   onClosePalette?: () => void;
+  /**
+   * Ref imperativo: el padre lo invoca cuando SnippetCommandPalette se
+   * cierra por CUALQUIER motivo (click afuera, Escape, o tras insertar
+   * un comando). Sin esto, el plugin de "/" queda "trabado" en estado
+   * abierto para siempre después del primer uso, porque nada le avisa
+   * que puede volver a escuchar.
+   */
+  closePaletteRef?: React.MutableRefObject<(() => void) | null>;
   /** Entidades para autocompletado de wikilinks (opcional) */
   wikiEntities?: { name: string; type: string }[];
 }
@@ -284,6 +292,7 @@ export function RichEditor({
   onSnippetEdit,
   onOpenPalette,
   onClosePalette,
+  closePaletteRef,
   wikiEntities,
 }: RichEditorProps) {
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
@@ -302,6 +311,22 @@ export function RichEditor({
   // Borra el "/query" pendiente del documento — InsertSnippetPlugin lo
   // invoca automáticamente antes de insertar el nodo elegido.
   const slashRemoveRef = useRef<(() => void) | null>(null);
+
+  // Le avisa al plugin que la palette se cerró (por cualquier motivo)
+  // para que vuelva a escuchar el próximo "/". Sin esto, tras la
+  // primera apertura el plugin quedaba permanentemente en estado
+  // "activo" y ya no detectaba nuevos "/".
+  const notifyClosedRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!closePaletteRef) return;
+    closePaletteRef.current = () => {
+      notifyClosedRef.current?.();
+    };
+    return () => {
+      if (closePaletteRef) closePaletteRef.current = null;
+    };
+  }, [closePaletteRef]);
 
   const handleSlashMatch = useCallback(
     (match: SlashMatch | null) => {
@@ -427,6 +452,7 @@ export function RichEditor({
               <SlashCommandPlugin
                 onMatch={handleSlashMatch}
                 removeMatchRef={slashRemoveRef}
+                notifyClosedRef={notifyClosedRef}
               />
               <OnChangePlugin onChange={handleChange} />
             </div>

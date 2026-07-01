@@ -238,6 +238,7 @@ const PanelEditor = ({
   const timer = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mdInsertRef = useRef<((raw: string) => void) | null>(null);
+  const closePaletteRef = useRef<(() => void) | null>(null);
   const pendingReplaceRef = useRef<((next: string) => void) | null>(null);
   const pendingSnippetRawRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
@@ -944,6 +945,7 @@ const PanelEditor = ({
             <RichEditor
               autoFocus={focusMode}
               insertRef={mdInsertRef}
+              closePaletteRef={closePaletteRef}
               minHeight={focusMode ? "30rem" : "20rem"}
               mode={focusMode ? "edit" : "split"}
               placeholder="Empieza a escribir…"
@@ -990,12 +992,16 @@ const PanelEditor = ({
             setPalette(null);
             pendingReplaceRef.current = null;
             pendingSnippetRawRef.current = null;
+            // Le avisa al SlashCommandPlugin que puede volver a escuchar
+            // el próximo "/" — sin esto quedaba trabado tras el primer uso.
+            closePaletteRef.current?.();
           }}
           onInsert={(raw) => {
             insertOrReplace(raw);
             setPalette(null);
             pendingReplaceRef.current = null;
             pendingSnippetRawRef.current = null;
+            closePaletteRef.current?.();
           }}
         />
       )}
