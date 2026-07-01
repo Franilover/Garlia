@@ -58,53 +58,56 @@ export function SlashCommandPlugin({
   const [editor] = useLexicalComposerContext();
   const activeRef = useRef(false);
 
-  const checkForSlashMatch = useCallback(() => {
-    editor.getEditorState().read(() => {
-      const selection = $getSelection();
-      if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
-        if (activeRef.current) {
-          activeRef.current = false;
-          onMatch(null);
+  const checkForSlashMatch = useCallback(
+    (editorState: import("lexical").EditorState) => {
+      editorState.read(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+          if (activeRef.current) {
+            activeRef.current = false;
+            onMatch(null);
+          }
+          return;
         }
-        return;
-      }
 
-      const node = selection.anchor.getNode();
-      if (!$isTextNode(node)) {
-        if (activeRef.current) {
-          activeRef.current = false;
-          onMatch(null);
+        const node = selection.anchor.getNode();
+        if (!$isTextNode(node)) {
+          if (activeRef.current) {
+            activeRef.current = false;
+            onMatch(null);
+          }
+          return;
         }
-        return;
-      }
 
-      const offset = selection.anchor.offset;
-      const textBeforeCursor = node.getTextContent().slice(0, offset);
-      const match = SLASH_RE.exec(textBeforeCursor);
+        const offset = selection.anchor.offset;
+        const textBeforeCursor = node.getTextContent().slice(0, offset);
+        const match = SLASH_RE.exec(textBeforeCursor);
 
-      if (!match) {
-        if (activeRef.current) {
-          activeRef.current = false;
-          onMatch(null);
+        if (!match) {
+          if (activeRef.current) {
+            activeRef.current = false;
+            onMatch(null);
+          }
+          return;
         }
-        return;
-      }
 
-      const domSelection = window.getSelection();
-      if (!domSelection || domSelection.rangeCount === 0) return;
-      const range = domSelection.getRangeAt(0).cloneRange();
-      const rect = range.getBoundingClientRect();
+        const domSelection = window.getSelection();
+        if (!domSelection || domSelection.rangeCount === 0) return;
+        const range = domSelection.getRangeAt(0).cloneRange();
+        const rect = range.getBoundingClientRect();
 
-      activeRef.current = true;
-      onMatch({
-        query: match[1] ?? "",
-        anchorRect: {
-          top: rect.bottom + window.scrollY + 6,
-          left: rect.left + window.scrollX,
-        },
+        activeRef.current = true;
+        onMatch({
+          query: match[1] ?? "",
+          anchorRect: {
+            top: rect.bottom + window.scrollY + 6,
+            left: rect.left + window.scrollX,
+          },
+        });
       });
-    });
-  }, [editor, onMatch]);
+    },
+    [onMatch],
+  );
 
   // Expone al padre cómo borrar el "/query" actual del documento
   useEffect(() => {
@@ -121,7 +124,8 @@ export function SlashCommandPlugin({
         const match = SLASH_RE.exec(textBeforeCursor);
         if (!match) return;
 
-        const matchStart = offset - match[0].length + (match[0].startsWith(" ") ? 1 : 0);
+        const matchStart =
+          offset - match[0].length + (match[0].startsWith(" ") ? 1 : 0);
         node.spliceText(matchStart, offset - matchStart, "", true);
       });
     };
@@ -131,8 +135,8 @@ export function SlashCommandPlugin({
   }, [editor, removeMatchRef]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(() => {
-      checkForSlashMatch();
+    return editor.registerUpdateListener(({ editorState }) => {
+      checkForSlashMatch(editorState);
     });
   }, [editor, checkForSlashMatch]);
 

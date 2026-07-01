@@ -424,6 +424,37 @@ const PanelEditor = ({
     [],
   );
 
+  // Refs con el último valor de "palette" para comparar sin generar
+  // dependencias inestables — evita que handleOpenPaletteFromSlash cambie
+  // de identidad en cada render (lo que reiniciaría el listener del
+  // plugin de Lexical y podía disparar un loop de renders/foco perdido).
+  const paletteRef = useRef(palette);
+  paletteRef.current = palette;
+
+  const handleOpenPaletteFromSlash = useCallback(
+    (anchorRect: { top: number; left: number }, query: string) => {
+      const current = paletteRef.current;
+      // Si ya está abierta con el mismo query, no volvemos a setState:
+      // registerUpdateListener de Lexical dispara en CADA cambio del
+      // editor, y sin este guard, cada render de EditorCapitulos volvía
+      // a re-montar el plugin y a re-evaluar el match → loop infinito.
+      if (
+        current &&
+        current.initialQuery === query &&
+        current.anchorRect.top === anchorRect.top &&
+        current.anchorRect.left === anchorRect.left
+      ) {
+        return;
+      }
+      setPalette({ anchorRect, initialRaw: undefined, initialQuery: query });
+    },
+    [],
+  );
+
+  const handleClosePalette = useCallback(() => {
+    setPalette((prev) => (prev ? null : prev));
+  }, []);
+
   // Helper: convierte payload de un nodo editado → raw [[kind|...]]
   // para pasárselo a SnippetCommandPalette como initialRaw
   const snippetPayloadToRaw = useCallback(
@@ -919,10 +950,8 @@ const PanelEditor = ({
               value={contenido}
               onChange={onChange}
               onSnippetEdit={handleSnippetEdit}
-              onOpenPalette={(anchorRect, query) =>
-                openPalette(undefined, anchorRect, query)
-              }
-              onClosePalette={() => setPalette(null)}
+              onOpenPalette={handleOpenPaletteFromSlash}
+              onClosePalette={handleClosePalette}
             />
           </div>
         </div>
