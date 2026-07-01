@@ -11,7 +11,11 @@
  *   - Mismo formato de guardado: [[drop|...]], [[sound|...]], etc.
  *     → parseContenido(), ContenidoInteractivo, SegmentRenderers: sin cambios
  *   - Markdown shortcuts preservados (**, *, #, ##, etc.)
- *   - Modo preview igual que antes (renderMarkdown sobre el raw serializado)
+ *   - Modo preview genérico vía prop `renderPreview` — cada consumidor
+ *     decide cómo renderizar. EditorCapitulos pasa ContenidoInteractivo
+ *     (mismo componente del lector real) para resolver [[drop|...]] y
+ *     similares; sin esa prop, cae a renderMarkdown (markdown plano),
+ *     igual que el comportamiento original.
  *   - SnippetCommandPalette existente conectado sin cambios
  *
  * Props compatibles con las del MarkdownEditor anterior para simplificar
@@ -40,8 +44,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-
-import { renderMarkdown } from "@/components/forms/Markdown/markdownRenderer";
 
 import { DropNode } from "./nodes/DropNode";
 import { SoundNode } from "./nodes/SoundNode";
@@ -103,6 +105,27 @@ export interface RichEditorProps {
   closePaletteRef?: React.MutableRefObject<(() => void) | null>;
   /** Entidades para autocompletado de wikilinks (opcional) */
   wikiEntities?: { name: string; type: string }[];
+  /**
+   * Cómo renderizar el panel de "Preview"/"Split". RichEditor es
+   * genérico — no todos los consumidores usan el formato [[kind|...]]
+   * de snippets (drop/choice/gate/etc). Por defecto usa el markdown
+   * plano estándar (renderMarkdown), igual que antes.
+   *
+   * EditorCapitulos debe pasar una función que use ContenidoInteractivo
+   * (el mismo componente del lector real) para que el preview resuelva
+   * [[drop|...]], [[choice|...]], etc. correctamente — con
+   * renderMarkdown esos snippets se mostraban como texto raw literal,
+   * porque ese pipeline solo entiende markdown normal y [[TOC]].
+   *
+   *   // En EditorCapitulos.tsx:
+   *   renderPreview={(raw) => (
+   *     <ContenidoInteractivo texto={raw} onNavigate={() => {}} />
+   *   )}
+   *
+   * Otros editores que solo necesiten markdown normal no pasan nada y
+   * siguen funcionando igual que siempre.
+   */
+  renderPreview?: (raw: string) => React.ReactNode;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -264,6 +287,7 @@ export function RichEditor({
   onClosePalette,
   closePaletteRef,
   wikiEntities,
+  renderPreview,
 }: RichEditorProps) {
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
   const mode = modeProp ?? internalMode;
@@ -354,10 +378,23 @@ export function RichEditor({
     [onChange],
   );
 
-  const previewHtml = useMemo(
-    () => (mode !== "edit" ? renderMarkdown(value) : ""),
-    [mode, value],
-  );
+  // Fallback por defecto: markdown plano estándar, igual que el
+  // comportamiento original. Se carga perezosamente (dynamic import)
+  // para no forzar esta dependencia en el bundle de editores que ya
+  // pasan su propio `renderPreview` (como EditorCapitulos).
+  const [fallbackHtml, setFallbackHtml] = useState("");
+  useEffect(() => {
+    if (renderPreview || mode === "edit") return;
+    let cancelled = false;
+    import("@/components/forms/Markdown/markdownRenderer").then(
+      ({ renderMarkdown }) => {
+        if (!cancelled) setFallbackHtml(renderMarkdown(value));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [renderPreview, mode, value]);
 
   const editorStyle: React.CSSProperties = {
     minHeight,
@@ -433,20 +470,37 @@ export function RichEditor({
             </div>
           )}
 
-          {/* Panel de preview */}
-          {mode !== "edit" && (
-            <div
-              className="prose-mundo"
-              dangerouslySetInnerHTML={{ __html: previewHtml }}
-              style={{
-                flex: 1,
-                padding: "8px 12px",
-                overflowY: "auto",
-                fontSize: "clamp(0.9rem, 2vw, 1rem)",
-                lineHeight: 1.8,
-              }}
-            />
-          )}
+          {/* Panel de preview — usa renderPreview del padre si lo pasa
+              (p. ej. EditorCapitulos con ContenidoInteractivo para
+              resolver [[drop|...]] etc.), si no cae al markdown plano
+              estándar de siempre. */}
+          {mode !== "edit" &&
+            (renderPreview ? (
+              <div
+                className="prose-mundo"
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  overflowY: "auto",
+                  fontSize: "clamp(0.9rem, 2vw, 1rem)",
+                  lineHeight: 1.8,
+                }}
+              >
+                {renderPreview(value)}
+              </div>
+            ) : (
+              <div
+                className="prose-mundo"
+                dangerouslySetInnerHTML={{ __html: fallbackHtml }}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  overflowY: "auto",
+                  fontSize: "clamp(0.9rem, 2vw, 1rem)",
+                  lineHeight: 1.8,
+                }}
+              />
+            ))}
         </div>
       </LexicalComposer>
     </div>

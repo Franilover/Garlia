@@ -137,8 +137,41 @@ export function SlashCommandPlugin({
 
         const domSelection = window.getSelection();
         if (!domSelection || domSelection.rangeCount === 0) return;
-        const range = domSelection.getRangeAt(0).cloneRange();
-        const rect = range.getBoundingClientRect();
+        const collapsedRange = domSelection.getRangeAt(0);
+        const anchorNode = domSelection.anchorNode;
+        const anchorOffset = domSelection.anchorOffset;
+
+        // No usamos el rect del rango colapsado (el del cursor) directamente:
+        // 1) en varios navegadores, un Range colapsado puede devolver un
+        //    DOMRect vacío (0,0,0,0) hasta el próximo repintado — eso hacía
+        //    que el menú "saltara" a la esquina superior de la pantalla.
+        // 2) el cursor avanza a la derecha a medida que el usuario escribe
+        //    la query, así que anclar ahí movía el menú lejos del "/".
+        // En cambio medimos un rango NO colapsado que va desde el "/" hasta
+        // el cursor actual, dentro del mismo nodo de texto del DOM — un
+        // rango con contenido real siempre devuelve un rect fiable, y su
+        // borde izquierdo cae justo donde está el "/".
+        const matchLength =
+          match[0].length - (match[0].startsWith(" ") ? 1 : 0);
+        const matchStartOffset = Math.max(0, anchorOffset - matchLength);
+
+        let rect: DOMRect = collapsedRange.cloneRange().getBoundingClientRect();
+        if (anchorNode) {
+          try {
+            const measureRange = document.createRange();
+            measureRange.setStart(anchorNode, matchStartOffset);
+            measureRange.setEnd(anchorNode, anchorOffset);
+            const measured = measureRange.getBoundingClientRect();
+            // Solo la usamos si trajo algo medible; si no, nos quedamos
+            // con el rect colapsado de arriba como fallback.
+            if (measured.width > 0 || measured.height > 0) {
+              rect = measured;
+            }
+          } catch {
+            // anchorOffset/matchStartOffset fuera de rango (edge case de
+            // nodos de texto partidos) — nos quedamos con el fallback.
+          }
+        }
 
         // getBoundingClientRect() ya es relativo al viewport (fixed).
         // El popover usa position:fixed, así que NO hay que sumar

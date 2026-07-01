@@ -44,6 +44,7 @@ import type {
 } from "@/components/forms/Markdown/commandItems";
 import { RichEditor } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
 import type { SnippetEditRequest } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
 import {
   dropPayloadToRaw,
   soundPayloadToRaw,
@@ -455,6 +456,17 @@ const PanelEditor = ({
   const handleClosePalette = useCallback(() => {
     setPalette((prev) => (prev ? null : prev));
   }, []);
+
+  // Preview de RichEditor: usa ContenidoInteractivo, el MISMO componente
+  // que el lector real (CapituloScrollBlock), para que "Preview"/"Split"
+  // muestre [[drop|...]], [[choice|...]], etc. ya resueltos en vez del
+  // raw literal (antes usaba renderMarkdown, que no entiende ese formato).
+  // onNavigate es no-op: dentro del editor no tiene sentido saltar de
+  // capítulo/sección al hacer click en un choice/use del preview.
+  const renderChapterPreview = useCallback(
+    (raw: string) => <ContenidoInteractivo texto={raw} onNavigate={() => {}} />,
+    [],
+  );
 
   // Helper: convierte payload de un nodo editado → raw [[kind|...]]
   // para pasárselo a SnippetCommandPalette como initialRaw
@@ -954,6 +966,7 @@ const PanelEditor = ({
               onSnippetEdit={handleSnippetEdit}
               onOpenPalette={handleOpenPaletteFromSlash}
               onClosePalette={handleClosePalette}
+              renderPreview={renderChapterPreview}
             />
           </div>
         </div>
