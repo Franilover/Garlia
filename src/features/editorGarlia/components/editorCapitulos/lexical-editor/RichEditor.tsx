@@ -122,11 +122,26 @@ const RICH_EDITOR_NODES = [
 
 function InitialContentPlugin({ initialRaw }: { initialRaw: string }) {
   const [editor] = useLexicalComposerContext();
-  const loaded = useRef(false);
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
+    // En vez de rastrear "quién emitió este valor" con una ref que puede
+    // desincronizarse entre cambios de capítulo (causaba que el editor
+    // quedara vacío al seleccionar un capítulo con contenido real),
+    // comparamos directamente contra lo que el árbol de Lexical tiene
+    // AHORA MISMO serializado. Si coincide, no tocamos nada (evita perder
+    // cursor/foco mientras el usuario escribe). Si no coincide —porque es
+    // la carga inicial, cambiaste de capítulo, o llegó un refresh remoto
+    // con contenido distinto— recargamos el árbol completo.
+    const currentSerialized = isFirstRun.current
+      ? null
+      : editor.read(() => serializeRootToRaw());
+
+    if (!isFirstRun.current && currentSerialized === initialRaw) {
+      return;
+    }
+    isFirstRun.current = false;
+
     editor.update(() => {
       rawTextToLexicalTree(initialRaw);
     });
