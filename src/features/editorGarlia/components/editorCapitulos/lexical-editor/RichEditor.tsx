@@ -17,6 +17,7 @@
  * Props compatibles con las del MarkdownEditor anterior para simplificar
  * la migración en EditorCapitulos.tsx.
  */
+import { Edit3, Eye, Columns2 } from "lucide-react";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -184,93 +185,62 @@ function InsertSnippetPlugin({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Toolbar
+// Toggle de modo — icon-only, sin caja ni bordes (igual que el mobile toggle
+// de MarkdownEditor). Sin botones de formato: bold/italic/etc ya se aplican
+// con los shortcuts de markdown (**, *, #...) vía MarkdownShortcutPlugin.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ToolbarPlugin({
+function ModeTogglePlugin({
   mode,
   onModeChange,
 }: {
   mode: ViewMode;
   onModeChange: (m: ViewMode) => void;
 }) {
-  const [editor] = useLexicalComposerContext();
-
-  const formatBold = () => {
-    editor.dispatchCommand(require("lexical").FORMAT_TEXT_COMMAND, "bold");
-  };
-
-  const formatItalic = () => {
-    editor.dispatchCommand(require("lexical").FORMAT_TEXT_COMMAND, "italic");
-  };
-
-  const btnStyle = (active?: boolean): React.CSSProperties => ({
-    background: active
-      ? "color-mix(in srgb, var(--color-primary, var(--primary)) 15%, transparent)"
-      : "none",
-    border: "0.5px solid var(--border)",
-    borderRadius: 6,
-    padding: "3px 8px",
-    fontSize: 11,
-    fontWeight: 600,
-    color: active
-      ? "var(--color-primary, var(--primary))"
-      : "var(--foreground)",
-    cursor: "pointer",
-    fontFamily: "var(--font-sans)",
-  });
-
-  const modeBtn = (m: ViewMode, label: string) => (
-    <button
-      key={m}
-      style={btnStyle(mode === m)}
-      type="button"
-      onClick={() => onModeChange(m)}
-    >
-      {label}
-    </button>
-  );
+  const items: { m: ViewMode; Icon: typeof Edit3; title: string }[] = [
+    { m: "edit", Icon: Edit3, title: "Editar" },
+    { m: "split", Icon: Columns2, title: "Split" },
+    { m: "preview", Icon: Eye, title: "Vista previa" },
+  ];
 
   return (
     <div
       style={{
         display: "flex",
+        justifyContent: "flex-end",
         alignItems: "center",
-        gap: 6,
-        padding: "6px 12px",
-        borderBottom: "0.5px solid var(--border)",
-        flexWrap: "wrap",
+        gap: 2,
+        padding: "3px 6px",
+        flexShrink: 0,
       }}
     >
-      <button
-        style={btnStyle()}
-        title="Negrita (Ctrl+B)"
-        type="button"
-        onClick={formatBold}
-      >
-        <strong>B</strong>
-      </button>
-      <button
-        style={btnStyle()}
-        title="Cursiva (Ctrl+I)"
-        type="button"
-        onClick={formatItalic}
-      >
-        <em>I</em>
-      </button>
-
-      <div
-        style={{
-          width: 1,
-          height: 16,
-          background: "var(--border)",
-          margin: "0 4px",
-        }}
-      />
-
-      {modeBtn("edit", "Editar")}
-      {modeBtn("split", "Split")}
-      {modeBtn("preview", "Preview")}
+      {items.map(({ m, Icon, title }) => {
+        const isActive = mode === m;
+        return (
+          <button
+            key={m}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 22,
+              height: 20,
+              background: "transparent",
+              color: isActive
+                ? "color-mix(in srgb, var(--foreground) 60%, transparent)"
+                : "color-mix(in srgb, var(--foreground) 18%, transparent)",
+              border: "none",
+              cursor: "pointer",
+              transition: "color 0.1s",
+            }}
+            title={title}
+            type="button"
+            onClick={() => onModeChange(m)}
+          >
+            <Icon size={9} />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -391,8 +361,9 @@ export function RichEditor({
 
   const editorStyle: React.CSSProperties = {
     minHeight,
+    flex: 1,
     ...(maxHeight ? { maxHeight, overflowY: "auto" } : {}),
-    padding: "8px 12px",
+    padding: "4px 8px 8px",
     outline: "none",
     fontSize: 11,
     lineHeight: 1.7,
@@ -401,33 +372,37 @@ export function RichEditor({
   };
 
   return (
-    <div
-      style={{
-        border: "0.5px solid var(--border)",
-        borderRadius: 10,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        // Expone el color de fondo del editor para eventuales overlays internos
-        // @ts-expect-error custom property
-        "--editor-bg": "var(--bg-main, var(--background))",
-      }}
-    >
+    <div className="flex flex-col w-full h-full">
       <LexicalComposer initialConfig={initialConfig}>
-        <ToolbarPlugin mode={mode} onModeChange={handleModeChange} />
+        <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} />
 
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            flexDirection: mode === "split" ? "row" : "column",
+            position: "relative",
+          }}
+        >
           {/* Panel de edición */}
           {mode !== "preview" && (
-            <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <RichTextPlugin
                 contentEditable={<ContentEditable style={editorStyle} />}
                 placeholder={
                   <div
                     style={{
                       position: "absolute",
-                      top: 8,
-                      left: 12,
+                      top: 4,
+                      left: 8,
                       fontSize: 11,
                       fontFamily: "var(--font-mono)",
                       color:
@@ -456,11 +431,6 @@ export function RichEditor({
               />
               <OnChangePlugin onChange={handleChange} />
             </div>
-          )}
-
-          {/* Separador split */}
-          {mode === "split" && (
-            <div style={{ width: 1, background: "var(--border)" }} />
           )}
 
           {/* Panel de preview */}
