@@ -40,11 +40,11 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Ciudad } from "./EditorCiudad";
 import { useGrupos, GRUPO_TIPO_CONFIG, type Grupo } from "./EditorGrupo";
 import { EditorMapa } from "./EditorMapa";
 import { PanelHistoriaMundo } from "../views/EditorLineaTiempo";
 import {
+  type Ciudad,
   type MundoSectionKey,
   type Nota,
   type Personaje,
