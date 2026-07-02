@@ -73,6 +73,7 @@ import {
 } from "./FindReplacePlugin";
 import { AutoClosePlugin } from "./AutoClosePlugin";
 import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
+import { TocPanel } from "./TocPlugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -432,6 +433,7 @@ export function RichEditor({
   const [findReplace, setFindReplace] = useState<FindReplaceState>(
     initialFindReplaceState,
   );
+  const [tocOpen, setTocOpen] = useState(false);
 
   // Ref interno para insertar snippets (si el padre no pasa el suyo)
   const internalInsertRef = useRef<((raw: string) => void) | null>(null);
@@ -552,11 +554,25 @@ export function RichEditor({
   return (
     <div className="flex flex-col w-full h-full">
       <LexicalComposer initialConfig={initialConfig}>
-        <ModeTogglePlugin
-          mode={mode}
-          onModeChange={handleModeChange}
-          showSplitMode={showSplitMode}
-        />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 4,
+          }}
+        >
+          <TocPanel
+            open={tocOpen}
+            onToggle={() => setTocOpen((o) => !o)}
+            onClose={() => setTocOpen(false)}
+          />
+          <ModeTogglePlugin
+            mode={mode}
+            onModeChange={handleModeChange}
+            showSplitMode={showSplitMode}
+          />
+        </div>
 
         <div
           style={{
