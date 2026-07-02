@@ -15,7 +15,6 @@ import {
   Flower2,
   CircleUser,
   Search,
-  ArrowRight,
   User,
   Crown,
   Swords,
@@ -761,14 +760,13 @@ export function GlobalCommandPalette() {
           keywords: ["add", "crear", "nuevo", "ensayo", "nota"],
           action: () => {
             setOpen(false);
+            const dispatch = () =>
+              window.dispatchEvent(new Event("ensayos-new-nota"));
             if (pathname === "/myself/escritorio") {
-              window.dispatchEvent(
-                new CustomEvent("ensayos-create", {
-                  detail: { tipo: "ensayo" },
-                }),
-              );
+              dispatch();
             } else {
-              router.push("/myself/escritorio?crear=ensayo");
+              router.push("/myself/escritorio");
+              setTimeout(dispatch, 400);
             }
           },
           group: "Crear",
@@ -780,14 +778,13 @@ export function GlobalCommandPalette() {
           keywords: ["add", "crear", "nuevo", "libro", "ensayo"],
           action: () => {
             setOpen(false);
+            const dispatch = () =>
+              window.dispatchEvent(new Event("ensayos-new-libro"));
             if (pathname === "/myself/escritorio") {
-              window.dispatchEvent(
-                new CustomEvent("ensayos-create", {
-                  detail: { tipo: "libro" },
-                }),
-              );
+              dispatch();
             } else {
-              router.push("/myself/escritorio?crear=libro");
+              router.push("/myself/escritorio");
+              setTimeout(dispatch, 400);
             }
           },
           group: "Crear",
@@ -826,14 +823,21 @@ export function GlobalCommandPalette() {
 
   const prefixItemsRef = useRef<CommandItem[]>([]);
 
-  const inGridMode = showCreateGrid || !!activePrefix;
+  const dynamicActive = search.trim().length >= 2 || activePrefix !== null;
+  const showDynamic = dynamicActive && !showCreateGrid;
+
+  // ── Pantalla inicial (sin búsqueda) — también se muestra en columnas ──────
+  const showDefaultGrid = !showDynamic && !showCreateGrid;
+  const defaultGridItemsRef = useRef<CommandItem[]>([]);
+
+  const inGridMode = showCreateGrid || !!activePrefix || showDefaultGrid;
 
   // Reset index al entrar en cualquier modo grid
   useEffect(() => {
     if (inGridMode) setGridIndex(0);
   }, [inGridMode]);
 
-  // Navegación con flechas — activa en ambos modos grid
+  // Navegación con flechas — activa en todos los modos grid
   useEffect(() => {
     if (!inGridMode) return;
     const handler = (e: KeyboardEvent) => {
@@ -847,7 +851,9 @@ export function GlobalCommandPalette() {
       e.stopImmediatePropagation();
       const items = showCreateGrid
         ? createItemsRef.current
-        : prefixItemsRef.current;
+        : activePrefix
+          ? prefixItemsRef.current
+          : defaultGridItemsRef.current;
       setGridIndex((prev) => {
         const total = items.length;
         if (!total) return prev;
@@ -876,8 +882,6 @@ export function GlobalCommandPalette() {
     );
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [gridIndex, inGridMode]);
-
-  const dynamicActive = search.trim().length >= 2 || activePrefix !== null;
 
   // Resultados públicos — visibles para usuarios NO-admin cuando hay búsqueda activa.
   // Libros, canciones y capítulos navegan a sus rutas públicas (/garlia/...).
@@ -1029,7 +1033,6 @@ export function GlobalCommandPalette() {
       })
     : allDynamicItems;
 
-  const showDynamic = dynamicActive && !showCreateGrid;
   const hasDynamicResults = dynamicItems.length > 0;
 
   // Elementos de descubrimiento público — se muestran cuando no hay búsqueda activa
@@ -1069,6 +1072,10 @@ export function GlobalCommandPalette() {
     },
     {},
   );
+
+  // Lista plana (estáticos + descubrir) que usa el grid de la pantalla inicial
+  const defaultFlatItems = [...staticItems, ...browseItems];
+  defaultGridItemsRef.current = defaultFlatItems;
 
   // Group dynamic items
   const dynamicGroups = dynamicItems.reduce<Record<string, CommandItem[]>>(
@@ -1308,12 +1315,12 @@ export function GlobalCommandPalette() {
                     );
                   })()}
 
-                {/* Comandos estáticos (siempre visibles o cuando no hay búsqueda activa) */}
+                {/* Comandos estáticos — pantalla inicial en columnas (como "Crear") */}
                 {!showDynamic &&
                   Object.entries(staticGroups).map(([groupName, items]) => (
                     <Command.Group key={groupName}>
                       <div
-                        className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
+                        className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1321,9 +1328,23 @@ export function GlobalCommandPalette() {
                       >
                         {groupName}
                       </div>
-                      {items.map((item) => (
-                        <CommandItemRow key={item.id} item={item} />
-                      ))}
+                      <div
+                        className="grid gap-1.5 px-1 pb-2"
+                        style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                      >
+                        {items.map((item) => {
+                          const globalIndex = defaultFlatItems.indexOf(item);
+                          return (
+                            <CommandGridItem
+                              key={item.id}
+                              item={item}
+                              index={globalIndex}
+                              isSelected={globalIndex === gridIndex}
+                              onHover={() => setGridIndex(globalIndex)}
+                            />
+                          );
+                        })}
+                      </div>
                     </Command.Group>
                   ))}
 
@@ -1339,7 +1360,7 @@ export function GlobalCommandPalette() {
                         return (
                           <Command.Group key={groupName}>
                             <div
-                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-1"
+                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1347,9 +1368,24 @@ export function GlobalCommandPalette() {
                             >
                               {groupName}
                             </div>
-                            {items.map((item) => (
-                              <CommandItemRow key={item.id} item={item} />
-                            ))}
+                            <div
+                              className="grid gap-1.5 px-1 pb-2"
+                              style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                            >
+                              {items.map((item) => {
+                                const globalIndex =
+                                  defaultFlatItems.indexOf(item);
+                                return (
+                                  <CommandGridItem
+                                    key={item.id}
+                                    item={item}
+                                    index={globalIndex}
+                                    isSelected={globalIndex === gridIndex}
+                                    onHover={() => setGridIndex(globalIndex)}
+                                  />
+                                );
+                              })}
+                            </div>
                           </Command.Group>
                         );
                       },
@@ -1396,7 +1432,7 @@ export function GlobalCommandPalette() {
                 <span className="text-[9px] font-black uppercase tracking-widest">
                   ↵ abrir
                 </span>
-                {showCreateGrid && (
+                {inGridMode && (
                   <span
                     className="text-[9px] font-black uppercase tracking-widest"
                     style={{
@@ -1535,66 +1571,6 @@ function CommandGridItem({
           {item.description}
         </p>
       )}
-    </Command.Item>
-  );
-}
-
-function CommandItemRow({ item }: { item: CommandItem }) {
-  const Icon = item.icon;
-
-  return (
-    <Command.Item
-      className="group flex items-center gap-3 px-3 py-2 rounded-[var(--radius-btn)] cursor-pointer transition-all duration-100 outline-none"
-      style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
-      value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
-      onSelect={item.action}
-    >
-      {/* Avatar o ícono */}
-      {item.avatar ? (
-        <img
-          alt={item.label}
-          className="shrink-0 object-cover"
-          src={item.avatar}
-          style={{ width: 26, height: 26, borderRadius: "var(--radius-btn)" }}
-        />
-      ) : (
-        <span
-          className="shrink-0 flex items-center justify-center rounded-[var(--radius-btn)]"
-          style={{
-            width: 26,
-            height: 26,
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "var(--primary)",
-          }}
-        >
-          <Icon size={13} strokeWidth={2} />
-        </span>
-      )}
-
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-xs font-semibold truncate"
-          style={{ color: "var(--primary)" }}
-        >
-          {item.label}
-        </p>
-        {item.description && (
-          <p
-            className="text-[10px] truncate"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-          >
-            {item.description}
-          </p>
-        )}
-      </div>
-
-      <ArrowRight
-        className="shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity"
-        size={12}
-        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-      />
     </Command.Item>
   );
 }
