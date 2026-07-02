@@ -23,7 +23,7 @@ import {
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { type Ciudad } from "@/features/editorGarlia/hooks/types";types";types";
+import { type Ciudad } from "@/features/editorGarlia/hooks/types";
 import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
