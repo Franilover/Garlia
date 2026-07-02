@@ -11,7 +11,7 @@ import {
   dexieCapRead,
   dexieCapGet,
   dexieCapWrite,
-} from "../lexical-editor/types";
+} from "@/components/forms/lexical-editor/types";
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
 

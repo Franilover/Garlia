@@ -45,7 +45,7 @@ import {
   wordCount,
   readingTime,
   capUpdateMeta,
-} from "./lexical-editor/types";
+} from "@/components/forms/lexical-editor/types";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
 export const EstadisticasEscritura = ({

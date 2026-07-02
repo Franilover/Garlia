@@ -9,7 +9,7 @@ import React, {
   useMemo,
 } from "react";
 
-import { RichEditor } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { MotionDiv } from "@/components/ui/Motion";
 import { ZoteroSource } from "@/features/ensayos/views/page";
 

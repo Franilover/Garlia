@@ -42,8 +42,8 @@ import type {
   CommandItem as MdCommandItem,
   SnippetAction,
 } from "@/components/forms/Markdown/commandItems";
-import { RichEditor } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
-import type { SnippetEditRequest } from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+import { RichEditor } from "@/components/forms/lexical-editor";
+import type { SnippetEditRequest } from "@/components/forms/lexical-editor";
 import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
 import {
   dropPayloadToRaw,
@@ -53,7 +53,7 @@ import {
   usePayloadToRaw,
   gatePayloadToRaw,
   sectionPayloadToRaw,
-} from "@/features/editorGarlia/components/editorCapitulos/lexical-editor";
+} from "@/components/forms/lexical-editor";
 import {
   BannerOffline,
   ModalBase,
@@ -96,7 +96,7 @@ import {
   capDelete,
   libroUpdateMeta,
   libroDelete,
-} from "@/features/editorGarlia/components/editorCapitulos/lexical-editor/types";
+} from "@/components/forms/lexical-editor/types";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import {
