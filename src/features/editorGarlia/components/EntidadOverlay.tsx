@@ -5,10 +5,8 @@ import React from "react";
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
-import {
-  EditorCiudad,
-  type Ciudad,
-} from "@/features/editorGarlia/views/EditorCiudad";
+import { EditorCiudad } from "@/features/editorGarlia/views/EditorCiudad";
+import { type Ciudad } from "@/features/editorGarlia/hooks/types";
 import { EditorCriatura } from "@/features/editorGarlia/views/EditorCriatura";
 import {
   EditorGrupo,

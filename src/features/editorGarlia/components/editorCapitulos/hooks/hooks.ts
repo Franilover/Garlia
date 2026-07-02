@@ -5,9 +5,13 @@ import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 import {
-  Capitulo, Reino, TABLA_CAPS,
-  dexieCapRead, dexieCapGet, dexieCapWrite,
-} from "../types";
+  Capitulo,
+  Reino,
+  TABLA_CAPS,
+  dexieCapRead,
+  dexieCapGet,
+  dexieCapWrite,
+} from "../lexical-editor/types";
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -19,7 +23,9 @@ type CapituloLocal = Capitulo & { status?: "pending" | "synced" };
 // desde el cleanup del useEffect ANTES de que load() resuelva, eliminando la
 // race condition que existía al retornar la función de cancelación desde dentro
 // del propio async y capturarla con `await`.
-interface Signal { cancelled: boolean }
+interface Signal {
+  cancelled: boolean;
+}
 
 // ─── Utilidades compartidas ────────────────────────────────────────────────────
 
@@ -28,21 +34,21 @@ function isNetErr(err: any): boolean {
   const msg = (err?.message ?? "").toLowerCase();
   return (
     msg.includes("failed to fetch") ||
-    msg.includes("network")        ||
-    msg.includes("load failed")    ||
+    msg.includes("network") ||
+    msg.includes("load failed") ||
     err?.code === "PGRST000"
   );
 }
 
 /** Crea una Promise que resuelve a "timeout" tras `ms` milisegundos. */
 const withTimeout = <T>(ms: number) =>
-  new Promise<"timeout">(r => setTimeout(() => r("timeout"), ms));
+  new Promise<"timeout">((r) => setTimeout(() => r("timeout"), ms));
 
 // ─── useCapitulos ─────────────────────────────────────────────────────────────
 
 export function useCapitulos(libroId: string | null) {
   const [capitulos, setCapitulos] = useState<CapituloLocal[]>([]);
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
   // load() recibe un Signal externo en lugar de crear el suyo propio e intentar
@@ -95,10 +101,10 @@ export function useCapitulos(libroId: string | null) {
       }
 
       const caps = (data ?? []) as CapituloLocal[];
-      const localById = new Map(local.map(c => [c.id, c]));
+      const localById = new Map(local.map((c) => [c.id, c]));
 
       // Respetar borradores pending: no sobreescribir con la versión remota.
-      const merged = caps.map(remote => {
+      const merged = caps.map((remote) => {
         const loc = localById.get(remote.id);
         return loc?.status === "pending" ? loc : remote;
       });
@@ -110,7 +116,7 @@ export function useCapitulos(libroId: string | null) {
 
       // Persistir en Dexie conservando los pending sin tocar.
       await dexieCapWrite(
-        caps.map(c => {
+        caps.map((c) => {
           const loc = localById.get(c.id);
           return loc?.status === "pending"
             ? loc
@@ -139,7 +145,9 @@ export function useCapitulos(libroId: string | null) {
     // antes de que load() pueda hacer ningún setState tras el desmonte.
     const sig: Signal = { cancelled: false };
     load(libroId, sig);
-    return () => { sig.cancelled = true; };
+    return () => {
+      sig.cancelled = true;
+    };
   }, [libroId, load]);
 
   useEffect(() => {
@@ -167,8 +175,8 @@ export function useCapitulos(libroId: string | null) {
 // ─── useCapituloEditor ────────────────────────────────────────────────────────
 
 export function useCapituloEditor(capId: string | null) {
-  const [cap, setCap]             = useState<CapituloLocal | null>(null);
-  const [loading, setLoading]     = useState(false);
+  const [cap, setCap] = useState<CapituloLocal | null>(null);
+  const [loading, setLoading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
   const load = useCallback(async (id: string, sig: Signal) => {
@@ -250,7 +258,9 @@ export function useCapituloEditor(capId: string | null) {
     }
     const sig: Signal = { cancelled: false };
     load(capId, sig);
-    return () => { sig.cancelled = true; };
+    return () => {
+      sig.cancelled = true;
+    };
   }, [capId, load]);
 
   useEffect(() => {
@@ -276,8 +286,8 @@ export function useCapituloEditor(capId: string | null) {
 // ─── useReinos ────────────────────────────────────────────────────────────────
 
 export function useReinos() {
-  const [reinos, setReinos]       = useState<Pick<Reino, "id" | "nombre">[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [reinos, setReinos] = useState<Pick<Reino, "id" | "nombre">[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
@@ -329,12 +339,12 @@ export function useReinos() {
         //    descripcion, orden, mapa_url, etc.
         const existing = await db.reinos
           .where("id")
-          .anyOf(rows.map(r => r.id))
+          .anyOf(rows.map((r) => r.id))
           .toArray();
-        const existingById = new Map(existing.map(r => [r.id, r]));
+        const existingById = new Map(existing.map((r) => [r.id, r]));
 
         await db.reinos.bulkPut(
-          rows.map(r => ({
+          rows.map((r) => ({
             ...existingById.get(r.id),
             ...r,
           })),
@@ -349,7 +359,10 @@ export function useReinos() {
 
     run();
 
-    const handleOnline = () => { setIsOffline(false); run(); };
+    const handleOnline = () => {
+      setIsOffline(false);
+      run();
+    };
     window.addEventListener("online", handleOnline);
     return () => {
       cancelled = true;

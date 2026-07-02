@@ -96,7 +96,7 @@ import {
   capDelete,
   libroUpdateMeta,
   libroDelete,
-} from "@/features/editorGarlia/components/editorCapitulos/types";
+} from "@/features/editorGarlia/components/editorCapitulos/lexical-editor/types";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import {

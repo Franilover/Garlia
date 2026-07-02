@@ -23,7 +23,7 @@ import {
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
-import { SelectorFechaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
+import { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
 import { supabase } from "@/lib/api/client/supabase";
 
 import { ESTADOS } from "../../constants";
