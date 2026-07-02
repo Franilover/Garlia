@@ -1509,7 +1509,7 @@ function CommandGridItem({
   return (
     <Command.Item
       data-grid-index={index}
-      className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100"
+      className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100 min-w-0 w-full"
       style={{
         padding: "12px 8px",
         borderRadius: "var(--radius-btn)",
