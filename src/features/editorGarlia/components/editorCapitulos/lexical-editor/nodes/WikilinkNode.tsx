@@ -20,7 +20,7 @@ import type {
   Spread,
 } from "lexical";
 
-import { DecoratorNode } from "lexical";
+import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 
 import { SnippetChip } from "./SnippetChip";
@@ -36,6 +36,8 @@ export type SerializedWikilinkNode = Spread<
 
 function WikilinkChipView({
   payload,
+  nodeKey,
+  editor,
   onNavigate,
 }: {
   payload: WikilinkPayload;
@@ -49,6 +51,12 @@ function WikilinkChipView({
       text={payload.target}
       title={`Ir a: ${payload.target}`}
       onClick={() => onNavigate?.(payload.target)}
+      onDelete={() =>
+        editor.update(() => {
+          const node = $getNodeByKey(nodeKey);
+          if ($isWikilinkNode(node)) node.remove();
+        })
+      }
     />
   );
 }
