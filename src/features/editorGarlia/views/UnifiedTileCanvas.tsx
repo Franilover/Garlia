@@ -131,6 +131,14 @@ export function UnifiedTileCanvas<
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const lastPinchDist = useRef<number | null>(null);
+  // Cantidad de touches activos — usado para que el pan por Pointer Events no
+  // pelee con el pinch-zoom por Touch Events durante un gesto de 2 dedos.
+  const touchCountRef = useRef(0);
+  // pointerIds de dedos activos, seguidos directo desde Pointer Events (sin
+  // depender del evento touchstart nativo, que no siempre llega al mismo
+  // tiempo que pointerdown — esa carrera era la causa del salto al segundo
+  // toque).
+  const activeTouchPointers = useRef<Set<number>>(new Set());
   const animFrameRef = useRef<number>(0);
   const pulseRef = useRef(0);
 
@@ -748,6 +756,21 @@ export function UnifiedTileCanvas<
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType !== "touch") return;
+
+      if (e.pointerType === "touch") {
+        activeTouchPointers.current.add(e.pointerId);
+        if (activeTouchPointers.current.size >= 2) {
+          // Segundo dedo tocando: es el arranque de un pinch, no de un pan.
+          // No reseteamos dragStart ni capturamos el pointer — si no, el
+          // primer dedo (que sigue moviéndose y generando sus propios
+          // pointermove) calcularía su delta contra la posición del segundo
+          // dedo y el mapa "saltaría" de golpe.
+          isPointerDown = false;
+          isDragging.current = false;
+          return;
+        }
+      }
+
       isPointerDown = true;
       pointerDownCtrl = e.ctrlKey || e.metaKey;
       isDragging.current = false;
@@ -761,7 +784,10 @@ export function UnifiedTileCanvas<
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (isPointerDown) {
+      // Durante un pinch de 2 dedos, el pan por Pointer Events se desactiva
+      // — si no, pelea con el zoomAt del pinch (ver onTouchStart/Move/End) y
+      // al levantar un dedo el mapa "salta" a la posición corrupta.
+      if (isPointerDown && touchCountRef.current < 2) {
         const s = cssToCanvasScale();
         const dx = (e.clientX - dragStart.current.x) * s;
         const dy = (e.clientY - dragStart.current.y) * s;
@@ -820,6 +846,8 @@ export function UnifiedTileCanvas<
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType === "touch")
+        activeTouchPointers.current.delete(e.pointerId);
       isPointerDown = false;
       if (isDragging.current) {
         isDragging.current = false;
@@ -934,7 +962,11 @@ export function UnifiedTileCanvas<
 
     // ── Pinch zoom (touch, sin restricción de Ctrl en táctil) ────────────────
     const onTouchStart = (e: TouchEvent) => {
+      touchCountRef.current = e.touches.length;
       if (e.touches.length === 2) {
+        // Arranca un pinch: cancelamos cualquier pan en curso para que no
+        // pelee con el zoom mientras haya 2 dedos.
+        isDragging.current = false;
         lastPinchDist.current = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY,
@@ -942,6 +974,7 @@ export function UnifiedTileCanvas<
       }
     };
     const onTouchMove = (e: TouchEvent) => {
+      touchCountRef.current = e.touches.length;
       if (e.touches.length === 2 && lastPinchDist.current !== null) {
         const dist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -956,14 +989,35 @@ export function UnifiedTileCanvas<
         markDirty();
       }
     };
-    const onTouchEnd = () => {
+    const onTouchEnd = (e: TouchEvent) => {
+      touchCountRef.current = e.touches.length;
       lastPinchDist.current = null;
+      if (e.touches.length === 1) {
+        // Quedó 1 dedo tras un pinch: reiniciamos el punto de referencia del
+        // pan con la posición ACTUAL de ese dedo — si no, el pan retoma
+        // desde un dragStart viejo (mezclado entre los dos dedos) y el mapa
+        // "salta" en una dirección al soltar.
+        dragStart.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          camX: camRef.current.x,
+          camY: camRef.current.y,
+        };
+        isDragging.current = false;
+        isPointerDown = true;
+      }
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      if (e.pointerType === "touch")
+        activeTouchPointers.current.delete(e.pointerId);
     };
 
     canvas.addEventListener("wheel", onWheel, { passive: false });
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerCancel);
     canvas.addEventListener("touchstart", onTouchStart, { passive: true });
     canvas.addEventListener("touchmove", onTouchMove, { passive: true });
     canvas.addEventListener("touchend", onTouchEnd);
@@ -973,6 +1027,7 @@ export function UnifiedTileCanvas<
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("touchstart", onTouchStart);
       canvas.removeEventListener("touchmove", onTouchMove);
       canvas.removeEventListener("touchend", onTouchEnd);
