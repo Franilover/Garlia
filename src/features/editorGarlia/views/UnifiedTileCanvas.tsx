@@ -950,7 +950,7 @@ export function UnifiedTileCanvas<
   return (
     <div
       ref={containerRef}
-      className={`relative flex-1 overflow-hidden min-h-0 ${className ?? ""}`}
+      className={`overflow-hidden min-h-0 ${className ?? "relative flex-1"}`}
       style={{
         cursor: eyedropperActive
           ? "crosshair"
