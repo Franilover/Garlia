@@ -26,7 +26,7 @@ import {
   invalidateReinoTiles,
   loadReinoTiles,
 } from "@/lib/api/client/syncEngine";
-import { type Ciudad } from "@/features/editorGarlia/hooks/types";
+import type { Ciudad } from "@/features/editorGarlia/hooks/types";
 import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
 
 // Extiende Ciudad con las coordenadas de tile añadidas en la migración
@@ -155,6 +155,16 @@ interface ReinoTileCanvasProps {
   editMode?: boolean;
   tileSize?: number;
   onPinClick?: (ciudad: CiudadConTile) => void;
+  /** Ciudades no descubiertas — se muestran en niebla, igual que en el mapa global. */
+  hiddenMarkers?: CiudadConTile[];
+  selectedMarkerId?: string | null;
+  onMarkerSelect?: (id: string | null) => void;
+  fondoColor?: string | null;
+  isFirstOpen?: boolean;
+  eyedropperActive?: boolean;
+  onEyedropperPick?: (color: string) => void;
+  onOpenPanel?: () => void;
+  className?: string;
 }
 
 export function ReinoTileCanvas({
@@ -164,11 +174,26 @@ export function ReinoTileCanvas({
   editMode = false,
   tileSize = 1024,
   onPinClick,
+  hiddenMarkers,
+  selectedMarkerId: selectedMarkerIdProp,
+  onMarkerSelect: onMarkerSelectProp,
+  fondoColor,
+  isFirstOpen,
+  eyedropperActive,
+  onEyedropperPick,
+  onOpenPanel,
+  className,
 }: ReinoTileCanvasProps) {
   const { tiles, loading, addTile, updateTileImage, deleteTile } =
     useReinoTiles(reinoId);
 
-  const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
+  const [selectedPinIdInternal, setSelectedPinIdInternal] = useState<
+    string | null
+  >(null);
+  // Selección controlada opcionalmente desde afuera (igual que el mapa global,
+  // que usa reinoSeleccionado?.id como selectedMarkerId).
+  const selectedPinId = selectedMarkerIdProp ?? selectedPinIdInternal;
+  const setSelectedPinId = onMarkerSelectProp ?? setSelectedPinIdInternal;
   const [pickerTile, setPickerTile] = useState<ReinoTile | null>(null);
 
   const emptyState = !loading && tiles.length === 0;
@@ -176,11 +201,17 @@ export function ReinoTileCanvas({
   return (
     <div className="relative w-full h-full flex flex-col overflow-hidden">
       <UnifiedTileCanvas<ReinoTile, CiudadConTile>
+        className={className}
         editMode={editMode}
+        eyedropperActive={eyedropperActive}
+        fondoColor={fondoColor}
+        hiddenMarkers={hiddenMarkers}
+        isFirstOpen={isFirstOpen}
         markers={detalles}
         selectedMarkerId={selectedPinId}
         tiles={tiles}
         tileSize={tileSize}
+        onEyedropperPick={onEyedropperPick}
         onMarkerClick={(ciudad) => onPinClick?.(ciudad)}
         onMarkerMove={(markerId, coord) => {
           onDetallesChange(
@@ -199,6 +230,7 @@ export function ReinoTileCanvas({
           setSelectedPinId(null);
         }}
         onMarkerSelect={setSelectedPinId}
+        onOpenPanel={onOpenPanel}
         onTileCreate={(col, row) => addTile(col, row)}
         onTileDelete={(tile) => deleteTile(tile.id)}
         onTilePick={(tile) => setPickerTile(tile)}

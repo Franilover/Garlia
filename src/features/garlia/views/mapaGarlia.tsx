@@ -33,6 +33,7 @@ import {
   UnifiedTileCanvas,
   type MapTile,
 } from "@/features/editorGarlia/views/UnifiedTileCanvas";
+import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
@@ -310,73 +311,18 @@ function PanelContenido({
         </div>
 
         {!puntoSeleccionado && (
-          <div className="flex flex-col gap-1">
-            <label
-              className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
-              style={{
-                color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
-              }}
-            >
-              <ImagePlus size={9} /> Imagen del Mapa
-            </label>
-            {reinoSeleccionado.mapa_url && (
-              <div
-                className="relative w-full h-20 overflow-hidden border mb-1"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 20%, transparent)",
-                }}
-              >
-                <Image
-                  alt="Mapa actual"
-                  className="w-full h-full object-cover"
-                  src={reinoSeleccionado.mapa_url}
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ background: "rgba(0,0,0,0.4)" }}
-                >
-                  <span
-                    className="text-[8px] font-black uppercase tracking-widest"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Imagen actual
-                  </span>
-                </div>
-              </div>
-            )}
-            <input
-              ref={imgInputRef}
-              accept="image/*"
-              className="hidden"
-              type="file"
-              onChange={handleImageUpload}
-            />
-            <button
-              className="w-full flex items-center justify-center gap-2 border border-dashed text-[10px] font-black uppercase py-3 transition-all disabled:opacity-50"
-              disabled={isUploadingImg}
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 30%, transparent)",
-                color: "var(--accent)",
-                background:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
-              }}
-              onClick={() => imgInputRef.current?.click()}
-            >
-              {isUploadingImg ? (
-                <>
-                  <Hourglass size={12} /> Subiendo...
-                </>
-              ) : (
-                <>
-                  <ImagePlus size={12} />{" "}
-                  {reinoSeleccionado.mapa_url
-                    ? "Cambiar imagen"
-                    : "Subir imagen"}
-                </>
-              )}
-            </button>
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border text-[9px] font-bold uppercase tracking-wide"
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--primary) 15%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+              color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
+            }}
+          >
+            <Move size={11} className="shrink-0" />
+            Click en un espacio vacío del mapa para crear un tile, o doble-click
+            en un tile para elegir su imagen.
           </div>
         )}
         <button
@@ -3318,31 +3264,53 @@ export default function MapaInteractivo() {
             }
           />
         ) : (
-          <CanvasMap
+          <ReinoTileCanvas
+            className="absolute inset-0"
+            detalles={
+              editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers
+            }
             editMode={editMode}
             eyedropperActive={eyedropperActive}
             fondoColor={fondoColor}
-            hiddenMarkers={hiddenMarkers}
-            imageSrc={currentImage}
+            hiddenMarkers={editMode ? [] : hiddenMarkers}
             isFirstOpen={isFirstOpen}
-            markers={
-              editMode ? [...visibleMarkers, ...hiddenMarkers] : visibleMarkers
-            }
-            selectedMarkerId={
-              puntoSeleccionado?.id ?? reinoSeleccionado?.id ?? null
-            }
-            tipo={vistaActual}
-            onEyedropperPick={handleFondoColorChange}
-            onMapClick={handleMapClick}
-            onMarkerClick={(m) => {
-              setPuntoSeleccionado(m);
-              setPanelOpen(true);
+            reinoId={reinoSeleccionado.id}
+            selectedMarkerId={puntoSeleccionado?.id ?? null}
+            onDetallesChange={(nuevos) => {
+              setDetallesReino(nuevos);
+              // Marcamos como modificados los que cambiaron de posición, para
+              // que handleSaveChanges (línea ~2866) los incluya al guardar.
+              const cambiados = nuevos.filter((n) => {
+                const prev = detallesReino.find((d) => d.id === n.id);
+                return (
+                  prev &&
+                  (prev.coord_x !== n.coord_x ||
+                    prev.coord_y !== n.coord_y ||
+                    prev.tile_col !== n.tile_col ||
+                    prev.tile_row !== n.tile_row)
+                );
+              });
+              if (cambiados.length) {
+                setModifiedDetalles(
+                  (prev) => new Set([...prev, ...cambiados.map((c) => c.id)]),
+                );
+              }
             }}
+            onEyedropperPick={handleFondoColorChange}
+            onMarkerSelect={(id) =>
+              setPuntoSeleccionado(
+                id ? (detallesReino.find((d) => d.id === id) ?? null) : null,
+              )
+            }
             onOpenPanel={
               isMobile && (reinoSeleccionado || puntoSeleccionado)
                 ? () => setPanelOpen(true)
                 : undefined
             }
+            onPinClick={(m) => {
+              setPuntoSeleccionado(m);
+              setPanelOpen(true);
+            }}
           />
         )}
       </div>
