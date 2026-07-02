@@ -33,9 +33,16 @@ import {
   $isRangeSelection,
   LexicalEditor,
 } from "lexical";
-import { $createHeadingNode, $createQuoteNode, HeadingTagType } from "@lexical/rich-text";
+import {
+  $createHeadingNode,
+  $createQuoteNode,
+  HeadingTagType,
+} from "@lexical/rich-text";
 import { $createCodeNode } from "@lexical/code";
-import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from "@lexical/list";
+import {
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+} from "@lexical/list";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   Heading1,
@@ -95,7 +102,8 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     hint: "-",
     keywords: ["lista", "bullet", "viñeta", "ul"],
     Icon: ListIcon,
-    run: (editor) => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
+    run: (editor) =>
+      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
   },
   {
     id: "numbered",
@@ -103,7 +111,8 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     hint: "1.",
     keywords: ["lista", "numerada", "ordenada", "ol"],
     Icon: ListOrdered,
-    run: (editor) => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
+    run: (editor) =>
+      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
   },
   {
     id: "quote",
@@ -171,6 +180,21 @@ function insertHeading(editor: LexicalEditor, tag: HeadingTagType) {
   });
 }
 
+// Extraído como función pura (no hook) para que RichEditor pueda calcular
+// la misma lista filtrada fuera del componente visual — necesario para
+// que la navegación con flechas (en SlashCommandPlugin, que vive en el
+// árbol Lexical, no en este panel) sepa cuántos items hay y cuál confirmar
+// con Enter, sin duplicar la lógica de filtrado en dos lugares.
+export function filterMarkdownCommands(query: string): MarkdownCommandItem[] {
+  if (!query) return MARKDOWN_COMMAND_ITEMS;
+  const q = query.toLowerCase();
+  return MARKDOWN_COMMAND_ITEMS.filter(
+    (item) =>
+      item.label.toLowerCase().includes(q) ||
+      item.keywords.some((k) => k.includes(q)),
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin: expone insertRef para que RichEditor ejecute un comando elegido
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,27 +226,23 @@ export function MarkdownCommandInsertPlugin({
 interface MarkdownCommandPaletteProps {
   query: string;
   pos: { top: number; left: number };
+  selectedIdx: number;
   onSelect: (itemId: string) => void;
+  onHover: (idx: number) => void;
   onClose: () => void;
 }
 
 export function MarkdownCommandPalette({
   query,
   pos,
+  selectedIdx,
   onSelect,
+  onHover,
   onClose,
 }: MarkdownCommandPaletteProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const filtered = useMemo(() => {
-    if (!query) return MARKDOWN_COMMAND_ITEMS;
-    const q = query.toLowerCase();
-    return MARKDOWN_COMMAND_ITEMS.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.keywords.some((k) => k.includes(q)),
-    );
-  }, [query]);
+  const filtered = useMemo(() => filterMarkdownCommands(query), [query]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -265,7 +285,7 @@ export function MarkdownCommandPalette({
           Sin resultados
         </div>
       ) : (
-        filtered.map((item) => (
+        filtered.map((item, idx) => (
           <div
             key={item.id}
             style={{
@@ -275,14 +295,13 @@ export function MarkdownCommandPalette({
               padding: "7px 10px",
               borderRadius: 6,
               cursor: "pointer",
+              background:
+                idx === selectedIdx
+                  ? `color-mix(in srgb, ${PRIMARY} 14%, transparent)`
+                  : "transparent",
             }}
             onClick={() => onSelect(item.id)}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = `color-mix(in srgb, ${PRIMARY} 14%, transparent)`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
+            onMouseEnter={() => onHover(idx)}
           >
             <item.Icon
               size={13}

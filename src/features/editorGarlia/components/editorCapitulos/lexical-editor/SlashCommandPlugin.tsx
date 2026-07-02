@@ -23,8 +23,13 @@ import {
   $getSelection,
   $isRangeSelection,
   $isTextNode,
+  COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_LOW,
+  KEY_ARROW_DOWN_COMMAND,
+  KEY_ARROW_UP_COMMAND,
+  KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
+  KEY_TAB_COMMAND,
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useCallback, useEffect, useRef } from "react";
@@ -53,6 +58,19 @@ interface SlashCommandPluginProps {
    * porque activeRef.current nunca se limpiaba desde fuera.
    */
   notifyClosedRef?: React.MutableRefObject<(() => void) | null>;
+  /**
+   * true mientras el panel de comandos (markdown en modo normal, o
+   * SnippetCommandPalette en modo libro) está abierto — controla si este
+   * plugin intercepta flechas/Enter/Tab para navegar la lista en vez de
+   * dejar que Lexical los procese como edición normal. Mismo patrón que
+   * WikilinkPlugin. En modo libro (SnippetCommandPalette) el padre puede
+   * simplemente no pasar estas props: sin isMenuOpen, este bloque nunca
+   * registra los comandos y el comportamiento queda igual que antes.
+   */
+  isMenuOpen?: boolean;
+  onArrowDown?: () => void;
+  onArrowUp?: () => void;
+  onConfirmSelection?: () => void;
 }
 
 // Sólo dispara dentro de la palabra actual: "/" seguido de texto sin
@@ -63,6 +81,10 @@ export function SlashCommandPlugin({
   onMatch,
   removeMatchRef,
   notifyClosedRef,
+  isMenuOpen = false,
+  onArrowDown,
+  onArrowUp,
+  onConfirmSelection,
 }: SlashCommandPluginProps) {
   const [editor] = useLexicalComposerContext();
   const activeRef = useRef(false);
@@ -231,6 +253,54 @@ export function SlashCommandPlugin({
       COMMAND_PRIORITY_LOW,
     );
   }, [editor, onMatch, clearSlashQuery]);
+
+  // Navegación del menú con teclado — prioridad ALTA para interceptar
+  // antes de que Lexical mueva el cursor o inserte un salto de línea.
+  // Solo activo mientras isMenuOpen (el padre lo controla vía el estado
+  // del panel visual — MarkdownCommandPalette en modo normal). Mismo
+  // patrón que WikilinkPlugin, que ya tenía esto para "[[".
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const unregister = [
+      editor.registerCommand(
+        KEY_ARROW_DOWN_COMMAND,
+        (event) => {
+          event?.preventDefault();
+          onArrowDown?.();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+      editor.registerCommand(
+        KEY_ARROW_UP_COMMAND,
+        (event) => {
+          event?.preventDefault();
+          onArrowUp?.();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event) => {
+          event?.preventDefault();
+          onConfirmSelection?.();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+      editor.registerCommand(
+        KEY_TAB_COMMAND,
+        (event) => {
+          event?.preventDefault();
+          onConfirmSelection?.();
+          return true;
+        },
+        COMMAND_PRIORITY_HIGH,
+      ),
+    ];
+    return () => unregister.forEach((u) => u());
+  }, [editor, isMenuOpen, onArrowDown, onArrowUp, onConfirmSelection]);
 
   return null;
 }

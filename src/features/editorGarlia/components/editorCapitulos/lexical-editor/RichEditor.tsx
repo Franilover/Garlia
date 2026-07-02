@@ -77,6 +77,7 @@ import { TocPanel } from "./TocPlugin";
 import {
   MarkdownCommandInsertPlugin,
   MarkdownCommandPalette,
+  filterMarkdownCommands,
 } from "./MarkdownCommandPalette";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -518,8 +519,14 @@ export function RichEditor({
     open: boolean;
     query: string;
     pos: { top: number; left: number };
-  }>({ open: false, query: "", pos: { top: 0, left: 0 } });
+    selectedIdx: number;
+  }>({ open: false, query: "", pos: { top: 0, left: 0 }, selectedIdx: 0 });
   const mdInsertRef = useRef<((itemId: string) => void) | null>(null);
+
+  const filteredMdCommands = useMemo(
+    () => filterMarkdownCommands(mdPalette.query),
+    [mdPalette.query],
+  );
 
   const handleSlashMatch = useCallback(
     (match: SlashMatch | null) => {
@@ -531,13 +538,32 @@ export function RichEditor({
       }
       // Modo normal: RichEditor maneja su propio panel de markdown.
       if (match) {
-        setMdPalette({ open: true, query: match.query, pos: match.anchorRect });
+        // selectedIdx se resetea a 0 en cada match nuevo (typing "/" de
+        // cero) pero SE CONSERVA si solo cambió la query mientras el
+        // panel ya estaba abierto — clampeado abajo, en el useEffect.
+        setMdPalette((s) => ({
+          open: true,
+          query: match.query,
+          pos: match.anchorRect,
+          selectedIdx: s.open ? s.selectedIdx : 0,
+        }));
       } else {
         setMdPalette((s) => ({ ...s, open: false }));
       }
     },
     [onOpenPalette, onClosePalette],
   );
+
+  // Si la query cambia y el índice seleccionado queda fuera de rango de
+  // la lista filtrada (ej: escribiste más letras y ahora hay menos
+  // resultados), lo clampeamos al último item válido.
+  useEffect(() => {
+    if (!mdPalette.open) return;
+    const maxIdx = Math.max(0, filteredMdCommands.length - 1);
+    if (mdPalette.selectedIdx > maxIdx) {
+      setMdPalette((s) => ({ ...s, selectedIdx: maxIdx }));
+    }
+  }, [filteredMdCommands.length, mdPalette.open, mdPalette.selectedIdx]);
 
   const closeMdPalette = useCallback(() => {
     setMdPalette((s) => ({ ...s, open: false }));
@@ -550,6 +576,38 @@ export function RichEditor({
     setMdPalette((s) => ({ ...s, open: false }));
     notifyClosedRef.current?.();
   }, []);
+
+  const mdArrowDown = useCallback(() => {
+    setMdPalette((s) => ({
+      ...s,
+      selectedIdx:
+        filteredMdCommands.length > 0
+          ? (s.selectedIdx + 1) % filteredMdCommands.length
+          : 0,
+    }));
+  }, [filteredMdCommands.length]);
+
+  const mdArrowUp = useCallback(() => {
+    setMdPalette((s) => ({
+      ...s,
+      selectedIdx:
+        filteredMdCommands.length > 0
+          ? (s.selectedIdx - 1 + filteredMdCommands.length) %
+            filteredMdCommands.length
+          : 0,
+    }));
+  }, [filteredMdCommands.length]);
+
+  const mdConfirmSelection = useCallback(() => {
+    const item = filteredMdCommands[mdPalette.selectedIdx];
+    if (item) selectMdCommand(item.id);
+    else closeMdPalette();
+  }, [
+    filteredMdCommands,
+    mdPalette.selectedIdx,
+    selectMdCommand,
+    closeMdPalette,
+  ]);
 
   const initialConfig = useMemo(
     () => ({
@@ -730,6 +788,10 @@ export function RichEditor({
                 onMatch={handleSlashMatch}
                 removeMatchRef={slashRemoveRef}
                 notifyClosedRef={notifyClosedRef}
+                isMenuOpen={mdPalette.open}
+                onArrowDown={mdArrowDown}
+                onArrowUp={mdArrowUp}
+                onConfirmSelection={mdConfirmSelection}
               />
               <WikilinkPlugin
                 insertRef={wikiInsertRef}
@@ -786,7 +848,11 @@ export function RichEditor({
                 <MarkdownCommandPalette
                   pos={mdPalette.pos}
                   query={mdPalette.query}
+                  selectedIdx={mdPalette.selectedIdx}
                   onClose={closeMdPalette}
+                  onHover={(idx) =>
+                    setMdPalette((s) => ({ ...s, selectedIdx: idx }))
+                  }
                   onSelect={selectMdCommand}
                 />
               )}
