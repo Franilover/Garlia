@@ -17,11 +17,7 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
-import {
-  Estacion,
-  CalendarioConfig,
-  EraMundo,
-} from "@/lib/utils/calendario";
+import { Estacion, CalendarioConfig, EraMundo } from "@/lib/utils/calendario";
 
 // ─── Hook: cargar calendario — Dexie → memoria → Supabase ────────────────────
 // Orden de prioridad:
@@ -34,6 +30,7 @@ type CalCache = {
   config: CalendarioConfig;
   eras: EraMundo[];
 };
+export type { CalCache };
 let _cache: CalCache | null = null;
 
 const LS_KEY = "garlia-calendario-cache-v2";
@@ -190,4 +187,18 @@ export function useCalendario() {
   }, []);
 
   return { cal: data, loading };
+}
+
+// ─── Invalidar caché del calendario ──────────────────────────────────────────
+// Fuerza un refetch real en el próximo useCalendario(). Usada por
+// ModalEra/ModalGestionEras en EditorLineaTiempo.tsx tras crear/editar/borrar
+// una era, para que aparezca sin esperar a refrescar la página. Vive acá (y
+// no en la view) porque necesita tocar las variables privadas del módulo
+// (_cache, _lastFetch, LS_KEY) que respaldan el cache en memoria.
+export function invalidarCacheEras() {
+  _cache = null;
+  _lastFetch = 0;
+  try {
+    localStorage.removeItem(LS_KEY);
+  } catch {}
 }

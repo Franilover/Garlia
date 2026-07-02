@@ -26,7 +26,7 @@ import {
   invalidateReinoTiles,
   loadReinoTiles,
 } from "@/lib/api/client/syncEngine";
-import type { Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
+import { type Ciudad } from "@/features/editorGarlia/hooks/types";types";
 import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
 
 // Extiende Ciudad con las coordenadas de tile añadidas en la migración

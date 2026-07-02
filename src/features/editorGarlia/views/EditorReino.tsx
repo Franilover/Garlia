@@ -21,7 +21,7 @@ import {
   type SaveStatus,
 } from "@/features/editorGarlia/hooks/types";
 import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
-import { type Ciudad } from "@/features/editorGarlia/views/EditorCiudad";
+import { type Ciudad } from "@/features/editorGarlia/hooks/types";
 import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";

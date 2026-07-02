@@ -51,10 +51,13 @@ import { EraMundo, diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
 import { FechaMundoBadge } from "../components/Calendario/FechaMundoBadge";
 import { SelectorFechaMundo } from "../components/Calendario/SelectorFechaMundo";
-import { useCalendario } from "../hooks/useCalendario";
+import {
+  useCalendario,
+  invalidarCacheEras,
+  type CalCache,
+} from "../hooks/useCalendario";
 import { type Reino, type SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
-
 
 // ════════════════════════════════════════════════════════════════════════════
 // ─── Historia del mundo / Línea de tiempo (movido desde EditorMundo.tsx) ────
@@ -967,18 +970,11 @@ const COLORES_ERA_PRESET = [
   "#84cc16",
   "#64748b",
 ];
-// Invalida el caché del calendario (memoria + localStorage) para forzar un
-// refetch real en el próximo useCalendario(). Antes vivía en EditorMundo.tsx
-// con su propia copia hardcodeada de la clave de localStorage y nunca tocaba
-// el `_cache` en memoria, así que una era recién creada podía no aparecer
-// hasta refrescar la página entera dentro de la misma sesión.
-function invalidarCacheEras() {
-  _cache = null;
-  _lastFetch = 0;
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch {}
-}
+// invalidarCacheEras ahora se importa desde ../hooks/useCalendario — necesita
+// tocar las variables privadas del módulo (_cache, _lastFetch, LS_KEY) que
+// respaldan el cache en memoria, y esas viven ahí desde el refactor que
+// movió useCalendario a hooks/. Se usa en ModalEra/ModalGestionEras más
+// abajo para forzar un refetch real tras crear/editar/borrar una era.
 
 type EraFormData = {
   nombre: string;

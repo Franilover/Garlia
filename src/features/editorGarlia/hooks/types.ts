@@ -84,6 +84,20 @@ export type ReinoDetalle = {
   oculto?: boolean;
 };
 
+export type Ciudad = {
+  id: string;
+  nombre: string;
+  tipo?: string | null;
+  descripcion?: string | null;
+  historia?: string | null;
+  secretos?: string | null;
+  imagen_url?: string | null;
+  reino_id?: string | null;
+  coord_x?: number | null;
+  coord_y?: number | null;
+  oculto?: boolean;
+};
+
 export type CapituloNarrado = {
   id: string;
   titulo_capitulo: string;
