@@ -32,6 +32,10 @@ import {
   ScrollText,
   Users,
   Package,
+  Dumbbell,
+  UtensilsCrossed,
+  Shirt,
+  Library,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -43,6 +47,7 @@ import { toSlug } from "@/lib/utils/slugify";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 
+import { useAppPanels } from "./useAppPanels";
 import { useCommandPalette } from "./useCommandPalette";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -214,6 +219,7 @@ function usePublicBrowse() {
 
 export function GlobalCommandPalette() {
   const { open, setOpen } = useCommandPalette();
+  const { abrirApp } = useAppPanels();
   const router = useRouter();
   const { user, isAdmin } = useAuth() as { user: any; isAdmin: boolean };
   const { dark, toggleDark } = useTheme();
@@ -311,6 +317,21 @@ export function GlobalCommandPalette() {
       setOpen(false);
     },
     [router, setOpen],
+  );
+
+  // Abre una app del dashboard (ejercicios, ingredientes, recetas, ropa, libros) —
+  // navega al escritorio si hace falta y luego actualiza el store compartido
+  const goApp = useCallback(
+    (id: Parameters<typeof abrirApp>[0]) => {
+      setOpen(false);
+      if (pathname === "/myself/escritorio") {
+        abrirApp(id);
+      } else {
+        router.push("/myself/escritorio");
+        setTimeout(() => abrirApp(id), 400);
+      }
+    },
+    [router, setOpen, pathname, abrirApp],
   );
 
   // Abre una entidad en el EditorGarlia — si ya estamos ahí despacha directo,
@@ -471,6 +492,50 @@ export function GlobalCommandPalette() {
       keywords: ["galería", "arte", "imágenes"],
       action: () => go("/personal/galeria"),
       group: "Navegar",
+    },
+  ];
+
+  const appItems: CommandItem[] = [
+    {
+      id: "app-ejercicios",
+      label: "Ejercicios",
+      icon: Dumbbell,
+      keywords: ["ejercicios", "gym", "entrenar", "fitness"],
+      action: () => goApp("ejercicios"),
+      group: "Apps",
+    },
+    {
+      id: "app-ingredientes",
+      label: "Ingredientes",
+      icon: Package,
+      keywords: ["ingredientes", "despensa", "cocina"],
+      action: () => goApp("ingredientes"),
+      group: "Apps",
+    },
+    {
+      id: "app-recetas",
+      label: "Recetas",
+      icon: UtensilsCrossed,
+      keywords: ["recetas", "cocina", "comida"],
+      action: () => goApp("recetas"),
+      group: "Apps",
+    },
+    {
+      id: "app-ropa",
+      label: "Ropa",
+      icon: Shirt,
+      keywords: ["ropa", "armario", "outfit"],
+      action: () => goApp("ropa"),
+      group: "Apps",
+    },
+    {
+      id: "app-biblioteca",
+      label: "Biblioteca",
+      description: "Tus libros",
+      icon: Library,
+      keywords: ["biblioteca", "libros", "leer"],
+      action: () => goApp("libros"),
+      group: "Apps",
     },
   ];
 
@@ -732,6 +797,7 @@ export function GlobalCommandPalette() {
 
   const staticItems: CommandItem[] = [
     ...navItems,
+    ...appItems,
     ...userItems,
     ...adminItems,
     ...themeItems,

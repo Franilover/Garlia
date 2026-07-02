@@ -8,18 +8,14 @@ import {
   CheckSquare,
   Plus,
   X,
-  Dumbbell,
-  Package,
-  UtensilsCrossed,
   ChevronLeft,
-  Shirt,
   Heart,
   BookOpen,
-  Library,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
+import { useAppPanels } from "@/features/command-palette";
 import { RelojDigital } from "@/features/ensayos/components/relojDigital";
 import ArmarioPage from "@/features/ensayos/components/ropa";
 import type { ModoCalendario } from "@/features/ensayos/components/types";
@@ -90,16 +86,8 @@ export function HomeDashboard({
 
   const [nuevaTarea, setNuevaTarea] = useState("");
   const [modoCalendario, setModoCalendario] = useState<ModoCalendario>("mes");
-  const [panelAbierto, setPanelAbierto] = useState<
-    | "reloj"
-    | "tareas"
-    | "ejercicios"
-    | "ingredientes"
-    | "recetas"
-    | "ropa"
-    | null
-  >(null);
-  const [vistaPersonal, setVistaPersonal] = useState<"libros" | null>(null);
+  const { panelAbierto, vistaPersonal, setPanelAbierto, setVistaPersonal } =
+    useAppPanels();
 
   const favoritos = useMemo(
     () => ensayos.filter((e) => e.tags?.includes("favorito")).slice(0, 10),
@@ -262,13 +250,6 @@ export function HomeDashboard({
             font-size: 10px !important;
             margin-bottom: 12px !important;
           }
-          .hd-personal-grid {
-            grid-template-columns: 1fr 1fr 1fr !important;
-            gap: 5px !important;
-          }
-          .hd-personal-btn span {
-            font-size: 9px !important;
-          }
         }
       `}</style>
       <div
@@ -302,11 +283,11 @@ export function HomeDashboard({
           className="hd-main-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "0.32fr 3.4fr",
+            gridTemplateColumns: "1fr",
             gridTemplateRows: "1fr 1fr",
             gridTemplateAreas: `
-            "personal mes"
-            "personal mes"
+            "mes"
+            "mes"
           `,
             gap: gap,
             background: divColor,
@@ -737,152 +718,6 @@ export function HomeDashboard({
                 </MotionDiv>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* ── Personal — columna vertical span 2 rows ── */}
-          <div
-            className="hd-recientes"
-            style={{
-              gridArea: "personal",
-              gridRow: "1 / -1",
-              background: "var(--bg-main)",
-              padding: "18px 6px",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              gap: 4,
-            }}
-          >
-            <span
-              style={{
-                ...mono,
-                fontSize: 7,
-                color: "color-mix(in srgb, var(--foreground) 20%, transparent)",
-                textTransform: "uppercase",
-                letterSpacing: "0.14em",
-                textAlign: "center",
-                marginBottom: 8,
-                flexShrink: 0,
-              }}
-            >
-              Apps
-            </span>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                flex: 1,
-                overflowY: "auto",
-                scrollbarWidth: "none",
-              }}
-            >
-              {(
-                [
-                  {
-                    id: "ejercicios",
-                    label: "Ejercicios",
-                    icon: <Dumbbell size={13} />,
-                  },
-                  {
-                    id: "ingredientes",
-                    label: "Ingredientes",
-                    icon: <Package size={13} />,
-                  },
-                  {
-                    id: "recetas",
-                    label: "Recetas",
-                    icon: <UtensilsCrossed size={13} />,
-                  },
-                  { id: "ropa", label: "Ropa", icon: <Shirt size={13} /> },
-                  {
-                    id: "libros",
-                    label: "Biblioteca",
-                    icon: <Library size={13} />,
-                  },
-                ] as const
-              ).map(({ id, label, icon }) => {
-                const activo =
-                  id === "libros"
-                    ? vistaPersonal === "libros"
-                    : panelAbierto === id;
-                return (
-                  <MotionDiv
-                    key={id}
-                    animate={{ opacity: 1, x: 0 }}
-                    initial={{ opacity: 0, x: -4 }}
-                    transition={{ delay: 0.04 }}
-                  >
-                    <button
-                      className="hd-personal-btn"
-                      style={{
-                        width: "100%",
-                        padding: "8px 4px",
-                        borderRadius: 7,
-                        border: activo
-                          ? "1px solid color-mix(in srgb, var(--foreground) 22%, transparent)"
-                          : "1px solid color-mix(in srgb, var(--foreground) 7%, transparent)",
-                        background: activo
-                          ? "color-mix(in srgb, var(--foreground) 8%, transparent)"
-                          : "color-mix(in srgb, var(--foreground) 3%, transparent)",
-                        cursor: "pointer",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 4,
-                        transition: "all 0.12s",
-                        color: activo
-                          ? "color-mix(in srgb, var(--foreground) 80%, transparent)"
-                          : "color-mix(in srgb, var(--foreground) 35%, transparent)",
-                      }}
-                      title={label}
-                      onClick={() =>
-                        id === "libros"
-                          ? setVistaPersonal((v) =>
-                              v === "libros" ? null : "libros",
-                            )
-                          : setPanelAbierto((p) => (p === id ? null : id))
-                      }
-                      onMouseEnter={(e) => {
-                        if (activo) return;
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.background =
-                          "color-mix(in srgb, var(--foreground) 7%, transparent)";
-                        el.style.borderColor =
-                          "color-mix(in srgb, var(--foreground) 18%, transparent)";
-                        el.style.color =
-                          "color-mix(in srgb, var(--foreground) 75%, transparent)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (activo) return;
-                        const el = e.currentTarget as HTMLElement;
-                        el.style.background =
-                          "color-mix(in srgb, var(--foreground) 3%, transparent)";
-                        el.style.borderColor =
-                          "color-mix(in srgb, var(--foreground) 7%, transparent)";
-                        el.style.color =
-                          "color-mix(in srgb, var(--foreground) 35%, transparent)";
-                      }}
-                    >
-                      {icon}
-                      <span
-                        style={{
-                          ...mono,
-                          fontSize: 6.5,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          lineHeight: 1.2,
-                          textAlign: "center",
-                        }}
-                      >
-                        {label}
-                      </span>
-                    </button>
-                  </MotionDiv>
-                );
-              })}
-            </div>
           </div>
         </div>
 
