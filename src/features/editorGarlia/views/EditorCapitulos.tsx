@@ -243,6 +243,27 @@ const PanelEditor = ({
   const pendingReplaceRef = useRef<((next: string) => void) | null>(null);
   const pendingSnippetRawRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
+  // ── Capa de seguridad anti-pérdida-de-contenido ─────────────────────────
+  // Bug que resuelve: RichEditor puede montar/emitir onChange ANTES de que
+  // `cap` haya llegado de useCapituloEditor (Dexie/Supabase todavía en
+  // vuelo). Si eso pasa, un onChange("") disparado por el propio ciclo de
+  // vida de Lexical al inicializar arrancaba el debounce de guardado con
+  // un contenido vacío, y 2s después doSave("") pisaba el capítulo real en
+  // el servidor con string vacío — pérdida total del capítulo.
+  //
+  // lastLoadedCapIdRef: el capId para el cual YA terminamos de inicializar
+  // `contenido` desde `cap` (ver el bloque de inicialización síncrona más
+  // abajo). Mientras el capId actual no coincida con este ref, CUALQUIER
+  // onChange/doSave se ignora — no hay forma de que un guardado dispare
+  // sin datos reales cargados primero.
+  const lastLoadedCapIdRef = useRef<string | null>(null);
+  // lastNonEmptyContentRef: última versión NO vacía de contenido que
+  // sabemos que es real (vino de `cap` o de un guardado exitoso). Es la
+  // segunda red de seguridad: incluso con el capítulo ya inicializado, si
+  // en algún punto llega un onChange("") mientras el contenido conocido
+  // NO estaba vacío, lo tratamos como sospechoso (ver doSave) en vez de
+  // guardarlo ciegamente.
+  const lastNonEmptyContentRef = useRef<string>("");
   const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => {
@@ -272,6 +293,13 @@ const PanelEditor = ({
     setCriaturasIds((cap as any).criaturas_ids ?? []);
     setItemsIds((cap as any).items_ids ?? []);
     setSaveStatus((cap as any).status === "pending" ? "pending" : "idle");
+    // Recién ACÁ el capítulo tiene datos reales cargados — desbloqueamos
+    // onChange/doSave para este capId. Cualquier evento emitido antes de
+    // esta línea (por ejemplo por RichEditor montando/reconciliando su
+    // árbol Lexical mientras `cap` todavía era null) ya fue descartado
+    // por el guard en onChange, así que no hay nada que "recuperar" acá.
+    lastLoadedCapIdRef.current = cap.id;
+    if (cap.contenido) lastNonEmptyContentRef.current = cap.contenido;
   }
 
   // Cuando el hook refresca cap con datos remotos (mismo id, Supabase llega
@@ -284,6 +312,7 @@ const PanelEditor = ({
     setContenido(cap.contenido || "");
     setTitulo(cap.titulo_capitulo || "");
     setCapVisibilidad(cap.visibilidad ?? "oculto");
+    if (cap.contenido) lastNonEmptyContentRef.current = cap.contenido;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cap]);
 
@@ -320,6 +349,38 @@ const PanelEditor = ({
     async (val: string) => {
       clearTimeout(timer.current);
       if (!isMountedRef.current) return;
+
+      // GUARD 1: el capítulo todavía no terminó de cargar sus datos reales
+      // para este capId. Guardar acá sería escribir sobre un capítulo del
+      // que ni siquiera tenemos el contenido real todavía.
+      if (lastLoadedCapIdRef.current !== capId) {
+        console.warn(
+          "[doSave] Bloqueado: capítulo aún no inicializado, se descarta el guardado para evitar pérdida de datos.",
+          { capId },
+        );
+        return;
+      }
+
+      // GUARD 2: contenido vacío que reemplazaría contenido previo NO
+      // vacío es la firma exacta del bug de carga-lenta-borra-todo. No lo
+      // bloqueamos silenciosamente (el usuario puede legítimamente querer
+      // vaciar el capítulo) — lo dejamos pasar solo si coincide con un
+      // vaciado deliberado detectable, y si no, preservamos el draft local
+      // y avisamos en vez de perder el contenido remoto.
+      const looksLikeAccidentalWipe =
+        val.trim() === "" && lastNonEmptyContentRef.current.trim() !== "";
+      if (looksLikeAccidentalWipe) {
+        console.warn(
+          "[doSave] Bloqueado: se intentó guardar contenido vacío sobre un capítulo con contenido previo. Draft local preservado, no se sobreescribió el servidor.",
+          { capId },
+        );
+        // Mantenemos el draft (IndexedDB local) para no perder lo que sea
+        // que el usuario tenga en pantalla, pero NO tocamos el servidor.
+        draft.save(val);
+        setSaveStatus("pending");
+        return;
+      }
+
       setSaveStatus("saving");
       draft.save(val);
 
@@ -339,6 +400,7 @@ const PanelEditor = ({
         setCap((prev) =>
           prev ? { ...prev, contenido: val, status: "synced" } : prev,
         );
+        if (val.trim() !== "") lastNonEmptyContentRef.current = val;
         draft.clear();
         const stillOnline = await isReallyOnline();
         setSaveStatus(stillOnline ? "saved" : "pending");
@@ -361,6 +423,18 @@ const PanelEditor = ({
 
   const onChange = useCallback(
     (val: string) => {
+      // GUARD: mismo criterio que en doSave — si el capítulo activo
+      // todavía no cargó datos reales, ignoramos el evento por completo.
+      // Esto corta el problema en la raíz: ni siquiera actualizamos
+      // `contenido` en React con un valor "fantasma" que no corresponde
+      // al capítulo real, así que no hay nada que el debounce pueda
+      // guardar mal más adelante.
+      if (lastLoadedCapIdRef.current !== capId) {
+        console.warn("[onChange] Ignorado: capítulo aún no inicializado.", {
+          capId,
+        });
+        return;
+      }
       setContenido(val);
       draft.save(val);
       setSaveStatus("saving");
@@ -369,7 +443,7 @@ const PanelEditor = ({
       const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
       if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
     },
-    [doSave, draft, centerCursor],
+    [doSave, draft, centerCursor, capId],
   );
 
   const handleSnippetAction = useCallback(
@@ -955,7 +1029,17 @@ const PanelEditor = ({
         >
           <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
             <RichEditor
+              key={capId}
               autoFocus={focusMode}
+              // Bloquea la edición mientras `cap` todavía no cargó datos
+              // reales para este capId. Es la defensa física: sin esto,
+              // el usuario podía escribir en el editor durante el frame
+              // en que `contenido` seguía siendo el valor del capítulo
+              // anterior (o "") mientras Dexie/Supabase resolvían — y ese
+              // texto fantasma terminaba autoguardándose sobre el
+              // capítulo equivocado o vacío. Ver doSave/onChange guards
+              // más arriba para la segunda capa de esta protección.
+              editable={!loading && initializedCapId === cap?.id}
               insertRef={mdInsertRef}
               closePaletteRef={closePaletteRef}
               minHeight={focusMode ? "30rem" : "20rem"}

@@ -94,6 +94,16 @@ export interface RichEditorProps {
   mode?: ViewMode;
   onModeChange?: (mode: ViewMode) => void;
   autoFocus?: boolean;
+  /**
+   * false deshabilita la edición (ContentEditable no editable) sin ocultar
+   * el contenido — pensado para el estado "cargando datos reales del
+   * capítulo todavía no llegaron" en EditorCapitulos. Evita que el usuario
+   * pueda escribir sobre un editor cuyo `value` todavía no es el contenido
+   * real del capítulo (lo cual, combinado con el guard de EditorCapitulos,
+   * es la defensa completa contra el bug de "carga lenta → autosave vacío
+   * pisa el capítulo real"). Default true (comportamiento normal).
+   */
+  editable?: boolean;
   /** Ref imperativo para insertar snippets desde EditorCapitulos */
   insertRef?: React.MutableRefObject<((raw: string) => void) | null>;
   /**
@@ -220,6 +230,24 @@ function InitialContentPlugin({ initialRaw }: { initialRaw: string }) {
     });
   }, [editor, initialRaw]);
 
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin: sincroniza editor.setEditable() con la prop `editable` de forma
+// reactiva. initialConfig.editable solo cubre el primer mount — esto cubre
+// cambios posteriores (ej: EditorCapitulos pasa editable={false} mientras
+// el capítulo todavía está cargando, y luego lo habilita cuando cap llega).
+// Con esto el usuario NO puede escribir en el editor mientras está en
+// estado "cargando", cortando de raíz la posibilidad de que un onChange
+// con contenido fantasma dispare un guardado que pise el capítulo real.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EditablePlugin({ editable }: { editable: boolean }) {
+  const [editor] = useLexicalComposerContext();
+  useEffect(() => {
+    editor.setEditable(editable);
+  }, [editor, editable]);
   return null;
 }
 
@@ -362,6 +390,7 @@ export function RichEditor({
   mode: modeProp,
   onModeChange,
   autoFocus = false,
+  editable = true,
   insertRef,
   insertTableRef,
   onSnippetEdit,
@@ -509,6 +538,7 @@ export function RichEditor({
     () => ({
       namespace: "agenda-next-rich-editor",
       nodes: RICH_EDITOR_NODES,
+      editable,
       onError(error: Error) {
         console.error("Lexical error:", error);
       },
@@ -584,6 +614,9 @@ export function RichEditor({
     lineHeight: 1.7,
     fontFamily: "var(--font-mono)",
     color: "color-mix(in srgb, var(--foreground) 75%, transparent)",
+    ...(editable
+      ? null
+      : { opacity: 0.5, cursor: "wait", pointerEvents: "none" }),
   };
 
   return (
@@ -662,6 +695,7 @@ export function RichEditor({
                 slashRemoveRef={slashRemoveRef}
               />
               <MarkdownCommandInsertPlugin insertRef={mdInsertRef} />
+              <EditablePlugin editable={editable} />
               <SlashCommandPlugin
                 onMatch={handleSlashMatch}
                 removeMatchRef={slashRemoveRef}
