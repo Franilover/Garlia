@@ -203,7 +203,13 @@ const RICH_EDITOR_NODES = [
 // Plugin: carga el contenido inicial desde el raw string
 // ─────────────────────────────────────────────────────────────────────────────
 
-function InitialContentPlugin({ initialRaw }: { initialRaw: string }) {
+function InitialContentPlugin({
+  initialRaw,
+  skipNextChangeRef,
+}: {
+  initialRaw: string;
+  skipNextChangeRef: React.MutableRefObject<boolean>;
+}) {
   const [editor] = useLexicalComposerContext();
   const isFirstRun = useRef(true);
 
@@ -225,10 +231,21 @@ function InitialContentPlugin({ initialRaw }: { initialRaw: string }) {
     }
     isFirstRun.current = false;
 
+    // editor.update() dispara OnChangePlugin igual que si el usuario
+    // hubiera tecleado — Lexical no distingue "cambio programático" de
+    // "cambio del usuario". Sin este flag, cargar el contenido real del
+    // capítulo (carga inicial, cambio de capítulo, o refresh remoto)
+    // generaba un onChange(raw) fantasma que el padre (EditorCapitulos)
+    // interpretaba como una edición real del usuario: seteaba
+    // saveStatus="saving" y arrancaba el debounce de guardado, mostrando
+    // "Guardando…" apenas se abría el capítulo aunque nadie hubiera
+    // escrito nada todavía.
+    skipNextChangeRef.current = true;
+
     editor.update(() => {
       rawTextToLexicalTree(initialRaw);
     });
-  }, [editor, initialRaw]);
+  }, [editor, initialRaw, skipNextChangeRef]);
 
   return null;
 }
@@ -576,8 +593,18 @@ export function RichEditor({
     [],
   );
 
+  const skipNextChangeRef = useRef(false);
+
   const handleChange = useCallback(
     (_state: EditorState, editor: import("lexical").LexicalEditor) => {
+      if (skipNextChangeRef.current) {
+        // Este onChange es el eco del editor.update() programático que
+        // hizo InitialContentPlugin al cargar el contenido real del
+        // capítulo — no una edición del usuario. Lo consumimos una sola
+        // vez y no lo propagamos, para no disparar "Guardando…" al abrir.
+        skipNextChangeRef.current = false;
+        return;
+      }
       editor.read(() => {
         const raw = serializeRootToRaw();
         onChange(raw);
@@ -689,7 +716,10 @@ export function RichEditor({
               <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
               <HistoryPlugin />
               {autoFocus && <AutoFocusPlugin />}
-              <InitialContentPlugin initialRaw={value} />
+              <InitialContentPlugin
+                initialRaw={value}
+                skipNextChangeRef={skipNextChangeRef}
+              />
               <InsertSnippetPlugin
                 insertRef={activeInsertRef}
                 slashRemoveRef={slashRemoveRef}
