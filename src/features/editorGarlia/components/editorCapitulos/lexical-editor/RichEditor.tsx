@@ -52,6 +52,7 @@ import { ChoiceNode } from "./nodes/ChoiceNode";
 import { UseNode } from "./nodes/UseNode";
 import { GateNode } from "./nodes/GateNode";
 import { SectionNode } from "./nodes/SectionNode";
+import { WikilinkNode, wikilinkNavigateHandler } from "./nodes/WikilinkNode";
 import {
   snippetEditHandler,
   type SnippetEditRequest,
@@ -62,6 +63,15 @@ import {
   insertSnippetNode,
 } from "./richTextSerializer";
 import { SlashCommandPlugin, type SlashMatch } from "./SlashCommandPlugin";
+import { WikilinkPlugin, type WikilinkMatch } from "./WikilinkPlugin";
+import { WikilinkMenuPanel, type WikiEntity } from "./WikilinkMenuPanel";
+import { TABLE_NODES, TablePlugin, insertTable } from "./TablePlugin";
+import {
+  FindReplacePlugin,
+  initialFindReplaceState,
+  type FindReplaceState,
+} from "./FindReplacePlugin";
+import { AutoClosePlugin } from "./AutoClosePlugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -80,6 +90,14 @@ export interface RichEditorProps {
   autoFocus?: boolean;
   /** Ref imperativo para insertar snippets desde EditorCapitulos */
   insertRef?: React.MutableRefObject<((raw: string) => void) | null>;
+  /**
+   * Ref imperativo para insertar una tabla en la posición del cursor.
+   * El padre lo invoca desde su palette al elegir el comando "/tabla"
+   * (o el item "table" de COMMAND_ITEMS si reutiliza ese menú).
+   */
+  insertTableRef?: React.MutableRefObject<
+    ((rows?: number, cols?: number) => void) | null
+  >;
   /** Handler de edición de un snippet existente → abre SnippetCommandPalette */
   onSnippetEdit?: (req: SnippetEditRequest<any>) => void;
   /**
@@ -105,6 +123,12 @@ export interface RichEditorProps {
   closePaletteRef?: React.MutableRefObject<(() => void) | null>;
   /** Entidades para autocompletado de wikilinks (opcional) */
   wikiEntities?: { name: string; type: string }[];
+  /**
+   * Se llama cuando el usuario hace click en un wikilink [[Nombre]] ya
+   * insertado en el editor (tanto en modo edición como en preview).
+   * Sin esta prop, los wikilinks se renderizan pero no navegan a nada.
+   */
+  onWikilinkNavigate?: (target: string) => void;
   /**
    * Cómo renderizar el panel de "Preview"/"Split". RichEditor es
    * genérico — no todos los consumidores usan el formato [[kind|...]]
@@ -146,6 +170,8 @@ const RICH_EDITOR_NODES = [
   UseNode,
   GateNode,
   SectionNode,
+  WikilinkNode,
+  ...TABLE_NODES,
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,6 +229,32 @@ function InsertSnippetPlugin({
       editor.update(() => insertSnippetNode(raw));
     };
   }, [editor, insertRef, slashRemoveRef]);
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin: expone insertTableRef para que el padre inserte tablas desde /tabla
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InsertTablePlugin({
+  insertTableRef,
+}: {
+  insertTableRef?: React.MutableRefObject<
+    ((rows?: number, cols?: number) => void) | null
+  >;
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (!insertTableRef) return;
+    insertTableRef.current = (rows = 3, cols = 3) => {
+      insertTable(editor, rows, cols);
+    };
+    return () => {
+      if (insertTableRef) insertTableRef.current = null;
+    };
+  }, [editor, insertTableRef]);
 
   return null;
 }
@@ -282,11 +334,13 @@ export function RichEditor({
   onModeChange,
   autoFocus = false,
   insertRef,
+  insertTableRef,
   onSnippetEdit,
   onOpenPalette,
   onClosePalette,
   closePaletteRef,
   wikiEntities,
+  onWikilinkNavigate,
   renderPreview,
 }: RichEditorProps) {
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
@@ -297,6 +351,58 @@ export function RichEditor({
   useEffect(() => {
     snippetEditHandler.current = onSnippetEdit ?? null;
   }, [onSnippetEdit]);
+
+  // Conecta el handler global de navegación de wikilinks — mismo patrón
+  // que snippetEditHandler, necesario porque DecoratorNode no puede
+  // recibir props del árbol de React directamente.
+  useEffect(() => {
+    wikilinkNavigateHandler.current = onWikilinkNavigate ?? null;
+    return () => {
+      wikilinkNavigateHandler.current = null;
+    };
+  }, [onWikilinkNavigate]);
+
+  // ── Wikilink menu state ───────────────────────────────────────────────
+  const [wikiMenu, setWikiMenu] = useState<{
+    open: boolean;
+    query: string;
+    selectedIdx: number;
+    pos: { top: number; left: number };
+  }>({ open: false, query: "", selectedIdx: 0, pos: { top: 0, left: 0 } });
+  const wikiMenuRef = useRef<HTMLDivElement>(null);
+  const wikiInsertRef = useRef<((target: string) => void) | null>(null);
+  const wikiNotifyClosedRef = useRef<(() => void) | null>(null);
+
+  const normalizedWikiEntities: WikiEntity[] = wikiEntities ?? [];
+  const filteredWikiEntities = wikiMenu.query
+    ? normalizedWikiEntities.filter((e) =>
+        e.name.toLowerCase().includes(wikiMenu.query.toLowerCase()),
+      )
+    : normalizedWikiEntities;
+
+  const handleWikilinkMatch = useCallback((match: WikilinkMatch | null) => {
+    if (match) {
+      setWikiMenu({ open: true, query: match.query, selectedIdx: 0, pos: match.anchorRect });
+    } else {
+      setWikiMenu((m) => ({ ...m, open: false }));
+    }
+  }, []);
+
+  const closeWikiMenu = useCallback(() => {
+    setWikiMenu((m) => ({ ...m, open: false }));
+    wikiNotifyClosedRef.current?.();
+  }, []);
+
+  const selectWikiEntity = useCallback(
+    (entity: WikiEntity) => {
+      wikiInsertRef.current?.(entity.name);
+      setWikiMenu((m) => ({ ...m, open: false }));
+    },
+    [],
+  );
+
+  // ── Find & Replace state ──────────────────────────────────────────────
+  const [findReplace, setFindReplace] = useState<FindReplaceState>(initialFindReplaceState);
 
   // Ref interno para insertar snippets (si el padre no pasa el suyo)
   const internalInsertRef = useRef<((raw: string) => void) | null>(null);
@@ -362,6 +468,12 @@ export function RichEditor({
           strikethrough: "line-through",
           code: "font-mono text-[0.875em] bg-surface-1 px-1 rounded",
         },
+        table: "border-collapse my-3 w-full",
+        tableRow: "",
+        tableCell:
+          "border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] px-2 py-1 align-top",
+        tableCellHeader:
+          "border border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] px-2 py-1 align-top font-bold bg-[color-mix(in_srgb,var(--foreground)_4%,transparent)]",
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -432,6 +544,7 @@ export function RichEditor({
                 flexDirection: "column",
               }}
             >
+              <FindReplacePlugin state={findReplace} onStateChange={setFindReplace} />
               <RichTextPlugin
                 contentEditable={<ContentEditable style={editorStyle} />}
                 placeholder={
@@ -466,7 +579,53 @@ export function RichEditor({
                 removeMatchRef={slashRemoveRef}
                 notifyClosedRef={notifyClosedRef}
               />
+              <WikilinkPlugin
+                insertRef={wikiInsertRef}
+                isMenuOpen={wikiMenu.open}
+                notifyClosedRef={wikiNotifyClosedRef}
+                onArrowDown={() =>
+                  setWikiMenu((m) => ({
+                    ...m,
+                    selectedIdx:
+                      filteredWikiEntities.length > 0
+                        ? (m.selectedIdx + 1) % filteredWikiEntities.length
+                        : 0,
+                  }))
+                }
+                onArrowUp={() =>
+                  setWikiMenu((m) => ({
+                    ...m,
+                    selectedIdx:
+                      filteredWikiEntities.length > 0
+                        ? (m.selectedIdx - 1 + filteredWikiEntities.length) %
+                          filteredWikiEntities.length
+                        : 0,
+                  }))
+                }
+                onConfirmSelection={() => {
+                  const entity = filteredWikiEntities[wikiMenu.selectedIdx];
+                  if (entity) selectWikiEntity(entity);
+                  else closeWikiMenu();
+                }}
+                onMatch={handleWikilinkMatch}
+              />
+              <TablePlugin />
+              <InsertTablePlugin insertTableRef={insertTableRef} />
+              <AutoClosePlugin />
               <OnChangePlugin onChange={handleChange} />
+
+              {wikiMenu.open && normalizedWikiEntities.length > 0 && (
+                <WikilinkMenuPanel
+                  entities={normalizedWikiEntities}
+                  menuRef={wikiMenuRef}
+                  pos={wikiMenu.pos}
+                  query={wikiMenu.query}
+                  selectedIdx={wikiMenu.selectedIdx}
+                  onClose={closeWikiMenu}
+                  onHover={(idx) => setWikiMenu((m) => ({ ...m, selectedIdx: idx }))}
+                  onSelect={selectWikiEntity}
+                />
+              )}
             </div>
           )}
 
@@ -498,6 +657,17 @@ export function RichEditor({
                   overflowY: "auto",
                   fontSize: "clamp(0.9rem, 2vw, 1rem)",
                   lineHeight: 1.8,
+                }}
+                onClick={(e) => {
+                  // Mismo mecanismo que MarkdownPreviewWithSnippets del
+                  // MarkdownEditor viejo: renderMarkdown ya marca los
+                  // wikilinks con data-wikilink, acá solo conectamos el
+                  // click a onWikilinkNavigate.
+                  const a = (e.target as HTMLElement).closest("a[data-wikilink]");
+                  if (!a) return;
+                  e.preventDefault();
+                  const target = a.getAttribute("data-wikilink");
+                  if (target) onWikilinkNavigate?.(target);
                 }}
               />
             ))}

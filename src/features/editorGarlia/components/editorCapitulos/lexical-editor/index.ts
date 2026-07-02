@@ -17,9 +17,15 @@ export { $createChoiceNode, $isChoiceNode, choicePayloadToRaw, choiceRawToPayloa
 export { $createUseNode, $isUseNode, usePayloadToRaw, useRawToPayload } from "./nodes/UseNode";
 export { $createGateNode, $isGateNode, gatePayloadToRaw, gateRawToPayload } from "./nodes/GateNode";
 export { $createSectionNode, $isSectionNode, sectionPayloadToRaw, sectionRawToPayload } from "./nodes/SectionNode";
+export { $createWikilinkNode, $isWikilinkNode, wikilinkPayloadToRaw, wikilinkRawToPayload } from "./nodes/WikilinkNode";
 
 // Serializador (por si necesitas convertir fuera del editor)
 export { serializeRootToRaw, rawTextToLexicalTree, insertSnippetNode } from "./richTextSerializer";
 
+// Tabla — helper de inserción imperativa (ver TablePlugin.tsx para cómo
+// conectar "/tabla" desde SnippetCommandPalette)
+export { insertTable } from "./TablePlugin";
+
 // Tipos compartidos
 export type { SnippetEditRequest, SnippetKind } from "./nodes/sharedTypes";
+export type { WikiEntity } from "./WikilinkMenuPanel";
