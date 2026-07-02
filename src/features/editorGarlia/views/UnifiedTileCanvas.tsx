@@ -464,6 +464,9 @@ export function UnifiedTileCanvas<
       const ih = totalH * scale;
       const ts = tileSize * scale;
 
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "low";
+
       ctx.save();
       ctx.translate(cx, cy);
 
@@ -510,7 +513,32 @@ export function UnifiedTileCanvas<
 
       // ── Tiles compuestos ─────────────────────────────────────────────────
       if (compositeRef.current && compositeReadyRef.current) {
-        ctx.drawImage(compositeRef.current, 0, 0, iw, ih);
+        // Viewport culling: el composite puede ser enorme (tileSize=1024 por
+        // tile). Reescalar el mapa entero en cada frame durante pan/zoom es
+        // carísimo aunque solo se vea una fracción en pantalla — por eso acá
+        // recortamos tanto el source como el destino a la región visible.
+        const visX0 = Math.max(0, -cx);
+        const visY0 = Math.max(0, -cy);
+        const visX1 = Math.min(iw, canvas.width - cx);
+        const visY1 = Math.min(ih, canvas.height - cy);
+
+        if (visX1 > visX0 && visY1 > visY0) {
+          const srcX0 = visX0 / scale;
+          const srcY0 = visY0 / scale;
+          const srcW = (visX1 - visX0) / scale;
+          const srcH = (visY1 - visY0) / scale;
+          ctx.drawImage(
+            compositeRef.current,
+            srcX0,
+            srcY0,
+            srcW,
+            srcH,
+            visX0,
+            visY0,
+            visX1 - visX0,
+            visY1 - visY0,
+          );
+        }
       } else {
         // Mientras carga el composite (o si no hay imágenes), dibujamos el fondo de cada tile
         tiles.forEach((tile) => {
