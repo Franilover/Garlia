@@ -74,6 +74,7 @@ import {
 } from "./FindReplacePlugin";
 import { AutoClosePlugin } from "./AutoClosePlugin";
 import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
+import { ListBackspacePlugin } from "./ListBackspacePlugin";
 import { TocPanel } from "./TocPlugin";
 import {
   MarkdownCommandInsertPlugin,
@@ -829,6 +830,7 @@ export function RichEditor({
               <InsertTablePlugin insertTableRef={insertTableRef} />
               <AutoClosePlugin />
               <HeadingBackspacePlugin />
+              <ListBackspacePlugin />
               <OnChangePlugin onChange={handleChange} />
 
               {wikiMenu.open && normalizedWikiEntities.length > 0 && (
