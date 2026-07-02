@@ -571,6 +571,17 @@ export function UnifiedTileCanvas<
             visY1 - visY0,
           );
         }
+      } else if (tiles.length === 0) {
+        // Sin ningún tile todavía: dibujamos un placeholder del área virtual
+        // 1×1 (ver totalCols/totalRows más arriba) para que se note que hay
+        // "algo" ahí en vez de dejar el canvas completamente en blanco.
+        ctx.fillStyle = isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)";
+        ctx.fillRect(0, 0, ts, ts);
+        ctx.strokeStyle = `rgba(${isDark ? "255,255,255" : "0,0,0"},0.1)`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 6]);
+        ctx.strokeRect(0, 0, ts, ts);
+        ctx.setLineDash([]);
       } else {
         // Mientras carga el composite (o si no hay imágenes), dibujamos el fondo de cada tile
         tiles.forEach((tile) => {

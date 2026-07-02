@@ -241,6 +241,26 @@ export function ReinoTileCanvas({
         </div>
       )}
 
+      {/* Estado vacío en modo lectura — sin botones de crear, solo el aviso */}
+      {emptyState && !editMode && (
+        <div className="absolute inset-0 flex items-center justify-center gap-4 pointer-events-none">
+          <div
+            className="flex flex-col items-center gap-2 px-6 py-5 rounded-2xl"
+            style={{
+              background: "color-mix(in srgb, var(--bg-main) 90%, transparent)",
+              backdropFilter: "blur(12px)",
+              border:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            <Map className="text-primary/20" size={22} strokeWidth={1} />
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30">
+              Este reino todavía no tiene mapa
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Loading */}
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center">
