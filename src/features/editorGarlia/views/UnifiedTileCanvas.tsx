@@ -307,17 +307,37 @@ export function UnifiedTileCanvas<
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    centerImage();
-    const ro = new ResizeObserver(() => {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+
+    // Mismo criterio que en CanvasMap: capamos la resolución interna para que
+    // ventanas grandes de escritorio no multipliquen el costo de cada frame.
+    const MAX_DIM = 1400;
+    const capDims = (w: number, h: number) => {
+      const largest = Math.max(w, h);
+      if (largest <= MAX_DIM) return { w, h };
+      const f = MAX_DIM / largest;
+      return { w: Math.round(w * f), h: Math.round(h * f) };
+    };
+
+    const apply = () => {
+      const { w, h } = capDims(container.clientWidth, container.clientHeight);
+      canvas.width = w;
+      canvas.height = h;
       centerImage();
-    });
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
     ro.observe(container);
     return () => ro.disconnect();
   }, [centerImage]);
+
+  // Factor para convertir coordenadas CSS (rect) a espacio del backing-store
+  // del canvas — necesario porque canvas.width ya no es igual al tamaño CSS.
+  const cssToCanvasScale = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return 1;
+    const rect = canvas.getBoundingClientRect();
+    return rect.width ? canvas.width / rect.width : 1;
+  };
 
   // ── Helpers de coordenadas ────────────────────────────────────────────────
   const getMarkerScreenPos = useCallback(
@@ -341,8 +361,9 @@ export function UnifiedTileCanvas<
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const px = clientX - rect.left;
-    const py = clientY - rect.top;
+    const s = cssToCanvasScale();
+    const px = (clientX - rect.left) * s;
+    const py = (clientY - rect.top) * s;
     const { x: cx, y: cy, scale } = camRef.current;
     const canvasX = (px - cx) / scale;
     const canvasY = (py - cy) / scale;
@@ -377,9 +398,10 @@ export function UnifiedTileCanvas<
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    const s = cssToCanvasScale();
     const { x: cx, y: cy, scale } = camRef.current;
-    const px = clientX - rect.left;
-    const py = clientY - rect.top;
+    const px = (clientX - rect.left) * s;
+    const py = (clientY - rect.top) * s;
     const allMarkers = editMode ? [...markers, ...hiddenMarkers] : markers;
     for (const m of [...allMarkers].reverse()) {
       const { mx, my } = getMarkerScreenPos(m, cx, cy, scale);
@@ -393,8 +415,9 @@ export function UnifiedTileCanvas<
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const ox = clientX - rect.left;
-    const oy = clientY - rect.top;
+    const s = cssToCanvasScale();
+    const ox = (clientX - rect.left) * s;
+    const oy = (clientY - rect.top) * s;
     const cam = camRef.current;
     const newScale = Math.max(
       0.1,
@@ -738,8 +761,9 @@ export function UnifiedTileCanvas<
 
     const onPointerMove = (e: PointerEvent) => {
       if (isPointerDown) {
-        const dx = e.clientX - dragStart.current.x;
-        const dy = e.clientY - dragStart.current.y;
+        const s = cssToCanvasScale();
+        const dx = (e.clientX - dragStart.current.x) * s;
+        const dy = (e.clientY - dragStart.current.y) * s;
         if (Math.hypot(dx, dy) > 6) isDragging.current = true;
         if (isDragging.current) {
           camRef.current = {
@@ -810,9 +834,10 @@ export function UnifiedTileCanvas<
         const ctx2 = canvas.getContext("2d");
         if (ctx2) {
           const rect2 = canvas.getBoundingClientRect();
+          const s2 = cssToCanvasScale();
           const [r, g, b] = ctx2.getImageData(
-            Math.round(clientX - rect2.left),
-            Math.round(clientY - rect2.top),
+            Math.round((clientX - rect2.left) * s2),
+            Math.round((clientY - rect2.top) * s2),
             1,
             1,
           ).data;
@@ -842,8 +867,9 @@ export function UnifiedTileCanvas<
       if (editMode) {
         const trash = trashRectRef.current;
         const rect = canvas.getBoundingClientRect();
-        const px = clientX - rect.left;
-        const py = clientY - rect.top;
+        const s3 = cssToCanvasScale();
+        const px = (clientX - rect.left) * s3;
+        const py = (clientY - rect.top) * s3;
         if (
           trash &&
           px >= trash.x &&

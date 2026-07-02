@@ -1401,19 +1401,38 @@ function CanvasMap({
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    // En compu la ventana puede ser varias veces más grande (en px CSS) que
+    // una pantalla de celular — y el costo por frame (clearRect/fillRect/
+    // drawImage) escala directo con la cantidad de píxeles del canvas. Sin
+    // capar esto, una ventana grande de escritorio hace 5-6x más trabajo por
+    // frame que un celular, aunque el hardware sea mejor. Capamos la
+    // resolución interna y dejamos que el CSS (w-full h-full) estire el
+    // canvas para llenar el contenedor igual.
+    const MAX_DIM = 1400;
+    const capDims = (w: number, h: number) => {
+      const largest = Math.max(w, h);
+      if (largest <= MAX_DIM) return { w, h };
+      const f = MAX_DIM / largest;
+      return { w: Math.round(w * f), h: Math.round(h * f) };
+    };
+
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const resize = () => {
-      const newW = container.clientWidth;
-      const newH = container.clientHeight;
+      const { w: newW, h: newH } = capDims(
+        container.clientWidth,
+        container.clientHeight,
+      );
       // Si el tamaño no cambió, no tocar el canvas — evita parpadeo por limpieza
       if (canvas.width === newW && canvas.height === newH) return;
       // Debounce: durante la animación del panel el contenedor cambia frame a frame.
       // Esperamos a que se detenga antes de reasignar canvas.width (lo que lo borra).
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        const finalW = container.clientWidth;
-        const finalH = container.clientHeight;
+        const { w: finalW, h: finalH } = capDims(
+          container.clientWidth,
+          container.clientHeight,
+        );
         if (canvas.width === finalW && canvas.height === finalH) return;
         canvas.width = finalW;
         canvas.height = finalH;
@@ -1422,8 +1441,9 @@ function CanvasMap({
     };
 
     // Primera llamada inmediata (sin debounce, el panel no está animando todavía)
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const initial = capDims(container.clientWidth, container.clientHeight);
+    canvas.width = initial.w;
+    canvas.height = initial.h;
     if (imgRef.current) centerImage();
 
     const ro = new ResizeObserver(resize);
@@ -1980,8 +2000,9 @@ function CanvasMap({
       const canvas = canvasRef.current;
       if (!canvas || !imgRef.current) return null;
       const rect = canvas.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
+      const s = canvas.width / rect.width;
+      const px = (clientX - rect.left) * s;
+      const py = (clientY - rect.top) * s;
       const { x: cx, y: cy, scale } = camRef.current;
       const iw = imgRef.current.width * scale;
       const ih = imgRef.current.height * scale;
@@ -2001,8 +2022,9 @@ function CanvasMap({
       const canvas = canvasRef.current;
       if (!canvas || !imgRef.current) return [0, 0];
       const rect = canvas.getBoundingClientRect();
-      const px = clientX - rect.left;
-      const py = clientY - rect.top;
+      const s = canvas.width / rect.width;
+      const px = (clientX - rect.left) * s;
+      const py = (clientY - rect.top) * s;
       const { x: cx, y: cy, scale } = camRef.current;
       const iw = imgRef.current.width * scale;
       const ih = imgRef.current.height * scale;
@@ -2041,8 +2063,10 @@ function CanvasMap({
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (e.buttons !== 1) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
+    const canvas = canvasRef.current;
+    const s = canvas ? canvas.width / canvas.getBoundingClientRect().width : 1;
+    const dx = (e.clientX - dragStart.current.x) * s;
+    const dy = (e.clientY - dragStart.current.y) * s;
     if (Math.hypot(dx, dy) > 3) isDragging.current = true;
     if (isDragging.current) {
       camRef.current.x = dragStart.current.camX + dx;
@@ -2057,8 +2081,9 @@ function CanvasMap({
         const img = imgRef.current;
         if (canvas && img) {
           const rect = canvas.getBoundingClientRect();
-          const px = e.clientX - rect.left;
-          const py = e.clientY - rect.top;
+          const s = canvas.width / rect.width;
+          const px = (e.clientX - rect.left) * s;
+          const py = (e.clientY - rect.top) * s;
           // Sample from the image at clicked position (account for camera transform)
           const { x: cx, y: cy, scale } = camRef.current;
           const imgX = Math.round((px - cx) / scale);
@@ -2100,8 +2125,10 @@ function CanvasMap({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 0.9;
-    const rect = canvasRef.current!.getBoundingClientRect();
-    zoom(factor, e.clientX - rect.left, e.clientY - rect.top);
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    const s = canvas.width / rect.width;
+    zoom(factor, (e.clientX - rect.left) * s, (e.clientY - rect.top) * s);
   };
 
   const touchStartHandler = useCallback((e: TouchEvent) => {
@@ -2127,9 +2154,13 @@ function CanvasMap({
   const touchMoveHandler = useCallback(
     (e: TouchEvent) => {
       e.preventDefault();
+      const canvas = canvasRef.current;
+      const s = canvas
+        ? canvas.width / canvas.getBoundingClientRect().width
+        : 1;
       if (e.touches.length === 1) {
-        const dx = e.touches[0].clientX - dragStart.current.x;
-        const dy = e.touches[0].clientY - dragStart.current.y;
+        const dx = (e.touches[0].clientX - dragStart.current.x) * s;
+        const dy = (e.touches[0].clientY - dragStart.current.y) * s;
         if (Math.hypot(dx, dy) > 3) isDragging.current = true;
         if (isDragging.current) {
           camRef.current.x = dragStart.current.camX + dx;
@@ -2145,8 +2176,8 @@ function CanvasMap({
         if (rect)
           zoom(
             dist / lastPinchDist.current,
-            pivotX - rect.left,
-            pivotY - rect.top,
+            (pivotX - rect.left) * s,
+            (pivotY - rect.top) * s,
           );
         lastPinchDist.current = dist;
       }
