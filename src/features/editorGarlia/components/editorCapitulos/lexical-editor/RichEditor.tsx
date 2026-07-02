@@ -33,6 +33,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { TRANSFORMERS } from "@lexical/markdown";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
@@ -824,6 +825,7 @@ export function RichEditor({
                 onMatch={handleWikilinkMatch}
               />
               <TablePlugin />
+              <ListPlugin />
               <InsertTablePlugin insertTableRef={insertTableRef} />
               <AutoClosePlugin />
               <HeadingBackspacePlugin />

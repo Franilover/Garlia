@@ -29,6 +29,7 @@
  */
 import {
   $createParagraphNode,
+  $createTextNode,
   $getRoot,
   $getSelection,
   $isRangeSelection,
@@ -123,7 +124,6 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["lista", "bullet", "viñeta", "ul"],
     Icon: ListIcon,
     run: (editor) => {
-      editor.focus();
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
     },
   },
@@ -134,7 +134,6 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["lista", "numerada", "ordenada", "ol"],
     Icon: ListOrdered,
     run: (editor) => {
-      editor.focus();
       editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
     },
   },
@@ -162,13 +161,24 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["codigo", "code", "bloque"],
     Icon: Code,
     run: (editor) => {
-      editor.focus();
       editor.update(() => {
         const selection = getUsableSelection();
         if (!selection) return;
         const code = $createCodeNode();
+        // CRÍTICO: un CodeNode recién creado no tiene hijos. Llamar
+        // selectStart()/selectEnd() sobre un ElementNode vacío falla
+        // (Lexical no tiene un punto de texto válido donde posicionar
+        // el cursor) — eso hacía que el bloque de código pareciera "no
+        // insertarse": en realidad SÍ se creaba el nodo, pero la
+        // selección posterior tiraba un error interno que Lexical
+        // capturaba en su onError, dejando el update a medio aplicar
+        // en algunos casos. Insertamos un TextNode vacío como hijo
+        // ANTES de seleccionar, igual que hace MarkdownShortcutPlugin
+        // cuando convierte ``` a código a mano.
+        const textNode = $createTextNode("");
+        code.append(textNode);
         selection.insertNodes([code]);
-        code.selectStart();
+        textNode.select(0, 0);
       });
     },
   },
