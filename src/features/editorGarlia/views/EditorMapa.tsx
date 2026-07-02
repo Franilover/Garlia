@@ -17,7 +17,7 @@
  *   - Botón "+" para crear un tile en una posición arbitraria (modal)
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -420,6 +420,14 @@ export function EditorMapa({
 
   const existingPositions = tiles.map((t) => ({ col: t.col, row: t.row }));
 
+  // Memoizado: sin esto, el filter crea un array nuevo en cada render de
+  // EditorMapa (toast, modal, picker...) y eso reinicia el draw loop del
+  // canvas innecesariamente.
+  const markersConCoord = useMemo(
+    () => reinos.filter((r) => r.coord_x != null && r.coord_y != null),
+    [reinos],
+  );
+
   return (
     <div
       className="flex flex-col min-h-0"
@@ -486,9 +494,7 @@ export function EditorMapa({
               ReinoConTile
             >
               editMode={true}
-              markers={reinos.filter(
-                (r) => r.coord_x != null && r.coord_y != null,
-              )}
+              markers={markersConCoord}
               selectedMarkerId={selectedReinoId}
               tiles={tiles}
               onMarkerClick={(r) => onSelectReino?.(r.id)}
