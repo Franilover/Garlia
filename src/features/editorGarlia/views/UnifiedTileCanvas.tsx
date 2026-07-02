@@ -124,6 +124,10 @@ export function UnifiedTileCanvas<
   const [compositeReady, setCompositeReady] = useState(false);
 
   const camRef = useRef({ x: 0, y: 0, scale: 1 });
+  // Factor backing-store/CSS del canvas, actualizado solo en resize — evita
+  // leer el DOM (getBoundingClientRect, que fuerza reflow) en cada evento de
+  // pointermove durante el pan, que es donde más se nota.
+  const renderScaleRef = useRef(1);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   const lastPinchDist = useRef<number | null>(null);
@@ -322,6 +326,9 @@ export function UnifiedTileCanvas<
       const { w, h } = capDims(container.clientWidth, container.clientHeight);
       canvas.width = w;
       canvas.height = h;
+      renderScaleRef.current = container.clientWidth
+        ? w / container.clientWidth
+        : 1;
       centerImage();
     };
     apply();
@@ -330,14 +337,8 @@ export function UnifiedTileCanvas<
     return () => ro.disconnect();
   }, [centerImage]);
 
-  // Factor para convertir coordenadas CSS (rect) a espacio del backing-store
-  // del canvas — necesario porque canvas.width ya no es igual al tamaño CSS.
-  const cssToCanvasScale = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return 1;
-    const rect = canvas.getBoundingClientRect();
-    return rect.width ? canvas.width / rect.width : 1;
-  };
+  // Lee el factor cacheado — no mide el DOM en el hot path de eventos.
+  const cssToCanvasScale = () => renderScaleRef.current;
 
   // ── Helpers de coordenadas ────────────────────────────────────────────────
   const getMarkerScreenPos = useCallback(

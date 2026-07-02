@@ -1245,6 +1245,10 @@ function CanvasMap({
   const animFrameRef = useRef<number>(0);
   // Camera state
   const camRef = useRef({ x: 0, y: 0, scale: 1 });
+  // Factor backing-store/CSS del canvas, actualizado solo en resize — evita
+  // tener que leer el DOM (getBoundingClientRect, que fuerza reflow) en cada
+  // evento de mousemove/touchmove durante el pan.
+  const renderScaleRef = useRef(1);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, camX: 0, camY: 0 });
   // Pinch
@@ -1418,11 +1422,20 @@ function CanvasMap({
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const updateScaleRef = (canvasW: number) => {
+      const cw = container.clientWidth;
+      renderScaleRef.current = cw ? canvasW / cw : 1;
+    };
+
     const resize = () => {
       const { w: newW, h: newH } = capDims(
         container.clientWidth,
         container.clientHeight,
       );
+      // El factor de escala se actualiza siempre (es barato), aunque no haga
+      // falta reasignar canvas.width — si no, onMouseMove/onPointerMove
+      // quedarían con un factor viejo y el pan se desalinearía.
+      updateScaleRef(newW);
       // Si el tamaño no cambió, no tocar el canvas — evita parpadeo por limpieza
       if (canvas.width === newW && canvas.height === newH) return;
       // Debounce: durante la animación del panel el contenedor cambia frame a frame.
@@ -1433,6 +1446,7 @@ function CanvasMap({
           container.clientWidth,
           container.clientHeight,
         );
+        updateScaleRef(finalW);
         if (canvas.width === finalW && canvas.height === finalH) return;
         canvas.width = finalW;
         canvas.height = finalH;
@@ -1444,6 +1458,7 @@ function CanvasMap({
     const initial = capDims(container.clientWidth, container.clientHeight);
     canvas.width = initial.w;
     canvas.height = initial.h;
+    updateScaleRef(initial.w);
     if (imgRef.current) centerImage();
 
     const ro = new ResizeObserver(resize);
@@ -2063,8 +2078,7 @@ function CanvasMap({
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (e.buttons !== 1) return;
-    const canvas = canvasRef.current;
-    const s = canvas ? canvas.width / canvas.getBoundingClientRect().width : 1;
+    const s = renderScaleRef.current;
     const dx = (e.clientX - dragStart.current.x) * s;
     const dy = (e.clientY - dragStart.current.y) * s;
     if (Math.hypot(dx, dy) > 3) isDragging.current = true;
@@ -2154,10 +2168,7 @@ function CanvasMap({
   const touchMoveHandler = useCallback(
     (e: TouchEvent) => {
       e.preventDefault();
-      const canvas = canvasRef.current;
-      const s = canvas
-        ? canvas.width / canvas.getBoundingClientRect().width
-        : 1;
+      const s = renderScaleRef.current;
       if (e.touches.length === 1) {
         const dx = (e.touches[0].clientX - dragStart.current.x) * s;
         const dy = (e.touches[0].clientY - dragStart.current.y) * s;
