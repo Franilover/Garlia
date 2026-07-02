@@ -1,0 +1,314 @@
+"use client";
+/**
+ * MarkdownCommandPalette.tsx
+ * ────────────────────────────
+ * Panel flotante de "/" para el modo NORMAL de RichEditor (no-libro).
+ *
+ * Contexto: RichEditor tiene dos modos de uso.
+ *   - Modo LIBRO (EditorCapitulos): "/" abre <SnippetCommandPalette/> del
+ *     padre, que inserta snippets narrativos (drop, choice, gate, sound,
+ *     img, use) en formato "[[kind|...]]" vía insertSnippetNode(). Ese
+ *     flujo NO cambia — sigue siendo 100% responsabilidad del padre a
+ *     través de onOpenPalette/onClosePalette/closePaletteRef.
+ *   - Modo NORMAL (cualquier otro consumidor de RichEditor: notas,
+ *     ensayos, etc.): no hay SnippetCommandPalette porque no hay
+ *     snippets narrativos. Acá "/" debe ofrecer elementos de markdown
+ *     estándar (encabezados, listas, cita, código, tabla, línea
+ *     divisoria) — este archivo implementa ESE panel.
+ *
+ * RichEditor decide cuál usar: si el padre pasó onOpenPalette, es modo
+ * libro y delega como siempre; si NO lo pasó, usa este panel interno.
+ * Los dos NUNCA se muestran a la vez.
+ *
+ * Inserción: a diferencia de insertSnippetNode() (que parsea un string
+ * "[[kind|...]]"), acá insertamos nodos Lexical reales directamente
+ * ($createHeadingNode, $createQuoteNode, insertList, insertTable, etc.)
+ * porque un heading/lista de markdown no es un snippet — es contenido
+ * de documento normal, mismo tipo de nodo que produce MarkdownShortcutPlugin
+ * al escribir "# " a mano.
+ */
+import {
+  $createParagraphNode,
+  $getSelection,
+  $isRangeSelection,
+  LexicalEditor,
+} from "lexical";
+import { $createHeadingNode, $createQuoteNode, HeadingTagType } from "@lexical/rich-text";
+import { $createCodeNode } from "@lexical/code";
+import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from "@lexical/list";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  Heading1,
+  Heading2,
+  Heading3,
+  List as ListIcon,
+  ListOrdered,
+  Quote,
+  Code,
+  Table as TableIcon,
+  Minus,
+} from "lucide-react";
+import React, { useEffect, useMemo, useRef } from "react";
+
+import { insertTable } from "./TablePlugin";
+
+const PRIMARY = "var(--color-primary, #7c6af7)";
+const mono = { fontFamily: "var(--font-mono)" } as const;
+
+export interface MarkdownCommandItem {
+  id: string;
+  label: string;
+  hint: string;
+  keywords: string[]; // para filtrar con la query de "/"
+  Icon: typeof Heading1;
+  run: (editor: LexicalEditor) => void;
+}
+
+export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
+  {
+    id: "h1",
+    label: "Título 1",
+    hint: "#",
+    keywords: ["h1", "titulo", "encabezado", "heading"],
+    Icon: Heading1,
+    run: (editor) => insertHeading(editor, "h1"),
+  },
+  {
+    id: "h2",
+    label: "Título 2",
+    hint: "##",
+    keywords: ["h2", "titulo", "subtitulo", "encabezado", "heading"],
+    Icon: Heading2,
+    run: (editor) => insertHeading(editor, "h2"),
+  },
+  {
+    id: "h3",
+    label: "Título 3",
+    hint: "###",
+    keywords: ["h3", "titulo", "subtitulo", "encabezado", "heading"],
+    Icon: Heading3,
+    run: (editor) => insertHeading(editor, "h3"),
+  },
+  {
+    id: "bullet",
+    label: "Lista con viñetas",
+    hint: "-",
+    keywords: ["lista", "bullet", "viñeta", "ul"],
+    Icon: ListIcon,
+    run: (editor) => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
+  },
+  {
+    id: "numbered",
+    label: "Lista numerada",
+    hint: "1.",
+    keywords: ["lista", "numerada", "ordenada", "ol"],
+    Icon: ListOrdered,
+    run: (editor) => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
+  },
+  {
+    id: "quote",
+    label: "Cita",
+    hint: ">",
+    keywords: ["cita", "quote", "blockquote"],
+    Icon: Quote,
+    run: (editor) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+        const quote = $createQuoteNode();
+        selection.insertNodes([quote]);
+        quote.selectStart();
+      });
+    },
+  },
+  {
+    id: "code",
+    label: "Bloque de código",
+    hint: "```",
+    keywords: ["codigo", "code", "bloque"],
+    Icon: Code,
+    run: (editor) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+        const code = $createCodeNode();
+        selection.insertNodes([code]);
+        code.selectStart();
+      });
+    },
+  },
+  {
+    id: "table",
+    label: "Tabla",
+    hint: "3×3",
+    keywords: ["tabla", "table"],
+    Icon: TableIcon,
+    run: (editor) => insertTable(editor, 3, 3),
+  },
+  {
+    id: "hr",
+    label: "Línea divisoria",
+    hint: "---",
+    keywords: ["linea", "divisoria", "separador", "hr"],
+    Icon: Minus,
+    run: (editor) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) return;
+        selection.insertText("—".repeat(3));
+      });
+    },
+  },
+];
+
+function insertHeading(editor: LexicalEditor, tag: HeadingTagType) {
+  editor.update(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) return;
+    const heading = $createHeadingNode(tag);
+    selection.insertNodes([heading]);
+    heading.selectStart();
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin: expone insertRef para que RichEditor ejecute un comando elegido
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function MarkdownCommandInsertPlugin({
+  insertRef,
+}: {
+  insertRef: React.MutableRefObject<((itemId: string) => void) | null>;
+}) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    insertRef.current = (itemId: string) => {
+      const item = MARKDOWN_COMMAND_ITEMS.find((i) => i.id === itemId);
+      item?.run(editor);
+    };
+    return () => {
+      insertRef.current = null;
+    };
+  }, [editor, insertRef]);
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Panel flotante — mismo look visual que WikilinkMenuPanel/SnippetCommandPalette
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MarkdownCommandPaletteProps {
+  query: string;
+  pos: { top: number; left: number };
+  onSelect: (itemId: string) => void;
+  onClose: () => void;
+}
+
+export function MarkdownCommandPalette({
+  query,
+  pos,
+  onSelect,
+  onClose,
+}: MarkdownCommandPaletteProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!query) return MARKDOWN_COMMAND_ITEMS;
+    const q = query.toLowerCase();
+    return MARKDOWN_COMMAND_ITEMS.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.keywords.some((k) => k.includes(q)),
+    );
+  }, [query]);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={menuRef}
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: Math.max(8, pos.left),
+        zIndex: 9999,
+        width: 240,
+        maxHeight: 300,
+        overflowY: "auto",
+        background: "var(--bg-menu, #1a1730)",
+        border: `1px solid color-mix(in srgb, ${PRIMARY} 22%, transparent)`,
+        borderRadius: 10,
+        boxShadow: `0 12px 40px color-mix(in srgb, ${PRIMARY} 18%, black)`,
+        backdropFilter: "blur(12px)",
+        padding: 4,
+      }}
+    >
+      {filtered.length === 0 ? (
+        <div
+          style={{
+            padding: "10px 12px",
+            fontSize: 11,
+            ...mono,
+            color: "color-mix(in srgb, var(--foreground) 30%, transparent)",
+          }}
+        >
+          Sin resultados
+        </div>
+      ) : (
+        filtered.map((item) => (
+          <div
+            key={item.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 10px",
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
+            onClick={() => onSelect(item.id)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `color-mix(in srgb, ${PRIMARY} 14%, transparent)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <item.Icon
+              size={13}
+              color={`color-mix(in srgb, ${PRIMARY} 65%, transparent)`}
+            />
+            <span
+              style={{
+                flex: 1,
+                fontSize: 12,
+                color: "color-mix(in srgb, var(--foreground) 82%, transparent)",
+              }}
+            >
+              {item.label}
+            </span>
+            <span
+              style={{
+                fontSize: 9,
+                ...mono,
+                color: "color-mix(in srgb, var(--foreground) 25%, transparent)",
+              }}
+            >
+              {item.hint}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}

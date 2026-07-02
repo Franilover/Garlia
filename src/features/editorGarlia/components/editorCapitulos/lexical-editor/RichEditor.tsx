@@ -74,6 +74,10 @@ import {
 import { AutoClosePlugin } from "./AutoClosePlugin";
 import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
 import { TocPanel } from "./TocPlugin";
+import {
+  MarkdownCommandInsertPlugin,
+  MarkdownCommandPalette,
+} from "./MarkdownCommandPalette";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -459,16 +463,47 @@ export function RichEditor({
     };
   }, [closePaletteRef]);
 
+  // ── Panel de "/" para markdown (modo NORMAL, sin onOpenPalette) ──────
+  // Modo libro (EditorCapitulos) pasa onOpenPalette y usa su propio
+  // SnippetCommandPalette — este estado interno queda sin uso en ese
+  // caso. Modo normal no pasa onOpenPalette, así que RichEditor abre
+  // su propio panel de comandos markdown en vez de delegarlo al padre.
+  const [mdPalette, setMdPalette] = useState<{
+    open: boolean;
+    query: string;
+    pos: { top: number; left: number };
+  }>({ open: false, query: "", pos: { top: 0, left: 0 } });
+  const mdInsertRef = useRef<((itemId: string) => void) | null>(null);
+
   const handleSlashMatch = useCallback(
     (match: SlashMatch | null) => {
+      if (onOpenPalette || onClosePalette) {
+        // Modo libro: delega 100% al padre, comportamiento sin cambios.
+        if (match) onOpenPalette?.(match.anchorRect, match.query);
+        else onClosePalette?.();
+        return;
+      }
+      // Modo normal: RichEditor maneja su propio panel de markdown.
       if (match) {
-        onOpenPalette?.(match.anchorRect, match.query);
+        setMdPalette({ open: true, query: match.query, pos: match.anchorRect });
       } else {
-        onClosePalette?.();
+        setMdPalette((s) => ({ ...s, open: false }));
       }
     },
     [onOpenPalette, onClosePalette],
   );
+
+  const closeMdPalette = useCallback(() => {
+    setMdPalette((s) => ({ ...s, open: false }));
+    notifyClosedRef.current?.();
+  }, []);
+
+  const selectMdCommand = useCallback((itemId: string) => {
+    slashRemoveRef.current?.();
+    mdInsertRef.current?.(itemId);
+    setMdPalette((s) => ({ ...s, open: false }));
+    notifyClosedRef.current?.();
+  }, []);
 
   const initialConfig = useMemo(
     () => ({
@@ -626,6 +661,7 @@ export function RichEditor({
                 insertRef={activeInsertRef}
                 slashRemoveRef={slashRemoveRef}
               />
+              <MarkdownCommandInsertPlugin insertRef={mdInsertRef} />
               <SlashCommandPlugin
                 onMatch={handleSlashMatch}
                 removeMatchRef={slashRemoveRef}
@@ -679,6 +715,15 @@ export function RichEditor({
                     setWikiMenu((m) => ({ ...m, selectedIdx: idx }))
                   }
                   onSelect={selectWikiEntity}
+                />
+              )}
+
+              {mdPalette.open && (
+                <MarkdownCommandPalette
+                  pos={mdPalette.pos}
+                  query={mdPalette.query}
+                  onClose={closeMdPalette}
+                  onSelect={selectMdCommand}
                 />
               )}
             </div>
