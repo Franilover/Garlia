@@ -565,7 +565,7 @@ export default function LibroDetalle() {
             key={c.id}
             className="text-[8px] font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8"
           >
-            ⌖ {c.nombre}
+            ♖{c.nombre}
           </span>
         ))}
       </div>
