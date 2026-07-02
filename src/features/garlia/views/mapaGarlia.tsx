@@ -1491,7 +1491,36 @@ function CanvasMap({
         ctx.translate(cx, cy);
 
         // ── Draw base map ──────────────────────────────────────────────────
-        ctx.drawImage(img, 0, 0, iw, ih);
+        // Este loop redibuja SIEMPRE (sin dirty-flag) por el pulso continuo de
+        // los pines, así que reescalar la imagen entera del mapa a resolución
+        // nativa en cada frame es carísimo. Recortamos al viewport visible y
+        // bajamos la calidad de resampling — el mapa no necesita reescalarse
+        // fuera de lo que efectivamente se ve en pantalla.
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "low";
+
+        const visX0 = Math.max(0, -cx);
+        const visY0 = Math.max(0, -cy);
+        const visX1 = Math.min(iw, canvas.width - cx);
+        const visY1 = Math.min(ih, canvas.height - cy);
+
+        if (visX1 > visX0 && visY1 > visY0) {
+          const srcX0 = visX0 / scale;
+          const srcY0 = visY0 / scale;
+          const srcW = (visX1 - visX0) / scale;
+          const srcH = (visY1 - visY0) / scale;
+          ctx.drawImage(
+            img,
+            srcX0,
+            srcY0,
+            srcW,
+            srcH,
+            visX0,
+            visY0,
+            visX1 - visX0,
+            visY1 - visY0,
+          );
+        }
 
         // ── FOG OF WAR — cached, rebuilt only when markers/bg changes ─────
         if (tipo === "global" && !editMode && hiddenMarkers.length > 0) {
