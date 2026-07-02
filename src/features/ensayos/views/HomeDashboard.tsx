@@ -15,7 +15,7 @@ import {
 import React, { useMemo, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { useAppPanels } from "@/features/command-palette";
+import { useAppPanels } from "@/components/command/";
 import { RelojDigital } from "@/features/ensayos/components/relojDigital";
 import ArmarioPage from "@/features/ensayos/components/ropa";
 import type { ModoCalendario } from "@/features/ensayos/components/types";
