@@ -72,6 +72,7 @@ import {
   type FindReplaceState,
 } from "./FindReplacePlugin";
 import { AutoClosePlugin } from "./AutoClosePlugin";
+import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -406,7 +407,12 @@ export function RichEditor({
 
   const handleWikilinkMatch = useCallback((match: WikilinkMatch | null) => {
     if (match) {
-      setWikiMenu({ open: true, query: match.query, selectedIdx: 0, pos: match.anchorRect });
+      setWikiMenu({
+        open: true,
+        query: match.query,
+        selectedIdx: 0,
+        pos: match.anchorRect,
+      });
     } else {
       setWikiMenu((m) => ({ ...m, open: false }));
     }
@@ -417,16 +423,15 @@ export function RichEditor({
     wikiNotifyClosedRef.current?.();
   }, []);
 
-  const selectWikiEntity = useCallback(
-    (entity: WikiEntity) => {
-      wikiInsertRef.current?.(entity.name);
-      setWikiMenu((m) => ({ ...m, open: false }));
-    },
-    [],
-  );
+  const selectWikiEntity = useCallback((entity: WikiEntity) => {
+    wikiInsertRef.current?.(entity.name);
+    setWikiMenu((m) => ({ ...m, open: false }));
+  }, []);
 
   // ── Find & Replace state ──────────────────────────────────────────────
-  const [findReplace, setFindReplace] = useState<FindReplaceState>(initialFindReplaceState);
+  const [findReplace, setFindReplace] = useState<FindReplaceState>(
+    initialFindReplaceState,
+  );
 
   // Ref interno para insertar snippets (si el padre no pasa el suyo)
   const internalInsertRef = useRef<((raw: string) => void) | null>(null);
@@ -547,7 +552,11 @@ export function RichEditor({
   return (
     <div className="flex flex-col w-full h-full">
       <LexicalComposer initialConfig={initialConfig}>
-        <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} showSplitMode={showSplitMode} />
+        <ModeTogglePlugin
+          mode={mode}
+          onModeChange={handleModeChange}
+          showSplitMode={showSplitMode}
+        />
 
         <div
           style={{
@@ -568,7 +577,10 @@ export function RichEditor({
                 flexDirection: "column",
               }}
             >
-              <FindReplacePlugin state={findReplace} onStateChange={setFindReplace} />
+              <FindReplacePlugin
+                state={findReplace}
+                onStateChange={setFindReplace}
+              />
               <RichTextPlugin
                 contentEditable={<ContentEditable style={editorStyle} />}
                 placeholder={
@@ -636,6 +648,7 @@ export function RichEditor({
               <TablePlugin />
               <InsertTablePlugin insertTableRef={insertTableRef} />
               <AutoClosePlugin />
+              <HeadingBackspacePlugin />
               <OnChangePlugin onChange={handleChange} />
 
               {wikiMenu.open && normalizedWikiEntities.length > 0 && (
@@ -646,7 +659,9 @@ export function RichEditor({
                   query={wikiMenu.query}
                   selectedIdx={wikiMenu.selectedIdx}
                   onClose={closeWikiMenu}
-                  onHover={(idx) => setWikiMenu((m) => ({ ...m, selectedIdx: idx }))}
+                  onHover={(idx) =>
+                    setWikiMenu((m) => ({ ...m, selectedIdx: idx }))
+                  }
                   onSelect={selectWikiEntity}
                 />
               )}
@@ -687,7 +702,9 @@ export function RichEditor({
                   // MarkdownEditor viejo: renderMarkdown ya marca los
                   // wikilinks con data-wikilink, acá solo conectamos el
                   // click a onWikilinkNavigate.
-                  const a = (e.target as HTMLElement).closest("a[data-wikilink]");
+                  const a = (e.target as HTMLElement).closest(
+                    "a[data-wikilink]",
+                  );
                   if (!a) return;
                   e.preventDefault();
                   const target = a.getAttribute("data-wikilink");
