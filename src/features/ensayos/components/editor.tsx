@@ -312,6 +312,7 @@ export function Editor({
         onChange={handleContenidoChange}
         wikiEntities={wikiEntities}
         onWikilinkNavigate={onNavigateToPage}
+        showSplitMode={false}
       />
       <AnimatePresence>
         {citePopup && sources.length > 0 && (

@@ -20,8 +20,8 @@
  * (El nodo "cita" no es un snippet con modal — es markup puro [[cita|...]]
  *  que se maneja como TextNode y se renderiza en la vista de lectura.)
  */
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import {
-  $createParagraphNode,
   $createTextNode,
   $getRoot,
   $insertNodes,
@@ -126,97 +126,164 @@ export function rawTextToLexicalTree(raw: string): void {
   const root = $getRoot();
   root.clear();
 
-  // Pre-procesamos gate multilinea primero (igual que extractGateBlocks en type.ts)
-  const gates = new Map<string, string>();
-  let gateCounter = 0;
-  const withGatePlaceholders = raw.replace(GATE_RE, (match) => {
-    const key = `\x00GATE${gateCounter++}\x00`;
-    gates.set(key, match);
-    return key;
+  if (!raw.trim()) return; // documento vacío — Lexical deja su párrafo por defecto
+
+  // Extraemos TODO lo que no es markdown estándar (gates, snippets,
+  // wikilinks, tablas) y lo reemplazamos por un placeholder de texto
+  // plano de una sola palabra, ASCII, sin espacios ni símbolos markdown
+  // — algo que $convertFromMarkdownString jamás interpretará como
+  // sintaxis (a diferencia de "[[...]]", que si quedara mezclado con
+  // markdown real podría chocar con la sintaxis de link de markdown).
+  //
+  // Estrategia (por qué NO llamamos $convertFromMarkdownString varias
+  // veces intercalado con inserciones manuales): esa función SIEMPRE
+  // hace root.clear() al no recibir nodo destino, y pasar un nodo
+  // destino tiene comportamiento ambiguo/con bugs conocidos entre
+  // versiones de Lexical (ver facebook/lexical#7663). Una sola llamada
+  // sobre el documento completo es su caso de uso documentado y estable
+  // — así que convertimos TODO de una vez con placeholders, y después
+  // recorremos el árbol resultante reemplazando cada placeholder por su
+  // nodo real (snippet, tabla, wikilink).
+  const registry = new Map<string, { kind: "snippet" | "table"; raw?: string; rows?: string[][] }>();
+  let counter = 0;
+  const nextToken = () => `xSnippetTokenxx${counter++}xx`;
+
+  // 1) Tablas primero (son bloques multilinea, deben extraerse antes de
+  // que cualquier otra cosa toque los saltos de línea internos).
+  let working = raw.replace(new RegExp(TABLE_BLOCK_RE.source, "gm"), (match) => {
+    const token = nextToken();
+    registry.set(token, { kind: "table", rows: parseTableBlock(match) });
+    return token;
   });
 
-  // Pre-procesamos bloques de tabla: los sacamos del flujo línea por línea
-  // y los reemplazamos por un placeholder que se resuelve a TableNode real
-  // después — una tabla no es una línea, es un bloque multilinea con su
-  // propia estructura de filas/celdas.
-  const tables = new Map<string, string[][]>();
-  let tableCounter = 0;
-  const withPlaceholders = withGatePlaceholders.replace(
-    new RegExp(TABLE_BLOCK_RE.source, "gm"),
+  // 2) Gates multilinea.
+  working = working.replace(GATE_RE, (match) => {
+    const token = nextToken();
+    registry.set(token, { kind: "snippet", raw: match });
+    return token;
+  });
+
+  // 3) Snippets de una línea y wikilinks.
+  working = working.replace(
+    new RegExp(`${SNIPPET_RE.source}|${WIKILINK_RE.source}`, "g"),
     (match) => {
-      const key = `\x00TABLE${tableCounter++}\x00`;
-      tables.set(key, parseTableBlock(match));
-      return key;
+      const token = nextToken();
+      registry.set(token, { kind: "snippet", raw: match });
+      return token;
     },
   );
 
-  // Dividimos por líneas para crear párrafos
-  const lines = withPlaceholders.split("\n");
+  // 4) Una sola conversión de markdown → árbol Lexical real (listas,
+  // headings, bold, italic, etc. — todo lo que MarkdownShortcutPlugin
+  // aplicaría si el usuario lo tipeara a mano).
+  $convertFromMarkdownString(working, TRANSFORMERS);
 
-  for (const line of lines) {
-    const tableMatch = /^\x00TABLE(\d+)\x00$/.exec(line.trim());
-    if (tableMatch) {
-      const rows = tables.get(`\x00TABLE${tableMatch[1]}\x00`);
-      if (rows && rows.length) {
-        const tableNode = $createTableNodeWithDimensions(
-          rows.length,
-          Math.max(...rows.map((r) => r.length)),
-          true,
-        );
-        // Rellenamos el contenido celda por celda sobre el esqueleto que
-        // $createTableNodeWithDimensions ya generó (celdas vacías).
-        const rowNodes: LexicalNode[] = (tableNode as any).getChildren?.() ?? [];
-        rowNodes.forEach((rowNode, ri) => {
-          if (!$isTableRowNode(rowNode)) return;
-          const cellNodes: LexicalNode[] = (rowNode as any).getChildren?.() ?? [];
-          cellNodes.forEach((cellNode, ci) => {
-            if (!$isTableCellNode(cellNode)) return;
-            const text = rows[ri]?.[ci] ?? "";
-            if (!text) return;
-            const p = (cellNode as any).getChildren?.()[0];
-            if (p && typeof p.append === "function") {
-              p.append($createTextNode(text));
-            }
-          });
-        });
-        root.append(tableNode as any);
-      }
-      continue;
+  if (registry.size === 0) return; // nada que resolver — atajo común
+
+  // 5) Post-proceso: recorremos todos los TextNode del árbol recién
+  // creado buscando nuestros tokens y los reemplazamos in-place por el
+  // nodo real (DropNode, ChoiceNode, WikilinkNode, TableNode, etc).
+  // Un TextNode puede contener el token pegado a texto real a los
+  // lados (ej: "Miras al xSnippetTokenxx0xx." tras la conversión), así
+  // que separamos manualmente el texto sobrante alrededor del token.
+  const tokenRe = /xSnippetTokenxx(\d+)xx/;
+
+  function resolveTextNode(node: LexicalNode): void {
+    if (node.getType() !== "text") return;
+    const text = (node as any).getTextContent() as string;
+    const match = tokenRe.exec(text);
+    if (!match) return;
+
+    const token = match[0];
+    const entry = registry.get(token);
+    if (!entry) return;
+
+    const before = text.slice(0, match.index);
+    const after = text.slice(match.index + token.length);
+
+    let replacement: LexicalNode | null = null;
+    if (entry.kind === "table" && entry.rows) {
+      replacement = buildTableNode(entry.rows);
+    } else if (entry.kind === "snippet" && entry.raw) {
+      replacement = rawSnippetToNode(entry.raw);
     }
 
-    const paragraph = $createParagraphNode();
-    root.append(paragraph);
+    const parent = (node as any).getParent?.();
+    if (!parent) return;
 
-    // En cada línea, separamos texto plano de snippets inline.
-    // WIKILINK_RE va después de SNIPPET_RE en la alternancia para que
-    // los snippets con "kind|" tengan prioridad de match — evita que un
-    // "[[choice|..." roto se interprete parcialmente como wikilink.
-    const combined = new RegExp(
-      `\x00GATE\\d+\x00|${SNIPPET_RE.source}|${WIKILINK_RE.source}`,
-      "g",
-    );
-    let lastIndex = 0;
-    let match: RegExpExecArray | null;
-
-    while ((match = combined.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        paragraph.append($createTextNode(line.slice(lastIndex, match.index)));
-      }
-
-      const token = match[0];
-      // Recuperar raw del gate si era placeholder
-      const rawToken = token.startsWith("\x00GATE")
-        ? gates.get(token) ?? token
-        : token;
-
-      const node = rawSnippetToNode(rawToken);
-      if (node) paragraph.append(node);
-
-      lastIndex = match.index + token.length;
+    if (before) (node as any).insertBefore($createTextNode(before));
+    if (replacement) (node as any).insertBefore(replacement);
+    if (after) {
+      const afterNode = $createTextNode(after);
+      (node as any).insertBefore(afterNode);
+      // El texto "after" puede contener OTRO token si había varios
+      // snippets en la misma línea original — lo resolvemos recursivo.
+      resolveTextNode(afterNode);
     }
+    node.remove();
+  }
 
-    if (lastIndex < line.length) {
-      paragraph.append($createTextNode(line.slice(lastIndex)));
+  function walk(node: LexicalNode): void {
+    if (node.getType() === "text") {
+      resolveTextNode(node);
+      return;
+    }
+    const children: LexicalNode[] = (node as any).getChildren?.() ?? [];
+    // Copiamos el array porque resolveTextNode muta la lista de hijos
+    // del padre (insertBefore/remove) mientras iteramos.
+    for (const child of [...children]) {
+      walk(child);
+    }
+  }
+
+  walk($getRoot());
+
+  // Las tablas quedan envueltas dentro de un ParagraphNode (porque el
+  // token vivía en un TextNode dentro de un párrafo), pero TableNode
+  // debe ser hijo directo del root, no de un párrafo — lo sacamos.
+  hoistTableNodes($getRoot());
+}
+
+function buildTableNode(rows: string[][]) {
+  const tableNode = $createTableNodeWithDimensions(
+    rows.length,
+    Math.max(1, ...rows.map((r) => r.length)),
+    true,
+  );
+  const rowNodes: LexicalNode[] = (tableNode as any).getChildren?.() ?? [];
+  rowNodes.forEach((rowNode, ri) => {
+    if (!$isTableRowNode(rowNode)) return;
+    const cellNodes: LexicalNode[] = (rowNode as any).getChildren?.() ?? [];
+    cellNodes.forEach((cellNode, ci) => {
+      if (!$isTableCellNode(cellNode)) return;
+      const text = rows[ri]?.[ci] ?? "";
+      if (!text) return;
+      const p = (cellNode as any).getChildren?.()[0];
+      if (p && typeof p.append === "function") {
+        p.append($createTextNode(text));
+      }
+    });
+  });
+  return tableNode as unknown as LexicalNode;
+}
+
+// Un TableNode insertado vía insertBefore() dentro de un párrafo termina
+// como hijo de ese ParagraphNode, lo cual Lexical no permite como
+// estructura estable (TableNode espera ser top-level). Lo movemos a ser
+// hermano del párrafo que lo contenía.
+function hoistTableNodes(root: LexicalNode): void {
+  const children: LexicalNode[] = (root as any).getChildren?.() ?? [];
+  for (const child of [...children]) {
+    if (child.getType() !== "paragraph") continue;
+    const innerChildren: LexicalNode[] = (child as any).getChildren?.() ?? [];
+    const tableChild = innerChildren.find((c) => $isTableNode(c));
+    if (!tableChild) continue;
+    (child as any).insertBefore(tableChild);
+    // Si el párrafo quedó vacío tras sacar la tabla, lo eliminamos; si
+    // tenía texto antes/después de la tabla, esos quedan como párrafos
+    // separados automáticamente por cómo insertBefore reordena.
+    if ((child as any).getChildrenSize?.() === 0) {
+      (child as any).remove();
     }
   }
 }

@@ -130,6 +130,15 @@ export interface RichEditorProps {
    */
   onWikilinkNavigate?: (target: string) => void;
   /**
+   * false oculta el modo "Split" del toggle — pensado para editores de
+   * notas/ensayos donde el markdown ya se ve formateado en modo edición
+   * (bold, listas, headers reales, no texto crudo con asteriscos), así
+   * que Split no aporta nada distinto de Edit. Default true porque
+   * EditorCapitulos (con ContenidoInteractivo) sí lo necesita: preview
+   * ahí resuelve drop/choice/gate, visualmente muy distinto del raw.
+   */
+  showSplitMode?: boolean;
+  /**
    * Cómo renderizar el panel de "Preview"/"Split". RichEditor es
    * genérico — no todos los consumidores usan el formato [[kind|...]]
    * de snippets (drop/choice/gate/etc). Por defecto usa el markdown
@@ -268,13 +277,27 @@ function InsertTablePlugin({
 function ModeTogglePlugin({
   mode,
   onModeChange,
+  showSplitMode = true,
 }: {
   mode: ViewMode;
   onModeChange: (m: ViewMode) => void;
+  /**
+   * false oculta el botón "Split" — pensado para editores que NO usan
+   * ContenidoInteractivo en su renderPreview (notas/ensayos), donde el
+   * markdown ya se ve formateado directamente en modo edición (bold,
+   * listas, headers) gracias a $convertFromMarkdownString. Ahí Split
+   * no aporta nada distinto de Edit, así que solo confunde. El libro
+   * SÍ lo necesita: preview ahí resuelve drop/choice/gate interactivos,
+   * que son visualmente muy distintos del raw "[[drop|...]]" en modo
+   * edición.
+   */
+  showSplitMode?: boolean;
 }) {
   const items: { m: ViewMode; Icon: typeof Edit3; title: string }[] = [
     { m: "edit", Icon: Edit3, title: "Editar" },
-    { m: "split", Icon: Columns2, title: "Split" },
+    ...(showSplitMode
+      ? [{ m: "split" as ViewMode, Icon: Columns2, title: "Split" }]
+      : []),
     { m: "preview", Icon: Eye, title: "Vista previa" },
   ];
 
@@ -341,6 +364,7 @@ export function RichEditor({
   closePaletteRef,
   wikiEntities,
   onWikilinkNavigate,
+  showSplitMode = true,
   renderPreview,
 }: RichEditorProps) {
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
@@ -523,7 +547,7 @@ export function RichEditor({
   return (
     <div className="flex flex-col w-full h-full">
       <LexicalComposer initialConfig={initialConfig}>
-        <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} />
+        <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} showSplitMode={showSplitMode} />
 
         <div
           style={{
