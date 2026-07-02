@@ -29,6 +29,7 @@
  */
 import {
   $createParagraphNode,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
   LexicalEditor,
@@ -71,6 +72,25 @@ export interface MarkdownCommandItem {
   run: (editor: LexicalEditor) => void;
 }
 
+// Defensa en profundidad: normalmente onMouseDown+preventDefault en el
+// panel evita que el editor pierda el foco/selección antes de correr un
+// comando (ver render más abajo). Pero por si algo más disparara run()
+// con la selección ya perdida (foco movido por otro medio), en vez de
+// silenciosamente no insertar nada, caemos al final del documento —
+// mejor insertar "en algún lugar razonable" que directamente no hacer
+// nada y confundir al usuario. IMPORTANTE: esto se llama DENTRO de un
+// editor.update() — no debe llamar a editor.focus() acá (eso es una
+// operación DOM que no pertenece dentro de un update). El foco físico
+// se restaura por separado antes de abrir el update, ver cada run().
+function getUsableSelection() {
+  const selection = $getSelection();
+  if ($isRangeSelection(selection)) return selection;
+  const root = $getRoot();
+  root.selectEnd();
+  const fallback = $getSelection();
+  return $isRangeSelection(fallback) ? fallback : null;
+}
+
 export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
   {
     id: "h1",
@@ -102,8 +122,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     hint: "-",
     keywords: ["lista", "bullet", "viñeta", "ul"],
     Icon: ListIcon,
-    run: (editor) =>
-      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined),
+    run: (editor) => {
+      editor.focus();
+      editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+    },
   },
   {
     id: "numbered",
@@ -111,8 +133,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     hint: "1.",
     keywords: ["lista", "numerada", "ordenada", "ol"],
     Icon: ListOrdered,
-    run: (editor) =>
-      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined),
+    run: (editor) => {
+      editor.focus();
+      editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+    },
   },
   {
     id: "quote",
@@ -121,9 +145,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["cita", "quote", "blockquote"],
     Icon: Quote,
     run: (editor) => {
+      editor.focus();
       editor.update(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
+        const selection = getUsableSelection();
+        if (!selection) return;
         const quote = $createQuoteNode();
         selection.insertNodes([quote]);
         quote.selectStart();
@@ -137,9 +162,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["codigo", "code", "bloque"],
     Icon: Code,
     run: (editor) => {
+      editor.focus();
       editor.update(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
+        const selection = getUsableSelection();
+        if (!selection) return;
         const code = $createCodeNode();
         selection.insertNodes([code]);
         code.selectStart();
@@ -152,7 +178,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     hint: "3×3",
     keywords: ["tabla", "table"],
     Icon: TableIcon,
-    run: (editor) => insertTable(editor, 3, 3),
+    run: (editor) => {
+      editor.focus();
+      insertTable(editor, 3, 3);
+    },
   },
   {
     id: "hr",
@@ -161,9 +190,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["linea", "divisoria", "separador", "hr"],
     Icon: Minus,
     run: (editor) => {
+      editor.focus();
       editor.update(() => {
-        const selection = $getSelection();
-        if (!$isRangeSelection(selection)) return;
+        const selection = getUsableSelection();
+        if (!selection) return;
         selection.insertText("—".repeat(3));
       });
     },
@@ -171,9 +201,10 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
 ];
 
 function insertHeading(editor: LexicalEditor, tag: HeadingTagType) {
+  editor.focus();
   editor.update(() => {
-    const selection = $getSelection();
-    if (!$isRangeSelection(selection)) return;
+    const selection = getUsableSelection();
+    if (!selection) return;
     const heading = $createHeadingNode(tag);
     selection.insertNodes([heading]);
     heading.selectStart();
@@ -301,6 +332,17 @@ export function MarkdownCommandPalette({
                   : "transparent",
             }}
             onClick={() => onSelect(item.id)}
+            onMouseDown={(e) => {
+              // CRÍTICO: sin esto, el mousedown le saca el foco al
+              // contenteditable del editor ANTES de que el click dispare
+              // onSelect. Al perder el foco, la RangeSelection de Lexical
+              // colapsa/deja de ser válida, así que insertHeading/etc
+              // (que hacen $getSelection() + $isRangeSelection check)
+              // fallan el check y retornan sin insertar nada — el usuario
+              // ve que "elige" el comando pero no pasa nada. preventDefault
+              // acá evita el blur, la selección se mantiene intacta.
+              e.preventDefault();
+            }}
             onMouseEnter={() => onHover(idx)}
           >
             <item.Icon
