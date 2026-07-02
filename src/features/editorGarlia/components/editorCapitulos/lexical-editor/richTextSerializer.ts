@@ -28,16 +28,64 @@ import {
   LexicalEditor,
   LexicalNode,
 } from "lexical";
-import { $isTableNode, $isTableRowNode, $isTableCellNode, $createTableNodeWithDimensions } from "@lexical/table";
+import {
+  $isTableNode,
+  $isTableRowNode,
+  $isTableCellNode,
+  $createTableNodeWithDimensions,
+} from "@lexical/table";
+import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
+import { $isListNode, $isListItemNode } from "@lexical/list";
+import { $isCodeNode } from "@lexical/code";
 
-import { $createChoiceNode, $isChoiceNode, choicePayloadToRaw, choiceRawToPayload } from "./nodes/ChoiceNode";
-import { $createDropNode, $isDropNode, dropPayloadToRaw, dropRawToPayload } from "./nodes/DropNode";
-import { $createGateNode, $isGateNode, gatePayloadToRaw, gateRawToPayload } from "./nodes/GateNode";
-import { $createImgNode, $isImgNode, imgPayloadToRaw, imgRawToPayload } from "./nodes/ImgNode";
-import { $createSectionNode, $isSectionNode, sectionPayloadToRaw, sectionRawToPayload } from "./nodes/SectionNode";
-import { $createSoundNode, $isSoundNode, soundPayloadToRaw, soundRawToPayload } from "./nodes/SoundNode";
-import { $createUseNode, $isUseNode, usePayloadToRaw, useRawToPayload } from "./nodes/UseNode";
-import { $createWikilinkNode, $isWikilinkNode, wikilinkPayloadToRaw, wikilinkRawToPayload } from "./nodes/WikilinkNode";
+import {
+  $createChoiceNode,
+  $isChoiceNode,
+  choicePayloadToRaw,
+  choiceRawToPayload,
+} from "./nodes/ChoiceNode";
+import {
+  $createDropNode,
+  $isDropNode,
+  dropPayloadToRaw,
+  dropRawToPayload,
+} from "./nodes/DropNode";
+import {
+  $createGateNode,
+  $isGateNode,
+  gatePayloadToRaw,
+  gateRawToPayload,
+} from "./nodes/GateNode";
+import {
+  $createImgNode,
+  $isImgNode,
+  imgPayloadToRaw,
+  imgRawToPayload,
+} from "./nodes/ImgNode";
+import {
+  $createSectionNode,
+  $isSectionNode,
+  sectionPayloadToRaw,
+  sectionRawToPayload,
+} from "./nodes/SectionNode";
+import {
+  $createSoundNode,
+  $isSoundNode,
+  soundPayloadToRaw,
+  soundRawToPayload,
+} from "./nodes/SoundNode";
+import {
+  $createUseNode,
+  $isUseNode,
+  usePayloadToRaw,
+  useRawToPayload,
+} from "./nodes/UseNode";
+import {
+  $createWikilinkNode,
+  $isWikilinkNode,
+  wikilinkPayloadToRaw,
+  wikilinkRawToPayload,
+} from "./nodes/WikilinkNode";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Regex de detección de snippets
@@ -45,19 +93,22 @@ import { $createWikilinkNode, $isWikilinkNode, wikilinkPayloadToRaw, wikilinkRaw
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GATE_RE = /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g;
-const SNIPPET_RE = /\[\[(?:drop|img|float|sound|choice|use|section|cita)[^\]]*\]\]/g;
+const SNIPPET_RE =
+  /\[\[(?:drop|img|float|sound|choice|use|section|cita)[^\]]*\]\]/g;
 // Wikilinks: [[Nombre]] SIN "kind|" — debe evaluarse por separado porque
 // no calza con el patrón "[[palabra|...]]" de los demás snippets. Excluye
 // explícitamente los kind conocidos para no capturar snippets malformados
 // como si fueran wikilinks.
-const WIKILINK_RE = /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate)\|)([^\[\]|]+)\]\]/g;
+const WIKILINK_RE =
+  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate)\|)([^\[\]|]+)\]\]/g;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convierte un raw [[kind|...]] string → LexicalNode
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function rawSnippetToNode(raw: string): LexicalNode | null {
-  const inner = raw.startsWith("[[") && raw.endsWith("]]") ? raw.slice(2, -2) : raw;
+  const inner =
+    raw.startsWith("[[") && raw.endsWith("]]") ? raw.slice(2, -2) : raw;
   const kind = inner.split("|")[0]?.trim();
 
   switch (kind) {
@@ -117,7 +168,11 @@ const TABLE_BLOCK_RE = /^(\|.+\|)\n(\|[-: |]+\|)\n((?:\|.+\|\n?)*)/;
 function parseTableBlock(block: string): string[][] {
   const lines = block.split("\n").filter((l) => l.trim());
   const parseRow = (row: string) =>
-    row.trim().split("|").slice(1, -1).map((c) => c.trim());
+    row
+      .trim()
+      .split("|")
+      .slice(1, -1)
+      .map((c) => c.trim());
   const isSep = (r: string) => /^\|[-| :]+\|$/.test(r.trim());
   return lines.filter((l) => !isSep(l)).map(parseRow);
 }
@@ -144,17 +199,23 @@ export function rawTextToLexicalTree(raw: string): void {
   // — así que convertimos TODO de una vez con placeholders, y después
   // recorremos el árbol resultante reemplazando cada placeholder por su
   // nodo real (snippet, tabla, wikilink).
-  const registry = new Map<string, { kind: "snippet" | "table"; raw?: string; rows?: string[][] }>();
+  const registry = new Map<
+    string,
+    { kind: "snippet" | "table"; raw?: string; rows?: string[][] }
+  >();
   let counter = 0;
   const nextToken = () => `xSnippetTokenxx${counter++}xx`;
 
   // 1) Tablas primero (son bloques multilinea, deben extraerse antes de
   // que cualquier otra cosa toque los saltos de línea internos).
-  let working = raw.replace(new RegExp(TABLE_BLOCK_RE.source, "gm"), (match) => {
-    const token = nextToken();
-    registry.set(token, { kind: "table", rows: parseTableBlock(match) });
-    return token;
-  });
+  let working = raw.replace(
+    new RegExp(TABLE_BLOCK_RE.source, "gm"),
+    (match) => {
+      const token = nextToken();
+      registry.set(token, { kind: "table", rows: parseTableBlock(match) });
+      return token;
+    },
+  );
 
   // 2) Gates multilinea.
   working = working.replace(GATE_RE, (match) => {
@@ -297,7 +358,10 @@ function hoistTableNodes(root: LexicalNode): void {
 // — mismo formato que generaba serializeTableMd() en MarkdownEditor.tsx,
 // para que parseContenido()/renderMarkdown() del lado de lectura no
 // necesiten ningún cambio.
-function serializeTableNode(tableNode: LexicalNode, walkInline: (n: LexicalNode) => string): string {
+function serializeTableNode(
+  tableNode: LexicalNode,
+  walkInline: (n: LexicalNode) => string,
+): string {
   const rowNodes: LexicalNode[] = (tableNode as any).getChildren?.() ?? [];
   const rows: string[][] = rowNodes
     .filter((r) => $isTableRowNode(r))
@@ -306,7 +370,8 @@ function serializeTableNode(tableNode: LexicalNode, walkInline: (n: LexicalNode)
       return cellNodes
         .filter((c) => $isTableCellNode(c))
         .map((cell) => {
-          const cellChildren: LexicalNode[] = (cell as any).getChildren?.() ?? [];
+          const cellChildren: LexicalNode[] =
+            (cell as any).getChildren?.() ?? [];
           return cellChildren.map(walkInline).join("").trim();
         });
     });
@@ -316,7 +381,9 @@ function serializeTableNode(tableNode: LexicalNode, walkInline: (n: LexicalNode)
   const padded = rows.map((r) => [...r, ...Array(cols - r.length).fill("")]);
   const formatRow = (r: string[]) => "| " + r.join(" | ") + " |";
   const sep = "| " + Array(cols).fill("---").join(" | ") + " |";
-  return [formatRow(padded[0]), sep, ...padded.slice(1).map(formatRow)].join("\n");
+  return [formatRow(padded[0]), sep, ...padded.slice(1).map(formatRow)].join(
+    "\n",
+  );
 }
 
 export function serializeRootToRaw(): string {
@@ -324,15 +391,15 @@ export function serializeRootToRaw(): string {
   const lines: string[] = [];
 
   function walkNode(node: LexicalNode): string {
-    if ($isDropNode(node))     return dropPayloadToRaw(node.getPayload());
-    if ($isImgNode(node))      return imgPayloadToRaw(node.getPayload());
-    if ($isSoundNode(node))    return soundPayloadToRaw(node.getPayload());
-    if ($isChoiceNode(node))   return choicePayloadToRaw(node.getPayload());
-    if ($isUseNode(node))      return usePayloadToRaw(node.getPayload());
-    if ($isGateNode(node))     return gatePayloadToRaw(node.getPayload());
-    if ($isSectionNode(node))  return sectionPayloadToRaw(node.getPayload());
+    if ($isDropNode(node)) return dropPayloadToRaw(node.getPayload());
+    if ($isImgNode(node)) return imgPayloadToRaw(node.getPayload());
+    if ($isSoundNode(node)) return soundPayloadToRaw(node.getPayload());
+    if ($isChoiceNode(node)) return choicePayloadToRaw(node.getPayload());
+    if ($isUseNode(node)) return usePayloadToRaw(node.getPayload());
+    if ($isGateNode(node)) return gatePayloadToRaw(node.getPayload());
+    if ($isSectionNode(node)) return sectionPayloadToRaw(node.getPayload());
     if ($isWikilinkNode(node)) return wikilinkPayloadToRaw(node.getPayload());
-    if ($isTableNode(node))    return serializeTableNode(node, walkNode);
+    if ($isTableNode(node)) return serializeTableNode(node, walkNode);
 
     if (node.getType() === "text") {
       return (node as any).getTextContent();
@@ -343,18 +410,77 @@ export function serializeRootToRaw(): string {
     return children.map(walkNode).join("");
   }
 
-  const rootChildren: LexicalNode[] = (root as any).getChildren();
-  for (const child of rootChildren) {
-    if (child.getType() === "paragraph") {
-      const children: LexicalNode[] = (child as any).getChildren?.() ?? [];
-      lines.push(children.map(walkNode).join(""));
-    } else if ($isTableNode(child)) {
+  // Serializa un bloque top-level a su línea markdown correspondiente,
+  // reanteponiendo la sintaxis que MarkdownShortcutPlugin/$convertFromMarkdownString
+  // ya convirtió a nodo estructural (heading → "#", quote → ">", code → "```",
+  // lista → "- "/"1. "). Sin esto, serializeRootToRaw() devolvía el heading
+  // como texto plano sin "#", lo cual rompía el round-trip: InitialContentPlugin
+  // comparaba ese raw (sin "#") contra el árbol actual (con HeadingNode real),
+  // nunca coincidían, y disparaba root.clear() + reconstrucción completa en
+  // cada tecla — eso es lo que "desordenaba" todo al escribir "# ".
+  function inlineText(node: LexicalNode): string {
+    const children: LexicalNode[] = (node as any).getChildren?.() ?? [];
+    return children.map(walkNode).join("");
+  }
+
+  function serializeBlock(child: LexicalNode): string {
+    if ($isHeadingNode(child)) {
+      const tag = (child as any).getTag?.() as string; // "h1".."h6"
+      const level = Math.max(
+        1,
+        Math.min(6, parseInt(tag?.[1] ?? "1", 10) || 1),
+      );
+      return "#".repeat(level) + " " + inlineText(child);
+    }
+
+    if ($isQuoteNode(child)) {
+      return inlineText(child)
+        .split("\n")
+        .map((l) => `> ${l}`)
+        .join("\n");
+    }
+
+    if ($isCodeNode(child)) {
+      const lang = (child as any).getLanguage?.() || "";
+      return "```" + lang + "\n" + inlineText(child) + "\n```";
+    }
+
+    if ($isListNode(child)) {
+      const isOrdered = (child as any).getListType?.() === "number";
+      const items: LexicalNode[] = (child as any).getChildren?.() ?? [];
+      return items
+        .map((item, i) => {
+          if (!$isListItemNode(item)) return walkNode(item);
+          const nested = (item as any)
+            .getChildren?.()
+            .find((c: LexicalNode) => $isListNode(c));
+          const ownText = ((item as any).getChildren?.() ?? [])
+            .filter((c: LexicalNode) => !$isListNode(c))
+            .map(walkNode)
+            .join("");
+          const marker = isOrdered ? `${i + 1}. ` : "- ";
+          const line = marker + ownText;
+          return nested ? line + "\n" + serializeBlock(nested) : line;
+        })
+        .join("\n");
+    }
+
+    if ($isTableNode(child)) {
       // La tabla es su propio bloque — no se mezcla con el join("\n") de
       // párrafos porque ya contiene sus propios saltos de línea internos.
-      lines.push(walkNode(child));
-    } else {
-      lines.push(walkNode(child));
+      return walkNode(child);
     }
+
+    if (child.getType() === "paragraph") {
+      return inlineText(child);
+    }
+
+    return walkNode(child);
+  }
+
+  const rootChildren: LexicalNode[] = (root as any).getChildren();
+  for (const child of rootChildren) {
+    lines.push(serializeBlock(child));
   }
 
   return lines.join("\n").trim();
