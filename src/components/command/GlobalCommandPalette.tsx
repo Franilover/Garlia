@@ -344,6 +344,84 @@ function useUnlockedSearch(query: string, userId: string | null) {
   return { resultados, isFetching };
 }
 
+/**
+ * Trae personajes, criaturas y reinos desbloqueados por el usuario SIN
+ * requerir texto de búsqueda — se usa para mostrarlos como sección propia
+ * en el grid inicial (pantalla por defecto) para usuarios no admin.
+ * Se ejecuta una sola vez por apertura de la paleta (mientras haya userId).
+ */
+function useUnlockedOverview(userId: string | null, enabled: boolean) {
+  const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
+
+  useEffect(() => {
+    if (!enabled || !userId) {
+      setResultados([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [criaturasRes, personajesRes, reinosRes] = await Promise.all([
+          supabase
+            .from("descubrimientos_criaturas")
+            .select("criaturas!inner(id, nombre, imagen_url)")
+            .eq("perfil_id", userId)
+            .limit(6),
+          supabase
+            .from("descubrimientos_personajes")
+            .select("personajes!inner(id, nombre, img_url)")
+            .eq("perfil_id", userId)
+            .limit(6),
+          supabase
+            .from("descubrimientos_reinos")
+            .select("reinos!inner(id, nombre, logo_url)")
+            .eq("perfil_id", userId)
+            .limit(6),
+        ]);
+
+        if (cancelled) return;
+
+        const merged: DescubrimientoPersonal[] = [
+          ...((personajesRes.data ?? []) as any[])
+            .filter((r) => r.personajes)
+            .map((r) => ({
+              entidad_id: r.personajes.id,
+              tipo: "personaje" as const,
+              nombre: r.personajes.nombre,
+              imagen_url: r.personajes.img_url,
+            })),
+          ...((criaturasRes.data ?? []) as any[])
+            .filter((r) => r.criaturas)
+            .map((r) => ({
+              entidad_id: r.criaturas.id,
+              tipo: "criatura" as const,
+              nombre: r.criaturas.nombre,
+              imagen_url: r.criaturas.imagen_url,
+            })),
+          ...((reinosRes.data ?? []) as any[])
+            .filter((r) => r.reinos)
+            .map((r) => ({
+              entidad_id: r.reinos.id,
+              tipo: "reino" as const,
+              nombre: r.reinos.nombre,
+              imagen_url: r.reinos.logo_url,
+            })),
+        ];
+
+        if (!cancelled) setResultados(merged);
+      } catch {
+        if (!cancelled) setResultados([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, userId]);
+
+  return resultados;
+}
+
 export function GlobalCommandPalette() {
   const { open, setOpen } = useCommandPalette();
   const { abrirApp } = useAppPanels();
@@ -416,6 +494,14 @@ export function GlobalCommandPalette() {
   // — disponible para TODOS los usuarios logueados, admin o no.
   const { resultados: unlockedResultados, isFetching: isFetchingUnlocked } =
     useUnlockedSearch(hookQuery, user?.id ?? null);
+
+  // Personajes/criaturas/reinos desbloqueados — sección propia en el grid
+  // inicial, solo para usuarios NO admin (los admins ya tienen todo vía
+  // Escritorio/Editor).
+  const unlockedOverview = useUnlockedOverview(
+    user?.id ?? null,
+    open && !isAdmin,
+  );
 
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
@@ -774,7 +860,7 @@ export function GlobalCommandPalette() {
           icon: CircleUser,
           keywords: ["mi personaje", "perfil"],
           action: () => go("/garlia/personal"),
-          group: "Cuenta",
+          group: "Navegar",
         },
       ]
     : [
@@ -1029,12 +1115,34 @@ export function GlobalCommandPalette() {
       ]
     : [];
 
+  // "Lo tuyo" — personajes, criaturas y reinos desbloqueados, como items
+  // navegables más en el grid inicial (solo usuarios no admin).
+  const unlockedOverviewItems: CommandItem[] = unlockedOverview.map((d) => {
+    const iconMap = {
+      personaje: User,
+      criatura: Swords,
+      item: Package,
+      reino: Crown,
+      ciudad: Building2,
+    } as const;
+    return {
+      id: `overview-${d.tipo}-${d.entidad_id}`,
+      label: d.nombre ?? "Sin nombre",
+      description: "Desbloqueado",
+      icon: iconMap[d.tipo] ?? Sparkles,
+      avatar: d.imagen_url ?? null,
+      action: () => goUnlockedEntity(d.tipo, d.entidad_id, d.reino_id),
+      group: "Lo tuyo",
+    };
+  });
+
   const staticItems: CommandItem[] = [
     ...navItems,
     ...appItems,
     ...userItems,
     ...adminItems,
     ...themeItems,
+    ...unlockedOverviewItems,
   ];
 
   // ── Detectar modo "Crear" — al escribir add/crear/nuevo ───────────────────
