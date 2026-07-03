@@ -638,6 +638,28 @@ function PanelListas({
   const selectReinoRef = useRef<((r: Reino) => void) | null>(null);
   const reinosRef = useRef<Reino[]>([]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const entidadesRef = useRef<HTMLDivElement>(null);
+
+  const scrollToEntidades = useCallback(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = entidadesRef.current;
+        if (!el) return;
+        const container = scrollRef.current;
+        if (container) {
+          const elRect = el.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const offset =
+            elRect.top - containerRect.top + container.scrollTop - 80; // pequeño margen superior
+          container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+        } else {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }, []);
+
   const flashReino = useCallback((id: string) => {
     // 1. Expande la sección si estaba colapsada
     reinosSeccionRef.current?.expand();
@@ -681,7 +703,6 @@ function PanelListas({
   }, []);
 
   // ── Scroll position ───────────────────────────────────────────────────────
-  const scrollRef = useRef<HTMLDivElement>(null);
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
 
@@ -956,6 +977,10 @@ function PanelListas({
     else if (tabla === "canciones") setSelectedCancion(found);
     else if (tabla === "grupos_mundo") selectGrupo(found);
     else if (tabla === "notas") setSelectedNota(found);
+
+    // Enfocar visualmente el bloque de entidades donde se abrió la ficha,
+    // tras dos frames para dar tiempo a que React renderice el overlay.
+    scrollToEntidades();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     openItem,
@@ -971,6 +996,7 @@ function PanelListas({
     grupos.length,
     notas.length,
     clearAllOverlays,
+    scrollToEntidades,
   ]);
 
   // ── onItemCreated ─────────────────────────────────────────────────────────
@@ -1005,9 +1031,11 @@ function PanelListas({
     else if (tabla === "dones") setSelectedDon(item);
     else if (tabla === "runas") setSelectedRuna(item);
     else if (tabla === "canciones") setSelectedCancion(item);
+
+    scrollToEntidades();
     // Setters from useState are stable; only re-run when onItemCreated changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onItemCreated]);
+  }, [onItemCreated, scrollToEntidades]);
 
   // ── nuevo-ciudad / nueva-nota actions ─────────────────────────────────────
   useEffect(() => {
@@ -1425,6 +1453,7 @@ function PanelListas({
 
         {/* ENTIDADES */}
         <div
+          ref={entidadesRef}
           className="border-b border-t mt-3"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
