@@ -642,21 +642,33 @@ function PanelListas({
   const entidadesRef = useRef<HTMLDivElement>(null);
 
   const scrollToEntidades = useCallback(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const el = entidadesRef.current;
-        if (!el) return;
-        const container = scrollRef.current;
-        if (container) {
-          const elRect = el.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
-          const offset =
-            elRect.top - containerRect.top + container.scrollTop - 80; // pequeño margen superior
-          container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
-        } else {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      });
+    const doScroll = () => {
+      const el = entidadesRef.current;
+      if (!el) return;
+      const container = scrollRef.current;
+      if (container) {
+        const elRect = el.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const offset =
+          elRect.top - containerRect.top + container.scrollTop - 80; // pequeño margen superior
+        container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    // El contenido de arriba (capítulos, listas, etc.) puede seguir cargando
+    // y empujando el layout después del primer scroll, dejando la ficha
+    // desalineada ("se abre arriba"). Reintentamos varias veces durante
+    // una ventana corta para reajustar la posición a medida que el layout
+    // se estabiliza.
+    const attempts = [0, 120, 300, 550, 850, 1200];
+    attempts.forEach((delay) => {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(doScroll);
+        });
+      }, delay);
     });
   }, []);
 
