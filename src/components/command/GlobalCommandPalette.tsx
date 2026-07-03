@@ -36,6 +36,7 @@ import {
   Shirt,
   Library,
   Sparkles,
+  LogOut,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -852,6 +853,13 @@ export function GlobalCommandPalette() {
       ]
     : [];
 
+  const handleLogout = useCallback(async () => {
+    setOpen(false);
+    await supabase.auth.signOut();
+    localStorage.clear();
+    window.location.href = "/";
+  }, [setOpen]);
+
   const userItems: CommandItem[] = user
     ? [
         {
@@ -862,6 +870,14 @@ export function GlobalCommandPalette() {
           action: () => go("/garlia/personal"),
           group: "Navegar",
         },
+        {
+          id: "logout",
+          label: "Cerrar sesión",
+          icon: LogOut,
+          keywords: ["logout", "salir", "cerrar sesion", "cerrar sesión"],
+          action: handleLogout,
+          group: "Ajustes",
+        },
       ]
     : [
         {
@@ -870,7 +886,7 @@ export function GlobalCommandPalette() {
           icon: CircleUser,
           keywords: ["login", "entrar"],
           action: () => go("/auth/login"),
-          group: "Cuenta",
+          group: "Ajustes",
         },
       ];
 
