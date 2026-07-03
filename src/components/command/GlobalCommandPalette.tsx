@@ -1058,6 +1058,18 @@ export function GlobalCommandPalette() {
 
   const inGridMode = showCreateGrid || !!activePrefix || showDefaultGrid;
 
+  // Ref siempre al día con qué lista corresponde al modo grid ACTUAL.
+  // Evita que el handler de teclado (creado en el efecto de abajo) quede
+  // con un closure viejo de `activePrefix`/`showCreateGrid` cuando el modo
+  // cambia sin que `inGridMode` cambie de valor (p.ej. prefix -> default,
+  // que en ambos casos deja inGridMode en `true`).
+  const activeGridItemsRef = useRef<CommandItem[]>([]);
+  activeGridItemsRef.current = showCreateGrid
+    ? createItemsRef.current
+    : activePrefix
+      ? prefixItemsRef.current
+      : defaultGridItemsRef.current;
+
   // Reset index al entrar en cualquier modo grid
   useEffect(() => {
     if (inGridMode) setGridIndex(0);
@@ -1075,11 +1087,7 @@ export function GlobalCommandPalette() {
         return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      const items = showCreateGrid
-        ? createItemsRef.current
-        : activePrefix
-          ? prefixItemsRef.current
-          : defaultGridItemsRef.current;
+      const items = activeGridItemsRef.current;
       setGridIndex((prev) => {
         const total = items.length;
         if (!total) return prev;

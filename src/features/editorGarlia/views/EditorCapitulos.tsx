@@ -1556,7 +1556,6 @@ function BarraLibro({
   libro,
   capitulos,
   sidebarOpen,
-  onVolver,
   onLibroChange,
   onToggleSidebar,
   onNuevoCap,
@@ -1564,7 +1563,6 @@ function BarraLibro({
   libro: Libro | undefined;
   capitulos: Capitulo[];
   sidebarOpen: boolean;
-  onVolver: () => void;
   onLibroChange: (l: Libro) => void;
   onToggleSidebar: () => void;
   onNuevoCap: () => void;
@@ -1754,20 +1752,6 @@ function BarraLibro({
           background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
         }}
       >
-        {/* Volver */}
-        <button
-          className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-primary/30 hover:text-primary transition-colors shrink-0 group"
-          onClick={onVolver}
-        >
-          <ChevronRight
-            className="rotate-180 group-hover:-translate-x-0.5 transition-transform"
-            size={9}
-          />
-          Biblioteca
-        </button>
-
-        {sep}
-
         {/* Portada — click abre selector */}
         <div ref={dropPortadaRef} className="relative shrink-0">
           <button
@@ -2675,18 +2659,81 @@ export function EditorCapitulosPanel() {
   const [loadingCapsIds, setLoadingCapsIds] = useState<Set<string>>(new Set());
 
   const cargarCapsLibro = useCallback(
-    async (libroId: string, force = false) => {
-      if (!force && porLibro[libroId]) return;
+    async (libroId: string, force = false): Promise<Capitulo[]> => {
+      if (!force && porLibro[libroId]) return porLibro[libroId];
       setLoadingCapsIds((prev) => new Set(prev).add(libroId));
+
+      // ── 1) Dexie primero: instantáneo y funciona offline ──────────────────
+      let local: Capitulo[] = [];
       try {
+        if (db) {
+          const rows = await (db as any).capitulos
+            .where("libro_id")
+            .equals(libroId)
+            .toArray();
+          local = (rows as any[])
+            .filter((c) => !c.deleted)
+            .sort((a, b) => a.orden - b.orden) as Capitulo[];
+        }
+      } catch {}
+      if (local.length > 0) {
+        setPorLibro((prev) => ({ ...prev, [libroId]: local }));
+      }
+
+      try {
+        const online = await isReallyOnline();
+        if (!online) {
+          // Sin red: nos quedamos con lo que había en Dexie (puede ser []).
+          setPorLibro((prev) => ({
+            ...prev,
+            [libroId]: prev[libroId] ?? local,
+          }));
+          return local;
+        }
+
+        // ── 2) Supabase, y sincronizamos Dexie con lo remoto ───────────────
         const { data, error } = await supabase
           .from("capitulos")
           .select("*")
           .eq("libro_id", libroId)
           .order("orden", { ascending: true });
-        if (!error) {
-          setPorLibro((prev) => ({ ...prev, [libroId]: data ?? [] }));
+        if (error) return local;
+        const remote = (data ?? []) as Capitulo[];
+        setPorLibro((prev) => ({ ...prev, [libroId]: remote }));
+
+        try {
+          if (db) {
+            // No pisar filas con cambios offline aún no sincronizados.
+            const localAll = await (db as any).capitulos
+              .where("libro_id")
+              .equals(libroId)
+              .toArray();
+            const pendingIds = new Set(
+              (localAll as any[])
+                .filter((r) => r.status === "pending")
+                .map((r) => String(r.id)),
+            );
+            const toUpsert = remote
+              .filter((r: any) => !pendingIds.has(String(r.id)))
+              .map((r: any) => ({ ...r, status: "synced" }));
+            if (toUpsert.length > 0) {
+              await (db as any).capitulos.bulkPut(toUpsert);
+            }
+            // Borrar de Dexie los que ya no existen en remoto (y no están pendientes).
+            const remoteIds = new Set(remote.map((r: any) => String(r.id)));
+            const toDelete = (localAll as any[])
+              .filter(
+                (r) => !remoteIds.has(String(r.id)) && r.status !== "pending",
+              )
+              .map((r) => r.id);
+            if (toDelete.length > 0) {
+              await (db as any).capitulos.bulkDelete(toDelete);
+            }
+          }
+        } catch (e) {
+          console.warn("[Dexie] No se pudo sincronizar 'capitulos':", e);
         }
+        return remote;
       } finally {
         setLoadingCapsIds((prev) => {
           const next = new Set(prev);
@@ -2737,16 +2784,9 @@ export function EditorCapitulosPanel() {
     if (selectedCapId || loadingLibros || libros.length === 0) return;
     const libro = libros.find((l) => l.id === selectedLibroId) ?? libros[0];
     (async () => {
-      await cargarCapsLibro(libro.id);
-      const { data } = await supabase
-        .from("capitulos")
-        .select("id")
-        .eq("libro_id", libro.id)
-        .order("orden", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      const caps = await cargarCapsLibro(libro.id);
       setSelectedLibroId(libro.id);
-      if (data) setSelectedCapId(data.id);
+      if (caps.length > 0) setSelectedCapId(caps[0].id);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingLibros, libros.length]);
@@ -2824,7 +2864,6 @@ export function EditorCapitulosPanel() {
             onLibroChange={handleLibroEditado}
             onNuevoCap={() => setShowNuevoCap(true)}
             onToggleSidebar={() => setSidebarOpen((o) => !o)}
-            onVolver={() => setSidebarOpen(true)}
           />
         )}
 
