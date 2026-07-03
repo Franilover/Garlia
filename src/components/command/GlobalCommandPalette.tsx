@@ -37,6 +37,7 @@ import {
   Library,
   Sparkles,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -1902,7 +1903,7 @@ function CommandGridItem({
   return (
     <Command.Item
       data-grid-index={index}
-      className="group flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100 min-w-0 w-full"
+      className="group relative flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100 min-w-0 w-full"
       style={{
         padding: "12px 8px",
         borderRadius: "var(--radius-btn)",
@@ -1915,6 +1916,23 @@ function CommandGridItem({
       onSelect={item.action}
       onMouseEnter={onHover}
     >
+      {/* Badge admin — icono esquina superior derecha */}
+      {item.isAdminResult && (
+        <span
+          className="absolute top-1 right-1 flex items-center justify-center shrink-0"
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: "9999px",
+            background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+          }}
+          title="Resultado admin"
+        >
+          <ShieldCheck size={10} strokeWidth={2.25} />
+        </span>
+      )}
+
       {/* Imagen o icono */}
       {hasAvatar ? (
         <img
@@ -1954,22 +1972,14 @@ function CommandGridItem({
         {item.label.replace(/^(Nuevo|Nueva|New)\s+/i, "")}
       </p>
 
-      {(item.description || item.isAdminResult) && (
+      {item.description && (
         <p
           className="text-[9px] text-center leading-tight w-full truncate px-1 -mt-1"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
         >
-          {item.isAdminResult ? (
-            <>
-              {item.description}
-              {item.description ? " · " : ""}
-              <span className="font-black">(admin)</span>
-            </>
-          ) : (
-            item.description
-          )}
+          {item.description}
         </p>
       )}
     </Command.Item>
