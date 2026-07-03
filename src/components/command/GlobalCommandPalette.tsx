@@ -654,13 +654,19 @@ export function GlobalCommandPalette() {
           );
         } catch {}
         router.push(destino);
-        setTimeout(() => {
-          let alreadyHandled = false;
-          try {
-            alreadyHandled = !sessionStorage.getItem(storageKey);
-          } catch {}
-          if (!alreadyHandled) dispatch();
-        }, 400);
+        // Para el mapa NO hacemos el dispatch de respaldo por timeout — el
+        // propio mapaGarlia.tsx consume el buzón apenas "reinos" carga,
+        // evitando el parpadeo de aplicar la selección dos veces (una vez
+        // por el timeout ciego y otra por el efecto que ve "reinos" listo).
+        if (!esMapa) {
+          setTimeout(() => {
+            let alreadyHandled = false;
+            try {
+              alreadyHandled = !sessionStorage.getItem(storageKey);
+            } catch {}
+            if (!alreadyHandled) dispatch();
+          }, 400);
+        }
       }
     },
     [router, setOpen, pathname],

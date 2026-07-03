@@ -2703,6 +2703,7 @@ export default function MapaInteractivo() {
   // Abrir un reino o ciudad ya desbloqueados cuando lo pide el
   // GlobalCommandPalette (evento "mapa-open-entity" o buzón en
   // sessionStorage si la navegación llegó recién).
+  const buzonMapaProcesadoRef = useRef(false);
   useEffect(() => {
     const abrirReino = async (reinoId: string) => {
       const reino = reinos.find((r) => r.id === reinoId);
@@ -2754,34 +2755,35 @@ export default function MapaInteractivo() {
     };
     window.addEventListener("mapa-open-entity", handler);
 
-    // Buzón: por si la navegación llegó antes de que "reinos" cargara
-    (async () => {
-      try {
-        const raw = sessionStorage.getItem("mapa-pending-open-entity");
-        if (!raw) return;
-        const pending = JSON.parse(raw) as {
-          tipo: "reino" | "ciudad";
-          entidad_id: string;
-          reino_id?: string | null;
-          ts: number;
-        };
-        // Ignorar solicitudes viejas (>10s) para no reabrir algo obsoleto
-        if (Date.now() - pending.ts >= 10000) {
+    // Buzón: por si la navegación llegó antes de que "reinos" cargara.
+    // Se procesa UNA sola vez (buzonMapaProcesadoRef) para no reabrir el
+    // mismo reino/ciudad cada vez que "reinos" se actualiza por otro motivo
+    // (por ejemplo, mientras handleReinoClick va seteando datos) — eso era
+    // lo que causaba el parpadeo entre vista global y vista de reino.
+    if (!buzonMapaProcesadoRef.current && reinos.length) {
+      buzonMapaProcesadoRef.current = true;
+      (async () => {
+        try {
+          const raw = sessionStorage.getItem("mapa-pending-open-entity");
+          if (!raw) return;
+          const pending = JSON.parse(raw) as {
+            tipo: "reino" | "ciudad";
+            entidad_id: string;
+            reino_id?: string | null;
+            ts: number;
+          };
           sessionStorage.removeItem("mapa-pending-open-entity");
-          return;
-        }
-        if (!reinos.length) return; // esperar a que "reinos" cargue
-        const ok =
-          pending.tipo === "reino"
-            ? await abrirReino(pending.entidad_id)
-            : await abrirCiudad(pending.entidad_id, pending.reino_id);
-        if (ok) sessionStorage.removeItem("mapa-pending-open-entity");
-      } catch {}
-    })();
+          // Ignorar solicitudes viejas (>10s) para no reabrir algo obsoleto
+          if (Date.now() - pending.ts >= 10000) return;
+          if (pending.tipo === "reino") await abrirReino(pending.entidad_id);
+          else await abrirCiudad(pending.entidad_id, pending.reino_id);
+        } catch {}
+      })();
+    }
 
     return () => window.removeEventListener("mapa-open-entity", handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reinos, detallesReino]);
+  }, [reinos]);
 
   const handlePersonajeClick = async (p: any) => {
     setCancionesPersonaje([]);
