@@ -62,6 +62,7 @@ interface CommandItem {
   keywords?: string[];
   action: () => void;
   group: string;
+  isAdminResult?: boolean;
 }
 
 // Tipos para resultados públicos
@@ -1336,6 +1337,7 @@ export function GlobalCommandPalette() {
             avatar: p.img_url,
             action: () => goEntity("personajes", p.id),
             group: "Personajes",
+            isAdminResult: true,
           })),
           ...(data?.libros ?? []).map((l) => ({
             id: `l-${l.id}`,
@@ -1345,6 +1347,7 @@ export function GlobalCommandPalette() {
             avatar: l.portada_url,
             action: () => goEntity("libros", l.id),
             group: "Libros",
+            isAdminResult: true,
           })),
           // Para admin, las canciones abren en el editor (no en la ruta pública)
           ...(data?.canciones ?? []).map((c) => ({
@@ -1355,6 +1358,7 @@ export function GlobalCommandPalette() {
             avatar: c.portada_url,
             action: () => goCancion(c.id),
             group: "Canciones (editor)",
+            isAdminResult: true,
           })),
           // Para admin, los capítulos abren en el editor
           ...(data?.capitulos ?? []).map((c) => ({
@@ -1365,6 +1369,7 @@ export function GlobalCommandPalette() {
             avatar: null,
             action: () => goCapitulo(c.id, c.libro_id ?? ""),
             group: "Capítulos (editor)",
+            isAdminResult: true,
           })),
           ...(data?.reinos ?? []).map((r) => ({
             id: `r-${r.id}`,
@@ -1374,6 +1379,7 @@ export function GlobalCommandPalette() {
             avatar: r.logo_url,
             action: () => goEntity("reinos", r.id),
             group: "Reinos",
+            isAdminResult: true,
           })),
           ...(data?.criaturas ?? []).map((c) => ({
             id: `cr-${c.id}`,
@@ -1383,6 +1389,7 @@ export function GlobalCommandPalette() {
             avatar: c.imagen_url,
             action: () => goEntity("criaturas", c.id),
             group: "Criaturas",
+            isAdminResult: true,
           })),
           ...(data?.ciudades ?? []).map((c) => ({
             id: `ci-${c.id}`,
@@ -1392,6 +1399,7 @@ export function GlobalCommandPalette() {
             avatar: c.imagen_url,
             action: () => goEntity("ciudades", c.id),
             group: "Ciudades",
+            isAdminResult: true,
           })),
           ...(data?.ensayos ?? []).map((e) => {
             const tags: string[] = Array.isArray(e.tags) ? e.tags : [];
@@ -1411,6 +1419,7 @@ export function GlobalCommandPalette() {
               avatar: null,
               action: () => goEnsayo(e.id),
               group: "Ensayos",
+              isAdminResult: true,
             };
           }),
         ]
@@ -1945,14 +1954,22 @@ function CommandGridItem({
         {item.label.replace(/^(Nuevo|Nueva|New)\s+/i, "")}
       </p>
 
-      {item.description && (
+      {(item.description || item.isAdminResult) && (
         <p
           className="text-[9px] text-center leading-tight w-full truncate px-1 -mt-1"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
         >
-          {item.description}
+          {item.isAdminResult ? (
+            <>
+              {item.description}
+              {item.description ? " · " : ""}
+              <span className="font-black">(admin)</span>
+            </>
+          ) : (
+            item.description
+          )}
         </p>
       )}
     </Command.Item>
