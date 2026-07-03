@@ -1148,9 +1148,9 @@ export function GlobalCommandPalette() {
     };
   });
 
-  // Orden del menú inicial:
-  // - No admin: Descubierto > Descubrir (libros/canciones, se pinta aparte) > Navegar > Ajustes
-  // - Admin:    Admin > Apps > Navegar > Ajustes > Descubrir (libros/canciones, se pinta aparte)
+  // Nota: el orden visual de los grupos en la pantalla inicial lo define
+  // `groupOrder` (más abajo), no el orden de este array — este array solo
+  // agrupa los items por su campo `group`.
   const staticItems: CommandItem[] = isAdmin
     ? [
         ...adminItems,
@@ -1474,6 +1474,38 @@ export function GlobalCommandPalette() {
   const defaultFlatItems = [...staticItems, ...browseItems];
   defaultGridItemsRef.current = defaultFlatItems;
 
+  // Grupos de "Descubrir" (libros/canciones públicas) combinados con los estáticos
+  const allGroupsMap: Record<string, CommandItem[]> = { ...staticGroups };
+  for (const groupName of ["Descubrir · Libros", "Descubrir · Canciones"]) {
+    const items = browseItems.filter((i) => i.group === groupName);
+    if (items.length) allGroupsMap[groupName] = items;
+  }
+
+  // Orden explícito de los grupos en la pantalla inicial:
+  // - Admin:    Admin > Apps > Descubierto > Descubrir · Libros > Descubrir · Canciones > Navegar > Ajustes
+  // - No admin: Descubierto > Descubrir · Libros > Descubrir · Canciones > Navegar > Ajustes
+  const groupOrder = isAdmin
+    ? [
+        "Admin",
+        "Apps",
+        "Descubierto",
+        "Descubrir · Libros",
+        "Descubrir · Canciones",
+        "Navegar",
+        "Ajustes",
+      ]
+    : [
+        "Descubierto",
+        "Descubrir · Libros",
+        "Descubrir · Canciones",
+        "Navegar",
+        "Ajustes",
+      ];
+
+  const orderedGroupEntries = groupOrder
+    .filter((g) => allGroupsMap[g]?.length)
+    .map((g) => [g, allGroupsMap[g]] as [string, CommandItem[]]);
+
   // Group dynamic items
   const dynamicGroups = dynamicItems.reduce<Record<string, CommandItem[]>>(
     (acc, item) => {
@@ -1712,9 +1744,9 @@ export function GlobalCommandPalette() {
                     );
                   })()}
 
-                {/* Comandos estáticos — pantalla inicial en columnas (como "Crear") */}
+                {/* Comandos estáticos + Descubrir — pantalla inicial en columnas, orden unificado */}
                 {!showDynamic &&
-                  Object.entries(staticGroups).map(([groupName, items]) => (
+                  orderedGroupEntries.map(([groupName, items]) => (
                     <Command.Group key={groupName}>
                       <div
                         className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
@@ -1744,51 +1776,6 @@ export function GlobalCommandPalette() {
                       </div>
                     </Command.Group>
                   ))}
-
-                {/* Descubrir — libros y canciones públicas cuando no hay búsqueda activa */}
-                {!showDynamic && browseLoaded && browseItems.length > 0 && (
-                  <>
-                    {["Descubrir · Libros", "Descubrir · Canciones"].map(
-                      (groupName) => {
-                        const items = browseItems.filter(
-                          (i) => i.group === groupName,
-                        );
-                        if (!items.length) return null;
-                        return (
-                          <Command.Group key={groupName}>
-                            <div
-                              className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
-                              }}
-                            >
-                              {groupName}
-                            </div>
-                            <div
-                              className="grid gap-1.5 px-1 pb-2"
-                              style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-                            >
-                              {items.map((item) => {
-                                const globalIndex =
-                                  defaultFlatItems.indexOf(item);
-                                return (
-                                  <CommandGridItem
-                                    key={item.id}
-                                    item={item}
-                                    index={globalIndex}
-                                    isSelected={globalIndex === gridIndex}
-                                    onHover={() => setGridIndex(globalIndex)}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </Command.Group>
-                        );
-                      },
-                    )}
-                  </>
-                )}
 
                 {/* Sin resultados dinámicos pero con búsqueda activa */}
                 {showDynamic && !hasDynamicResults && !isFetching && (
