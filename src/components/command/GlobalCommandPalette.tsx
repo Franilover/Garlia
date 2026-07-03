@@ -224,9 +224,13 @@ function usePublicBrowse() {
 }
 
 /**
- * Búsqueda sobre lo que el usuario tiene desbloqueado (tabla "descubrimientos") —
- * personajes, criaturas e items propios. Disponible para TODOS los usuarios
- * logueados, sean admin o no, ya que es información de su propia cuenta.
+ * Búsqueda sobre lo que el usuario tiene desbloqueado — personajes, criaturas
+ * e items propios. Disponible para TODOS los usuarios logueados, admin o no,
+ * ya que es información de su propia cuenta.
+ *
+ * Usa las mismas 3 tablas puente que syncEngine.loadDescubrimientos:
+ * descubrimientos_items / _criaturas / _personajes, filtradas por perfil_id,
+ * con join a la tabla real para poder filtrar por nombre.
  */
 function useUnlockedSearch(query: string, userId: string | null) {
   const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
@@ -244,13 +248,55 @@ function useUnlockedSearch(query: string, userId: string | null) {
     debounceRef.current = setTimeout(async () => {
       setIsFetching(true);
       try {
-        const { data } = await supabase
-          .from("descubrimientos")
-          .select("entidad_id, tipo, nombre, imagen_url")
-          .eq("user_id", userId)
-          .ilike("nombre", `%${q}%`)
-          .limit(12);
-        setResultados((data ?? []) as DescubrimientoPersonal[]);
+        const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
+          supabase
+            .from("descubrimientos_items")
+            .select("items:item_id(id, nombre, imagen_url)")
+            .eq("perfil_id", userId)
+            .ilike("items.nombre", `%${q}%`)
+            .limit(8),
+          supabase
+            .from("descubrimientos_criaturas")
+            .select("criaturas:criatura_id(id, nombre, imagen_url)")
+            .eq("perfil_id", userId)
+            .ilike("criaturas.nombre", `%${q}%`)
+            .limit(8),
+          supabase
+            .from("descubrimientos_personajes")
+            .select("personajes:personaje_id(id, nombre, img_url)")
+            .eq("perfil_id", userId)
+            .ilike("personajes.nombre", `%${q}%`)
+            .limit(8),
+        ]);
+
+        const merged: DescubrimientoPersonal[] = [
+          ...((itemsRes.data ?? []) as any[])
+            .filter((r) => r.items)
+            .map((r) => ({
+              entidad_id: r.items.id,
+              tipo: "item" as const,
+              nombre: r.items.nombre,
+              imagen_url: r.items.imagen_url,
+            })),
+          ...((criaturasRes.data ?? []) as any[])
+            .filter((r) => r.criaturas)
+            .map((r) => ({
+              entidad_id: r.criaturas.id,
+              tipo: "criatura" as const,
+              nombre: r.criaturas.nombre,
+              imagen_url: r.criaturas.imagen_url,
+            })),
+          ...((personajesRes.data ?? []) as any[])
+            .filter((r) => r.personajes)
+            .map((r) => ({
+              entidad_id: r.personajes.id,
+              tipo: "personaje" as const,
+              nombre: r.personajes.nombre,
+              imagen_url: r.personajes.img_url,
+            })),
+        ];
+
+        setResultados(merged);
       } catch {
         setResultados([]);
       } finally {
@@ -337,14 +383,14 @@ export function GlobalCommandPalette() {
   const { resultados: unlockedResultados, isFetching: isFetchingUnlocked } =
     useUnlockedSearch(hookQuery, user?.id ?? null);
 
-  const isFetching = isFetchingAdmin || isFetchingPublic || isFetchingUnlocked;
-
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
     libros: browseLibros,
     canciones: browseCanciones,
     loaded: browseLoaded,
   } = usePublicBrowse();
+
+  const isFetching = isFetchingAdmin || isFetchingPublic || isFetchingUnlocked;
 
   // Ctrl+Ñ abre/cierra — capture:true para ir antes que cualquier otro listener
   useEffect(() => {
@@ -574,6 +620,8 @@ export function GlobalCommandPalette() {
     },
     [router, setOpen, pathname],
   );
+
+  // ── Static command definitions ─────────────────────────────────────────────
 
   const navItems: CommandItem[] = [
     {
