@@ -5,9 +5,9 @@ import { useEffect, useRef } from "react";
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
 /**
- * Una sección navegable con Ctrl+N dentro de una página.
+ * Una sección navegable con Alt+N dentro de una página.
  *
- * - `key`: dígito del atajo, "1".."9" (Ctrl+1 … Ctrl+9).
+ * - `key`: dígito del atajo, "1".."9" (Alt+1 … Alt+9).
  * - `ref`: elemento al que hacer scroll. Opcional si la sección solo cambia
  *   de tab/pestaña sin necesitar scroll (ej. ya se ve entera).
  * - `getElement`: alternativa a `ref` para secciones que exponen su nodo DOM
@@ -42,11 +42,16 @@ export interface UseSectionHotkeysOptions {
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 /**
- * Registra atajos Ctrl+1..Ctrl+9 (o Cmd+1..9 en Mac) para saltar entre
- * secciones dentro de la página actual. Cada página llama este hook con su
- * propia lista de secciones — los atajos son locales al componente que
- * los define, así que distintas páginas pueden reusar el mismo número de
- * tecla para cosas distintas sin chocar entre sí.
+ * Registra atajos Alt+1..Alt+9 para saltar entre secciones dentro de la
+ * página actual. Cada página llama este hook con su propia lista de
+ * secciones — los atajos son locales al componente que los define, así que
+ * distintas páginas pueden reusar el mismo número de tecla para cosas
+ * distintas sin chocar entre sí.
+ *
+ * Se usa Alt en vez de Ctrl porque Ctrl+1..9 son atajos NATIVOS del
+ * navegador para cambiar de pestaña (Chrome, Edge, Firefox) — el navegador
+ * los intercepta antes de que lleguen al DOM, así que ni `preventDefault()`
+ * puede evitarlo. Alt+N no tiene ese conflicto.
  *
  * Ejemplo:
  * ```tsx
@@ -78,22 +83,14 @@ export function useSectionHotkeys(
     if (!enabled) return;
 
     const handler = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      // Evitar interferir con atajos de navegador/OS que usan Alt/Shift junto a Ctrl
-      if (e.altKey || e.shiftKey) return;
+      if (!e.altKey) return;
+      // Ctrl/Meta o Shift junto a Alt suele ser otro atajo (ej. Alt+Shift+3
+      // en algunos SO); solo interceptamos Alt "puro" + dígito.
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (!/^[1-9]$/.test(e.key)) return;
 
       const section = sectionsRef.current.find((s) => s.key === e.key);
       if (!section) return;
-
-      // No interceptar si el foco está en un campo de texto donde Ctrl+N
-      // podría tener otro significado (ej. algún editor rich-text)
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || target?.isContentEditable) {
-        // Aun así permitimos el atajo: es una navegación de página, no de texto.
-        // Si en el futuro alguna sección necesita bloquearlo, se puede filtrar aquí.
-      }
 
       e.preventDefault();
       e.stopPropagation();

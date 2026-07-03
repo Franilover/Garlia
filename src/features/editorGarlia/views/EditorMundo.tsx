@@ -290,7 +290,7 @@ function useRowCollapse(storageKey: string, defaultCollapsed: boolean) {
 
 // Handle expuesto por PanelColapsable y SeccionEntidades — permite expandir
 // la sección (si estaba colapsada) y obtener su nodo DOM para hacer scroll
-// con los atajos Ctrl+N.
+// con los atajos Alt+N.
 type SeccionHandleRef = {
   expand: () => void;
   getElement: () => HTMLDivElement | null;
@@ -684,10 +684,7 @@ function PanelListas({
         const elRect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const offset =
-          elRect.top -
-          containerRect.top +
-          container.scrollTop -
-          80; // pequeño margen superior
+          elRect.top - containerRect.top + container.scrollTop - 80; // pequeño margen superior
         container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
       } else {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -755,13 +752,13 @@ function PanelListas({
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
 
-  // ── Atajos de sección (Ctrl+N) ────────────────────────────────────────────
+  // ── Atajos de sección (Alt+N) ─────────────────────────────────────────────
   // Los 5 bloques grandes de la vista "mundo":
-  //   Ctrl+1 → Línea de tiempo
-  //   Ctrl+2 → Capítulos
-  //   Ctrl+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
-  //   Ctrl+4 → Mapa
-  //   Ctrl+5 → Relaciones / Misiones
+  //   Alt+1 → Línea de tiempo
+  //   Alt+2 → Capítulos
+  //   Alt+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
+  //   Alt+4 → Mapa
+  //   Alt+5 → Relaciones / Misiones
   useSectionHotkeys([
     {
       key: "1",
