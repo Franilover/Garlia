@@ -497,12 +497,8 @@ export function GlobalCommandPalette() {
     useUnlockedSearch(hookQuery, user?.id ?? null);
 
   // Personajes/criaturas/reinos desbloqueados — sección propia en el grid
-  // inicial, solo para usuarios NO admin (los admins ya tienen todo vía
-  // Escritorio/Editor).
-  const unlockedOverview = useUnlockedOverview(
-    user?.id ?? null,
-    open && !isAdmin,
-  );
+  // inicial, para TODOS los usuarios logueados (admin o no).
+  const unlockedOverview = useUnlockedOverview(user?.id ?? null, open);
 
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
@@ -1131,7 +1127,7 @@ export function GlobalCommandPalette() {
       ]
     : [];
 
-  // "Lo tuyo" — personajes, criaturas y reinos desbloqueados, como items
+  // "Descubierto" — personajes, criaturas y reinos desbloqueados, como items
   // navegables más en el grid inicial (solo usuarios no admin).
   const unlockedOverviewItems: CommandItem[] = unlockedOverview.map((d) => {
     const iconMap = {
@@ -1148,18 +1144,23 @@ export function GlobalCommandPalette() {
       icon: iconMap[d.tipo] ?? Sparkles,
       avatar: d.imagen_url ?? null,
       action: () => goUnlockedEntity(d.tipo, d.entidad_id, d.reino_id),
-      group: "Lo tuyo",
+      group: "Descubierto",
     };
   });
 
-  const staticItems: CommandItem[] = [
-    ...navItems,
-    ...appItems,
-    ...userItems,
-    ...adminItems,
-    ...themeItems,
-    ...unlockedOverviewItems,
-  ];
+  // Orden del menú inicial:
+  // - No admin: Descubierto > Descubrir (libros/canciones, se pinta aparte) > Navegar > Ajustes
+  // - Admin:    Admin > Apps > Navegar > Ajustes > Descubrir (libros/canciones, se pinta aparte)
+  const staticItems: CommandItem[] = isAdmin
+    ? [
+        ...adminItems,
+        ...appItems,
+        ...navItems,
+        ...userItems,
+        ...themeItems,
+        ...unlockedOverviewItems,
+      ]
+    : [...unlockedOverviewItems, ...navItems, ...userItems, ...themeItems];
 
   // ── Detectar modo "Crear" — al escribir add/crear/nuevo ───────────────────
   const CREATE_TRIGGERS = ["add", "crear", "nuevo", "nueva"];
