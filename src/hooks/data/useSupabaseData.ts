@@ -323,11 +323,19 @@ export function useSupabaseData<T = any>(
           // (que tiene `order` anidado y además `select`, que estas
           // queries no usan porque ya tienen su propio select fijo).
           // Pasar `opts` tal cual produce `.order(undefined, ...)`.
+          //
+          // isAdmin SÍ se reenvía: algunas queries (ej. librosQueries.getAll)
+          // usan ese flag para saltarse el filtro de visibilidad ("publico").
+          // Antes se perdía acá porque solo pasábamos {campo, asc}.
           const orden = opts.order
             ? { campo: opts.order.campo, asc: opts.order.asc ?? true }
             : undefined;
-          return orden
-            ? QUERIES_MAP[tabla].getAll(orden)
+          const args =
+            opts.isAdmin !== undefined
+              ? { ...orden, isAdmin: opts.isAdmin }
+              : orden;
+          return args
+            ? QUERIES_MAP[tabla].getAll(args)
             : QUERIES_MAP[tabla].getAll();
         }
         let query = supabase.from(tabla).select(opts.select ?? "*");
