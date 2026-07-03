@@ -2700,6 +2700,89 @@ export default function MapaInteractivo() {
     if (currentReinoIdRef.current === reino.id) setLoadingLibros(false);
   };
 
+  // Abrir un reino o ciudad ya desbloqueados cuando lo pide el
+  // GlobalCommandPalette (evento "mapa-open-entity" o buzón en
+  // sessionStorage si la navegación llegó recién).
+  useEffect(() => {
+    const abrirReino = async (reinoId: string) => {
+      const reino = reinos.find((r) => r.id === reinoId);
+      if (!reino) return false;
+      await handleReinoClick(reino);
+      return true;
+    };
+
+    const abrirCiudad = async (
+      ciudadId: string,
+      reinoIdHint?: string | null,
+    ) => {
+      // Buscamos primero en el reino ya cargado, si aplica
+      let ciudad = detallesReino.find((d) => d.id === ciudadId);
+
+      if (!ciudad) {
+        // Traemos la ciudad directo para saber a qué reino pertenece
+        const { data } = await supabase
+          .from("ciudades")
+          .select("*")
+          .eq("id", ciudadId)
+          .maybeSingle();
+        if (!data) return false;
+        ciudad = data;
+        const reino = reinos.find(
+          (r) => r.id === (reinoIdHint ?? data.reino_id),
+        );
+        if (!reino) return false;
+        await handleReinoClick(reino);
+      }
+
+      setPuntoSeleccionado(ciudad);
+      setPanelOpen(true);
+      return true;
+    };
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | {
+            tipo: "reino" | "ciudad";
+            entidad_id: string;
+            reino_id?: string | null;
+          }
+        | undefined;
+      if (!detail) return;
+      if (detail.tipo === "reino") abrirReino(detail.entidad_id);
+      else if (detail.tipo === "ciudad")
+        abrirCiudad(detail.entidad_id, detail.reino_id);
+    };
+    window.addEventListener("mapa-open-entity", handler);
+
+    // Buzón: por si la navegación llegó antes de que "reinos" cargara
+    (async () => {
+      try {
+        const raw = sessionStorage.getItem("mapa-pending-open-entity");
+        if (!raw) return;
+        const pending = JSON.parse(raw) as {
+          tipo: "reino" | "ciudad";
+          entidad_id: string;
+          reino_id?: string | null;
+          ts: number;
+        };
+        // Ignorar solicitudes viejas (>10s) para no reabrir algo obsoleto
+        if (Date.now() - pending.ts >= 10000) {
+          sessionStorage.removeItem("mapa-pending-open-entity");
+          return;
+        }
+        if (!reinos.length) return; // esperar a que "reinos" cargue
+        const ok =
+          pending.tipo === "reino"
+            ? await abrirReino(pending.entidad_id)
+            : await abrirCiudad(pending.entidad_id, pending.reino_id);
+        if (ok) sessionStorage.removeItem("mapa-pending-open-entity");
+      } catch {}
+    })();
+
+    return () => window.removeEventListener("mapa-open-entity", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reinos, detallesReino]);
+
   const handlePersonajeClick = async (p: any) => {
     setCancionesPersonaje([]);
     setModalEntidad({

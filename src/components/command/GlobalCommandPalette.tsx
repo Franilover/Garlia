@@ -91,11 +91,13 @@ interface LibroPublico {
 }
 
 // Lo que el usuario tiene desbloqueado en su página personal (/garlia/personal)
+// o en el mapa (/garlia/mapa)
 interface DescubrimientoPersonal {
   entidad_id: string;
-  tipo: "personaje" | "criatura" | "item";
+  tipo: "personaje" | "criatura" | "item" | "reino" | "ciudad";
   nombre?: string | null;
   imagen_url?: string | null;
+  reino_id?: string | null; // solo para ciudades — necesario para abrir su reino primero
 }
 
 /** Búsqueda pública en Supabase — libros, canciones y capítulos visibles. */
@@ -224,13 +226,13 @@ function usePublicBrowse() {
 }
 
 /**
- * Búsqueda sobre lo que el usuario tiene desbloqueado — personajes, criaturas
- * e items propios. Disponible para TODOS los usuarios logueados, admin o no,
- * ya que es información de su propia cuenta.
+ * Búsqueda sobre lo que el usuario tiene desbloqueado — personajes, criaturas,
+ * items, reinos y ciudades propios. Disponible para TODOS los usuarios
+ * logueados, admin o no, ya que es información de su propia cuenta.
  *
- * Usa las mismas 3 tablas puente que syncEngine.loadDescubrimientos:
- * descubrimientos_items / _criaturas / _personajes, filtradas por perfil_id,
- * con join a la tabla real para poder filtrar por nombre.
+ * Usa las mismas tablas puente que syncEngine.loadDescubrimientos /
+ * mapaGarlia (descubrimientos_items / _criaturas / _personajes / _reinos,
+ * más ciudades_desbloqueadas que usa user_id en vez de perfil_id).
  */
 function useUnlockedSearch(query: string, userId: string | null) {
   const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
@@ -248,26 +250,39 @@ function useUnlockedSearch(query: string, userId: string | null) {
     debounceRef.current = setTimeout(async () => {
       setIsFetching(true);
       try {
-        const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
-          supabase
-            .from("descubrimientos_items")
-            .select("items!inner(id, nombre, imagen_url)")
-            .eq("perfil_id", userId)
-            .ilike("items.nombre", `%${q}%`)
-            .limit(8),
-          supabase
-            .from("descubrimientos_criaturas")
-            .select("criaturas!inner(id, nombre, imagen_url)")
-            .eq("perfil_id", userId)
-            .ilike("criaturas.nombre", `%${q}%`)
-            .limit(8),
-          supabase
-            .from("descubrimientos_personajes")
-            .select("personajes!inner(id, nombre, img_url)")
-            .eq("perfil_id", userId)
-            .ilike("personajes.nombre", `%${q}%`)
-            .limit(8),
-        ]);
+        const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] =
+          await Promise.all([
+            supabase
+              .from("descubrimientos_items")
+              .select("items!inner(id, nombre, imagen_url)")
+              .eq("perfil_id", userId)
+              .ilike("items.nombre", `%${q}%`)
+              .limit(8),
+            supabase
+              .from("descubrimientos_criaturas")
+              .select("criaturas!inner(id, nombre, imagen_url)")
+              .eq("perfil_id", userId)
+              .ilike("criaturas.nombre", `%${q}%`)
+              .limit(8),
+            supabase
+              .from("descubrimientos_personajes")
+              .select("personajes!inner(id, nombre, img_url)")
+              .eq("perfil_id", userId)
+              .ilike("personajes.nombre", `%${q}%`)
+              .limit(8),
+            supabase
+              .from("descubrimientos_reinos")
+              .select("reinos!inner(id, nombre, logo_url)")
+              .eq("perfil_id", userId)
+              .ilike("reinos.nombre", `%${q}%`)
+              .limit(8),
+            supabase
+              .from("ciudades_desbloqueadas")
+              .select("ciudades!inner(id, nombre, imagen_url, reino_id)")
+              .eq("user_id", userId)
+              .ilike("ciudades.nombre", `%${q}%`)
+              .limit(8),
+          ]);
 
         const merged: DescubrimientoPersonal[] = [
           ...((itemsRes.data ?? []) as any[])
@@ -293,6 +308,23 @@ function useUnlockedSearch(query: string, userId: string | null) {
               tipo: "personaje" as const,
               nombre: r.personajes.nombre,
               imagen_url: r.personajes.img_url,
+            })),
+          ...((reinosRes.data ?? []) as any[])
+            .filter((r) => r.reinos)
+            .map((r) => ({
+              entidad_id: r.reinos.id,
+              tipo: "reino" as const,
+              nombre: r.reinos.nombre,
+              imagen_url: r.reinos.logo_url,
+            })),
+          ...((ciudadesRes.data ?? []) as any[])
+            .filter((r) => r.ciudades)
+            .map((r) => ({
+              entidad_id: r.ciudades.id,
+              tipo: "ciudad" as const,
+              nombre: r.ciudades.nombre,
+              imagen_url: r.ciudades.imagen_url,
+              reino_id: r.ciudades.reino_id,
             })),
         ];
 
@@ -345,6 +377,8 @@ export function GlobalCommandPalette() {
     per: ["Personajes", "Mis personajes"],
     cri: ["Criaturas", "Mis criaturas"],
     ite: ["Items", "Mis items"],
+    rei: ["Reinos", "Mis reinos"],
+    ciu: ["Ciudades", "Mis ciudades"],
   };
 
   const searchLower = search.trimStart().toLowerCase();
@@ -584,35 +618,46 @@ export function GlobalCommandPalette() {
     [router, pathname],
   );
 
-  // Abre el modal de detalle de un personaje/criatura/item YA DESBLOQUEADO
-  // en /garlia/personal — mismo patrón de "buzón" que goEntity: si la página
+  // Abre el modal de detalle de un personaje/criatura/item/reino/ciudad YA
+  // DESBLOQUEADO — mismo patrón de "buzón" que goEntity: si la página destino
   // ya está montada despachamos directo, si no dejamos la solicitud en
-  // sessionStorage para que Personal la consuma apenas monta.
+  // sessionStorage para que la consuma apenas monte.
+  // Personajes/criaturas/items abren en /garlia/personal.
+  // Reinos/ciudades abren en /garlia/mapa.
   const goUnlockedEntity = useCallback(
-    (tipo: "personaje" | "criatura" | "item", entidadId: string) => {
+    (
+      tipo: "personaje" | "criatura" | "item" | "reino" | "ciudad",
+      entidadId: string,
+      reinoId?: string | null,
+    ) => {
       setOpen(false);
+      const esMapa = tipo === "reino" || tipo === "ciudad";
+      const destino = esMapa ? "/garlia/mapa" : "/garlia/personal";
+      const eventName = esMapa ? "mapa-open-entity" : "personal-open-entity";
+      const storageKey = esMapa
+        ? "mapa-pending-open-entity"
+        : "personal-pending-open-entity";
+      const detail = esMapa
+        ? { tipo, entidad_id: entidadId, reino_id: reinoId ?? null }
+        : { tipo, entidad_id: entidadId };
+
       const dispatch = () =>
-        window.dispatchEvent(
-          new CustomEvent("personal-open-entity", {
-            detail: { tipo, entidad_id: entidadId },
-          }),
-        );
-      if (pathname === "/garlia/personal") {
+        window.dispatchEvent(new CustomEvent(eventName, { detail }));
+
+      if (pathname === destino) {
         dispatch();
       } else {
         try {
           sessionStorage.setItem(
-            "personal-pending-open-entity",
-            JSON.stringify({ tipo, entidad_id: entidadId, ts: Date.now() }),
+            storageKey,
+            JSON.stringify({ ...detail, ts: Date.now() }),
           );
         } catch {}
-        router.push("/garlia/personal");
+        router.push(destino);
         setTimeout(() => {
           let alreadyHandled = false;
           try {
-            alreadyHandled = !sessionStorage.getItem(
-              "personal-pending-open-entity",
-            );
+            alreadyHandled = !sessionStorage.getItem(storageKey);
           } catch {}
           if (!alreadyHandled) dispatch();
         }, 400);
@@ -1099,18 +1144,23 @@ export function GlobalCommandPalette() {
             group: "Capítulos",
           };
         }),
-        // Personajes, criaturas e items que el propio usuario tiene desbloqueados
-        // — visible para cualquier usuario logueado, no solo admins.
+        // Personajes, criaturas, items, reinos y ciudades que el propio
+        // usuario tiene desbloqueados — visible para cualquier usuario
+        // logueado, no solo admins.
         ...unlockedResultados.map((d) => {
           const iconMap = {
             personaje: User,
             criatura: Swords,
             item: Package,
+            reino: Crown,
+            ciudad: Building2,
           } as const;
           const groupMap = {
             personaje: "Mis personajes",
             criatura: "Mis criaturas",
             item: "Mis items",
+            reino: "Mis reinos",
+            ciudad: "Mis ciudades",
           } as const;
           return {
             id: `unlocked-${d.tipo}-${d.entidad_id}`,
@@ -1118,7 +1168,7 @@ export function GlobalCommandPalette() {
             description: "Desbloqueado",
             icon: iconMap[d.tipo] ?? Sparkles,
             avatar: d.imagen_url ?? null,
-            action: () => goUnlockedEntity(d.tipo, d.entidad_id),
+            action: () => goUnlockedEntity(d.tipo, d.entidad_id, d.reino_id),
             group: groupMap[d.tipo] ?? "Mis descubrimientos",
           };
         }),
