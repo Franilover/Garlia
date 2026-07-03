@@ -35,6 +35,7 @@ import {
   UtensilsCrossed,
   Shirt,
   Library,
+  Sparkles,
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -87,6 +88,14 @@ interface LibroPublico {
   visibilidad?: string;
   sinopsis?: string | null;
   estado?: string;
+}
+
+// Lo que el usuario tiene desbloqueado en su página personal (/garlia/personal)
+interface DescubrimientoPersonal {
+  entidad_id: string;
+  tipo: "personaje" | "criatura" | "item";
+  nombre?: string | null;
+  imagen_url?: string | null;
 }
 
 /** Búsqueda pública en Supabase — libros, canciones y capítulos visibles. */
@@ -214,7 +223,48 @@ function usePublicBrowse() {
   return { libros, canciones, loaded };
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+/**
+ * Búsqueda sobre lo que el usuario tiene desbloqueado (tabla "descubrimientos") —
+ * personajes, criaturas e items propios. Disponible para TODOS los usuarios
+ * logueados, sean admin o no, ya que es información de su propia cuenta.
+ */
+function useUnlockedSearch(query: string, userId: string | null) {
+  const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (!userId || q.length < 2) {
+      setResultados([]);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setIsFetching(true);
+      try {
+        const { data } = await supabase
+          .from("descubrimientos")
+          .select("entidad_id, tipo, nombre, imagen_url")
+          .eq("user_id", userId)
+          .ilike("nombre", `%${q}%`)
+          .limit(12);
+        setResultados((data ?? []) as DescubrimientoPersonal[]);
+      } catch {
+        setResultados([]);
+      } finally {
+        setIsFetching(false);
+      }
+    }, 280);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, userId]);
+
+  return { resultados, isFetching };
+}
 
 export function GlobalCommandPalette() {
   const { open, setOpen } = useCommandPalette();
@@ -246,6 +296,9 @@ export function GlobalCommandPalette() {
     can: ["Canciones", "Canciones (editor)"],
     cap: ["Capítulos", "Capítulos (editor)"],
     lib: ["Libros"],
+    per: ["Personajes", "Mis personajes"],
+    cri: ["Criaturas", "Mis criaturas"],
+    ite: ["Items", "Mis items"],
   };
 
   const searchLower = search.trimStart().toLowerCase();
@@ -279,14 +332,19 @@ export function GlobalCommandPalette() {
     isFetching: isFetchingPublic,
   } = usePublicSearch(hookQuery);
 
+  // Búsqueda sobre lo desbloqueado por el propio usuario (personajes, criaturas, items)
+  // — disponible para TODOS los usuarios logueados, admin o no.
+  const { resultados: unlockedResultados, isFetching: isFetchingUnlocked } =
+    useUnlockedSearch(hookQuery, user?.id ?? null);
+
+  const isFetching = isFetchingAdmin || isFetchingPublic || isFetchingUnlocked;
+
   // Browse público — carga inicial sin query para el panel "Descubrir"
   const {
     libros: browseLibros,
     canciones: browseCanciones,
     loaded: browseLoaded,
   } = usePublicBrowse();
-
-  const isFetching = isFetchingAdmin || isFetchingPublic;
 
   // Ctrl+Ñ abre/cierra — capture:true para ir antes que cualquier otro listener
   useEffect(() => {
@@ -480,7 +538,42 @@ export function GlobalCommandPalette() {
     [router, pathname],
   );
 
-  // ── Static command definitions ─────────────────────────────────────────────
+  // Abre el modal de detalle de un personaje/criatura/item YA DESBLOQUEADO
+  // en /garlia/personal — mismo patrón de "buzón" que goEntity: si la página
+  // ya está montada despachamos directo, si no dejamos la solicitud en
+  // sessionStorage para que Personal la consuma apenas monta.
+  const goUnlockedEntity = useCallback(
+    (tipo: "personaje" | "criatura" | "item", entidadId: string) => {
+      setOpen(false);
+      const dispatch = () =>
+        window.dispatchEvent(
+          new CustomEvent("personal-open-entity", {
+            detail: { tipo, entidad_id: entidadId },
+          }),
+        );
+      if (pathname === "/garlia/personal") {
+        dispatch();
+      } else {
+        try {
+          sessionStorage.setItem(
+            "personal-pending-open-entity",
+            JSON.stringify({ tipo, entidad_id: entidadId, ts: Date.now() }),
+          );
+        } catch {}
+        router.push("/garlia/personal");
+        setTimeout(() => {
+          let alreadyHandled = false;
+          try {
+            alreadyHandled = !sessionStorage.getItem(
+              "personal-pending-open-entity",
+            );
+          } catch {}
+          if (!alreadyHandled) dispatch();
+        }, 400);
+      }
+    },
+    [router, setOpen, pathname],
+  );
 
   const navItems: CommandItem[] = [
     {
@@ -956,6 +1049,29 @@ export function GlobalCommandPalette() {
             avatar: c.libro_portada ?? null,
             action: () => go(destino),
             group: "Capítulos",
+          };
+        }),
+        // Personajes, criaturas e items que el propio usuario tiene desbloqueados
+        // — visible para cualquier usuario logueado, no solo admins.
+        ...unlockedResultados.map((d) => {
+          const iconMap = {
+            personaje: User,
+            criatura: Swords,
+            item: Package,
+          } as const;
+          const groupMap = {
+            personaje: "Mis personajes",
+            criatura: "Mis criaturas",
+            item: "Mis items",
+          } as const;
+          return {
+            id: `unlocked-${d.tipo}-${d.entidad_id}`,
+            label: d.nombre ?? "Sin nombre",
+            description: "Desbloqueado",
+            icon: iconMap[d.tipo] ?? Sparkles,
+            avatar: d.imagen_url ?? null,
+            action: () => goUnlockedEntity(d.tipo, d.entidad_id),
+            group: groupMap[d.tipo] ?? "Mis descubrimientos",
           };
         }),
       ]

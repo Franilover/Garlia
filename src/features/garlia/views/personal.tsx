@@ -181,6 +181,61 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+  // Abrir el modal de detalle cuando el GlobalCommandPalette pide mostrar
+  // un personaje/criatura/item ya desbloqueado (evento "personal-open-entity"
+  // o buzón en sessionStorage si la navegación llegó recién).
+  useEffect(() => {
+    const abrirDesdeDescubrimientos = (
+      tipo: "personaje" | "criatura" | "item",
+      entidadId: string,
+    ) => {
+      const encontrado = descubrimientos.find(
+        (d) => d.tipo === tipo && d.entidad_id === entidadId,
+      ) as Descubrimiento | undefined;
+      if (!encontrado) return false;
+      if (tipo === "personaje") {
+        handleOpenPersonajeModal(encontrado);
+      } else {
+        setModalEntidad({ tipo, data: encontrado });
+      }
+      return true;
+    };
+
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { tipo: "personaje" | "criatura" | "item"; entidad_id: string }
+        | undefined;
+      if (!detail) return;
+      abrirDesdeDescubrimientos(detail.tipo, detail.entidad_id);
+    };
+    window.addEventListener("personal-open-entity", handler);
+
+    // Buzón: por si la navegación llegó antes de que descubrimientos cargara
+    try {
+      const raw = sessionStorage.getItem("personal-pending-open-entity");
+      if (raw) {
+        const pending = JSON.parse(raw) as {
+          tipo: "personaje" | "criatura" | "item";
+          entidad_id: string;
+          ts: number;
+        };
+        // Ignorar solicitudes viejas (>10s) para no reabrir modales obsoletos
+        if (Date.now() - pending.ts < 10000) {
+          const ok = abrirDesdeDescubrimientos(
+            pending.tipo,
+            pending.entidad_id,
+          );
+          if (ok) sessionStorage.removeItem("personal-pending-open-entity");
+        } else {
+          sessionStorage.removeItem("personal-pending-open-entity");
+        }
+      }
+    } catch {}
+
+    return () => window.removeEventListener("personal-open-entity", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [descubrimientos]);
+
   const misPersonajes = descubrimientos.filter((d) => d.tipo === "personaje");
   const misCriaturas = descubrimientos.filter((d) => d.tipo === "criatura");
   const misItemsDesc = descubrimientos.filter((d) => d.tipo === "item");
