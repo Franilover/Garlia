@@ -334,9 +334,7 @@ export default function EditorEntidades() {
   } | null>(null);
 
   useEffect(() => {
-    const handleOpenEntity = (e: Event) => {
-      const evt = e as CustomEvent<{ tabla: string; id: string }>;
-
+    const openEntity = (tabla: string, id: string) => {
       // 1. Cambiamos a la pestaña de mundo
       setTab("mundo");
 
@@ -345,11 +343,38 @@ export default function EditorEntidades() {
 
       // 3. Ejecutamos la apertura
       setOpenItem({
-        tabla: evt.detail.tabla,
-        id: evt.detail.id,
+        tabla,
+        id,
         key: ++openItemKeyRef.current,
       });
     };
+
+    const handleOpenEntity = (e: Event) => {
+      const evt = e as CustomEvent<{ tabla: string; id: string }>;
+      openEntity(evt.detail.tabla, evt.detail.id);
+    };
+
+    // Buzón persistente: si venimos de otra página, GlobalCommandPalette dejó
+    // la solicitud en sessionStorage antes de navegar. El CustomEvent por sí
+    // solo no es confiable en cold-navigation porque puede dispararse antes
+    // de que este listener llegue a registrarse (el setTimeout de 400ms es
+    // solo un intento adicional, no una garantía). Al montar, consumimos
+    // cualquier solicitud pendiente inmediatamente.
+    try {
+      const raw = sessionStorage.getItem("garlia-pending-open-entity");
+      if (raw) {
+        sessionStorage.removeItem("garlia-pending-open-entity");
+        const pending = JSON.parse(raw) as {
+          tabla: string;
+          id: string;
+          ts: number;
+        };
+        // Descartar solicitudes muy viejas (p. ej. de una pestaña abandonada)
+        if (pending?.tabla && pending?.id && Date.now() - pending.ts < 15000) {
+          openEntity(pending.tabla, pending.id);
+        }
+      }
+    } catch {}
 
     window.addEventListener("garlia-open-entity", handleOpenEntity);
     return () =>

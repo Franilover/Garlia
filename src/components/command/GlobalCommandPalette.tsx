@@ -333,8 +333,12 @@ export function GlobalCommandPalette() {
     [router, setOpen, pathname, abrirApp],
   );
 
-  // Abre una entidad en el EditorGarlia — si ya estamos ahí despacha directo,
-  // si no navega primero y despacha después del mount
+  // Abre una entidad en el EditorGarlia — si ya estamos ahí despacha directo
+  // por evento; si no, navega y deja la solicitud en un "buzón" persistente
+  // (sessionStorage) que EditorGarlia consume apenas monta. Esto evita perder
+  // la apertura cuando la navegación/hidratación tarda más de lo esperado
+  // (el setTimeout fijo era una carrera: si el listener aún no existía,
+  // el CustomEvent se perdía para siempre).
   const goEntity = useCallback(
     (tabla: string, id: string) => {
       setOpen(false);
@@ -345,9 +349,24 @@ export function GlobalCommandPalette() {
       if (pathname === "/myself/garlia") {
         dispatch();
       } else {
+        try {
+          sessionStorage.setItem(
+            "garlia-pending-open-entity",
+            JSON.stringify({ tabla, id, ts: Date.now() }),
+          );
+        } catch {}
         router.push("/myself/garlia");
-        // Esperar a que EditorGarlia monte y registre el listener
-        setTimeout(dispatch, 400);
+        // Disparo adicional por si ya estaba montado (misma pestaña, SPA nav).
+        // Si EditorGarlia ya consumió el buzón, no repetimos el dispatch.
+        setTimeout(() => {
+          let alreadyHandled = false;
+          try {
+            alreadyHandled = !sessionStorage.getItem(
+              "garlia-pending-open-entity",
+            );
+          } catch {}
+          if (!alreadyHandled) dispatch();
+        }, 400);
       }
     },
     [router, setOpen, pathname],
@@ -369,8 +388,23 @@ export function GlobalCommandPalette() {
       if (pathname === "/myself/garlia") {
         dispatch();
       } else {
+        try {
+          sessionStorage.setItem(
+            "garlia-pending-open-entity",
+            JSON.stringify({ tabla: "canciones", id, ts: Date.now() }),
+          );
+        } catch {}
+        localStorage.setItem("estudio-letras-last-id", id);
         router.push("/myself/garlia");
-        setTimeout(dispatch, 400);
+        setTimeout(() => {
+          let alreadyHandled = false;
+          try {
+            alreadyHandled = !sessionStorage.getItem(
+              "garlia-pending-open-entity",
+            );
+          } catch {}
+          if (!alreadyHandled) dispatch();
+        }, 400);
       }
     },
     [router, setOpen, pathname],

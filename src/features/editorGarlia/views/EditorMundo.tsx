@@ -37,6 +37,7 @@ import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
 import EditorMisiones from "@/features/editorGarlia/views/editorMisiones";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useSectionHotkeys } from "@/hooks/useSectionHotkeys";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -287,27 +288,44 @@ function useRowCollapse(storageKey: string, defaultCollapsed: boolean) {
   return { collapsed, toggle, expand };
 }
 
+// Handle expuesto por PanelColapsable y SeccionEntidades — permite expandir
+// la sección (si estaba colapsada) y obtener su nodo DOM para hacer scroll
+// con los atajos Ctrl+N.
+type SeccionHandleRef = {
+  expand: () => void;
+  getElement: () => HTMLDivElement | null;
+};
+
 // ─── Barra colapsable para paneles grandes (Mapa, Relaciones, Misiones) ──────
 // Misma idea visual que el header de SeccionEntidades (título + chevron que
 // rota), pero pensada para envolver un panel completo en vez de una grilla de
 // chips. El estado se persiste en localStorage igual que useRowCollapse.
-function PanelColapsable({
-  icon: Icon,
-  label,
-  storageKey,
-  defaultCollapsed = false,
-  children,
-}: {
-  icon: React.ElementType;
-  label: string;
-  storageKey: string;
-  defaultCollapsed?: boolean;
-  children: React.ReactNode;
-}) {
-  const { collapsed, toggle } = useRowCollapse(storageKey, defaultCollapsed);
+const PanelColapsable = React.forwardRef<
+  SeccionHandleRef,
+  {
+    icon: React.ElementType;
+    label: string;
+    storageKey: string;
+    defaultCollapsed?: boolean;
+    children: React.ReactNode;
+  }
+>(function PanelColapsable(
+  { icon: Icon, label, storageKey, defaultCollapsed = false, children },
+  ref,
+) {
+  const { collapsed, toggle, expand } = useRowCollapse(
+    storageKey,
+    defaultCollapsed,
+  );
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    expand,
+    getElement: () => rootRef.current,
+  }));
 
   return (
-    <div className="flex flex-col min-h-0">
+    <div ref={rootRef} className="flex flex-col min-h-0">
       <button
         type="button"
         className="flex items-center gap-1.5 px-3 py-2 w-full group cursor-pointer select-none shrink-0"
@@ -340,7 +358,7 @@ function PanelColapsable({
       )}
     </div>
   );
-}
+});
 
 // ─── Tipos de labels externalizados ──────────────────────────────────────────
 export type SectionLabels = {
@@ -632,7 +650,22 @@ function PanelListas({
     null,
   );
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reinosSeccionRef = useRef<{ expand: () => void } | null>(null);
+  const reinosSeccionRef = useRef<SeccionHandleRef>(null);
+  const personajesSeccionRef = useRef<SeccionHandleRef>(null);
+  const criaturasSeccionRef = useRef<SeccionHandleRef>(null);
+  const objetosSeccionRef = useRef<SeccionHandleRef>(null);
+  const ciudadesSeccionRef = useRef<SeccionHandleRef>(null);
+  const donesSeccionRef = useRef<SeccionHandleRef>(null);
+  const hechizosSeccionRef = useRef<SeccionHandleRef>(null);
+  const runasSeccionRef = useRef<SeccionHandleRef>(null);
+  const gruposSeccionRef = useRef<SeccionHandleRef>(null);
+  const notasSeccionRef = useRef<SeccionHandleRef>(null);
+  const cancionesSeccionRef = useRef<SeccionHandleRef>(null);
+  const mapaRef = useRef<HTMLDivElement>(null);
+  const mapaSeccionRef = useRef<SeccionHandleRef>(null);
+  const relacionesMisionesRef = useRef<HTMLDivElement>(null);
+  const relacionesSeccionRef = useRef<SeccionHandleRef>(null);
+  const misionesSeccionRef = useRef<SeccionHandleRef>(null);
   const reinosChipRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // Refs que se actualizan cada render para evitar closures stale
   const selectReinoRef = useRef<((r: Reino) => void) | null>(null);
@@ -640,6 +673,7 @@ function PanelListas({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const entidadesRef = useRef<HTMLDivElement>(null);
+  const lineaTiempoRef = useRef<HTMLDivElement>(null);
 
   const scrollToEntidades = useCallback(() => {
     const doScroll = () => {
@@ -650,7 +684,10 @@ function PanelListas({
         const elRect = el.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
         const offset =
-          elRect.top - containerRect.top + container.scrollTop - 80; // pequeño margen superior
+          elRect.top -
+          containerRect.top +
+          container.scrollTop -
+          80; // pequeño margen superior
         container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
       } else {
         el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -717,6 +754,46 @@ function PanelListas({
   // ── Scroll position ───────────────────────────────────────────────────────
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
+
+  // ── Atajos de sección (Ctrl+N) ────────────────────────────────────────────
+  // Los 5 bloques grandes de la vista "mundo":
+  //   Ctrl+1 → Línea de tiempo
+  //   Ctrl+2 → Capítulos
+  //   Ctrl+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
+  //   Ctrl+4 → Mapa
+  //   Ctrl+5 → Relaciones / Misiones
+  useSectionHotkeys([
+    {
+      key: "1",
+      ref: lineaTiempoRef,
+      getScrollContainer: () => scrollRef.current,
+    },
+    {
+      key: "2",
+      ref: capitulosRef,
+      getScrollContainer: () => scrollRef.current,
+    },
+    {
+      key: "3",
+      ref: entidadesRef,
+      getScrollContainer: () => scrollRef.current,
+    },
+    {
+      key: "4",
+      ref: mapaRef,
+      onActivate: () => mapaSeccionRef.current?.expand(),
+      getScrollContainer: () => scrollRef.current,
+    },
+    {
+      key: "5",
+      ref: relacionesMisionesRef,
+      onActivate: () => {
+        relacionesSeccionRef.current?.expand();
+        misionesSeccionRef.current?.expand();
+      },
+      getScrollContainer: () => scrollRef.current,
+    },
+  ]);
 
   // Restaurar posición de scroll al montar
   useEffect(() => {
@@ -1236,11 +1313,10 @@ function PanelListas({
   const filaGrupos = useRowCollapse("fila-grupos-notas", true);
 
   // ── Helper: sección de entidades ─────────────────────────────────────────
-  // Ref imperativa: permite que el padre llame a expand() sobre la sección
-  type SeccionHandle = { expand: () => void };
+  // Ref imperativa: permite que el padre llame a expand() y obtener el nodo DOM
 
   const SeccionEntidades = React.forwardRef<
-    SeccionHandle,
+    SeccionHandleRef,
     {
       icon: React.ElementType;
       label: string;
@@ -1305,7 +1381,9 @@ function PanelListas({
       });
     };
 
-    // Exponer expand() al padre vía ref
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    // Exponer expand() y el nodo DOM al padre vía ref
     React.useImperativeHandle(ref, () => ({
       expand: () => {
         if (isControlled) {
@@ -1324,10 +1402,11 @@ function PanelListas({
           return prev;
         });
       },
+      getElement: () => rootRef.current,
     }));
 
     return (
-      <div className="pb-1">
+      <div ref={rootRef} className="pb-1">
         <button
           type="button"
           className="flex items-center gap-1.5 mb-2 w-full group cursor-pointer select-none"
@@ -1390,6 +1469,7 @@ function PanelListas({
         {/* HISTORIA */}
         {textos && onTextoChange && onSave && (
           <div
+            ref={lineaTiempoRef}
             className="border-b"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -1540,6 +1620,7 @@ function PanelListas({
                 style={{ gridTemplateColumns: "2fr 1fr 1fr" }}
               >
                 <SeccionEntidades
+                  ref={personajesSeccionRef}
                   count={personajes.length}
                   icon={Users}
                   label={el.personajes}
@@ -1568,6 +1649,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={criaturasSeccionRef}
                   count={criaturas.length}
                   icon={Bug}
                   label={el.criaturas}
@@ -1633,6 +1715,7 @@ function PanelListas({
               {/* ── Fila 2: Objetos · Ciudades (colapsados por defecto) ── */}
               <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
                 <SeccionEntidades
+                  ref={objetosSeccionRef}
                   count={objetos.length}
                   icon={Package}
                   label="Objetos"
@@ -1641,6 +1724,7 @@ function PanelListas({
                   storageKey="objetos"
                   collapsed={isDesktop ? filaObjetos.collapsed : undefined}
                   onToggle={isDesktop ? filaObjetos.toggle : undefined}
+                  onExpand={isDesktop ? filaObjetos.expand : undefined}
                 >
                   {[...objetos]
                     .sort(
@@ -1661,6 +1745,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={ciudadesSeccionRef}
                   count={ciudades.length}
                   icon={MapPin}
                   label={el.ciudades}
@@ -1669,6 +1754,7 @@ function PanelListas({
                   storageKey="ciudades"
                   collapsed={isDesktop ? filaObjetos.collapsed : undefined}
                   onToggle={isDesktop ? filaObjetos.toggle : undefined}
+                  onExpand={isDesktop ? filaObjetos.expand : undefined}
                 >
                   {[...ciudades]
                     .sort(
@@ -1705,6 +1791,7 @@ function PanelListas({
               {/* ── Fila 3: Sección Mágica — Dones · Hechizos · Runas (colapsados) ── */}
               <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
                 <SeccionEntidades
+                  ref={donesSeccionRef}
                   count={dones.length}
                   icon={Star}
                   label={el.dones}
@@ -1713,6 +1800,7 @@ function PanelListas({
                   storageKey="dones"
                   collapsed={isDesktop ? filaDones.collapsed : undefined}
                   onToggle={isDesktop ? filaDones.toggle : undefined}
+                  onExpand={isDesktop ? filaDones.expand : undefined}
                 >
                   {dones.map((d) => (
                     <Chip
@@ -1729,6 +1817,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={hechizosSeccionRef}
                   count={hechizos.length}
                   icon={Sparkles}
                   label={el.hechizos}
@@ -1737,6 +1826,7 @@ function PanelListas({
                   storageKey="hechizos"
                   collapsed={isDesktop ? filaDones.collapsed : undefined}
                   onToggle={isDesktop ? filaDones.toggle : undefined}
+                  onExpand={isDesktop ? filaDones.expand : undefined}
                 >
                   {hechizos.map((h) => (
                     <Chip
@@ -1753,6 +1843,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={runasSeccionRef}
                   count={runas.length}
                   icon={ScrollText}
                   label={el.runas}
@@ -1761,6 +1852,7 @@ function PanelListas({
                   storageKey="runas"
                   collapsed={isDesktop ? filaDones.collapsed : undefined}
                   onToggle={isDesktop ? filaDones.toggle : undefined}
+                  onExpand={isDesktop ? filaDones.expand : undefined}
                 >
                   {[...runas]
                     .sort(
@@ -1787,6 +1879,7 @@ function PanelListas({
                 style={{ gridTemplateColumns: "3fr 1fr" }}
               >
                 <SeccionEntidades
+                  ref={gruposSeccionRef}
                   count={grupos.length}
                   icon={Layers}
                   label={el.grupos}
@@ -1796,6 +1889,7 @@ function PanelListas({
                   storageKey="grupos"
                   collapsed={isDesktop ? filaGrupos.collapsed : undefined}
                   onToggle={isDesktop ? filaGrupos.toggle : undefined}
+                  onExpand={isDesktop ? filaGrupos.expand : undefined}
                 >
                   {(() => {
                     const porTipo = grupos.reduce(
@@ -1923,6 +2017,7 @@ function PanelListas({
                 <div className={`${div} sm:hidden`} style={divStyle} />
 
                 <SeccionEntidades
+                  ref={notasSeccionRef}
                   count={notas.length}
                   icon={FileText}
                   label={el.notas}
@@ -1931,6 +2026,7 @@ function PanelListas({
                   storageKey="notas"
                   collapsed={isDesktop ? filaGrupos.collapsed : undefined}
                   onToggle={isDesktop ? filaGrupos.toggle : undefined}
+                  onExpand={isDesktop ? filaGrupos.expand : undefined}
                 >
                   {notas.map((n) => (
                     <button
@@ -1960,6 +2056,7 @@ function PanelListas({
 
               {/* ── Fila 5: Canciones (colapsado, ancho completo) ── */}
               <SeccionEntidades
+                ref={cancionesSeccionRef}
                 cols={1}
                 count={canciones.length}
                 icon={Music}
@@ -1985,13 +2082,19 @@ function PanelListas({
 
         {/* MAPA */}
         <div
+          ref={mapaRef}
           className="border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
           }}
         >
-          <PanelColapsable icon={Map} label="Mapa" storageKey="panel-mapa">
+          <PanelColapsable
+            ref={mapaSeccionRef}
+            icon={Map}
+            label="Mapa"
+            storageKey="panel-mapa"
+          >
             {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
             <div
               className="flex flex-col min-h-0"
@@ -2003,7 +2106,7 @@ function PanelListas({
         </div>
 
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
-        <div className="lg:grid lg:grid-cols-2">
+        <div ref={relacionesMisionesRef} className="lg:grid lg:grid-cols-2">
           <div
             className="border-b lg:border-b-0 lg:border-r"
             style={{
@@ -2011,6 +2114,7 @@ function PanelListas({
             }}
           >
             <PanelColapsable
+              ref={relacionesSeccionRef}
               icon={Network}
               label="Relaciones"
               storageKey="panel-relaciones"
@@ -2026,6 +2130,7 @@ function PanelListas({
 
           <div>
             <PanelColapsable
+              ref={misionesSeccionRef}
               icon={ScrollText}
               label="Misiones"
               storageKey="panel-misiones"
