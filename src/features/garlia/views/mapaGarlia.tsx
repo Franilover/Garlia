@@ -2184,6 +2184,23 @@ function CanvasMap({
     };
   }, [touchStartHandler, touchMoveHandler, touchEndHandler]);
 
+  // Ctrl/Cmd + "+"/"-" para zoom desde teclado (desktop) — evita depender
+  // de los botones flotantes, que se ocultan en desktop en favor de esto.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        zoom(1.25);
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        zoom(0.8);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [zoom]);
+
   return (
     <div ref={containerRef} className="relative w-full h-full">
       <canvas
@@ -2216,13 +2233,14 @@ function CanvasMap({
       `}</style>
 
       <div className="absolute right-4 bottom-[calc(56px+1rem)] md:bottom-6 flex flex-col gap-1.5 z-10">
+        {/* Zoom con botones — solo mobile, en desktop se usa Ctrl +/- */}
         {[
           { icon: <ZoomIn size={14} />, fn: () => zoom(1.25) },
           { icon: <ZoomOut size={14} />, fn: () => zoom(0.8) },
         ].map((btn, i) => (
           <button
             key={i}
-            className="w-9 h-9 flex items-center justify-center transition-all border"
+            className="w-9 h-9 flex md:hidden items-center justify-center transition-all border"
             style={{
               background: "color-mix(in srgb, var(--bg-menu) 88%, transparent)",
               borderColor:

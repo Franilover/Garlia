@@ -78,7 +78,6 @@ import {
   PanelPersonajesCapitulo,
 } from "@/features/editorGarlia/components/editorCapitulos/components";
 import {
-  useCapitulos,
   useCapituloEditor,
   useReinos,
 } from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
@@ -2347,35 +2346,80 @@ function BarraLibro({
   );
 }
 
-// ─── SidebarCapitulos ─────────────────────────────────────────────────────────
-// Barra vertical derecha con la lista de capítulos del libro activo.
+// ─── SidebarLibros ────────────────────────────────────────────────────────────
+// Barra lateral única: lista todos los libros como acordeón, cada uno con sus
+// capítulos anidados. Reemplaza la antigua vista de "Biblioteca" + sidebar de
+// capítulos de un solo libro — todo vive en una sola pantalla ahora.
 
-function SidebarCapitulos({
-  capitulos,
+function SidebarLibros({
+  libros,
+  loadingLibros,
+  porLibro,
+  loadingCapsIds,
+  selectedLibroId,
   selectedCapId,
-  libroId,
   open,
+  onCargarCapsLibro,
   onSelectCap,
   onDeleteCap,
   onNuevoCap,
+  onNuevoLibro,
+  onDeleteLibro,
   onToggleSidebar,
 }: {
-  capitulos: Capitulo[];
+  libros: Libro[];
+  loadingLibros: boolean;
+  porLibro: Record<string, Capitulo[]>;
+  loadingCapsIds: Set<string>;
+  selectedLibroId: string | null;
   selectedCapId: string | null;
-  libroId: string;
   open: boolean;
-  onSelectCap: (capId: string) => void;
+  onCargarCapsLibro: (libroId: string) => void;
+  onSelectCap: (libroId: string, capId: string) => void;
   onDeleteCap: (id: string, libroId: string) => void;
-  onNuevoCap: () => void;
+  onNuevoCap: (libroId: string) => void;
+  onNuevoLibro: () => void;
+  onDeleteLibro: (libroId: string) => void;
   onToggleSidebar: () => void;
 }) {
+  const [expandidos, setExpandidos] = useState<Set<string>>(
+    new Set(selectedLibroId ? [selectedLibroId] : []),
+  );
+
+  // Auto-expandir (y cargar) el libro del capítulo activo cuando cambia desde
+  // afuera (p. ej. al restaurar la última sesión).
+  useEffect(() => {
+    if (!selectedLibroId) return;
+    setExpandidos((prev) => {
+      if (prev.has(selectedLibroId)) return prev;
+      const next = new Set(prev);
+      next.add(selectedLibroId);
+      return next;
+    });
+    onCargarCapsLibro(selectedLibroId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLibroId]);
+
+  const toggleLibro = (libroId: string) => {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(libroId)) {
+        next.delete(libroId);
+      } else {
+        next.add(libroId);
+        onCargarCapsLibro(libroId);
+      }
+      return next;
+    });
+  };
+
   if (!open) return null;
 
   return (
     <div
       className="shrink-0 flex flex-col border-r overflow-hidden"
       style={{
-        width: "clamp(180px, 18vw, 240px)",
+        width: "clamp(200px, 20vw, 280px)",
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
       }}
@@ -2387,13 +2431,13 @@ function SidebarCapitulos({
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1">
-          Capítulos · {capitulos.length}
+        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1 flex items-center gap-1">
+          <BookMarked size={10} /> Libros · {libros.length}
         </span>
         <button
           className="p-1 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-          title="Nuevo capítulo"
-          onClick={onNuevoCap}
+          title="Nuevo libro"
+          onClick={onNuevoLibro}
         >
           <Plus size={10} />
         </button>
@@ -2406,83 +2450,170 @@ function SidebarCapitulos({
         </button>
       </div>
 
-      {/* Lista de caps — sin scroll fijo, se expande */}
+      {/* Lista de libros con caps anidados */}
       <div className="flex-1 overflow-y-auto py-1">
-        {capitulos.length === 0 ? (
+        {loadingLibros ? (
+          <div className="flex items-center justify-center py-10 text-primary/20">
+            <Loader2 className="animate-spin" size={16} />
+          </div>
+        ) : libros.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2 text-primary/20">
             <BookMarked size={16} />
             <p className="text-[7px] font-black uppercase tracking-widest text-center px-2">
-              Sin capítulos
+              Sin libros · crea el primero
             </p>
           </div>
         ) : (
-          capitulos.map((cap) => {
-            const activo = cap.id === selectedCapId;
+          libros.map((libro) => {
+            const abierto = expandidos.has(libro.id);
+            const caps = porLibro[libro.id];
+            const cargandoCaps = loadingCapsIds.has(libro.id);
+            const libroActivo = libro.id === selectedLibroId;
+
             return (
-              <div
-                key={cap.id}
-                className="group relative flex items-center gap-1.5 px-2.5 py-1.5 cursor-pointer transition-all"
-                style={{
-                  background: activo
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                    : "transparent",
-                  borderLeft: activo
-                    ? "2px solid var(--primary)"
-                    : "2px solid transparent",
-                }}
-                onClick={() => onSelectCap(cap.id)}
-              >
-                {/* Número de orden */}
-                <span
-                  className="shrink-0 text-[7px] font-black tabular-nums"
-                  style={{
-                    color: activo
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 25%, transparent)",
-                    width: 16,
-                    textAlign: "right",
-                  }}
-                >
-                  {cap.orden}
-                </span>
-
-                {/* Título */}
-                <span
-                  className="flex-1 min-w-0 text-[9px] font-bold uppercase tracking-wide leading-tight truncate"
-                  style={{
-                    color: activo
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 55%, transparent)",
-                  }}
-                >
-                  {cap.titulo_capitulo}
-                </span>
-
-                {/* Visibilidad dot */}
+              <div key={libro.id} className="mb-0.5">
+                {/* Header del libro */}
                 <div
-                  className="shrink-0 w-1.5 h-1.5 rounded-full"
+                  className="group relative flex items-center gap-1 px-2 py-1.5 cursor-pointer transition-all"
                   style={{
-                    background:
-                      cap.visibilidad === "publico"
-                        ? "var(--callout-success-border)"
-                        : cap.visibilidad === "programado"
-                          ? "var(--callout-warning-border)"
-                          : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    background: libroActivo
+                      ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                      : "transparent",
                   }}
-                />
-
-                {/* Acciones hover */}
-                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
-                  <button
-                    className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteCap(cap.id, libroId);
+                  onClick={() => toggleLibro(libro.id)}
+                >
+                  {abierto ? (
+                    <ChevronDown
+                      className="shrink-0 text-primary/30"
+                      size={11}
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="shrink-0 text-primary/30"
+                      size={11}
+                    />
+                  )}
+                  <span
+                    className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide leading-tight truncate"
+                    style={{
+                      color: libroActivo
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 55%, transparent)",
                     }}
                   >
-                    <Trash2 size={9} />
-                  </button>
+                    {libro.titulo}
+                  </span>
+
+                  {/* Acciones hover del libro */}
+                  <div className="shrink-0 hidden group-hover:flex items-center gap-0.5">
+                    <button
+                      className="p-0.5 rounded hover:bg-primary/10 text-primary/30 hover:text-primary transition-colors"
+                      title="Nuevo capítulo"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNuevoCap(libro.id);
+                      }}
+                    >
+                      <Plus size={9} />
+                    </button>
+                    <button
+                      className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
+                      title="Eliminar libro"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteLibro(libro.id);
+                      }}
+                    >
+                      <Trash2 size={9} />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Capítulos del libro */}
+                {abierto && (
+                  <div>
+                    {cargandoCaps && !caps ? (
+                      <div className="flex items-center justify-center py-3 text-primary/15">
+                        <Loader2 className="animate-spin" size={12} />
+                      </div>
+                    ) : caps && caps.length === 0 ? (
+                      <p className="pl-7 pr-2 py-1.5 text-[7px] font-black uppercase tracking-widest text-primary/20">
+                        Sin capítulos
+                      </p>
+                    ) : (
+                      (caps ?? []).map((cap) => {
+                        const activo = cap.id === selectedCapId;
+                        return (
+                          <div
+                            key={cap.id}
+                            className="group relative flex items-center gap-1.5 pl-7 pr-2.5 py-1.5 cursor-pointer transition-all"
+                            style={{
+                              background: activo
+                                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                                : "transparent",
+                              borderLeft: activo
+                                ? "2px solid var(--primary)"
+                                : "2px solid transparent",
+                            }}
+                            onClick={() => onSelectCap(libro.id, cap.id)}
+                          >
+                            {/* Número de orden */}
+                            <span
+                              className="shrink-0 text-[7px] font-black tabular-nums"
+                              style={{
+                                color: activo
+                                  ? "var(--primary)"
+                                  : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                                width: 14,
+                                textAlign: "right",
+                              }}
+                            >
+                              {cap.orden}
+                            </span>
+
+                            {/* Título */}
+                            <span
+                              className="flex-1 min-w-0 text-[9px] font-bold uppercase tracking-wide leading-tight truncate"
+                              style={{
+                                color: activo
+                                  ? "var(--primary)"
+                                  : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                              }}
+                            >
+                              {cap.titulo_capitulo}
+                            </span>
+
+                            {/* Visibilidad dot */}
+                            <div
+                              className="shrink-0 w-1.5 h-1.5 rounded-full"
+                              style={{
+                                background:
+                                  cap.visibilidad === "publico"
+                                    ? "var(--callout-success-border)"
+                                    : cap.visibilidad === "programado"
+                                      ? "var(--callout-warning-border)"
+                                      : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                              }}
+                            />
+
+                            {/* Acciones hover */}
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5 bg-bg-main border border-primary/10 rounded px-0.5 py-0.5 shadow-sm">
+                              <button
+                                className="p-0.5 rounded hover:bg-red-500/10 text-primary/25 hover:text-red-400 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteCap(cap.id, libro.id);
+                                }}
+                              >
+                                <Trash2 size={9} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             );
           })
@@ -2535,15 +2666,47 @@ export function EditorCapitulosPanel() {
     );
   };
 
-  // Vista: "biblioteca" | "editor"
-  // Si hay cap seleccionado → editor; si hay libro pero no cap → biblioteca con sidebar abierto
-  const [vistaLibroId, setVistaLibroId] = useState<string | null>(lastLibroId);
+  // ── Capítulos por libro, cargados bajo demanda ──────────────────────────
+  // La sidebar es ahora un acordeón con TODOS los libros; en vez de traer
+  // los caps de uno solo (como antes), mantenemos un mapa libroId → caps
+  // que se va llenando a medida que el usuario expande cada libro (o al
+  // restaurar la última sesión / crear un capítulo).
+  const [porLibro, setPorLibro] = useState<Record<string, Capitulo[]>>({});
+  const [loadingCapsIds, setLoadingCapsIds] = useState<Set<string>>(new Set());
 
-  const {
-    capitulos,
-    setCapitulos,
-    reload: reloadCaps,
-  } = useCapitulos(selectedLibroId);
+  const cargarCapsLibro = useCallback(
+    async (libroId: string, force = false) => {
+      if (!force && porLibro[libroId]) return;
+      setLoadingCapsIds((prev) => new Set(prev).add(libroId));
+      try {
+        const { data, error } = await supabase
+          .from("capitulos")
+          .select("*")
+          .eq("libro_id", libroId)
+          .order("orden", { ascending: true });
+        if (!error) {
+          setPorLibro((prev) => ({ ...prev, [libroId]: data ?? [] }));
+        }
+      } finally {
+        setLoadingCapsIds((prev) => {
+          const next = new Set(prev);
+          next.delete(libroId);
+          return next;
+        });
+      }
+    },
+    [porLibro],
+  );
+
+  // Recargar (forzado) los caps de un libro — usado tras crear/borrar cap.
+  const reloadCapsLibro = useCallback(
+    (libroId: string) => cargarCapsLibro(libroId, true),
+    [cargarCapsLibro],
+  );
+
+  const capitulosLibroActivo = selectedLibroId
+    ? (porLibro[selectedLibroId] ?? [])
+    : [];
 
   useEffect(() => {
     const check = () => {
@@ -2553,7 +2716,6 @@ export function EditorCapitulosPanel() {
       if (capId && libroId) {
         setSelectedLibroId(libroId);
         setSelectedCapId(capId);
-        setVistaLibroId(libroId);
         setFocusMode(false);
         setSidebarOpen(true);
       }
@@ -2568,45 +2730,40 @@ export function EditorCapitulosPanel() {
     return () => window.removeEventListener("estudio-caps-action", check);
   }, []);
 
-  const handleSelectLibro = async (libroId: string) => {
-    setSelectedLibroId(libroId);
-    setVistaLibroId(libroId);
-    setSidebarOpen(true);
-
-    // Si ya hay un cap guardado para este libro, ir directo
-    const savedCapId = lastCapId;
-    const savedLibroId = lastLibroId;
-    if (savedCapId && savedLibroId === libroId) {
-      setSelectedCapId(savedCapId);
-      return;
-    }
-
-    // Si no, cargar caps y abrir el primero
-    try {
+  // Si no hay capítulo seleccionado (primera vez, o se borró el libro/cap
+  // guardado) apenas cargan los libros abrimos el primero disponible con su
+  // primer capítulo, para no dejar la pantalla vacía.
+  useEffect(() => {
+    if (selectedCapId || loadingLibros || libros.length === 0) return;
+    const libro = libros.find((l) => l.id === selectedLibroId) ?? libros[0];
+    (async () => {
+      await cargarCapsLibro(libro.id);
       const { data } = await supabase
         .from("capitulos")
-        .select("id, orden")
-        .eq("libro_id", libroId)
+        .select("id")
+        .eq("libro_id", libro.id)
         .order("orden", { ascending: true })
         .limit(1)
-        .single();
-      if (data) {
-        setSelectedCapId(data.id);
-        setLastCapId(data.id);
-      }
-    } catch {}
-  };
+        .maybeSingle();
+      setSelectedLibroId(libro.id);
+      if (data) setSelectedCapId(data.id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingLibros, libros.length]);
 
   const handleSelectCap = (libroId: string, capId: string) => {
     setSelectedLibroId(libroId);
-    setVistaLibroId(libroId);
     setSelectedCapId(capId);
     setFocusMode(false);
     setSidebarOpen(true);
   };
 
   const handleCapCreada = (cap: Capitulo) => {
-    setCapitulos((prev) => [...prev, cap]);
+    setPorLibro((prev) => ({
+      ...prev,
+      [cap.libro_id]: [...(prev[cap.libro_id] ?? []), cap],
+    }));
+    setSelectedLibroId(cap.libro_id);
     setSelectedCapId(cap.id);
     setCapRefreshKey((k) => k + 1);
   };
@@ -2618,15 +2775,18 @@ export function EditorCapitulosPanel() {
       visibilidad: "oculto",
     });
     if (error || !data) throw new Error(error ?? "Error al crear libro");
-    setSelectedLibroId(data.id);
-    setVistaLibroId(data.id);
     setShowNuevoLibro(false);
+    setShowNuevoCap(true);
+    setSelectedLibroId(data.id);
   };
 
   const handleCapEliminada = async (id: string, libroId: string) => {
     try {
       await capDelete(id);
-      setCapitulos((prev) => prev.filter((c) => c.id !== id));
+      setPorLibro((prev) => ({
+        ...prev,
+        [libroId]: (prev[libroId] ?? []).filter((c) => c.id !== id),
+      }));
       if (selectedCapId === id) setSelectedCapId(null);
       setCapRefreshKey((k) => k + 1);
     } catch {}
@@ -2636,78 +2796,93 @@ export function EditorCapitulosPanel() {
     try {
       await libroDelete(libroId);
       setLibros((prev) => prev.filter((l) => l.id !== libroId));
+      setPorLibro((prev) => {
+        const next = { ...prev };
+        delete next[libroId];
+        return next;
+      });
       if (selectedLibroId === libroId) {
         setSelectedLibroId(null);
         setSelectedCapId(null);
-        setVistaLibroId(null);
       }
       setCapRefreshKey((k) => k + 1);
     } catch {}
   };
 
-  const libroActivo = libros.find((l) => l.id === vistaLibroId);
-  const enEditor = !!selectedCapId && !!selectedLibroId;
-  const enBiblioteca = !enEditor;
+  const libroActivo = libros.find((l) => l.id === selectedLibroId);
+  const hayCapAbierto = !!selectedCapId && !!selectedLibroId;
 
   return (
     <>
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-        {/* ── Barra superior del libro (solo en editor) ── */}
-        {enEditor && (
+        {/* ── Barra superior del libro — se re-sincroniza sola al cambiar de libro ── */}
+        {hayCapAbierto && (
           <BarraLibro
             libro={libroActivo}
-            capitulos={capitulos}
+            capitulos={capitulosLibroActivo}
             sidebarOpen={sidebarOpen}
             onLibroChange={handleLibroEditado}
             onNuevoCap={() => setShowNuevoCap(true)}
             onToggleSidebar={() => setSidebarOpen((o) => !o)}
-            onVolver={() => {
-              setSelectedCapId(null);
-              setVistaLibroId(selectedLibroId);
-            }}
+            onVolver={() => setSidebarOpen(true)}
           />
         )}
 
-        {/* ── Contenido principal ── */}
+        {/* ── Contenido principal: sidebar de libros/caps + editor, todo en una pantalla ── */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          {/* Biblioteca */}
-          {enBiblioteca && (
-            <BibliotecaPortadas
-              libros={libros}
-              loading={loadingLibros}
-              selectedLibroId={vistaLibroId}
-              onDeleteLibro={handleLibroEliminado}
-              onEditLibro={() => {}}
-              onNuevoLibro={() => setShowNuevoLibro(true)}
-              onSelectLibro={handleSelectLibro}
-            />
-          )}
+          <SidebarLibros
+            libros={libros}
+            loadingLibros={loadingLibros}
+            porLibro={porLibro}
+            loadingCapsIds={loadingCapsIds}
+            selectedLibroId={selectedLibroId}
+            selectedCapId={selectedCapId}
+            open={sidebarOpen}
+            onCargarCapsLibro={cargarCapsLibro}
+            onSelectCap={handleSelectCap}
+            onDeleteCap={handleCapEliminada}
+            onNuevoCap={(libroId) => {
+              setSelectedLibroId(libroId);
+              setShowNuevoCap(true);
+            }}
+            onNuevoLibro={() => setShowNuevoLibro(true)}
+            onDeleteLibro={handleLibroEliminado}
+            onToggleSidebar={() => setSidebarOpen((o) => !o)}
+          />
 
-          {/* Sidebar caps (izquierda del editor) */}
-          {enEditor && (
-            <SidebarCapitulos
-              capitulos={capitulos}
-              libroId={selectedLibroId!}
-              open={sidebarOpen}
-              selectedCapId={selectedCapId}
-              onDeleteCap={handleCapEliminada}
-              onNuevoCap={() => setShowNuevoCap(true)}
-              onSelectCap={(capId) => handleSelectCap(selectedLibroId!, capId)}
-              onToggleSidebar={() => setSidebarOpen((o) => !o)}
-            />
-          )}
-
-          {/* Editor */}
-          {enEditor && selectedCapId && selectedLibroId && (
+          {/* Editor del capítulo activo */}
+          {hayCapAbierto ? (
             <div className="flex-1 min-h-0 flex overflow-hidden">
               <PanelEditor
                 key={selectedCapId}
-                capId={selectedCapId}
+                capId={selectedCapId!}
                 focusMode={focusMode}
-                libroId={selectedLibroId}
-                onCapitulosChange={() => setCapRefreshKey((k) => k + 1)}
+                libroId={selectedLibroId!}
+                onCapitulosChange={() => {
+                  setCapRefreshKey((k) => k + 1);
+                  if (selectedLibroId) reloadCapsLibro(selectedLibroId);
+                }}
                 onToggleFocus={() => setFocusMode((m) => !m)}
               />
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-primary/20">
+              <BookMarked size={28} />
+              <p className="text-[9px] font-black uppercase tracking-widest text-center px-4">
+                {loadingLibros
+                  ? "Cargando…"
+                  : libros.length === 0
+                    ? "Sin libros · crea el primero"
+                    : "Elige un capítulo en la barra lateral"}
+              </p>
+              {!loadingLibros && libros.length === 0 && (
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+                  onClick={() => setShowNuevoLibro(true)}
+                >
+                  <Plus size={10} /> Nuevo Libro
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -2722,7 +2897,7 @@ export function EditorCapitulosPanel() {
       {showNuevoCap && selectedLibroId && (
         <ModalNuevoCapitulo
           libroId={selectedLibroId}
-          ordenSiguiente={capitulos.length + 1}
+          ordenSiguiente={capitulosLibroActivo.length + 1}
           onClose={() => setShowNuevoCap(false)}
           onCreated={handleCapCreada}
         />
