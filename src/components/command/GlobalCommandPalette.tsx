@@ -720,49 +720,51 @@ export function GlobalCommandPalette() {
     },
   ];
 
-  const appItems: CommandItem[] = [
-    {
-      id: "app-ejercicios",
-      label: "Ejercicios",
-      icon: Dumbbell,
-      keywords: ["ejercicios", "gym", "entrenar", "fitness"],
-      action: () => goApp("ejercicios"),
-      group: "Apps",
-    },
-    {
-      id: "app-ingredientes",
-      label: "Ingredientes",
-      icon: Package,
-      keywords: ["ingredientes", "despensa", "cocina"],
-      action: () => goApp("ingredientes"),
-      group: "Apps",
-    },
-    {
-      id: "app-recetas",
-      label: "Recetas",
-      icon: UtensilsCrossed,
-      keywords: ["recetas", "cocina", "comida"],
-      action: () => goApp("recetas"),
-      group: "Apps",
-    },
-    {
-      id: "app-ropa",
-      label: "Ropa",
-      icon: Shirt,
-      keywords: ["ropa", "armario", "outfit"],
-      action: () => goApp("ropa"),
-      group: "Apps",
-    },
-    {
-      id: "app-biblioteca",
-      label: "Biblioteca",
-      description: "Tus libros",
-      icon: Library,
-      keywords: ["biblioteca", "libros", "leer"],
-      action: () => goApp("libros"),
-      group: "Apps",
-    },
-  ];
+  const appItems: CommandItem[] = isAdmin
+    ? [
+        {
+          id: "app-ejercicios",
+          label: "Ejercicios",
+          icon: Dumbbell,
+          keywords: ["ejercicios", "gym", "entrenar", "fitness"],
+          action: () => goApp("ejercicios"),
+          group: "Apps",
+        },
+        {
+          id: "app-ingredientes",
+          label: "Ingredientes",
+          icon: Package,
+          keywords: ["ingredientes", "despensa", "cocina"],
+          action: () => goApp("ingredientes"),
+          group: "Apps",
+        },
+        {
+          id: "app-recetas",
+          label: "Recetas",
+          icon: UtensilsCrossed,
+          keywords: ["recetas", "cocina", "comida"],
+          action: () => goApp("recetas"),
+          group: "Apps",
+        },
+        {
+          id: "app-ropa",
+          label: "Ropa",
+          icon: Shirt,
+          keywords: ["ropa", "armario", "outfit"],
+          action: () => goApp("ropa"),
+          group: "Apps",
+        },
+        {
+          id: "app-biblioteca",
+          label: "Biblioteca",
+          description: "Tus libros",
+          icon: Library,
+          keywords: ["biblioteca", "libros", "leer"],
+          action: () => goApp("libros"),
+          group: "Apps",
+        },
+      ]
+    : [];
 
   const userItems: CommandItem[] = user
     ? [
@@ -803,6 +805,15 @@ export function GlobalCommandPalette() {
           icon: Cat,
           keywords: ["editor", "garlia", "myself"],
           action: () => go("/myself/garlia"),
+          group: "Admin",
+        },
+        {
+          id: "abrir-crear",
+          label: "Añadir",
+          description: "Crear personaje, libro, capítulo…",
+          icon: Sparkles,
+          keywords: ["add", "crear", "nuevo", "nueva", "añadir"],
+          action: () => setSearch("add"),
           group: "Admin",
         },
       ]
@@ -1024,7 +1035,6 @@ export function GlobalCommandPalette() {
     ...userItems,
     ...adminItems,
     ...themeItems,
-    ...createItems,
   ];
 
   // ── Detectar modo "Crear" — al escribir add/crear/nuevo ───────────────────
