@@ -462,6 +462,25 @@ export interface MisionUsuarioLocal {
   cached_at?: number;
 }
 
+// ─── Descubrimientos personales (cache offline para GlobalCommandPalette) ────
+/**
+ * Fila desnormalizada de una entidad desbloqueada por el usuario —
+ * personaje, criatura, item, reino o ciudad. Se guarda "aplanada" (sin
+ * depender de joins) para poder leerla instantáneamente desde Dexie al abrir
+ * la paleta de comandos, mientras el fetch remoto revalida en segundo plano.
+ * Clave local compuesta: `${perfil_id}_${tipo}_${entidad_id}`.
+ */
+export interface DescubrimientoLocal {
+  id: string; // `${perfil_id}_${tipo}_${entidad_id}`
+  perfil_id: string;
+  tipo: "personaje" | "criatura" | "item" | "reino" | "ciudad";
+  entidad_id: string;
+  nombre?: string | null;
+  imagen_url?: string | null;
+  reino_id?: string | null; // solo relevante para tipo "ciudad"
+  cached_at?: number;
+}
+
 class AgendaFraniDB extends Dexie {
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
@@ -532,6 +551,9 @@ class AgendaFraniDB extends Dexie {
   // Tiles de mapa global y de reinos
   map_tiles!: Table<MapTileLocal, string>;
   reino_tiles!: Table<ReinoTileLocal, string>;
+
+  // Descubrimientos personales (cache offline para GlobalCommandPalette)
+  descubrimientos!: Table<DescubrimientoLocal, string>;
 
   constructor() {
     super("AgendaFranilover");
@@ -1236,6 +1258,16 @@ class AgendaFraniDB extends Dexie {
     this.version(23).stores({
       canciones:
         "id, titulo, personaje, personaje_id, visible, created_at, dia_absoluto",
+    });
+
+    // ─── v24: cache offline de "descubrimientos" (GlobalCommandPalette) ──────
+    // Antes, useUnlockedSearch/useUnlockedOverview pegaban directo a Supabase
+    // (3-5 queries en paralelo) cada vez que se abría la paleta o se tipeaba,
+    // sin ningún cache local — de ahí la demora perceptible. Con esta tabla,
+    // igual que el resto de entidades vía useSupabaseData, leemos Dexie al
+    // instante y revalidamos contra Supabase en segundo plano.
+    this.version(24).stores({
+      descubrimientos: "id, perfil_id, tipo, entidad_id",
     });
   }
 }

@@ -43,6 +43,8 @@ import { useRouter, usePathname } from "next/navigation";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
+import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { useGlobalSearch } from "@/lib/api/queries/search";
 import { toSlug } from "@/lib/utils/slugify";
@@ -103,7 +105,62 @@ interface DescubrimientoPersonal {
   reino_id?: string | null; // solo para ciudades — necesario para abrir su reino primero
 }
 
-/** Búsqueda pública en Supabase — libros, canciones y capítulos visibles. */
+/**
+ * Lee del cache local (Dexie) los descubrimientos de un usuario, opcionalmente
+ * filtrados por texto. Instantáneo — no toca la red.
+ */
+async function readDescubrimientosFromDexie(
+  userId: string,
+  q?: string,
+): Promise<DescubrimientoPersonal[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.descubrimientos
+      .where("perfil_id")
+      .equals(userId)
+      .toArray();
+    const qLower = q?.trim().toLowerCase();
+    const filtered = qLower
+      ? rows.filter((r) => (r.nombre ?? "").toLowerCase().includes(qLower))
+      : rows;
+    return filtered.map((r) => ({
+      entidad_id: r.entidad_id,
+      tipo: r.tipo,
+      nombre: r.nombre,
+      imagen_url: r.imagen_url,
+      reino_id: r.reino_id ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Reemplaza el cache local completo de descubrimientos de un usuario. */
+async function writeDescubrimientosToDexie(
+  userId: string,
+  items: DescubrimientoPersonal[],
+): Promise<void> {
+  try {
+    if (!db) return;
+    const rows = items.map((it) => ({
+      id: `${userId}_${it.tipo}_${it.entidad_id}`,
+      perfil_id: userId,
+      tipo: it.tipo,
+      entidad_id: it.entidad_id,
+      nombre: it.nombre ?? null,
+      imagen_url: it.imagen_url ?? null,
+      reino_id: it.reino_id ?? null,
+      cached_at: Date.now(),
+    }));
+    await db.descubrimientos.where("perfil_id").equals(userId).delete();
+    if (rows.length > 0) await db.descubrimientos.bulkPut(rows);
+  } catch (e) {
+    console.warn("[Dexie] No se pudo guardar 'descubrimientos':", e);
+  }
+}
+
+/**
+ * Búsqueda pública en Supabase — libros, canciones y capítulos visibles. */
 function usePublicSearch(query: string) {
   const [canciones, setCanciones] = useState<CancionPublica[]>([]);
   const [capitulos, setCapitulos] = useState<CapituloPublico[]>([]);
@@ -249,9 +306,24 @@ function useUnlockedSearch(query: string, userId: string | null) {
       return;
     }
 
+    let cancelled = false;
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      setIsFetching(true);
+      // 1) Cache local primero — instantáneo, cero latencia de red.
+      const cached = await readDescubrimientosFromDexie(userId, q);
+      if (cancelled) return;
+      if (cached.length > 0) setResultados(cached);
+      else setIsFetching(true);
+
+      // 2) Revalidar contra Supabase solo si hay conexión real.
+      const online = await isReallyOnline();
+      if (cancelled) return;
+      if (!online) {
+        setIsFetching(false);
+        return;
+      }
+
       try {
         const [itemsRes, criaturasRes, personajesRes, reinosRes, ciudadesRes] =
           await Promise.all([
@@ -286,6 +358,8 @@ function useUnlockedSearch(query: string, userId: string | null) {
               .ilike("ciudades.nombre", `%${q}%`)
               .limit(8),
           ]);
+
+        if (cancelled) return;
 
         const merged: DescubrimientoPersonal[] = [
           ...((itemsRes.data ?? []) as any[])
@@ -332,14 +406,33 @@ function useUnlockedSearch(query: string, userId: string | null) {
         ];
 
         setResultados(merged);
+        // No sobrescribimos el cache completo acá: esta query está filtrada
+        // por texto y borraría lo que useUnlockedOverview ya guardó. Solo
+        // hacemos upsert incremental de lo que encontramos.
+        try {
+          if (db && merged.length > 0) {
+            const rows = merged.map((it) => ({
+              id: `${userId}_${it.tipo}_${it.entidad_id}`,
+              perfil_id: userId,
+              tipo: it.tipo,
+              entidad_id: it.entidad_id,
+              nombre: it.nombre ?? null,
+              imagen_url: it.imagen_url ?? null,
+              reino_id: it.reino_id ?? null,
+              cached_at: Date.now(),
+            }));
+            await db.descubrimientos.bulkPut(rows);
+          }
+        } catch {}
       } catch {
-        setResultados([]);
+        // Si falla la red, nos quedamos con lo que ya mostramos del cache.
       } finally {
-        setIsFetching(false);
+        if (!cancelled) setIsFetching(false);
       }
     }, 280);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, userId]);
@@ -362,7 +455,30 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
       return;
     }
     let cancelled = false;
+
     (async () => {
+      // 1) Cache local primero — se pinta al instante, sin esperar la red.
+      const cached = await readDescubrimientosFromDexie(userId);
+      if (cancelled) return;
+      if (cached.length > 0) {
+        // Mismo orden/mezcla que antes: personajes, criaturas, reinos primero.
+        const orden = {
+          personaje: 0,
+          criatura: 1,
+          reino: 2,
+          item: 3,
+          ciudad: 4,
+        };
+        const sorted = [...cached].sort(
+          (a, b) => (orden[a.tipo] ?? 9) - (orden[b.tipo] ?? 9),
+        );
+        setResultados(sorted.slice(0, 18));
+      }
+
+      // 2) Revalidar en segundo plano solo si hay conexión real.
+      const online = await isReallyOnline();
+      if (cancelled || !online) return;
+
       try {
         const [criaturasRes, personajesRes, reinosRes] = await Promise.all([
           supabase
@@ -411,9 +527,28 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
             })),
         ];
 
-        if (!cancelled) setResultados(merged);
+        if (!cancelled) {
+          setResultados(merged);
+          // Este overview trae solo 3 tipos (no items/ciudades) — hacemos
+          // upsert incremental para no pisar lo que useUnlockedSearch cacheó.
+          try {
+            if (db && merged.length > 0) {
+              const rows = merged.map((it) => ({
+                id: `${userId}_${it.tipo}_${it.entidad_id}`,
+                perfil_id: userId,
+                tipo: it.tipo,
+                entidad_id: it.entidad_id,
+                nombre: it.nombre ?? null,
+                imagen_url: it.imagen_url ?? null,
+                reino_id: it.reino_id ?? null,
+                cached_at: Date.now(),
+              }));
+              await db.descubrimientos.bulkPut(rows);
+            }
+          } catch {}
+        }
       } catch {
-        if (!cancelled) setResultados([]);
+        // Sin red o error — nos quedamos con lo que ya vino del cache.
       }
     })();
 
