@@ -251,19 +251,19 @@ function useUnlockedSearch(query: string, userId: string | null) {
         const [itemsRes, criaturasRes, personajesRes] = await Promise.all([
           supabase
             .from("descubrimientos_items")
-            .select("items:item_id(id, nombre, imagen_url)")
+            .select("items!inner(id, nombre, imagen_url)")
             .eq("perfil_id", userId)
             .ilike("items.nombre", `%${q}%`)
             .limit(8),
           supabase
             .from("descubrimientos_criaturas")
-            .select("criaturas:criatura_id(id, nombre, imagen_url)")
+            .select("criaturas!inner(id, nombre, imagen_url)")
             .eq("perfil_id", userId)
             .ilike("criaturas.nombre", `%${q}%`)
             .limit(8),
           supabase
             .from("descubrimientos_personajes")
-            .select("personajes:personaje_id(id, nombre, img_url)")
+            .select("personajes!inner(id, nombre, img_url)")
             .eq("perfil_id", userId)
             .ilike("personajes.nombre", `%${q}%`)
             .limit(8),
