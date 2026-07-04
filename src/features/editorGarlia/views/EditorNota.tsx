@@ -1,6 +1,15 @@
 "use client";
 
-import { FileText, Save, Trash2, Loader2, Tag, X, Plus, Check } from "lucide-react";
+import {
+  FileText,
+  Save,
+  Trash2,
+  Loader2,
+  Tag,
+  X,
+  Plus,
+  Check,
+} from "lucide-react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
@@ -8,11 +17,16 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 
 import { SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
-import type { SaveStatus , type Nota } from "../hooks/types";
-
+import type { SaveStatus, Nota } from "../hooks/types";
 
 // ─── Etiqueta chip ────────────────────────────────────────────────────────────
-function EtiquetaChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+function EtiquetaChip({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
   return (
     <span
       className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
@@ -62,24 +76,34 @@ export function EditorNota({
 
   // Parsear etiquetas
   const etiquetas: string[] = (() => {
-    try { return JSON.parse(form.etiquetas ?? "[]"); } catch { return []; }
+    try {
+      return JSON.parse(form.etiquetas ?? "[]");
+    } catch {
+      return [];
+    }
   })();
 
   const setEtiquetas = useCallback((tags: string[]) => {
-    setForm(f => ({ ...f, etiquetas: JSON.stringify(tags) }));
+    setForm((f) => ({ ...f, etiquetas: JSON.stringify(tags) }));
   }, []);
 
   const addTag = useCallback(() => {
     const tag = etiquetaInput.trim().toLowerCase();
-    if (!tag || etiquetas.includes(tag)) { setEtiquetaInput(""); return; }
+    if (!tag || etiquetas.includes(tag)) {
+      setEtiquetaInput("");
+      return;
+    }
     setEtiquetas([...etiquetas, tag]);
     setEtiquetaInput("");
     setShowTagInput(false);
   }, [etiquetaInput, etiquetas, setEtiquetas]);
 
-  const removeTag = useCallback((tag: string) => {
-    setEtiquetas(etiquetas.filter(t => t !== tag));
-  }, [etiquetas, setEtiquetas]);
+  const removeTag = useCallback(
+    (tag: string) => {
+      setEtiquetas(etiquetas.filter((t) => t !== tag));
+    },
+    [etiquetas, setEtiquetas],
+  );
 
   // Guardar
   const handleSave = async () => {
@@ -122,14 +146,18 @@ export function EditorNota({
           className="w-full bg-transparent text-[13px] font-black text-primary outline-none placeholder:text-primary/25 border-b border-transparent focus:border-primary/15 pb-0.5 transition-colors"
           placeholder="Título de la nota…"
           value={form.titulo}
-          onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
+          onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
         />
 
         {/* Etiquetas */}
         <div className="flex flex-wrap items-center gap-1 min-h-[22px]">
           <Tag className="text-primary/25 shrink-0" size={9} />
-          {etiquetas.map(tag => (
-            <EtiquetaChip key={tag} label={tag} onRemove={() => removeTag(tag)} />
+          {etiquetas.map((tag) => (
+            <EtiquetaChip
+              key={tag}
+              label={tag}
+              onRemove={() => removeTag(tag)}
+            />
           ))}
 
           {showTagInput ? (
@@ -140,18 +168,35 @@ export function EditorNota({
                 className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-[9px] font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
                 placeholder="Nueva etiqueta…"
                 value={etiquetaInput}
-                onBlur={e => { if (e.relatedTarget instanceof HTMLButtonElement && e.relatedTarget.dataset.addtag) return; addTag(); setShowTagInput(false); }}
-                onChange={e => setEtiquetaInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") { e.preventDefault(); addTag(); }
-                  if (e.key === "Escape") { setShowTagInput(false); setEtiquetaInput(""); }
+                onBlur={(e) => {
+                  if (
+                    e.relatedTarget instanceof HTMLButtonElement &&
+                    e.relatedTarget.dataset.addtag
+                  )
+                    return;
+                  addTag();
+                  setShowTagInput(false);
+                }}
+                onChange={(e) => setEtiquetaInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTag();
+                  }
+                  if (e.key === "Escape") {
+                    setShowTagInput(false);
+                    setEtiquetaInput("");
+                  }
                 }}
               />
               <button
                 className="w-4 h-4 rounded flex items-center justify-center text-primary/30 hover:text-primary transition-colors"
                 data-addtag="true"
                 type="button"
-                onMouseDown={e => { e.preventDefault(); addTag(); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  addTag();
+                }}
               >
                 <Check size={9} />
               </button>
@@ -159,7 +204,10 @@ export function EditorNota({
           ) : (
             <button
               className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/25 hover:text-primary/50"
-              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
               type="button"
               onClick={() => setShowTagInput(true)}
             >
@@ -177,7 +225,7 @@ export function EditorNota({
           placeholder="Escribe tu nota aquí… Ideas, referencias, fragmentos, recordatorios…"
           rows={24}
           value={form.contenido ?? ""}
-          onChange={v => setForm(f => ({ ...f, contenido: v }))}
+          onChange={(v) => setForm((f) => ({ ...f, contenido: v }))}
           onSnippetAction={onSnippetAction}
         />
       </div>
@@ -185,7 +233,9 @@ export function EditorNota({
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 border-t"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
       >
         {/* Eliminar */}
         <button
@@ -203,9 +253,11 @@ export function EditorNota({
             disabled={status === "saving"}
             onClick={handleSave}
           >
-            {status === "saving"
-              ? <Loader2 className="animate-spin" size={10} />
-              : <Save size={10} />}
+            {status === "saving" ? (
+              <Loader2 className="animate-spin" size={10} />
+            ) : (
+              <Save size={10} />
+            )}
             Guardar
           </button>
         </div>
@@ -232,32 +284,43 @@ export function ListaNotas({
   onSelect: (n: Nota) => void;
   onNew: () => void;
 }) {
-  const filtered = notas.filter(n =>
-    n.titulo.toLowerCase().includes(search.toLowerCase()) ||
-    (n.contenido ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (n.etiquetas ?? "").toLowerCase().includes(search.toLowerCase())
+  const filtered = notas.filter(
+    (n) =>
+      n.titulo.toLowerCase().includes(search.toLowerCase()) ||
+      (n.contenido ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (n.etiquetas ?? "").toLowerCase().includes(search.toLowerCase()),
   );
 
   // Parsear etiquetas rápido
   const getTags = (n: Nota): string[] => {
-    try { return JSON.parse(n.etiquetas ?? "[]"); } catch { return []; }
+    try {
+      return JSON.parse(n.etiquetas ?? "[]");
+    } catch {
+      return [];
+    }
   };
 
   return (
     <div className="flex flex-col min-h-0 h-full">
       {/* Buscador + botón nuevo */}
-      <div className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+      <div
+        className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
         <div className="relative flex-1">
           <input
             className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-2.5 pr-5 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
             placeholder="Buscar notas…"
             value={search}
-            onChange={e => onSearch(e.target.value)}
+            onChange={(e) => onSearch(e.target.value)}
           />
           {search && (
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors"
-              onClick={() => onSearch("")}>
+            <button
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/25 hover:text-primary transition-colors"
+              onClick={() => onSearch("")}
+            >
               <X size={8} />
             </button>
           )}
@@ -291,7 +354,10 @@ export function ListaNotas({
             {!search && (
               <button
                 className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed transition-all text-primary/30 hover:text-primary/60"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+                style={{
+                  borderColor:
+                    "color-mix(in srgb, var(--primary) 12%, transparent)",
+                }}
                 onClick={onNew}
               >
                 Crear primera nota
@@ -299,49 +365,69 @@ export function ListaNotas({
             )}
           </div>
         ) : (
-          filtered.map(n => {
+          filtered.map((n) => {
             const tags = getTags(n);
             const isSelected = n.id === selectedId;
             return (
               <button
                 key={n.id}
                 className="w-full text-left px-3 py-2.5 rounded-xl border transition-all group"
-                style={isSelected ? {
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)",
-                } : {
-                  background: "transparent",
-                  borderColor: "transparent",
-                }}
+                style={
+                  isSelected
+                    ? {
+                        background:
+                          "color-mix(in srgb, var(--primary) 10%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      }
+                    : {
+                        background: "transparent",
+                        borderColor: "transparent",
+                      }
+                }
                 onClick={() => onSelect(n)}
               >
-                <p className={`text-[11px] font-bold truncate transition-colors ${
-                  isSelected ? "text-primary" : "text-primary/70 group-hover:text-primary/90"
-                }`}>
-                  {n.titulo || <span className="italic text-primary/30">Sin título</span>}
+                <p
+                  className={`text-[11px] font-bold truncate transition-colors ${
+                    isSelected
+                      ? "text-primary"
+                      : "text-primary/70 group-hover:text-primary/90"
+                  }`}
+                >
+                  {n.titulo || (
+                    <span className="italic text-primary/30">Sin título</span>
+                  )}
                 </p>
                 {/* Preview del contenido */}
                 {n.contenido?.trim() && (
                   <p className="text-[9px] text-primary/35 truncate mt-0.5 leading-tight">
-                    {n.contenido.replace(/#+\s|[*_`]/g, "").trim().slice(0, 80)}
+                    {n.contenido
+                      .replace(/#+\s|[*_`]/g, "")
+                      .trim()
+                      .slice(0, 80)}
                   </p>
                 )}
                 {/* Tags */}
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-0.5 mt-1">
-                    {tags.slice(0, 3).map(tag => (
-                      <span key={tag}
+                    {tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
                         className="px-1 py-0 rounded text-[7px] font-black uppercase tracking-wider"
                         style={{
-                          background: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                          color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          background:
+                            "color-mix(in srgb, var(--primary) 7%, transparent)",
+                          color:
+                            "color-mix(in srgb, var(--primary) 40%, transparent)",
                         }}
                       >
                         {tag}
                       </span>
                     ))}
                     {tags.length > 3 && (
-                      <span className="text-[7px] text-primary/25">+{tags.length - 3}</span>
+                      <span className="text-[7px] text-primary/25">
+                        +{tags.length - 3}
+                      </span>
                     )}
                   </div>
                 )}
