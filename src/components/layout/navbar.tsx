@@ -872,7 +872,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Search + Auth buttons */}
+          {/* Search */}
           <div className="flex items-center gap-1 z-[101]">
             <button
               className="flex items-center justify-center transition-all"
@@ -900,41 +900,6 @@ const Navbar = () => {
             >
               <Search size={16} />
             </button>
-            {!isAdmin &&
-              (user ? (
-                <Link
-                  className="flex items-center justify-center transition-all"
-                  href="/garlia/personal"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: "var(--radius-btn)",
-                    background: personalIsActive
-                      ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                      : "transparent",
-                    color: personalIsActive
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
-                  onClick={closeAll}
-                >
-                  <CircleUser size={16} />
-                </Link>
-              ) : (
-                <Link
-                  className="flex items-center justify-center transition-all"
-                  href="/auth/login"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: "var(--radius-btn)",
-                    color:
-                      "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
-                >
-                  <CircleUser size={16} />
-                </Link>
-              ))}
           </div>
         </div>
       </div>
