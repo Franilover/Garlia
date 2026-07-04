@@ -55,10 +55,12 @@ export function PersonajeCancionesAsociadas({
           onClick={() => onSelectCancion?.(c.id)}
         >
           {c.portada_url ? (
-            <div className="shrink-0 w-4 h-4 rounded overflow-hidden border border-primary/10">
+            <div className="shrink-0 w-4 h-4 rounded overflow-hidden border border-primary/10 relative">
               <Image
+                fill
                 alt={c.titulo}
-                className="w-full h-full object-cover"
+                className="object-cover"
+                sizes="16px"
                 src={c.portada_url}
               />
             </div>

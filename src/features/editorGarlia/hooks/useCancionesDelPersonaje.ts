@@ -89,9 +89,7 @@ export function useCancionesDelPersonaje(
           `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`,
         );
       } else {
-        query = query.or(
-          `personaje_id.eq.${personajeId},id.eq.${personajeId}`,
-        );
+        query = query.or(`personaje_id.eq.${personajeId},id.eq.${personajeId}`);
       }
 
       const { data } = await query.order("titulo");
