@@ -1347,10 +1347,19 @@ export function GlobalCommandPalette() {
     if (inGridMode) setGridIndex(0);
   }, [inGridMode]);
 
-  // Navegación con flechas — activa en todos los modos grid
-  useEffect(() => {
-    if (!inGridMode) return;
-    const handler = (e: KeyboardEvent) => {
+  // Navegación con flechas — activa en todos los modos grid.
+  // IMPORTANTE: esto va como onKeyDownCapture en el <Command> (ver JSX), no
+  // como listener en `window`. cmdk registra su propio handler de teclado
+  // sobre el Command.Input interno; si nosotros escuchamos en `window` no hay
+  // garantía de que nuestro listener corra ANTES que el de cmdk, así que en
+  // el peor caso cmdk ejecutaba su Enter primero (seleccionando el primer
+  // Command.Item montado en el DOM — "Nuevo ensayo" — aunque visualmente el
+  // resaltado por `gridIndex` mostrara otro). Con onKeyDownCapture en el
+  // contenedor React captura el evento antes de que llegue al input hijo,
+  // así que siempre ganamos la carrera quitándole el evento a cmdk.
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!inGridMode) return;
       if (
         !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Enter"].includes(
           e.key,
@@ -1358,8 +1367,12 @@ export function GlobalCommandPalette() {
       )
         return;
       e.preventDefault();
-      e.stopImmediatePropagation();
+      e.stopPropagation();
       const items = activeGridItemsRef.current;
+      if (e.key === "Enter") {
+        items[gridIndex]?.action();
+        return;
+      }
       setGridIndex((prev) => {
         const total = items.length;
         if (!total) return prev;
@@ -1367,17 +1380,12 @@ export function GlobalCommandPalette() {
         if (e.key === "ArrowLeft") return (prev - 1 + total) % total;
         if (e.key === "ArrowDown") return Math.min(prev + GRID_COLS, total - 1);
         if (e.key === "ArrowUp") return Math.max(prev - GRID_COLS, 0);
-        if (e.key === "Enter") {
-          items[prev]?.action();
-          return prev;
-        }
         return prev;
       });
-    };
-    window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inGridMode, showCreateGrid]);
+    [inGridMode, gridIndex],
+  );
 
   // Scroll automático al item seleccionado en el grid
   const listRef = useRef<HTMLDivElement>(null);
@@ -1703,6 +1711,7 @@ export function GlobalCommandPalette() {
               // para que lo manejemos nosotros via useGlobalSearch
               className="overflow-hidden"
               filter={showDynamic ? () => 1 : undefined}
+              onKeyDownCapture={handleGridKeyDown}
             >
               {/* Search input */}
               <div
