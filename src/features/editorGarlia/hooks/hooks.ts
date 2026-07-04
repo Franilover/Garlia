@@ -68,7 +68,7 @@ export function useReinos() {
         if (!cancelled) setLoading(false);
       }
     };
-    run();
+    void run();
     return () => {
       cancelled = true;
     };

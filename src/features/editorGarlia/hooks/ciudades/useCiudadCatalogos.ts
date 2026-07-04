@@ -42,7 +42,7 @@ export type ItemMin = { id: string; nombre: string; imagen_url?: string | null }
 export function useReinos() {
   const [reinos, setReinos] = useState<ReinoMin[]>([]);
   useEffect(() => {
-    loadReinos((data) => setReinos(data)).then(setReinos);
+    void loadReinos((data) => setReinos(data)).then(setReinos);
   }, []);
   return reinos;
 }
@@ -60,7 +60,7 @@ export function usePersonajesDelCiudad(ciudadId: string) {
   }, [ciudadId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const reload = useCallback(async () => {
@@ -84,7 +84,7 @@ export function useCriaturasDeCiudad(ciudadId: string) {
   }, [ciudadId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const reload = useCallback(async () => {
@@ -108,7 +108,7 @@ export function useItemsDelCiudad(ciudadId: string) {
   }, [ciudadId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const reload = useCallback(async () => {
@@ -138,7 +138,7 @@ export function useTodosPersonajes() {
         .order("nombre");
       if (data) setTodos(data);
     };
-    run();
+    void run();
   }, []);
   return todos;
 }
@@ -162,7 +162,7 @@ export function useTodasCriaturas() {
         .order("nombre");
       if (data) setTodas(data);
     };
-    run();
+    void run();
   }, []);
   return todas;
 }
@@ -186,7 +186,7 @@ export function useTodosItems() {
         .order("nombre");
       if (data) setTodos(data);
     };
-    run();
+    void run();
   }, []);
   return todos;
 }

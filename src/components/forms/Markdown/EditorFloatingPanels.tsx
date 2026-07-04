@@ -966,10 +966,10 @@ export function TableEditorPanel({
   );
   const left = Math.max(8, Math.min(anchorEl.left, window.innerWidth - 540));
 
-  const smallBtn = (
-    label: React.ReactNode,
-    onClick: () => void,
-    title?: string,
+  const _smallBtn = (
+    _label: React.ReactNode,
+    _onClick: () => void,
+    _title?: string,
   ): React.CSSProperties => ({});
 
   return (

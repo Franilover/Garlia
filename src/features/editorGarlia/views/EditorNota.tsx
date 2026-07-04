@@ -6,9 +6,9 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
-import { type Nota, SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
+import type { SaveStatus , type Nota } from "../hooks/types";
 
 
 // ─── Etiqueta chip ────────────────────────────────────────────────────────────

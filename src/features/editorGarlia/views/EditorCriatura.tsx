@@ -19,8 +19,6 @@
  *   src/features/editorGarlia/views/EditorCriatura.tsx
  */
 
-import Image from "next/image";
-
 import {
   Bug,
   Brain,
@@ -38,11 +36,13 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
 
+import type {
+  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
 import {
-  MarkdownEditor,
-  WikiEntity,
+  MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
@@ -61,14 +61,14 @@ import {
   grupoEsMagico,
 } from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Criaturas/PickerImagenCriaturaBtn";
-import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/criaturas/useCriaturaAsideCatalogs";
-import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/criaturas/usePersonajesDeCriatura";
-import { useMembresiaGruposCriatura } from "@/features/editorGarlia/hooks/grupos/useMembresiaGruposCriatura";
 import {
   SelectorImagen,
   SaveIndicator,
 } from "@/features/editorGarlia/components/UIComponents";
 import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
+import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/criaturas/useCriaturaAsideCatalogs";
+import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/criaturas/usePersonajesDeCriatura";
+import { useMembresiaGruposCriatura } from "@/features/editorGarlia/hooks/grupos/useMembresiaGruposCriatura";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 

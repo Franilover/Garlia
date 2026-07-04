@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 
 /**
  * SegmentRenderers.tsx
@@ -31,6 +30,7 @@ import {
   ChevronRight as ChevronR,
   Feather,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 
 import { BtnIcon } from "@/components/ui";
@@ -736,7 +736,7 @@ export function UseWordPortal() {
 
 export function UseWord({
   word,
-  itemId,
+  itemId: _itemId,
   targetSuccess,
   targetFail,
   onNavigate,

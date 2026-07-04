@@ -15,9 +15,9 @@
  *   src/features/editorGarlia/components/Magia/FormularioMagico.tsx
  */
 
-import Image from "next/image";
 
 import { Save, Trash2 } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
@@ -27,9 +27,9 @@ import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext"
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 
-import { CONFIG, type EntidadMagica, type GrupoMin, type Modo } from "./types";
 import { PanelGruposAsignados } from "./PanelGruposAsignados";
 import { PickerImagenRunaBtn } from "./PickerImagenRunaBtn";
+import { CONFIG, type EntidadMagica, type GrupoMin, type Modo } from "./types";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 

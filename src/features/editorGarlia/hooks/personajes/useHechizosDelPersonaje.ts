@@ -98,7 +98,7 @@ export function useHechizosDelPersonaje(
   }, [personajeId, grupoKey]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const toggle = useCallback(

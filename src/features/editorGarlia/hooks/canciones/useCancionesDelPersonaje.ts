@@ -107,7 +107,7 @@ export function useCancionesDelPersonaje(
   }, [personajeId, nombrePersonaje]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   return { canciones, loading };

@@ -5,8 +5,8 @@ import React from "react";
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { PanelEditor } from "@/features/editorGarlia/components/editorLetras/components/editor/PanelEditor";
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
+import { type Ciudad , type Nota, type Personaje, type Reino } from "@/features/editorGarlia/hooks/types";
 import { EditorCiudad } from "@/features/editorGarlia/views/EditorCiudad";
-import { type Ciudad } from "@/features/editorGarlia/hooks/types";
 import { EditorCriatura } from "@/features/editorGarlia/views/EditorCriatura";
 import {
   EditorGrupo,
@@ -19,7 +19,6 @@ import { EditorPersonaje } from "@/features/editorGarlia/views/EditorPersonaje";
 import { EditorReino } from "@/features/editorGarlia/views/EditorReino";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Nota, type Personaje, type Reino } from "../hooks/types";
 
 // ─── Tipos mínimos de entidades (espejo de los de EditorMundo.tsx) ────────────
 export type CriaturaMin = {
@@ -204,8 +203,8 @@ export function EntidadOverlay({
       >
         <button
           className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
-          onClick={clearAllOverlays}
           type="button"
+          onClick={clearAllOverlays}
         >
           <ChevronLeft size={12} />
           Volver
@@ -566,7 +565,7 @@ export function EntidadOverlay({
             key={selected.nota.id}
             nota={selected.nota}
             onDeleted={(id) => {
-              eliminarNota(id);
+              void eliminarNota(id);
               setSelectedNota(null);
             }}
             onSaved={async (updated) => {

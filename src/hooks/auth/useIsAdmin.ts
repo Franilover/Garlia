@@ -6,7 +6,7 @@ export function useIsAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    void supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
 
       const { data: perfil } = await supabase

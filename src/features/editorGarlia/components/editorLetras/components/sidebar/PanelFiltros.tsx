@@ -4,9 +4,8 @@ import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import React from "react";
 
 import { Chip } from "@/components/ui/Chip";
-
-import { ESTADOS, FILTROS_VACIOS } from "../../constants";
-import type { Filtros } from "../../types";
+import { ESTADOS, FILTROS_VACIOS } from "@/features/editorGarlia/components/editorLetras/constants";
+import type { Filtros } from "@/features/editorGarlia/components/editorLetras/types";
 
 const DropdownFiltro = ({
   label, campo, opciones, filtros, onChange,

@@ -146,13 +146,13 @@ export function useHechizoCriatura(criaturaId: string) {
   }, [criaturaId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (id: string) => {
     setIds((prev) => {
       const next = [...prev, id];
-      loreSyncRelaciones("personaje_hechizos", criaturaId, "hechizo_id", next);
+      void loreSyncRelaciones("personaje_hechizos", criaturaId, "hechizo_id", next);
       return next;
     });
     await supabase
@@ -162,7 +162,7 @@ export function useHechizoCriatura(criaturaId: string) {
   const remove = async (id: string) => {
     setIds((prev) => {
       const next = prev.filter((x) => x !== id);
-      loreSyncRelaciones("personaje_hechizos", criaturaId, "hechizo_id", next);
+      void loreSyncRelaciones("personaje_hechizos", criaturaId, "hechizo_id", next);
       return next;
     });
     await supabase
@@ -205,13 +205,13 @@ export function useDonCriatura(criaturaId: string) {
   }, [criaturaId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (id: string) => {
     setIds((prev) => {
       const next = [...prev, id];
-      loreSyncRelaciones("personaje_dones", criaturaId, "don_id", next);
+      void loreSyncRelaciones("personaje_dones", criaturaId, "don_id", next);
       return next;
     });
     await supabase
@@ -221,7 +221,7 @@ export function useDonCriatura(criaturaId: string) {
   const remove = async (id: string) => {
     setIds((prev) => {
       const next = prev.filter((x) => x !== id);
-      loreSyncRelaciones("personaje_dones", criaturaId, "don_id", next);
+      void loreSyncRelaciones("personaje_dones", criaturaId, "don_id", next);
       return next;
     });
     await supabase

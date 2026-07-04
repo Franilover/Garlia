@@ -16,7 +16,7 @@ import { useState } from "react";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 
 export function PickerImagenItemBtn({
-  value,
+  value: _value,
   onChange,
 }: {
   value: string;

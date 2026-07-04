@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { dibujoFullQuery, Dibujo, Inserts, Updates } from '@/lib/types/queries';
+import type { Dibujo, Inserts, Updates } from '@/lib/types/queries';
+import { dibujoFullQuery } from '@/lib/types/queries';
 
 export const dibujosQueries = {
   getAll: async (): Promise<Dibujo[]> => {

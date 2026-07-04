@@ -103,7 +103,7 @@ export function useErasDelPersonaje(
       setLoading(false);
     };
 
-    run();
+    void run();
   }, [personajeId]);
 
   // ── Mutaciones ─────────────────────────────────────────────────────────────

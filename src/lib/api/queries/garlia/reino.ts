@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { reinoFullQuery, Reino, Inserts, Updates } from '@/lib/types/queries';
+import type { Reino, Inserts, Updates } from '@/lib/types/queries';
+import { reinoFullQuery } from '@/lib/types/queries';
 
 export const reinosQueries = {
   getAll: async (): Promise<Reino[]> => {

@@ -24,14 +24,15 @@
  *   src/features/editorGarlia/views/EditorItem.tsx
  */
 
-import Image from "next/image";
 
 import { Package, Save, Trash2 } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
+import type {
+  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
 import {
-  MarkdownEditor,
-  WikiEntity,
+  MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PanelCiudades } from "@/features/editorGarlia/components/Items/PanelCiudades";
@@ -42,9 +43,9 @@ import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/misc/us
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Item, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useWikilink } from "../components/WikilinkContext";
+import { type Item, type SaveStatus } from "../hooks/types";
 
 export function EditorItem({
   item,

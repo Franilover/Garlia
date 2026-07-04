@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { criaturaFullQuery, CriaturaFull, Inserts, Updates } from '@/lib/types/queries';
+import type { CriaturaFull, Inserts, Updates } from '@/lib/types/queries';
+import { criaturaFullQuery } from '@/lib/types/queries';
 
 export const criaturasQueries = {
   getAll: async (opciones: { campo?: string; asc?: boolean } = {}): Promise<CriaturaFull[]> => {

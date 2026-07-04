@@ -347,7 +347,7 @@ export function ModalDetalle({
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
                     }}
                   >
-                    "Este personaje no tiene canciones aún…"
+                    &quot;Este personaje no tiene canciones aún…&quot;
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">

@@ -32,7 +32,7 @@ export function EmptyState({ label, icon }: EmptyStateProps) {
       {icon && <div className="opacity-20">{icon}</div>}
       <p className="text-[10px] font-black uppercase tracking-[0.3em] italic"
         style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-        "{label}"
+        &quot;{label}&quot;
       </p>
     </div>
   );

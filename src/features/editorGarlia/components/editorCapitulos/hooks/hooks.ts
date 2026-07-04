@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
 
-import { isReallyOnline } from "@/hooks/data/useOfflineSync";
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
-
-import {
+import type {
   Capitulo,
-  Reino,
+  Reino} from "@/components/forms/lexical-editor/types";
+import {
   TABLA_CAPS,
   dexieCapRead,
   dexieCapGet,
   dexieCapWrite,
 } from "@/components/forms/lexical-editor/types";
+import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
 
 // ─── Tipos locales ─────────────────────────────────────────────────────────────
 
@@ -144,7 +145,7 @@ export function useCapitulos(libroId: string | null) {
     // El Signal vive aquí: el cleanup lo marca como cancelado sincrónicamente,
     // antes de que load() pueda hacer ningún setState tras el desmonte.
     const sig: Signal = { cancelled: false };
-    load(libroId, sig);
+    void load(libroId, sig);
     return () => {
       sig.cancelled = true;
     };
@@ -156,7 +157,7 @@ export function useCapitulos(libroId: string | null) {
         setIsOffline(false);
         // Cada llamada desde el evento "online" tiene su propio Signal efímero;
         // no necesita cancelarse porque no hay cleanup asociado.
-        load(libroId, { cancelled: false });
+        void load(libroId, { cancelled: false });
       }
     };
     window.addEventListener("online", h);
@@ -257,7 +258,7 @@ export function useCapituloEditor(capId: string | null) {
       return;
     }
     const sig: Signal = { cancelled: false };
-    load(capId, sig);
+    void load(capId, sig);
     return () => {
       sig.cancelled = true;
     };
@@ -267,7 +268,7 @@ export function useCapituloEditor(capId: string | null) {
     const h = () => {
       if (capId) {
         setIsOffline(false);
-        load(capId, { cancelled: false });
+        void load(capId, { cancelled: false });
       }
     };
     window.addEventListener("online", h);
@@ -357,11 +358,11 @@ export function useReinos() {
       }
     };
 
-    run();
+    void run();
 
     const handleOnline = () => {
       setIsOffline(false);
-      run();
+      void run();
     };
     window.addEventListener("online", handleOnline);
     return () => {

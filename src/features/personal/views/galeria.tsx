@@ -84,7 +84,7 @@ function useGaleria() {
       if (!isMounted.current) return;
       const sorted = data as GaleriaItem[];
       setItems(sorted);
-      writeGaleriaToDexie(sorted);
+      void writeGaleriaToDexie(sorted);
     } catch {
     } finally {
       if (isMounted.current) setRefreshing(false);
@@ -95,17 +95,17 @@ function useGaleria() {
     isMounted.current = true;
 
     // 1. Mostrar caché local instantáneamente
-    readGaleriaFromDexie().then((local) => {
+    void readGaleriaFromDexie().then((local) => {
       if (!isMounted.current) return;
       if (local.length > 0) {
         setItems(local);
         setLoading(false);
         // 2. Refrescar desde Supabase en background sin bloquear UI
-        fetchRemote(true);
+        void fetchRemote(true);
       } else {
         // Sin datos locales: fetch normal con loading
         setLoading(true);
-        fetchRemote(false).finally(() => {
+        void fetchRemote(false).finally(() => {
           if (isMounted.current) setLoading(false);
         });
       }
@@ -571,7 +571,7 @@ function AddModal({
     setSaving(false);
     if (!error && data) {
       // Guardar en caché local inmediatamente
-      writeGaleriaToDexie([data as GaleriaItem]);
+      void writeGaleriaToDexie([data as GaleriaItem]);
       onSuccess();
       onClose();
     }
@@ -694,7 +694,7 @@ export default function GaleriaPage() {
           it.id === id ? { ...it, ...updates } : it,
         );
         setItems(updated);
-        writeGaleriaToDexie(updated);
+        void writeGaleriaToDexie(updated);
       }
     },
     [items, setItems],
@@ -706,7 +706,7 @@ export default function GaleriaPage() {
       const { error } = await supabase.from("galeria").delete().eq("id", id);
       if (!error) {
         setItems((prev) => prev.filter((it) => it.id !== id));
-        deleteGaleriaFromDexie(id);
+        void deleteGaleriaFromDexie(id);
       }
     },
     [setItems],

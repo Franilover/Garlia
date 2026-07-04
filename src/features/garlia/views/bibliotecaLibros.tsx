@@ -268,7 +268,7 @@ function useBibliotecaData() {
       }
     }
 
-    load();
+    void load();
     return () => {
       mounted.current = false;
     };
@@ -465,7 +465,7 @@ const Biblioteca = () => {
       setLeidosMap(mapa);
     };
 
-    cargar();
+    void cargar();
     return () => {
       mounted = false;
     };

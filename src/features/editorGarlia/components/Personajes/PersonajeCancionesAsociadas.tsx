@@ -9,8 +9,8 @@
  * Ruta: src/features/editorGarlia/components/Personajes/PersonajeCancionesAsociadas.tsx
  */
 
-import Image from "next/image";
 import { Loader2, Music2 } from "lucide-react";
+import Image from "next/image";
 
 import { useCancionesDelPersonaje } from "@/features/editorGarlia/hooks/canciones/useCancionesDelPersonaje";
 

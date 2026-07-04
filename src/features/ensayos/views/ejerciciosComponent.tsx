@@ -695,7 +695,7 @@ export const PaginaEjercicios = () => {
   }, []);
 
   useEffect(() => {
-    fetchRutinas();
+    void fetchRutinas();
   }, [fetchRutinas]);
 
   const refetch = fetchRutinas;
@@ -725,7 +725,7 @@ export const PaginaEjercicios = () => {
         rutinaCreada.id,
         ejercicios.map((e, i) => ({ ...e, orden: i })),
       );
-      refetch();
+      void refetch();
       setCreando(false);
     } catch (err) {
       console.error(err);
@@ -737,7 +737,7 @@ export const PaginaEjercicios = () => {
   const handleEliminar = async (id: string) => {
     try {
       await rutinasQueries.delete(id);
-      refetch();
+      void refetch();
     } catch (err) {
       console.error(err);
     }

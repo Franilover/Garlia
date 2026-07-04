@@ -16,9 +16,10 @@
  * Inserción: se expone insertTable(editor, rows, cols) para conectar desde
  * el slash-command "/tabla" en SlashCommandPlugin/commandItems.
  */
-import { TableNode, TableRowNode, TableCellNode, TableCellHeaderStates, $createTableNodeWithDimensions } from "@lexical/table";
 import { TablePlugin as LexicalTablePlugin } from "@lexical/react/LexicalTablePlugin";
-import { $insertNodes, $getSelection, $isRangeSelection, LexicalEditor } from "lexical";
+import { TableNode, TableRowNode, TableCellNode, TableCellHeaderStates, $createTableNodeWithDimensions } from "@lexical/table";
+import type { LexicalEditor } from "lexical";
+import { $insertNodes } from "lexical";
 
 // Nodos a registrar en RICH_EDITOR_NODES (ver RichEditor.tsx)
 export const TABLE_NODES = [TableNode, TableRowNode, TableCellNode];

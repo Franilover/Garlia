@@ -1,4 +1,3 @@
-import Image from "next/image";
 import {
   Mountain,
   Users,
@@ -15,20 +14,21 @@ import {
   Package,
   SlidersHorizontal,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 
+import type {
+  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
 import {
-  MarkdownEditor,
-  WikiEntity,
+  MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { type Ciudad } from "@/features/editorGarlia/hooks/types";
+import { type Ciudad , INPUT_CLS, type SaveStatus, type Reino } from "@/features/editorGarlia/hooks/types";
 import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { INPUT_CLS, type SaveStatus, type Reino } from "../hooks/types";
 import { SaveIndicator } from "./UIComponents";
 import { useWikilink } from "./WikilinkContext";
 
@@ -188,7 +188,7 @@ function DetalleEditor({
           }`}
           onClick={(e) => {
             e.stopPropagation();
-            toggleOculto();
+            void toggleOculto();
           }}
         >
           {form.oculto ? <Eye size={9} /> : <EyeOff size={9} />}
@@ -285,10 +285,10 @@ function DetalleEditor({
 function MapaNuevo({
   MapaConPuntosComponent,
   detalles,
-  entities,
-  onDetalleUpdate,
-  onDetalleDelete,
-  onOpenDetalleEditor,
+  entities: _entities,
+  onDetalleUpdate: _onDetalleUpdate,
+  onDetalleDelete: _onDetalleDelete,
+  onOpenDetalleEditor: _onOpenDetalleEditor,
   form,
   setForm,
   onSnippetAction,
@@ -492,7 +492,7 @@ function useCriaturasDelReino(reinoId: string) {
   }, [reinoId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (criaturaId: string) => {
@@ -577,7 +577,7 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
   }, [reinoNombre]);
 
   useEffect(() => {
-    if (reinoNombre) load();
+    if (reinoNombre) void load();
   }, [load, reinoNombre]);
 
   const add = async (personajeId: string) => {
@@ -667,7 +667,7 @@ function useItemsDelReino(reinoId: string) {
   }, [reinoId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   return { items, loading };
@@ -825,20 +825,20 @@ export function LoreTab({
   form,
   setForm,
   entities = [],
-  personajes = [],
-  loadingPersonajes = false,
+  personajes: _personajes = [],
+  loadingPersonajes: _loadingPersonajes = false,
   onSelectPersonaje,
   onSelectCriatura,
   onSelectItem,
-  reinos = [],
+  reinos: _reinos = [],
   filtroReinoId,
   detalles = [],
-  onDetallesChange,
+  onDetallesChange: _onDetallesChange,
   onDetalleUpdate,
   onDetalleDelete,
   onOpenDetalleEditor,
-  mapaUrl = "",
-  onMapaChange,
+  mapaUrl: _mapaUrl = "",
+  onMapaChange: _onMapaChange,
   onDetallesArrayChange,
   MapaConPuntosComponent,
   activeTab: activeTabProp,

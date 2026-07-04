@@ -1,13 +1,10 @@
 "use client";
-import Image from "next/image";
-
 import { AnimatePresence } from "framer-motion";
 import {
   X,
   ArrowLeft,
   Save,
   Edit3,
-  ImagePlus,
   Move,
   CheckCircle2,
   AlertCircle,
@@ -20,20 +17,21 @@ import {
   Bug,
   Package,
 } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
+import {
+  UnifiedTileCanvas,
+  type MapTile,
+} from "@/features/editorGarlia/components/UnifiedTileCanvas";
 import { ModalDetalle } from "@/features/garlia/views/PersonalComponents";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import {
-  UnifiedTileCanvas,
-  type MapTile,
-} from "@/features/editorGarlia/components/UnifiedTileCanvas";
-import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {
@@ -154,14 +152,14 @@ function PanelContenido({
   personajesReino,
   personajesDesbloqueados,
   handlePersonajeClick,
-  modifiedDetalles,
+  _modifiedDetalles,
   isSaving,
   handleSaveChanges,
-  isUploadingImg,
-  handleImageUpload,
-  imgInputRef,
+  _isUploadingImg,
+  _handleImageUpload,
+  _imgInputRef,
   librosReino,
-  librosColeccion,
+  _librosColeccion,
   capitulosReino,
   loadingLibros,
   personajesCiudad,
@@ -320,7 +318,7 @@ function PanelContenido({
               color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
             }}
           >
-            <Move size={11} className="shrink-0" />
+            <Move className="shrink-0" size={11} />
             Click en un espacio vacío del mapa para crear un tile, o doble-click
             en un tile para elegir su imagen.
           </div>
@@ -1449,11 +1447,11 @@ function CanvasMap({
         primary,
         accent,
         bg,
-        fg,
-        parchBg,
-        parchText,
+        fg: _fg,
+        parchBg: _parchBg,
+        parchText: _parchText,
         whiteCustom,
-        isDark,
+        isDark: _isDark,
         labelBg,
         labelText,
       } = cssColorsRef.current;
@@ -1776,7 +1774,7 @@ function CanvasMap({
         }
       } else if (!img || !imgLoaded || showCompass) {
         // ── Antique compass rose — shown on first open for ≥5s, or while image loads ──
-        const { accent, primary, isDark: _isDark } = cssColorsRef.current;
+        const { accent, primary: _primary, isDark: _isDark } = cssColorsRef.current;
         const cx2 = canvas.width / 2;
         const cy2 = canvas.height / 2;
 
@@ -2377,7 +2375,7 @@ export default function MapaInteractivo() {
         } catch {}
       }
     };
-    run();
+    void run();
     return () => {
       cancelled = true;
     };
@@ -2455,9 +2453,9 @@ export default function MapaInteractivo() {
 
   // Descubrimientos — personajes, reinos y ciudades del perfil
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    void supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      Promise.all([
+      void Promise.all([
         supabase
           .from("descubrimientos_personajes")
           .select("personaje_id")
@@ -2572,7 +2570,7 @@ export default function MapaInteractivo() {
       }
       setLoadingCiudad(false);
     };
-    run();
+    void run();
   }, [puntoSeleccionado?.id]);
 
   // Ref para detectar si el usuario cambió de reino antes de que lleguen los datos
@@ -2606,7 +2604,7 @@ export default function MapaInteractivo() {
     // ── 1. Caché Dexie — mostrar lo que ya tenemos guardado ──────────────
     if (db) {
       try {
-        const [cachedDetalles, cachedPersonajes, cachedLibros, cachedCaps] =
+        const [cachedDetalles, cachedPersonajes, _cachedLibros, _cachedCaps] =
           await Promise.all([
             (db as any).ciudades
               .where("reino_id")
@@ -2767,9 +2765,9 @@ export default function MapaInteractivo() {
           }
         | undefined;
       if (!detail) return;
-      if (detail.tipo === "reino") abrirReino(detail.entidad_id);
+      if (detail.tipo === "reino") void abrirReino(detail.entidad_id);
       else if (detail.tipo === "ciudad")
-        abrirCiudad(detail.entidad_id, detail.reino_id);
+        void abrirCiudad(detail.entidad_id, detail.reino_id);
     };
     window.addEventListener("mapa-open-entity", handler);
 
@@ -2780,7 +2778,7 @@ export default function MapaInteractivo() {
     // lo que causaba el parpadeo entre vista global y vista de reino.
     if (!buzonMapaProcesadoRef.current && reinos.length) {
       buzonMapaProcesadoRef.current = true;
-      (async () => {
+      void (async () => {
         try {
           const raw = sessionStorage.getItem("mapa-pending-open-entity");
           if (!raw) return;
@@ -2990,7 +2988,7 @@ export default function MapaInteractivo() {
         ? []
         : detallesReino.filter((l) => !ciudadesDesbloqueadas.has(l.id));
 
-  const currentImage =
+  const _currentImage =
     vistaActual === "reino" && reinoSeleccionado?.mapa_url
       ? reinoSeleccionado.mapa_url
       : "/dibujos/reinos/mapa.png";
@@ -3357,14 +3355,14 @@ export default function MapaInteractivo() {
             onMarkerClick={handleReinoClick}
             onMarkerMove={() => {}}
             onMarkerSelect={() => {}}
-            onTileCreate={() => {}}
-            onTileDelete={() => {}}
-            onTilePick={() => {}}
             onOpenPanel={
               isMobile && reinoSeleccionado
                 ? () => setPanelOpen(true)
                 : undefined
             }
+            onTileCreate={() => {}}
+            onTileDelete={() => {}}
+            onTilePick={() => {}}
           />
         ) : (
           <ReinoTileCanvas

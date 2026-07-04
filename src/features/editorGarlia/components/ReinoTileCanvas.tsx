@@ -18,15 +18,16 @@
  * - Dibuja los pins de ciudades encima (coord_x/y en %, o tile_col/row + %)
  */
 
-import React, { useCallback, useEffect, useState } from "react";
 import { ImageIcon, Map, Plus, X } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
 
+import type { Ciudad } from "@/features/editorGarlia/hooks/types";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   invalidateReinoTiles,
   loadReinoTiles,
 } from "@/lib/api/client/syncEngine";
-import type { Ciudad } from "@/features/editorGarlia/hooks/types";
+
 import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
 
 // Extiende Ciudad con las coordenadas de tile añadidas en la migración
@@ -57,7 +58,7 @@ function ImagePickerModal({
 }) {
   const [Picker, setPicker] = useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
+    void import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
       (m) => setPicker(() => m.default),
     );
   }, []);
@@ -109,7 +110,7 @@ export function useReinoTiles(reinoId: string) {
   }, [reinoId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const addTile = async (col: number, row: number) => {
@@ -209,8 +210,8 @@ export function ReinoTileCanvas({
         isFirstOpen={isFirstOpen}
         markers={detalles}
         selectedMarkerId={selectedPinId}
-        tiles={tiles}
         tileSize={tileSize}
+        tiles={tiles}
         onEyedropperPick={onEyedropperPick}
         onMarkerClick={(ciudad) => onPinClick?.(ciudad)}
         onMarkerMove={(markerId, coord) => {
@@ -306,7 +307,7 @@ export function ReinoTileCanvas({
           title={`Imagen tile [${pickerTile.col}, ${pickerTile.row}]`}
           onClose={() => setPickerTile(null)}
           onSelect={(url) => {
-            updateTileImage(pickerTile.id, url);
+            void updateTileImage(pickerTile.id, url);
             setPickerTile(null);
           }}
         />

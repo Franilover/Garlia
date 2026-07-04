@@ -17,14 +17,13 @@ import { supabase } from "@/lib/api/client/supabase";
 import { EditorGrupoStandalone } from "./EditorGrupo";
 import { EditorHechizos } from "./EditorHechizos";
 import { EditorMundo } from "./EditorMundo";
-import { useMundoSecciones } from "../hooks/mundo/useMundoSecciones";
-
 import {
   ModalAcontecimiento,
   ModalNuevoGrupo,
   type AllItems,
   type MagicAddKey,
 } from "../components/EditorModals";
+import { useMundoSecciones } from "../hooks/mundo/useMundoSecciones";
 import {
   TAB_CONFIG,
   type TabKey,
@@ -220,10 +219,10 @@ function useAllEntidades() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
     const h = () => {
       setIsOffline(false);
-      load();
+      void load();
     };
     window.addEventListener("online", h);
     return () => window.removeEventListener("online", h);
@@ -319,7 +318,7 @@ function EditorEntidadesInner() {
   const [mundoSection, setMundoSection] = useState<MundoSectionKey>(
     session.current.mundoSection,
   );
-  const [requestedItemId, setRequestedItemId] = useState<string | undefined>(
+  const [requestedItemId, _setRequestedItemId] = useState<string | undefined>(
     undefined,
   );
   const [requestedGrupoId, setRequestedGrupoId] = useState<string | null>(null);
@@ -386,7 +385,7 @@ function EditorEntidadesInner() {
   useEffect(() => {
     const handleCreate = (e: Event) => {
       const evt = e as CustomEvent<{ tab: string }>;
-      createAndOpen(evt.detail.tab as Exclude<TabKey, "mundo">, handleCreated);
+      void createAndOpen(evt.detail.tab as Exclude<TabKey, "mundo">, handleCreated);
     };
     window.addEventListener("garlia-create-entity", handleCreate);
     return () =>
@@ -461,7 +460,7 @@ function EditorEntidadesInner() {
     return () => clearTimeout(t);
   }, [onItemCreated]);
 
-  const [hasOverlay, setHasOverlay] = useState(false);
+  const [_hasOverlay, setHasOverlay] = useState(false);
   const overlayCloseFnRef = useRef<(() => void) | null>(null);
 
   const {
@@ -472,7 +471,7 @@ function EditorEntidadesInner() {
   const { allItems, setAllItems, loadingAll, isOffline } = useAllEntidades();
 
   // Lista de entidades con tipo para el autocompletado [[wikilink]]
-  const allEntityNames = useMemo(
+  const _allEntityNames = useMemo(
     () => [
       ...allItems.personajes
         .filter((e) => e.nombre)
@@ -512,7 +511,7 @@ function EditorEntidadesInner() {
     } catch {}
   }, [tab, selectedId, mundoSection]);
 
-  const selected = useMemo(() => {
+  const _selected = useMemo(() => {
     if (
       tab === "mundo" ||
       tab === "grupos" ||
@@ -621,7 +620,7 @@ function EditorEntidadesInner() {
     }
   };
 
-  const handleSaved = (item: any) => {
+  const _handleSaved = (item: any) => {
     if (
       tab === "grupos" ||
       tab === "mundo" ||
@@ -639,7 +638,7 @@ function EditorEntidadesInner() {
     void dexieWriteOne(TAB_CONFIG[t].tabla, item);
   };
 
-  const handleAddMagic = useCallback(
+  const _handleAddMagic = useCallback(
     (key: MagicAddKey, item?: any) => {
       if (key === "notas") {
         localStorage.setItem("estudio-notas-action", "nueva-nota");
@@ -664,7 +663,7 @@ function EditorEntidadesInner() {
     [setAllItems],
   );
 
-  const handleDeleted = (id: string) => {
+  const _handleDeleted = (id: string) => {
     if (
       tab === "grupos" ||
       tab === "mundo" ||
@@ -681,7 +680,7 @@ function EditorEntidadesInner() {
     void dexieDeleteOne(TAB_CONFIG[t].tabla, id);
   };
 
-  const handleToggleOcultoReino = useCallback(
+  const _handleToggleOcultoReino = useCallback(
     (id: string, oculto: boolean) => {
       setAllItems((prev) => ({
         ...prev,

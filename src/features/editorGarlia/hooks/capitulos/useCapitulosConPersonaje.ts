@@ -121,7 +121,7 @@ export function useCapitulosConPersonaje(personajeId: string): {
       setLoading(false);
     };
 
-    run();
+    void run();
     return () => {
       cancelled = true;
     };

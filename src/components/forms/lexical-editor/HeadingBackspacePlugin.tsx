@@ -20,6 +20,8 @@
  * Si el heading YA estaba vacío, el resultado es un párrafo vacío — texto
  * normal, cursor en el mismo lugar, tamaño de fuente normal.
  */
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { $isHeadingNode } from "@lexical/rich-text";
 import {
   $getSelection,
   $isRangeSelection,
@@ -27,8 +29,6 @@ import {
   COMMAND_PRIORITY_HIGH,
   KEY_BACKSPACE_COMMAND,
 } from "lexical";
-import { $isHeadingNode } from "@lexical/rich-text";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect } from "react";
 
 export function HeadingBackspacePlugin() {

@@ -6,12 +6,12 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
-import { supabase } from "@/lib/api/client/supabase";
 
-import { IDIOMAS } from "../../constants";
-import { useKaraoke } from "../../hooks/useKaraoke";
-import { buildLineas, parseLrc, fmtTime } from "../../lib/karaokeUtils";
-import type { Seccion, IdiomaKey } from "../../types";
+import { IDIOMAS } from "@/features/editorGarlia/components/editorLetras/constants";
+import { useKaraoke } from "@/features/editorGarlia/components/editorLetras/hooks/useKaraoke";
+import { buildLineas, parseLrc, fmtTime } from "@/features/editorGarlia/components/editorLetras/lib/karaokeUtils";
+import type { Seccion, IdiomaKey } from "@/features/editorGarlia/components/editorLetras/types";
+import { supabase } from "@/lib/api/client/supabase";
 
 export const ModalLectorLetras = ({
   isOpen, onClose, secciones, cancionTitulo, cancionId, duracion, onSeccionTimingsChange,
@@ -42,7 +42,7 @@ export const ModalLectorLetras = ({
     const texto = secciones
       .map(s => { const l = getLetra(s, idioma); return l ? `${s.nombre_seccion}\n\n${l}` : ""; })
       .filter(Boolean).join("\n\n---\n\n");
-    navigator.clipboard.writeText(texto);
+    void navigator.clipboard.writeText(texto);
   };
 
   const lineas      = useMemo(() => buildLineas(secciones, idioma), [secciones, idioma]);

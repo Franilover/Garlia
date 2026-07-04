@@ -16,7 +16,6 @@ import {
   Star,
   UserCircle2,
   Users,
-  X,
 } from "lucide-react";
 import React, {
   useCallback,
@@ -34,8 +33,8 @@ import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetr
 import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import { EntidadOverlay } from "@/features/editorGarlia/components/EntidadOverlay";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
-import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
 import EditorMisiones from "@/features/editorGarlia/views/editorMisiones";
+import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useSectionHotkeys } from "@/hooks/useSectionHotkeys";
 import { db } from "@/lib/api/client/db";
@@ -43,7 +42,9 @@ import { supabase } from "@/lib/api/client/supabase";
 
 import { useGrupos, GRUPO_TIPO_CONFIG, type Grupo } from "./EditorGrupo";
 import { EditorMapa } from "./EditorMapa";
-import { PanelHistoriaMundo } from "../views/EditorLineaTiempo";
+import { SaveIndicator } from "../components/UIComponents";
+import { useWikilink } from "../components/WikilinkContext";
+import { useNotas } from "../hooks/notas/useNotas";
 import {
   type Ciudad,
   type MundoSectionKey,
@@ -52,9 +53,7 @@ import {
   type Reino,
   type SaveStatus,
 } from "../hooks/types";
-import { SaveIndicator } from "../components/UIComponents";
-import { useNotas } from "../hooks/notas/useNotas";
-import { useWikilink } from "../components/WikilinkContext";
+import { PanelHistoriaMundo } from "../views/EditorLineaTiempo";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────
 async function dexieReadAll<T>(tabla: string): Promise<T[]> {
@@ -67,7 +66,7 @@ async function dexieReadAll<T>(tabla: string): Promise<T[]> {
     return [];
   }
 }
-async function dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
+async function _dexieWriteAll(tabla: string, rows: any[]): Promise<void> {
   try {
     if (!db) return;
     const t = (db as any)[tabla];
@@ -204,14 +203,14 @@ function useGruposMundo(filtroTipo?: string) {
       }
     };
 
-    run();
+    void run();
 
     // Recargar al recuperar conexión
     const handleOnline = () => {
       if (!isMounted.current) return;
       const freshCtrl = new AbortController();
       abortRef.current = freshCtrl;
-      fetchRemote(freshCtrl);
+      void fetchRemote(freshCtrl);
     };
     window.addEventListener("online", handleOnline);
 
@@ -327,14 +326,14 @@ const PanelColapsable = React.forwardRef<
   return (
     <div ref={rootRef} className="flex-1 flex flex-col min-h-0">
       <button
-        type="button"
         className="flex items-center gap-1.5 px-3 py-2 w-full group cursor-pointer select-none shrink-0"
+        type="button"
         onClick={toggle}
       >
         <Icon
-          size={12}
-          className="text-primary/30 shrink-0"
           aria-hidden="true"
+          className="text-primary/30 shrink-0"
+          size={12}
         />
         <span
           className="text-[10px] font-black uppercase tracking-[0.25em] flex-1 text-left"
@@ -345,8 +344,8 @@ const PanelColapsable = React.forwardRef<
           {label}
         </span>
         <ChevronLeft
-          size={10}
           className="text-primary/20 group-hover:text-primary/40 transition-all shrink-0"
+          size={10}
           style={{
             transform: collapsed ? "rotate(-90deg)" : "rotate(-270deg)",
             transition: "transform 0.2s ease",
@@ -446,7 +445,7 @@ const LS_SCROLL_KEY = "garlia-scroll-pos";
 
 // ─── PanelListas: scroll vertical único ───────────────────────────────────────
 function PanelListas({
-  initialItemId,
+  initialItemId: _initialItemId,
   openItem,
   textos,
   onTextoChange,
@@ -467,7 +466,7 @@ function PanelListas({
   entityLabels?: EntityLabels;
 }) {
   // ── Labels resueltos (prop > default) ────────────────────────────────────
-  const sl = { ...DEFAULT_SECTION_LABELS, ...sectionLabelsProp };
+  const _sl = { ...DEFAULT_SECTION_LABELS, ...sectionLabelsProp };
   const el = { ...DEFAULT_ENTITY_LABELS, ...entityLabelsProp };
 
   // ── Datos — todos cargan al montar ───────────────────────────────────────
@@ -594,9 +593,9 @@ function PanelListas({
       }
     };
 
-    cargarCanciones();
+    void cargarCanciones();
     const handleOnline = () => {
-      if (!cancelled) cargarCanciones();
+      if (!cancelled) void cargarCanciones();
     };
     window.addEventListener("online", handleOnline);
     return () => {
@@ -973,7 +972,11 @@ function PanelListas({
   const selectReino = useCallback(
     (r: Reino | null) => {
       setSelectedReino(r);
-      r ? persistOpenItem("reinos", r.id) : clearPersistedItem();
+      if (r) {
+        persistOpenItem("reinos", r.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
@@ -983,63 +986,99 @@ function PanelListas({
   const selectCriatura = useCallback(
     (c: any | null) => {
       setSelectedCriatura(c);
-      c ? persistOpenItem("criaturas", c.id) : clearPersistedItem();
+      if (c) {
+        persistOpenItem("criaturas", c.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectObjeto = useCallback(
     (o: any | null) => {
       setSelectedObjeto(o);
-      o ? persistOpenItem("items", o.id) : clearPersistedItem();
+      if (o) {
+        persistOpenItem("items", o.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectCiudad = useCallback(
     (l: Ciudad | null) => {
       setSelectedCiudad(l);
-      l ? persistOpenItem("ciudades", l.id) : clearPersistedItem();
+      if (l) {
+        persistOpenItem("ciudades", l.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectPersonaje = useCallback(
     (p: Personaje | null) => {
       setSelectedPersonaje(p);
-      p ? persistOpenItem("personajes", p.id) : clearPersistedItem();
+      if (p) {
+        persistOpenItem("personajes", p.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectHechizo = useCallback(
     (h: EntidadMagicaMin | null) => {
       setSelectedHechizo(h);
-      h ? persistOpenItem("hechizos", h.id) : clearPersistedItem();
+      if (h) {
+        persistOpenItem("hechizos", h.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectDon = useCallback(
     (d: EntidadMagicaMin | null) => {
       setSelectedDon(d);
-      d ? persistOpenItem("dones", d.id) : clearPersistedItem();
+      if (d) {
+        persistOpenItem("dones", d.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectRuna = useCallback(
     (r: RunaMin | null) => {
       setSelectedRuna(r);
-      r ? persistOpenItem("runas", r.id) : clearPersistedItem();
+      if (r) {
+        persistOpenItem("runas", r.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectGrupo = useCallback(
     (g: Grupo | null) => {
       setSelectedGrupo(g);
-      g ? persistOpenItem("grupos_mundo", g.id) : clearPersistedItem();
+      if (g) {
+        persistOpenItem("grupos_mundo", g.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
   const selectCancion = useCallback(
     (c: Cancion | null) => {
       setSelectedCancion(c);
-      c ? persistOpenItem("canciones", c.id) : clearPersistedItem();
+      if (c) {
+        persistOpenItem("canciones", c.id);
+      } else {
+        clearPersistedItem();
+      }
     },
     [persistOpenItem, clearPersistedItem],
   );
@@ -1268,7 +1307,7 @@ function PanelListas({
       const action = localStorage.getItem("estudio-listas-action");
       if (action !== "nuevo-ciudad") return;
       localStorage.removeItem("estudio-listas-action");
-      (async () => {
+      void (async () => {
         try {
           const { data, error } = await supabase
             .from("ciudades")
@@ -1292,7 +1331,7 @@ function PanelListas({
       const action = localStorage.getItem("estudio-notas-action");
       if (action !== "nueva-nota") return;
       localStorage.removeItem("estudio-notas-action");
-      crearNota("Nueva nota").then((nueva) => {
+      void crearNota("Nueva nota").then((nueva) => {
         if (nueva) setSelectedNota(nueva);
       });
     };
@@ -1477,7 +1516,7 @@ function PanelListas({
       count,
       loading,
       children,
-      cols = 3,
+      cols: _cols = 3,
       minColWidth = "60px",
       defaultCollapsed = false,
       storageKey,
@@ -1544,8 +1583,8 @@ function PanelListas({
     return (
       <div ref={rootRef} className="pb-1">
         <button
-          type="button"
           className="flex items-center gap-1.5 mb-2 w-full group cursor-pointer select-none"
+          type="button"
           onClick={toggle}
         >
           <span
@@ -1557,8 +1596,8 @@ function PanelListas({
             {label} · {count}
           </span>
           <ChevronLeft
-            size={10}
             className="text-primary/20 group-hover:text-primary/40 transition-all shrink-0"
+            size={10}
             style={{
               transform: collapsed ? "rotate(-90deg)" : "rotate(-270deg)",
               transition: "transform 0.2s ease",
@@ -1617,23 +1656,6 @@ function PanelListas({
                 texto={textos.historia}
                 onChange={(v) => onTextoChange("historia", v)}
                 onSave={() => onSave("historia")}
-                onSelectPersonaje={async (id) => {
-                  // Buscar el personaje en la lista local primero
-                  const local = personajes.find((p) => p.id === id);
-                  if (local) {
-                    selectPersonaje(local);
-                    return;
-                  }
-                  // Si no está en memoria, buscarlo en Supabase
-                  try {
-                    const { data } = await supabase
-                      .from("personajes")
-                      .select("id, nombre, img_url, especie, sobre, reino")
-                      .eq("id", id)
-                      .single();
-                    if (data) selectPersonaje(data as Personaje);
-                  } catch {}
-                }}
                 onSelectCancion={async (id) => {
                   // Buscar la canción en la lista local primero
                   const local = canciones.find((c) => c.id === id);
@@ -1671,6 +1693,23 @@ function PanelListas({
                       new CustomEvent("estudio-caps-action"),
                     );
                   }, 80);
+                }}
+                onSelectPersonaje={async (id) => {
+                  // Buscar el personaje en la lista local primero
+                  const local = personajes.find((p) => p.id === id);
+                  if (local) {
+                    selectPersonaje(local);
+                    return;
+                  }
+                  // Si no está en memoria, buscarlo en Supabase
+                  try {
+                    const { data } = await supabase
+                      .from("personajes")
+                      .select("id, nombre, img_url, especie, sobre, reino")
+                      .eq("id", id)
+                      .single();
+                    if (data) selectPersonaje(data as Personaje);
+                  } catch {}
                 }}
               />
             </div>
@@ -1767,13 +1806,13 @@ function PanelListas({
               >
                 <SeccionEntidades
                   ref={personajesSeccionRef}
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   count={personajes.length}
+                  defaultCollapsed={false}
                   icon={Users}
                   label={el.personajes}
                   loading={loadingPersonajes}
-                  defaultCollapsed={false}
                   storageKey="personajes"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                 >
                   {[...personajes]
@@ -1796,13 +1835,13 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={criaturasSeccionRef}
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   count={criaturas.length}
+                  defaultCollapsed={false}
                   icon={Bug}
                   label={el.criaturas}
                   loading={loadingCriaturas}
-                  defaultCollapsed={false}
                   storageKey="criaturas"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                 >
                   {[...criaturas]
@@ -1825,15 +1864,15 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={reinosSeccionRef}
+                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   count={reinos.length}
+                  defaultCollapsed={false}
                   icon={Map}
                   label={el.reinos}
                   loading={loadingReinos}
-                  defaultCollapsed={false}
                   storageKey="reinos"
-                  collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
-                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                   onExpand={isDesktop ? filaPersonajes.expand : undefined}
+                  onToggle={isDesktop ? filaPersonajes.toggle : undefined}
                 >
                   {[...reinos]
                     .sort(
@@ -1847,10 +1886,10 @@ function PanelListas({
                         ref={(el) => {
                           reinosChipRefs.current[r.id] = el;
                         }}
+                        highlighted={highlightedReinoId === r.id}
                         icon={Map}
                         imgUrl={r.mapa_url}
                         nombre={r.nombre}
-                        highlighted={highlightedReinoId === r.id}
                         onClick={() => selectReino(r)}
                       />
                     ))}
@@ -1862,15 +1901,15 @@ function PanelListas({
               <div className="sm:grid sm:grid-cols-2 sm:gap-x-4">
                 <SeccionEntidades
                   ref={objetosSeccionRef}
+                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
                   count={objetos.length}
+                  defaultCollapsed={true}
                   icon={Package}
                   label="Objetos"
                   loading={loadingObjetos}
-                  defaultCollapsed={true}
                   storageKey="objetos"
-                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
-                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                   onExpand={isDesktop ? filaObjetos.expand : undefined}
+                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                 >
                   {[...objetos]
                     .sort(
@@ -1892,15 +1931,15 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={ciudadesSeccionRef}
+                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
                   count={ciudades.length}
+                  defaultCollapsed={true}
                   icon={MapPin}
                   label={el.ciudades}
                   loading={loadingCiudades}
-                  defaultCollapsed={true}
                   storageKey="ciudades"
-                  collapsed={isDesktop ? filaObjetos.collapsed : undefined}
-                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                   onExpand={isDesktop ? filaObjetos.expand : undefined}
+                  onToggle={isDesktop ? filaObjetos.toggle : undefined}
                 >
                   {[...ciudades]
                     .sort(
@@ -1938,15 +1977,15 @@ function PanelListas({
               <div className="sm:grid sm:grid-cols-3 sm:gap-x-4">
                 <SeccionEntidades
                   ref={donesSeccionRef}
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
                   count={dones.length}
+                  defaultCollapsed={true}
                   icon={Star}
                   label={el.dones}
                   loading={loadingDones}
-                  defaultCollapsed={true}
                   storageKey="dones"
-                  collapsed={isDesktop ? filaDones.collapsed : undefined}
-                  onToggle={isDesktop ? filaDones.toggle : undefined}
                   onExpand={isDesktop ? filaDones.expand : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {dones.map((d) => (
                     <Chip
@@ -1964,15 +2003,15 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={hechizosSeccionRef}
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
                   count={hechizos.length}
+                  defaultCollapsed={true}
                   icon={Sparkles}
                   label={el.hechizos}
                   loading={loadingHechizos}
-                  defaultCollapsed={true}
                   storageKey="hechizos"
-                  collapsed={isDesktop ? filaDones.collapsed : undefined}
-                  onToggle={isDesktop ? filaDones.toggle : undefined}
                   onExpand={isDesktop ? filaDones.expand : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {hechizos.map((h) => (
                     <Chip
@@ -1990,15 +2029,15 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={runasSeccionRef}
+                  collapsed={isDesktop ? filaDones.collapsed : undefined}
                   count={runas.length}
+                  defaultCollapsed={true}
                   icon={ScrollText}
                   label={el.runas}
                   loading={loadingRunas}
-                  defaultCollapsed={true}
                   storageKey="runas"
-                  collapsed={isDesktop ? filaDones.collapsed : undefined}
-                  onToggle={isDesktop ? filaDones.toggle : undefined}
                   onExpand={isDesktop ? filaDones.expand : undefined}
+                  onToggle={isDesktop ? filaDones.toggle : undefined}
                 >
                   {[...runas]
                     .sort(
@@ -2026,16 +2065,16 @@ function PanelListas({
               >
                 <SeccionEntidades
                   ref={gruposSeccionRef}
+                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
                   count={grupos.length}
+                  defaultCollapsed={true}
                   icon={Layers}
                   label={el.grupos}
                   loading={!loadedGrupos}
                   minColWidth="calc(25% - 0.28125rem)"
-                  defaultCollapsed={true}
                   storageKey="grupos"
-                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
-                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                   onExpand={isDesktop ? filaGrupos.expand : undefined}
+                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                 >
                   {(() => {
                     const porTipo = grupos.reduce(
@@ -2164,15 +2203,15 @@ function PanelListas({
 
                 <SeccionEntidades
                   ref={notasSeccionRef}
+                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
                   count={notas.length}
+                  defaultCollapsed={true}
                   icon={FileText}
                   label={el.notas}
                   loading={loadingNotas}
-                  defaultCollapsed={true}
                   storageKey="notas"
-                  collapsed={isDesktop ? filaGrupos.collapsed : undefined}
-                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                   onExpand={isDesktop ? filaGrupos.expand : undefined}
+                  onToggle={isDesktop ? filaGrupos.toggle : undefined}
                 >
                   {notas.map((n) => (
                     <button
@@ -2205,11 +2244,11 @@ function PanelListas({
                 ref={cancionesSeccionRef}
                 cols={1}
                 count={canciones.length}
+                defaultCollapsed={true}
                 icon={Music}
                 label={el.canciones}
                 loading={loadingCanciones}
                 minColWidth="160px"
-                defaultCollapsed={true}
                 storageKey="canciones"
               >
                 {canciones.map((c) => (

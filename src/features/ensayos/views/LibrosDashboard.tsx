@@ -80,7 +80,7 @@ function LibroRow({
 
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function LibrosDashboard({ ensayos, onNavigate, onTagClick, onToggleEstado, onCrearLibro }: LibrosDashboardProps) {
+export function LibrosDashboard({ ensayos, onNavigate, onTagClick: _onTagClick, onToggleEstado, onCrearLibro }: LibrosDashboardProps) {
   const mono: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const serif: React.CSSProperties = { fontFamily: "var(--font-serif)", fontStyle: "italic" };
   const isMobile = useIsMobile();

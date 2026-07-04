@@ -136,7 +136,7 @@ async function readDescubrimientosFromDexie(
 }
 
 /** Reemplaza el cache local completo de descubrimientos de un usuario. */
-async function writeDescubrimientosToDexie(
+async function _writeDescubrimientosToDexie(
   userId: string,
   items: DescubrimientoPersonal[],
 ): Promise<void> {
@@ -252,7 +252,7 @@ function usePublicBrowse() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const [libRes, canRes] = await Promise.all([
           supabase
@@ -467,7 +467,7 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
       );
     };
 
-    (async () => {
+    void (async () => {
       // 1) Cache local primero — se pinta al instante, sin esperar la red.
       const cached = await readDescubrimientosFromDexie(userId);
       if (cancelled) return;
@@ -1811,6 +1811,10 @@ export function GlobalCommandPalette() {
           >
             <Command
               loop
+              className="overflow-hidden"
+              // Desactivamos el filtro interno de cmdk cuando hay resultados dinámicos
+              // para que lo manejemos nosotros via useGlobalSearch
+              filter={showDynamic ? () => 1 : undefined}
               style={{
                 background: "var(--white-custom)",
                 border:
@@ -1818,10 +1822,6 @@ export function GlobalCommandPalette() {
                 borderRadius: "var(--radius-card)",
                 boxShadow: "var(--shadow-card)",
               }}
-              // Desactivamos el filtro interno de cmdk cuando hay resultados dinámicos
-              // para que lo manejemos nosotros via useGlobalSearch
-              className="overflow-hidden"
-              filter={showDynamic ? () => 1 : undefined}
               onKeyDownCapture={handleGridKeyDown}
             >
               {/* Search input */}
@@ -1922,9 +1922,9 @@ export function GlobalCommandPalette() {
                       {createItems.map((item, i) => (
                         <CommandGridItem
                           key={item.id}
-                          item={item}
                           index={i}
                           isSelected={i === gridIndex}
+                          item={item}
                           onHover={() => setGridIndex(i)}
                         />
                       ))}
@@ -1959,9 +1959,9 @@ export function GlobalCommandPalette() {
                             {flatItems.map((item, i) => (
                               <CommandGridItem
                                 key={item.id}
-                                item={item}
                                 index={i}
                                 isSelected={i === gridIndex}
+                                item={item}
                                 onHover={() => setGridIndex(i)}
                               />
                             ))}
@@ -2003,9 +2003,9 @@ export function GlobalCommandPalette() {
                               return (
                                 <CommandGridItem
                                   key={item.id}
-                                  item={item}
                                   index={globalIndex}
                                   isSelected={globalIndex === gridIndex}
+                                  item={item}
                                   onHover={() => setGridIndex(globalIndex)}
                                 />
                               );
@@ -2043,9 +2043,9 @@ export function GlobalCommandPalette() {
                               return (
                                 <CommandGridItem
                                   key={item.id}
-                                  item={item}
                                   index={globalIndex}
                                   isSelected={globalIndex === gridIndex}
+                                  item={item}
                                   onHover={() => setGridIndex(globalIndex)}
                                 />
                               );
@@ -2171,8 +2171,8 @@ function CommandGridItem({
 
   return (
     <Command.Item
-      data-grid-index={index}
       className="group relative flex flex-col items-center justify-center gap-2 cursor-pointer outline-none transition-all duration-100 min-w-0 w-full"
+      data-grid-index={index}
       style={{
         padding: "12px 8px",
         borderRadius: "var(--radius-btn)",
@@ -2182,8 +2182,8 @@ function CommandGridItem({
           : "transparent",
       }}
       value={`${item.id} ${item.label} ${item.keywords?.join(" ") ?? ""}`}
-      onSelect={item.action}
       onMouseEnter={onHover}
+      onSelect={item.action}
     >
       {/* Badge admin — icono esquina superior derecha */}
       {item.isAdminResult && (
@@ -2206,8 +2206,8 @@ function CommandGridItem({
       {hasAvatar ? (
         <img
           alt={item.label}
-          src={item.avatar!}
           className="shrink-0 object-cover"
+          src={item.avatar!}
           style={{
             width: 44,
             height: 44,

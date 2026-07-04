@@ -27,25 +27,26 @@
  * de documento normal, mismo tipo de nodo que produce MarkdownShortcutPlugin
  * al escribir "# " a mano.
  */
-import {
-  $createParagraphNode,
-  $createTextNode,
-  $getRoot,
-  $getSelection,
-  $isRangeSelection,
-  LexicalEditor,
-} from "lexical";
-import {
-  $createHeadingNode,
-  $createQuoteNode,
-  HeadingTagType,
-} from "@lexical/rich-text";
 import { $createCodeNode } from "@lexical/code";
 import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
 } from "@lexical/list";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import {
+  $createHeadingNode,
+  $createQuoteNode
+} from "@lexical/rich-text";
+import type {
+  HeadingTagType} from "@lexical/rich-text";
+import {
+  $createTextNode,
+  $getRoot,
+  $getSelection,
+  $isRangeSelection
+} from "lexical";
+import type {
+  LexicalEditor} from "lexical";
 import {
   Heading1,
   Heading2,
@@ -356,8 +357,8 @@ export function MarkdownCommandPalette({
             onMouseEnter={() => onHover(idx)}
           >
             <item.Icon
-              size={13}
               color={`color-mix(in srgb, ${PRIMARY} 65%, transparent)`}
+              size={13}
             />
             <span
               style={{

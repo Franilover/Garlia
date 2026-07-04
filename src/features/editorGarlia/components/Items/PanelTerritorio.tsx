@@ -15,7 +15,6 @@ import { Globe } from "lucide-react";
 import { useState } from "react";
 
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-
 import { type ReinoMin } from "@/features/editorGarlia/hooks/misc/useItemCatalogosUbicacion";
 
 export function PanelTerritorio({

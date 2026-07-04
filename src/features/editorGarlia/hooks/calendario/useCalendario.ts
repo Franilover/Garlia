@@ -17,7 +17,7 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
-import { Estacion, CalendarioConfig, EraMundo } from "@/lib/utils/calendario";
+import type { Estacion, CalendarioConfig, EraMundo } from "@/lib/utils/calendario";
 
 // ─── Hook: cargar calendario — Dexie → memoria → Supabase ────────────────────
 // Orden de prioridad:

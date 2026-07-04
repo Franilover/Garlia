@@ -109,11 +109,11 @@ export function UnifiedTileCanvas<
   onTileDelete,
   onTileCreate,
   fondoColor,
-  isFirstOpen,
+  isFirstOpen: _isFirstOpen,
   eyedropperActive,
   onEyedropperPick,
   onMapClick,
-  onOpenPanel,
+  onOpenPanel: _onOpenPanel,
   className,
 }: UnifiedTileCanvasProps<TTile, TMarker>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -676,8 +676,10 @@ export function UnifiedTileCanvas<
         const ly = my + 10;
         ctx.fillStyle = `${labelBg}ee`;
         ctx.beginPath();
-        (ctx as any).roundRect?.(lx, ly, tw + pad * 2, 18, 3) ??
-          ctx.rect(lx, ly, tw + pad * 2, 18);
+        void (
+          (ctx as any).roundRect?.(lx, ly, tw + pad * 2, 18, 3) ??
+          ctx.rect(lx, ly, tw + pad * 2, 18)
+        );
         ctx.fill();
         ctx.fillStyle = labelText;
         ctx.fillText(label, mx - tw / 2, ly + 12);
@@ -694,8 +696,10 @@ export function UnifiedTileCanvas<
         if (ts > 40) {
           ctx.fillStyle = "rgba(0,0,0,0.55)";
           ctx.beginPath();
-          (ctx as any).roundRect?.(rx, ry, size, size, 5) ??
-            ctx.rect(rx, ry, size, size);
+          void (
+            (ctx as any).roundRect?.(rx, ry, size, size, 5) ??
+            ctx.rect(rx, ry, size, size)
+          );
           ctx.fill();
           trashRectRef.current = {
             x: rx,
@@ -727,7 +731,7 @@ export function UnifiedTileCanvas<
 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [
     compositeReady,
     editMode,

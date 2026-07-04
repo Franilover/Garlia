@@ -34,8 +34,8 @@ export function useHabitatCatalogs() {
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
 
   useEffect(() => {
-    getAllReinos().then(setAllReinos);
-    getAllCiudades().then(setAllCiudades);
+    void getAllReinos().then(setAllReinos);
+    void getAllCiudades().then(setAllCiudades);
   }, []);
 
   return { allReinos, allCiudades };
@@ -87,7 +87,7 @@ export function useCriaturaReinos(criaturaId: string) {
   }, [criaturaId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (reino: ReinoMin) => {
@@ -165,7 +165,7 @@ export function useCriaturaCiudades(criaturaId: string) {
   }, [criaturaId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (ciudad: CiudadMin) => {
@@ -382,7 +382,7 @@ export function BloqueHabitat({
                             className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
                             onMouseDown={() => {
-                              addReino(r);
+                              void addReino(r);
                               setOpenR(false);
                               setSearchR("");
                             }}
@@ -523,7 +523,7 @@ export function BloqueHabitat({
                             className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
                             onMouseDown={() => {
-                              addCiudad(l);
+                              void addCiudad(l);
                               setOpenL(false);
                               setSearchL("");
                             }}

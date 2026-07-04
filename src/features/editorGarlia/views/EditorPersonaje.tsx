@@ -29,24 +29,24 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/Personajes/PersonajeSidebarPanel";
-import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo";
 import {
   PickerCaraBtn,
   PickerImagen,
 } from "@/features/editorGarlia/components/Personajes/PersonajeImagePickers";
+import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo";
+import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/Personajes/PersonajeSidebarPanel";
 import { useCiudades } from "@/features/editorGarlia/hooks/ciudades/useCiudades";
 import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/grupos/useGruposDeCriatura";
 import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePersonajeForm";
 import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
 import { BloqueDones } from "../components/BloqueDones";
+import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 import { useNombresDeTabla } from "../hooks/misc/useNombresDeTabla";
 import { type Personaje, type SaveStatus } from "../hooks/types";
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ export function FormularioPersonaje({
   onSave,
   onDelete,
   compacto = false,
-  entities = [],
+  entities: _entities = [],
   onNavigate,
   onSelectPersonaje,
   onOpenGrupo,

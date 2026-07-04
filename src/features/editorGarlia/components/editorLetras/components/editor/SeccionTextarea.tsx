@@ -4,11 +4,10 @@ import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { IDIOMAS, IDLE_STATE } from "@/features/editorGarlia/components/editorLetras/constants";
+import { dexieSecGet } from "@/features/editorGarlia/components/editorLetras/lib/seccionesDb";
+import type { Seccion, IdiomaKey, ColState } from "@/features/editorGarlia/components/editorLetras/types";
 import { DraftRestoreBanner, useDraftRestore } from "@/hooks/useEditorShared";
-
-import { IDIOMAS, IDLE_STATE } from "../../constants";
-import { dexieSecGet } from "../../lib/seccionesDb";
-import type { Seccion, IdiomaKey, ColState } from "../../types";
 
 // ── Conteo ───────────────────────────────────────────────────────────────────
 
@@ -122,7 +121,7 @@ function SyllableOverlay({
 // ── Componente principal ─────────────────────────────────────────────────────
 
 export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave, nombreSeccion, countMode,
+  sec, idioma, refIdioma, onSave, nombreSeccion: _nombreSeccion, countMode,
 }: {
   sec:           Seccion;
   idioma:        IdiomaKey;
@@ -160,7 +159,7 @@ export const SeccionTextarea = ({
         setSt(IDLE_STATE);
       }
     };
-    loadLocal();
+    void loadLocal();
   }, [idioma, sec.id]);
 
   const doSave = useCallback(async (val: string) => {

@@ -4,9 +4,9 @@ import { GripVertical, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react
 import React, { useState } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import type { Seccion, IdiomaKey } from "@/features/editorGarlia/components/editorLetras/types";
 
 import { SeccionTextarea } from "./SeccionTextarea";
-import type { Seccion, IdiomaKey } from "../../types";
 
 export const SeccionEditor = ({
   sec, idiomaA, idiomaB, splitMode, countMode,
@@ -52,7 +52,7 @@ export const SeccionEditor = ({
           ><Copy size={12} /></button>
           <button className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" onClick={async () => {
             const ok = await confirm({ message: `¿Eliminar sección "${nombre}"?`, danger: true });
-            if (ok) onDelete(sec.id);
+            if (ok) void onDelete(sec.id);
           }}><Trash2 size={12} /></button>
         </div>
       </div>

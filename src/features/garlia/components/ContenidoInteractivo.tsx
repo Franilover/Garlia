@@ -2,8 +2,9 @@
 import { motion } from "framer-motion";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
+import type {
+  Segment} from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import {
-  Segment,
   parseContenido,
   parseSections,
 } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
@@ -49,14 +50,14 @@ function TextoMarkdown({
       {paragraphs.map((para, pi) => {
         if (para.trim() === "") {
           return (
-            <p key={pi} style={{ margin: 0, minHeight: "1em" }} aria-hidden />
+            <p key={pi} aria-hidden style={{ margin: 0, minHeight: "1em" }} />
           );
         }
         return (
           <p
+            dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(para) }}
             key={pi}
             className={className}
-            dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(para) }}
             style={{ margin: "0 0 0.6em 0" }}
           />
         );
@@ -114,7 +115,7 @@ function GateBlock({
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const { supabase } = await import("@/lib/api/client/supabase");
       const {
         data: { user },

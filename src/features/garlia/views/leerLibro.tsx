@@ -1,13 +1,13 @@
 "use client";
-import Image from "next/image";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, List, ChevronRight } from "lucide-react";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
 import { Btn } from "@/components/ui";
-import {
+import type {
   CapituloLista,
   CapituloScrollItem,
 } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
@@ -204,7 +204,7 @@ function PersonajesPanel({
 function LugaresPanel({
   reinosIds,
   ciudadesIds,
-  border,
+  border: _border,
   reinosMap,
   ciudadesMap,
 }: {
@@ -329,7 +329,7 @@ function LugaresPanel({
    Panel lateral izquierdo
    ───────────────────────────────────────────── */
 function PanelLateral({
-  libroTitulo,
+  libroTitulo: _libroTitulo,
   capActual,
   capitulos,
   capIdActual,
@@ -602,10 +602,10 @@ export default function Lector() {
   const ordenParam = params?.capId as string;
   const router = useRouter();
 
-  const [id, setId] = useState<string>("");
+  const [_id, setId] = useState<string>("");
   const [capId, setCapId] = useState<string>("");
   const [capitulos, setCapitulos] = useState<CapituloScrollItem[]>([]);
-  const [listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
+  const [_listaCapitulos, setListaCapitulos] = useState<CapituloLista[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [esExtra, setEsExtra] = useState(false); // poemario / sin grupo
@@ -676,19 +676,19 @@ export default function Lector() {
       const reinosIds = collectIds(caps, "reinos_ids");
       const ciudadesIds = collectIds(caps, "ciudades_ids");
 
-      loadPersonajesMap(personajesIds, (m) => {
+      void loadPersonajesMap(personajesIds, (m) => {
         if (!cancelled) setPersonajesMap((prev) => ({ ...prev, ...m }));
       }).then((m) => {
         if (!cancelled) setPersonajesMap((prev) => ({ ...prev, ...m }));
       });
 
-      loadReinosMap(reinosIds, (m) => {
+      void loadReinosMap(reinosIds, (m) => {
         if (!cancelled) setReinosMap((prev) => ({ ...prev, ...m }));
       }).then((m) => {
         if (!cancelled) setReinosMap((prev) => ({ ...prev, ...m }));
       });
 
-      loadCiudadesMap(ciudadesIds, (m) => {
+      void loadCiudadesMap(ciudadesIds, (m) => {
         if (!cancelled) setCiudadesMap((prev) => ({ ...prev, ...m }));
       }).then((m) => {
         if (!cancelled) setCiudadesMap((prev) => ({ ...prev, ...m }));
@@ -905,7 +905,7 @@ export default function Lector() {
         _narrador: normOne(c.narrador),
       }));
 
-      cachearEnDexie(capsValidas);
+      void cachearEnDexie(capsValidas);
       aplicarCaps(capsValidas, libroId, esExtraLocal, actualSlug);
     };
 
@@ -1003,7 +1003,7 @@ export default function Lector() {
     ? (capitulos.find((c) => c.orden === capActual.orden + 1) ?? null)
     : null;
   const libroTitulo = capitulos[0]?.libros?.titulo;
-  const personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
+  const _personajesIds = Array.from(new Set(capActual?.personajes_ids ?? []));
 
   // Scroll inicial al cap activo
   useEffect(() => {

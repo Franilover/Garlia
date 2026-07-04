@@ -20,6 +20,7 @@
  *     escribir (ej: escribes ")" y ya hay ")" después del cursor), salta
  *     por encima en vez de duplicar — comportamiento estándar de editores.
  */
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
   $isRangeSelection,
@@ -27,7 +28,6 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_DOWN_COMMAND,
 } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect } from "react";
 
 const PAIRS: Record<string, string> = {

@@ -29,9 +29,9 @@ export function useCriaturaAsideCatalogs() {
   const [allCiudades, setAllCiudades] = useState<CiudadMin[]>([]);
 
   useEffect(() => {
-    getAllPersonajes().then(setAllPersonajes);
-    getAllReinos().then(setAllReinos);
-    getAllCiudades().then(setAllCiudades);
+    void getAllPersonajes().then(setAllPersonajes);
+    void getAllReinos().then(setAllReinos);
+    void getAllCiudades().then(setAllCiudades);
   }, []);
 
   return { allPersonajes, allReinos, allCiudades };

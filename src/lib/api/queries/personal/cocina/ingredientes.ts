@@ -1,9 +1,10 @@
 import { supabase } from "@/lib/api/client/supabase";
-import {
-  ingredienteFullQuery,
+import type {
   Ingrediente,
   Inserts,
-  Updates,
+  Updates} from "@/lib/types/queries";
+import {
+  ingredienteFullQuery
 } from "@/lib/types/queries";
 
 export const ingredientesQueries = {

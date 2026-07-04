@@ -24,17 +24,15 @@ import {
   Star,
   ScrollText,
   Map,
-  Layers,
   UserCircle2,
   Swords,
   Wand2,
   Gem,
   Feather,
 } from "lucide-react";
+import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import React from "react";
 
-import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   dexiePut,
@@ -342,7 +340,7 @@ export function useEntidades(tabla: string) {
       setLoading(false);
       await dexieWriteAll(tabla, result);
     };
-    run();
+    void run();
     return () => {
       cancelled = true;
     };
@@ -388,7 +386,7 @@ export function useGrupos() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const crearGrupo = useCallback(

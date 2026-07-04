@@ -368,7 +368,7 @@ export function useSupabaseData<T = any>(
         clearTimer(retryTimerRef);
         retryTimerRef.current = setTimeout(
           () => {
-            if (isMounted.current) fetchData();
+            if (isMounted.current) void fetchData();
           },
           hasLocalData ? 15_000 : 8_000,
         );
@@ -400,7 +400,7 @@ export function useSupabaseData<T = any>(
         const delay = Math.min(2000 * 2 ** (retryCount.current - 1), 32_000);
         clearTimer(retryTimerRef);
         retryTimerRef.current = setTimeout(() => {
-          if (isMounted.current) fetchData();
+          if (isMounted.current) void fetchData();
         }, delay);
         if (!hasLocalData) setLoading(false);
         setIsOffline(true);
@@ -445,7 +445,7 @@ export function useSupabaseData<T = any>(
         if (res?.error) return { data: null, error: res.error };
         const created = res?.data ?? res;
         if (created?.id) {
-          writeToDexie(tabla, [{ ...created, status: "synced" }]);
+          void writeToDexie(tabla, [{ ...created, status: "synced" }]);
           setData((prev) => [...prev, { ...created, status: "synced" } as any]);
         }
         return { data: created, error: null };
@@ -493,7 +493,7 @@ export function useSupabaseData<T = any>(
         const updated = (res as any)?.data ?? null;
         const savedData = updated ?? { id, ...updates };
         if (savedData?.id !== undefined) {
-          writeToDexie(tabla, [{ ...savedData, status: "synced" }]);
+          void writeToDexie(tabla, [{ ...savedData, status: "synced" }]);
           setData((prev) =>
             prev.map((r: any) => (r.id === id ? { ...r, ...savedData } : r)),
           );
@@ -578,7 +578,7 @@ export function useSupabaseData<T = any>(
         "postgres_changes",
         { event: "*", schema: "public", table: tabla },
         () => {
-          fetchData();
+          void fetchData();
         },
       )
       .subscribe((status) => {
@@ -599,7 +599,7 @@ export function useSupabaseData<T = any>(
           // FIX #1: activar polling de respaldo mientras se reconecta
           if (!pollingRef.current) {
             pollingRef.current = setInterval(() => {
-              if (isMounted.current) fetchData();
+              if (isMounted.current) void fetchData();
             }, RETRY_POLLING_MS);
           }
           // FIX #1: destruir el canal muerto y reconectar tras un delay
@@ -618,13 +618,13 @@ export function useSupabaseData<T = any>(
   // ─── Efectos ─────────────────────────────────────────────────────────────
   useEffect(() => {
     isMounted.current = true;
-    fetchData();
+    void fetchData();
     subscribeChannel();
 
     const unsubSyncDone = onSyncDone(() => {
       if (isMounted.current)
         setTimeout(() => {
-          if (isMounted.current) fetchData();
+          if (isMounted.current) void fetchData();
         }, 800);
     });
 
@@ -636,7 +636,7 @@ export function useSupabaseData<T = any>(
       setIsOffline(false);
       subscribeChannel();
       setTimeout(() => {
-        if (isMounted.current) fetchData();
+        if (isMounted.current) void fetchData();
       }, 1_000);
     };
 
@@ -653,7 +653,7 @@ export function useSupabaseData<T = any>(
         if (sinceFetch > REVALIDATE_THROTTLE_MS) {
           retryCount.current = 0;
           setTimeout(() => {
-            if (isMounted.current) fetchData();
+            if (isMounted.current) void fetchData();
           }, 500);
         }
 

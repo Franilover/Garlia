@@ -19,9 +19,9 @@ import {
 } from "lucide-react";
 import React from "react";
 
+import { MotionDiv } from "@/components/ui/Motion";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { MotionDiv } from "@/components/ui/Motion";
 
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -155,10 +155,10 @@ export function PastillaDificultad({ dificultad }: { dificultad: Dificultad }) {
       {Array.from({ length: 4 }).map((_, i) => (
         <Star
           key={i}
-          size={10}
           fill={
             i < Math.ceil((intensidad / 100) * 4) ? "var(--primary)" : "none"
           }
+          size={10}
           strokeWidth={1.5}
           style={{
             color:
@@ -291,7 +291,7 @@ function useEntidadesMision(misionId: string) {
         if (!cancelled) setLoading(false);
       }
     }
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
@@ -708,8 +708,8 @@ export function ModalMision({
             </button>
           ) : estado === "completada" ? (
             <button
-              disabled={reclamando}
               className="w-full flex items-center justify-center gap-2 py-3 transition-opacity hover:opacity-90 disabled:opacity-60"
+              disabled={reclamando}
               style={{
                 borderRadius: "var(--radius-btn)",
                 background: "var(--primary)",
@@ -758,8 +758,8 @@ export function ModalMision({
             </div>
           ) : (
             <button
-              disabled={aceptando}
               className="w-full flex items-center justify-center gap-2 py-3 transition-opacity hover:opacity-90 disabled:opacity-60"
+              disabled={aceptando}
               style={{
                 borderRadius: "var(--radius-btn)",
                 background: "var(--primary)",

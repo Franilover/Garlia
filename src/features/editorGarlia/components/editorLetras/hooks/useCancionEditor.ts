@@ -64,12 +64,12 @@ export function useCancionEditor(id: string | null) {
   }, []);
 
   useEffect(() => {
-    if (id) load(id);
+    if (id) void load(id);
     else setCancion(null);
   }, [id, load]);
 
   useEffect(() => {
-    const handleOnline = () => { if (id) { setIsOffline(false); load(id); } };
+    const handleOnline = () => { if (id) { setIsOffline(false); void load(id); } };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [id, load]);

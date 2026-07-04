@@ -1,5 +1,6 @@
 "use client";
-import {
+import type { User } from "@supabase/supabase-js";
+import React, {
   createContext,
   useCallback,
   useContext,
@@ -7,8 +8,6 @@ import {
   useRef,
   useState,
 } from "react";
-import type { User } from "@supabase/supabase-js";
-import React from "react";
 
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
@@ -145,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // confirmarla siempre al iniciar sesión, incluso si el caché del
         // perfil completo todavía está "fresco" y se evita el fetch grande
         // de abajo — son cosas independientes.
-        verificarAdminReal();
+        void verificarAdminReal();
 
         // Si el caché es reciente, no hacer fetch a Supabase todavía
         const edad = Date.now() - (dexiePerfil.cached_at ?? 0);
@@ -173,9 +172,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data) {
         // ✅ Perfil encontrado — guardar en Dexie y actualizar estado
         setPerfil(data);
-        setPerfilCached(data);
+        void setPerfilCached(data);
         await guardarPerfilDexie(data);
-        verificarAdminReal();
+        void verificarAdminReal();
       } else if (error?.code === "PGRST116") {
         // PGRST116 = "no rows found" — el perfil realmente no existe, crearlo
         const nombreAuto = userEmail ? userEmail.split("@")[0] : "Usuario";
@@ -193,7 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!insertError && mountedRef.current) {
           const perfilConRol = { ...nuevoPerfil, rol: "user" };
           setPerfil(perfilConRol);
-          setPerfilCached(perfilConRol);
+          void setPerfilCached(perfilConRol);
           await guardarPerfilDexie(perfilConRol);
         }
       }
@@ -210,11 +209,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // ── Leer sesión inicial ANTES de suscribirse ──────────────────────────
     // Esto evita el AbortError: getSession() es síncrono-compatible y no
     // bloquea el callback de onAuthStateChange.
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mountedRef.current) return;
       if (session?.user) {
         setPerfil_user(session.user);
-        fetchPerfil(session.user.id, session.user.email ?? "");
+        void fetchPerfil(session.user.id, session.user.email ?? "");
       } else {
         setLoading(false);
       }
@@ -227,12 +226,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (session?.user) {
         setPerfil_user(session.user);
         // Sin await — lanzar y olvidar; fetchPerfil maneja su propio finally
-        fetchPerfil(session.user.id, session.user.email ?? "");
+        void fetchPerfil(session.user.id, session.user.email ?? "");
       } else {
         setPerfil_user(null);
         setPerfil(null);
         setAdminVerificado(null);
-        clearPerfilCached();
+        void clearPerfilCached();
         setLoading(false);
       }
     });

@@ -11,7 +11,7 @@ import React, {
 
 import { RichEditor } from "@/components/forms/lexical-editor";
 import { MotionDiv } from "@/components/ui/Motion";
-import { ZoteroSource } from "@/features/ensayos/views/page";
+import type { ZoteroSource } from "@/features/ensayos/views/page";
 
 import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";
@@ -65,7 +65,7 @@ export function Editor({
   ensayos,
   sources = [],
   editMode,
-  onToggleEditMode,
+  onToggleEditMode: _onToggleEditMode,
   onUpdateField,
   onNavigateToPage,
   onOpenLibrosDashboard,
@@ -82,8 +82,8 @@ export function Editor({
     ensayo.contenido || "",
   );
   const [newTagInput, setNewTagInput] = useState("");
-  const [addingTag, setAddingTag] = useState(false);
-  const newTagRef = React.useRef<HTMLInputElement>(null);
+  const [_addingTag, setAddingTag] = useState(false);
+  const _newTagRef = React.useRef<HTMLInputElement>(null);
 
   // Citation popup (@)
   const [tocOpenLocal, setTocOpenLocal] = useState(false);
@@ -200,7 +200,7 @@ export function Editor({
   const isLibro = (ensayo.tags ?? []).includes("libro");
 
   // ── Backlinks: notas que mencionan esta página por [[título]] o por tag ──────
-  const backlinks = useMemo(() => {
+  const _backlinks = useMemo(() => {
     const titulo = ensayo.titulo?.trim().toLowerCase();
     if (!titulo) return [];
     return ensayos.filter((e: any) => {
@@ -222,7 +222,7 @@ export function Editor({
     return Array.from(set).sort();
   }, [ensayos, ensayo.tags]);
 
-  const tagSuggestions = useMemo(() => {
+  const _tagSuggestions = useMemo(() => {
     if (!newTagInput.trim()) return [];
     const q = newTagInput.trim().toLowerCase();
     return allTags.filter((t) => t.includes(q)).slice(0, 6);
@@ -306,13 +306,13 @@ export function Editor({
     >
       <RichEditor
         mode={richMode}
-        onModeChange={setRichMode}
         placeholder="empieza a escribir... (usa @ para citar · [[ para enlazar notas)"
-        value={localContenido}
-        onChange={handleContenidoChange}
-        wikiEntities={wikiEntities}
-        onWikilinkNavigate={onNavigateToPage}
         showSplitMode={false}
+        value={localContenido}
+        wikiEntities={wikiEntities}
+        onChange={handleContenidoChange}
+        onModeChange={setRichMode}
+        onWikilinkNavigate={onNavigateToPage}
       />
       <AnimatePresence>
         {citePopup && sources.length > 0 && (

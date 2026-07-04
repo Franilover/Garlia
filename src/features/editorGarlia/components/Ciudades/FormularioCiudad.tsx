@@ -12,20 +12,19 @@
  *   src/features/editorGarlia/components/Ciudades/FormularioCiudad.tsx
  */
 
-import Image from "next/image";
-
 import { MapPin, Save, Trash2, Users, Bug, Package, Mountain, ScrollText } from "lucide-react";
+import Image from "next/image";
 import React, { useState } from "react";
 
+import type {
+  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
 import {
-  MarkdownEditor,
-  WikiEntity,
+  MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
-
+import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
 import {
   useReinos,
   usePersonajesDelCiudad,
@@ -37,10 +36,10 @@ import {
   type PersonajeMin,
   type CriaturaMin,
   type ItemMin,
-} from "../../hooks/ciudades/useCiudadCatalogos";
-import { type Ciudad, type SaveStatus } from "../../hooks/types";
-import { SelectorImagen, SaveIndicator } from "../../components/UIComponents";
-import { useWikilink } from "../../components/WikilinkContext";
+} from "@/features/editorGarlia/hooks/ciudades/useCiudadCatalogos";
+import { type Ciudad, type SaveStatus } from "@/features/editorGarlia/hooks/types";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 // ─── Tipos de ciudad predefinidos ──────────────────────────────────────────────
 const TIPOS_CIUDAD = [
@@ -111,9 +110,9 @@ export function FormularioCiudad({
   const [addingP, setAddingP] = useState<string | null>(null);
   const [addingC, setAddingC] = useState<string | null>(null);
   const [addingI, setAddingI] = useState<string | null>(null);
-  const [removingP, setRemovingP] = useState<string | null>(null);
-  const [removingC, setRemovingC] = useState<string | null>(null);
-  const [removingI, setRemovingI] = useState<string | null>(null);
+  const [_removingP, setRemovingP] = useState<string | null>(null);
+  const [_removingC, setRemovingC] = useState<string | null>(null);
+  const [_removingI, setRemovingI] = useState<string | null>(null);
 
   const reinoActual = reinos.find((r) => r.id === form.reino_id);
 

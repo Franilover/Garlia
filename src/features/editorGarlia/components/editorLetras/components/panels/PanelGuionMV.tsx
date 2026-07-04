@@ -4,11 +4,10 @@ import { Film, Plus, Loader2, Check, Clock, Pencil, Trash2 } from "lucide-react"
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { TIPO_ESCENA_LABEL, TIPO_ESCENA_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
+import { fmtTimeSeg, parseTimeSeg } from "@/features/editorGarlia/components/editorLetras/lib/karaokeUtils";
+import type { EscenaMV, Seccion, IdiomaKey } from "@/features/editorGarlia/components/editorLetras/types";
 import { supabase } from "@/lib/api/client/supabase";
-
-import { TIPO_ESCENA_LABEL, TIPO_ESCENA_COLOR } from "../../constants";
-import { fmtTimeSeg, parseTimeSeg } from "../../lib/karaokeUtils";
-import type { EscenaMV, Seccion, IdiomaKey } from "../../types";
 
 export const PanelGuionMV = ({
   cancionId,
@@ -242,7 +241,7 @@ export const PanelGuionMV = ({
               rows={3}
               value={formDesc}
               onChange={e => setFormDesc(e.target.value)}
-              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") handleSubmit(); }}
+              onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") void handleSubmit(); }}
             />
           </div>
 

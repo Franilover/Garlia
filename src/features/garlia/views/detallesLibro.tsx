@@ -349,11 +349,11 @@ export default function LibroDetalle() {
       }
     };
 
-    cargarLeidos();
+    void cargarLeidos();
 
     // Refrescar al volver al tab (el lector pudo marcar nuevos leídos mientras tanto)
     const onVisible = () => {
-      if (document.visibilityState === "visible") cargarLeidos();
+      if (document.visibilityState === "visible") void cargarLeidos();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", cargarLeidos);
@@ -438,7 +438,7 @@ export default function LibroDetalle() {
       const caps = await loadCapitulos(libroData.id, (frescos) => {
         if (!mounted) return;
         setCapitulos(frescos as Capitulo[]);
-        if (esLibroRico) cargarEntidades(frescos as Capitulo[], mounted);
+        if (esLibroRico) void cargarEntidades(frescos as Capitulo[], mounted);
       });
 
       if (!mounted) return;

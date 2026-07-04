@@ -144,7 +144,7 @@ export function useKaraoke(
       const secTimings = { ...(prev[seccionId] || {}), [lineaIdx]: seg };
       const next = { ...prev, [seccionId]: secTimings };
       localStorage.setItem(storageKey, JSON.stringify(next));
-      saveSeccionTimingsNow(seccionId, secTimings);
+      void saveSeccionTimingsNow(seccionId, secTimings);
       return next;
     });
   };

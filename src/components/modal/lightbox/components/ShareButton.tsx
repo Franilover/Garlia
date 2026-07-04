@@ -19,14 +19,14 @@ export const ShareButton = ({ url, titulo }: { url: string; titulo: string }) =>
           url: fullUrl 
         }); 
       } catch (err) {
-        console.log("Error compartiendo:", err);
+        console.error("Error compartiendo:", err);
       }
     } else {
       try {
         await navigator.clipboard.writeText(fullUrl);
         setCopiado(true);
         setTimeout(() => setCopiado(false), 2000);
-      } catch (err) {
+      } catch (_err) {
         console.error("No se pudo copiar al portapapeles");
       }
     }

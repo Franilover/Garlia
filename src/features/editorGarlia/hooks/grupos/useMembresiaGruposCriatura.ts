@@ -79,7 +79,7 @@ export function useMembresiaGruposCriatura(criaturaId: string) {
   }, [criaturaId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   // Añadir la criatura a un grupo por ID de grupo

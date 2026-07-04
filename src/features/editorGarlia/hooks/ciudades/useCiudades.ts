@@ -63,7 +63,7 @@ export function useCiudades(): CiudadMin[] {
       } catch {}
     };
 
-    run();
+    void run();
     return () => {
       mounted = false;
     };

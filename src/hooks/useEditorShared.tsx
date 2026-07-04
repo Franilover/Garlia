@@ -29,7 +29,7 @@ export function usePersonajes() {
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       // 1️⃣ Dexie first — show cached data immediately
       try {
         const table = (db as any)["personajes"];
@@ -120,7 +120,7 @@ export function useDraftRestore({ key, serverValue, enabled = true }: DraftResto
     const raw = localStorage.getItem(key);
     if (!raw) { setHasDraft(false); setDraftValue(""); return; }
     try {
-      const { value, ts } = JSON.parse(raw) as { value: string; ts: number };
+      const { value, ts: _ts } = JSON.parse(raw) as { value: string; ts: number };
       
       if (value && value !== serverValue) {
         setDraftValue(value);

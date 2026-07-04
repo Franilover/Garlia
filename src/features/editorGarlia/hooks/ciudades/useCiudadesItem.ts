@@ -46,7 +46,7 @@ export function useCiudadesItem(itemId: string) {
   }, [itemId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (l: CiudadMin) => {

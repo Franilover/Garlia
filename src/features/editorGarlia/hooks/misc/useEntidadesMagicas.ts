@@ -12,10 +12,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/Magia/types";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexieReadAll, dexieWriteAll } from "@/lib/utils/dexieHelpers";
 
-import { CONFIG, type EntidadMagica, type Modo } from "../../components/Magia/types";
 
 export function useEntidadesMagicas(modo: Modo) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
@@ -48,7 +48,7 @@ export function useEntidadesMagicas(modo: Modo) {
   }, [modo]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   return { items, setItems, loading };

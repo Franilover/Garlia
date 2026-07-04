@@ -20,23 +20,23 @@
  * (El nodo "cita" no es un snippet con modal — es markup puro [[cita|...]]
  *  que se maneja como TextNode y se renderiza en la vista de lectura.)
  */
+import { $isCodeNode } from "@lexical/code";
+import { $isListNode, $isListItemNode } from "@lexical/list";
 import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
-import {
-  $createTextNode,
-  $getRoot,
-  $insertNodes,
-  LexicalEditor,
-  LexicalNode,
-} from "lexical";
+import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
 import {
   $isTableNode,
   $isTableRowNode,
   $isTableCellNode,
   $createTableNodeWithDimensions,
 } from "@lexical/table";
-import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
-import { $isListNode, $isListItemNode } from "@lexical/list";
-import { $isCodeNode } from "@lexical/code";
+import type {
+  LexicalNode} from "lexical";
+import {
+  $createTextNode,
+  $getRoot,
+  $insertNodes
+} from "lexical";
 
 import {
   $createChoiceNode,
@@ -77,8 +77,8 @@ import {
 import {
   $createUseNode,
   $isUseNode,
-  usePayloadToRaw,
-  useRawToPayload,
+  parseUsePayloadToRaw,
+  parseUseRawToPayload,
 } from "./nodes/UseNode";
 import {
   $createWikilinkNode,
@@ -133,7 +133,7 @@ export function rawSnippetToNode(raw: string): LexicalNode | null {
       return p ? $createChoiceNode(p) : null;
     }
     case "use": {
-      const p = useRawToPayload(raw);
+      const p = parseUseRawToPayload(raw);
       return p ? $createUseNode(p) : null;
     }
     case "gate": {
@@ -395,7 +395,7 @@ export function serializeRootToRaw(): string {
     if ($isImgNode(node)) return imgPayloadToRaw(node.getPayload());
     if ($isSoundNode(node)) return soundPayloadToRaw(node.getPayload());
     if ($isChoiceNode(node)) return choicePayloadToRaw(node.getPayload());
-    if ($isUseNode(node)) return usePayloadToRaw(node.getPayload());
+    if ($isUseNode(node)) return parseUsePayloadToRaw(node.getPayload());
     if ($isGateNode(node)) return gatePayloadToRaw(node.getPayload());
     if ($isSectionNode(node)) return sectionPayloadToRaw(node.getPayload());
     if ($isWikilinkNode(node)) return wikilinkPayloadToRaw(node.getPayload());

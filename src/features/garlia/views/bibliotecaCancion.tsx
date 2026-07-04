@@ -1,6 +1,6 @@
 "use client";
 
-import { User, ChevronRight, List, LayoutGrid } from "lucide-react";
+import { User, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 
@@ -276,7 +276,7 @@ export default function CancionesPage() {
   const { data: cancionesCacheadas, loading } =
     useSupabaseData<Cancion>("canciones");
   const [canciones, setCanciones] = useState<Cancion[]>([]);
-  const [vistaFila, setVistaFila] = useState(false);
+  const [vistaFila, _setVistaFila] = useState(false);
 
   useEffect(() => {
     if (cancionesCacheadas.length > 0) {

@@ -30,7 +30,7 @@ export default function SimpleImagePicker({
   const [stack, setStack] = useState<{ name: string; nodes: TreeNode[] }[]>([]);
 
   useEffect(() => {
-    fetch("/api/dibujos")
+    void fetch("/api/dibujos")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) setTree(d.tree);

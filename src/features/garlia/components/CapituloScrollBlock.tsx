@@ -3,7 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { AlignLeft, Clock } from "lucide-react";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 
-import { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+import type { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import { useDesbloquearCiudades, CiudadesDesbloqueadasToast } from "@/features/garlia/hooks//useCiudades";
 import { useDesbloquearPersonajes, PersonajesDesbloqueadosToast } from "@/features/garlia/hooks//usePersonajes";
 import { useDesbloquearReinos, ReinosDesbloqueadosToast } from "@/features/garlia/hooks/useReinos";
@@ -121,7 +121,7 @@ export function ToastPortal() {
 /* ─────────────────────────────────────────────
    Componente de capítulo
    ───────────────────────────────────────────── */
-export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSiguiente = false }: {
+export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSiguiente: _haySegSiguiente = false }: {
   cap: CapituloScrollItem;
   onNavigate: (capId: string) => void;
   esExtra?: boolean;
@@ -201,7 +201,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
       const viewBottom = container.scrollTop + container.clientHeight;
       if (viewBottom >= elBottom * 0.9) {
         firedFinRef.current = true;
-        handleFinCapitulo();
+        void handleFinCapitulo();
       }
     };
 

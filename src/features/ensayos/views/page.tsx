@@ -116,7 +116,7 @@ function EnsayosInner() {
   const [showNewNoteModal,  setShowNewNoteModal]  = useState(false);
 
   const [sources,           setSources]           = useState<ZoteroSource[]>([]);
-  const [zoteroConnected,   setZoteroConnected]   = useState(false);
+  const [_zoteroConnected,   setZoteroConnected]   = useState(false);
   const [tagActivo,         setTagActivo]         = useState<string | null>(null);
 
   // For pre-filling the new note modal title (used when creating tag-pages)
@@ -140,7 +140,7 @@ function EnsayosInner() {
     data:     ensayos,
     setData:  setEnsayos,
     loading,
-    isOffline,
+    isOffline: _isOffline,
     addRow,
     updateRow,
     deleteRow,
@@ -196,7 +196,7 @@ function EnsayosInner() {
 
   // ── Escuchar evento del CommandPalette para crear un libro (tag "libro") ──
   useEffect(() => {
-    const handler = () => { crearLibro(); };
+    const handler = () => { void crearLibro(); };
     window.addEventListener("ensayos-new-libro", handler);
     return () => window.removeEventListener("ensayos-new-libro", handler);
   }, []);
@@ -204,7 +204,7 @@ function EnsayosInner() {
   // ─── Zotero ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       const handle = await loadZoteroHandle();
 
       if (!handle) {
@@ -274,9 +274,9 @@ function EnsayosInner() {
     }
   }, []);
 
-  const refreshZotero = useCallback(async () => {
+  const _refreshZotero = useCallback(async () => {
     const handle = await loadZoteroHandle();
-    if (!handle) { connectZotero(); return; }
+    if (!handle) { void connectZotero(); return; }
     try {
       const h       = handle as any;
       const perm    = await h.queryPermission({ mode: "read" });
@@ -287,7 +287,7 @@ function EnsayosInner() {
       const parsed = await readZoteroFile(handle);
       setSources(parsed);
       localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-    } catch { connectZotero(); }
+    } catch { void connectZotero(); }
   }, [connectZotero]);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -321,7 +321,7 @@ function EnsayosInner() {
     return Array.from(set).sort();
   }, [ensayos]);
 
-  const allWikilinkNames = useMemo(() => {
+  const _allWikilinkNames = useMemo(() => {
     const seen = new Set<string>();
     const result: { name: string; type: string }[] = [];
 
@@ -481,8 +481,8 @@ function EnsayosInner() {
     }
   }, [ensayos, autoCreateTagPage]);
 
-  const handleTagNavigate = useCallback((tag: string) => {
-    navigateToPage(tag, true);
+  const _handleTagNavigate = useCallback((tag: string) => {
+    void navigateToPage(tag, true);
   }, [navigateToPage]);
 
   const renameEnCascada = useCallback((oldTitulo: string, newTitulo: string) => {
@@ -534,7 +534,7 @@ function EnsayosInner() {
     scheduleSave(id, { [field]: value });
 
     if (field === "tags" && Array.isArray(value)) {
-      autoCreateMissingTagPages(value);
+      void autoCreateMissingTagPages(value);
     }
   }, [scheduleSave, autoCreateMissingTagPages, renameEnCascada]);
 
@@ -968,7 +968,7 @@ function EnsayosInner() {
                               <button
                                 className="opacity-0 group-hover:opacity-100"
                                 style={{ background: "none", border: "none", cursor: "pointer", color: "color-mix(in srgb, var(--accent) 50%, transparent)", padding: 2, flexShrink: 0, transition: "opacity 0.1s" }}
-                                onClick={e => { e.stopPropagation(); eliminarEnsayo(ens.id); }}
+                                onClick={e => { e.stopPropagation(); void eliminarEnsayo(ens.id); }}
                               >
                                 <Trash2 size={9} />
                               </button>
@@ -1028,7 +1028,7 @@ function EnsayosInner() {
                   onNavigateToPage={(name) => navigateToPage(name, false)}
                   onOpenLibrosDashboard={irALibros}
                   onTagClick={(tag) => {
-                    navigateToPage(tag, true);
+                    void navigateToPage(tag, true);
                   }}
                   onTocEntriesChange={setTocEntries}
                   onTocToggle={() => setTocOpen(p => !p)}

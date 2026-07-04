@@ -11,8 +11,8 @@
  *   src/features/editorGarlia/components/Criaturas/CriaturaItemsNaturales.tsx
  */
 
-import Image from "next/image";
 import { Package, Plus, X } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 
 import { db } from "@/lib/api/client/db";
@@ -126,7 +126,7 @@ export function useNaturalItems(
   }, [criaturaId, varianteId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const add = async (item: ItemMin) => {
@@ -272,7 +272,7 @@ export function BloqueItemsNaturales({
                 className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-red-500/10 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 border border-red-500/20 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  remove(it.dropId);
+                  void remove(it.dropId);
                 }}
               >
                 <X size={8} />
@@ -324,7 +324,7 @@ export function BloqueItemsNaturales({
                   key={it.id}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/5 transition-colors text-left cursor-pointer"
                   onClick={() => {
-                    add(it);
+                    void add(it);
                     setOpen(false);
                     setSearch("");
                   }}

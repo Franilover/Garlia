@@ -14,8 +14,8 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type Personaje } from "../types";
 import { SESSION_CACHE_TTL_MS } from "../sessionCache";
+import { type Personaje } from "../types";
 
 export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
@@ -90,7 +90,7 @@ export function usePersonajesDelReino(reinoNombre: string | null | undefined) {
       } catch {}
     };
 
-    run();
+    void run();
     return () => {
       cancelled = true;
     };

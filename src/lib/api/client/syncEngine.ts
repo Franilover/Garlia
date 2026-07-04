@@ -13,9 +13,9 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { isReallyOnline } from "@/lib/utils/offlineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+import { isReallyOnline } from "@/lib/utils/offlineSync";
 
 // ─── TTL por tabla (ms) ───────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ async function sessionSet(key: string, value: any): Promise<void> {
   } catch {}
 }
 
-async function sessionDelete(key: string): Promise<void> {
+async function _sessionDelete(key: string): Promise<void> {
   try {
     await db?.session_cache?.delete(key);
   } catch {}
@@ -164,7 +164,7 @@ async function loadWithCache<T>(
   const local = await config.dexieSource();
   if (local.length > 0) {
     memSet(config.cacheKey, local);
-    refreshInBackground(config, onUpdate);
+    void refreshInBackground(config, onUpdate);
     return local;
   }
 
@@ -336,8 +336,8 @@ export async function loadCiudadesPorReino(
   const local = all.filter((c) => !c.deleted);
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchCiudadesPorReino(reinoId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchCiudadesPorReino(reinoId, cacheKey, onUpdate);
     });
     return local;
   }
@@ -447,8 +447,8 @@ export async function loadPersonajesPorCiudad(
   const local = all.filter((p) => p.ciudad_id === ciudadId && !p.deleted);
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchPersonajesPorCiudad(ciudadId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchPersonajesPorCiudad(ciudadId, cacheKey, onUpdate);
     });
     return local;
   }
@@ -489,8 +489,8 @@ export async function loadCriaturasPorCiudad(
   const local = all.filter((c) => c.ciudad_id === ciudadId && !c.deleted);
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchCriaturasPorCiudad(ciudadId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchCriaturasPorCiudad(ciudadId, cacheKey, onUpdate);
     });
     return local;
   }
@@ -531,8 +531,8 @@ export async function loadItemsPorCiudad(
   const local = all.filter((i) => i.ciudad_id === ciudadId && !i.deleted);
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchItemsPorCiudad(ciudadId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchItemsPorCiudad(ciudadId, cacheKey, onUpdate);
     });
     return local;
   }
@@ -601,8 +601,8 @@ export async function loadCapitulos(
 
   if (local.length > 0) {
     _capsMemCache[libroId] = { data: local, ts: Date.now() };
-    isReallyOnline().then((online) => {
-      if (online) refreshCapitulos(libroId, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void refreshCapitulos(libroId, onUpdate);
     });
     return local;
   }
@@ -707,8 +707,8 @@ export async function loadDescubrimientos(
   if (cached) {
     memSet(cacheKey, cached);
     // Refrescar en background
-    isReallyOnline().then((online) => {
-      if (online) fetchDescubrimientos(userId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchDescubrimientos(userId, cacheKey, onUpdate);
     });
     return cached;
   }
@@ -827,8 +827,8 @@ export async function loadReinosCiudadesUsuario(
   }>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then((online) => {
-      if (online) fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchReinosCiudadesUsuario(userId, cacheKey, onUpdate);
     });
     return cached;
   }
@@ -911,8 +911,8 @@ export async function loadInventarioUsuario(
   const cached = await sessionGet<any[]>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then((online) => {
-      if (online) fetchInventario(userId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchInventario(userId, cacheKey, onUpdate);
     });
     return cached;
   }
@@ -957,8 +957,8 @@ export async function loadPerfilUsuario(
     const local = await db?.perfiles?.get(userId);
     if (local && Date.now() - (local.cached_at ?? 0) < ttl) {
       memSet(cacheKey, local);
-      isReallyOnline().then((online) => {
-        if (online) fetchPerfilUsuario(userId, cacheKey, onUpdate);
+      void isReallyOnline().then((online) => {
+        if (online) void fetchPerfilUsuario(userId, cacheKey, onUpdate);
       });
       return local;
     }
@@ -1021,8 +1021,8 @@ export async function loadPerfilesResumen(
   const cached = await sessionGet<PerfilResumen[]>(cacheKey, ttl);
   if (cached) {
     memSet(cacheKey, cached);
-    isReallyOnline().then((online) => {
-      if (online) fetchPerfilesResumen(excludeId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchPerfilesResumen(excludeId, cacheKey, onUpdate);
     });
     return cached.filter((p) => p.id !== excludeId);
   }
@@ -1173,8 +1173,8 @@ export async function loadMisionesAdmin(
 ): Promise<any[]> {
   const local = await dexieAll<any>(db?.misiones);
   if (local.length > 0) {
-    isReallyOnline().then((online) => {
-      if (online) fetchMisionesAdmin(onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchMisionesAdmin(onUpdate);
     });
     return local;
   }
@@ -1218,8 +1218,8 @@ export async function loadMisionesUsuario(
   const local = await dexieWhere<any>(db?.misiones_usuario, "user_id", userId);
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchMisionesUsuario(userId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchMisionesUsuario(userId, cacheKey, onUpdate);
     });
     return local;
   }
@@ -1477,8 +1477,8 @@ export async function loadMisionEntidadesPorMision(
   );
   if (local.length > 0) {
     memSet(cacheKey, local);
-    isReallyOnline().then((online) => {
-      if (online) fetchMisionEntidadesPorMision(misionId, cacheKey, onUpdate);
+    void isReallyOnline().then((online) => {
+      if (online) void fetchMisionEntidadesPorMision(misionId, cacheKey, onUpdate);
     });
     return local;
   }

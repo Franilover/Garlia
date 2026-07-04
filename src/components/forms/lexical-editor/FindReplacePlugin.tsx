@@ -20,20 +20,18 @@
  * editar el payload, no el texto plano). Esto es una limitación aceptada,
  * igual que el MarkdownEditor viejo tampoco distinguía snippets del texto.
  */
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type {
+  LexicalEditor,
+  TextNode} from "lexical";
 import {
   $getRoot,
-  $getSelection,
-  $isRangeSelection,
   $isTextNode,
-  $setSelection,
   COMMAND_PRIORITY_LOW,
-  KEY_MODIFIER_COMMAND,
-  LexicalEditor,
-  TextNode,
+  KEY_MODIFIER_COMMAND
 } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ChevronDown, ChevronUp, Replace, X } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 const PRIMARY = "var(--color-primary, #7c6af7)";
 const mono = { fontFamily: "var(--font-mono)" } as const;
@@ -254,7 +252,11 @@ export function FindReplacePlugin({ state, onStateChange }: FindReplacePluginPro
           }
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              e.shiftKey ? findAndHighlight(-1) : findAndHighlight(1);
+              if (e.shiftKey) {
+                findAndHighlight(-1);
+              } else {
+                findAndHighlight(1);
+              }
             }
             if (e.key === "Escape") onStateChange((s) => ({ ...s, open: false }));
           }}

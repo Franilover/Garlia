@@ -21,13 +21,13 @@ import {
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
 import {
   type Relacion,
   useRelaciones,
   useTiposExistentes,
 } from "@/features/editorGarlia/hooks/relaciones/useRelaciones";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 import { GrafoRelaciones } from "./GrafoRelaciones";
 
@@ -156,7 +156,7 @@ function SelectorPersonaje({
     return () => clearTimeout(t);
   }, [query, search]);
   useEffect(() => {
-    search("");
+    void search("");
   }, [search]);
 
   return (

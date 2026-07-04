@@ -21,23 +21,23 @@
  * Props compatibles con las del MarkdownEditor anterior para simplificar
  * la migración en EditorCapitulos.tsx.
  */
-import { Edit3, Eye, Columns2 } from "lucide-react";
+import { CodeNode } from "@lexical/code";
+import { LinkNode } from "@lexical/link";
+import { ListNode, ListItemNode } from "@lexical/list";
+import { TRANSFORMERS } from "@lexical/markdown";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { TRANSFORMERS } from "@lexical/markdown";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { ListPlugin } from "@lexical/react/LexicalListPlugin";
-import { ListNode, ListItemNode } from "@lexical/list";
-import { CodeNode } from "@lexical/code";
-import { LinkNode } from "@lexical/link";
-import { EditorState } from "lexical";
+import type { EditorState, LexicalEditor } from "lexical";
+import { Edit3, Eye, Columns2 } from "lucide-react";
 import React, {
   useCallback,
   useEffect,
@@ -46,41 +46,41 @@ import React, {
   useState,
 } from "react";
 
-import { DropNode } from "./nodes/DropNode";
-import { SoundNode } from "./nodes/SoundNode";
-import { ImgNode } from "./nodes/ImgNode";
+import { AutoClosePlugin } from "./AutoClosePlugin";
+import {
+  FindReplacePlugin,
+  initialFindReplaceState,
+  type FindReplaceState,
+} from "./FindReplacePlugin";
+import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
+import { ListBackspacePlugin } from "./ListBackspacePlugin";
+import {
+  MarkdownCommandInsertPlugin,
+  MarkdownCommandPalette,
+  filterMarkdownCommands,
+} from "./MarkdownCommandPalette";
 import { ChoiceNode } from "./nodes/ChoiceNode";
-import { UseNode } from "./nodes/UseNode";
+import { DropNode } from "./nodes/DropNode";
 import { GateNode } from "./nodes/GateNode";
+import { ImgNode } from "./nodes/ImgNode";
 import { SectionNode } from "./nodes/SectionNode";
-import { WikilinkNode, wikilinkNavigateHandler } from "./nodes/WikilinkNode";
 import {
   snippetEditHandler,
   type SnippetEditRequest,
 } from "./nodes/sharedTypes";
+import { SoundNode } from "./nodes/SoundNode";
+import { UseNode } from "./nodes/UseNode";
+import { WikilinkNode, wikilinkNavigateHandler } from "./nodes/WikilinkNode";
 import {
   rawTextToLexicalTree,
   serializeRootToRaw,
   insertSnippetNode,
 } from "./richTextSerializer";
 import { SlashCommandPlugin, type SlashMatch } from "./SlashCommandPlugin";
-import { WikilinkPlugin, type WikilinkMatch } from "./WikilinkPlugin";
-import { WikilinkMenuPanel, type WikiEntity } from "./WikilinkMenuPanel";
 import { TABLE_NODES, TablePlugin, insertTable } from "./TablePlugin";
-import {
-  FindReplacePlugin,
-  initialFindReplaceState,
-  type FindReplaceState,
-} from "./FindReplacePlugin";
-import { AutoClosePlugin } from "./AutoClosePlugin";
-import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
-import { ListBackspacePlugin } from "./ListBackspacePlugin";
 import { TocPanel } from "./TocPlugin";
-import {
-  MarkdownCommandInsertPlugin,
-  MarkdownCommandPalette,
-  filterMarkdownCommands,
-} from "./MarkdownCommandPalette";
+import { WikilinkMenuPanel, type WikiEntity } from "./WikilinkMenuPanel";
+import { WikilinkPlugin, type WikilinkMatch } from "./WikilinkPlugin";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos
@@ -656,7 +656,7 @@ export function RichEditor({
   const skipNextChangeRef = useRef(false);
 
   const handleChange = useCallback(
-    (_state: EditorState, editor: import("lexical").LexicalEditor) => {
+    (_state: EditorState, editor: LexicalEditor) => {
       if (skipNextChangeRef.current) {
         // Este onChange es el eco del editor.update() programático que
         // hizo InitialContentPlugin al cargar el contenido real del
@@ -681,7 +681,7 @@ export function RichEditor({
   useEffect(() => {
     if (renderPreview || mode === "edit") return;
     let cancelled = false;
-    import("@/components/forms/Markdown/markdownRenderer").then(
+    void import("@/components/forms/Markdown/markdownRenderer").then(
       ({ renderMarkdown }) => {
         if (!cancelled) setFallbackHtml(renderMarkdown(value));
       },
@@ -719,13 +719,13 @@ export function RichEditor({
         >
           <TocPanel
             open={tocOpen}
-            onToggle={() => setTocOpen((o) => !o)}
             onClose={() => setTocOpen(false)}
+            onToggle={() => setTocOpen((o) => !o)}
           />
           <ModeTogglePlugin
             mode={mode}
-            onModeChange={handleModeChange}
             showSplitMode={showSplitMode}
+            onModeChange={handleModeChange}
           />
         </div>
 
@@ -753,6 +753,7 @@ export function RichEditor({
                 onStateChange={setFindReplace}
               />
               <RichTextPlugin
+                ErrorBoundary={LexicalErrorBoundary}
                 contentEditable={<ContentEditable style={editorStyle} />}
                 placeholder={
                   <div
@@ -771,7 +772,6 @@ export function RichEditor({
                     {placeholder}
                   </div>
                 }
-                ErrorBoundary={LexicalErrorBoundary}
               />
               <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
               <HistoryPlugin />
@@ -787,13 +787,13 @@ export function RichEditor({
               <MarkdownCommandInsertPlugin insertRef={mdInsertRef} />
               <EditablePlugin editable={editable} />
               <SlashCommandPlugin
-                onMatch={handleSlashMatch}
-                removeMatchRef={slashRemoveRef}
-                notifyClosedRef={notifyClosedRef}
                 isMenuOpen={mdPalette.open}
+                notifyClosedRef={notifyClosedRef}
+                removeMatchRef={slashRemoveRef}
                 onArrowDown={mdArrowDown}
                 onArrowUp={mdArrowUp}
                 onConfirmSelection={mdConfirmSelection}
+                onMatch={handleSlashMatch}
               />
               <WikilinkPlugin
                 insertRef={wikiInsertRef}
@@ -883,8 +883,8 @@ export function RichEditor({
               </div>
             ) : (
               <div
-                className="prose-mundo"
                 dangerouslySetInnerHTML={{ __html: fallbackHtml }}
+                className="prose-mundo"
                 style={{
                   flex: 1,
                   padding: "8px 12px",

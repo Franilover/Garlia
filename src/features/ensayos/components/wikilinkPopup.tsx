@@ -18,7 +18,7 @@ export function WikilinkPopup({
   query,
   activeIndex,
   onSelect,
-  onClose,
+  onClose: _onClose,
 }: WikilinkPopupProps) {
   const q = query.toLowerCase();
 

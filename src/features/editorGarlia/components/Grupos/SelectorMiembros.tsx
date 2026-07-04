@@ -11,9 +11,8 @@
  *   src/features/editorGarlia/components/Grupos/SelectorMiembros.tsx
  */
 
-import Image from "next/image";
-
 import { Loader2, Plus, Search, X } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -21,7 +20,7 @@ import {
   GRUPO_TIPO_CONFIG,
   type EntidadMin,
   type GrupoTipo,
-} from "../../hooks/grupos/useGrupos";
+} from "@/features/editorGarlia/hooks/grupos/useGrupos";
 
 export function SelectorMiembros({
   tipo,

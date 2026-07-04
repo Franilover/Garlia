@@ -15,13 +15,13 @@
 import { Loader2 } from "lucide-react";
 import React from "react";
 
+import { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";
 import {
   diaAbsolutoAFecha,
   formatFechaCorta,
   eraEnAnio,
 } from "@/lib/utils/calendario";
 
-import { useCalendario } from "../../hooks/calendario/useCalendario";
 
 export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
   const { cal, loading } = useCalendario();

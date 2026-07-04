@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/api/client/supabase";
-import { libroFullQuery, LibroFull, Inserts, Updates } from "@/lib/types/queries";
+import type { LibroFull, Inserts, Updates } from "@/lib/types/queries";
+import { libroFullQuery } from "@/lib/types/queries";
 
 export interface Capitulo {
   id: string;

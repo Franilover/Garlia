@@ -16,6 +16,7 @@
 
 import type { ComponentProps } from "react";
 
+import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import {
   parseContenido,
   parseSections,
@@ -23,7 +24,6 @@ import {
 } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
 import { RenderSegmentos } from "@/features/garlia/components/ContenidoInteractivo";
 
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 
 type MarkdownEditorConSnippetsProps = Omit<
   ComponentProps<typeof MarkdownEditor<Segment>>,

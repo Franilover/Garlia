@@ -321,9 +321,9 @@ function GrafoD3({
         const idParaAbrir = d.tipo === "tag-ensayo" ? d.ensayoId : d.id;
 
         const svgEl = svgRef.current!;
-        const rect = svgEl.getBoundingClientRect();
+        const _rect = svgEl.getBoundingClientRect();
         const transform = d3.zoomTransform(svgEl);
-        const [sx, sy] = transform.apply([d.x, d.y]);
+        const [_sx, _sy] = transform.apply([d.x, d.y]);
 
         onSelectNodo(idParaAbrir);
       });
@@ -563,7 +563,7 @@ export function GrafoEnsayos({
     setHistorial(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
   }, []);
 
-  const nRelacionados = ensayos.filter(e =>
+  const _nRelacionados = ensayos.filter(e =>
     e.id !== ensayo.id &&
     (e.tags ?? []).some((t: string) => tags.includes(t))
   ).length;

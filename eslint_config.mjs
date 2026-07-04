@@ -1,7 +1,16 @@
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+import { FlatCompat } from "@eslint/eslintrc";
 import pluginImport from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
+
+const compat = new FlatCompat({
+  baseDirectory: dirname(fileURLToPath(import.meta.url)),
+});
+
+const nextVitals = compat.extends("next/core-web-vitals");
+const nextTypescript = compat.extends("next/typescript");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ZONAS DE LA ARQUITECTURA
@@ -119,6 +128,12 @@ const eslintConfig = [
   // ───────────────────────────────────────────────────────────────────────────
   {
     files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: dirname(fileURLToPath(import.meta.url)),
+      },
+    },
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unsafe-assignment": "error",
@@ -325,6 +340,7 @@ const eslintConfig = [
   // ───────────────────────────────────────────────────────────────────────────
   {
     files: ["src/lib/**/*.{ts,tsx}"],
+    ignores: ["src/lib/api/queries/**"],
     rules: {
       "no-restricted-imports": [
         "warn",

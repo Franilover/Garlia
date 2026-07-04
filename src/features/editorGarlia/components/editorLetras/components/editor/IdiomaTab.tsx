@@ -2,8 +2,8 @@
 
 import React from "react";
 
-import { IDIOMAS } from "../../constants";
-import type { IdiomaKey } from "../../types";
+import { IDIOMAS } from "@/features/editorGarlia/components/editorLetras/constants";
+import type { IdiomaKey } from "@/features/editorGarlia/components/editorLetras/types";
 
 export const IdiomaTab = ({
   value, onChange, exclude,

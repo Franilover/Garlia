@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { itemFullQuery, Item, Inserts, Updates } from '@/lib/types/queries';
+import type { Item, Inserts, Updates } from '@/lib/types/queries';
+import { itemFullQuery } from '@/lib/types/queries';
 
 export const itemsQueries = {
   getAll: async (opt: { campo?: string; asc?: boolean } = {}): Promise<Item[]> => {

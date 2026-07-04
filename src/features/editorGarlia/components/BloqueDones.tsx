@@ -101,7 +101,7 @@ async function fetchCatalogo(): Promise<DonCatalogo[]> {
           .then(({ data }) => {
             if (data && data.length > 0) {
               _catalogData = data as DonCatalogo[];
-              dexieWriteDones(_catalogData);
+              void dexieWriteDones(_catalogData);
             }
           });
       }
@@ -164,7 +164,7 @@ function useDones(personajeId: string) {
     setLoading(false);
   }, [personajeId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const assign = async (id: string | null) => {
     setDonId(id);

@@ -67,7 +67,7 @@ function CoverFlip({
   portada_url,
   titulo,
   info,
-  border,
+  border: _border,
   size,
 }: {
   portada_url?: string;
@@ -252,7 +252,7 @@ export default function CancionDetallesPage() {
       else setErrorAcceso(true);
     };
 
-    resolver();
+    void resolver();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam]);
 
@@ -261,7 +261,7 @@ export default function CancionDetallesPage() {
 useEffect(() => {
   if (!id) return;
 
-  (async () => {
+  void (async () => {
     try {
       if (db) {
         const [cachedCancion, cachedSecciones] = await Promise.all([

@@ -5,19 +5,17 @@
  * Nodo Lexical inline para [[use|word|itemId|sectionOk|sectionFail]].
  */
 import type {
-  EditorConfig,
   LexicalEditor,
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 
-import { SnippetChip } from "./SnippetChip";
 import { snippetEditHandler } from "./sharedTypes";
+import { SnippetChip } from "./SnippetChip";
 
 export interface UsePayload {
   word: string;
@@ -147,7 +145,7 @@ export function $isUseNode(
   return node instanceof UseNode;
 }
 
-export function useRawToPayload(raw: string): UsePayload | null {
+export function parseUseRawToPayload(raw: string): UsePayload | null {
   const inner = raw.startsWith("[[") && raw.endsWith("]]") ? raw.slice(2, -2) : raw;
   const parts = inner.split("|").map((p) => p.trim());
   if (parts[0] !== "use") return null;
@@ -159,6 +157,6 @@ export function useRawToPayload(raw: string): UsePayload | null {
   };
 }
 
-export function usePayloadToRaw(p: UsePayload): string {
+export function parseUsePayloadToRaw(p: UsePayload): string {
   return `[[use|${p.word}|${p.itemId}|${p.sectionOk}|${p.sectionFail ?? ""}]]`;
 }

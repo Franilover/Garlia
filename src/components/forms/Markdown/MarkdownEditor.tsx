@@ -17,11 +17,6 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Módulos internos ──────────────────────────────────────────────────────────
 import {
-  renderMarkdown,
-  renderMathInElement,
-  PROSE_STYLES,
-} from "./markdownRenderer";
-import {
   COMMAND_ITEMS,
   toWikiEntities,
   type CommandItem,
@@ -35,6 +30,11 @@ import {
   FindReplacePanel,
   TableEditorPanel,
 } from "./EditorFloatingPanels";
+import {
+  renderMarkdown,
+  renderMathInElement,
+  PROSE_STYLES,
+} from "./markdownRenderer";
 
 // ── Re-exports para compatibilidad con importaciones existentes ───────────────
 export { renderMarkdown, renderMathInElement, PROSE_STYLES };
@@ -1177,7 +1177,11 @@ export function MarkdownEditor<
             }
             onFindKeyDown={(e) => {
               if (e.key === "Enter") {
-                e.shiftKey ? findAndHighlight(-1) : findAndHighlight(1);
+                if (e.shiftKey) {
+                findAndHighlight(-1);
+              } else {
+                findAndHighlight(1);
+              }
               }
               if (e.key === "Escape")
                 setFindReplace((s) => ({ ...s, open: false }));
@@ -1323,12 +1327,12 @@ export function MarkdownEditor<
           {(mode === "preview" || mode === "split") && (
             <MarkdownPreviewWithSnippets
               isLibro={isLibro}
+              isTextSegment={isTextSegment}
               parseSections={parseSections}
               parseSnippets={parseSnippets}
               placeholder={placeholder}
               pvRef={pvRef}
               renderSnippetSegment={renderSnippetSegment}
-              isTextSegment={isTextSegment}
               style={previewStyle}
               value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
               onSnippetAction={onSnippetAction}

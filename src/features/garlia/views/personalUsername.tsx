@@ -170,7 +170,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       setCargando(false);
     }
 
-    cargar();
+    void cargar();
   }, [username]);
 
   const misPersonajes = descubrimientos.filter((d) => d.tipo === "personaje");
@@ -235,7 +235,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             color: "color-mix(in srgb, var(--primary) 30%, transparent)",
           }}
         >
-          "Explorador no encontrado"
+          &quot;Explorador no encontrado&quot;
         </p>
         <Link
           className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
@@ -812,7 +812,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
                     }}
                   >
-                    "Este personaje no tiene canciones aún…"
+                    &quot;Este personaje no tiene canciones aún…&quot;
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1244,7 +1244,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           "color-mix(in srgb, var(--primary) 20%, transparent)",
                       }}
                     >
-                      "Sin descripción aún…"
+                      &quot;Sin descripción aún…&quot;
                     </p>
                   )}
                 </div>

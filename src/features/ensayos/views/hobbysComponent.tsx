@@ -185,7 +185,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon, color: 0, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
+    void onGuardar({ nombre: nombre.trim(), icon, color: 0, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim(), orden });
   };
 
   return (
@@ -257,7 +257,7 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim() });
+    void onGuardar({ nombre: nombre.trim(), icon, freq_dia: freqDia, freq_sem: freqSem, nota: nota.trim() });
   };
 
   return (
@@ -424,7 +424,7 @@ export const PaginaHobbys = () => {
     }
   }, [semana]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
   const handleGuardar = async (datos: Omit<Hobby, "id">) => {
     setGuardando(true);
@@ -445,7 +445,7 @@ export const PaginaHobbys = () => {
       setHobbys(prev => prev.map(h => h.id === id ? updated : h));
     } catch (err) {
       console.error("[PaginaHobbys] editar:", err);
-      cargar();
+      void cargar();
     }
   };
 
@@ -455,7 +455,7 @@ export const PaginaHobbys = () => {
       await hobbysQueries.delete(id);
     } catch (err) {
       console.error("[PaginaHobbys] eliminar:", err);
-      cargar();
+      void cargar();
     }
   };
 
@@ -481,7 +481,7 @@ export const PaginaHobbys = () => {
       await registrosQueries.upsert(hobbyId, semana, nuevosDias);
     } catch (err) {
       console.error("[PaginaHobbys] toggle día:", err);
-      cargar();
+      void cargar();
     }
   };
 

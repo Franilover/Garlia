@@ -357,7 +357,7 @@ function FormDrop({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/entidades")
+    void fetch("/api/entidades")
       .then((r) => r.json())
       .then((d) => {
         if (!d.ok) return;
@@ -795,7 +795,7 @@ function FormUse({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/entidades?tipo=item")
+    void fetch("/api/entidades?tipo=item")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok)
@@ -964,7 +964,7 @@ function FormUse({
 // ── Form Gate ────────────────────────────────────────────────────────────────
 
 function FormGate({
-  initialRaw,
+  initialRaw: _initialRaw,
   onInsert,
   onBack,
 }: {
@@ -981,7 +981,7 @@ function FormGate({
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    fetch("/api/entidades?tipo=item")
+    void fetch("/api/entidades?tipo=item")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok)
@@ -1146,7 +1146,7 @@ function FormImagen({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/dibujos")
+    void fetch("/api/dibujos")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) setAll(flattenTree(d.tree));
@@ -1365,7 +1365,7 @@ function FormSound({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/sonidos")
+    void fetch("/api/sonidos")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) setAll(flattenTree(d.tree));
@@ -1406,7 +1406,7 @@ function FormSound({
     } else {
       audioRef.current.src = url;
       audioRef.current.volume = volume;
-      audioRef.current.play();
+      void audioRef.current.play();
       setPlaying(true);
       setSelected(url);
     }
@@ -1540,7 +1540,7 @@ export function SnippetCommandPalette({
   anchorRect,
   initialRaw,
   initialQuery = "",
-  listaCapitulos = [],
+  listaCapitulos: _listaCapitulos = [],
   listaSecciones = [],
   onInsert,
   onClose,

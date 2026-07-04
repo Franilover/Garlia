@@ -13,8 +13,8 @@
 // Ajusta los nombres de las dos primeras si en tu proyecto se llaman distinto
 // (revisa @/lib/api/client/supabase.ts para confirmar cuáles usas ahí).
 
-import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

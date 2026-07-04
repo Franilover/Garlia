@@ -188,7 +188,7 @@ export const IngredientesPage = () => {
         setEditItem(null);
       }
     } catch (err) {
-      toast.error(`Error inesperado: ${err}`);
+      toast.error(`Error inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsEditSaving(false);
     }
@@ -224,7 +224,7 @@ export const IngredientesPage = () => {
       const result = await deleteRow(id);
       if (result?.error) {
         setLocalItems(null);
-        refetch();
+        void refetch();
       }
     }
   };
@@ -251,11 +251,11 @@ export const IngredientesPage = () => {
           ]);
         } else {
           setLocalItems(null);
-          refetch();
+          void refetch();
         }
       }
     } catch (err) {
-      toast.error(`Error inesperado: ${err}`);
+      toast.error(`Error inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsSaving(false);
     }

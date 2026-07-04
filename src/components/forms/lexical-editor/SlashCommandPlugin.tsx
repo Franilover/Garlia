@@ -19,6 +19,7 @@
  * lógica de edición de snippets existentes (ver handleSnippetEdit en
  * EditorCapitulos) — no queremos dos implementaciones de menú distintas.
  */
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
   $isRangeSelection,
@@ -31,7 +32,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type { EditorState } from "lexical";
 import { useCallback, useEffect, useRef } from "react";
 
 export interface SlashMatch {
@@ -129,7 +130,7 @@ export function SlashCommandPlugin({
   }, [notifyClosedRef, clearSlashQuery]);
 
   const checkForSlashMatch = useCallback(
-    (editorState: import("lexical").EditorState) => {
+    (editorState: EditorState) => {
       // Si la palette ya está abierta, no seguimos re-evaluando el
       // documento en cada update. Una vez que el usuario "entra" al
       // popover (foco se mueve a su <input>), Lexical deja de ser la

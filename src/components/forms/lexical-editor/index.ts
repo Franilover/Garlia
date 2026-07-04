@@ -37,8 +37,8 @@ export {
 export {
   $createUseNode,
   $isUseNode,
-  usePayloadToRaw,
-  useRawToPayload,
+  parseUsePayloadToRaw,
+  parseUseRawToPayload,
 } from "./nodes/UseNode";
 export {
   $createGateNode,

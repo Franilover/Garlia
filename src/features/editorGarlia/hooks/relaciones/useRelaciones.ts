@@ -92,7 +92,7 @@ export function useTiposExistentes(): string[] {
 
   useEffect(() => {
     // 1. Dexie primero (sin red)
-    (async () => {
+    void (async () => {
       try {
         if (db) {
           const all: any[] = (await (db as any).relaciones?.toArray()) ?? [];
@@ -201,7 +201,7 @@ export function useRelaciones(personajeId: string): {
   }, [personajeId]);
 
   useEffect(() => {
-    cargar();
+    void cargar();
   }, [cargar]);
 
   const addRelacion = async (

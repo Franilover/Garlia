@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { notifyIndexNow } from "@/lib/utils/indexNow";
 
 export async function POST(req: Request) {

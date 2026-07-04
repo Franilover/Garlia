@@ -98,7 +98,7 @@ export function useGruposDelPersonaje(personajeId: string): {
 
   useEffect(() => {
     isMounted.current = true;
-    load();
+    void load();
     return () => {
       isMounted.current = false;
     };

@@ -26,6 +26,7 @@ import {
   FieldInput,
 } from "@/features/ensayos/components/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useToast } from "@/hooks/ui/useToast";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import type { Receta, Ingrediente, Inserts } from "@/lib/types/queries";
 type NuevaReceta = Inserts<"recetas">;
@@ -37,7 +38,6 @@ type IngredienteReceta = {
   carbohidratos?: number;
   grasas?: number;
 };
-import { useToast } from "@/hooks/ui/useToast";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -439,7 +439,7 @@ function ModalAddReceta({
       } as NuevaReceta);
       onSuccess();
     } catch (err) {
-      toast.error(`Error: ${err}`);
+      toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsSaving(false);
     }

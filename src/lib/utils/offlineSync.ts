@@ -195,7 +195,7 @@ export async function runSync(): Promise<void> {
         return;
       }
 
-      console.log(
+      console.warn(
         `[Sync] Procesando ${queue.length} operaciones pendientes...`,
       );
 
@@ -240,8 +240,8 @@ export async function runSync(): Promise<void> {
           } catch {}
 
           await db.offline_queue.delete(op.id!);
-          console.log(`[Sync] ✓ ${op.table}/${op.recordId}`);
-        } catch (err: any) {
+          console.warn(`[Sync] ✓ ${op.table}/${op.recordId}`);
+        } catch (_err: any) {
           const retries = (op.retries ?? 0) + 1;
           if (retries >= MAX_RETRIES) {
             console.warn(
@@ -292,7 +292,7 @@ export async function enqueueOperation(
         timestamp: Date.now(),
         retries: 0,
       });
-      console.log(
+      console.warn(
         `[Queue] Actualizado (dedup): ${operation} en ${table}/${recordId}`,
       );
       return;
@@ -306,7 +306,7 @@ export async function enqueueOperation(
       timestamp: Date.now(),
       retries: 0,
     });
-    console.log(`[Queue] Encolado: ${operation} en ${table}/${recordId}`);
+    console.warn(`[Queue] Encolado: ${operation} en ${table}/${recordId}`);
   } catch (e) {
     console.error(
       `[Queue] Error al encolar ${operation} en ${table}/${recordId}:`,

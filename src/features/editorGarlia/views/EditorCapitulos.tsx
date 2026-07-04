@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   ChevronRight,
   ChevronDown,
@@ -33,60 +33,21 @@ import React, {
   useMemo,
 } from "react";
 
-import {
-  renderMarkdown,
-  renderMathInElement,
-  PROSE_STYLES,
-} from "@/components/forms/Markdown/markdownRenderer";
-import type {
-  CommandItem as MdCommandItem,
-  SnippetAction,
-} from "@/components/forms/Markdown/commandItems";
-import { RichEditor } from "@/components/forms/lexical-editor";
 import type { SnippetEditRequest } from "@/components/forms/lexical-editor";
-import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
-import {
+import { RichEditor ,
   dropPayloadToRaw,
   soundPayloadToRaw,
   imgPayloadToRaw,
   choicePayloadToRaw,
-  usePayloadToRaw,
+  parseUsePayloadToRaw,
   gatePayloadToRaw,
   sectionPayloadToRaw,
 } from "@/components/forms/lexical-editor";
-import {
-  BannerOffline,
-  ModalBase,
-  SaveIndicator,
-  CampoInput,
-  BotonSubmit,
-} from "@/components/layout/EstudioTemplates";
-import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { MotionDiv } from "@/components/ui/Motion";
-import {
-  EstadisticasEscritura,
-  LibroCard,
-  LibroColumna,
-  VisibilidadCapPicker,
-  SelectorVisibilidad,
-  SelectorNarrador,
-  SelectorReino,
-  SelectorPersonajesCapitulo,
-  NarradorPill,
-  SelectorImagenPortada,
-  PanelPersonajesCapitulo,
-} from "@/features/editorGarlia/components/editorCapitulos/components";
-import {
-  useCapituloEditor,
-  useReinos,
-} from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
-import { SnippetCommandPalette } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetCommandPalette";
-// SnippetOverlay eliminado — reemplazado por nodos Lexical reales
-import {
+import type {
   Libro,
   Capitulo,
-  SaveStatus,
+  SaveStatus} from "@/components/forms/lexical-editor/types";
+import {
   VISIBILIDAD_CONFIG,
   toDateInput,
   capUpdateContenido,
@@ -96,6 +57,42 @@ import {
   libroUpdateMeta,
   libroDelete,
 } from "@/components/forms/lexical-editor/types";
+import type {
+  CommandItem as MdCommandItem,
+  SnippetAction,
+} from "@/components/forms/Markdown/commandItems";
+import {
+  renderMarkdown,
+  renderMathInElement,
+  PROSE_STYLES,
+} from "@/components/forms/Markdown/markdownRenderer";
+import {
+  BannerOffline,
+  ModalBase,
+  SaveIndicator,
+  CampoInput,
+  BotonSubmit,
+} from "@/components/layout/EstudioTemplates";
+import { type ComboItem } from "@/components/ui/ComboSelector";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { MotionDiv } from "@/components/ui/Motion";
+import {
+  EstadisticasEscritura,
+  VisibilidadCapPicker,
+  SelectorVisibilidad,
+  SelectorNarrador,
+  SelectorReino,
+  SelectorPersonajesCapitulo,
+  SelectorImagenPortada,
+  PanelPersonajesCapitulo,
+} from "@/features/editorGarlia/components/editorCapitulos/components";
+import {
+  useCapituloEditor,
+  useReinos,
+} from "@/features/editorGarlia/components/editorCapitulos/hooks/hooks";
+import { SnippetCommandPalette } from "@/features/editorGarlia/components/editorCapitulos/snippets/SnippetCommandPalette";
+// SnippetOverlay eliminado — reemplazado por nodos Lexical reales
+import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import {
@@ -103,8 +100,8 @@ import {
   useDraftRestore,
   DraftRestoreBanner,
 } from "@/hooks/useEditorShared";
-import { supabase } from "@/lib/api/client/supabase";
 import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
 
 // ─── Dialog commands ──────────────────────────────────────────────────────────
 
@@ -196,7 +193,7 @@ const PanelEditor = ({
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
 }) => {
-  const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
+  const { cap, setCap, loading, isOffline, reload: _reload } = useCapituloEditor(capId);
 
   // ─── Derived state para contenido ────────────────────────────────────────────
   // Usar useEffect para inicializar contenido provoca un flash inevitable:
@@ -449,7 +446,7 @@ const PanelEditor = ({
     [doSave, draft, centerCursor, capId],
   );
 
-  const handleSnippetAction = useCallback(
+  const _handleSnippetAction = useCallback(
     (action: SnippetAction) => {
       switch (action.type) {
         case "choice": {
@@ -560,7 +557,7 @@ const PanelEditor = ({
         case "choice":
           return choicePayloadToRaw(payload);
         case "use":
-          return usePayloadToRaw(payload);
+          return parseUsePayloadToRaw(payload);
         case "gate":
           return gatePayloadToRaw(payload);
         case "section":
@@ -654,7 +651,7 @@ const PanelEditor = ({
     [openPalette],
   );
 
-  const extraCommands: MdCommandItem[] = useMemo(
+  const _extraCommands: MdCommandItem[] = useMemo(
     () => [...snippetCommands, ...DIALOG_COMMANDS],
     [snippetCommands],
   );
@@ -834,7 +831,7 @@ const PanelEditor = ({
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSaveTitle();
+                    if (e.key === "Enter") void handleSaveTitle();
                     if (e.key === "Escape") {
                       setEditingTitle(false);
                       setTitulo(cap.titulo_capitulo);
@@ -916,7 +913,7 @@ const PanelEditor = ({
                     );
                     if (v !== "programado") {
                       setFecha("");
-                      capUpdateMeta(capId, { fecha_publicacion: null as any });
+                      void capUpdateMeta(capId, { fecha_publicacion: null as any });
                     }
                   }}
                 />
@@ -931,7 +928,7 @@ const PanelEditor = ({
                         value={fecha}
                         onChange={(e) => setFecha(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveFecha();
+                          if (e.key === "Enter") void handleSaveFecha();
                           if (e.key === "Escape") {
                             setEditingFecha(false);
                             setFecha(toDateInput(cap.fecha_publicacion));
@@ -1069,18 +1066,18 @@ const PanelEditor = ({
                 // texto fantasma terminaba autoguardándose sobre el
                 // capítulo equivocado o vacío. Ver doSave/onChange guards
                 // más arriba para la segunda capa de esta protección.
+                closePaletteRef={closePaletteRef}
                 editable={!loading && initializedCapId === cap?.id}
                 insertRef={mdInsertRef}
-                closePaletteRef={closePaletteRef}
                 minHeight={focusMode ? "30rem" : "20rem"}
                 mode={focusMode ? "edit" : "split"}
                 placeholder="Empieza a escribir…"
+                renderPreview={renderChapterPreview}
                 value={contenido}
                 onChange={onChange}
-                onSnippetEdit={handleSnippetEdit}
-                onOpenPalette={handleOpenPaletteFromSlash}
                 onClosePalette={handleClosePalette}
-                renderPreview={renderChapterPreview}
+                onOpenPalette={handleOpenPaletteFromSlash}
+                onSnippetEdit={handleSnippetEdit}
               />
             </div>
           </div>
@@ -1114,8 +1111,8 @@ const PanelEditor = ({
       {palette && (
         <SnippetCommandPalette
           anchorRect={palette.anchorRect}
-          initialRaw={palette.initialRaw}
           initialQuery={palette.initialQuery}
+          initialRaw={palette.initialRaw}
           listaCapitulos={listaSnippetCaps}
           listaSecciones={listaSecciones}
           onClose={() => {
@@ -1452,7 +1449,7 @@ function BibliotecaPortadas({
                           "color-mix(in srgb, var(--primary) 6%, transparent)",
                       }}
                     >
-                      <BookMarked size={24} className="text-primary/15" />
+                      <BookMarked className="text-primary/15" size={24} />
                     </div>
                   )}
 
@@ -1543,7 +1540,7 @@ function useCiudades() {
     { id: string; nombre: string; reino_id?: string | null }[]
   >([]);
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const table = (db as any)["ciudades"];
         if (table) {
@@ -1623,7 +1620,7 @@ function BarraLibro({
   const [visibilidad, setVisibilidad] = useState<
     "publico" | "programado" | "oculto"
   >(libro?.visibilidad ?? "oculto");
-  const [fechaLibro, setFechaLibro] = useState(libro?.fecha_publicacion ?? "");
+  const [_fechaLibro, setFechaLibro] = useState(libro?.fecha_publicacion ?? "");
   const [grupoId, setGrupoId] = useState<string | null>(
     libro?.categoria ?? null,
   );
@@ -1636,7 +1633,7 @@ function BarraLibro({
   const [editTitulo, setEditTitulo] = useState(false);
   const titRef = useRef<HTMLInputElement>(null);
 
-  const { items: gruposItems, loading: loadingGrupos } = useGruposLibros();
+  const { items: gruposItems, loading: _loadingGrupos } = useGruposLibros();
   const { reinos } = useReinos();
   const { ciudades } = useCiudades();
 
@@ -1707,26 +1704,26 @@ function BarraLibro({
 
   const saveTitulo = () => {
     const t = titulo.trim().toUpperCase();
-    if (t && t !== libro?.titulo) save({ titulo: t });
+    if (t && t !== libro?.titulo) void save({ titulo: t });
     setEditTitulo(false);
   };
 
   const selectVis = (v: "publico" | "programado" | "oculto") => {
     setVisibilidad(v);
-    save({ visibilidad: v });
+    void save({ visibilidad: v });
     setDropVis(false);
   };
 
   const selectEstado = (e: string) => {
     setEstado(e);
-    save({ estado: e });
+    void save({ estado: e });
     setDropEstado(false);
   };
 
   const toggleTw = (tw: string) => {
     const next = tws.includes(tw) ? tws.filter((x) => x !== tw) : [...tws, tw];
     setTws(next);
-    save({ trigger_warnings: next } as any);
+    void save({ trigger_warnings: next } as any);
   };
 
   const addCustomTw = () => {
@@ -1734,7 +1731,7 @@ function BarraLibro({
     if (v && !tws.includes(v)) {
       const next = [...tws, v];
       setTws(next);
-      save({ trigger_warnings: next } as any);
+      void save({ trigger_warnings: next } as any);
     }
     setTwCustom("");
     setTwAdding(false);
@@ -1801,8 +1798,8 @@ function BarraLibro({
               />
             ) : (
               <BookMarked
-                size={9}
                 className="text-primary/20 group-hover:text-primary/50 transition-colors"
+                size={9}
               />
             )}
           </button>
@@ -1820,7 +1817,7 @@ function BarraLibro({
                 value={portada}
                 onChange={(v) => {
                   setPortada(v);
-                  save({ portada_url: v });
+                  void save({ portada_url: v });
                   setDropPortada(false);
                 }}
               />
@@ -1912,8 +1909,8 @@ function BarraLibro({
                     {VISIBILIDAD_LABEL[v]}
                     {visibilidad === v && (
                       <Check
-                        size={8}
                         className="ml-auto"
+                        size={8}
                         style={{ color: "var(--primary)" }}
                       />
                     )}
@@ -1965,8 +1962,8 @@ function BarraLibro({
                     {est}
                     {estado === est && (
                       <Check
-                        size={8}
                         className="ml-auto"
+                        size={8}
                         style={{ color: "var(--primary)" }}
                       />
                     )}
@@ -2013,15 +2010,15 @@ function BarraLibro({
                   }}
                   onClick={() => {
                     setGrupoId(null);
-                    save({ categoria: null });
+                    void save({ categoria: null });
                     setDropGrupo(false);
                   }}
                 >
                   Sin grupo{" "}
                   {!grupoId && (
                     <Check
-                      size={8}
                       className="ml-auto"
+                      size={8}
                       style={{ color: "var(--primary)" }}
                     />
                   )}
@@ -2038,15 +2035,15 @@ function BarraLibro({
                     }}
                     onClick={() => {
                       setGrupoId(g.id);
-                      save({ categoria: g.id });
+                      void save({ categoria: g.id });
                       setDropGrupo(false);
                     }}
                   >
                     {g.label}
                     {grupoId === g.id && (
                       <Check
-                        size={8}
                         className="ml-auto"
+                        size={8}
                         style={{ color: "var(--primary)" }}
                       />
                     )}
@@ -2169,7 +2166,7 @@ function BarraLibro({
                         >
                           {tw}
                         </span>
-                        <X size={8} className="text-primary/30" />
+                        <X className="text-primary/30" size={8} />
                       </button>
                     ))}
                 </div>
@@ -2643,7 +2640,7 @@ export function EditorCapitulosPanel() {
   const [focusMode, setFocusMode] = useState(false);
   const [showNuevoCap, setShowNuevoCap] = useState(false);
   const [showNuevoLibro, setShowNuevoLibro] = useState(false);
-  const [capRefreshKey, setCapRefreshKey] = useState(0);
+  const [_capRefreshKey, setCapRefreshKey] = useState(0);
   const handleLibroEditado = (libro: Libro) => {
     setLibros((prev: Libro[]) =>
       prev.map((l) => (l.id === libro.id ? libro : l)),
@@ -2783,7 +2780,7 @@ export function EditorCapitulosPanel() {
   useEffect(() => {
     if (selectedCapId || loadingLibros || libros.length === 0) return;
     const libro = libros.find((l) => l.id === selectedLibroId) ?? libros[0];
-    (async () => {
+    void (async () => {
       const caps = await cargarCapsLibro(libro.id);
       setSelectedLibroId(libro.id);
       if (caps.length > 0) setSelectedCapId(caps[0].id);
@@ -2858,8 +2855,8 @@ export function EditorCapitulosPanel() {
         {/* ── Barra superior del libro — se re-sincroniza sola al cambiar de libro ── */}
         {hayCapAbierto && (
           <BarraLibro
-            libro={libroActivo}
             capitulos={capitulosLibroActivo}
+            libro={libroActivo}
             onLibroChange={handleLibroEditado}
           />
         )}
@@ -2868,21 +2865,21 @@ export function EditorCapitulosPanel() {
         <div className="flex-1 min-h-0 flex overflow-hidden">
           <SidebarLibros
             libros={libros}
-            loadingLibros={loadingLibros}
-            porLibro={porLibro}
             loadingCapsIds={loadingCapsIds}
-            selectedLibroId={selectedLibroId}
-            selectedCapId={selectedCapId}
+            loadingLibros={loadingLibros}
             open={sidebarOpen}
+            porLibro={porLibro}
+            selectedCapId={selectedCapId}
+            selectedLibroId={selectedLibroId}
             onCargarCapsLibro={cargarCapsLibro}
-            onSelectCap={handleSelectCap}
             onDeleteCap={handleCapEliminada}
+            onDeleteLibro={handleLibroEliminado}
             onNuevoCap={(libroId) => {
               setSelectedLibroId(libroId);
               setShowNuevoCap(true);
             }}
             onNuevoLibro={() => setShowNuevoLibro(true)}
-            onDeleteLibro={handleLibroEliminado}
+            onSelectCap={handleSelectCap}
             onToggleSidebar={() => setSidebarOpen((o) => !o)}
           />
 
@@ -2897,7 +2894,7 @@ export function EditorCapitulosPanel() {
                 sidebarOpen={sidebarOpen}
                 onCapitulosChange={() => {
                   setCapRefreshKey((k) => k + 1);
-                  if (selectedLibroId) reloadCapsLibro(selectedLibroId);
+                  if (selectedLibroId) void reloadCapsLibro(selectedLibroId);
                 }}
                 onToggleFocus={() => setFocusMode((m) => !m)}
                 onToggleSidebar={() => setSidebarOpen((o) => !o)}

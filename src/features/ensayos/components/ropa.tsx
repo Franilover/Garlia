@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 
 
 import { AnimatePresence } from "framer-motion";
@@ -7,6 +6,7 @@ import {
   Trash2, Save, X, Loader2, ZoomIn, Plus, Image as ImageIcon,
   Pencil, SlidersHorizontal, Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useMemo } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";

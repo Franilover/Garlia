@@ -31,7 +31,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    loadCache();
+    void loadCache();
   }, []);
 
   const updateCache = useCallback((tabla: string, data: any) => {

@@ -7,13 +7,13 @@ import {
 import React, { useState, useCallback, useEffect } from "react";
 
 import { BannerOffline } from "@/components/layout/EstudioTemplates";
+import { IDIOMAS, ESTADO_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
+import { useCancionEditor } from "@/features/editorGarlia/components/editorLetras/hooks/useCancionEditor";
+import { secUpdate, secCreate, secDelete, secReorder } from "@/features/editorGarlia/components/editorLetras/lib/seccionesDb";
+import type { Seccion, IdiomaKey, EditorTab } from "@/features/editorGarlia/components/editorLetras/types";
 
 import { IdiomaTab } from "./IdiomaTab";
 import { SeccionEditor } from "./SeccionEditor";
-import { IDIOMAS, ESTADO_COLOR } from "../../constants";
-import { useCancionEditor } from "../../hooks/useCancionEditor";
-import { secUpdate, secCreate, secDelete, secReorder } from "../../lib/seccionesDb";
-import type { Seccion, IdiomaKey, EditorTab } from "../../types";
 import { ModalLectorLetras } from "../modals/ModalLectorLetras";
 import { PanelGuionMV } from "../panels/PanelGuionMV";
 import { PanelInfo } from "../panels/PanelInfo";
@@ -313,7 +313,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   placeholder="NOMBRE DE LA SECCIÓN..."
                   value={addingName}
                   onChange={e => setAddingName(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setAddingOpen(false); }}
+                  onKeyDown={e => { if (e.key === "Enter") void handleAdd(); if (e.key === "Escape") setAddingOpen(false); }}
                 />
                 <button className="bg-primary text-bg-main px-6 rounded-xl font-black transition-transform active:scale-95" onClick={handleAdd}>
                   <Check size={18} />

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/api/client/supabase';
-import { ropaFullQuery, Ropa, Inserts, Updates } from '@/lib/types/queries';
+import type { Ropa, Inserts, Updates } from '@/lib/types/queries';
+import { ropaFullQuery } from '@/lib/types/queries';
 
 export const ropaQueries = {
   getAll: async (): Promise<Ropa[]> => {

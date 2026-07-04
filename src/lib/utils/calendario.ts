@@ -131,7 +131,7 @@ export function fechaADiaAbsoluto(
 
 
 
-export function formatFechaMundo(fecha: FechaMundo, config: CalendarioConfig): string {
+export function formatFechaMundo(fecha: FechaMundo, _config: CalendarioConfig): string {
   return `Año ${fecha.anio} · ${fecha.estacion.nombre} · Semana ${fecha.semana_en_estacion} · Día ${fecha.dia_en_semana}`;
 }
 

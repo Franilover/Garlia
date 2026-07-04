@@ -9,7 +9,7 @@
  */
 
 import { Sparkles, Star, ScrollText } from "lucide-react";
-import React from "react";
+import type React from "react";
 
 export type Hechizo = {
   id: string;

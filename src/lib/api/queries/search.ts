@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { isReallyOnline } from "@/lib/utils/offlineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { loadPersonajes } from "@/lib/api/client/syncEngine";
 import type { Tables } from "@/lib/types/supabase";
+import { isReallyOnline } from "@/lib/utils/offlineSync";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -143,8 +143,8 @@ async function searchDexie(term: string): Promise<GlobalSearchResults | null> {
     // Auto-sanar caché: Dexie puede tener copias viejas (ej. sin img_url
     // recién agregado). No bloqueamos la búsqueda actual, pero disparamos
     // un refresh en background para que la PRÓXIMA búsqueda ya esté fresca.
-    isReallyOnline().then((online) => {
-      if (online) loadPersonajes();
+    void isReallyOnline().then((online) => {
+      if (online) void loadPersonajes();
     });
 
     return hasAnyData ? results : null;

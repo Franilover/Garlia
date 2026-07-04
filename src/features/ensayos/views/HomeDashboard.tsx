@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
-import { MotionDiv } from "@/components/ui/Motion";
 import { useAppPanels } from "@/components/command/";
+import { MotionDiv } from "@/components/ui/Motion";
 import { RelojDigital } from "@/features/ensayos/components/relojDigital";
 import ArmarioPage from "@/features/ensayos/components/ropa";
 import type { ModoCalendario } from "@/features/ensayos/components/types";

@@ -1,7 +1,6 @@
 "use client";
-import Image from "next/image";
-
 import { X, MapPin } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";

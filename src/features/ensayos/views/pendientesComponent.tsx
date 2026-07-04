@@ -185,7 +185,7 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon, color: 0, orden });
+    void onGuardar({ nombre: nombre.trim(), icon, color: 0, orden });
   };
 
   return (
@@ -243,7 +243,7 @@ const FormEditarCategoria = ({ cat, onGuardar, onCancelar, guardando }: FormEdit
 
   const handleGuardar = () => {
     if (!nombre.trim()) return;
-    onGuardar({ nombre: nombre.trim(), icon });
+    void onGuardar({ nombre: nombre.trim(), icon });
   };
 
   return (
@@ -611,7 +611,7 @@ export const PaginaPendientes = () => {
     }
   }, []);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
   const handleGuardarCat = async (datos: Omit<Categoria, "id">) => {
     setGuardandoCat(true);
@@ -632,7 +632,7 @@ export const PaginaPendientes = () => {
       setCategorias(prev => prev.map(c => c.id === id ? updated : c));
     } catch (err) {
       console.error("[PaginaPendientes] editar cat:", err);
-      cargar();
+      void cargar();
     }
   };
 
@@ -643,7 +643,7 @@ export const PaginaPendientes = () => {
       await categoriasQueries.delete(id);
     } catch (err) {
       console.error("[PaginaPendientes] eliminar cat:", err);
-      cargar();
+      void cargar();
     }
   };
 
@@ -662,7 +662,7 @@ export const PaginaPendientes = () => {
       await itemsQueries.toggleHecho(id, hecho);
     } catch (err) {
       console.error("[PaginaPendientes] toggle:", err);
-      cargar();
+      void cargar();
     }
   };
 
@@ -672,7 +672,7 @@ export const PaginaPendientes = () => {
       await itemsQueries.delete(id);
     } catch (err) {
       console.error("[PaginaPendientes] eliminar item:", err);
-      cargar();
+      void cargar();
     }
   };
 

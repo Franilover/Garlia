@@ -1,7 +1,6 @@
 "use client";
-import Image from "next/image";
-
 import { Save, X, Loader2, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 import React, { useState } from "react";
 
 import { ChipGroup } from "@/components/ui/Chip";

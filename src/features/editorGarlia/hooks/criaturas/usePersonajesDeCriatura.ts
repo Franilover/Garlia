@@ -67,7 +67,7 @@ export function usePersonajesDeCriatura(
       setLoading(false);
     };
 
-    run();
+    void run();
   }, [nombreCriatura]);
 
   const toggle = async (

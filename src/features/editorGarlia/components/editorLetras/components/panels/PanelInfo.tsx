@@ -24,10 +24,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 
 import { ComboSelector, type ComboItem } from "@/components/ui/ComboSelector";
 import { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
+import { ESTADOS } from "@/features/editorGarlia/components/editorLetras/constants";
+import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import { supabase } from "@/lib/api/client/supabase";
-
-import { ESTADOS } from "../../constants";
-import type { Cancion } from "../../types";
 
 // Mapa de etiquetas legibles por estado
 const ESTADO_LABEL: Record<string, string> = {
@@ -168,7 +167,7 @@ export const PanelInfo = ({
   const [activeField, setActiveField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const [_dirty, setDirty] = useState(false);
   const [personajes, setPersonajes] = useState<ComboItem[]>([]);
   const timer = useRef<any>(null);
 
@@ -223,7 +222,7 @@ export const PanelInfo = ({
           })),
         );
     };
-    fetchSuggestions();
+    void fetchSuggestions();
   }, []);
 
   const doSave = useCallback(
@@ -276,7 +275,7 @@ export const PanelInfo = ({
     setDirty(true);
     setSaved(false);
     clearTimeout(timer.current);
-    doSave(newData);
+    void doSave(newData);
   };
 
   const handleEmocionChange = (emocion: string) => {
@@ -287,7 +286,7 @@ export const PanelInfo = ({
     setDirty(true);
     setSaved(false);
     clearTimeout(timer.current);
-    doSave(newData);
+    void doSave(newData);
   };
 
   const handleDuracionBlur = () => {
@@ -299,7 +298,7 @@ export const PanelInfo = ({
     setDirty(true);
     setSaved(false);
     clearTimeout(timer.current);
-    doSave(newData);
+    void doSave(newData);
   };
 
   const getFilteredSuggestions = (field: string) => {
@@ -316,7 +315,7 @@ export const PanelInfo = ({
     setDirty(true);
     setSaved(false);
     clearTimeout(timer.current);
-    doSave(newData);
+    void doSave(newData);
   };
 
   const handleVisibleChange = (visible: boolean) => {
@@ -325,7 +324,7 @@ export const PanelInfo = ({
     setDirty(true);
     setSaved(false);
     clearTimeout(timer.current);
-    doSave(newData);
+    void doSave(newData);
   };
 
   const handleUbicacionChange = async (
@@ -351,7 +350,7 @@ export const PanelInfo = ({
       ? ciudades.some((c) => c.id === ciudadId && (c as any).meta === id)
       : false;
     const nuevaCiudad = ciudadActualEsDeEsteReino ? ciudadId : null;
-    handleUbicacionChange(id, nuevaCiudad);
+    void handleUbicacionChange(id, nuevaCiudad);
   };
 
   const handleCiudadChange = (id: string | null) => {
@@ -359,9 +358,9 @@ export const PanelInfo = ({
     if (id) {
       const ciudad = ciudades.find((c) => c.id === id);
       const ciudadReinoId = (ciudad as any)?.meta ?? null;
-      handleUbicacionChange(ciudadReinoId ?? reinoId, id);
+      void handleUbicacionChange(ciudadReinoId ?? reinoId, id);
     } else {
-      handleUbicacionChange(reinoId, null);
+      void handleUbicacionChange(reinoId, null);
     }
   };
 

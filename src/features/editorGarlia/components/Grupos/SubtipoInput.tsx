@@ -13,7 +13,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { GRUPO_TIPO_CONFIG, type GrupoTipo } from "../../hooks/grupos/useGrupos";
+import { GRUPO_TIPO_CONFIG, type GrupoTipo } from "@/features/editorGarlia/hooks/grupos/useGrupos";
 
 export function SubtipoInput({
   value,

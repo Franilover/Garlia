@@ -27,13 +27,13 @@ export function useOfflineSync() {
     triggerSyncRef.current = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        runSync();
+        void runSync();
       }, 500);
     };
 
     const handleOnline = () => triggerSyncRef.current();
 
-    runSync();
+    void runSync();
     window.addEventListener("online", handleOnline);
     return () => {
       window.removeEventListener("online", handleOnline);

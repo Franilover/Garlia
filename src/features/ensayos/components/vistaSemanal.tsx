@@ -7,8 +7,9 @@ import { BtnIcon } from "@/components/ui";
 import { MotionDiv } from "@/components/ui/Motion";
 import { cn } from "@/lib/utils/index";
 
-import {
-  VistaOpcion, Evento, EventoBadge,
+import type {
+  VistaOpcion, Evento} from "./types";
+import { EventoBadge,
   DIAS_SEMANA_CORTO, DIAS_SEMANA_LETRA, MESES, VISTAS, TIPOS_EVENTO,
   addDays, isSameDay, toUTCDate,
 } from "./types";
@@ -285,7 +286,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-black text-[var(--text-on-card)]/90 uppercase italic truncate">"{ev.titulo}"</p>
+                <p className="text-[9px] font-black text-[var(--text-on-card)]/90 uppercase italic truncate">&quot;{ev.titulo}&quot;</p>
                 <p className="text-[7px] font-bold text-[var(--text-on-card)]/40 uppercase tracking-tight">{ev.tipo}</p>
               </div>
               {ev.esCapitulo && (

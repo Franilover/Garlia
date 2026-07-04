@@ -35,17 +35,17 @@
  *   - Primer item con más items después: el párrafo queda ANTES del
  *     ListNode (que conserva los items restantes).
  */
+import { $isListItemNode, $isListNode, $createListNode } from "@lexical/list";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type {
+  LexicalNode} from "lexical";
 import {
   $getSelection,
   $isRangeSelection,
   $createParagraphNode,
-  $isElementNode,
   COMMAND_PRIORITY_HIGH,
-  KEY_BACKSPACE_COMMAND,
-  LexicalNode,
+  KEY_BACKSPACE_COMMAND
 } from "lexical";
-import { $isListItemNode, $isListNode, $createListNode } from "@lexical/list";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect } from "react";
 
 export function ListBackspacePlugin() {

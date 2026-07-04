@@ -102,7 +102,7 @@ export function useNotas() {
   }, []); // sin deps — load es estable, el cleanup lo maneja abortRef
 
   useEffect(() => {
-    load();
+    void load();
     // Al desmontar: cancelar cualquier fetch pendiente para evitar
     // el AbortError que cerraba la sesión
     return () => { abortRef.current?.abort(); };

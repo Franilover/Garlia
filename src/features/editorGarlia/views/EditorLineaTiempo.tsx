@@ -27,7 +27,6 @@ import {
   ChevronDown,
   Clock,
   Crown,
-  Filter,
   Loader2,
   Music,
   Plus,
@@ -37,7 +36,6 @@ import {
 import React, {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -47,17 +45,17 @@ import { createPortal } from "react-dom";
 import { onSyncDone } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import { EraMundo, diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
+import type { EraMundo} from "@/lib/utils/calendario";
+import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
-import { FechaMundoBadge } from "../components/Calendario/FechaMundoBadge";
 import { SelectorFechaMundo } from "../components/Calendario/SelectorFechaMundo";
+import { SaveIndicator } from "../components/UIComponents";
 import {
   useCalendario,
   invalidarCacheEras,
   type CalCache,
 } from "../hooks/calendario/useCalendario";
 import { type Reino, type SaveStatus } from "../hooks/types";
-import { SaveIndicator } from "../components/UIComponents";
 
 // ════════════════════════════════════════════════════════════════════════════
 // ─── Historia del mundo / Línea de tiempo (movido desde EditorMundo.tsx) ────
@@ -934,17 +932,17 @@ function useReinosConHistoria() {
 
   useEffect(() => {
     isMounted.current = true;
-    cargar();
+    void cargar();
 
     // Recargar al recuperar conexión
     const handleOnline = () => {
-      cargar(true);
+      void cargar(true);
     };
     window.addEventListener("online", handleOnline);
 
     // Recargar cuando el sync offline termina de subir cambios
     const unsubSync = onSyncDone(() => {
-      if (isMounted.current) cargar(true);
+      if (isMounted.current) void cargar(true);
     });
 
     return () => {
@@ -1666,14 +1664,14 @@ function EventoDetallePanel({
       {editable ? (
         <input
           className="text-[13px] font-black uppercase leading-tight bg-transparent outline-none w-full rounded px-0.5 -mx-0.5"
-          style={{ color: "var(--primary)" }}
           placeholder="Sin título"
+          style={{ color: "var(--primary)" }}
           value={titulo}
+          onBlur={(e) => onFieldChange?.(evt.id, "titulo", e.target.value)}
           onChange={(e) => {
             setTitulo(e.target.value);
             scheduleSave("titulo", e.target.value);
           }}
-          onBlur={(e) => onFieldChange?.(evt.id, "titulo", e.target.value)}
         />
       ) : (
         <p
@@ -1728,18 +1726,18 @@ function EventoDetallePanel({
       {editable ? (
         <textarea
           className="text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y flex-1 px-0.5 -mx-0.5"
+          placeholder="Sin descripción…"
+          rows={5}
           style={{
             color: "color-mix(in srgb, var(--primary) 65%, transparent)",
             minHeight: 90,
           }}
-          placeholder="Sin descripción…"
-          rows={5}
           value={descripcion}
+          onBlur={(e) => onFieldChange?.(evt.id, "descripcion", e.target.value)}
           onChange={(e) => {
             setDescripcion(e.target.value);
             scheduleSave("descripcion", e.target.value);
           }}
-          onBlur={(e) => onFieldChange?.(evt.id, "descripcion", e.target.value)}
         />
       ) : evt.description ? (
         <p
@@ -1953,7 +1951,6 @@ function ListaEventosConMinimapa({
                   if (el) itemRefs.current.set(evt.id, el);
                   else itemRefs.current.delete(evt.id);
                 }}
-                type="button"
                 className="flex items-center gap-2 px-2 py-1 rounded-lg w-full text-left transition-all"
                 style={{
                   background: isSel
@@ -1969,6 +1966,7 @@ function ListaEventosConMinimapa({
                       : "transparent"
                   }`,
                 }}
+                type="button"
                 onClick={() => {
                   const willSelect = !isSel;
                   setEvtSeleccionado(willSelect ? evt.id : null);
@@ -2007,12 +2005,12 @@ function ListaEventosConMinimapa({
       {/* ── Panel de detalle (editable para mundo/reino) ── */}
       {selEvt && (
         <EventoDetallePanel
-          evt={selEvt}
+          diasAnioLista={diasAnioLista}
           era={selEra}
           eraColor={selEraColor}
-          diasAnioLista={diasAnioLista}
-          onFieldChange={onFieldChange}
+          evt={selEvt}
           onDiaChange={onDiaChange}
+          onFieldChange={onFieldChange}
         />
       )}
     </div>
@@ -2152,7 +2150,7 @@ function EraDropdown({
                 setOpen(false);
               }}
             >
-              {value === null && <Check size={8} className="shrink-0" />}
+              {value === null && <Check className="shrink-0" size={8} />}
               <span className={value === null ? "" : "pl-4"}>
                 Todas las eras
               </span>
@@ -2194,7 +2192,7 @@ function EraDropdown({
                   }}
                 >
                   {activo ? (
-                    <Check size={8} className="shrink-0" />
+                    <Check className="shrink-0" size={8} />
                   ) : (
                     <span
                       style={{
@@ -2230,8 +2228,8 @@ function EraDropdown({
 
 // ── Panel principal — vista y edición unificadas, ambas pistas editables ──────
 export function PanelHistoriaMundo({
-  texto,
-  onChange,
+  texto: _texto,
+  onChange: _onChange,
   onSave,
   initialFilterReino,
   reinoFijo,
@@ -2260,7 +2258,7 @@ export function PanelHistoriaMundo({
 
   const {
     reinos,
-    setReinos,
+    setReinos: _setReinos,
     loading: loadingReinos,
     recargar,
   } = useReinosConHistoria();
@@ -2360,9 +2358,9 @@ export function PanelHistoriaMundo({
         } catch {}
       } catch {}
     };
-    cargarEventosMundo();
+    void cargarEventosMundo();
     const handleOnline = () => {
-      if (!cancelled) cargarEventosMundo();
+      if (!cancelled) void cargarEventosMundo();
     };
     window.addEventListener("online", handleOnline);
     return () => {
@@ -2433,9 +2431,9 @@ export function PanelHistoriaMundo({
           await (db as any).canciones.bulkPut(flat);
       } catch {}
     };
-    cargarCanciones();
+    void cargarCanciones();
     const handleOnline = () => {
-      if (!cancelled) cargarCanciones();
+      if (!cancelled) void cargarCanciones();
     };
     window.addEventListener("online", handleOnline);
     return () => {
@@ -2572,11 +2570,11 @@ export function PanelHistoriaMundo({
       } catch {}
     };
 
-    cargarCaps();
+    void cargarCaps();
 
     // Recargar al volver online
     const handleOnline = () => {
-      if (!cancelled) cargarCaps();
+      if (!cancelled) void cargarCaps();
     };
     window.addEventListener("online", handleOnline);
 
@@ -2643,9 +2641,9 @@ export function PanelHistoriaMundo({
         );
       } catch {}
     };
-    cargar();
+    void cargar();
     const handleOnline = () => {
-      if (!cancelled) cargar();
+      if (!cancelled) void cargar();
     };
     window.addEventListener("online", handleOnline);
     return () => {
@@ -2733,7 +2731,7 @@ export function PanelHistoriaMundo({
     [reinos],
   );
 
-  const handleDiaChange = (id: string, dia: number) => {
+  const _handleDiaChange = (id: string, dia: number) => {
     setDiaOverrides((prev) => ({ ...prev, [id]: dia }));
   };
 
@@ -2784,7 +2782,7 @@ export function PanelHistoriaMundo({
     },
     [],
   );
-  const handleEventoMundoDelete = useCallback(async (id: string) => {
+  const _handleEventoMundoDelete = useCallback(async (id: string) => {
     setEventosMundo((prev) => prev.filter((e) => e.id !== id));
     try {
       await supabase.from("eventos_mundo").delete().eq("id", id);
@@ -3029,8 +3027,6 @@ export function PanelHistoriaMundo({
             />
             <ToggleTipoBtn
               active={showCumpleanos}
-              label="Cumpleaños"
-              onClick={() => setShowCumpleanos((v) => !v)}
               icon={
                 <svg
                   fill="none"
@@ -3053,6 +3049,8 @@ export function PanelHistoriaMundo({
                   <path d="M17 4h.01" />
                 </svg>
               }
+              label="Cumpleaños"
+              onClick={() => setShowCumpleanos((v) => !v)}
             />
           </div>
 
@@ -3121,9 +3119,9 @@ export function PanelHistoriaMundo({
                 eras.find((e: any) => e.id === filterEra) ?? null;
               return (
                 <EraDropdown
+                  eraActiva={eraActiva}
                   eras={eras}
                   value={filterEra}
-                  eraActiva={eraActiva}
                   onChange={setFilterEra}
                 />
               );
@@ -3234,8 +3232,8 @@ export function PanelHistoriaMundo({
       {showNuevoEvento && (
         <ModalNuevoEvento
           creando={creandoEvento}
-          reinos={reinos}
           reinoFijoId={reinoFijo}
+          reinos={reinos}
           onClose={() => setShowNuevoEvento(false)}
           onCrear={handleCrearEvento}
         />
@@ -3296,11 +3294,11 @@ export function PanelHistoriaMundo({
             cal={cal}
             evtSeleccionado={evtSeleccionado}
             setEvtSeleccionado={setEvtSeleccionado}
-            onFieldChange={handleEventoMundoFieldChange}
             onDiaChange={handleEventoMundoDiaChange}
-            onSelectPersonaje={onSelectPersonaje}
-            onSelectCapitulo={onSelectCapitulo}
+            onFieldChange={handleEventoMundoFieldChange}
             onSelectCancion={onSelectCancion}
+            onSelectCapitulo={onSelectCapitulo}
+            onSelectPersonaje={onSelectPersonaje}
           />
         )}
       </div>

@@ -81,7 +81,7 @@ export function useNombresDeTabla(tabla: string) {
       } catch {}
     };
 
-    run();
+    void run();
     return () => {
       cancelled = true;
     };

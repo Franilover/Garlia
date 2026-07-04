@@ -4,9 +4,9 @@ import { Link2, ChevronDown, ExternalLink, Pencil, Trash2, Loader2, Check } from
 import React, { useState } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import type { CancionLink } from "@/features/editorGarlia/components/editorLetras/types";
 import { supabase } from "@/lib/api/client/supabase";
 
-import type { CancionLink } from "../../types";
 
 export const PanelLinks = ({
   cancionId, links, onLinksChange,

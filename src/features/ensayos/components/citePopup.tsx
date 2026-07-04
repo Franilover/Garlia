@@ -2,7 +2,7 @@
 import React from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { ZoteroSource } from "@/features/ensayos/views/page";
+import type { ZoteroSource } from "@/features/ensayos/views/page";
 
 interface CitePopupProps {
   sources: ZoteroSource[];
@@ -13,7 +13,7 @@ interface CitePopupProps {
   activeIndex: number;
 }
 
-export function CitePopup({ sources, query, position, onSelect, onClose, activeIndex }: CitePopupProps) {
+export function CitePopup({ sources, query, position: _position, onSelect, onClose: _onClose, activeIndex }: CitePopupProps) {
   const filtered = sources
     .filter(s =>
       !query ||

@@ -1,5 +1,5 @@
 "use client";
-import { LucideProps } from "lucide-react";
+import type { LucideProps } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
@@ -25,7 +25,7 @@ export const MenuCard = ({
   onClick,
   horizontal = false,
 }: MenuCardProps) => {
-  const { theme } = useTheme();
+  const { theme: _theme } = useTheme();
 
   return (
     <MotionDiv

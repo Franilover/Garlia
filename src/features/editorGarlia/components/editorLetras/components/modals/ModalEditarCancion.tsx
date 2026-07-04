@@ -4,11 +4,12 @@ import { Pencil, X, Eye, EyeOff, Loader2, Check } from "lucide-react";
 import React, { useState } from "react";
 
 import { ModalBase, CampoInput } from "@/components/layout/EstudioTemplates";
+import { ESTADOS } from "@/features/editorGarlia/components/editorLetras/constants";
+import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import { SelectPersonaje, SelectIdioma } from "@/hooks/useEditorShared";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { ESTADOS } from "../../constants";
-import type { Cancion } from "../../types";
+
 import { InputConSugerencias } from "../InputConSugerencias";
 
 export const ModalEditarCancion = ({

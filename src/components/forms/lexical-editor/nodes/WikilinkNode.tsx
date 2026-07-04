@@ -19,7 +19,6 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 

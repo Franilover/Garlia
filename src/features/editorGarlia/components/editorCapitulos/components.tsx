@@ -1,6 +1,4 @@
 "use client";
-import Image from "next/image";
-
 import {
   ChevronDown,
   ChevronRight,
@@ -11,7 +9,6 @@ import {
   Clock,
   Hash,
   AlignLeft,
-  Calendar,
   BookMarked,
   Pencil,
   MoreHorizontal,
@@ -26,26 +23,28 @@ import {
   SlidersHorizontal,
   Check,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 
-import { ComboSelector } from "@/components/ui/ComboSelector";
-import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
-import { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
-import { usePersonajes } from "@/hooks/useEditorShared";
-import { db } from "@/lib/api/client/db";
-import { supabase } from "@/lib/api/client/supabase";
-
-import { useCapitulos, useReinos } from "./hooks/hooks";
-import {
+import type {
   Libro,
-  Capitulo,
+  Capitulo} from "@/components/forms/lexical-editor/types";
+import {
   VISIBILIDAD_CONFIG,
   wordCount,
   readingTime,
   capUpdateMeta,
 } from "@/components/forms/lexical-editor/types";
+import { ComboSelector } from "@/components/ui/ComboSelector";
+import { useConfirm } from "@/components/ui/ConfirmModal";
+import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
+import { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
+import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { usePersonajes } from "@/hooks/useEditorShared";
+import { db } from "@/lib/api/client/db";
+import { supabase } from "@/lib/api/client/supabase";
+
+import { useCapitulos, useReinos } from "./hooks/hooks";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
 export const EstadisticasEscritura = ({
@@ -1438,7 +1437,7 @@ export const VisibilidadCapPicker = ({
         onClick={() => setOpen((o) => !o)}
       >
         {saving ? (
-          <Loader2 size={8} className="animate-spin" />
+          <Loader2 className="animate-spin" size={8} />
         ) : (
           <Icon size={8} />
         )}
@@ -1473,8 +1472,8 @@ export const VisibilidadCapPicker = ({
                 {c.label}
                 {current === v && (
                   <Check
-                    size={8}
                     className="ml-auto"
+                    size={8}
                     style={{ color: "var(--primary)" }}
                   />
                 )}
@@ -1748,7 +1747,7 @@ function useCriaturas() {
   >([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    (async () => {
+    void (async () => {
       // 1️⃣ Dexie first
       try {
         const table = (db as any)["criaturas"];
@@ -1793,7 +1792,7 @@ function useItems() {
   >([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    (async () => {
+    void (async () => {
       // 1️⃣ Dexie first
       try {
         const table = (db as any)["items"];
@@ -1843,7 +1842,7 @@ function useCiudades() {
   >([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    (async () => {
+    void (async () => {
       // 1️⃣ Dexie first
       try {
         const table = (db as any)["ciudades"];
@@ -1928,7 +1927,7 @@ const SeccionTriggerWarnings = ({
     const next = activos.includes(tw)
       ? activos.filter((x) => x !== tw)
       : [...activos, tw];
-    save(next);
+    void save(next);
   };
 
   const addCustom = () => {
@@ -1938,7 +1937,7 @@ const SeccionTriggerWarnings = ({
       setAdding(false);
       return;
     }
-    save([...activos, v]);
+    void save([...activos, v]);
     setCustom("");
     setAdding(false);
   };
@@ -2162,12 +2161,12 @@ export const PanelPersonajesCapitulo = ({
 
   // ── Orden del capítulo ───────────────────────────────────────────────────
   const [ordenCap, setOrdenCap] = useState<string>("");
-  const [savingOrdenCap, setSavingOrdenCap] = useState(false);
+  const [_savingOrdenCap, setSavingOrdenCap] = useState(false);
 
   // ── Posición en línea de tiempo ───────────────────────────────────────────
   const [ordenLinea, setOrdenLinea] = useState<string>("");
   const [savingOrden, setSavingOrden] = useState(false);
-  const ordenInputRef = useRef<HTMLInputElement>(null);
+  const _ordenInputRef = useRef<HTMLInputElement>(null);
 
   // ── Reinos del capítulo ───────────────────────────────────────────────────
   const { reinos, loading: loadingReinos } = useReinos();
@@ -2185,10 +2184,10 @@ export const PanelPersonajesCapitulo = ({
     "publico" | "programado" | "oculto"
   >("oculto");
   const [savingVis, setSavingVis] = useState(false);
-  const [dropVis, setDropVis] = useState(false);
+  const [_dropVis, setDropVis] = useState(false);
   const dropVisRef = useRef<HTMLDivElement>(null);
   const [fechaProg, setFechaProg] = useState<string>("");
-  const [savingFecha, setSavingFecha] = useState(false);
+  const [_savingFecha, setSavingFecha] = useState(false);
 
   // ── Narrador del capítulo ─────────────────────────────────────────────────
   const [narradorId, setNarradorId] = useState<string | null>(null);
@@ -2250,7 +2249,7 @@ export const PanelPersonajesCapitulo = ({
       } catch {}
     };
 
-    cargar();
+    void cargar();
     return () => {
       cancelled = true;
     };
@@ -2288,7 +2287,7 @@ export const PanelPersonajesCapitulo = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleSaveVisibilidad = async (
+  const _handleSaveVisibilidad = async (
     v: "publico" | "programado" | "oculto",
   ) => {
     if (v === visibilidad || savingVis) return;
@@ -2304,7 +2303,7 @@ export const PanelPersonajesCapitulo = ({
     setSavingVis(false);
   };
 
-  const handleSaveFechaProg = async () => {
+  const _handleSaveFechaProg = async () => {
     if (!fechaProg) return;
     setSavingFecha(true);
     try {
@@ -2394,13 +2393,13 @@ export const PanelPersonajesCapitulo = ({
       }
     };
 
-    cargar();
+    void cargar();
     return () => {
       cancelled = true;
     };
   }, [narradorId, ordenLinea]);
 
-  const handleSaveOrdenCap = async () => {
+  const _handleSaveOrdenCap = async () => {
     const num = parseInt(ordenCap.trim(), 10);
     if (isNaN(num) || num < 1) return;
     setSavingOrdenCap(true);
@@ -2410,7 +2409,7 @@ export const PanelPersonajesCapitulo = ({
     setSavingOrdenCap(false);
   };
 
-  const handleSaveOrden = async () => {
+  const _handleSaveOrden = async () => {
     const val = ordenLinea.trim();
     const num = val === "" ? null : parseInt(val, 10);
     if (val !== "" && isNaN(num as number)) return;

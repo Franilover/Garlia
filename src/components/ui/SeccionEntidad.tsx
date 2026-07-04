@@ -84,7 +84,7 @@ export const SeccionEntidad = ({
 
   // ── Entidades ──────────────────────────────────────────────────────────────
   const selected = allEntities.filter((e) => selectedIds.includes(e.id));
-  const available = allEntities.filter((e) => !selectedIds.includes(e.id));
+  const _available = allEntities.filter((e) => !selectedIds.includes(e.id));
 
   // ── Filtrado por búsqueda (sobre todas las entidades, marcando las ya seleccionadas) ─
   const filtered = useMemo(() => {

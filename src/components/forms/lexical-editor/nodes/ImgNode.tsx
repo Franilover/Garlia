@@ -7,19 +7,17 @@
  * y `word` (solo float tiene palabra asociada).
  */
 import type {
-  EditorConfig,
   LexicalEditor,
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 
-import { SnippetChip } from "./SnippetChip";
 import { snippetEditHandler } from "./sharedTypes";
+import { SnippetChip } from "./SnippetChip";
 
 export interface ImgPayload {
   url: string;

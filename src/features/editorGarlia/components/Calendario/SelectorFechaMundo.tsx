@@ -20,17 +20,17 @@ import { Check, ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import {
+import { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";
+import type {
   Estacion,
   CalendarioConfig,
-  EraMundo,
+  EraMundo} from "@/lib/utils/calendario";
+import {
   diaAbsolutoAFecha,
   fechaADiaAbsoluto,
   formatFechaCorta,
-  eraEnAnio,
 } from "@/lib/utils/calendario";
 
-import { useCalendario } from "../../hooks/calendario/useCalendario";
 
 // value: día absoluto | null
 // onChange: devuelve el nuevo día absoluto
@@ -195,7 +195,7 @@ function FechaMundoEditor({
   value,
   estaciones,
   config,
-  eras,
+  eras: _eras,
   onChange,
   onClear,
 }: {

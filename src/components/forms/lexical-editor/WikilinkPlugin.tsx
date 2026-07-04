@@ -18,6 +18,7 @@
  * razonamiento que SlashCommandPlugin — queremos una sola implementación
  * de menú flotante reutilizable, no una por cada trigger de texto.
  */
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
   $isRangeSelection,
@@ -30,7 +31,7 @@ import {
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
 } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import type { EditorState } from "lexical";
 import { useCallback, useEffect, useRef } from "react";
 
 import { $createWikilinkNode } from "./nodes/WikilinkNode";
@@ -141,7 +142,7 @@ export function WikilinkPlugin({
   }, [notifyClosedRef, clearWikilinkQuery]);
 
   const checkForWikilinkMatch = useCallback(
-    (editorState: import("lexical").EditorState) => {
+    (editorState: EditorState) => {
       if (activeRef.current) return;
 
       editorState.read(() => {

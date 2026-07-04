@@ -30,7 +30,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   FechaMundoBadge,
@@ -491,7 +491,7 @@ export function PersonajeLineaDeTiempo({
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddEra();
+                if (e.key === "Enter") void handleAddEra();
                 if (e.key === "Escape") setAddingNew(false);
               }}
             />

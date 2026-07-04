@@ -3,7 +3,7 @@
 
 
 import { supabase } from '@/lib/api/client/supabase';
-import { Inserts, Tarea } from '@/lib/types/queries';
+import type { Inserts, Tarea } from '@/lib/types/queries';
 
 
 

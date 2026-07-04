@@ -17,7 +17,6 @@
  *   - Botón "+" para crear un tile en una posición arbitraria (modal)
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -26,16 +25,17 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { UnifiedTileCanvas } from "@/features/editorGarlia/components/UnifiedTileCanvas";
+import type { MapTile } from "@/features/editorGarlia/components/UnifiedTileCanvas";
 import { supabase } from "@/lib/api/client/supabase";
 import {
   invalidateMapTiles,
   loadMapTiles,
   loadReinos,
 } from "@/lib/api/client/syncEngine";
-import { UnifiedTileCanvas } from "@/features/editorGarlia/components/UnifiedTileCanvas";
-import type { MapTile } from "@/features/editorGarlia/components/UnifiedTileCanvas";
 
 type ReinoConTile = {
   id: string;
@@ -328,12 +328,12 @@ export function EditorMapa({
   }, [showToast]);
 
   useEffect(() => {
-    loadTiles();
+    void loadTiles();
   }, [loadTiles]);
 
   // ── Cargar reinos ─────────────────────────────────────────────────────────
   useEffect(() => {
-    loadReinos((fresh) => setReinos(fresh as ReinoConTile[])).then((data) =>
+    void loadReinos((fresh) => setReinos(fresh as ReinoConTile[])).then((data) =>
       setReinos(data as ReinoConTile[]),
     );
   }, []);
@@ -451,7 +451,7 @@ export function EditorMapa({
           title={`Imagen tile [${pickerTile.col}, ${pickerTile.row}]`}
           onClose={() => setPickerTile(null)}
           onSelect={(url) => {
-            handleImageSelect(pickerTile.id, url);
+            void handleImageSelect(pickerTile.id, url);
             setPickerTile(null);
           }}
         />

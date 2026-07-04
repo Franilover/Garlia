@@ -1,8 +1,8 @@
-import { QueryData } from '@supabase/supabase-js';
+import type { QueryData } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/api/client/supabase';
 
-import { Database } from './supabase';
+import type { Database } from './supabase';
 
 // --- HELPERS PARA CRUD ---
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];

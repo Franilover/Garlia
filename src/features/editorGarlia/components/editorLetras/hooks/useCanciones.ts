@@ -54,8 +54,8 @@ export function useCanciones() {
   }, []);
 
   useEffect(() => {
-    load();
-    const handleOnline = () => { setIsOffline(false); load(); };
+    void load();
+    const handleOnline = () => { setIsOffline(false); void load(); };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [load]);

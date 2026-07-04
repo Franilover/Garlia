@@ -39,7 +39,7 @@ export const GestionPersonal = () => {
     try {
       if (navigator.onLine) {
         const creada = await tareasQueries.create({ titulo: nuevaTarea, categoria: "general", username: USERNAME, completada: false });
-        if (creada) { setTareas([creada, ...tareas]); setNuevaTarea(""); dexiePut("tareas", { ...creada, status: "synced" }); }
+        if (creada) { setTareas([creada, ...tareas]); setNuevaTarea(""); void dexiePut("tareas", { ...creada, status: "synced" }); }
       } else {
         const tempId = `temp_${Date.now()}`;
         const tarea = { id: tempId, titulo: nuevaTarea, categoria: "general", username: USERNAME, completada: false, created_at: new Date().toISOString(), status: "pending" as const };
@@ -52,7 +52,7 @@ export const GestionPersonal = () => {
   const handleToggle = async (id: string, completada: boolean) => {
     setTareas(tareas.map((t: any) => t.id === id ? { ...t, completada: !completada } : t));
     try {
-      if (navigator.onLine) { await tareasQueries.toggleCompletada(id, completada); dexieUpdate("tareas", id, { completada: !completada, status: "synced" }); }
+      if (navigator.onLine) { await tareasQueries.toggleCompletada(id, completada); void dexieUpdate("tareas", id, { completada: !completada, status: "synced" }); }
       else { await dexieUpdate("tareas", id, { completada: !completada, status: "pending" }); await enqueueOperation("tareas", "update", id, { completada: !completada }); }
     } catch (err) { console.error(err); }
   };
@@ -60,7 +60,7 @@ export const GestionPersonal = () => {
   const handleDelete = async (id: string) => {
     setTareas(tareas.filter((t: any) => t.id !== id));
     try {
-      if (navigator.onLine) { await tareasQueries.delete(id); dexieDelete("tareas", id); }
+      if (navigator.onLine) { await tareasQueries.delete(id); void dexieDelete("tareas", id); }
       else { await dexieDelete("tareas", id); await enqueueOperation("tareas", "delete", id); }
     } catch (err) { console.error(err); }
   };
@@ -72,7 +72,7 @@ export const GestionPersonal = () => {
     try {
       if (navigator.onLine) {
         const creado = await eventosQueries.add({ titulo, tipo, fecha: fechaISO });
-        if (creado) { setEventos((prev: any[]) => [...prev, creado]); dexiePut("eventos", { ...creado, status: "synced" }); }
+        if (creado) { setEventos((prev: any[]) => [...prev, creado]); void dexiePut("eventos", { ...creado, status: "synced" }); }
       } else {
         const tempId = `temp_${Date.now()}`;
         const evento = { id: tempId, titulo, tipo, fecha: fechaISO, username: USERNAME, status: "pending" as const };

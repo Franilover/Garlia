@@ -34,8 +34,9 @@ import { SelectorMiembros } from "@/features/editorGarlia/components/Grupos/Sele
 import { SelectorTipoGrupo } from "@/features/editorGarlia/components/Grupos/SelectorTipoGrupo";
 import { SubtipoInput } from "@/features/editorGarlia/components/Grupos/SubtipoInput";
 import { supabase } from "@/lib/api/client/supabase";
-
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
+
+import { SaveIndicator } from "../components/UIComponents";
 import {
   useGrupos,
   GRUPO_TIPO_CONFIG,
@@ -43,7 +44,6 @@ import {
   type GrupoTipo,
 } from "../hooks/grupos/useGrupos";
 import { type SaveStatus } from "../hooks/types";
-import { SaveIndicator } from "../components/UIComponents";
 
 // Re-exportados para no romper a quien importaba tipos/config desde acá.
 export { GRUPO_TIPO_CONFIG, useGrupos };

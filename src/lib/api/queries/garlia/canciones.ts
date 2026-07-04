@@ -1,6 +1,6 @@
 // src/lib/api/canciones.ts
 import { supabase } from '@/lib/api/client/supabase';
-import { Cancion, Inserts, Updates } from '@/lib/types/queries';
+import type { Cancion, Inserts, Updates } from '@/lib/types/queries';
 
 // Factory: crea un builder fresco en cada llamada para evitar que los
 // filtros .eq() se acumulen entre invocaciones (causa del bug 406 / PGRST116).

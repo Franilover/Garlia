@@ -7,7 +7,7 @@
  * de EditorFloatingPanels.tsx (MarkdownEditor), adaptado para recibir
  * su estado desde WikilinkPlugin en vez de un textarea.
  */
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo } from "react";
 
 const PRIMARY = "var(--color-primary, #7c6af7)";
 const mono = { fontFamily: "var(--font-mono)" } as const;

@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 
 import { AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +14,7 @@ import {
   X,
   AlertTriangle,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useState, useCallback } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -204,7 +204,7 @@ export default function AdminDescubrimientos() {
       // Siempre confirmar con el servidor
       supabase.rpc("is_admin").then(({ data }) => setEsAdmin(!!data));
     };
-    run();
+    void run();
   }, []);
 
   // ── Cargar perfiles ───────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ export default function AdminDescubrimientos() {
         if (db) await (db as any).perfiles?.bulkPut(data);
       } catch {}
     };
-    run();
+    void run();
   }, [esAdmin]);
 
   // ── Cargar descubrimientos del perfil seleccionado ────────────────────────
@@ -270,7 +270,7 @@ export default function AdminDescubrimientos() {
   }, [perfilSel, tab]);
 
   useEffect(() => {
-    cargarDesc();
+    void cargarDesc();
   }, [cargarDesc]);
 
   // ── Cargar entidades disponibles para agregar ─────────────────────────────
@@ -301,7 +301,7 @@ export default function AdminDescubrimientos() {
       setEntidades(data.map(mapEntidad));
     };
 
-    run();
+    void run();
   }, [showAdd, tab]);
 
   // ── Eliminar ──────────────────────────────────────────────────────────────
@@ -350,7 +350,7 @@ export default function AdminDescubrimientos() {
       setShowAdd(false);
       setEntidadSel(null);
       setBusquedaEnt("");
-      cargarDesc();
+      void cargarDesc();
     }
     setGuardando(false);
   };
@@ -564,7 +564,7 @@ export default function AdminDescubrimientos() {
                     title="Eliminar usuario"
                     onClick={(e) => {
                       e.stopPropagation();
-                      eliminarPerfil(p);
+                      void eliminarPerfil(p);
                     }}
                   >
                     {eliminandoPerfil === p.id ? (

@@ -14,12 +14,11 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 
-import { SnippetChip } from "./SnippetChip";
 import { snippetEditHandler } from "./sharedTypes";
+import { SnippetChip } from "./SnippetChip";
 
 export interface DropPayload {
   word: string;

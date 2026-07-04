@@ -24,7 +24,7 @@ export async function notifyIndexNow(urls: string[]) {
     });
 
     if (response.ok) {
-      console.log("[INDEXNOW_SUCCESS] URLs notificadas con éxito");
+      console.warn("[INDEXNOW_SUCCESS] URLs notificadas con éxito");
       return true;
     } else {
       const errorText = await response.text();

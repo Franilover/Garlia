@@ -1,6 +1,4 @@
 "use client";
-import Image from "next/image";
-
 import {
   Map,
   Trash2,
@@ -10,19 +8,19 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 
-import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/personajes/usePersonajesDelReino";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
+import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
+import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/personajes/usePersonajesDelReino";
 import {
   type Reino,
   type SaveStatus,
-} from "@/features/editorGarlia/hooks/types";
-import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
-import { type Ciudad } from "@/features/editorGarlia/hooks/types";
-import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
+ type Ciudad } from "@/features/editorGarlia/hooks/types";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 import { loadCiudadesPorReino } from "@/lib/api/client/syncEngine";
@@ -35,7 +33,7 @@ function useCiudadesDelReino(reinoId: string) {
 
   useEffect(() => {
     let cancelled = false;
-    loadCiudadesPorReino(reinoId, (data) => {
+    void loadCiudadesPorReino(reinoId, (data) => {
       if (!cancelled) setCiudades(data as Ciudad[]);
     }).then((data) => {
       if (!cancelled) setCiudades(data as Ciudad[]);
@@ -59,7 +57,7 @@ function ImagePickerModal({
   const [SimpleImagePicker, setComponent] =
     useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
+    void import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
       (m) => setComponent(() => m.default),
     );
   }, []);
@@ -123,10 +121,10 @@ export function EditorReino({
     item.id,
   );
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const { onSnippetAction: _onSnippetAction } = useWikilink();
   const {
     personajes,
-    setPersonajes,
+    setPersonajes: _setPersonajes,
     loading: loadingPersonajes,
   } = usePersonajesDelReino(form.nombre);
 

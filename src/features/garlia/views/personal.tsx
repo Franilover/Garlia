@@ -150,7 +150,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       }
     }
 
-    cargarTodo();
+    void cargarTodo();
   }, []);
 
   // Refrescar cuando el usuario vuelve a la pestaña (puede haber desbloqueado algo nuevo).
@@ -176,7 +176,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") refrescarDescubrimientos();
+      if (document.visibilityState === "visible") void refrescarDescubrimientos();
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -197,7 +197,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
       ) as Descubrimiento | undefined;
       if (!encontrado) return false;
       if (tipo === "personaje") {
-        handleOpenPersonajeModal(encontrado);
+        void handleOpenPersonajeModal(encontrado);
       } else {
         setModalEntidad({ tipo, data: encontrado });
       }
@@ -236,7 +236,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
     } catch {}
 
     return () => window.removeEventListener("personal-open-entity", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [descubrimientos]);
 
   const misPersonajes = descubrimientos.filter((d) => d.tipo === "personaje");
@@ -301,9 +301,11 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             }
           : prev,
       );
-      tipo === "personaje"
-        ? setShowPersonajePicker(false)
-        : setShowMascotaPicker(false);
+      if (tipo === "personaje") {
+        setShowPersonajePicker(false);
+      } else {
+        setShowMascotaPicker(false);
+      }
       await invalidateSessionCache(`perfil_usuario:${userId}`);
     }
     setSavingFav(null);
@@ -635,7 +637,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
                     }}
                   >
-                    "Este personaje no tiene canciones aún…"
+                    &quot;Este personaje no tiene canciones aún…&quot;
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1098,7 +1100,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           "color-mix(in srgb, var(--primary) 25%, transparent)",
                       }}
                     >
-                      "Desbloquea personajes leyendo para usar sus imágenes"
+                      &quot;Desbloquea personajes leyendo para usar sus imágenes&quot;
                     </p>
                   </div>
                 ) : (
@@ -1307,7 +1309,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
                     }}
                   >
-                    "Aún no conoces ningún personaje…"
+                    &quot;Aún no conoces ningún personaje…&quot;
                   </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
@@ -1454,7 +1456,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
                     }}
                   >
-                    "Aún no has descubierto ninguna criatura…"
+                    &quot;Aún no has descubierto ninguna criatura…&quot;
                   </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
@@ -1947,7 +1949,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           "color-mix(in srgb, var(--primary) 20%, transparent)",
                       }}
                     >
-                      "Sin descripción aún… pulsa Editar."
+                      &quot;Sin descripción aún… pulsa Editar.&quot;
                     </p>
                   )}
                 </div>

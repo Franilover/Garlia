@@ -1,9 +1,11 @@
 import { supabase } from "@/lib/api/client/supabase";
-import {
-  personajeFullQuery,
+import type {
   PersonajeFull,
   Inserts,
   Updates
+} from "@/lib/types/queries";
+import {
+  personajeFullQuery
 } from "@/lib/types/queries";
 
 export const personajesQueries = {

@@ -4,10 +4,9 @@ import { Eye, EyeOff, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-rea
 import React, { useState, useEffect, useRef } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
+import { ESTADO_COLOR } from "@/features/editorGarlia/components/editorLetras/constants";
+import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
 import { supabase } from "@/lib/api/client/supabase";
-
-import { ESTADO_COLOR } from "../../constants";
-import type { Cancion } from "../../types";
 
 export const SidebarItem = ({
   cancion, selected, onClick, onEdit, onDelete, onToggleVisible,

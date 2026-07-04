@@ -40,11 +40,11 @@ const TOOLS = [
 
 export default function SobreMi() {
   const FORMSPREE_ID = "xvzpjdgr";
-  const [enviado, setEnviado] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [_enviado, setEnviado] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const { toasts, toast, dismiss } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const _handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const form = e.currentTarget;
@@ -109,7 +109,7 @@ export default function SobreMi() {
                   style={{ color: "var(--primary)", opacity: 0.88 }}
                 >
                   Bienvenido a mi pequeño jardín digital. Uso este espacio para compartir mis hobbys y
-                  proyectos: Mi mayor proyecto es "Garden of Sins" el cual puedes ver en el icono de la flor.
+                  proyectos: Mi mayor proyecto es &quot;Garden of Sins&quot; el cual puedes ver en el icono de la flor.
                 </p>
               </MotionSection>
             </div>
@@ -212,7 +212,7 @@ export default function SobreMi() {
                 <span
                   className="absolute top-3 left-5 text-5xl font-black leading-none select-none"
                   style={{ color: "var(--primary)", opacity: 0.08, fontFamily: "serif" }}
-                >"</span>
+                >&quot;</span>
                 <p
                   className="relative text-base md:text-lg font-light italic leading-relaxed"
                   style={{ color: "var(--primary)", opacity: 0.7 }}

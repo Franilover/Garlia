@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 
 import { AnimatePresence } from "framer-motion";
 import {
@@ -26,11 +25,12 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 import { loadMisionesAdmin } from "@/lib/api/client/syncEngine";
 
@@ -150,7 +150,7 @@ async function dexiePutAll(tabla: string, rows: any[]): Promise<void> {
   } catch {}
 }
 
-async function dexiePutOne(tabla: string, row: any): Promise<void> {
+async function _dexiePutOne(tabla: string, row: any): Promise<void> {
   try {
     const { db } = await import("@/lib/api/client/db");
     if (!db) return;
@@ -210,7 +210,7 @@ export default function EditorMisiones() {
       } catch {}
       supabase.rpc("is_admin").then(({ data }) => setEsAdmin(!!data));
     };
-    run();
+    void run();
   }, []);
 
   // ── Cargar catálogo de misiones (Dexie primero, Supabase en background) ──
@@ -246,7 +246,7 @@ export default function EditorMisiones() {
   }, []);
 
   useEffect(() => {
-    if (esAdmin) cargarMisiones();
+    if (esAdmin) void cargarMisiones();
   }, [esAdmin, cargarMisiones]);
 
   // ── Cargar progreso de usuarios para la misión seleccionada ───────────────
@@ -336,7 +336,7 @@ export default function EditorMisiones() {
   }, [misionSel]);
 
   useEffect(() => {
-    cargarProgreso();
+    void cargarProgreso();
   }, [cargarProgreso]);
 
   // ── Marcar como completada / devolver a en curso ──────────────────────────
@@ -457,7 +457,7 @@ export default function EditorMisiones() {
       showToast(form.id ? "Misión actualizada" : "Misión creada", true);
       setShowForm(false);
       // Refrescar lista (Dexie-first, ya actualiza el caché internamente)
-      cargarMisiones();
+      void cargarMisiones();
     }
     setGuardando(false);
   };
@@ -707,7 +707,7 @@ export default function EditorMisiones() {
                       title="Eliminar misión"
                       onClick={(e) => {
                         e.stopPropagation();
-                        eliminar(m);
+                        void eliminar(m);
                       }}
                     >
                       {eliminando === m.id ? (
@@ -1249,8 +1249,8 @@ export default function EditorMisiones() {
 
                 <SelectorItemRecompensa
                   itemId={form.recompensa_item_id}
-                  itemNombre={form.recompensa_item_nombre}
                   itemImagenUrl={form.recompensa_item_imagen_url}
+                  itemNombre={form.recompensa_item_nombre}
                   onChange={(id, nombre, imagenUrl) =>
                     setForm((f) => ({
                       ...f,
@@ -1447,7 +1447,7 @@ function Campo({
 // ── Selector de imagen para misión (igual que PickerImagenItemBtn en EditorItem) ──
 
 function PickerImagenMisionBtn({
-  value,
+  value: _value,
   onChange,
 }: {
   value: string;
@@ -1549,7 +1549,7 @@ function SelectorItemRecompensa({
           setCargando(false);
         });
     }
-    cargarItems();
+    void cargarItems();
   }, [open]);
 
   const filtrados = items.filter((i) =>
@@ -1928,7 +1928,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
       } catch {}
       if (!cancelled) setLoadingVinculos(false);
     }
-    load();
+    void load();
     return () => {
       cancelled = true;
     };
@@ -1973,7 +1973,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
       } catch {}
       if (!cancelled) setLoadingCat(false);
     }
-    loadCat();
+    void loadCat();
     return () => {
       cancelled = true;
     };
@@ -2119,7 +2119,6 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 ).map((rol) => (
                   <button
                     key={rol}
-                    type="button"
                     className="px-1.5 py-0.5 transition-all"
                     style={{
                       borderRadius: "3px",
@@ -2137,6 +2136,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                           : "color-mix(in srgb, var(--primary) 25%, transparent)",
                     }}
                     title={ROL_LABELS[rol]}
+                    type="button"
                     onClick={() => cambiarRol(v.id, rol)}
                   >
                     {rol === "relacionado"
@@ -2148,9 +2148,9 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 ))}
               </div>
               <button
-                type="button"
                 className="shrink-0 transition-opacity hover:opacity-70"
                 style={subtle}
+                type="button"
                 onClick={() => handleToggle(v.entidad_id, false)}
               >
                 <X size={11} />
@@ -2159,7 +2159,6 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
           ))}
           <button
             className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left mt-0.5"
-            type="button"
             style={{
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
               border: divider,
@@ -2167,6 +2166,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
               fontSize: "11px",
               fontWeight: 600,
             }}
+            type="button"
             onClick={() => setOpen(true)}
           >
             <Plus size={11} />
@@ -2176,7 +2176,6 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
       ) : (
         <button
           className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-left"
-          type="button"
           style={{
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             border: divider,
@@ -2184,6 +2183,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
             fontSize: "11px",
             fontWeight: 600,
           }}
+          type="button"
           onClick={() => setOpen(true)}
         >
           <Swords size={12} />
@@ -2214,9 +2214,9 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 <Swords size={10} /> Vincular entidades
               </span>
               <button
-                type="button"
                 className="transition-colors"
                 style={subtle}
+                type="button"
                 onClick={() => setOpen(false)}
               >
                 <X size={14} />
@@ -2232,7 +2232,6 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 return (
                   <button
                     key={tipo}
-                    type="button"
                     className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-all"
                     style={{
                       background: active
@@ -2243,6 +2242,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                         ? "var(--primary)"
                         : "color-mix(in srgb, var(--primary) 30%, transparent)",
                     }}
+                    type="button"
                     onClick={() => {
                       setTipoActivo(tipo);
                       setBusqueda("");
@@ -2319,7 +2319,6 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                   return (
                     <button
                       key={entidad.id}
-                      type="button"
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
                       style={{
                         borderBottom: divider,
@@ -2328,6 +2327,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                           : "transparent",
                         opacity: saving ? 0.6 : 1,
                       }}
+                      type="button"
                       onClick={() => !saving && handleToggle(entidad.id, !sel)}
                     >
                       <div

@@ -20,9 +20,9 @@
  * — leer el árbol es más confiable que re-parsear el texto (evita falsos
  * positivos de "#" dentro de un bloque de código, por ejemplo).
  */
-import { $getNodeByKey, $getRoot } from "lexical";
-import { $isHeadingNode } from "@lexical/rich-text";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { $isHeadingNode } from "@lexical/rich-text";
+import { $getNodeByKey, $getRoot } from "lexical";
 import { List, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 

@@ -1,19 +1,17 @@
 "use client";
-import Image from "next/image";
-
-
 import {
   Loader2, AlertCircle, CheckCircle2,
   Image as ImageIcon, X, Save, Trash2, Pencil, ExternalLink,
 } from "lucide-react";
+import Image from "next/image";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { normalize } from "@/components/layout/EstudioTemplates";
 import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
 
-import { INPUT_CLS, type SaveStatus } from "../hooks/types";
 import { useWikilink } from "./WikilinkContext";
+import { INPUT_CLS, type SaveStatus } from "../hooks/types";
 
 export function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === "idle") return null;
@@ -244,7 +242,7 @@ export function SelectorTexto({ label, value, onChange, opciones, placeholder, o
               {draft.trim() && !opciones.includes(draft.trim()) && (
                 <button className="w-full px-3 py-2 text-left text-xs font-medium text-primary/40 hover:bg-primary/5 transition-colors italic"
                   onMouseDown={() => select(draft.trim())}>
-                  Usar "{draft.trim()}"
+                  Usar &quot;{draft.trim()}&quot;
                 </button>
               )}
             </div>

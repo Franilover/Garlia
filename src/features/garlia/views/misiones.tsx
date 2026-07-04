@@ -226,7 +226,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
       }
     }
 
-    cargarTodo();
+    void cargarTodo();
   }, [combinarMisiones]);
 
   // ── Aceptar misión ────────────────────────────────────────────────────
@@ -870,6 +870,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                           border:
                             "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                         }}
+                        onClick={() => setMisionModal(m)}
                         onMouseEnter={(e) => {
                           (e.currentTarget as HTMLElement).style.borderColor =
                             "color-mix(in srgb, var(--primary) 24%, transparent)";
@@ -878,7 +879,6 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                           (e.currentTarget as HTMLElement).style.borderColor =
                             "color-mix(in srgb, var(--primary) 10%, transparent)";
                         }}
-                        onClick={() => setMisionModal(m)}
                       >
                         <div
                           className="w-full h-28 shrink-0 overflow-hidden relative"

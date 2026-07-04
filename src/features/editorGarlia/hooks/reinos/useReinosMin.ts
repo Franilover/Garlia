@@ -51,7 +51,7 @@ export function useReinosMin(): ReinoMin[] {
       } catch {}
     };
 
-    run();
+    void run();
     return () => {
       mounted = false;
     };

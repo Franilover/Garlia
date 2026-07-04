@@ -26,7 +26,7 @@ export const AdminControls = () => {
 
       setIsAdmin(perfil?.rol === "admin");
     };
-    checkAdmin();
+    void checkAdmin();
   }, []);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export const AdminControls = () => {
       if (error) throw error;
       updateGalleryItem(currentIndex, nuevoTitulo);
       setEditMode(false);
-    } catch (err) {
+    } catch (_err) {
       alert("Error al guardar");
     } finally {
       setSaving(false);

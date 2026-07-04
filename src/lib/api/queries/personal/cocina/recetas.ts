@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/api/client/supabase";
-import { recetaFullQuery, Receta, Inserts, Updates } from "@/lib/types/queries";
+import type { Receta, Inserts, Updates } from "@/lib/types/queries";
+import { recetaFullQuery } from "@/lib/types/queries";
 
 export const recetasQueries = {
   getAll: async (): Promise<Receta[]> => {

@@ -117,7 +117,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
 
   
   useEffect(() => {
-    pedirPermisoNotificaciones();
+    void pedirPermisoNotificaciones();
   }, []);
 
   useEffect(() => {

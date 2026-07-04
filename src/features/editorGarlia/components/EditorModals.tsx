@@ -90,7 +90,7 @@ export function ModalAcontecimiento({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (async () => {
+    void (async () => {
       try {
         const local = await dexieReadAll<ReinoMin>("reinos");
         if (local.length) {
@@ -278,7 +278,7 @@ export function ModalAcontecimiento({
               placeholder="La Gran Batalla, Fundación del Imperio…"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); }}
             />
           </div>
 
@@ -513,7 +513,7 @@ export function ModalNuevoGrupo({
                 placeholder={`Nombre del grupo de ${cfg!.labelPlural.toLowerCase()}…`}
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); }}
               />
             </div>
           )}

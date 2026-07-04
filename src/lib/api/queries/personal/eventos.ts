@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/api/client/supabase";
-import { Inserts, Tables } from "@/lib/types/queries";
+import type { Inserts, Tables } from "@/lib/types/queries";
 
 const USERNAME = "franilover";
 export const eventosQueries = {

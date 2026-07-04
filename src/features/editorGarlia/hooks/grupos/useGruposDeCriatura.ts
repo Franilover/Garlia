@@ -98,7 +98,7 @@ export function useGruposDeCriatura(
 
   useEffect(() => {
     isMounted.current = true;
-    load();
+    void load();
     return () => {
       isMounted.current = false;
     };

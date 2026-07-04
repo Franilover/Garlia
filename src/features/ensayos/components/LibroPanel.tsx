@@ -32,7 +32,7 @@ function getEstado(tags: string[]): EstadoLectura {
 
 // Extrae el campo "autor" del contenido o de los tags del ensayo.
 // Convención: tag con prefijo "autor:" o campo dedicado en el objeto.
-function getAutor(ensayo: any): string {
+function _getAutor(ensayo: any): string {
   return ensayo.autor ?? ensayo.author ?? "";
 }
 
@@ -728,7 +728,7 @@ function CitasLibro({
                   flexShrink: 0,
                   marginTop: 1,
                 }}>
-                  "
+                  &quot;
                 </span>
                 <button
                   style={{
