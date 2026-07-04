@@ -672,6 +672,31 @@ function PanelListas({
   const reinosRef = useRef<Reino[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // ── Alto real de cada "página" de sección ───────────────────────────────
+  // No confiamos en `height: 100%` porque depende de que TODOS los
+  // ancestros tengan una altura definida; si algo más arriba en el layout
+  // no está capado al viewport, el 100% se calcula contra un contenedor
+  // que también puede crecer, y las secciones terminan expandiéndose.
+  // Medimos el alto real disponible con ResizeObserver y lo fijamos en
+  // píxeles en cada sección, así quedan ancladas al tamaño de pantalla
+  // sin importar qué pase más arriba.
+  const [pageHeight, setPageHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => setPageHeight(el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  const pageHeightStyle = pageHeight
+    ? { height: pageHeight, maxHeight: pageHeight, minHeight: pageHeight }
+    : { height: "100%", maxHeight: "100%" };
   const entidadesRef = useRef<HTMLDivElement>(null);
   const lineaTiempoRef = useRef<HTMLDivElement>(null);
 
@@ -1470,8 +1495,7 @@ function PanelListas({
             className="border-b snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              height: "100%",
-              maxHeight: "100%",
+              ...pageHeightStyle,
             }}
           >
             <div className="flex-1 min-h-0 flex flex-col">
@@ -1543,7 +1567,7 @@ function PanelListas({
         <div
           ref={capitulosRef}
           className="snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
-          style={{ height: "100%", maxHeight: "100%" }}
+          style={pageHeightStyle}
         >
           <div className="flex-1 min-h-0 flex flex-col">
             <EstudioCapitulos />
@@ -1557,8 +1581,7 @@ function PanelListas({
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
-            height: "100%",
-            maxHeight: "100%",
+            ...pageHeightStyle,
           }}
         >
           {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
@@ -2096,8 +2119,7 @@ function PanelListas({
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
-            height: "100%",
-            maxHeight: "100%",
+            ...pageHeightStyle,
           }}
         >
           <div className="flex-1 flex flex-col min-h-0">
@@ -2119,7 +2141,7 @@ function PanelListas({
         <div
           ref={relacionesMisionesRef}
           className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none  min-h-0 overflow-hidden"
-          style={{ height: "100%", maxHeight: "100%" }}
+          style={pageHeightStyle}
         >
           <div
             className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0 overflow-y-auto"
