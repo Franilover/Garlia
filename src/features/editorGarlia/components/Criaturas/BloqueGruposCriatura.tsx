@@ -15,7 +15,7 @@
 import { ChevronDown, Layers, Pencil, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { type GrupoMin } from "@/features/editorGarlia/hooks/hooks";
+import { type GrupoMin } from "@/features/editorGarlia/hooks/grupos/useMembresiaGruposCriatura";
 
 // ─── Tipo extendido (GrupoMin + subtipo) ──────────────────────────────────────
 export type GrupoMinExt = GrupoMin & { subtipo?: string | null };

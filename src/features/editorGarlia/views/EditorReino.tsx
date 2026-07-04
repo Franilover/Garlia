@@ -14,7 +14,7 @@ import React, { useState, useEffect } from "react";
 
 import { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/hooks";
+import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/personajes/usePersonajesDelReino";
 import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
 import {
   type Reino,

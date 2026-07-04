@@ -16,7 +16,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { EditorGrupoStandalone } from "./EditorGrupo";
 import { EditorHechizos } from "./EditorHechizos";
 import { EditorMundo } from "./EditorMundo";
-import { useMundoSecciones } from "../hooks/hooks";
+import { useMundoSecciones } from "../hooks/mundo/useMundoSecciones";
 
 import {
   ModalAcontecimiento,

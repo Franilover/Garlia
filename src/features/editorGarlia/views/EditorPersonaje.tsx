@@ -44,7 +44,7 @@ import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePe
 import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
 import { BloqueDones } from "../components/BloqueDones";
-import { useNombresDeTabla } from "../hooks/hooks";
+import { useNombresDeTabla } from "../hooks/misc/useNombresDeTabla";
 import { type Personaje, type SaveStatus } from "../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
 
