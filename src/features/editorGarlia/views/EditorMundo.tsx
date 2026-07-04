@@ -787,45 +787,6 @@ function PanelListas({
   const capitulosRef = useRef<HTMLDivElement>(null);
 
   // ── Atajos de sección (Alt+N) ─────────────────────────────────────────────
-  // Los 5 bloques grandes de la vista "mundo":
-  //   Alt+1 → Línea de tiempo
-  //   Alt+2 → Capítulos
-  //   Alt+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
-  //   Alt+4 → Mapa
-  //   Alt+5 → Relaciones / Misiones
-  useSectionHotkeys([
-    {
-      key: "1",
-      ref: lineaTiempoRef,
-      getScrollContainer: () => scrollRef.current,
-    },
-    {
-      key: "2",
-      ref: capitulosRef,
-      getScrollContainer: () => scrollRef.current,
-    },
-    {
-      key: "3",
-      ref: entidadesRef,
-      getScrollContainer: () => scrollRef.current,
-    },
-    {
-      key: "4",
-      ref: mapaRef,
-      onActivate: () => mapaSeccionRef.current?.expand(),
-      getScrollContainer: () => scrollRef.current,
-    },
-    {
-      key: "5",
-      ref: relacionesMisionesRef,
-      onActivate: () => {
-        relacionesSeccionRef.current?.expand();
-        misionesSeccionRef.current?.expand();
-      },
-      getScrollContainer: () => scrollRef.current,
-    },
-  ]);
-
   // ── Snap manual por wheel ────────────────────────────────────────────────
   // El CSS `scroll-snap` no alcanza acá: cada sección tiene su propio
   // scroll interno (`overflow-y-auto`), así que el navegador consume el
@@ -835,6 +796,12 @@ function PanelListas({
   // puede scrollear internamente, la dejamos scrollear normal. Recién
   // cuando llega a su borde (arriba o abajo) tomamos el control y
   // avanzamos/retrocedemos a la sección siguiente con scrollIntoView.
+  //
+  // Declarados ANTES de useSectionHotkeys porque los atajos numéricos
+  // también los usan: mientras el atajo está animando su propio scroll,
+  // seteamos `isSnapAnimatingRef` para que el listener de wheel no
+  // interprete ese movimiento transitorio como si el usuario hubiera
+  // llegado a un borde y dispare un snap encima.
   const sectionRefs = useMemo(
     () =>
       [
@@ -843,11 +810,81 @@ function PanelListas({
         entidadesRef,
         mapaRef,
         relacionesMisionesRef,
-      ].filter((r): r is React.RefObject<HTMLDivElement> => r !== null),
+      ].filter((r): r is React.RefObject<HTMLDivElement | null> => r !== null),
     [textos, onTextoChange, onSave],
   );
   const activeSectionIndexRef = useRef(0);
   const isSnapAnimatingRef = useRef(false);
+  const snapReleaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  // Marca que hay un scroll "programático" en curso (por atajo numérico) y
+  // lo libera automáticamente pasado un margen que cubre la ventana de
+  // reintentos de useSectionHotkeys (hasta 550ms) más el propio scroll
+  // suave. Si se dispara otro atajo antes de que expire, reinicia el timer.
+  const markSnapAnimating = useCallback((idx: number) => {
+    isSnapAnimatingRef.current = true;
+    activeSectionIndexRef.current = idx;
+    if (snapReleaseTimeoutRef.current) {
+      clearTimeout(snapReleaseTimeoutRef.current);
+    }
+    snapReleaseTimeoutRef.current = setTimeout(() => {
+      isSnapAnimatingRef.current = false;
+      snapReleaseTimeoutRef.current = null;
+    }, 1200);
+  }, []);
+
+  // Los 5 bloques grandes de la vista "mundo":
+  //   1 → Línea de tiempo
+  //   2 → Capítulos
+  //   3 → Entidades (personajes, criaturas, reinos, dones, etc.)
+  //   4 → Mapa
+  //   5 → Relaciones / Misiones
+  // Nota: sin modificador (antes era Alt+N); el hook ya ignora el dígito
+  // si el foco está en un input/textarea/contenteditable.
+  useSectionHotkeys([
+    {
+      key: "1",
+      ref: lineaTiempoRef,
+      getScrollContainer: () => scrollRef.current,
+      onActivate: () => markSnapAnimating(sectionRefs.indexOf(lineaTiempoRef)),
+      settleDelayMs: 0,
+    },
+    {
+      key: "2",
+      ref: capitulosRef,
+      getScrollContainer: () => scrollRef.current,
+      onActivate: () => markSnapAnimating(sectionRefs.indexOf(capitulosRef)),
+      settleDelayMs: 0,
+    },
+    {
+      key: "3",
+      ref: entidadesRef,
+      getScrollContainer: () => scrollRef.current,
+      onActivate: () => markSnapAnimating(sectionRefs.indexOf(entidadesRef)),
+      settleDelayMs: 0,
+    },
+    {
+      key: "4",
+      ref: mapaRef,
+      onActivate: () => {
+        mapaSeccionRef.current?.expand();
+        markSnapAnimating(sectionRefs.indexOf(mapaRef));
+      },
+      getScrollContainer: () => scrollRef.current,
+    },
+    {
+      key: "5",
+      ref: relacionesMisionesRef,
+      onActivate: () => {
+        relacionesSeccionRef.current?.expand();
+        misionesSeccionRef.current?.expand();
+        markSnapAnimating(sectionRefs.indexOf(relacionesMisionesRef));
+      },
+      getScrollContainer: () => scrollRef.current,
+    },
+  ]);
 
   // Mantenemos el índice de la sección activa sincronizado con lo que
   // realmente se ve en pantalla (útil si el usuario navega por los chips

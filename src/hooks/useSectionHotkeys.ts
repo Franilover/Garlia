@@ -5,9 +5,9 @@ import { useEffect, useRef } from "react";
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
 /**
- * Una sección navegable con Alt+N dentro de una página.
+ * Una sección navegable con el dígito N (sin modificador) dentro de una página.
  *
- * - `key`: dígito del atajo, "1".."9" (Alt+1 … Alt+9).
+ * - `key`: dígito del atajo, "1".."9".
  * - `ref`: elemento al que hacer scroll. Opcional si la sección solo cambia
  *   de tab/pestaña sin necesitar scroll (ej. ya se ve entera).
  * - `getElement`: alternativa a `ref` para secciones que exponen su nodo DOM
@@ -39,19 +39,41 @@ export interface UseSectionHotkeysOptions {
   enabled?: boolean;
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/**
+ * True si el elemento (o alguno de sus ancestros) es un campo donde escribir
+ * un dígito debe insertar texto en vez de disparar un atajo: inputs,
+ * textareas, `[contenteditable]` (ej. editores rich-text como el
+ * `MarkdownEditor`), y cualquier cosa con `role="textbox"`.
+ */
+function isEditableElement(el: HTMLElement | null): boolean {
+  let node: HTMLElement | null = el;
+  while (node) {
+    const tag = node.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+    if (node.isContentEditable) return true;
+    const role = node.getAttribute("role");
+    if (role === "textbox" || role === "combobox") return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 /**
- * Registra atajos Alt+1..Alt+9 para saltar entre secciones dentro de la
- * página actual. Cada página llama este hook con su propia lista de
+ * Registra atajos 1..9 (sin modificador) para saltar entre secciones dentro
+ * de la página actual. Cada página llama este hook con su propia lista de
  * secciones — los atajos son locales al componente que los define, así que
  * distintas páginas pueden reusar el mismo número de tecla para cosas
  * distintas sin chocar entre sí.
  *
- * Se usa Alt en vez de Ctrl porque Ctrl+1..9 son atajos NATIVOS del
- * navegador para cambiar de pestaña (Chrome, Edge, Firefox) — el navegador
- * los intercepta antes de que lleguen al DOM, así que ni `preventDefault()`
- * puede evitarlo. Alt+N no tiene ese conflicto.
+ * Como los dígitos "pelados" (sin Alt/Ctrl) son teclas normales, el hook
+ * IGNORA el evento por completo mientras el foco está en un campo editable
+ * (input, textarea, `[contenteditable]`, o cualquier elemento con
+ * `role="textbox"`) para no pisar la escritura normal — si el usuario está
+ * tipeando un "3" en un textarea, ese "3" se escribe y no navega.
  *
  * Ejemplo:
  * ```tsx
@@ -83,11 +105,20 @@ export function useSectionHotkeys(
     if (!enabled) return;
 
     const handler = (e: KeyboardEvent) => {
-      if (!e.altKey) return;
-      // Ctrl/Meta o Shift junto a Alt suele ser otro atajo (ej. Alt+Shift+3
-      // en algunos SO); solo interceptamos Alt "puro" + dígito.
-      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+      // Dígito "pelado": sin Alt/Ctrl/Meta/Shift. Si viene con algún
+      // modificador es otro atajo (del navegador, del SO, etc.) y no nos
+      // interesa.
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (!/^[1-9]$/.test(e.key)) return;
+
+      // No interceptar mientras el foco está en un campo editable: ahí el
+      // dígito debe escribirse normalmente, no navegar de sección.
+      const target = e.target as HTMLElement | null;
+      const activeEl =
+        (target && isEditableElement(target)) ||
+        (document.activeElement instanceof HTMLElement &&
+          isEditableElement(document.activeElement));
+      if (activeEl) return;
 
       const section = sectionsRef.current.find((s) => s.key === e.key);
       if (!section) return;
