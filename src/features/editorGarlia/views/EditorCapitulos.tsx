@@ -1590,12 +1590,10 @@ function BarraLibro({
   libro,
   capitulos,
   onLibroChange,
-  onNuevoCap,
 }: {
   libro: Libro | undefined;
   capitulos: Capitulo[];
   onLibroChange: (l: Libro) => void;
-  onNuevoCap: () => void;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [dropVis, setDropVis] = useState(false);
@@ -2246,14 +2244,6 @@ function BarraLibro({
           >
             <AlignLeft size={11} />
           </button>
-
-          {/* Nuevo cap */}
-          <button
-            className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
-            onClick={onNuevoCap}
-          >
-            <Plus size={9} /> Cap
-          </button>
         </div>
       </div>
 
@@ -2871,7 +2861,6 @@ export function EditorCapitulosPanel() {
             libro={libroActivo}
             capitulos={capitulosLibroActivo}
             onLibroChange={handleLibroEditado}
-            onNuevoCap={() => setShowNuevoCap(true)}
           />
         )}
 
