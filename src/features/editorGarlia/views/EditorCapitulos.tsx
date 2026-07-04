@@ -185,12 +185,16 @@ const PanelEditor = ({
   onCapitulosChange,
   focusMode,
   onToggleFocus,
+  sidebarOpen,
+  onToggleSidebar,
 }: {
   capId: string;
   libroId: string;
   onCapitulosChange: () => void;
   focusMode: boolean;
   onToggleFocus: () => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }) => {
   const { cap, setCap, loading, isOffline, reload } = useCapituloEditor(capId);
 
@@ -815,6 +819,15 @@ const PanelEditor = ({
             {/* Título editable */}
             {editingTitle ? (
               <div className="flex items-center gap-1.5">
+                {!sidebarOpen && (
+                  <button
+                    className="shrink-0 p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                    title="Abrir panel de capítulos"
+                    onClick={onToggleSidebar}
+                  >
+                    <PanelRight size={12} />
+                  </button>
+                )}
                 <input
                   autoFocus
                   className="flex-1 bg-transparent text-base font-black uppercase italic tracking-tight text-primary outline-none border-b border-primary/30 focus:border-primary pb-0.5"
@@ -850,12 +863,23 @@ const PanelEditor = ({
                 </button>
               </div>
             ) : (
-              <h1
-                className="text-base font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/60 transition-colors"
-                onClick={() => setEditingTitle(true)}
-              >
-                {cap.titulo_capitulo}
-              </h1>
+              <div className="flex items-center gap-1.5">
+                {!sidebarOpen && (
+                  <button
+                    className="shrink-0 p-1.5 rounded hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                    title="Abrir panel de capítulos"
+                    onClick={onToggleSidebar}
+                  >
+                    <PanelRight size={12} />
+                  </button>
+                )}
+                <h1
+                  className="text-base font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/60 transition-colors"
+                  onClick={() => setEditingTitle(true)}
+                >
+                  {cap.titulo_capitulo}
+                </h1>
+              </div>
             )}
 
             {/* Meta row compacta */}
@@ -1565,16 +1589,12 @@ const TW_PREDEFINIDOS_BARRA = [
 function BarraLibro({
   libro,
   capitulos,
-  sidebarOpen,
   onLibroChange,
-  onToggleSidebar,
   onNuevoCap,
 }: {
   libro: Libro | undefined;
   capitulos: Capitulo[];
-  sidebarOpen: boolean;
   onLibroChange: (l: Libro) => void;
-  onToggleSidebar: () => void;
   onNuevoCap: () => void;
 }) {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -2234,26 +2254,6 @@ function BarraLibro({
           >
             <Plus size={9} /> Cap
           </button>
-
-          {sep}
-
-          {/* Toggle sidebar caps */}
-          <button
-            className="p-1.5 rounded hover:bg-primary/8 transition-all"
-            style={{
-              color: sidebarOpen
-                ? "var(--primary)"
-                : "color-mix(in srgb, var(--primary) 30%, transparent)",
-            }}
-            title={
-              sidebarOpen
-                ? "Cerrar panel de capítulos"
-                : "Abrir panel de capítulos"
-            }
-            onClick={onToggleSidebar}
-          >
-            <PanelRight size={12} />
-          </button>
         </div>
       </div>
 
@@ -2870,10 +2870,8 @@ export function EditorCapitulosPanel() {
           <BarraLibro
             libro={libroActivo}
             capitulos={capitulosLibroActivo}
-            sidebarOpen={sidebarOpen}
             onLibroChange={handleLibroEditado}
             onNuevoCap={() => setShowNuevoCap(true)}
-            onToggleSidebar={() => setSidebarOpen((o) => !o)}
           />
         )}
 
@@ -2907,11 +2905,13 @@ export function EditorCapitulosPanel() {
                 capId={selectedCapId!}
                 focusMode={focusMode}
                 libroId={selectedLibroId!}
+                sidebarOpen={sidebarOpen}
                 onCapitulosChange={() => {
                   setCapRefreshKey((k) => k + 1);
                   if (selectedLibroId) reloadCapsLibro(selectedLibroId);
                 }}
                 onToggleFocus={() => setFocusMode((m) => !m)}
+                onToggleSidebar={() => setSidebarOpen((o) => !o)}
               />
             </div>
           ) : (
