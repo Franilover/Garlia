@@ -429,10 +429,7 @@ export function EditorMapa({
   );
 
   return (
-    <div
-      className="flex flex-col min-h-0"
-      style={{ minHeight: "65vh", height: "65vh" }}
-    >
+    <div className="flex flex-col min-h-0 flex-1">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');`}</style>
 
       {toast && (
