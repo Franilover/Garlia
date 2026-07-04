@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import {
   Cat,
   ChevronRight,
+  Crown,
   Loader2,
   MapPin,
   Music2,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -64,6 +66,7 @@ interface PersonalProps {
 }
 
 export default function Personal({ datos: datosProp }: PersonalProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<
     "items" | "criaturas" | "personajes" | "reinos"
   >("personajes");
@@ -2732,21 +2735,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               minHeight: "80px",
                             }}
                             onClick={() => {
-                              setCiudadesReino(
-                                ciudades.filter((l) => l.reino_id === r.id),
-                              );
-                              setModalEntidad({
-                                tipo: "reino",
-                                data: {
-                                  tipo: "item",
-                                  entidad_id: r.id,
-                                  nombre: r.nombre,
-                                  imagen_url: r.mapa_url ?? undefined,
-                                  img_url: r.logo_url ?? undefined,
-                                  descripcion: r.descripcion ?? undefined,
-                                  fecha_descubrimiento: "",
-                                },
-                              });
+                              router.push(`/garlia/mapa?reino=${r.id}`);
                             }}
                             onMouseEnter={(e) => {
                               (
@@ -2777,21 +2766,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               className="flex-1 relative overflow-hidden flex items-center justify-center p-2"
                               style={{ minHeight: "64px", width: "100%" }}
                             >
-                              {r.mapa_url ? (
-                                <img
-                                  alt={r.nombre}
-                                  className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
-                                  src={r.mapa_url}
-                                />
-                              ) : (
-                                <MapPin
-                                  size={22}
-                                  style={{
-                                    color:
-                                      "color-mix(in srgb, var(--primary) 14%, transparent)",
-                                  }}
-                                />
-                              )}
+                              <Crown
+                                className="transition-transform duration-300 group-hover:scale-110"
+                                size={28}
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 55%, transparent)",
+                                }}
+                              />
                             </div>
                             <div
                               className="px-1.5 py-1"
