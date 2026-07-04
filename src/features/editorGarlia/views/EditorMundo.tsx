@@ -1467,7 +1467,7 @@ function PanelListas({
         {textos && onTextoChange && onSave && (
           <div
             ref={lineaTiempoRef}
-            className="border-b snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto"
+            className="border-b snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
               height: "100%",
@@ -1541,7 +1541,7 @@ function PanelListas({
         {/* CAPÍTULOS */}
         <div
           ref={capitulosRef}
-          className="snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto"
+          className="snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
           style={{ height: "100%" }}
         >
           <div className="flex-1 min-h-0 flex flex-col">
@@ -1552,7 +1552,7 @@ function PanelListas({
         {/* ENTIDADES */}
         <div
           ref={entidadesRef}
-          className="border-b border-t mt-3 snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto"
+          className="border-b border-t mt-3 snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2115,7 +2115,7 @@ function PanelListas({
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
         <div
           ref={relacionesMisionesRef}
-          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none shrink-0 min-h-0 overflow-hidden"
+          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none  min-h-0 overflow-hidden"
           style={{ height: "100%" }}
         >
           <div
