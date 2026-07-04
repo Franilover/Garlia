@@ -325,7 +325,7 @@ const PanelColapsable = React.forwardRef<
   }));
 
   return (
-    <div ref={rootRef} className="flex flex-col min-h-0">
+    <div ref={rootRef} className="flex-1 flex flex-col min-h-0">
       <button
         type="button"
         className="flex items-center gap-1.5 px-3 py-2 w-full group cursor-pointer select-none shrink-0"
@@ -1460,82 +1460,91 @@ function PanelListas({
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto min-h-0"
+        className="flex-1 overflow-y-auto min-h-0 snap-y snap-mandatory scroll-smooth"
         onScroll={handleScroll}
       >
         {/* HISTORIA */}
         {textos && onTextoChange && onSave && (
           <div
             ref={lineaTiempoRef}
-            className="border-b"
+            className="border-b snap-start snap-always flex flex-col"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              minHeight: "100%",
             }}
           >
-            <PanelHistoriaMundo
-              texto={textos.historia}
-              onChange={(v) => onTextoChange("historia", v)}
-              onSave={() => onSave("historia")}
-              onSelectPersonaje={async (id) => {
-                // Buscar el personaje en la lista local primero
-                const local = personajes.find((p) => p.id === id);
-                if (local) {
-                  selectPersonaje(local);
-                  return;
-                }
-                // Si no está en memoria, buscarlo en Supabase
-                try {
-                  const { data } = await supabase
-                    .from("personajes")
-                    .select("id, nombre, img_url, especie, sobre, reino")
-                    .eq("id", id)
-                    .single();
-                  if (data) selectPersonaje(data as Personaje);
-                } catch {}
-              }}
-              onSelectCancion={async (id) => {
-                // Buscar la canción en la lista local primero
-                const local = canciones.find((c) => c.id === id);
-                if (local) {
-                  selectCancion(local);
-                  return;
-                }
-                // Si no está en memoria, buscarlo en Supabase
-                try {
-                  const { data } = await supabase
-                    .from("canciones")
-                    .select(
-                      "id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id",
-                    )
-                    .eq("id", id)
-                    .single();
-                  if (data) selectCancion(data as unknown as Cancion);
-                } catch {}
-              }}
-              onSelectCapitulo={(capituloId, libroId) => {
-                // Escribir las claves que EditorCapitulosPanel ya sabe leer
-                try {
-                  localStorage.setItem("estudio-caps-last-cap", capituloId);
-                  localStorage.setItem("estudio-caps-last-libro", libroId);
-                } catch {}
-                // Cerrar cualquier overlay abierto y scrollear a la sección
-                clearAllOverlays();
-                setTimeout(() => {
-                  capitulosRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-                  // Disparar el evento que EditorCapitulosPanel escucha
-                  window.dispatchEvent(new CustomEvent("estudio-caps-action"));
-                }, 80);
-              }}
-            />
+            <div className="flex-1 min-h-0 flex flex-col">
+              <PanelHistoriaMundo
+                texto={textos.historia}
+                onChange={(v) => onTextoChange("historia", v)}
+                onSave={() => onSave("historia")}
+                onSelectPersonaje={async (id) => {
+                  // Buscar el personaje en la lista local primero
+                  const local = personajes.find((p) => p.id === id);
+                  if (local) {
+                    selectPersonaje(local);
+                    return;
+                  }
+                  // Si no está en memoria, buscarlo en Supabase
+                  try {
+                    const { data } = await supabase
+                      .from("personajes")
+                      .select("id, nombre, img_url, especie, sobre, reino")
+                      .eq("id", id)
+                      .single();
+                    if (data) selectPersonaje(data as Personaje);
+                  } catch {}
+                }}
+                onSelectCancion={async (id) => {
+                  // Buscar la canción en la lista local primero
+                  const local = canciones.find((c) => c.id === id);
+                  if (local) {
+                    selectCancion(local);
+                    return;
+                  }
+                  // Si no está en memoria, buscarlo en Supabase
+                  try {
+                    const { data } = await supabase
+                      .from("canciones")
+                      .select(
+                        "id, titulo, cantante, compositor, idioma, estado, portada_url, links, visible, created_at, updated_at, personaje_id",
+                      )
+                      .eq("id", id)
+                      .single();
+                    if (data) selectCancion(data as unknown as Cancion);
+                  } catch {}
+                }}
+                onSelectCapitulo={(capituloId, libroId) => {
+                  // Escribir las claves que EditorCapitulosPanel ya sabe leer
+                  try {
+                    localStorage.setItem("estudio-caps-last-cap", capituloId);
+                    localStorage.setItem("estudio-caps-last-libro", libroId);
+                  } catch {}
+                  // Cerrar cualquier overlay abierto y scrollear a la sección
+                  clearAllOverlays();
+                  setTimeout(() => {
+                    capitulosRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                    // Disparar el evento que EditorCapitulosPanel escucha
+                    window.dispatchEvent(
+                      new CustomEvent("estudio-caps-action"),
+                    );
+                  }, 80);
+                }}
+              />
+            </div>
           </div>
         )}
 
         {/* CAPÍTULOS */}
-        <div ref={capitulosRef} style={{ minHeight: "60vh" }}>
-          <div className="flex flex-col min-h-0" style={{ minHeight: "58vh" }}>
+        <div
+          ref={capitulosRef}
+          className="snap-start snap-always flex flex-col"
+          style={{ minHeight: "100%" }}
+        >
+          <div className="flex-1 min-h-0 flex flex-col">
             <EstudioCapitulos />
           </div>
         </div>
@@ -1543,10 +1552,11 @@ function PanelListas({
         {/* ENTIDADES */}
         <div
           ref={entidadesRef}
-          className="border-b border-t mt-3"
+          className="border-b border-t mt-3 snap-start snap-always flex flex-col"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
+            minHeight: "100%",
           }}
         >
           {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
@@ -2080,32 +2090,36 @@ function PanelListas({
         {/* MAPA */}
         <div
           ref={mapaRef}
-          className="border-b"
+          className="border-b snap-start snap-always flex flex-col"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
+            minHeight: "100%",
           }}
         >
-          <PanelColapsable
-            ref={mapaSeccionRef}
-            icon={Map}
-            label="Mapa"
-            storageKey="panel-mapa"
-          >
-            {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
-            <div
-              className="flex flex-col min-h-0"
-              style={{ minHeight: "68vh" }}
+          <div className="flex-1 flex flex-col min-h-0">
+            <PanelColapsable
+              ref={mapaSeccionRef}
+              icon={Map}
+              label="Mapa"
+              storageKey="panel-mapa"
             >
-              <EditorMapa onSelectReino={(id) => flashReino(id)} />
-            </div>
-          </PanelColapsable>
+              {/* Mapa — ocupa todo el ancho; al click en un reino sube a la lista */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <EditorMapa onSelectReino={(id) => flashReino(id)} />
+              </div>
+            </PanelColapsable>
+          </div>
         </div>
 
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
-        <div ref={relacionesMisionesRef} className="lg:grid lg:grid-cols-2">
+        <div
+          ref={relacionesMisionesRef}
+          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none"
+          style={{ minHeight: "100%" }}
+        >
           <div
-            className="border-b lg:border-b-0 lg:border-r"
+            className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
@@ -2116,26 +2130,20 @@ function PanelListas({
               label="Relaciones"
               storageKey="panel-relaciones"
             >
-              <div
-                className="flex flex-col min-h-0"
-                style={{ minHeight: "58vh" }}
-              >
+              <div className="flex-1 flex flex-col min-h-0">
                 <AdminDescubrimientos />
               </div>
             </PanelColapsable>
           </div>
 
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <PanelColapsable
               ref={misionesSeccionRef}
               icon={ScrollText}
               label="Misiones"
               storageKey="panel-misiones"
             >
-              <div
-                className="flex flex-col min-h-0"
-                style={{ minHeight: "58vh" }}
-              >
+              <div className="flex-1 flex flex-col min-h-0">
                 <EditorMisiones />
               </div>
             </PanelColapsable>
