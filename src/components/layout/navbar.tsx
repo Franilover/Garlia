@@ -506,6 +506,12 @@ const Navbar = () => {
 
   const garliaLinks: NavLinkDef[] = [
     {
+      href: user ? "/garlia/personal" : "/auth/login",
+      label: "Cuenta",
+      icon: CircleUser,
+      active: personalIsActive,
+    },
+    {
       href: "/garlia/mapa",
       label: "Mapa",
       icon: Compass,
@@ -571,11 +577,74 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        <div
-          className="flex items-center justify-center shrink-0 mx-auto"
-          style={{ width: "36px", height: "52px", color: "var(--primary)" }}
-        >
-          <Flower2 size={18} />
+        <div className="relative shrink-0 mx-auto">
+          <button
+            className="flex items-center justify-center transition-all"
+            style={{
+              width: "36px",
+              height: "52px",
+              color: "var(--primary)",
+              background: themeMenuOpen
+                ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                : "transparent",
+            }}
+            title="Cambiar tema"
+            onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+          >
+            <Flower2 size={18} />
+          </button>
+
+          <AnimatePresence>
+            {themeMenuOpen && (
+              <>
+                <MotionDiv
+                  animate={{ opacity: 1 }}
+                  className="fixed inset-0 z-[1000]"
+                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0 }}
+                  onClick={closeAll}
+                />
+                <MotionDiv
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  className="absolute left-full top-0 ml-2 w-56 z-[1001] overflow-hidden"
+                  exit={{ opacity: 0, x: -8, scale: 0.97 }}
+                  initial={{ opacity: 0, x: -8, scale: 0.97 }}
+                  style={submenuSurface}
+                  transition={{ duration: 0.15 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      borderBottom:
+                        "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                    onClick={toggleDark}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "color-mix(in srgb, var(--primary) 5%, transparent)";
+                      (e.currentTarget as HTMLElement).style.color =
+                        "var(--primary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background =
+                        "transparent";
+                      (e.currentTarget as HTMLElement).style.color =
+                        "color-mix(in srgb, var(--primary) 60%, transparent)";
+                    }}
+                  >
+                    {isDark ? <Sun size={13} /> : <Moon size={13} />}
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {isDark ? "Modo claro" : "Modo oscuro"}
+                    </span>
+                  </button>
+                  <ThemeSelector />
+                </MotionDiv>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         <NavDivider margin="0 12px" />
@@ -627,125 +696,6 @@ const Navbar = () => {
             </>
           )}
         </nav>
-
-        <div className="flex flex-col gap-1 px-2 pb-4 shrink-0">
-          <NavDivider margin="4px 4px 8px" />
-
-          {/* Theme button */}
-          <div className="relative">
-            <button
-              className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-              style={{
-                ...navItemBase,
-                background: themeMenuOpen
-                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                  : "transparent",
-                color: themeMenuOpen
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-              onMouseEnter={(e) => hoverIn(e, themeMenuOpen)}
-              onMouseLeave={(e) => hoverOut(e, themeMenuOpen)}
-            >
-              <span
-                className="shrink-0 flex items-center justify-center"
-                style={{ width: "22px" }}
-              >
-                <Palette size={14} />
-              </span>
-            </button>
-
-            <AnimatePresence>
-              {themeMenuOpen && (
-                <MotionDiv
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  className="absolute left-full ml-2 w-56 z-[1001] overflow-hidden"
-                  exit={{ opacity: 0, x: -8, scale: 0.97 }}
-                  initial={{ opacity: 0, x: -8, scale: 0.97 }}
-                  style={{ ...submenuSurface, bottom: "0", top: "auto" }}
-                  transition={{ duration: 0.15 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 60%, transparent)",
-                      borderBottom:
-                        "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                    onClick={toggleDark}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        "color-mix(in srgb, var(--primary) 5%, transparent)";
-                      (e.currentTarget as HTMLElement).style.color =
-                        "var(--primary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.background =
-                        "transparent";
-                      (e.currentTarget as HTMLElement).style.color =
-                        "color-mix(in srgb, var(--primary) 60%, transparent)";
-                    }}
-                  >
-                    {isDark ? <Sun size={13} /> : <Moon size={13} />}
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      {isDark ? "Modo claro" : "Modo oscuro"}
-                    </span>
-                  </button>
-                  <ThemeSelector />
-                </MotionDiv>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Auth buttons */}
-          {user ? (
-            <Link
-              className="flex items-center gap-3 transition-all duration-200 overflow-hidden w-full"
-              href="/garlia/personal"
-              style={{
-                ...navItemBase,
-                color: personalIsActive
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                background: personalIsActive
-                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                  : "transparent",
-              }}
-              title="Mi Personaje"
-              onClick={closeAll}
-              onMouseEnter={(e) => hoverIn(e, personalIsActive)}
-              onMouseLeave={(e) => hoverOut(e, personalIsActive)}
-            >
-              <span
-                className="shrink-0 flex items-center justify-center"
-                style={{ width: "22px" }}
-              >
-                <CircleUser size={15} />
-              </span>
-            </Link>
-          ) : (
-            <Link
-              className="flex items-center gap-3 transition-all duration-200 overflow-hidden"
-              href="/auth/login"
-              style={{
-                ...navItemBase,
-                color: "color-mix(in srgb, var(--primary) 50%, transparent)",
-              }}
-              onMouseEnter={(e) => hoverIn(e, false)}
-              onMouseLeave={(e) => hoverOut(e, false)}
-            >
-              <span
-                className="shrink-0 flex items-center justify-center"
-                style={{ width: "22px" }}
-              >
-                <CircleUser size={15} />
-              </span>
-            </Link>
-          )}
-        </div>
       </aside>
 
       {/* ── MOBILE NAVBAR ────────────────────────────────────────── */}
@@ -798,7 +748,7 @@ const Navbar = () => {
               "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {/* Theme toggle + Search */}
+          {/* Theme toggle */}
           <div className="flex items-center gap-1 z-[101]">
             <button
               className="flex items-center justify-center transition-all"
@@ -819,32 +769,6 @@ const Navbar = () => {
               }}
             >
               <Palette size={16} />
-            </button>
-            <button
-              className="flex items-center justify-center transition-all"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: "var(--radius-btn)",
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-              onClick={() => {
-                openPalette(true);
-                closeAll();
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "color-mix(in srgb, var(--primary) 10%, transparent)";
-                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "transparent";
-                (e.currentTarget as HTMLElement).style.color =
-                  "color-mix(in srgb, var(--primary) 40%, transparent)";
-              }}
-            >
-              <Search size={16} />
             </button>
           </div>
 
@@ -948,8 +872,34 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Auth buttons */}
+          {/* Search + Auth buttons */}
           <div className="flex items-center gap-1 z-[101]">
+            <button
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "var(--radius-btn)",
+                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+              onClick={() => {
+                openPalette(true);
+                closeAll();
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background =
+                  "color-mix(in srgb, var(--primary) 10%, transparent)";
+                (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background =
+                  "transparent";
+                (e.currentTarget as HTMLElement).style.color =
+                  "color-mix(in srgb, var(--primary) 40%, transparent)";
+              }}
+            >
+              <Search size={16} />
+            </button>
             {user ? (
               <Link
                 className="flex items-center justify-center transition-all"
