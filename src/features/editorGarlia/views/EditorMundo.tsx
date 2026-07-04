@@ -1467,10 +1467,10 @@ function PanelListas({
         {textos && onTextoChange && onSave && (
           <div
             ref={lineaTiempoRef}
-            className="border-b snap-start snap-always flex flex-col"
+            className="border-b snap-start snap-always flex flex-col shrink-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              minHeight: "100%",
+              height: "100%",
             }}
           >
             <div className="flex-1 min-h-0 flex flex-col">
@@ -1541,8 +1541,8 @@ function PanelListas({
         {/* CAPÍTULOS */}
         <div
           ref={capitulosRef}
-          className="snap-start snap-always flex flex-col"
-          style={{ minHeight: "100%" }}
+          className="snap-start snap-always flex flex-col shrink-0 overflow-y-auto"
+          style={{ height: "100%" }}
         >
           <div className="flex-1 min-h-0 flex flex-col">
             <EstudioCapitulos />
@@ -1552,11 +1552,11 @@ function PanelListas({
         {/* ENTIDADES */}
         <div
           ref={entidadesRef}
-          className="border-b border-t mt-3 snap-start snap-always flex flex-col"
+          className="border-b border-t mt-3 snap-start snap-always flex flex-col shrink-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
-            minHeight: "100%",
+            height: "100%",
           }}
         >
           {/* ── Overlay inline: reemplaza solo el bloque de entidades ── */}
@@ -2090,11 +2090,11 @@ function PanelListas({
         {/* MAPA */}
         <div
           ref={mapaRef}
-          className="border-b snap-start snap-always flex flex-col"
+          className="border-b snap-start snap-always flex flex-col shrink-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
-            minHeight: "100%",
+            height: "100%",
           }}
         >
           <div className="flex-1 flex flex-col min-h-0">
@@ -2115,11 +2115,11 @@ function PanelListas({
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
         <div
           ref={relacionesMisionesRef}
-          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none"
-          style={{ minHeight: "100%" }}
+          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none shrink-0 overflow-hidden"
+          style={{ height: "100%" }}
         >
           <div
-            className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0"
+            className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
@@ -2136,7 +2136,7 @@ function PanelListas({
             </PanelColapsable>
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
             <PanelColapsable
               ref={misionesSeccionRef}
               icon={ScrollText}
