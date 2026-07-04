@@ -2735,7 +2735,17 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               minHeight: "80px",
                             }}
                             onClick={() => {
-                              router.push(`/garlia/mapa?reino=${r.id}`);
+                              try {
+                                sessionStorage.setItem(
+                                  "mapa-pending-open-entity",
+                                  JSON.stringify({
+                                    tipo: "reino",
+                                    entidad_id: r.id,
+                                    ts: Date.now(),
+                                  }),
+                                );
+                              } catch {}
+                              router.push(`/garlia/mapa`);
                             }}
                             onMouseEnter={(e) => {
                               (
