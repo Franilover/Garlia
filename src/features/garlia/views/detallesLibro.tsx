@@ -58,6 +58,31 @@ interface CapituloProximo {
   fecha_publicacion: string;
 }
 
+// ─── Persistencia de aceptación de Trigger Warnings ──────────────────────────
+const TW_STORAGE_KEY = "tw_aceptados";
+
+function libroYaAceptoTW(libroId: string): boolean {
+  try {
+    const raw = localStorage.getItem(TW_STORAGE_KEY);
+    if (!raw) return false;
+    const set: string[] = JSON.parse(raw);
+    return set.includes(libroId);
+  } catch {
+    return false;
+  }
+}
+
+function marcarLibroTWAceptado(libroId: string) {
+  try {
+    const raw = localStorage.getItem(TW_STORAGE_KEY);
+    const set: string[] = raw ? JSON.parse(raw) : [];
+    if (!set.includes(libroId)) {
+      set.push(libroId);
+      localStorage.setItem(TW_STORAGE_KEY, JSON.stringify(set));
+    }
+  } catch {}
+}
+
 // ─── Resolver slug → libro (Dexie first) ─────────────────────────────────────
 async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
   try {
@@ -123,7 +148,7 @@ function ModalTriggerWarning({
           maxWidth: 380,
           background: "var(--bg-main)",
           border:
-            "1px solid color-mix(in srgb, var(--callout-warning-border) 40%, transparent)",
+            "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
           borderRadius: 14,
           boxShadow:
             "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -135,9 +160,8 @@ function ModalTriggerWarning({
           style={{
             padding: "20px 22px 16px",
             borderBottom:
-              "1px solid color-mix(in srgb, var(--callout-warning-border) 20%, transparent)",
-            background:
-              "color-mix(in srgb, var(--callout-warning-border) 6%, transparent)",
+              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
           }}
         >
           <div
@@ -150,7 +174,7 @@ function ModalTriggerWarning({
           >
             <TriangleAlert
               size={16}
-              style={{ color: "var(--callout-warning-title)", flexShrink: 0 }}
+              style={{ color: "var(--primary)", flexShrink: 0 }}
             />
             <span
               style={{
@@ -159,7 +183,7 @@ function ModalTriggerWarning({
                 fontWeight: 900,
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.2em",
-                color: "var(--callout-warning-title)",
+                color: "var(--primary)",
               }}
             >
               Trigger Warnings
@@ -202,10 +226,10 @@ function ModalTriggerWarning({
                 padding: "4px 11px",
                 borderRadius: 99,
                 border:
-                  "1px solid color-mix(in srgb, var(--callout-warning-border) 50%, transparent)",
-                color: "var(--callout-warning-title)",
+                  "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+                color: "var(--primary)",
                 background:
-                  "color-mix(in srgb, var(--callout-warning-border) 10%, transparent)",
+                  "color-mix(in srgb, var(--primary) 8%, transparent)",
               }}
             >
               {tw}
@@ -286,11 +310,19 @@ export default function LibroDetalle() {
   const [mostrarModalTW, setMostrarModalTW] = useState(false);
   const pendingRouteRef = useRef<string | null>(null);
 
-  // ── Mostrar modal TW al cargar el libro ────────────────────────────────────
+  // ── Mostrar modal TW al cargar el libro (recordando aceptación previa) ─────
   useEffect(() => {
     if (!libro) return;
     const tws = libro.trigger_warnings?.filter(Boolean) ?? [];
-    if (tws.length > 0 && !twAceptado) {
+    if (tws.length === 0) return;
+
+    if (libroYaAceptoTW(libro.id)) {
+      setTwAceptado(true);
+      setMostrarModalTW(false);
+      return;
+    }
+
+    if (!twAceptado) {
       setMostrarModalTW(true);
     }
   }, [libro]);
@@ -668,6 +700,7 @@ export default function LibroDetalle() {
         onAceptar={() => {
           setTwAceptado(true);
           setMostrarModalTW(false);
+          marcarLibroTWAceptado(libro.id);
           if (pendingRouteRef.current) {
             router.push(pendingRouteRef.current);
             pendingRouteRef.current = null;
