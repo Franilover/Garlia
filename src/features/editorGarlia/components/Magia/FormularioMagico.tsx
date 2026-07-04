@@ -97,10 +97,8 @@ export function FormularioMagico({
 
   // Bloque de imagen compartido entre runas y hechizos/dones
   const bloqueImagen = (
-    <div
-      className="relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
-      style={{ aspectRatio: "1 / 1" }}
-    >
+    <div className="relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
+      style={{ aspectRatio: "1 / 1" }}>
       {(form as any).imagen_url ? (
         <Image
           alt={form.nombre}
@@ -117,7 +115,7 @@ export function FormularioMagico({
           Icon={cfg.Icon}
           color={cfg.color}
           value={(form as any).imagen_url ?? ""}
-          onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }) as any)}
+          onChange={(url) => setForm((f) => ({ ...f, imagen_url: url } as any))}
         />
       </div>
     </div>
@@ -176,16 +174,12 @@ export function FormularioMagico({
           {/* Columna izquierda: imagen */}
           <div
             className="shrink-0 sm:w-64 p-4 sm:border-r flex flex-col gap-3"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
             {bloqueImagen}
             <p
               className="text-[9px] font-black uppercase tracking-[0.25em] text-center truncate"
-              style={{
-                color: `color-mix(in srgb, ${cfg.color} 50%, transparent)`,
-              }}
+              style={{ color: `color-mix(in srgb, ${cfg.color} 50%, transparent)` }}
             >
               {form.nombre || `${cfg.labelSing} sin nombre`}
             </p>

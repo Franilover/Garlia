@@ -21,4 +21,4 @@
  */
 export { FechaMundoBadge } from "@/features/editorGarlia/components/Calendario/FechaMundoBadge";
 export { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
-export { useCalendario } from "@/features/editorGarlia/hooks/useCalendario";
+export { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";

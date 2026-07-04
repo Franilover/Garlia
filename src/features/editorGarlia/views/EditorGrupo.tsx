@@ -35,9 +35,8 @@ import { SelectorTipoGrupo } from "@/features/editorGarlia/components/Grupos/Sel
 import { SubtipoInput } from "@/features/editorGarlia/components/Grupos/SubtipoInput";
 import { supabase } from "@/lib/api/client/supabase";
 
+import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 import {
-  dexiePut,
-  dexieDel,
   useGrupos,
   GRUPO_TIPO_CONFIG,
   type Grupo,
