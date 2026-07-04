@@ -446,16 +446,10 @@ function useUnlockedSearch(query: string, userId: string | null) {
  * en el grid inicial (pantalla por defecto) para usuarios no admin.
  * Se ejecuta una sola vez por apertura de la paleta (mientras haya userId).
  *
- * IMPORTANTE: la query a Supabase trae TODOS los desbloqueados (sin límite),
- * porque su resultado es lo que alimenta el cache completo en Dexie. El
- * recorte a "unos pocos por tipo" para la vista resumida se hace después,
- * solo sobre lo que se pinta en pantalla — nunca sobre lo que se guarda.
- * (Antes había un .limit(6) en la query misma, que además de acotar la
- * vista terminaba pisando el cache local con solo 6 personajes, escondiendo
- * al resto incluso en la búsqueda.)
+ * Se muestran TODOS los desbloqueados, sin límite por tipo — tanto en la
+ * query a Supabase como en lo que se pinta en pantalla y lo que se cachea
+ * en Dexie.
  */
-const OVERVIEW_PREVIEW_PER_TYPE = 6;
-
 function useUnlockedOverview(userId: string | null, enabled: boolean) {
   const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
 
@@ -466,28 +460,18 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
     }
     let cancelled = false;
 
-    const buildPreview = (items: DescubrimientoPersonal[]) => {
+    const ordenarTodos = (items: DescubrimientoPersonal[]) => {
       const orden = { personaje: 0, criatura: 1, reino: 2, item: 3, ciudad: 4 };
-      const porTipo = new Map<string, DescubrimientoPersonal[]>();
-      for (const it of items) {
-        const arr = porTipo.get(it.tipo) ?? [];
-        if (arr.length < OVERVIEW_PREVIEW_PER_TYPE) arr.push(it);
-        porTipo.set(it.tipo, arr);
-      }
-      return [...porTipo.entries()]
-        .sort(
-          ([a], [b]) =>
-            (orden[a as keyof typeof orden] ?? 9) -
-            (orden[b as keyof typeof orden] ?? 9),
-        )
-        .flatMap(([, arr]) => arr);
+      return [...items].sort(
+        (a, b) => (orden[a.tipo] ?? 9) - (orden[b.tipo] ?? 9),
+      );
     };
 
     (async () => {
       // 1) Cache local primero — se pinta al instante, sin esperar la red.
       const cached = await readDescubrimientosFromDexie(userId);
       if (cancelled) return;
-      if (cached.length > 0) setResultados(buildPreview(cached));
+      if (cached.length > 0) setResultados(ordenarTodos(cached));
 
       // 2) Revalidar en segundo plano solo si hay conexión real.
       const online = await isReallyOnline();
@@ -539,7 +523,7 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
         ];
 
         if (!cancelled) {
-          setResultados(buildPreview(merged));
+          setResultados(ordenarTodos(merged));
           // Este overview trae solo 3 tipos (no items/ciudades) — hacemos
           // upsert incremental para no pisar lo que useUnlockedSearch cacheó,
           // pero con el listado COMPLETO (sin límite) de cada tipo.
