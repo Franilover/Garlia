@@ -45,18 +45,33 @@ export type { CommandItem, SnippetAction, ViewMode, WikiEntity };
 // conocer features/. El parseo de snippets y su renderizado (que sí son lógica
 // de dominio, propia de editorGarlia/garlia) se inyectan por props desde quien
 // use <MarkdownEditor>, vía `parseSnippets` y `renderSnippetSegment`.
+//
+// El tipo real de un "segmento" lo define el feature que inyecta las
+// funciones (p. ej. `Segment` en editorGarlia es una unión discriminada con
+// distintas formas por variante). Aquí solo exigimos que tenga un campo
+// `type: string`, y el único caso que este componente necesita reconocer por
+// sí mismo (texto plano) se resuelve con un type guard también inyectado
+// (`isTextSegment`), en vez de asumir que todo segmento tiene `.value`.
 import type { ReactNode } from "react";
 
-type SnippetSegment = { type: string; value: string };
+interface SnippetSegmentBase {
+  type: string;
+}
 
-type ParseSnippetsFn = (texto: string) => SnippetSegment[];
-type ParseSectionsFn = (
-  contenido: unknown,
-) => Map<string, unknown> | Record<string, unknown>;
-type RenderSnippetSegmentFn = (
-  seg: SnippetSegment,
-  onNavigate?: (id: string) => void,
+type ParseSnippetsFn<TSeg extends SnippetSegmentBase> = (
+  texto: string,
+) => TSeg[];
+type ParseSectionsFn<TSeg extends SnippetSegmentBase> = (
+  segmentos: TSeg[],
+) => Record<string, TSeg[]>;
+type RenderSnippetSegmentFn<TSeg extends SnippetSegmentBase> = (
+  seg: TSeg,
+  onNavigate: (id: string) => void,
 ) => ReactNode;
+/** Type guard: ¿este segmento es texto plano renderizable con SnipInlineText? */
+type IsTextSegmentFn<TSeg extends SnippetSegmentBase> = (
+  seg: TSeg,
+) => seg is TSeg & { value: string };
 
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownPreviewWithSnippets (interno, combina markdown + snippets React)
@@ -69,7 +84,7 @@ function SnipInlineText({ text }: { text: string }) {
   return <span dangerouslySetInnerHTML={{ __html: unwrapped }} />;
 }
 
-function MarkdownPreviewWithSnippets({
+function MarkdownPreviewWithSnippets<TSeg extends SnippetSegmentBase>({
   value,
   placeholder,
   onSnippetAction,
@@ -80,6 +95,7 @@ function MarkdownPreviewWithSnippets({
   parseSnippets,
   parseSections: parseSectionsProp,
   renderSnippetSegment,
+  isTextSegment,
 }: {
   value: string;
   placeholder?: string;
@@ -89,15 +105,17 @@ function MarkdownPreviewWithSnippets({
   onTableClick?: (table: HTMLTableElement) => void;
   isLibro?: boolean;
   /** Parsea un bloque de texto en segmentos de snippet (wikilinks, etc.). Lógica de dominio inyectada. */
-  parseSnippets?: ParseSnippetsFn;
+  parseSnippets?: ParseSnippetsFn<TSeg>;
   /** Agrupa el contenido parseado en secciones navegables. Lógica de dominio inyectada. */
-  parseSections?: ParseSectionsFn;
+  parseSections?: ParseSectionsFn<TSeg>;
   /** Renderiza un segmento de snippet (no-texto) como React. Lógica de dominio inyectada. */
-  renderSnippetSegment?: RenderSnippetSegmentFn;
+  renderSnippetSegment?: RenderSnippetSegmentFn<TSeg>;
+  /** Type guard: reconoce si un segmento es texto plano. Lógica de dominio inyectada. */
+  isTextSegment?: IsTextSegmentFn<TSeg>;
 }) {
   const sectionMap = React.useMemo(() => {
-    if (!parseSnippets || !parseSectionsProp) return {} as Record<string, unknown>;
-    return parseSectionsProp(parseSnippets(value)) as Record<string, unknown>;
+    if (!parseSnippets || !parseSectionsProp) return {} as Record<string, TSeg[]>;
+    return parseSectionsProp(parseSnippets(value));
   }, [value, parseSnippets, parseSectionsProp]);
 
   const handleNavigate = useCallback(
@@ -194,7 +212,7 @@ function MarkdownPreviewWithSnippets({
             />
           );
         }
-        if (!parseSnippets || !renderSnippetSegment) {
+        if (!parseSnippets || !renderSnippetSegment || !isTextSegment) {
           // Sin dependencias de dominio inyectadas: fallback a texto plano.
           return <SnipInlineText key={i} text={block.text} />;
         }
@@ -202,7 +220,7 @@ function MarkdownPreviewWithSnippets({
         return (
           <div key={i} className="my-2 leading-loose">
             {segs.map((seg, j) =>
-              seg.type === "text" ? (
+              isTextSegment(seg) ? (
                 <SnipInlineText key={j} text={seg.value} />
               ) : (
                 <React.Fragment key={j}>
@@ -220,7 +238,9 @@ function MarkdownPreviewWithSnippets({
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownEditor props
 // ────────────────────────────────────────────────────────────────────────────
-interface MarkdownEditorProps {
+interface MarkdownEditorProps<
+  TSeg extends SnippetSegmentBase = SnippetSegmentBase,
+> {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -248,17 +268,21 @@ interface MarkdownEditorProps {
   sectionTitle?: string;
   isLibro?: boolean;
   /** Parsea un bloque de texto en segmentos de snippet (wikilinks, etc.). Lógica de dominio inyectada. */
-  parseSnippets?: ParseSnippetsFn;
+  parseSnippets?: ParseSnippetsFn<TSeg>;
   /** Agrupa el contenido parseado en secciones navegables. Lógica de dominio inyectada. */
-  parseSections?: ParseSectionsFn;
+  parseSections?: ParseSectionsFn<TSeg>;
   /** Renderiza un segmento de snippet (no-texto) como React. Lógica de dominio inyectada. */
-  renderSnippetSegment?: RenderSnippetSegmentFn;
+  renderSnippetSegment?: RenderSnippetSegmentFn<TSeg>;
+  /** Type guard: reconoce si un segmento es texto plano. Lógica de dominio inyectada. */
+  isTextSegment?: IsTextSegmentFn<TSeg>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownEditor
 // ────────────────────────────────────────────────────────────────────────────
-export function MarkdownEditor({
+export function MarkdownEditor<
+  TSeg extends SnippetSegmentBase = SnippetSegmentBase,
+>({
   value,
   onChange,
   placeholder,
@@ -281,7 +305,8 @@ export function MarkdownEditor({
   parseSnippets,
   parseSections,
   renderSnippetSegment,
-}: MarkdownEditorProps) {
+  isTextSegment,
+}: MarkdownEditorProps<TSeg>) {
   // ── Mode state ────────────────────────────────────────────────────────────
   const [modeInternal, setModeInternal] = useState<ViewMode>(
     modeProp ?? defaultMode,
@@ -1303,6 +1328,7 @@ export function MarkdownEditor({
               placeholder={placeholder}
               pvRef={pvRef}
               renderSnippetSegment={renderSnippetSegment}
+              isTextSegment={isTextSegment}
               style={previewStyle}
               value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
               onSnippetAction={onSnippetAction}
