@@ -827,23 +827,28 @@ function PanelListas({
   ]);
 
   // Restaurar posición de scroll al montar
-  // ── TEMPORALMENTE DESACTIVADO mientras depuramos el bug de altura/snap ──
-  // Restaurar un scrollTop guardado justo cuando el contenedor todavía no
-  // terminó de estabilizar su tamaño podía generar saltos que se
-  // confundían con el bug de las secciones creciendo. Reactivar una vez
-  // confirmado que el alto de página y el snap funcionan bien.
-  // useEffect(() => {
-  //   const saved = (() => {
-  //     try {
-  //       return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? "");
-  //     } catch {
-  //       return NaN;
-  //     }
-  //   })();
-  //   if (!isNaN(saved) && scrollRef.current) {
-  //     scrollRef.current.scrollTop = saved;
-  //   }
-  // }, []);
+  // Esperamos a que `pageHeight` ya esté medido (no null) antes de
+  // restaurar: si lo hacíamos apenas montaba el componente, el contenedor
+  // podía tener todavía un tamaño transitorio, y el scrollTop guardado no
+  // correspondía a los tamaños reales de las secciones — eso generaba
+  // saltos que se confundían con el bug de altura. Con este guard, la
+  // restauración solo corre una vez que el layout ya se estabilizó.
+  const restoredScrollRef = useRef(false);
+  useEffect(() => {
+    if (restoredScrollRef.current) return;
+    if (pageHeight == null) return;
+    const saved = (() => {
+      try {
+        return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? "");
+      } catch {
+        return NaN;
+      }
+    })();
+    if (!isNaN(saved) && scrollRef.current) {
+      scrollRef.current.scrollTop = saved;
+    }
+    restoredScrollRef.current = true;
+  }, [pageHeight]);
 
   const handleScroll = useCallback(() => {
     if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
