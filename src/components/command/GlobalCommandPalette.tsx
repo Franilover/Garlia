@@ -1324,24 +1324,102 @@ export function GlobalCommandPalette() {
   const showDefaultGrid = !showDynamic && !showCreateGrid;
   const defaultGridItemsRef = useRef<CommandItem[]>([]);
 
+  // Tamaños de cada sección (grid independiente de 3 columnas) en el orden en
+  // que se renderizan dentro de `defaultFlatItems`/`prefixItemsRef`. Cada
+  // sub-<div className="grid"> reinicia su propia numeración de filas, así
+  // que la navegación con flechas necesita saber DÓNDE corta cada una —
+  // de lo contrario, sumar/restar `GRID_COLS` sobre el índice plano global
+  // desalinea la fila apenas una sección no es múltiplo de 3 (esto era lo
+  // que hacía "saltar" de sección o aterrizar en el ítem equivocado).
+  const defaultSectionSizesRef = useRef<number[]>([]);
+
   const inGridMode = showCreateGrid || !!activePrefix || showDefaultGrid;
 
-  // Ref siempre al día con qué lista corresponde al modo grid ACTUAL.
-  // Evita que el handler de teclado (creado en el efecto de abajo) quede
-  // con un closure viejo de `activePrefix`/`showCreateGrid` cuando el modo
-  // cambia sin que `inGridMode` cambie de valor (p.ej. prefix -> default,
-  // que en ambos casos deja inGridMode en `true`).
+  // Refs con la lista/tamaños de sección activos para el handler de teclado.
+  // IMPORTANTE: la ASIGNACIÓN de `.current` se hace más abajo, después de
+  // calcular `orderedGroupEntries`/`defaultFlatItems` (que dependen de
+  // `browseItems`, definido más adelante en el componente). Antes esta
+  // asignación ocurría aquí mismo, leyendo `defaultSectionSizesRef.current`
+  // y `defaultGridItemsRef.current` con el valor que habían quedado del
+  // render ANTERIOR (un ciclo completo desactualizados) — por eso, apenas
+  // cambiaba cuántos grupos tenían contenido (p.ej. "Descubierto" vacío
+  // pasaba a tener resultados), la navegación con flechas saltaba secciones
+  // enteras usando un mapa de tamaños que ya no correspondía al DOM actual.
   const activeGridItemsRef = useRef<CommandItem[]>([]);
-  activeGridItemsRef.current = showCreateGrid
-    ? createItemsRef.current
-    : activePrefix
-      ? prefixItemsRef.current
-      : defaultGridItemsRef.current;
+  const dynamicSectionSizesRef = useRef<number[]>([]);
+  const activeSectionSizesRef = useRef<number[]>([]);
 
   // Reset index al entrar en cualquier modo grid
   useEffect(() => {
     if (inGridMode) setGridIndex(0);
   }, [inGridMode]);
+
+  // Dado un índice plano y los tamaños de cada sección (en orden), calcula
+  // en qué sección cae y qué fila/columna le corresponde dentro de ella.
+  function locateInSections(flatIndex: number, sectionSizes: number[]) {
+    let offset = 0;
+    for (let s = 0; s < sectionSizes.length; s++) {
+      const size = sectionSizes[s];
+      if (flatIndex < offset + size) {
+        return { section: s, offset, localIndex: flatIndex - offset, size };
+      }
+      offset += size;
+    }
+    // No debería pasar si flatIndex es válido, pero por seguridad devolvemos
+    // la última sección.
+    const lastSection = sectionSizes.length - 1;
+    const lastOffset = offset - (sectionSizes[lastSection] ?? 0);
+    return {
+      section: lastSection,
+      offset: lastOffset,
+      localIndex: flatIndex - lastOffset,
+      size: sectionSizes[lastSection] ?? 0,
+    };
+  }
+
+  // Navega verticalmente respetando los límites de cada sección: si el
+  // movimiento se sale de la sección actual, aterriza en la fila límite
+  // (primera fila de la siguiente / última fila de la anterior) de la
+  // sección vecina, en vez de arrastrar el desfase de la sección de origen.
+  function moveVertical(
+    flatIndex: number,
+    sectionSizes: number[],
+    dir: 1 | -1,
+  ): number {
+    if (sectionSizes.length === 0) return flatIndex;
+    const { section, offset, localIndex, size } = locateInSections(
+      flatIndex,
+      sectionSizes,
+    );
+    const col = localIndex % GRID_COLS;
+    const targetLocal = localIndex + dir * GRID_COLS;
+
+    if (targetLocal >= 0 && targetLocal < size) {
+      // Se mueve dentro de la misma sección — caso normal.
+      return offset + targetLocal;
+    }
+
+    // Se sale de la sección actual — pasar a la vecina en esa dirección.
+    const nextSection = section + dir;
+    if (nextSection < 0 || nextSection >= sectionSizes.length) {
+      // No hay sección vecina — clamp al borde (primer/último item global).
+      return dir === 1 ? offset + size - 1 : offset;
+    }
+
+    let nextOffset = 0;
+    for (let s = 0; s < nextSection; s++) nextOffset += sectionSizes[s];
+    const nextSize = sectionSizes[nextSection];
+
+    if (dir === 1) {
+      // Bajando: aterrizar en la misma columna de la PRIMERA fila de la
+      // siguiente sección (o el último item si esa sección es más chica).
+      return nextOffset + Math.min(col, nextSize - 1);
+    }
+    // Subiendo: aterrizar en la misma columna de la ÚLTIMA fila de la
+    // sección anterior.
+    const lastRowStart = Math.floor((nextSize - 1) / GRID_COLS) * GRID_COLS;
+    return nextOffset + Math.min(lastRowStart + col, nextSize - 1);
+  }
 
   // Navegación con flechas — activa en todos los modos grid.
   // IMPORTANTE: esto va como onKeyDownCapture en el <Command> (ver JSX), no
@@ -1374,8 +1452,9 @@ export function GlobalCommandPalette() {
         if (!total) return prev;
         if (e.key === "ArrowRight") return (prev + 1) % total;
         if (e.key === "ArrowLeft") return (prev - 1 + total) % total;
-        if (e.key === "ArrowDown") return Math.min(prev + GRID_COLS, total - 1);
-        if (e.key === "ArrowUp") return Math.max(prev - GRID_COLS, 0);
+        const sectionSizes = activeSectionSizesRef.current;
+        if (e.key === "ArrowDown") return moveVertical(prev, sectionSizes, 1);
+        if (e.key === "ArrowUp") return moveVertical(prev, sectionSizes, -1);
         return prev;
       });
     },
@@ -1619,10 +1698,6 @@ export function GlobalCommandPalette() {
     {},
   );
 
-  // Lista plana (estáticos + descubrir) que usa el grid de la pantalla inicial
-  const defaultFlatItems = [...staticItems, ...browseItems];
-  defaultGridItemsRef.current = defaultFlatItems;
-
   // Grupos de "Descubrir" (libros/canciones públicas) combinados con los estáticos
   const allGroupsMap: Record<string, CommandItem[]> = { ...staticGroups };
   for (const groupName of ["Descubrir · Libros", "Descubrir · Canciones"]) {
@@ -1655,6 +1730,21 @@ export function GlobalCommandPalette() {
     .filter((g) => allGroupsMap[g]?.length)
     .map((g) => [g, allGroupsMap[g]] as [string, CommandItem[]]);
 
+  // Lista plana + tamaños de sección DERIVADOS del orden visual real
+  // (orderedGroupEntries), no del orden crudo de construcción. Antes,
+  // defaultFlatItems se armaba como [...staticItems, ...browseItems], que no
+  // necesariamente coincide con el orden en que los grupos se pintan en
+  // pantalla (groupOrder puede reordenarlos) — eso desalineaba los índices
+  // usados por data-grid-index/isSelected respecto a lo que el usuario ve,
+  // y sumado al problema de asumir GRID_COLS fijo sobre el índice plano
+  // global, la navegación con flechas terminaba saltando de sección o
+  // aterrizando en el ítem equivocado.
+  const defaultFlatItems = orderedGroupEntries.flatMap(([, items]) => items);
+  defaultGridItemsRef.current = defaultFlatItems;
+  defaultSectionSizesRef.current = orderedGroupEntries.map(
+    ([, items]) => items.length,
+  );
+
   // Group dynamic items
   const dynamicGroups = dynamicItems.reduce<Record<string, CommandItem[]>>(
     (acc, item) => {
@@ -1663,6 +1753,31 @@ export function GlobalCommandPalette() {
     },
     {},
   );
+  const dynamicFlatItems = Object.values(dynamicGroups).flat();
+  dynamicSectionSizesRef.current = Object.values(dynamicGroups).map(
+    (items) => items.length,
+  );
+
+  // Asignación real de los refs que usa el handler de teclado — se hace
+  // ACÁ, después de que `orderedGroupEntries`/`dynamicGroups` (y por lo
+  // tanto los tamaños de sección) ya están frescos para este render. Ver
+  // comentario más arriba, junto a la declaración de estos refs, para el
+  // porqué de este orden.
+  activeGridItemsRef.current = showCreateGrid
+    ? createItemsRef.current
+    : activePrefix
+      ? prefixItemsRef.current
+      : showDynamic
+        ? dynamicFlatItems
+        : defaultGridItemsRef.current;
+
+  activeSectionSizesRef.current = showCreateGrid
+    ? [createItemsRef.current.length]
+    : activePrefix
+      ? [prefixItemsRef.current.length]
+      : showDynamic
+        ? dynamicSectionSizesRef.current
+        : defaultSectionSizesRef.current;
 
   return (
     <AnimatePresence>
@@ -1821,111 +1936,125 @@ export function GlobalCommandPalette() {
                 {showDynamic &&
                   hasDynamicResults &&
                   (() => {
-                    const flatItems = activePrefix
-                      ? Object.values(dynamicGroups).flat()
-                      : Object.values(dynamicGroups).flat();
+                    const flatItems = dynamicFlatItems;
                     prefixItemsRef.current = flatItems;
                     const groupLabel = activeGroup ?? "Resultados";
-                    return activePrefix ? (
-                      <Command.Group>
-                        <div
-                          className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
-                          style={{
-                            color:
-                              "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          }}
-                        >
-                          {groupLabel}
-                        </div>
-                        <div
-                          className="grid gap-1.5 px-1 pb-2"
-                          style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-                        >
-                          {flatItems.map((item, i) => (
-                            <CommandGridItem
-                              key={item.id}
-                              item={item}
-                              index={i}
-                              isSelected={i === gridIndex}
-                              onHover={() => setGridIndex(i)}
-                            />
-                          ))}
-                        </div>
-                      </Command.Group>
-                    ) : (
-                      Object.entries(dynamicGroups).map(
-                        ([groupName, items]) => {
-                          prefixItemsRef.current =
-                            Object.values(dynamicGroups).flat();
-                          return (
-                            <Command.Group key={groupName}>
-                              <div
-                                className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
-                                style={{
-                                  color:
-                                    "color-mix(in srgb, var(--primary) 30%, transparent)",
-                                }}
-                              >
-                                {groupName}
-                              </div>
-                              <div
-                                className="grid gap-1.5 px-1 pb-2"
-                                style={{
-                                  gridTemplateColumns: "repeat(3, 1fr)",
-                                }}
-                              >
-                                {items.map((item, i) => {
-                                  const globalIndex = flatItems.indexOf(item);
-                                  return (
-                                    <CommandGridItem
-                                      key={item.id}
-                                      item={item}
-                                      index={globalIndex}
-                                      isSelected={globalIndex === gridIndex}
-                                      onHover={() => setGridIndex(globalIndex)}
-                                    />
-                                  );
-                                })}
-                              </div>
-                            </Command.Group>
-                          );
-                        },
-                      )
-                    );
+                    if (activePrefix) {
+                      // Un solo grupo activo (p.ej. "per ab") — una sección.
+                      return (
+                        <Command.Group>
+                          <div
+                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
+                          >
+                            {groupLabel}
+                          </div>
+                          <div
+                            className="grid gap-1.5 px-1 pb-2"
+                            style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                          >
+                            {flatItems.map((item, i) => (
+                              <CommandGridItem
+                                key={item.id}
+                                item={item}
+                                index={i}
+                                isSelected={i === gridIndex}
+                                onHover={() => setGridIndex(i)}
+                              />
+                            ))}
+                          </div>
+                        </Command.Group>
+                      );
+                    }
+
+                    // Sin prefijo — varios grupos de resultados, cada uno su
+                    // propia grilla independiente de 3 columnas. Los tamaños
+                    // de cada grupo ya se calcularon arriba en
+                    // `dynamicSectionSizesRef` (antes del JSX), así que acá
+                    // solo iteramos para pintar, reusando ese mismo orden.
+                    const groupEntries = Object.entries(dynamicGroups);
+
+                    let runningOffset = 0;
+                    return groupEntries.map(([groupName, items]) => {
+                      const sectionOffset = runningOffset;
+                      runningOffset += items.length;
+                      return (
+                        <Command.Group key={groupName}>
+                          <div
+                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
+                          >
+                            {groupName}
+                          </div>
+                          <div
+                            className="grid gap-1.5 px-1 pb-2"
+                            style={{
+                              gridTemplateColumns: "repeat(3, 1fr)",
+                            }}
+                          >
+                            {items.map((item, i) => {
+                              const globalIndex = sectionOffset + i;
+                              return (
+                                <CommandGridItem
+                                  key={item.id}
+                                  item={item}
+                                  index={globalIndex}
+                                  isSelected={globalIndex === gridIndex}
+                                  onHover={() => setGridIndex(globalIndex)}
+                                />
+                              );
+                            })}
+                          </div>
+                        </Command.Group>
+                      );
+                    });
                   })()}
 
                 {/* Comandos estáticos + Descubrir — pantalla inicial en columnas, orden unificado */}
                 {!showDynamic &&
-                  orderedGroupEntries.map(([groupName, items]) => (
-                    <Command.Group key={groupName}>
-                      <div
-                        className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
-                        style={{
-                          color:
-                            "color-mix(in srgb, var(--primary) 30%, transparent)",
-                        }}
-                      >
-                        {groupName}
-                      </div>
-                      <div
-                        className="grid gap-1.5 px-1 pb-2"
-                        style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-                      >
-                        {items.map((item) => {
-                          const globalIndex = defaultFlatItems.indexOf(item);
-                          return (
-                            <CommandGridItem
-                              key={item.id}
-                              item={item}
-                              index={globalIndex}
-                              isSelected={globalIndex === gridIndex}
-                              onHover={() => setGridIndex(globalIndex)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </Command.Group>
-                  ))}
+                  (() => {
+                    let runningOffset = 0;
+                    return orderedGroupEntries.map(([groupName, items]) => {
+                      const sectionOffset = runningOffset;
+                      runningOffset += items.length;
+                      return (
+                        <Command.Group key={groupName}>
+                          <div
+                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            style={{
+                              color:
+                                "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            }}
+                          >
+                            {groupName}
+                          </div>
+                          <div
+                            className="grid gap-1.5 px-1 pb-2"
+                            style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
+                          >
+                            {items.map((item, i) => {
+                              const globalIndex = sectionOffset + i;
+                              return (
+                                <CommandGridItem
+                                  key={item.id}
+                                  item={item}
+                                  index={globalIndex}
+                                  isSelected={globalIndex === gridIndex}
+                                  onHover={() => setGridIndex(globalIndex)}
+                                />
+                              );
+                            })}
+                          </div>
+                        </Command.Group>
+                      );
+                    });
+                  })()}
 
                 {/* Sin resultados dinámicos pero con búsqueda activa */}
                 {showDynamic && !hasDynamicResults && !isFetching && (
