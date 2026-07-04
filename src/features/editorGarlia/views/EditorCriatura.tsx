@@ -63,7 +63,7 @@ import {
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Criaturas/PickerImagenCriaturaBtn";
 import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/useCriaturaAsideCatalogs";
 import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/usePersonajesDeCriatura";
-import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/hooks";
+import { useMembresiaGruposCriatura } from "@/features/editorGarlia/hooks/hooks";
 import {
   SelectorImagen,
   SaveIndicator,
@@ -107,7 +107,7 @@ export function EditorCriatura({
     todosGrupos,
     addToGrupo,
     removeFromGrupo,
-  } = useGruposDeCriatura(form.id);
+  } = useMembresiaGruposCriatura(form.id);
 
   // ── Personajes de la especie ───────────────────────────────────────────────
   const {

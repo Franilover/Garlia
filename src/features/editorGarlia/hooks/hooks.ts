@@ -4,8 +4,6 @@ import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
 import {
-  TAB_CONFIG,
-  type TabKey,
   type MundoSectionKey,
   type Personaje,
   type ReinoDetalle,
@@ -25,118 +23,6 @@ async function dexieRead<T>(tabla: string): Promise<T[]> {
   } catch {
     return [];
   }
-}
-
-async function dexieWrite(tabla: string, rows: any[]): Promise<void> {
-  try {
-    if (!db) return;
-    const table = (db as any)[tabla];
-    if (!table) return;
-    if (rows.length > 0) await table.bulkPut(rows);
-    // Eliminar filas locales que ya no existen en remoto
-    const remoteIds = new Set(rows.map((r: any) => r.id));
-    const allLocal: any[] = await table.toArray();
-    const toDelete = allLocal
-      .map((r: any) => r.id)
-      .filter((id: string) => !remoteIds.has(id));
-    if (toDelete.length > 0) await table.bulkDelete(toDelete);
-  } catch (e) {
-    console.warn(`[Dexie hooks] write failed on '${tabla}':`, e);
-  }
-}
-
-async function dexieWriteOne(tabla: string, row: any): Promise<void> {
-  try {
-    if (!db) return;
-    const table = (db as any)[tabla];
-    if (!table) return;
-    await table.put(row);
-  } catch (e) {
-    console.warn(`[Dexie hooks] put failed on '${tabla}':`, e);
-  }
-}
-
-async function dexieDeleteOne(tabla: string, id: string): Promise<void> {
-  try {
-    if (!db) return;
-    const table = (db as any)[tabla];
-    if (!table) return;
-    await table.delete(id);
-  } catch (e) {
-    console.warn(`[Dexie hooks] delete failed on '${tabla}':`, e);
-  }
-}
-
-// ─── useEntidades ─────────────────────────────────────────────────────────────
-
-export function useEntidades<T extends { id: string; nombre: string }>(
-  tab: TabKey,
-) {
-  const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
-
-  const load = useCallback(async () => {
-    if (tab === "mundo") {
-      setLoading(false);
-      return;
-    }
-
-    const config = TAB_CONFIG[tab as Exclude<TabKey, "mundo">];
-    const tabla = config.tabla;
-
-    // 1. Mostrar datos locales de inmediato
-    const local = await dexieRead<T>(tabla);
-    if (local.length > 0) {
-      setItems(local);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
-    // 2. Si offline, quedarse con local
-    if (!navigator.onLine) {
-      setIsOffline(true);
-      setLoading(false);
-      return;
-    }
-
-    setIsOffline(false);
-
-    try {
-      const orderBy = config.orderBy ?? "nombre";
-      const labelKey = config.labelKey ?? "nombre";
-      const { data, error } = await supabase
-        .from(tabla)
-        .select("*")
-        .order(orderBy);
-      if (error) throw error;
-      // Normalizar: si la tabla usa otro campo como etiqueta (ej: canciones → titulo),
-      // copiar ese campo a `nombre` para que los consumidores no exploten con toLowerCase.
-      const result = (data ?? []).map((r: any) => ({
-        ...r,
-        nombre: (r.nombre ?? r[labelKey] ?? "") as string,
-      })) as T[];
-      setItems(result);
-      dexieWrite(tabla, result); // ← persiste en Dexie
-    } catch {
-      setIsOffline(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [tab]);
-
-  useEffect(() => {
-    load();
-    const handleOnline = () => {
-      setIsOffline(false);
-      load();
-    };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [load]);
-
-  return { items, setItems, loading, isOffline, refetch: load };
 }
 
 // ─── useUniqueValues ──────────────────────────────────────────────────────────
@@ -815,9 +701,15 @@ export function useGruposComoOpciones(tipo: GrupoTipo): string[] {
   return nombres;
 }
 
-// ─── useGruposDeCriatura ──────────────────────────────────────────────────────
+// ─── useMembresiaGruposCriatura ───────────────────────────────────────────────
 // Dado el ID de una criatura, devuelve todos los grupos (tipo "criaturas")
 // que la tienen como miembro, y permite añadirla/quitarla de un grupo por nombre.
+//
+// NOTA: renombrado desde `useGruposDeCriatura` — ese nombre colisionaba con
+// `hooks/useGruposDeCriatura.ts`, que resuelve grupos a partir de un nombre
+// de especie (solo lectura) y es una función completamente distinta pese al
+// nombre idéntico. Este hook, en cambio, opera por ID de criatura y expone
+// mutaciones (addToGrupo/removeFromGrupo).
 
 export type GrupoMin = {
   id: string;
@@ -827,7 +719,7 @@ export type GrupoMin = {
   miembro_ids: string[];
 };
 
-export function useGruposDeCriatura(criaturaId: string) {
+export function useMembresiaGruposCriatura(criaturaId: string) {
   const [grupos, setGrupos] = useState<GrupoMin[]>([]);
   const [todosGrupos, setTodosGrupos] = useState<GrupoMin[]>([]);
   const [loading, setLoading] = useState(false);
