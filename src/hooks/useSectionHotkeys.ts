@@ -118,6 +118,14 @@ export function useSectionHotkeys(
         (target && isEditableElement(target)) ||
         (document.activeElement instanceof HTMLElement &&
           isEditableElement(document.activeElement));
+      // eslint-disable-next-line no-console
+      console.log("[useSectionHotkeys] key:", e.key, {
+        target,
+        activeElement: document.activeElement,
+        blockedByEditable: activeEl,
+        sectionsCount: sectionsRef.current.length,
+        keys: sectionsRef.current.map((s) => s.key),
+      });
       if (activeEl) return;
 
       const section = sectionsRef.current.find((s) => s.key === e.key);
