@@ -9,6 +9,7 @@ import {
   Scroll,
   Sparkles,
   Star,
+  User,
   WifiOff,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -459,9 +460,9 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   src={perfil.avatar_url}
                 />
               ) : (
-                <Scroll
+                <User
                   className="absolute inset-0 m-auto"
-                  size={36}
+                  size={38}
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 22%, transparent)",
@@ -555,7 +556,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
                     }}
                   >
-                    Botín
+                    Registro
                   </p>
                   <div
                     className="flex-1 h-px"
@@ -567,46 +568,58 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                 </div>
 
                 <div className="space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="flex items-center gap-1.5"
-                      style={{
-                        color:
-                          "color-mix(in srgb, var(--primary) 40%, transparent)",
-                      }}
-                    >
-                      <Sparkles size={10} />
-                      <span className="text-[8px] font-black uppercase tracking-wider">
-                        Experiencia
-                      </span>
+                  {[
+                    {
+                      icon: <Sparkles size={10} />,
+                      label: "Experiencia",
+                      count: perfil?.xp_total ?? 0,
+                      max: 1000,
+                    },
+                    {
+                      icon: <Award size={10} />,
+                      label: "Monedas",
+                      count: perfil?.monedas ?? 0,
+                      max: 200,
+                    },
+                  ].map(({ icon, label, count, max }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div
+                          className="flex items-center gap-1.5"
+                          style={{
+                            color:
+                              "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          }}
+                        >
+                          {icon}
+                          <span className="text-[8px] font-black uppercase tracking-wider">
+                            {label}
+                          </span>
+                        </div>
+                        <span
+                          className="text-[13px] font-black tabular-nums"
+                          style={{ color: "var(--primary)" }}
+                        >
+                          {count}
+                        </span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 10 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 h-1 transition-all duration-700"
+                            style={{
+                              background:
+                                i < Math.round((count / max) * 10)
+                                  ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                                  : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                              borderRadius: "1px",
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <span
-                      className="text-[13px] font-black tabular-nums"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      {perfil?.xp_total ?? 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="flex items-center gap-1.5"
-                      style={{
-                        color:
-                          "color-mix(in srgb, var(--primary) 40%, transparent)",
-                      }}
-                    >
-                      <Award size={10} />
-                      <span className="text-[8px] font-black uppercase tracking-wider">
-                        Monedas
-                      </span>
-                    </div>
-                    <span
-                      className="text-[13px] font-black tabular-nums"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      {perfil?.monedas ?? 0}
-                    </span>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -666,42 +679,56 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
 
           {/* ── MAIN CONTENT ── */}
           <div className="flex-1 min-w-0 w-full">
-            {/* Tabs */}
+            {/* Tabs Mobile */}
             <div
-              className="flex items-center gap-1 mb-5 p-1 w-fit"
+              className="flex md:hidden w-full"
               style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 4%, transparent)",
-                borderRadius: "var(--radius-btn)",
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                borderBottom:
+                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
               }}
             >
               {tabs.map(({ id, label, icon: Icon, count }) => {
-                const active = tab === id;
+                const isActive = tab === id;
                 return (
                   <button
                     key={id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
                     style={{
-                      borderRadius: "calc(var(--radius-btn) - 2px)",
-                      background: active ? "var(--primary)" : "transparent",
-                      color: active
-                        ? "var(--btn-text)"
-                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      background: isActive
+                        ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                        : "transparent",
+                      color: isActive
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      borderTop: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderLeft: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderRight: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderBottom: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                        : "1px solid transparent",
+                      borderRadius: "4px 4px 0 0",
+                      marginBottom: isActive ? "-1px" : "0",
+                      zIndex: isActive ? 2 : 1,
+                      position: "relative",
                     }}
                     onClick={() => setTab(id)}
                   >
                     <Icon size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-wider">
+                    <span className="text-[9px] font-black uppercase tracking-widest">
                       {label}
                     </span>
                     <span
                       className="text-[8px] font-black tabular-nums px-1"
                       style={{
                         borderRadius: "2px",
-                        background: active
-                          ? "color-mix(in srgb, var(--btn-text) 20%, transparent)"
+                        background: isActive
+                          ? "color-mix(in srgb, var(--primary) 12%, transparent)"
                           : "color-mix(in srgb, var(--primary) 8%, transparent)",
                       }}
                     >
@@ -712,118 +739,185 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
               })}
             </div>
 
-            {/* Grid de misiones */}
-            <AnimatePresence mode="wait">
-              <MotionDiv
-                key={tab}
-                animate={{ opacity: 1 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
-                exit={{ opacity: 0 }}
-                initial={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {misionesVisibles.length === 0 ? (
-                  <div className="col-span-full">
-                    <EmptyMisiones
-                      label={
-                        tab === "tablon"
-                          ? "No hay misiones disponibles por ahora…"
-                          : tab === "en_curso"
-                            ? "Aún no has aceptado ninguna misión…"
-                            : "Todavía no completas ninguna misión…"
-                      }
-                    />
-                  </div>
-                ) : (
-                  misionesVisibles.map((m) => (
-                    <button
-                      key={m.id}
-                      className="group flex flex-col text-left overflow-hidden transition-all"
+            {/* Tabs Desktop */}
+            <div
+              className="hidden md:flex items-end gap-0 w-full"
+              style={{
+                borderBottom:
+                  "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              {tabs.map(({ id, label, icon: Icon, count }) => {
+                const isActive = tab === id;
+                return (
+                  <button
+                    key={id}
+                    className="relative flex flex-1 items-center justify-center gap-1.5 py-2.5 transition-all duration-200"
+                    style={{
+                      background: isActive
+                        ? "color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                        : "transparent",
+                      color: isActive
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      borderTop: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderLeft: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderRight: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "1px solid transparent",
+                      borderBottom: isActive
+                        ? "1px solid color-mix(in srgb, var(--primary) 2%, var(--bg-main))"
+                        : "1px solid transparent",
+                      borderRadius: "4px 4px 0 0",
+                      marginBottom: isActive ? "-1px" : "0",
+                      zIndex: isActive ? 2 : 1,
+                    }}
+                    onClick={() => setTab(id)}
+                  >
+                    <Icon size={11} />
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {label}
+                    </span>
+                    <span
+                      className="text-[8px] font-black tabular-nums px-1"
                       style={{
-                        background: "var(--white-custom)",
-                        borderRadius: "var(--radius-card)",
-                        border:
-                          "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                        borderRadius: "2px",
+                        background: isActive
+                          ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                          : "color-mix(in srgb, var(--primary) 8%, transparent)",
                       }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          "color-mix(in srgb, var(--primary) 24%, transparent)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          "color-mix(in srgb, var(--primary) 10%, transparent)";
-                      }}
-                      onClick={() => setMisionModal(m)}
                     >
-                      <div
-                        className="w-full h-28 shrink-0 overflow-hidden relative"
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Panel de misiones */}
+            <div
+              style={{
+                borderLeft:
+                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderRight:
+                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderBottom:
+                  "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderTop: "0px solid transparent",
+                borderRadius: "0 0 var(--radius-card) var(--radius-card)",
+                background:
+                  "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                padding: "16px",
+                position: "relative",
+                zIndex: 1,
+                minHeight: "240px",
+                width: "100%",
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <MotionDiv
+                  key={tab}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+                  exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.16 }}
+                >
+                  {misionesVisibles.length === 0 ? (
+                    <div className="col-span-full">
+                      <EmptyMisiones
+                        label={
+                          tab === "tablon"
+                            ? "No hay misiones disponibles por ahora…"
+                            : tab === "en_curso"
+                              ? "Aún no has aceptado ninguna misión…"
+                              : "Todavía no completas ninguna misión…"
+                        }
+                      />
+                    </div>
+                  ) : (
+                    misionesVisibles.map((m) => (
+                      <button
+                        key={m.id}
+                        className="group flex flex-col text-left overflow-hidden transition-all"
                         style={{
-                          background:
-                            "color-mix(in srgb, var(--primary) 5%, transparent)",
+                          background: "var(--white-custom)",
+                          borderRadius: "var(--radius-card)",
+                          border:
+                            "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                         }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            "color-mix(in srgb, var(--primary) 24%, transparent)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.borderColor =
+                            "color-mix(in srgb, var(--primary) 10%, transparent)";
+                        }}
+                        onClick={() => setMisionModal(m)}
                       >
-                        {m.imagen_url ? (
-                          <img
-                            alt={m.titulo}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            src={m.imagen_url}
-                          />
-                        ) : (
-                          <Scroll
-                            className="absolute inset-0 m-auto"
-                            size={24}
-                            style={{
-                              color:
-                                "color-mix(in srgb, var(--primary) 16%, transparent)",
-                            }}
-                          />
-                        )}
-                        <div className="absolute top-2 left-2">
-                          <PastillaDificultad dificultad={m.dificultad} />
-                        </div>
-                        {m.user_estado === "reclamada" && (
-                          <div
-                            className="absolute inset-0 flex items-center justify-center"
-                            style={{
-                              background:
-                                "color-mix(in srgb, var(--white-custom) 55%, transparent)",
-                            }}
-                          >
-                            <CheckCircle2
-                              size={22}
+                        <div
+                          className="w-full h-28 shrink-0 overflow-hidden relative"
+                          style={{
+                            background:
+                              "color-mix(in srgb, var(--primary) 5%, transparent)",
+                          }}
+                        >
+                          {m.imagen_url ? (
+                            <img
+                              alt={m.titulo}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              src={m.imagen_url}
+                            />
+                          ) : (
+                            <Scroll
+                              className="absolute inset-0 m-auto"
+                              size={24}
                               style={{
                                 color:
-                                  "color-mix(in srgb, var(--primary) 45%, transparent)",
+                                  "color-mix(in srgb, var(--primary) 16%, transparent)",
                               }}
                             />
+                          )}
+                          <div className="absolute top-2 left-2">
+                            <PastillaDificultad dificultad={m.dificultad} />
                           </div>
-                        )}
-                      </div>
+                          {m.user_estado === "reclamada" && (
+                            <div
+                              className="absolute inset-0 flex items-center justify-center"
+                              style={{
+                                background:
+                                  "color-mix(in srgb, var(--white-custom) 55%, transparent)",
+                              }}
+                            >
+                              <CheckCircle2
+                                size={22}
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 45%, transparent)",
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="flex flex-col gap-2 p-3 flex-1">
-                        <h3
-                          className="font-serif italic text-[13px] leading-tight capitalize"
-                          style={{ color: "var(--primary)" }}
-                        >
-                          {m.titulo}
-                        </h3>
-
-                        {m.user_estado === "en_curso" && (
-                          <BarraProgreso progreso={m.progreso ?? 0} />
-                        )}
-
-                        <div className="flex items-center gap-2 mt-auto pt-1">
-                          <span
-                            className="flex items-center gap-1 text-[9px] font-black tabular-nums"
-                            style={{
-                              color:
-                                "color-mix(in srgb, var(--primary) 40%, transparent)",
-                            }}
+                        <div className="flex flex-col gap-2 p-3 flex-1">
+                          <h3
+                            className="font-serif italic text-[13px] leading-tight capitalize"
+                            style={{ color: "var(--primary)" }}
                           >
-                            <Sparkles size={9} />
-                            {m.recompensa.xp} XP
-                          </span>
-                          {!!m.recompensa.monedas && (
+                            {m.titulo}
+                          </h3>
+
+                          {m.user_estado === "en_curso" && (
+                            <BarraProgreso progreso={m.progreso ?? 0} />
+                          )}
+
+                          <div className="flex items-center gap-2 mt-auto pt-1">
                             <span
                               className="flex items-center gap-1 text-[9px] font-black tabular-nums"
                               style={{
@@ -831,17 +925,29 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                                   "color-mix(in srgb, var(--primary) 40%, transparent)",
                               }}
                             >
-                              <Award size={9} />
-                              {m.recompensa.monedas}
+                              <Sparkles size={9} />
+                              {m.recompensa.xp} XP
                             </span>
-                          )}
+                            {!!m.recompensa.monedas && (
+                              <span
+                                className="flex items-center gap-1 text-[9px] font-black tabular-nums"
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                }}
+                              >
+                                <Award size={9} />
+                                {m.recompensa.monedas}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </MotionDiv>
-            </AnimatePresence>
+                      </button>
+                    ))
+                  )}
+                </MotionDiv>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
