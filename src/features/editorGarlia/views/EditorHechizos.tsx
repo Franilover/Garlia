@@ -21,8 +21,8 @@ import React, { useEffect, useRef, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/Magia/FormularioMagico";
 import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/Magia/types";
-import { useEntidadesMagicas } from "@/features/editorGarlia/hooks/useEntidadesMagicas";
-import { useGruposCriaturas } from "@/features/editorGarlia/hooks/useGruposCriaturas";
+import { useEntidadesMagicas } from "@/features/editorGarlia/hooks/misc/useEntidadesMagicas";
+import { useGruposCriaturas } from "@/features/editorGarlia/hooks/grupos/useGruposCriaturas";
 import { supabase } from "@/lib/api/client/supabase";
 
 export function EditorHechizos({

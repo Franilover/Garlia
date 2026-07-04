@@ -27,7 +27,7 @@ import {
   type Relacion,
   useRelaciones,
   useTiposExistentes,
-} from "@/features/editorGarlia/hooks/useRelaciones";
+} from "@/features/editorGarlia/hooks/relaciones/useRelaciones";
 
 import { GrafoRelaciones } from "./GrafoRelaciones";
 

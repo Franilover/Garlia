@@ -38,10 +38,10 @@ import {
   PickerCaraBtn,
   PickerImagen,
 } from "@/features/editorGarlia/components/Personajes/PersonajeImagePickers";
-import { useCiudades } from "@/features/editorGarlia/hooks/useCiudades";
-import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/useGruposDeCriatura";
-import { usePersonajeForm } from "@/features/editorGarlia/hooks/usePersonajeForm";
-import { useReinosMin } from "@/features/editorGarlia/hooks/useReinosMin";
+import { useCiudades } from "@/features/editorGarlia/hooks/ciudades/useCiudades";
+import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/grupos/useGruposDeCriatura";
+import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePersonajeForm";
+import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
 import { BloqueDones } from "../components/BloqueDones";
 import { useNombresDeTabla } from "../hooks/hooks";

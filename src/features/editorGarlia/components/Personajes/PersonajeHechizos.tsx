@@ -15,7 +15,7 @@
 import { Sparkles } from "lucide-react";
 
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { useHechizosDelPersonaje } from "@/features/editorGarlia/hooks/useHechizosDelPersonaje";
+import { useHechizosDelPersonaje } from "@/features/editorGarlia/hooks/personajes/useHechizosDelPersonaje";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 

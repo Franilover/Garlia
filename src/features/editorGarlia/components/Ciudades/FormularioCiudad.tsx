@@ -37,7 +37,7 @@ import {
   type PersonajeMin,
   type CriaturaMin,
   type ItemMin,
-} from "../../hooks/useCiudadCatalogos";
+} from "../../hooks/ciudades/useCiudadCatalogos";
 import { type Ciudad, type SaveStatus } from "../../hooks/types";
 import { SelectorImagen, SaveIndicator } from "../../components/UIComponents";
 import { useWikilink } from "../../components/WikilinkContext";

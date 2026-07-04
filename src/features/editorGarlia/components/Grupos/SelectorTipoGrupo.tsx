@@ -13,7 +13,7 @@
 import { Layers } from "lucide-react";
 import React from "react";
 
-import { GRUPO_TIPO_CONFIG, type GrupoTipo } from "../../hooks/useGrupos";
+import { GRUPO_TIPO_CONFIG, type GrupoTipo } from "../../hooks/grupos/useGrupos";
 
 export function SelectorTipoGrupo({
   onSelect,

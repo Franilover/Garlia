@@ -61,8 +61,8 @@ import {
   grupoEsMagico,
 } from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Criaturas/PickerImagenCriaturaBtn";
-import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/useCriaturaAsideCatalogs";
-import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/usePersonajesDeCriatura";
+import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/criaturas/useCriaturaAsideCatalogs";
+import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/features/editorGarlia/hooks/hooks";
 import {
   SelectorImagen,

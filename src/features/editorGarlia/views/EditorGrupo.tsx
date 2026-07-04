@@ -42,7 +42,7 @@ import {
   GRUPO_TIPO_CONFIG,
   type Grupo,
   type GrupoTipo,
-} from "../hooks/useGrupos";
+} from "../hooks/grupos/useGrupos";
 import { type SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
 

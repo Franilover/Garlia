@@ -21,7 +21,7 @@ import {
   GRUPO_TIPO_CONFIG,
   type EntidadMin,
   type GrupoTipo,
-} from "../../hooks/useGrupos";
+} from "../../hooks/grupos/useGrupos";
 
 export function SelectorMiembros({
   tipo,

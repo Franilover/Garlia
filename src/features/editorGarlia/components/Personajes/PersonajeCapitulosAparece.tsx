@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 import {
   type CapAparece,
   useCapitulosConPersonaje,
-} from "@/features/editorGarlia/hooks/useCapitulosConPersonaje";
+} from "@/features/editorGarlia/hooks/capitulos/useCapitulosConPersonaje";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 

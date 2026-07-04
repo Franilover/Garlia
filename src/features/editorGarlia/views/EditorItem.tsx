@@ -38,7 +38,7 @@ import { PanelCiudades } from "@/features/editorGarlia/components/Items/PanelCiu
 import { PanelTerritorio } from "@/features/editorGarlia/components/Items/PanelTerritorio";
 import { PickerImagenItemBtn } from "@/features/editorGarlia/components/Items/PickerImagenItemBtn";
 import { SelectorGrupoUnico } from "@/features/editorGarlia/components/Items/SelectorGrupoUnico";
-import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/useItemCatalogosUbicacion";
+import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/misc/useItemCatalogosUbicacion";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 

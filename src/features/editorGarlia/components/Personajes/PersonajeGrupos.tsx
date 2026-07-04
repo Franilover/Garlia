@@ -11,7 +11,7 @@
 
 import { Loader2, Users } from "lucide-react";
 
-import { useGruposDelPersonaje } from "@/features/editorGarlia/hooks/useGruposDelPersonaje";
+import { useGruposDelPersonaje } from "@/features/editorGarlia/hooks/grupos/useGruposDelPersonaje";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 

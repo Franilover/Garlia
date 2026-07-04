@@ -40,8 +40,8 @@ import {
 import {
   type Era,
   useErasDelPersonaje,
-} from "@/features/editorGarlia/hooks/useErasDelPersonaje";
-import { useGuardarCumpleanos } from "@/features/editorGarlia/hooks/useGuardarCumpleanos";
+} from "@/features/editorGarlia/hooks/personajes/useErasDelPersonaje";
+import { useGuardarCumpleanos } from "@/features/editorGarlia/hooks/personajes/useGuardarCumpleanos";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

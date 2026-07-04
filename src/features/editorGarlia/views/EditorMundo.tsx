@@ -53,7 +53,7 @@ import {
   type SaveStatus,
 } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
-import { useNotas } from "../hooks/useNotas";
+import { useNotas } from "../hooks/notas/useNotas";
 import { useWikilink } from "../components/WikilinkContext";
 
 // ─── Dexie helpers ────────────────────────────────────────────────────────────

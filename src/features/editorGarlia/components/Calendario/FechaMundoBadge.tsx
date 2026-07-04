@@ -21,7 +21,7 @@ import {
   eraEnAnio,
 } from "@/lib/utils/calendario";
 
-import { useCalendario } from "../../hooks/useCalendario";
+import { useCalendario } from "../../hooks/calendario/useCalendario";
 
 export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
   const { cal, loading } = useCalendario();

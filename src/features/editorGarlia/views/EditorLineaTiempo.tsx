@@ -55,7 +55,7 @@ import {
   useCalendario,
   invalidarCacheEras,
   type CalCache,
-} from "../hooks/useCalendario";
+} from "../hooks/calendario/useCalendario";
 import { type Reino, type SaveStatus } from "../hooks/types";
 import { SaveIndicator } from "../components/UIComponents";
 

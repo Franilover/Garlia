@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type GrupoMin } from "../components/Magia/types";
+import { type GrupoMin } from "../../components/Magia/types";
 
 export function useGruposCriaturas() {
   const [grupos, setGrupos] = useState<GrupoMin[]>([]);

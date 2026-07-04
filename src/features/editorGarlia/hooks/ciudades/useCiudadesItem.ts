@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
 
-import { type CiudadMin } from "./useItemCatalogosUbicacion";
+import { type CiudadMin } from "../misc/useItemCatalogosUbicacion";
 
 export type ItemCiudadRow = {
   rowId: string;

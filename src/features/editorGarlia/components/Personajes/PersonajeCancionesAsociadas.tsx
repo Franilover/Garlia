@@ -12,7 +12,7 @@
 import Image from "next/image";
 import { Loader2, Music2 } from "lucide-react";
 
-import { useCancionesDelPersonaje } from "@/features/editorGarlia/hooks/useCancionesDelPersonaje";
+import { useCancionesDelPersonaje } from "@/features/editorGarlia/hooks/canciones/useCancionesDelPersonaje";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 

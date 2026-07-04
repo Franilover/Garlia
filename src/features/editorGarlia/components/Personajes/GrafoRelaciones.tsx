@@ -15,7 +15,7 @@ import { X, Loader2, GitFork, UserCircle2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { useCSSVar } from "@/hooks/ui/useCSSVar";
-import { useGrafoRelaciones } from "@/features/editorGarlia/hooks/useGrafoRelaciones";
+import { useGrafoRelaciones } from "@/features/editorGarlia/hooks/relaciones/useGrafoRelaciones";
 import { esFamilia, TIPOS_FAM_ARRIBA } from "@/lib/utils/grafoRelaciones";
 import type {
   DatosGrafo,

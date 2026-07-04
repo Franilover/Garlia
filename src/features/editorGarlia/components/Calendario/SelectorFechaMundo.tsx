@@ -30,7 +30,7 @@ import {
   eraEnAnio,
 } from "@/lib/utils/calendario";
 
-import { useCalendario } from "../../hooks/useCalendario";
+import { useCalendario } from "../../hooks/calendario/useCalendario";
 
 // value: día absoluto | null
 // onChange: devuelve el nuevo día absoluto

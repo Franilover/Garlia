@@ -13,9 +13,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
-import { dexieReadAll, dexieWriteAll } from "@/lib/utils/dexieGenericHelpers";
+import { dexieReadAll, dexieWriteAll } from "@/lib/utils/dexieHelpers";
 
-import { CONFIG, type EntidadMagica, type Modo } from "../components/Magia/types";
+import { CONFIG, type EntidadMagica, type Modo } from "../../components/Magia/types";
 
 export function useEntidadesMagicas(modo: Modo) {
   const [items, setItems] = useState<EntidadMagica[]>([]);
