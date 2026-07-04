@@ -826,7 +826,102 @@ function PanelListas({
     },
   ]);
 
-  // Restaurar posición de scroll al montar
+  // ── Snap manual por wheel ────────────────────────────────────────────────
+  // El CSS `scroll-snap` no alcanza acá: cada sección tiene su propio
+  // scroll interno (`overflow-y-auto`), así que el navegador consume el
+  // wheel ahí mismo y nunca llega a "tocar" el scroll del contenedor
+  // exterior — por eso `snap-mandatory` no reajustaba nada la mayoría de
+  // las veces. Lo manejamos a mano: mientras la sección activa todavía
+  // puede scrollear internamente, la dejamos scrollear normal. Recién
+  // cuando llega a su borde (arriba o abajo) tomamos el control y
+  // avanzamos/retrocedemos a la sección siguiente con scrollIntoView.
+  const sectionRefs = useMemo(
+    () =>
+      [
+        textos && onTextoChange && onSave ? lineaTiempoRef : null,
+        capitulosRef,
+        entidadesRef,
+        mapaRef,
+        relacionesMisionesRef,
+      ].filter((r): r is React.RefObject<HTMLDivElement> => r !== null),
+    [textos, onTextoChange, onSave],
+  );
+  const activeSectionIndexRef = useRef(0);
+  const isSnapAnimatingRef = useRef(false);
+
+  // Mantenemos el índice de la sección activa sincronizado con lo que
+  // realmente se ve en pantalla (útil si el usuario navega por los chips
+  // de arriba, por atajos de teclado, o arrastra la scrollbar).
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+            const idx = sectionRefs.findIndex(
+              (r) => r.current === entry.target,
+            );
+            if (idx !== -1) activeSectionIndexRef.current = idx;
+          }
+        });
+      },
+      { root: container, threshold: [0.6] },
+    );
+    sectionRefs.forEach((r) => {
+      if (r.current) observer.observe(r.current);
+    });
+    return () => observer.disconnect();
+  }, [sectionRefs]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (isSnapAnimatingRef.current) {
+        e.preventDefault();
+        return;
+      }
+      const idx = activeSectionIndexRef.current;
+      const activeEl = sectionRefs[idx]?.current;
+      if (!activeEl) return;
+
+      const goingDown = e.deltaY > 0;
+      const atBottom =
+        activeEl.scrollTop + activeEl.clientHeight >= activeEl.scrollHeight - 1;
+      const atTop = activeEl.scrollTop <= 0;
+
+      if (goingDown && atBottom && idx < sectionRefs.length - 1) {
+        e.preventDefault();
+        const next = sectionRefs[idx + 1].current;
+        if (next) {
+          isSnapAnimatingRef.current = true;
+          activeSectionIndexRef.current = idx + 1;
+          next.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            isSnapAnimatingRef.current = false;
+          }, 500);
+        }
+      } else if (!goingDown && atTop && idx > 0) {
+        e.preventDefault();
+        const prev = sectionRefs[idx - 1].current;
+        if (prev) {
+          isSnapAnimatingRef.current = true;
+          activeSectionIndexRef.current = idx - 1;
+          prev.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            isSnapAnimatingRef.current = false;
+          }, 500);
+        }
+      }
+      // Si no estamos en un borde, no hacemos nada: dejamos que el
+      // navegador scrollee normalmente dentro de la sección activa.
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [sectionRefs]);
   // Esperamos a que `pageHeight` ya esté medido (no null) antes de
   // restaurar: si lo hacíamos apenas montaba el componente, el contenedor
   // podía tener todavía un tamaño transitorio, y el scrollTop guardado no
@@ -1504,14 +1599,14 @@ function PanelListas({
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto min-h-0 snap-y snap-mandatory scroll-smooth"
+        className="flex-1 overflow-y-auto min-h-0 scroll-smooth"
         onScroll={handleScroll}
       >
         {/* HISTORIA */}
         {textos && onTextoChange && onSave && (
           <div
             ref={lineaTiempoRef}
-            className="border-b snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
+            className="border-b flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
               ...pageHeightStyle,
@@ -1585,7 +1680,7 @@ function PanelListas({
         {/* CAPÍTULOS */}
         <div
           ref={capitulosRef}
-          className="snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
+          className="flex flex-col min-h-0 overflow-y-auto"
           style={pageHeightStyle}
         >
           <div className="flex-1 min-h-0 flex flex-col">
@@ -1596,7 +1691,7 @@ function PanelListas({
         {/* ENTIDADES */}
         <div
           ref={entidadesRef}
-          className="border-b border-t snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
+          className="border-b border-t flex flex-col min-h-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2134,7 +2229,7 @@ function PanelListas({
         {/* MAPA */}
         <div
           ref={mapaRef}
-          className="border-b snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto"
+          className="border-b flex flex-col shrink-0 min-h-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2159,7 +2254,7 @@ function PanelListas({
         {/* RELACIONES · MISIONES — lado a lado en computadora (≥1024px) */}
         <div
           ref={relacionesMisionesRef}
-          className="lg:grid lg:grid-cols-2 snap-start snap-always flex flex-col lg:flex-none  min-h-0 overflow-hidden"
+          className="lg:grid lg:grid-cols-2 flex flex-col lg:flex-none min-h-0 overflow-hidden"
           style={pageHeightStyle}
         >
           <div
