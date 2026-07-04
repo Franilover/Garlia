@@ -718,361 +718,371 @@ const PanelEditor = ({
   if (!cap) return null;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
-      {/* ── Vista previa fullscreen ── */}
-      <AnimatePresence>
-        {previewOpen && (
-          <div className="fixed inset-0 z-[200] flex flex-col">
-            <MotionDiv
-              animate={{ opacity: 1 }}
-              className="absolute inset-0 bg-bg-main"
-              exit={{ opacity: 0 }}
-              initial={{ opacity: 0 }}
-            />
-            <div className="relative z-10 flex flex-col h-full">
-              <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
-                <div className="flex items-center gap-3">
-                  <Eye className="text-primary/40" size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
-                    Vista previa — {cap?.titulo_capitulo}
-                  </span>
-                  {cap?.visibilidad !== "publico" && (
-                    <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--callout-warning-border)_30%,transparent)] bg-[color-mix(in_srgb,var(--callout-warning-border)_10%,transparent)] text-[var(--callout-warning-title)] tracking-wide">
-                      <Lock size={8} />
-                      {VISIBILIDAD_CONFIG[cap?.visibilidad ?? "oculto"]?.label}
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* ── Columna principal: título + editor (la barra lateral queda afuera) ── */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* ── Vista previa fullscreen ── */}
+        <AnimatePresence>
+          {previewOpen && (
+            <div className="fixed inset-0 z-[200] flex flex-col">
+              <MotionDiv
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-bg-main"
+                exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+              />
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <Eye className="text-primary/40" size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
+                      Vista previa — {cap?.titulo_capitulo}
                     </span>
-                  )}
+                    {cap?.visibilidad !== "publico" && (
+                      <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--callout-warning-border)_30%,transparent)] bg-[color-mix(in_srgb,var(--callout-warning-border)_10%,transparent)] text-[var(--callout-warning-title)] tracking-wide">
+                        <Lock size={8} />
+                        {
+                          VISIBILIDAD_CONFIG[cap?.visibilidad ?? "oculto"]
+                            ?.label
+                        }
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      className="text-[9px] font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"
+                      href={`/garliaia/libros/${libroId}/leer/${capId}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Abrir página pública ↗
+                    </a>
+                    <button
+                      className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
+                      onClick={() => setPreviewOpen(false)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    className="text-[9px] font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"
-                    href={`/garliaia/libros/${libroId}/leer/${capId}`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Abrir página pública ↗
-                  </a>
-                  <button
-                    className="p-1.5 rounded-lg hover:bg-primary/8 text-primary/30 hover:text-primary transition-all"
-                    onClick={() => setPreviewOpen(false)}
-                  >
-                    <X size={16} />
-                  </button>
+                <div className="flex-1 overflow-y-auto">
+                  <style>{PROSE_STYLES}</style>
+                  <div className="max-w-2xl mx-auto px-8 py-12">
+                    <h1 className="text-3xl font-black uppercase italic tracking-tight text-primary mb-8 leading-tight">
+                      {cap?.titulo_capitulo}
+                    </h1>
+                    {contenido ? (
+                      <MarkdownPreviewPane contenido={contenido} />
+                    ) : (
+                      <span className="text-primary/25 italic text-sm">
+                        Sin contenido aún…
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                <style>{PROSE_STYLES}</style>
-                <div className="max-w-2xl mx-auto px-8 py-12">
-                  <h1 className="text-3xl font-black uppercase italic tracking-tight text-primary mb-8 leading-tight">
-                    {cap?.titulo_capitulo}
-                  </h1>
-                  {contenido ? (
-                    <MarkdownPreviewPane contenido={contenido} />
+            </div>
+          )}
+        </AnimatePresence>
+
+        <DraftRestoreBanner
+          draft={draft}
+          label="Hay un borrador local de este capítulo"
+          onRestore={(v) => {
+            setContenido(v);
+            draft.dismiss();
+          }}
+        />
+        {isOffline && (
+          <BannerOffline
+            color="blue"
+            mensaje="Sin conexión — los cambios se guardan localmente"
+          />
+        )}
+
+        {saveStatus === "pending" && !isOffline && (
+          <div
+            className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-[color-mix(in_srgb,var(--callout-info-border)_8%,transparent)] border-b border-[color-mix(in_srgb,var(--callout-info-border)_15%,transparent)] text-[9px] font-black uppercase tracking-widest text-[var(--callout-info-title)]"
+            style={{ opacity: 0.7 }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--callout-info-border)]" />
+            Cambios pendientes de sincronizar
+          </div>
+        )}
+
+        {!focusMode && (
+          <div className="shrink-0 px-5 pt-4 pb-2 border-b border-primary/8 space-y-1.5">
+            {/* Título editable */}
+            {editingTitle ? (
+              <div className="flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  className="flex-1 bg-transparent text-base font-black uppercase italic tracking-tight text-primary outline-none border-b border-primary/30 focus:border-primary pb-0.5"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveTitle();
+                    if (e.key === "Escape") {
+                      setEditingTitle(false);
+                      setTitulo(cap.titulo_capitulo);
+                    }
+                  }}
+                />
+                <button
+                  className="p-1 rounded hover:bg-primary/10 text-primary transition-all disabled:opacity-40"
+                  disabled={savingMeta}
+                  onClick={handleSaveTitle}
+                >
+                  {savingMeta ? (
+                    <Loader2 className="animate-spin" size={11} />
                   ) : (
-                    <span className="text-primary/25 italic text-sm">
-                      Sin contenido aún…
-                    </span>
+                    <Check size={11} />
                   )}
-                </div>
+                </button>
+                <button
+                  className="p-1 rounded text-primary/30 hover:text-primary transition-all"
+                  onClick={() => {
+                    setEditingTitle(false);
+                    setTitulo(cap.titulo_capitulo);
+                  }}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ) : (
+              <h1
+                className="text-base font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/60 transition-colors"
+                onClick={() => setEditingTitle(true)}
+              >
+                {cap.titulo_capitulo}
+              </h1>
+            )}
+
+            {/* Meta row compacta */}
+            <div className="flex items-center gap-2">
+              {/* Info pills */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-[8px] font-black uppercase tracking-widest text-primary/30">
+                {/* Orden editable */}
+                <span className="flex items-center gap-0.5 shrink-0">
+                  <Hash size={8} />
+                  <input
+                    className="w-6 bg-transparent outline-none text-[8px] font-black tabular-nums text-center border-b border-transparent focus:border-primary/30 transition-all"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    title="Orden del capítulo"
+                    value={cap.orden}
+                    onChange={async (e) => {
+                      const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                      if (!isNaN(n) && n > 0) {
+                        try {
+                          await capUpdateMeta(capId, { orden: n });
+                        } catch {}
+                      }
+                    }}
+                  />
+                </span>
+
+                <VisibilidadCapPicker
+                  capId={capId}
+                  current={capVisibilidad}
+                  onChanged={(v) => {
+                    setCapVisibilidad(v);
+                    setCap((prev) =>
+                      prev ? { ...prev, visibilidad: v } : prev,
+                    );
+                    if (v !== "programado") {
+                      setFecha("");
+                      capUpdateMeta(capId, { fecha_publicacion: null as any });
+                    }
+                  }}
+                />
+
+                {capVisibilidad === "programado" &&
+                  (editingFecha ? (
+                    <span className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        className="bg-primary/5 border border-primary/20 rounded px-1.5 py-0.5 text-[8px] font-bold text-primary outline-none"
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveFecha();
+                          if (e.key === "Escape") {
+                            setEditingFecha(false);
+                            setFecha(toDateInput(cap.fecha_publicacion));
+                          }
+                        }}
+                      />
+                      <button
+                        className="p-0.5 rounded bg-primary/10 text-primary disabled:opacity-40"
+                        disabled={savingMeta}
+                        onClick={handleSaveFecha}
+                      >
+                        {savingMeta ? (
+                          <Loader2 className="animate-spin" size={8} />
+                        ) : (
+                          <Check size={8} />
+                        )}
+                      </button>
+                      <button
+                        className="p-0.5 rounded text-primary/30"
+                        onClick={() => {
+                          setEditingFecha(false);
+                          setFecha(toDateInput(cap.fecha_publicacion));
+                        }}
+                      >
+                        <X size={8} />
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      className="flex items-center gap-0.5 hover:text-primary transition-colors"
+                      onClick={() => setEditingFecha(true)}
+                    >
+                      <Calendar size={8} />
+                      {fecha
+                        ? new Date(fecha).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                          })
+                        : "Sin fecha"}
+                    </button>
+                  ))}
+
+                <EstadisticasEscritura compact={true} texto={contenido} />
+              </div>
+
+              {/* Acciones */}
+              <div className="flex items-center gap-0.5 shrink-0">
+                <SaveIndicator status={saveStatus} />
+                <button
+                  className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all disabled:opacity-30"
+                  disabled={saveStatus === "saving"}
+                  title="Guardar (Ctrl+S)"
+                  onClick={() => doSave(contenido)}
+                >
+                  <Save size={11} />
+                </button>
+                <button
+                  className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                  title="Vista previa"
+                  onClick={() => setPreviewOpen(true)}
+                >
+                  <Eye size={11} />
+                </button>
+                <button
+                  className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                  title="Modo foco"
+                  onClick={onToggleFocus}
+                >
+                  <Minimize2 size={11} />
+                </button>
+                <button
+                  className="p-1.5 rounded hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
+                  title="Eliminar capítulo"
+                  onClick={handleDelete}
+                >
+                  <Trash2 size={11} />
+                </button>
+                <button
+                  className="lg:hidden p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
+                  title="Metadatos"
+                  onClick={() => setMobileSidebarOpen(true)}
+                >
+                  <SlidersHorizontal size={11} />
+                </button>
               </div>
             </div>
           </div>
         )}
-      </AnimatePresence>
 
-      <DraftRestoreBanner
-        draft={draft}
-        label="Hay un borrador local de este capítulo"
-        onRestore={(v) => {
-          setContenido(v);
-          draft.dismiss();
-        }}
-      />
-      {isOffline && (
-        <BannerOffline
-          color="blue"
-          mensaje="Sin conexión — los cambios se guardan localmente"
-        />
-      )}
-
-      {saveStatus === "pending" && !isOffline && (
-        <div
-          className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-[color-mix(in_srgb,var(--callout-info-border)_8%,transparent)] border-b border-[color-mix(in_srgb,var(--callout-info-border)_15%,transparent)] text-[9px] font-black uppercase tracking-widest text-[var(--callout-info-title)]"
-          style={{ opacity: 0.7 }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--callout-info-border)]" />
-          Cambios pendientes de sincronizar
-        </div>
-      )}
-
-      {!focusMode && (
-        <div className="shrink-0 px-5 pt-4 pb-2 border-b border-primary/8 space-y-1.5">
-          {/* Título editable */}
-          {editingTitle ? (
-            <div className="flex items-center gap-1.5">
-              <input
-                autoFocus
-                className="flex-1 bg-transparent text-base font-black uppercase italic tracking-tight text-primary outline-none border-b border-primary/30 focus:border-primary pb-0.5"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveTitle();
-                  if (e.key === "Escape") {
-                    setEditingTitle(false);
-                    setTitulo(cap.titulo_capitulo);
-                  }
-                }}
-              />
-              <button
-                className="p-1 rounded hover:bg-primary/10 text-primary transition-all disabled:opacity-40"
-                disabled={savingMeta}
-                onClick={handleSaveTitle}
-              >
-                {savingMeta ? (
-                  <Loader2 className="animate-spin" size={11} />
-                ) : (
-                  <Check size={11} />
-                )}
-              </button>
-              <button
-                className="p-1 rounded text-primary/30 hover:text-primary transition-all"
-                onClick={() => {
-                  setEditingTitle(false);
-                  setTitulo(cap.titulo_capitulo);
-                }}
-              >
-                <X size={11} />
-              </button>
-            </div>
-          ) : (
-            <h1
-              className="text-base font-black uppercase italic tracking-tight text-primary leading-tight cursor-pointer hover:text-primary/60 transition-colors"
-              onClick={() => setEditingTitle(true)}
-            >
+        {focusMode && (
+          <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-primary/5">
+            <span className="text-[9px] font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
               {cap.titulo_capitulo}
-            </h1>
-          )}
-
-          {/* Meta row compacta */}
-          <div className="flex items-center gap-2">
-            {/* Info pills */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-[8px] font-black uppercase tracking-widest text-primary/30">
-              {/* Orden editable */}
-              <span className="flex items-center gap-0.5 shrink-0">
-                <Hash size={8} />
-                <input
-                  className="w-6 bg-transparent outline-none text-[8px] font-black tabular-nums text-center border-b border-transparent focus:border-primary/30 transition-all"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  title="Orden del capítulo"
-                  value={cap.orden}
-                  onChange={async (e) => {
-                    const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                    if (!isNaN(n) && n > 0) {
-                      try {
-                        await capUpdateMeta(capId, { orden: n });
-                      } catch {}
-                    }
-                  }}
-                />
-              </span>
-
-              <VisibilidadCapPicker
-                capId={capId}
-                current={capVisibilidad}
-                onChanged={(v) => {
-                  setCapVisibilidad(v);
-                  setCap((prev) => (prev ? { ...prev, visibilidad: v } : prev));
-                  if (v !== "programado") {
-                    setFecha("");
-                    capUpdateMeta(capId, { fecha_publicacion: null as any });
-                  }
-                }}
-              />
-
-              {capVisibilidad === "programado" &&
-                (editingFecha ? (
-                  <span className="flex items-center gap-1">
-                    <input
-                      autoFocus
-                      className="bg-primary/5 border border-primary/20 rounded px-1.5 py-0.5 text-[8px] font-bold text-primary outline-none"
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveFecha();
-                        if (e.key === "Escape") {
-                          setEditingFecha(false);
-                          setFecha(toDateInput(cap.fecha_publicacion));
-                        }
-                      }}
-                    />
-                    <button
-                      className="p-0.5 rounded bg-primary/10 text-primary disabled:opacity-40"
-                      disabled={savingMeta}
-                      onClick={handleSaveFecha}
-                    >
-                      {savingMeta ? (
-                        <Loader2 className="animate-spin" size={8} />
-                      ) : (
-                        <Check size={8} />
-                      )}
-                    </button>
-                    <button
-                      className="p-0.5 rounded text-primary/30"
-                      onClick={() => {
-                        setEditingFecha(false);
-                        setFecha(toDateInput(cap.fecha_publicacion));
-                      }}
-                    >
-                      <X size={8} />
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    className="flex items-center gap-0.5 hover:text-primary transition-colors"
-                    onClick={() => setEditingFecha(true)}
-                  >
-                    <Calendar size={8} />
-                    {fecha
-                      ? new Date(fecha).toLocaleDateString("es-ES", {
-                          day: "numeric",
-                          month: "short",
-                        })
-                      : "Sin fecha"}
-                  </button>
-                ))}
-
+            </span>
+            <div className="flex items-center gap-1.5">
               <EstadisticasEscritura compact={true} texto={contenido} />
-            </div>
-
-            {/* Acciones */}
-            <div className="flex items-center gap-0.5 shrink-0">
               <SaveIndicator status={saveStatus} />
               <button
-                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all disabled:opacity-30"
-                disabled={saveStatus === "saving"}
-                title="Guardar (Ctrl+S)"
-                onClick={() => doSave(contenido)}
-              >
-                <Save size={11} />
-              </button>
-              <button
                 className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
-                title="Vista previa"
-                onClick={() => setPreviewOpen(true)}
-              >
-                <Eye size={11} />
-              </button>
-              <button
-                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
-                title="Modo foco"
                 onClick={onToggleFocus}
               >
                 <Minimize2 size={11} />
               </button>
-              <button
-                className="p-1.5 rounded hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
-                title="Eliminar capítulo"
-                onClick={handleDelete}
-              >
-                <Trash2 size={11} />
-              </button>
-              <button
-                className="lg:hidden p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
-                title="Metadatos"
-                onClick={() => setMobileSidebarOpen(true)}
-              >
-                <SlidersHorizontal size={11} />
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {focusMode && (
-        <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-primary/5">
-          <span className="text-[9px] font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
-            {cap.titulo_capitulo}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <EstadisticasEscritura compact={true} texto={contenido} />
-            <SaveIndicator status={saveStatus} />
-            <button
-              className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
-              onClick={onToggleFocus}
-            >
-              <Minimize2 size={11} />
-            </button>
+        {!focusMode && (
+          <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
+            <span className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+              Escribe{" "}
+              <kbd className="px-1.5 py-0.5 rounded bg-primary/8 text-primary/40 font-mono not-italic">
+                add
+              </kbd>{" "}
+              para insertar elementos · Ctrl+S guarda
+            </span>
           </div>
-        </div>
-      )}
+        )}
 
-      {!focusMode && (
-        <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
-          <span className="text-[8px] font-black uppercase tracking-widest text-primary/20">
-            Escribe{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-primary/8 text-primary/40 font-mono not-italic">
-              add
-            </kbd>{" "}
-            para insertar elementos · Ctrl+S guarda
-          </span>
-        </div>
-      )}
-
-      <div className="flex-1 min-h-0 flex overflow-hidden">
-        <div
-          ref={scrollRef}
-          className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`}
-          style={{ WebkitOverflowScrolling: "touch" }}
-        >
-          <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
-            <RichEditor
-              key={capId}
-              autoFocus={focusMode}
-              // Bloquea la edición mientras `cap` todavía no cargó datos
-              // reales para este capId. Es la defensa física: sin esto,
-              // el usuario podía escribir en el editor durante el frame
-              // en que `contenido` seguía siendo el valor del capítulo
-              // anterior (o "") mientras Dexie/Supabase resolvían — y ese
-              // texto fantasma terminaba autoguardándose sobre el
-              // capítulo equivocado o vacío. Ver doSave/onChange guards
-              // más arriba para la segunda capa de esta protección.
-              editable={!loading && initializedCapId === cap?.id}
-              insertRef={mdInsertRef}
-              closePaletteRef={closePaletteRef}
-              minHeight={focusMode ? "30rem" : "20rem"}
-              mode={focusMode ? "edit" : "split"}
-              placeholder="Empieza a escribir…"
-              value={contenido}
-              onChange={onChange}
-              onSnippetEdit={handleSnippetEdit}
-              onOpenPalette={handleOpenPaletteFromSlash}
-              onClosePalette={handleClosePalette}
-              renderPreview={renderChapterPreview}
-            />
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          <div
+            ref={scrollRef}
+            className={`flex-1 overflow-y-auto relative ${focusMode ? "px-5 sm:px-16 py-8 sm:py-12" : "px-4 sm:px-8 py-4 sm:py-6"}`}
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
+              <RichEditor
+                key={capId}
+                autoFocus={focusMode}
+                // Bloquea la edición mientras `cap` todavía no cargó datos
+                // reales para este capId. Es la defensa física: sin esto,
+                // el usuario podía escribir en el editor durante el frame
+                // en que `contenido` seguía siendo el valor del capítulo
+                // anterior (o "") mientras Dexie/Supabase resolvían — y ese
+                // texto fantasma terminaba autoguardándose sobre el
+                // capítulo equivocado o vacío. Ver doSave/onChange guards
+                // más arriba para la segunda capa de esta protección.
+                editable={!loading && initializedCapId === cap?.id}
+                insertRef={mdInsertRef}
+                closePaletteRef={closePaletteRef}
+                minHeight={focusMode ? "30rem" : "20rem"}
+                mode={focusMode ? "edit" : "split"}
+                placeholder="Empieza a escribir…"
+                value={contenido}
+                onChange={onChange}
+                onSnippetEdit={handleSnippetEdit}
+                onOpenPalette={handleOpenPaletteFromSlash}
+                onClosePalette={handleClosePalette}
+                renderPreview={renderChapterPreview}
+              />
+            </div>
           </div>
         </div>
 
         {!focusMode && (
-          <PanelPersonajesCapitulo
-            capId={capId}
-            criaturas_ids={criaturasIds}
-            items_ids={itemsIds}
-            mobileOpen={mobileSidebarOpen}
-            value={personajesIds}
-            onChange={setPersonajesIds}
-            onCriaturasChange={setCriaturasIds}
-            onItemsChange={setItemsIds}
-            onMobileClose={() => setMobileSidebarOpen(false)}
-          />
+          <div className="shrink-0 px-3 sm:px-8 py-2 sm:py-2.5 border-t border-primary/5 flex items-center justify-between">
+            <EstadisticasEscritura texto={contenido} />
+          </div>
         )}
       </div>
-
+      {/* ── Barra lateral: Narrador / línea de tiempo / territorio / personajes ── */}
+      {/* Ahora es una columna independiente a la altura completa, al lado del */}
+      {/* editor — ya no queda debajo del título del capítulo. */}
       {!focusMode && (
-        <div className="shrink-0 px-3 sm:px-8 py-2 sm:py-2.5 border-t border-primary/5 flex items-center justify-between">
-          <EstadisticasEscritura texto={contenido} />
-        </div>
+        <PanelPersonajesCapitulo
+          capId={capId}
+          criaturas_ids={criaturasIds}
+          items_ids={itemsIds}
+          mobileOpen={mobileSidebarOpen}
+          value={personajesIds}
+          onChange={setPersonajesIds}
+          onCriaturasChange={setCriaturasIds}
+          onItemsChange={setItemsIds}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
       )}
 
       <ConfirmModal />
