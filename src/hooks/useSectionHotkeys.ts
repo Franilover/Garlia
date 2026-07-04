@@ -143,15 +143,30 @@ export function useSectionHotkeys(
 
       const scrollToSection = () => {
         const el = resolveElement();
-        if (!el) return;
         const container = section.getScrollContainer?.();
+        // eslint-disable-next-line no-console
+        console.log("[useSectionHotkeys] scrollToSection", {
+          key: section.key,
+          el,
+          container,
+          hasRef: !!section.ref,
+          hasGetElement: !!section.getElement,
+          hasGetScrollContainer: !!section.getScrollContainer,
+        });
+        if (!el) return;
         if (container) {
           const elRect = el.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
           const offset =
             elRect.top - containerRect.top + container.scrollTop - 80;
+          console.log("[useSectionHotkeys] scrolling container", {
+            elRect,
+            containerRect,
+            offset,
+          });
           container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
         } else {
+          console.log("[useSectionHotkeys] scrollIntoView fallback");
           el.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       };
