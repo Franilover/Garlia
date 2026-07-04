@@ -28,10 +28,37 @@ import {
   BarraProgreso,
   EmptyMisiones,
   ModalMision,
-  PastillaDificultad,
   type Dificultad,
   type MisionConProgreso,
 } from "../components/MisionesComponents";
+
+// Mapa de dificultad → número de estrellas (solo iconos, sin fondo ni texto).
+const ESTRELLAS_POR_DIFICULTAD: Record<Dificultad, number> = {
+  facil: 1,
+  media: 2,
+  dificil: 3,
+} as Record<Dificultad, number>;
+
+function EstrellasDificultad({ dificultad }: { dificultad: Dificultad }) {
+  const total = ESTRELLAS_POR_DIFICULTAD[dificultad] ?? 1;
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Star
+          key={i}
+          fill={i < total ? "var(--primary)" : "none"}
+          size={11}
+          style={{
+            color:
+              i < total
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 25%, transparent)",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 // ─── Tipos locales de carga ─────────────────────────────────────────────────
 
@@ -570,18 +597,16 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                 <div className="space-y-3.5">
                   {[
                     {
-                      icon: <Sparkles size={10} />,
                       label: "Experiencia",
                       count: perfil?.xp_total ?? 0,
                       max: 1000,
                     },
                     {
-                      icon: <Award size={10} />,
                       label: "Monedas",
                       count: perfil?.monedas ?? 0,
                       max: 200,
                     },
-                  ].map(({ icon, label, count, max }) => (
+                  ].map(({ label, count, max }) => (
                     <div key={label}>
                       <div className="flex items-center justify-between mb-1.5">
                         <div
@@ -591,7 +616,6 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                               "color-mix(in srgb, var(--primary) 40%, transparent)",
                           }}
                         >
-                          {icon}
                           <span className="text-[8px] font-black uppercase tracking-wider">
                             {label}
                           </span>
@@ -633,21 +657,18 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                 <div className="space-y-3.5">
                   {[
                     {
-                      icon: <Scroll size={10} />,
                       label: "Tablón",
                       count: misionesTablon.length,
                     },
                     {
-                      icon: <Clock size={10} />,
                       label: "En curso",
                       count: misionesEnCurso.length,
                     },
                     {
-                      icon: <CheckCircle2 size={10} />,
                       label: "Completadas",
                       count: misionesCompletadas.length,
                     },
-                  ].map(({ icon, label, count }) => (
+                  ].map(({ label, count }) => (
                     <div
                       key={label}
                       className="flex items-center justify-between"
@@ -659,7 +680,6 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                             "color-mix(in srgb, var(--primary) 40%, transparent)",
                         }}
                       >
-                        {icon}
                         <span className="text-[8px] font-black uppercase tracking-wider">
                           {label}
                         </span>
@@ -884,7 +904,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                             />
                           )}
                           <div className="absolute top-2 left-2">
-                            <PastillaDificultad dificultad={m.dificultad} />
+                            <EstrellasDificultad dificultad={m.dificultad} />
                           </div>
                           {m.user_estado === "reclamada" && (
                             <div
@@ -925,7 +945,6 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                                   "color-mix(in srgb, var(--primary) 40%, transparent)",
                               }}
                             >
-                              <Sparkles size={9} />
                               {m.recompensa.xp} XP
                             </span>
                             {!!m.recompensa.monedas && (

@@ -12,7 +12,6 @@ import {
   Lock,
   MapPin,
   Scroll,
-  Sparkles,
   Star,
   Sword,
   User,
@@ -152,28 +151,23 @@ export function BarraProgreso({ progreso }: { progreso: number }) {
 export function PastillaDificultad({ dificultad }: { dificultad: Dificultad }) {
   const intensidad = DIFICULTAD_INTENSIDAD[dificultad];
   return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.18em]"
-      style={{
-        borderRadius: "2px",
-        color: `color-mix(in srgb, var(--primary) ${intensidad}%, transparent)`,
-        border: `1px solid color-mix(in srgb, var(--primary) ${Math.min(intensidad, 30)}%, transparent)`,
-        background: `color-mix(in srgb, var(--primary) ${Math.round(intensidad / 10)}%, transparent)`,
-      }}
-    >
+    <span className="inline-flex items-center gap-0.5">
       {Array.from({ length: 4 }).map((_, i) => (
         <Star
           key={i}
-          size={6}
+          size={10}
           fill={
-            i < Math.ceil((intensidad / 100) * 4)
-              ? "currentColor"
-              : "transparent"
+            i < Math.ceil((intensidad / 100) * 4) ? "var(--primary)" : "none"
           }
           strokeWidth={1.5}
+          style={{
+            color:
+              i < Math.ceil((intensidad / 100) * 4)
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 25%, transparent)",
+          }}
         />
       ))}
-      {DIFICULTAD_LABEL[dificultad]}
     </span>
   );
 }
@@ -632,13 +626,6 @@ export function ModalMision({
                   "color-mix(in srgb, var(--primary) 3%, transparent)",
               }}
             >
-              <Sparkles
-                size={11}
-                style={{
-                  color:
-                    "color-mix(in srgb, var(--accent) 70%, var(--primary))",
-                }}
-              />
               <span
                 className="text-[11px] font-black tabular-nums"
                 style={{ color: "var(--primary)" }}
