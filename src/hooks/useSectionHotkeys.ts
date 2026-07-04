@@ -118,14 +118,6 @@ export function useSectionHotkeys(
         (target && isEditableElement(target)) ||
         (document.activeElement instanceof HTMLElement &&
           isEditableElement(document.activeElement));
-      // eslint-disable-next-line no-console
-      console.log("[useSectionHotkeys] key:", e.key, {
-        target,
-        activeElement: document.activeElement,
-        blockedByEditable: activeEl,
-        sectionsCount: sectionsRef.current.length,
-        keys: sectionsRef.current.map((s) => s.key),
-      });
       if (activeEl) return;
 
       const section = sectionsRef.current.find((s) => s.key === e.key);
@@ -143,37 +135,15 @@ export function useSectionHotkeys(
 
       const scrollToSection = () => {
         const el = resolveElement();
-        const container = section.getScrollContainer?.();
-        // eslint-disable-next-line no-console
-        console.log("[useSectionHotkeys] scrollToSection", {
-          key: section.key,
-          el,
-          container,
-          hasRef: !!section.ref,
-          hasGetElement: !!section.getElement,
-          hasGetScrollContainer: !!section.getScrollContainer,
-        });
         if (!el) return;
+        const container = section.getScrollContainer?.();
         if (container) {
           const elRect = el.getBoundingClientRect();
           const containerRect = container.getBoundingClientRect();
           const offset =
             elRect.top - containerRect.top + container.scrollTop - 80;
-          console.log("[useSectionHotkeys] scrolling container", {
-            elRect,
-            containerRect,
-            offset,
-            scrollTopBefore: container.scrollTop,
-          });
           container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
-          setTimeout(() => {
-            console.log(
-              "[useSectionHotkeys] scrollTop after scrollTo (100ms later):",
-              container.scrollTop,
-            );
-          }, 100);
         } else {
-          console.log("[useSectionHotkeys] scrollIntoView fallback");
           el.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       };
