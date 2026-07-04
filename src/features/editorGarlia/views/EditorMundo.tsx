@@ -673,25 +673,34 @@ function PanelListas({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   // ── Alto real de cada "página" de sección ───────────────────────────────
-  // No confiamos en `height: 100%` porque depende de que TODOS los
-  // ancestros tengan una altura definida; si algo más arriba en el layout
-  // no está capado al viewport, el 100% se calcula contra un contenedor
-  // que también puede crecer, y las secciones terminan expandiéndose.
-  // Medimos el alto real disponible con ResizeObserver y lo fijamos en
-  // píxeles en cada sección, así quedan ancladas al tamaño de pantalla
-  // sin importar qué pase más arriba.
+  // IMPORTANTE: NO medimos scrollRef.clientHeight con ResizeObserver sobre
+  // sí mismo. Ese enfoque anterior generaba un bucle de realimentación:
+  // medíamos un contenedor cuyo tamaño nosotros mismos estábamos causando
+  // (si algo arriba en el layout no está clipeado al viewport, el
+  // contenedor puede inflarse con su propio contenido, el observer
+  // dispara de nuevo, se vuelve a medir más grande, etc. — y cada
+  // recálculo reactivaba el scroll-snap, empujándote de vuelta arriba).
+  //
+  // En cambio anclamos contra `window.innerHeight`, que es una constante
+  // del navegador que el contenido nunca puede alterar. Calculamos
+  // "alto disponible = innerHeight - posición fija del contenedor desde
+  // arriba", usando getBoundingClientRect().top, que tampoco depende de
+  // cuánto contenido haya adentro.
   const [pageHeight, setPageHeight] = useState<number | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const update = () => setPageHeight(el.clientHeight);
+    const update = () => {
+      const top = el.getBoundingClientRect().top;
+      const available = Math.max(window.innerHeight - top, 0);
+      setPageHeight((prev) => (prev === available ? prev : available));
+    };
     update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
     window.addEventListener("resize", update);
+    window.addEventListener("orientationchange", update);
     return () => {
-      ro.disconnect();
       window.removeEventListener("resize", update);
+      window.removeEventListener("orientationchange", update);
     };
   }, []);
   const pageHeightStyle = pageHeight
@@ -818,18 +827,23 @@ function PanelListas({
   ]);
 
   // Restaurar posición de scroll al montar
-  useEffect(() => {
-    const saved = (() => {
-      try {
-        return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? "");
-      } catch {
-        return NaN;
-      }
-    })();
-    if (!isNaN(saved) && scrollRef.current) {
-      scrollRef.current.scrollTop = saved;
-    }
-  }, []);
+  // ── TEMPORALMENTE DESACTIVADO mientras depuramos el bug de altura/snap ──
+  // Restaurar un scrollTop guardado justo cuando el contenedor todavía no
+  // terminó de estabilizar su tamaño podía generar saltos que se
+  // confundían con el bug de las secciones creciendo. Reactivar una vez
+  // confirmado que el alto de página y el snap funcionan bien.
+  // useEffect(() => {
+  //   const saved = (() => {
+  //     try {
+  //       return parseFloat(localStorage.getItem(LS_SCROLL_KEY) ?? "");
+  //     } catch {
+  //       return NaN;
+  //     }
+  //   })();
+  //   if (!isNaN(saved) && scrollRef.current) {
+  //     scrollRef.current.scrollTop = saved;
+  //   }
+  // }, []);
 
   const handleScroll = useCallback(() => {
     if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
@@ -1485,7 +1499,7 @@ function PanelListas({
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto min-h-0 snap-y snap-mandatory scroll-smooth"
+        className="flex-1 overflow-y-auto min-h-0 snap-y snap-proximity scroll-smooth"
         onScroll={handleScroll}
       >
         {/* HISTORIA */}
