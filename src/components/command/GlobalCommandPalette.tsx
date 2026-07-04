@@ -445,7 +445,17 @@ function useUnlockedSearch(query: string, userId: string | null) {
  * requerir texto de búsqueda — se usa para mostrarlos como sección propia
  * en el grid inicial (pantalla por defecto) para usuarios no admin.
  * Se ejecuta una sola vez por apertura de la paleta (mientras haya userId).
+ *
+ * IMPORTANTE: la query a Supabase trae TODOS los desbloqueados (sin límite),
+ * porque su resultado es lo que alimenta el cache completo en Dexie. El
+ * recorte a "unos pocos por tipo" para la vista resumida se hace después,
+ * solo sobre lo que se pinta en pantalla — nunca sobre lo que se guarda.
+ * (Antes había un .limit(6) en la query misma, que además de acotar la
+ * vista terminaba pisando el cache local con solo 6 personajes, escondiendo
+ * al resto incluso en la búsqueda.)
  */
+const OVERVIEW_PREVIEW_PER_TYPE = 6;
+
 function useUnlockedOverview(userId: string | null, enabled: boolean) {
   const [resultados, setResultados] = useState<DescubrimientoPersonal[]>([]);
 
@@ -456,24 +466,28 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
     }
     let cancelled = false;
 
+    const buildPreview = (items: DescubrimientoPersonal[]) => {
+      const orden = { personaje: 0, criatura: 1, reino: 2, item: 3, ciudad: 4 };
+      const porTipo = new Map<string, DescubrimientoPersonal[]>();
+      for (const it of items) {
+        const arr = porTipo.get(it.tipo) ?? [];
+        if (arr.length < OVERVIEW_PREVIEW_PER_TYPE) arr.push(it);
+        porTipo.set(it.tipo, arr);
+      }
+      return [...porTipo.entries()]
+        .sort(
+          ([a], [b]) =>
+            (orden[a as keyof typeof orden] ?? 9) -
+            (orden[b as keyof typeof orden] ?? 9),
+        )
+        .flatMap(([, arr]) => arr);
+    };
+
     (async () => {
       // 1) Cache local primero — se pinta al instante, sin esperar la red.
       const cached = await readDescubrimientosFromDexie(userId);
       if (cancelled) return;
-      if (cached.length > 0) {
-        // Mismo orden/mezcla que antes: personajes, criaturas, reinos primero.
-        const orden = {
-          personaje: 0,
-          criatura: 1,
-          reino: 2,
-          item: 3,
-          ciudad: 4,
-        };
-        const sorted = [...cached].sort(
-          (a, b) => (orden[a.tipo] ?? 9) - (orden[b.tipo] ?? 9),
-        );
-        setResultados(sorted.slice(0, 18));
-      }
+      if (cached.length > 0) setResultados(buildPreview(cached));
 
       // 2) Revalidar en segundo plano solo si hay conexión real.
       const online = await isReallyOnline();
@@ -484,18 +498,15 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
           supabase
             .from("descubrimientos_criaturas")
             .select("criaturas!inner(id, nombre, imagen_url)")
-            .eq("perfil_id", userId)
-            .limit(6),
+            .eq("perfil_id", userId),
           supabase
             .from("descubrimientos_personajes")
             .select("personajes!inner(id, nombre, img_url)")
-            .eq("perfil_id", userId)
-            .limit(6),
+            .eq("perfil_id", userId),
           supabase
             .from("descubrimientos_reinos")
             .select("reinos!inner(id, nombre, logo_url)")
-            .eq("perfil_id", userId)
-            .limit(6),
+            .eq("perfil_id", userId),
         ]);
 
         if (cancelled) return;
@@ -528,9 +539,10 @@ function useUnlockedOverview(userId: string | null, enabled: boolean) {
         ];
 
         if (!cancelled) {
-          setResultados(merged);
+          setResultados(buildPreview(merged));
           // Este overview trae solo 3 tipos (no items/ciudades) — hacemos
-          // upsert incremental para no pisar lo que useUnlockedSearch cacheó.
+          // upsert incremental para no pisar lo que useUnlockedSearch cacheó,
+          // pero con el listado COMPLETO (sin límite) de cada tipo.
           try {
             if (db && merged.length > 0) {
               const rows = merged.map((it) => ({
