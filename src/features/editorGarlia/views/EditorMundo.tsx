@@ -1467,7 +1467,7 @@ function PanelListas({
         {textos && onTextoChange && onSave && (
           <div
             ref={lineaTiempoRef}
-            className="border-b snap-start snap-always flex flex-col min-h-0 overflow-y-auto overscroll-contain"
+            className="border-b snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
               height: "100%",
@@ -1542,7 +1542,7 @@ function PanelListas({
         {/* CAPÍTULOS */}
         <div
           ref={capitulosRef}
-          className="snap-start snap-always flex flex-col min-h-0 overflow-y-auto overscroll-contain"
+          className="snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
           style={{ height: "100%", maxHeight: "100%" }}
         >
           <div className="flex-1 min-h-0 flex flex-col">
@@ -1553,7 +1553,7 @@ function PanelListas({
         {/* ENTIDADES */}
         <div
           ref={entidadesRef}
-          className="border-b border-t snap-start snap-always flex flex-col min-h-0 overflow-y-auto overscroll-contain"
+          className="border-b border-t snap-start snap-always flex flex-col min-h-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2092,7 +2092,7 @@ function PanelListas({
         {/* MAPA */}
         <div
           ref={mapaRef}
-          className="border-b snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto overscroll-contain"
+          className="border-b snap-start snap-always flex flex-col shrink-0 min-h-0 overflow-y-auto"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             position: "relative",
@@ -2122,7 +2122,7 @@ function PanelListas({
           style={{ height: "100%", maxHeight: "100%" }}
         >
           <div
-            className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-contain"
+            className="border-b lg:border-b-0 lg:border-r flex-1 flex flex-col min-h-0 overflow-y-auto"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
@@ -2139,7 +2139,7 @@ function PanelListas({
             </PanelColapsable>
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto overscroll-contain">
+          <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
             <PanelColapsable
               ref={misionesSeccionRef}
               icon={ScrollText}
