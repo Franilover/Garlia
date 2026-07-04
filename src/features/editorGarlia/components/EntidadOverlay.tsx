@@ -190,8 +190,8 @@ export function EntidadOverlay({
 
   return (
     <div
-      className="flex flex-col min-h-0"
-      style={{ background: "var(--bg-main)", minHeight: 400 }}
+      className="flex flex-col min-h-0 flex-1"
+      style={{ background: "var(--bg-main)" }}
     >
       {/* Botón volver al menú */}
       <div
@@ -213,10 +213,7 @@ export function EntidadOverlay({
       </div>
 
       {/* Contenido del editor activo */}
-      <div
-        className="flex-1 flex flex-col min-h-0 overflow-hidden"
-        style={{ minHeight: 360 }}
-      >
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {overlay === "reino" && selected.reino && (
           <EditorReino
             key={selected.reino.id}
