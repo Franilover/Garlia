@@ -2,7 +2,6 @@
 import { usePathname } from 'next/navigation';
 import React, { useEffect, useRef } from 'react';
 
-import Navbar from "@/components/layout/navbar";
 import { useLightbox } from "@/components/modal/lightbox";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -91,7 +90,6 @@ useEffect(() => {
 
   return (
     <div className="app-container h-full flex flex-col">
-      <Navbar />
       <main className="flex-1 min-h-0 pb-16 pb-[env(safe-area-inset-bottom,4rem)] md:pb-0">
         {children}
       </main>

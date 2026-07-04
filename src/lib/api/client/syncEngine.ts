@@ -13,7 +13,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { isReallyOnline } from "@/hooks/data/useOfflineSync";
+import { isReallyOnline } from "@/lib/utils/offlineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 

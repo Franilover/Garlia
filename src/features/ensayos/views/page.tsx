@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, PenTool, Search, X, Plus, FileText, Trash2, List, BookOpen, Hash } from "lucide-react";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 
+import { AdminOnly } from "@/components/forms/AdminOnly";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import Editor from "@/features/ensayos/components/editor";
@@ -84,7 +85,7 @@ async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSourc
   return parseZoteroJson(items);
 }
 
-export default function Ensayos() {
+function EnsayosInner() {
   const { user } = useAuth() as { user: any };
   const { toasts, toast, dismiss } = useToast();
   const { confirm, ConfirmModal }  = useConfirm();
@@ -1102,5 +1103,16 @@ export default function Ensayos() {
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
       <ConfirmModal />
     </>
+  );
+}
+
+// Este módulo solo lo monta app/myself/escritorio/page.tsx, que requiere
+// sesión de admin. El wrapper vive aquí (features/) y no en app/, ya que
+// app/ no debe importar components/ directamente.
+export default function Ensayos() {
+  return (
+    <AdminOnly>
+      <EnsayosInner />
+    </AdminOnly>
   );
 }

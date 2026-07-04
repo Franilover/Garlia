@@ -32,8 +32,8 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   UnifiedTileCanvas,
   type MapTile,
-} from "@/features/editorGarlia/views/UnifiedTileCanvas";
-import { ReinoTileCanvas } from "@/features/editorGarlia/views/ReinoTileCanvas";
+} from "@/features/editorGarlia/components/UnifiedTileCanvas";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
 
 // ─── Hourglass — reemplaza Loader2 en todos los indicadores de carga ──────────
 function Hourglass({ size = 14 }: { size?: number }) {

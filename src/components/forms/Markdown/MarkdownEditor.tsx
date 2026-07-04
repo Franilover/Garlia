@@ -41,11 +41,22 @@ export { renderMarkdown, renderMathInElement, PROSE_STYLES };
 export type { CommandItem, SnippetAction, ViewMode, WikiEntity };
 
 // ── Snippets / leer ───────────────────────────────────────────────────────────
-import {
-  parseContenido,
-  parseSections,
-} from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
-import { RenderSegmentos } from "@/features/garlia/components/ContenidoInteractivo";
+// NOTA DE ARQUITECTURA: este componente es UI genérica (components/) y no debe
+// conocer features/. El parseo de snippets y su renderizado (que sí son lógica
+// de dominio, propia de editorGarlia/garlia) se inyectan por props desde quien
+// use <MarkdownEditor>, vía `parseSnippets` y `renderSnippetSegment`.
+import type { ReactNode } from "react";
+
+type SnippetSegment = { type: string; value: string };
+
+type ParseSnippetsFn = (texto: string) => SnippetSegment[];
+type ParseSectionsFn = (
+  contenido: unknown,
+) => Map<string, unknown> | Record<string, unknown>;
+type RenderSnippetSegmentFn = (
+  seg: SnippetSegment,
+  onNavigate?: (id: string) => void,
+) => ReactNode;
 
 // ────────────────────────────────────────────────────────────────────────────
 // MarkdownPreviewWithSnippets (interno, combina markdown + snippets React)
@@ -66,6 +77,9 @@ function MarkdownPreviewWithSnippets({
   style,
   onTableClick,
   isLibro = false,
+  parseSnippets,
+  parseSections: parseSectionsProp,
+  renderSnippetSegment,
 }: {
   value: string;
   placeholder?: string;
@@ -74,11 +88,17 @@ function MarkdownPreviewWithSnippets({
   style: React.CSSProperties;
   onTableClick?: (table: HTMLTableElement) => void;
   isLibro?: boolean;
+  /** Parsea un bloque de texto en segmentos de snippet (wikilinks, etc.). Lógica de dominio inyectada. */
+  parseSnippets?: ParseSnippetsFn;
+  /** Agrupa el contenido parseado en secciones navegables. Lógica de dominio inyectada. */
+  parseSections?: ParseSectionsFn;
+  /** Renderiza un segmento de snippet (no-texto) como React. Lógica de dominio inyectada. */
+  renderSnippetSegment?: RenderSnippetSegmentFn;
 }) {
-  const sectionMap = React.useMemo(
-    () => parseSections(parseContenido(value)),
-    [value],
-  );
+  const sectionMap = React.useMemo(() => {
+    if (!parseSnippets || !parseSectionsProp) return {} as Record<string, unknown>;
+    return parseSectionsProp(parseSnippets(value)) as Record<string, unknown>;
+  }, [value, parseSnippets, parseSectionsProp]);
 
   const handleNavigate = useCallback(
     (target: string) => {
@@ -174,20 +194,22 @@ function MarkdownPreviewWithSnippets({
             />
           );
         }
-        const segs = parseContenido(block.text);
+        if (!parseSnippets || !renderSnippetSegment) {
+          // Sin dependencias de dominio inyectadas: fallback a texto plano.
+          return <SnipInlineText key={i} text={block.text} />;
+        }
+        const segs = parseSnippets(block.text);
         return (
           <div key={i} className="my-2 leading-loose">
-            {segs.map((seg, j) => {
-              if (seg.type === "text")
-                return <SnipInlineText key={j} text={seg.value} />;
-              return (
-                <RenderSegmentos
-                  key={j}
-                  segs={[seg]}
-                  onNavigate={handleNavigate}
-                />
-              );
-            })}
+            {segs.map((seg, j) =>
+              seg.type === "text" ? (
+                <SnipInlineText key={j} text={seg.value} />
+              ) : (
+                <React.Fragment key={j}>
+                  {renderSnippetSegment(seg, handleNavigate)}
+                </React.Fragment>
+              ),
+            )}
           </div>
         );
       })}
@@ -225,6 +247,12 @@ interface MarkdownEditorProps {
   ) => React.ReactNode;
   sectionTitle?: string;
   isLibro?: boolean;
+  /** Parsea un bloque de texto en segmentos de snippet (wikilinks, etc.). Lógica de dominio inyectada. */
+  parseSnippets?: ParseSnippetsFn;
+  /** Agrupa el contenido parseado en secciones navegables. Lógica de dominio inyectada. */
+  parseSections?: ParseSectionsFn;
+  /** Renderiza un segmento de snippet (no-texto) como React. Lógica de dominio inyectada. */
+  renderSnippetSegment?: RenderSnippetSegmentFn;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -250,6 +278,9 @@ export function MarkdownEditor({
   renderOverlay,
   sectionTitle,
   isLibro = false,
+  parseSnippets,
+  parseSections,
+  renderSnippetSegment,
 }: MarkdownEditorProps) {
   // ── Mode state ────────────────────────────────────────────────────────────
   const [modeInternal, setModeInternal] = useState<ViewMode>(
@@ -1267,8 +1298,11 @@ export function MarkdownEditor({
           {(mode === "preview" || mode === "split") && (
             <MarkdownPreviewWithSnippets
               isLibro={isLibro}
+              parseSections={parseSections}
+              parseSnippets={parseSnippets}
               placeholder={placeholder}
               pvRef={pvRef}
+              renderSnippetSegment={renderSnippetSegment}
               style={previewStyle}
               value={sectionTitle ? `# ${sectionTitle}\n\n${value}` : value}
               onSnippetAction={onSnippetAction}

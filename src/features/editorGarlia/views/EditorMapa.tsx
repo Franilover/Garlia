@@ -34,8 +34,8 @@ import {
   loadMapTiles,
   loadReinos,
 } from "@/lib/api/client/syncEngine";
-import { UnifiedTileCanvas } from "./UnifiedTileCanvas";
-import type { MapTile } from "./UnifiedTileCanvas";
+import { UnifiedTileCanvas } from "@/features/editorGarlia/components/UnifiedTileCanvas";
+import type { MapTile } from "@/features/editorGarlia/components/UnifiedTileCanvas";
 
 type ReinoConTile = {
   id: string;

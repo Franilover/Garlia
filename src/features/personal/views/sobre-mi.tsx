@@ -10,7 +10,7 @@ import React, { useState } from "react";
 
 
 
-import { MotionA, MotionDiv, MotionH1, MotionSection } from '@/components/ui/Motion';
+import { MotionA, MotionDiv, MotionH1, MotionMain, MotionSection } from '@/components/ui/Motion';
 import { ToastContainer } from "@/components/ui/ToastContainer";
 import { useToast } from "@/hooks/ui/useToast";
 
@@ -60,6 +60,12 @@ export default function SobreMi() {
   };
 
   return (
+    <MotionMain
+      animate={{ opacity: 1, y: 0 }}
+      className="min-h-svh bg-bg-main"
+      initial={{ opacity: 0, y: 20 }}
+      transition={{ duration: 0.5 }}
+    >
     <div className="w-full bg-bg-main min-h-screen selection:bg-primary/10">
       <main className="max-w-7xl mx-auto px-8 md:px-16 pb-40 pt-16 md:pt-24">
 
@@ -312,5 +318,6 @@ export default function SobreMi() {
       </main>
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </div>
+    </MotionMain>
   );
 }

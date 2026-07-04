@@ -9,6 +9,7 @@ import React, {
   useRef,
 } from "react";
 
+import { AdminOnly } from "@/components/forms/AdminOnly";
 import { WikilinkProvider } from "@/features/editorGarlia/components/WikilinkContext";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
@@ -306,7 +307,7 @@ const MUNDO_TABLAS: Record<string, string> = {
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function EditorEntidades() {
+function EditorEntidadesInner() {
   const session = useRef(readSession());
 
   const [tab, setTab] = useState<TabKey>(session.current.tab);
@@ -807,5 +808,16 @@ export default function EditorEntidades() {
         />
       )}
     </>
+  );
+}
+
+// Este módulo solo lo monta app/myself/garlia/page.tsx, que requiere sesión
+// de admin. El wrapper vive aquí (features/) y no en app/, ya que app/ no
+// debe importar components/ directamente.
+export default function EditorEntidades() {
+  return (
+    <AdminOnly>
+      <EditorEntidadesInner />
+    </AdminOnly>
   );
 }
