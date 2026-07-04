@@ -1504,7 +1504,7 @@ function PanelListas({
       {/* ── Scroll vertical ─────────────────────────────────────────────── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto min-h-0 snap-y snap-proximity scroll-smooth"
+        className="flex-1 overflow-y-auto min-h-0 snap-y snap-mandatory scroll-smooth"
         onScroll={handleScroll}
       >
         {/* HISTORIA */}
