@@ -442,17 +442,15 @@ export const PanelInfoSidebar = ({
 
   const innerContent = (
     <div className="px-3 py-3 space-y-4">
-      {/* Header compacto con estado de guardado */}
-      <div className="flex items-center gap-1.5 pb-2 border-b border-primary/8">
-        <Beaker className="text-primary/30" size={11} />
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1">
-          Ficha Técnica
-        </span>
-        {saving && (
-          <Loader2 className="animate-spin text-primary/25" size={9} />
-        )}
-        {saved && <CheckCircle2 className="text-emerald-500" size={9} />}
-      </div>
+      {/* Indicador de guardado (sin título, para aprovechar espacio) */}
+      {(saving || saved) && (
+        <div className="flex items-center justify-end gap-1.5 -mb-1">
+          {saving && (
+            <Loader2 className="animate-spin text-primary/25" size={9} />
+          )}
+          {saved && <CheckCircle2 className="text-emerald-500" size={9} />}
+        </div>
+      )}
 
       {/* Estado — selector nativo (antes 3 botones) */}
       <SelectorNativo
@@ -480,50 +478,71 @@ export const PanelInfoSidebar = ({
         onChange={(v) => handleChange("titulo", v)}
       />
 
-      {/* Cantante / Compositor / Idioma / Tema */}
-      <CampoTexto
-        icon={<Mic2 size={10} />}
-        label="Cantante"
-        placeholder="Hatsune Miku…"
-        suggestions={suggestions.cantante || []}
-        value={localData.cantante}
-        onChange={(v) => handleChange("cantante", v)}
-      />
-      <CampoTexto
-        icon={<PenLine size={10} />}
-        label="Compositor"
-        placeholder="Deco*27…"
-        suggestions={suggestions.compositor || []}
-        value={localData.compositor}
-        onChange={(v) => handleChange("compositor", v)}
-      />
-      <CampoTexto
-        icon={<Globe size={10} />}
-        label="Idioma"
-        placeholder="Japonés…"
-        suggestions={suggestions.idioma || []}
-        value={localData.idioma}
-        onChange={(v) => handleChange("idioma", v)}
-      />
-      <CampoTexto
-        icon={<Tag size={10} />}
-        label="Tema"
-        placeholder="Amor, soledad…"
-        suggestions={suggestions.tema || []}
-        value={localData.tema}
-        onChange={(v) => handleChange("tema", v)}
-      />
+      {/* Cantante / Compositor */}
+      <div className="grid grid-cols-2 gap-2">
+        <CampoTexto
+          icon={<Mic2 size={10} />}
+          label="Cantante"
+          placeholder="Hatsune Miku…"
+          suggestions={suggestions.cantante || []}
+          value={localData.cantante}
+          onChange={(v) => handleChange("cantante", v)}
+        />
+        <CampoTexto
+          icon={<PenLine size={10} />}
+          label="Compositor"
+          placeholder="Deco*27…"
+          suggestions={suggestions.compositor || []}
+          value={localData.compositor}
+          onChange={(v) => handleChange("compositor", v)}
+        />
+      </div>
 
-      {/* Emoción — selector nativo (antes 8 botones) */}
-      <SelectorNativo
-        allowEmpty
-        emptyLabel="Sin emoción"
-        icon={<Heart size={10} />}
-        label="Emoción"
-        options={EMOCIONES.map((e) => ({ value: e, label: e }))}
-        value={localData.emocion}
-        onChange={handleEmocionChange}
-      />
+      {/* Emoción / Tema */}
+      <div className="grid grid-cols-2 gap-2">
+        <SelectorNativo
+          allowEmpty
+          emptyLabel="Sin emoción"
+          icon={<Heart size={10} />}
+          label="Emoción"
+          options={EMOCIONES.map((e) => ({ value: e, label: e }))}
+          value={localData.emocion}
+          onChange={handleEmocionChange}
+        />
+        <CampoTexto
+          icon={<Tag size={10} />}
+          label="Tema"
+          placeholder="Amor, soledad…"
+          suggestions={suggestions.tema || []}
+          value={localData.tema}
+          onChange={(v) => handleChange("tema", v)}
+        />
+      </div>
+
+      {/* Idioma / Duración */}
+      <div className="grid grid-cols-2 gap-2">
+        <CampoTexto
+          icon={<Globe size={10} />}
+          label="Idioma"
+          placeholder="Japonés…"
+          suggestions={suggestions.idioma || []}
+          value={localData.idioma}
+          onChange={(v) => handleChange("idioma", v)}
+        />
+        <div className="space-y-1">
+          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
+            <Clock size={10} /> Duración
+          </label>
+          <input
+            className="w-full bg-transparent border-b border-primary/10 py-1 text-[11px] font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
+            placeholder="3:45"
+            value={duracionInput}
+            onBlur={handleDuracionBlur}
+            onChange={(e) => setDuracionInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          />
+        </div>
+      </div>
 
       {/* Línea de tiempo */}
       <div className="space-y-1">
@@ -537,21 +556,6 @@ export const PanelInfoSidebar = ({
           placeholder="Sin fecha"
           value={diaAbsoluto}
           onChange={handleDiaAbsolutoChange}
-        />
-      </div>
-
-      {/* Duración */}
-      <div className="space-y-1">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          <Clock size={10} /> Duración
-        </label>
-        <input
-          className="w-full bg-transparent border-b border-primary/10 py-1 text-[11px] font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
-          placeholder="3:45"
-          value={duracionInput}
-          onBlur={handleDuracionBlur}
-          onChange={(e) => setDuracionInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         />
       </div>
 
