@@ -29,9 +29,9 @@ import {
   MarkdownEditor,
   type WikiEntity,
 } from "@/components/forms/Markdown/MarkdownEditor";
-import { ModalNuevaCancion } from "@/features/editorGarlia/components/editorLetras/components/modals/ModalNuevaCancion";
-import type { Cancion } from "@/features/editorGarlia/components/editorLetras/types";
-import { EntidadOverlay } from "@/features/editorGarlia/components/EntidadOverlay";
+import { ModalNuevaCancion } from "@/features/editorGarlia/components/Canciones/modals/ModalNuevaCancion";
+import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
+import { EntidadOverlay } from "@/features/editorGarlia/components/shared/EntidadOverlay";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 import EditorMisiones from "@/features/editorGarlia/views/editorMisiones";
 import AdminDescubrimientos from "@/features/editorGarlia/views/editorRelaciones";
@@ -42,8 +42,8 @@ import { supabase } from "@/lib/api/client/supabase";
 
 import { useGrupos, GRUPO_TIPO_CONFIG, type Grupo } from "./EditorGrupo";
 import { EditorMapa } from "./EditorMapa";
-import { SaveIndicator } from "../components/UIComponents";
-import { useWikilink } from "../components/WikilinkContext";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import { useNotas } from "../hooks/notas/useNotas";
 import {
   type Ciudad,

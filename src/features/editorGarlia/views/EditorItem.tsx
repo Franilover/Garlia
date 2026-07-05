@@ -43,8 +43,8 @@ import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/misc/us
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
-import { useWikilink } from "../components/WikilinkContext";
+import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import { type Item, type SaveStatus } from "../hooks/types";
 
 export function EditorItem({

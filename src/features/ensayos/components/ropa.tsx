@@ -10,7 +10,7 @@ import Image from "next/image";
 import React, { useState, useMemo } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/features/editorGarlia/components/Libros/snippets/forms/SimpleImagePicker";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { cn } from "@/lib/utils/index";
 

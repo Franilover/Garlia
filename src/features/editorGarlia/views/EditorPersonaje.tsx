@@ -43,8 +43,8 @@ import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/grupos/useGru
 import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePersonajeForm";
 import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
-import { BloqueDones } from "../components/BloqueDones";
-import { SelectorImagen, SaveIndicator } from "../components/UIComponents";
+import { BloqueDones } from "@/features/editorGarlia/components/Personajes/BloqueDones";
+import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import { useNombresDeTabla } from "../hooks/misc/useNombresDeTabla";
 import { type Personaje, type SaveStatus } from "../hooks/types";
 

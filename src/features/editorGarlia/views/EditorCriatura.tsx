@@ -64,8 +64,8 @@ import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Cria
 import {
   SelectorImagen,
   SaveIndicator,
-} from "@/features/editorGarlia/components/UIComponents";
-import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
+} from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import { useCriaturaAsideCatalogs } from "@/features/editorGarlia/hooks/criaturas/useCriaturaAsideCatalogs";
 import { usePersonajesDeCriatura } from "@/features/editorGarlia/hooks/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/features/editorGarlia/hooks/grupos/useMembresiaGruposCriatura";

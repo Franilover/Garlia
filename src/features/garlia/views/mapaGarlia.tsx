@@ -22,11 +22,11 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
-import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/Reinos/ReinoTileCanvas";
 import {
   UnifiedTileCanvas,
   type MapTile,
-} from "@/features/editorGarlia/components/UnifiedTileCanvas";
+} from "@/features/editorGarlia/components/shared/UnifiedTileCanvas";
 import { ModalDetalle } from "@/features/garlia/views/PersonalComponents";
 import { useIsAdmin } from "@/hooks/auth/useIsAdmin";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";

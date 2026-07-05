@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import React, { useEffect, useState, useRef } from "react";
 
-import type { CapituloScrollItem } from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+import type { CapituloScrollItem } from "@/features/editorGarlia/hooks/capitulos/types";
 
 
 /* ─────────────────────────────────────────────

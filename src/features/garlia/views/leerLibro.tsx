@@ -10,7 +10,7 @@ import { Btn } from "@/components/ui";
 import type {
   CapituloLista,
   CapituloScrollItem,
-} from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+} from "@/features/editorGarlia/hooks/capitulos/types";
 import {
   CapituloScrollBlock,
   ToastPortal,

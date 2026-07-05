@@ -15,8 +15,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
-import { SaveIndicator } from "../components/UIComponents";
-import { useWikilink } from "../components/WikilinkContext";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import type { SaveStatus, Nota } from "../hooks/types";
 
 // ─── Etiqueta chip ────────────────────────────────────────────────────────────

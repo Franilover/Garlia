@@ -49,7 +49,7 @@ import type { EraMundo} from "@/lib/utils/calendario";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
 import { SelectorFechaMundo } from "../components/Calendario/SelectorFechaMundo";
-import { SaveIndicator } from "../components/UIComponents";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import {
   useCalendario,
   invalidarCacheEras,

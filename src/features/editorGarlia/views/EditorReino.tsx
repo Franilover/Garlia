@@ -13,9 +13,9 @@ import React, { useState, useEffect } from "react";
 
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { LoreTab } from "@/features/editorGarlia/components/LoreTab";
-import { ReinoTileCanvas } from "@/features/editorGarlia/components/ReinoTileCanvas";
-import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
+import { LoreTab } from "@/features/editorGarlia/components/shared/LoreTab";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/Reinos/ReinoTileCanvas";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import { usePersonajesDelReino } from "@/features/editorGarlia/hooks/personajes/usePersonajesDelReino";
 import {
   type Reino,
@@ -25,7 +25,7 @@ import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 import { loadCiudadesPorReino } from "@/lib/api/client/syncEngine";
 
-import { useWikilink } from "../components/WikilinkContext";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 
 // ─── Hook: ciudades del reino ─────────────────────────────────────────────────
 function useCiudadesDelReino(reinoId: string) {
@@ -57,7 +57,7 @@ function ImagePickerModal({
   const [SimpleImagePicker, setComponent] =
     useState<React.ComponentType<any> | null>(null);
   useEffect(() => {
-    void import("@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker").then(
+    void import("@/features/editorGarlia/components/Libros/snippets/forms/SimpleImagePicker").then(
       (m) => setComponent(() => m.default),
     );
   }, []);

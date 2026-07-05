@@ -22,8 +22,8 @@ import React, { useEffect, useState } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
-import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 

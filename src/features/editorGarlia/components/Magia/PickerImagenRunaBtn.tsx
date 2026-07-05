@@ -13,7 +13,7 @@
 import { Camera, X } from "lucide-react";
 import React, { useState } from "react";
 
-import SimpleImagePicker from "@/features/editorGarlia/components/editorCapitulos/snippets/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/features/editorGarlia/components/Libros/snippets/forms/SimpleImagePicker";
 
 export function PickerImagenRunaBtn({
   value: _value,

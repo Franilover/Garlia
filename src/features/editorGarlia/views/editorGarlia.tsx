@@ -10,7 +10,7 @@ import React, {
 } from "react";
 
 import { AdminOnly } from "@/components/forms/AdminOnly";
-import { WikilinkProvider } from "@/features/editorGarlia/components/WikilinkContext";
+import { WikilinkProvider } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -22,7 +22,7 @@ import {
   ModalNuevoGrupo,
   type AllItems,
   type MagicAddKey,
-} from "../components/EditorModals";
+} from "@/features/editorGarlia/components/shared/EditorModals";
 import { useMundoSecciones } from "../hooks/mundo/useMundoSecciones";
 import {
   TAB_CONFIG,

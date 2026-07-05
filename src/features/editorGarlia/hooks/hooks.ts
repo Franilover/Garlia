@@ -14,7 +14,7 @@
  *
  * Queda acá SOLO `useReinos`, a propósito: es una de las 3 implementaciones
  * duplicadas de "traer reinos" del proyecto (las otras viven en
- * `components/editorCapitulos/hooks/hooks.ts` y en
+ * `editorCapitulos/hooks/hooks.ts` (ahora hermano de components/, no anidado) y en
  * `hooks/ciudades/useCiudadCatalogos.ts`, que a su vez delega en
  * `syncEngine.loadReinos`). Unificar esas 3 en un solo hook es un paso aparte
  * pendiente — no se mezcló con esta reorganización para no arriesgar los dos

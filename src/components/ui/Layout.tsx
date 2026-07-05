@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import React from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { Text } from "@/components/ui/Tiopgrafia";
+import { Text } from "@/components/ui/Tipografia";
 
 interface ModalProps {
   open:      boolean;

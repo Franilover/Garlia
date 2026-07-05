@@ -36,7 +36,7 @@ import {
   FechaMundoBadge,
   SelectorFechaMundo,
   useCalendario,
-} from "@/features/editorGarlia/components/CalendarioMundo";
+} from "@/features/editorGarlia/components/shared/CalendarioMundo";
 import {
   type Era,
   useErasDelPersonaje,

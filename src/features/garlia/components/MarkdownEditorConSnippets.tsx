@@ -21,7 +21,7 @@ import {
   parseContenido,
   parseSections,
   type Segment,
-} from "@/features/editorGarlia/components/editorCapitulos/snippets/type";
+} from "@/features/editorGarlia/hooks/capitulos/types";
 import { RenderSegmentos } from "@/features/garlia/components/ContenidoInteractivo";
 
 

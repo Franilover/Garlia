@@ -23,8 +23,8 @@ import {
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
-import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/UIComponents";
-import { useWikilink } from "@/features/editorGarlia/components/WikilinkContext";
+import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
 import {
   useReinos,
   usePersonajesDelCiudad,

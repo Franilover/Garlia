@@ -36,7 +36,7 @@ import { SubtipoInput } from "@/features/editorGarlia/components/Grupos/SubtipoI
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 
-import { SaveIndicator } from "../components/UIComponents";
+import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import {
   useGrupos,
   GRUPO_TIPO_CONFIG,
