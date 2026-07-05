@@ -2060,130 +2060,144 @@ function ListaEventosConMinimapa({
 
                 {/* Carriles de año de esta era — envuelven al llegar al borde */}
                 <div className="flex flex-wrap items-start gap-3">
-                  {grupo.carriles.map((carril, i) => (
-                    <div
-                      key={`carril-${carril.anio ?? "sin-fecha"}-${gi}-${i}`}
-                      className="flex flex-col gap-1"
-                      style={{ width: selEvt ? 150 : 200 }}
-                    >
-                      {/* Encabezado del año — ancla del carril */}
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
-                          style={{
-                            color:
-                              grupo.eraColor ??
-                              "color-mix(in srgb, var(--primary) 35%, transparent)",
-                            background: grupo.eraColor
-                              ? `${grupo.eraColor}10`
-                              : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                          }}
-                        >
-                          {carril.anio ?? "S/F"}
-                        </span>
-                        <div
-                          className="flex-1 h-px"
-                          style={{
-                            background: grupo.eraColor
-                              ? `${grupo.eraColor}15`
-                              : "color-mix(in srgb, var(--primary) 6%, transparent)",
-                          }}
-                        />
-                      </div>
+                  {grupo.carriles.map((carril, i) => {
+                    // Ancho de cada tarjeta de evento — el carril entero se
+                    // estira según cuántos eventos tenga (en vez de un ancho
+                    // fijo con eventos apilados hacia abajo). El header del
+                    // año, al ser w-full del carril, se expande junto con él.
+                    const anchoEvento = selEvt ? 130 : 170;
+                    const anchoCarril =
+                      anchoEvento * carril.eventos.length +
+                      6 * (carril.eventos.length - 1); // gaps entre tarjetas
 
-                      {/* Eventos del año — apilados verticalmente dentro del carril */}
-                      {carril.eventos.map((evt) => {
-                        const eraEvt = getEraEvt(evt.dia_absoluto);
-                        const eraColor = eraEvt?.color ?? null;
-                        const isSel = evt.id === evtSeleccionado;
-                        const Icon = iconoPorSource(evt.source);
-
-                        return (
-                          <button
-                            key={`list-${evt.id}`}
-                            ref={(el) => {
-                              if (el) itemRefs.current.set(evt.id, el);
-                              else itemRefs.current.delete(evt.id);
-                            }}
-                            className="flex flex-col gap-1 px-2 py-1.5 rounded-lg text-left transition-all min-w-0 w-full"
+                    return (
+                      <div
+                        key={`carril-${carril.anio ?? "sin-fecha"}-${gi}-${i}`}
+                        className="flex flex-col gap-1"
+                        style={{ width: anchoCarril }}
+                      >
+                        {/* Encabezado del año — se expande a todo el ancho del carril */}
+                        <div className="flex items-center gap-1.5 w-full">
+                          <span
+                            className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
                             style={{
-                              background: isSel
-                                ? eraColor
-                                  ? `${eraColor}14`
-                                  : "color-mix(in srgb, var(--primary) 6%, transparent)"
-                                : "color-mix(in srgb, var(--primary) 2%, transparent)",
-                              border: `1px solid ${
-                                isSel
-                                  ? eraColor
-                                    ? `${eraColor}30`
-                                    : "color-mix(in srgb, var(--primary) 15%, transparent)"
-                                  : "color-mix(in srgb, var(--primary) 8%, transparent)"
-                              }`,
-                            }}
-                            type="button"
-                            onClick={() => {
-                              const willSelect = !isSel;
-                              setEvtSeleccionado(willSelect ? evt.id : null);
-                              if (!willSelect) return;
-                              if (evt.source === "capitulo" && evt.capData) {
-                                onSelectCapitulo?.(
-                                  evt.capData.id,
-                                  evt.capData.libro_id,
-                                );
-                              } else if (
-                                evt.source === "cancion" &&
-                                evt.cancionData
-                              ) {
-                                onSelectCancion?.(evt.cancionData.id);
-                              } else if (
-                                evt.source === "cumpleanos" &&
-                                evt.cumpleanosData
-                              ) {
-                                onSelectPersonaje?.(evt.cumpleanosData.id);
-                              }
+                              color:
+                                grupo.eraColor ??
+                                "color-mix(in srgb, var(--primary) 35%, transparent)",
+                              background: grupo.eraColor
+                                ? `${grupo.eraColor}10`
+                                : "color-mix(in srgb, var(--primary) 4%, transparent)",
                             }}
                           >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Icon
-                                className="shrink-0"
-                                size={10}
-                                style={{
-                                  color:
-                                    eraColor ??
-                                    "color-mix(in srgb, var(--primary) 40%, transparent)",
+                            {carril.anio ?? "S/F"}
+                          </span>
+                          <div
+                            className="flex-1 h-px"
+                            style={{
+                              background: grupo.eraColor
+                                ? `${grupo.eraColor}15`
+                                : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            }}
+                          />
+                        </div>
+
+                        {/* Eventos del año — lado a lado (fila), no apilados hacia abajo */}
+                        <div className="flex flex-row gap-1.5">
+                          {carril.eventos.map((evt) => {
+                            const eraEvt = getEraEvt(evt.dia_absoluto);
+                            const eraColor = eraEvt?.color ?? null;
+                            const isSel = evt.id === evtSeleccionado;
+                            const Icon = iconoPorSource(evt.source);
+
+                            return (
+                              <button
+                                key={`list-${evt.id}`}
+                                ref={(el) => {
+                                  if (el) itemRefs.current.set(evt.id, el);
+                                  else itemRefs.current.delete(evt.id);
                                 }}
-                              />
-                              <span
-                                className="text-[10px] font-bold truncate flex-1"
+                                className="flex flex-col gap-1 px-2 py-1.5 rounded-lg text-left transition-all min-w-0 shrink-0"
                                 style={{
-                                  color: isSel
-                                    ? "var(--primary)"
-                                    : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                                  width: anchoEvento,
+                                  background: isSel
+                                    ? eraColor
+                                      ? `${eraColor}14`
+                                      : "color-mix(in srgb, var(--primary) 6%, transparent)"
+                                    : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                                  border: `1px solid ${
+                                    isSel
+                                      ? eraColor
+                                        ? `${eraColor}30`
+                                        : "color-mix(in srgb, var(--primary) 15%, transparent)"
+                                      : "color-mix(in srgb, var(--primary) 8%, transparent)"
+                                  }`,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                  const willSelect = !isSel;
+                                  setEvtSeleccionado(willSelect ? evt.id : null);
+                                  if (!willSelect) return;
+                                  if (evt.source === "capitulo" && evt.capData) {
+                                    onSelectCapitulo?.(
+                                      evt.capData.id,
+                                      evt.capData.libro_id,
+                                    );
+                                  } else if (
+                                    evt.source === "cancion" &&
+                                    evt.cancionData
+                                  ) {
+                                    onSelectCancion?.(evt.cancionData.id);
+                                  } else if (
+                                    evt.source === "cumpleanos" &&
+                                    evt.cumpleanosData
+                                  ) {
+                                    onSelectPersonaje?.(evt.cumpleanosData.id);
+                                  }
                                 }}
                               >
-                                {evt.title || (
-                                  <span className="italic opacity-40">
-                                    Sin título
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <Icon
+                                    className="shrink-0"
+                                    size={10}
+                                    style={{
+                                      color:
+                                        eraColor ??
+                                        "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                    }}
+                                  />
+                                  <span
+                                    className="text-[10px] font-bold truncate flex-1"
+                                    style={{
+                                      color: isSel
+                                        ? "var(--primary)"
+                                        : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                                    }}
+                                  >
+                                    {evt.title || (
+                                      <span className="italic opacity-40">
+                                        Sin título
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                {evt.reinoNombre && (
+                                  <span
+                                    className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
+                                    style={{
+                                      color:
+                                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                    }}
+                                  >
+                                    {evt.reinoNombre}
                                   </span>
                                 )}
-                              </span>
-                            </div>
-                            {evt.reinoNombre && (
-                              <span
-                                className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
-                                style={{
-                                  color:
-                                    "color-mix(in srgb, var(--primary) 30%, transparent)",
-                                }}
-                              >
-                                {evt.reinoNombre}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ));
