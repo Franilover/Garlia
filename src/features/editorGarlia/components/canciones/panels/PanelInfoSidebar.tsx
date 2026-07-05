@@ -104,12 +104,12 @@ const CampoTexto = ({
     : [];
 
   return (
-    <div className="group relative space-y-1">
-      <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5 group-focus-within:text-primary/50 transition-colors">
+    <div className="group relative space-y-0.5">
+      <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1 group-focus-within:text-primary/50 transition-colors">
         {icon} {label}
       </label>
       <input
-        className="w-full bg-transparent border-b border-primary/10 py-1 text-[11px] font-bold text-primary outline-none focus:border-primary/40 transition-all"
+        className="w-full bg-transparent border-b border-primary/10 py-0.5 text-[10px] font-bold text-primary outline-none focus:border-primary/40 transition-all"
         placeholder={placeholder}
         value={value}
         onBlur={() => setTimeout(() => setFocused(false), 200)}
@@ -127,7 +127,7 @@ const CampoTexto = ({
             {filtered.map((s) => (
               <button
                 key={s}
-                className="w-full px-3 py-1.5 text-left text-[9px] font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors"
+                className="w-full px-2.5 py-1 text-left text-[9px] font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors"
                 onClick={() => onChange(s)}
               >
                 {s}
@@ -158,13 +158,13 @@ const SelectorNativo = ({
   allowEmpty?: boolean;
   emptyLabel?: string;
 }) => (
-  <div className="space-y-1">
-    <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
+  <div className="space-y-0.5">
+    <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
       {icon} {label}
     </label>
     <div className="relative">
       <select
-        className="w-full appearance-none bg-primary/[0.03] border border-primary/10 rounded-lg pl-2.5 pr-6 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary outline-none focus:border-primary/30 transition-all cursor-pointer"
+        className="w-full appearance-none bg-primary/[0.03] border border-primary/10 rounded-lg pl-2 pr-5 py-1 text-[9px] font-black uppercase tracking-wider text-primary outline-none focus:border-primary/30 transition-all cursor-pointer"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -176,8 +176,8 @@ const SelectorNativo = ({
         ))}
       </select>
       <ChevronDown
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-primary/30"
-        size={11}
+        className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-primary/30"
+        size={10}
       />
     </div>
   </div>
@@ -441,7 +441,7 @@ export const PanelInfoSidebar = ({
   };
 
   const innerContent = (
-    <div className="px-3 py-3 space-y-4">
+    <div className="px-2.5 py-2.5 space-y-2.5">
       {/* Indicador de guardado (sin título, para aprovechar espacio) */}
       {(saving || saved) && (
         <div className="flex items-center justify-end gap-1.5 -mb-1">
@@ -453,7 +453,7 @@ export const PanelInfoSidebar = ({
       )}
 
       {/* Estado + Visibilidad (interruptor) lado a lado */}
-      <div className="flex gap-2 items-end">
+      <div className="flex gap-1.5 items-end">
         <div className="flex-1">
           <SelectorNativo
             icon={
@@ -470,14 +470,14 @@ export const PanelInfoSidebar = ({
             onChange={handleEstadoChange}
           />
         </div>
-        <div className="shrink-0 space-y-1">
-          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-            {localData.visible ? <Eye size={10} /> : <EyeOff size={10} />}
+        <div className="shrink-0 space-y-0.5">
+          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+            {localData.visible ? <Eye size={9} /> : <EyeOff size={9} />}
             Visible
           </label>
           <button
             aria-label="Alternar visibilidad"
-            className={`relative w-9 h-[26px] rounded-full border transition-all cursor-pointer ${
+            className={`relative w-8 h-[22px] rounded-full border transition-all cursor-pointer ${
               localData.visible
                 ? "bg-emerald-500/15 border-emerald-400/30"
                 : "bg-primary/4 border-primary/10"
@@ -487,9 +487,9 @@ export const PanelInfoSidebar = ({
             onClick={() => handleVisibleChange(!localData.visible)}
           >
             <div
-              className={`absolute top-0.5 w-[18px] h-[18px] rounded-full transition-all ${
+              className={`absolute top-0.5 w-[15px] h-[15px] rounded-full transition-all ${
                 localData.visible
-                  ? "left-[18px] bg-emerald-400"
+                  ? "left-[16px] bg-emerald-400"
                   : "left-0.5 bg-primary/25"
               }`}
             />
@@ -499,7 +499,7 @@ export const PanelInfoSidebar = ({
 
       {/* Título */}
       <CampoTexto
-        icon={<Music size={10} />}
+        icon={<Music size={9} />}
         label="Título"
         placeholder="Nombre de la canción…"
         suggestions={[]}
@@ -508,9 +508,9 @@ export const PanelInfoSidebar = ({
       />
 
       {/* Cantante / Compositor */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <CampoTexto
-          icon={<Mic2 size={10} />}
+          icon={<Mic2 size={9} />}
           label="Cantante"
           placeholder="Hatsune Miku…"
           suggestions={suggestions.cantante || []}
@@ -518,7 +518,7 @@ export const PanelInfoSidebar = ({
           onChange={(v) => handleChange("cantante", v)}
         />
         <CampoTexto
-          icon={<PenLine size={10} />}
+          icon={<PenLine size={9} />}
           label="Compositor"
           placeholder="Deco*27…"
           suggestions={suggestions.compositor || []}
@@ -528,18 +528,18 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Emoción / Tema */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <SelectorNativo
           allowEmpty
           emptyLabel="Sin emoción"
-          icon={<Heart size={10} />}
+          icon={<Heart size={9} />}
           label="Emoción"
           options={EMOCIONES.map((e) => ({ value: e, label: e }))}
           value={localData.emocion}
           onChange={handleEmocionChange}
         />
         <CampoTexto
-          icon={<Tag size={10} />}
+          icon={<Tag size={9} />}
           label="Tema"
           placeholder="Amor, soledad…"
           suggestions={suggestions.tema || []}
@@ -549,21 +549,21 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Idioma / Duración */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <CampoTexto
-          icon={<Globe size={10} />}
+          icon={<Globe size={9} />}
           label="Idioma"
           placeholder="Japonés…"
           suggestions={suggestions.idioma || []}
           value={localData.idioma}
           onChange={(v) => handleChange("idioma", v)}
         />
-        <div className="space-y-1">
-          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-            <Clock size={10} /> Duración
+        <div className="space-y-0.5">
+          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+            <Clock size={9} /> Duración
           </label>
           <input
-            className="w-full bg-transparent border-b border-primary/10 py-1 text-[11px] font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
+            className="w-full bg-transparent border-b border-primary/10 py-0.5 text-[10px] font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
             placeholder="3:45"
             value={duracionInput}
             onBlur={handleDuracionBlur}
@@ -574,9 +574,9 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Línea de tiempo */}
-      <div className="space-y-1">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          <Clock size={10} /> Línea de tiempo
+      <div className="space-y-0.5">
+        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <Clock size={9} /> Línea de tiempo
           {savingDia && (
             <Loader2 className="ml-auto animate-spin text-primary/25" size={9} />
           )}
@@ -589,9 +589,9 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Personaje */}
-      <div className="space-y-1">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          <Users size={10} /> Personaje
+      <div className="space-y-0.5">
+        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <Users size={9} /> Personaje
         </label>
         <ComboSelector
           emptyText="No hay personajes"
@@ -605,10 +605,10 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Reino / Ciudad */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-            <Crown size={10} /> Reino
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className="space-y-0.5">
+          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+            <Crown size={9} /> Reino
             {savingUbi && (
               <Loader2 className="ml-auto animate-spin text-primary/20" size={9} />
             )}
@@ -624,9 +624,9 @@ export const PanelInfoSidebar = ({
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-            <MapPin size={10} /> Ciudad
+        <div className="space-y-0.5">
+          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+            <MapPin size={9} /> Ciudad
           </label>
           <ComboSelector
             emptyText={reinoId ? "Sin ciudades" : "Elige un reino"}
@@ -641,12 +641,12 @@ export const PanelInfoSidebar = ({
       </div>
 
       {/* Notas / contexto */}
-      <div className="space-y-1.5">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          <FileText size={10} /> Notas
+      <div className="space-y-1">
+        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <FileText size={9} /> Notas
         </label>
         <textarea
-          className="w-full bg-primary/[0.02] border border-primary/8 rounded-lg px-2 py-1.5 text-[10px] text-primary/80 placeholder:text-primary/20 outline-none focus:border-primary/20 transition-all resize-none min-h-[100px]"
+          className="w-full bg-primary/[0.02] border border-primary/8 rounded-lg px-1.5 py-1 text-[9px] text-primary/80 placeholder:text-primary/20 outline-none focus:border-primary/20 transition-all resize-none min-h-[90px]"
           placeholder="¿De qué trata? ¿Qué la inspiró?…"
           value={localData.info_cancion}
           onChange={(e) => handleChange("info_cancion", e.target.value)}
@@ -661,7 +661,7 @@ export const PanelInfoSidebar = ({
       <div
         className="hidden lg:flex flex-col shrink-0 border-l overflow-y-auto"
         style={{
-          width: "220px",
+          width: "260px",
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
@@ -682,7 +682,7 @@ export const PanelInfoSidebar = ({
           <div
             className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
             style={{
-              width: "260px",
+              width: "280px",
               background: "var(--white-custom, var(--bg-main))",
               borderLeft:
                 "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
