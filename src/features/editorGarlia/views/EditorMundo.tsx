@@ -1717,12 +1717,23 @@ function PanelListas({
         )}
 
         {/* CAPÍTULOS */}
+        {/*
+          EstudioCapitulos ya maneja su propio scroll interno (overflow-hidden
+          en su raíz + overflow-y-auto en sus paneles internos), así que en
+          condiciones normales nunca desborda este wrapper. Mantenemos
+          overflow-y-auto acá (no overflow-hidden) porque el snap manual por
+          wheel (más abajo) lee scrollTop/scrollHeight de este mismo nodo
+          para decidir cuándo saltar a la sección siguiente — si lo
+          cambiamos a overflow-hidden, ese cálculo siempre da "en el borde"
+          y el snap avanza en el primer tick de wheel sin dejar interactuar
+          con el contenido interno.
+        */}
         <div
           ref={capitulosRef}
           className="flex flex-col min-h-0 overflow-y-auto"
           style={pageHeightStyle}
         >
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <EstudioCapitulos />
           </div>
         </div>
