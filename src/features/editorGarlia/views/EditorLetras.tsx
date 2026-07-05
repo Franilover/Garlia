@@ -4,8 +4,8 @@ import { Music, Loader2, ArrowLeft } from "lucide-react";
 import React, { useState, useEffect, useMemo } from "react";
 
 
-import { PanelEditor } from "@/features/editorGarlia/components/Canciones/editor/PanelEditor";
-import { ModalNuevaCancion } from "@/features/editorGarlia/components/Canciones/modals/ModalNuevaCancion";
+import { PanelEditor } from "@/features/editorGarlia/components/canciones/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/features/editorGarlia/components/canciones/modals/ModalNuevaCancion";
 import { useCanciones } from "@/features/editorGarlia/hooks/canciones/useCanciones";
 import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
 import { useLastOpenedId } from "@/hooks/useEditorShared";

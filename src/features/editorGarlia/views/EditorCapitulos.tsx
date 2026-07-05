@@ -85,12 +85,12 @@ import {
   SelectorPersonajesCapitulo,
   SelectorImagenPortada,
   PanelPersonajesCapitulo,
-} from "@/features/editorGarlia/components/Libros";
+} from "@/features/editorGarlia/components/libros";
 import {
   useCapituloEditor,
   useReinos,
 } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
-import { SnippetCommandPalette } from "@/features/editorGarlia/components/Libros/snippets/SnippetCommandPalette";
+import { SnippetCommandPalette } from "@/features/editorGarlia/components/libros/snippets/SnippetCommandPalette";
 // SnippetOverlay eliminado — reemplazado por nodos Lexical reales
 import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";

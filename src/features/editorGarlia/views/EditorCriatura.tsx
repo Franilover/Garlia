@@ -6,12 +6,12 @@
  * View principal del editor de criaturas. Solo orquesta:
  * conecta hooks con componentes, no contiene lógica de dominio.
  *
- * Componentes extraídos a components/Criaturas/:
+ * Componentes extraídos a components/criaturas/:
  *   PickerImagenCriaturaBtn  → botón mobile de imagen
  *   BloqueGrupoCategoria     → selector de grupo por subtipo
  *   BloqueGruposCriatura     → chips + dropdown de grupos generales
  *
- * Hooks extraídos a components/Criaturas/:
+ * Hooks extraídos a components/criaturas/:
  *   usePersonajesDeCriatura  → personajes de la especie + toggle
  *   useCriaturaAsideCatalogs → catálogos globales del aside
  *
@@ -50,17 +50,17 @@ import {
   BloqueGrupoCategoria,
   BloqueGruposCriatura,
   type GrupoMinExt,
-} from "@/features/editorGarlia/components/Criaturas/BloqueGruposCriatura";
+} from "@/features/editorGarlia/components/criaturas/BloqueGruposCriatura";
 import {
   useCriaturaReinos,
   useCriaturaCiudades,
-} from "@/features/editorGarlia/components/Criaturas/CriaturaHabitat";
-import { useCraftedItems } from "@/features/editorGarlia/components/Criaturas/CriaturaItemsCraftedos";
+} from "@/features/editorGarlia/components/criaturas/CriaturaHabitat";
+import { useCraftedItems } from "@/features/editorGarlia/components/criaturas/CriaturaItemsCraftedos";
 import {
   BloqueMagico,
   grupoEsMagico,
-} from "@/features/editorGarlia/components/Criaturas/CriaturaMagia";
-import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/Criaturas/PickerImagenCriaturaBtn";
+} from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
+import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/criaturas/PickerImagenCriaturaBtn";
 import {
   SelectorImagen,
   SaveIndicator,

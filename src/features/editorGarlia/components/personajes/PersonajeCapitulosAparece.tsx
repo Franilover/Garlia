@@ -1,0 +1,77 @@
+"use client";
+
+/**
+ * PersonajeCapitulosAparece.tsx
+ * ─────────────────────────────
+ * Lista los capítulos en los que aparece un personaje, con navegación
+ * directa al capítulo via localStorage + evento.
+ * La lógica de datos vive en useCapitulosConPersonaje.
+ *
+ * Ruta: src/features/editorGarlia/components/personajes/PersonajeCapitulosAparece.tsx
+ */
+
+import { Loader2 } from "lucide-react";
+
+import {
+  type CapAparece,
+  useCapitulosConPersonaje,
+} from "@/features/editorGarlia/hooks/capitulos/useCapitulosConPersonaje";
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export function PersonajeCapitulosAparece({
+  personajeId,
+}: {
+  personajeId: string;
+}) {
+  const { caps, loading } = useCapitulosConPersonaje(personajeId);
+
+  const navigateToCap = (cap: CapAparece) => {
+    if (!cap.libro_id) return;
+    localStorage.setItem("estudio-caps-last-cap", cap.id);
+    localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
+    window.dispatchEvent(new Event("estudio-caps-action"));
+  };
+
+  if (loading)
+    return (
+      <div className="flex justify-center py-3">
+        <Loader2 className="animate-spin text-primary/15" size={12} />
+      </div>
+    );
+
+  if (!caps.length)
+    return (
+      <p className="text-[7px] font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
+        Sin apariciones
+      </p>
+    );
+
+  return (
+    <div>
+      {caps.map((cap) => (
+        <button
+          key={cap.id}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/[0.04] transition-colors text-left group disabled:opacity-40 disabled:cursor-default cursor-pointer border-b border-primary/[0.04] last:border-0"
+          disabled={!cap.libro_id}
+          type="button"
+          onClick={() => navigateToCap(cap)}
+        >
+          <span className="shrink-0 text-[7px] font-black tabular-nums text-accent/50 w-4 text-right leading-none">
+            {cap.orden}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[8px] font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
+              {cap.titulo_capitulo}
+            </p>
+            {cap.libro_titulo && (
+              <p className="text-[7px] text-primary/25 truncate leading-tight">
+                {cap.libro_titulo}
+              </p>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}

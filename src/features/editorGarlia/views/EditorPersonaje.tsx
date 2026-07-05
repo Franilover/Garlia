@@ -14,9 +14,9 @@
  *   hooks/usePersonajeForm.ts
  *
  * UI:
- *   components/Personajes/PersonajeSidebarPanel.tsx
- *   components/Personajes/PersonajeLineaDeTiempo.tsx
- *   components/Personajes/PersonajeImagePickers.tsx
+ *   components/personajes/PersonajeSidebarPanel.tsx
+ *   components/personajes/PersonajeLineaDeTiempo.tsx
+ *   components/personajes/PersonajeImagePickers.tsx
  *
  * Ruta: src/features/editorGarlia/views/EditorPersonaje.tsx
  */
@@ -35,15 +35,15 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import {
   PickerCaraBtn,
   PickerImagen,
-} from "@/features/editorGarlia/components/Personajes/PersonajeImagePickers";
-import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/Personajes/PersonajeLineaDeTiempo";
-import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/Personajes/PersonajeSidebarPanel";
+} from "@/features/editorGarlia/components/personajes/PersonajeImagePickers";
+import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/personajes/PersonajeLineaDeTiempo";
+import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/personajes/PersonajeSidebarPanel";
 import { useCiudades } from "@/features/editorGarlia/hooks/ciudades/useCiudades";
 import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/grupos/useGruposDeCriatura";
 import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePersonajeForm";
 import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
-import { BloqueDones } from "@/features/editorGarlia/components/Personajes/BloqueDones";
+import { BloqueDones } from "@/features/editorGarlia/components/personajes/BloqueDones";
 import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import { useNombresDeTabla } from "../hooks/misc/useNombresDeTabla";
 import { type Personaje, type SaveStatus } from "../hooks/types";

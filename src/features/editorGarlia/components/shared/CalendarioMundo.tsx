@@ -19,6 +19,6 @@
  *
  * Ruta: src/features/editorGarlia/components/CalendarioMundo.tsx
  */
-export { FechaMundoBadge } from "@/features/editorGarlia/components/Calendario/FechaMundoBadge";
-export { SelectorFechaMundo } from "@/features/editorGarlia/components/Calendario/SelectorFechaMundo";
+export { FechaMundoBadge } from "@/features/editorGarlia/components/calendario/FechaMundoBadge";
+export { SelectorFechaMundo } from "@/features/editorGarlia/components/calendario/SelectorFechaMundo";
 export { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";

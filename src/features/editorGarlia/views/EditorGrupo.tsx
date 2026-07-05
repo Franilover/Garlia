@@ -20,7 +20,7 @@
  * SelectorTipoGrupo). Ahora:
  *
  *   Config + tipos + hooks → hooks/useGrupos.ts
- *   UI                     → components/Grupos/*.tsx
+ *   UI                     → components/grupos/*.tsx
  *
  * Ruta destino:
  *   src/features/editorGarlia/views/EditorGrupo.tsx
@@ -30,9 +30,9 @@ import { Layers, Plus, Save, Search, Trash2, X, Loader2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { SelectorMiembros } from "@/features/editorGarlia/components/Grupos/SelectorMiembros";
-import { SelectorTipoGrupo } from "@/features/editorGarlia/components/Grupos/SelectorTipoGrupo";
-import { SubtipoInput } from "@/features/editorGarlia/components/Grupos/SubtipoInput";
+import { SelectorMiembros } from "@/features/editorGarlia/components/grupos/SelectorMiembros";
+import { SelectorTipoGrupo } from "@/features/editorGarlia/components/grupos/SelectorTipoGrupo";
+import { SubtipoInput } from "@/features/editorGarlia/components/grupos/SubtipoInput";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 

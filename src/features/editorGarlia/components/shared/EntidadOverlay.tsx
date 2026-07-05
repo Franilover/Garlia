@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import React from "react";
 
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
-import { PanelEditor } from "@/features/editorGarlia/components/Canciones/editor/PanelEditor";
+import { PanelEditor } from "@/features/editorGarlia/components/canciones/editor/PanelEditor";
 import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
 import { type Ciudad , type Nota, type Personaje, type Reino } from "@/features/editorGarlia/hooks/types";
 import { EditorCiudad } from "@/features/editorGarlia/views/EditorCiudad";

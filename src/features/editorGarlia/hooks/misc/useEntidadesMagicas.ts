@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/Magia/types";
+import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/magia/types";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexieReadAll, dexieWriteAll } from "@/lib/utils/dexieHelpers";
 

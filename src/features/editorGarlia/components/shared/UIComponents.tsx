@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
 import { normalize } from "@/components/layout/EstudioTemplates";
-import SimpleImagePicker from "@/features/editorGarlia/components/Libros/snippets/forms/SimpleImagePicker";
+import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
 
 import { useWikilink } from "./WikilinkContext";
 import { INPUT_CLS, type SaveStatus } from "../../hooks/types";

@@ -15,7 +15,7 @@
  * mezclados) al partirlo por dominio.
  *
  * NOTA sobre GrupoMin: existen otras 2 definiciones del mismo nombre en el
- * repo (`components/Magia/types.ts` y `hooks/grupos/useGruposDelPersonaje.ts`),
+ * repo (`components/magia/types.ts` y `hooks/grupos/useGruposDelPersonaje.ts`),
  * con formas ligeramente distintas. No se unificaron en este paso para no
  * arriesgar una migración más grande — queda pendiente como su propio barrido.
  *

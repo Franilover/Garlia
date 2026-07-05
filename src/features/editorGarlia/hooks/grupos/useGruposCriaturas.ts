@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "react";
 
-import { type GrupoMin } from "@/features/editorGarlia/components/Magia/types";
+import { type GrupoMin } from "@/features/editorGarlia/components/magia/types";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 

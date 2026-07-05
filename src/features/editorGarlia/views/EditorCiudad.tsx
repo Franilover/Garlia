@@ -12,7 +12,7 @@
  * y el formulario completo. Ahora:
  *
  *   Hooks    → hooks/useCiudadCatalogos.ts
- *   UI       → components/Ciudades/FormularioCiudad.tsx
+ *   UI       → components/ciudades/FormularioCiudad.tsx
  *   Tipo     → hooks/types.ts (Ciudad, junto con Reino/Item/Personaje)
  *
  * Ruta destino:
@@ -23,7 +23,7 @@ import React, { useEffect, useState } from "react";
 
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { FormularioCiudad } from "@/features/editorGarlia/components/Ciudades/FormularioCiudad";
+import { FormularioCiudad } from "@/features/editorGarlia/components/ciudades/FormularioCiudad";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
 

@@ -6,7 +6,7 @@
  * View del editor de ítems. Solo orquesta: conecta hooks con
  * componentes, no contiene lógica de fetching ni duplicación.
  *
- * Componentes extraídos a components/Items/:
+ * Componentes extraídos a components/items/:
  *   PickerImagenItemBtn  → botón mobile de imagen
  *   SelectorGrupoUnico   → reemplaza a SelectorCategoriaGrupo +
  *                          SelectorOrigenGrupo (eran duplicados)
@@ -35,10 +35,10 @@ import {
   MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import { PanelCiudades } from "@/features/editorGarlia/components/Items/PanelCiudades";
-import { PanelTerritorio } from "@/features/editorGarlia/components/Items/PanelTerritorio";
-import { PickerImagenItemBtn } from "@/features/editorGarlia/components/Items/PickerImagenItemBtn";
-import { SelectorGrupoUnico } from "@/features/editorGarlia/components/Items/SelectorGrupoUnico";
+import { PanelCiudades } from "@/features/editorGarlia/components/items/PanelCiudades";
+import { PanelTerritorio } from "@/features/editorGarlia/components/items/PanelTerritorio";
+import { PickerImagenItemBtn } from "@/features/editorGarlia/components/items/PickerImagenItemBtn";
+import { SelectorGrupoUnico } from "@/features/editorGarlia/components/items/SelectorGrupoUnico";
 import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/misc/useItemCatalogosUbicacion";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";

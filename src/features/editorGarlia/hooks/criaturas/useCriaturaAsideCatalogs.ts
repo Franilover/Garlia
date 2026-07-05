@@ -8,7 +8,7 @@
  * dentro del componente EditorCriatura.
  *
  * Ruta destino:
- *   src/features/editorGarlia/components/Criaturas/useCriaturaAsideCatalogs.ts
+ *   src/features/editorGarlia/components/criaturas/useCriaturaAsideCatalogs.ts
  */
 
 import { useEffect, useState } from "react";

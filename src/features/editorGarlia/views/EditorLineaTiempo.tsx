@@ -8,8 +8,8 @@
  *
  * Piezas que antes vivían acá y se extrajeron:
  *   useCalendario     → hooks/useCalendario.ts (catálogo de estaciones/eras)
- *   SelectorFechaMundo → components/Calendario/SelectorFechaMundo.tsx
- *   FechaMundoBadge    → components/Calendario/FechaMundoBadge.tsx
+ *   SelectorFechaMundo → components/calendario/SelectorFechaMundo.tsx
+ *   FechaMundoBadge    → components/calendario/FechaMundoBadge.tsx
  * (las tres se usan también fuera de esta view — Personaje, Capítulos, etc.
  * — así que no correspondía dejarlas acá).
  *
@@ -48,7 +48,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import type { EraMundo} from "@/lib/utils/calendario";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
-import { SelectorFechaMundo } from "../components/Calendario/SelectorFechaMundo";
+import { SelectorFechaMundo } from "../components/calendario/SelectorFechaMundo";
 import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import {
   useCalendario,

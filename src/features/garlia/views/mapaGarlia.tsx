@@ -22,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
-import { ReinoTileCanvas } from "@/features/editorGarlia/components/Reinos/ReinoTileCanvas";
+import { ReinoTileCanvas } from "@/features/editorGarlia/components/reinos/ReinoTileCanvas";
 import {
   UnifiedTileCanvas,
   type MapTile,

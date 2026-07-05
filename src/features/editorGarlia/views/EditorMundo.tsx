@@ -29,7 +29,7 @@ import {
   MarkdownEditor,
   type WikiEntity,
 } from "@/components/forms/Markdown/MarkdownEditor";
-import { ModalNuevaCancion } from "@/features/editorGarlia/components/Canciones/modals/ModalNuevaCancion";
+import { ModalNuevaCancion } from "@/features/editorGarlia/components/canciones/modals/ModalNuevaCancion";
 import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
 import { EntidadOverlay } from "@/features/editorGarlia/components/shared/EntidadOverlay";
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";

@@ -19,8 +19,8 @@
 import { Loader2, Plus } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
-import { FormularioMagico } from "@/features/editorGarlia/components/Magia/FormularioMagico";
-import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/Magia/types";
+import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
+import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/magia/types";
 import { useGruposCriaturas } from "@/features/editorGarlia/hooks/grupos/useGruposCriaturas";
 import { useEntidadesMagicas } from "@/features/editorGarlia/hooks/misc/useEntidadesMagicas";
 import { supabase } from "@/lib/api/client/supabase";

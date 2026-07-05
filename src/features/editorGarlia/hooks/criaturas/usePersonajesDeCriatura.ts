@@ -7,7 +7,7 @@
  * carga inicial (Dexie → Supabase) + toggle para añadir/quitar.
  *
  * Ruta destino:
- *   src/features/editorGarlia/components/Criaturas/usePersonajesDeCriatura.ts
+ *   src/features/editorGarlia/components/criaturas/usePersonajesDeCriatura.ts
  */
 
 import { useEffect, useState } from "react";

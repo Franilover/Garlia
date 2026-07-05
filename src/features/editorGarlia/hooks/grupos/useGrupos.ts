@@ -7,7 +7,7 @@
  *   GrupoTipo, Grupo, EntidadMin  → tipos del dominio
  *   GRUPO_TIPO_CONFIG             → config estática por tipo (íconos, colores,
  *                                    tabla, sugerencias) — la usan tanto
- *                                    components/Grupos/* como views/EditorGrupo
+ *                                    components/grupos/* como views/EditorGrupo
  *   useEntidades                  → catálogo de entidades de una tabla dada
  *                                    (usado por SelectorMiembros)
  *   useGrupos                     → CRUD de grupos_mundo con Supabase + Dexie
