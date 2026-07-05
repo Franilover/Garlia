@@ -11,7 +11,7 @@ import React, {
 
 import { RichEditor } from "@/components/forms/lexical-editor";
 import { MotionDiv } from "@/components/ui/Motion";
-import type { ZoteroSource } from "@/features/ensayos/views/page";
+import type { ZoteroSource } from "@/features/notas/views/page";
 
 import { CitePopup } from "./citePopup";
 import { LibroPanel } from "./LibroPanel";

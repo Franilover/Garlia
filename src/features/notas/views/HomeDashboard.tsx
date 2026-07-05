@@ -16,17 +16,17 @@ import React, { useMemo, useState } from "react";
 
 import { useAppPanels } from "@/components/command/";
 import { MotionDiv } from "@/components/ui/Motion";
-import { RelojDigital } from "@/features/ensayos/components/relojDigital";
-import ArmarioPage from "@/features/ensayos/components/ropa";
-import type { ModoCalendario } from "@/features/ensayos/components/types";
-import { VistaMes } from "@/features/ensayos/components/vistaMes";
-import { VistaSemanal } from "@/features/ensayos/components/vistaSemanal";
-import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
-import { PaginaHobbys } from "@/features/ensayos/views/hobbysComponent";
-import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
-import { LibrosDashboard } from "@/features/ensayos/views/LibrosDashboard";
-import { PaginaPendientes } from "@/features/ensayos/views/pendientesComponent";
-import RecetasPage from "@/features/ensayos/views/recetas";
+import { RelojDigital } from "@/features/legacy_tareas/components/relojDigital";
+import ArmarioPage from "@/features/ropa/components/ropa";
+import type { ModoCalendario } from "@/features/calendario/components/types";
+import { VistaMes } from "@/features/calendario/components/vistaMes";
+import { VistaSemanal } from "@/features/calendario/components/vistaSemanal";
+import { PaginaEjercicios } from "@/features/ejercicios/views/ejerciciosComponent";
+import { PaginaHobbys } from "@/features/hobbys/views/hobbysComponent";
+import { IngredientesPage } from "@/features/cocina/views/ingredientes";
+import { LibrosDashboard } from "@/features/notas/views/LibrosDashboard";
+import { PaginaPendientes } from "@/features/pendientes/views/pendientesComponent";
+import RecetasPage from "@/features/cocina/views/recetas";
 
 interface HomeDashboardProps {
   ensayos: any[];

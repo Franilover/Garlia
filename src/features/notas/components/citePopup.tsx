@@ -2,7 +2,7 @@
 import React from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import type { ZoteroSource } from "@/features/ensayos/views/page";
+import type { ZoteroSource } from "@/features/notas/views/page";
 
 interface CitePopupProps {
   sources: ZoteroSource[];

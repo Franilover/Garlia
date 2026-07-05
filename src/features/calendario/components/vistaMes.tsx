@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils/index";
 
 
 
-import { MESES, TIPOS_EVENTO } from "./types";
+import { MESES, TIPOS_EVENTO } from "@/features/calendario/components/types";
 
 interface Props {
   eventos: any[];

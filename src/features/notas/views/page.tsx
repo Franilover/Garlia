@@ -6,11 +6,11 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
-import Editor from "@/features/ensayos/components/editor";
-import { GrafoEnsayos } from "@/features/ensayos/components/GrafoEnsayos";
-import NewNoteModal from "@/features/ensayos/components/newNoteModal";
-import { HomeDashboard } from "@/features/ensayos/views/HomeDashboard";
-import { LibrosDashboard } from "@/features/ensayos/views/LibrosDashboard";
+import Editor from "@/features/notas/components/editor";
+import { GrafoEnsayos } from "@/features/notas/components/GrafoEnsayos";
+import NewNoteModal from "@/features/notas/components/newNoteModal";
+import { HomeDashboard } from "@/features/notas/views/HomeDashboard";
+import { LibrosDashboard } from "@/features/notas/views/LibrosDashboard";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
 import { db } from "@/lib/api/client/db";

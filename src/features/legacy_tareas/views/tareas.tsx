@@ -11,11 +11,11 @@ import { tareasQueries } from "@/lib/api/queries/personal/tareas";
 import { cn } from "@/lib/utils/index";
 
 
-import { ListaTareas } from "../components/listaTareas";
-import { RelojDigital } from "../components/relojDigital";
-import type { ModoCalendario } from "../components/types";
-import { VistaMes } from "../components/vistaMes";
-import { VistaSemanal } from "../components/vistaSemanal";
+import { ListaTareas } from "@/features/legacy_tareas/components/listaTareas";
+import { RelojDigital } from "@/features/legacy_tareas/components/relojDigital";
+import type { ModoCalendario } from "@/features/calendario/components/types";
+import { VistaMes } from "@/features/calendario/components/vistaMes";
+import { VistaSemanal } from "@/features/calendario/components/vistaSemanal";
 
 const USERNAME = "franilover";
 

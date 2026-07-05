@@ -4,10 +4,10 @@ import { Dumbbell, ShoppingCart, UtensilsCrossed, Carrot } from "lucide-react";
 
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import Secciones from "@/components/layout/Secciones";
-import ComprasPage from "@/features/ensayos/views/compras";
-import { PaginaEjercicios } from "@/features/ensayos/views/ejerciciosComponent";
-import { IngredientesPage } from "@/features/ensayos/views/ingredientes";
-import RecetasPage from "@/features/ensayos/views/recetas";
+import ComprasPage from "@/features/cocina/views/compras";
+import { PaginaEjercicios } from "@/features/ejercicios/views/ejerciciosComponent";
+import { IngredientesPage } from "@/features/cocina/views/ingredientes";
+import RecetasPage from "@/features/cocina/views/recetas";
 
 export default function SaludPage() {
   return (

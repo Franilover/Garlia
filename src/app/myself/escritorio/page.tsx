@@ -1,5 +1,5 @@
-import EnsayosView from "@/features/ensayos/views/page";
+import NotasView from "@/features/notas/views/page";
 
-export default function SaludPage() {
-  return <EnsayosView />;
+export default function EscritorioPage() {
+  return <NotasView />;
 }
