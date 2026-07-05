@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
-  Music, Info, Film, Loader2, RefreshCw, FileText, Columns2, Plus, Check, X, Layers, Globe, Mic2
+  Music, Film, Loader2, RefreshCw, FileText, Columns2, Plus, Check, X, Layers, Globe, Mic2, PanelRight
 } from "lucide-react";
 import React, { useState, useCallback, useEffect } from "react";
 
@@ -16,7 +16,7 @@ import { IdiomaTab } from "./IdiomaTab";
 import { SeccionEditor } from "./SeccionEditor";
 import { ModalLectorLetras } from "../modals/ModalLectorLetras";
 import { PanelGuionMV } from "../panels/PanelGuionMV";
-import { PanelInfo } from "../panels/PanelInfo";
+import { PanelInfoSidebar } from "../panels/PanelInfoSidebar";
 import { PanelLinks } from "../panels/PanelLinks";
 
 export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
@@ -33,6 +33,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   const [addingOpen, setAddingOpen] = useState(false);
   const [addingName, setAddingName] = useState("");
   const [showLector, setShowLector] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Responsive Split Mode
   useEffect(() => {
@@ -117,7 +118,6 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
 
   const TABS = [
     { id: "letras", label: "Letras", icon: <Music size={12} /> },
-    { id: "info",   label: "Info",   icon: <Info  size={12} /> },
     { id: "guion",  label: "Guion",  icon: <Film  size={12} /> },
   ] as { id: EditorTab; label: string; icon: React.ReactNode }[];
 
@@ -129,7 +129,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
   if (!cancion) return null;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-bg-main">
+    <div className="flex-1 flex min-h-0 overflow-hidden bg-bg-main">
       {/* Modal lector / karaoke */}
       {showLector && (
         <ModalLectorLetras
@@ -150,6 +150,8 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         />
       )}
 
+      {/* ── Columna principal: header + contenido scrollable ── */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {editorOffline && <BannerOffline color="amber" mensaje="Sin conexión — los cambios se sincronizan al reconectar" />}
 
       {/* ── HEADER REDISEÑADO ── */}
@@ -207,6 +209,13 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
             </button>
             <button className="p-2 rounded-lg hover:bg-primary/5 text-primary/30" onClick={reload as any}>
               <RefreshCw size={14} />
+            </button>
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-primary/5 text-primary/30"
+              title="Ficha técnica"
+              onClick={() => setMobileSidebarOpen(true)}
+            >
+              <PanelRight size={14} />
             </button>
           </div>
         </div>
@@ -336,23 +345,24 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
         )}
 
 
-        {/* Tab: Info */}
-        {activeTab === "info" && (
-          <PanelInfo
-            cancion={cancion}
-            cancionId={cancionId}
-            onCancionUpdate={(updates) =>
-              setCancion(prev => prev ? { ...prev, ...updates } : prev)
-            }
-          />
-        )}
-
         {activeTab === "guion" && (
           <div className="max-w-6xl mx-auto py-6 px-4">
             <PanelGuionMV cancionId={cancionId} guionInicial={cancion.guion_mv} idiomaActivo={idiomaA} secciones={secciones} onGuionChange={(g) => setCancion(prev => prev ? { ...prev, guion_mv: g } : prev)} />
           </div>
         )}
       </main>
+      </div>
+
+      {/* ── Barra lateral: Ficha técnica / metadatos de la canción ── */}
+      <PanelInfoSidebar
+        cancion={cancion}
+        cancionId={cancionId}
+        mobileOpen={mobileSidebarOpen}
+        onCancionUpdate={(updates) =>
+          setCancion(prev => prev ? { ...prev, ...updates } : prev)
+        }
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
     </div>
   );
 };

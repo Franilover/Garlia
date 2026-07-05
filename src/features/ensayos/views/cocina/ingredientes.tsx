@@ -34,7 +34,7 @@ import {
   SectionTitle,
   FieldInput,
   MacroBadge,
-} from "@/features/cocina/components/SaludUi";
+} from "@/features/ensayos/components/cocina/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
 import type { Ingrediente } from "@/lib/types/queries";

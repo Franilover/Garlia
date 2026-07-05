@@ -1,4 +1,4 @@
-import NotasView from "@/features/notas/views/page";
+import NotasView from "@/features/ensayos/views/notas/EnsayosShell";
 
 export default function EscritorioPage() {
   return <NotasView />;

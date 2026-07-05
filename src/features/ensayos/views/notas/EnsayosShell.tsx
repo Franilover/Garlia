@@ -6,25 +6,16 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { ToastContainer } from "@/components/ui/ToastContainer";
-import Editor from "@/features/notas/components/editor";
-import { GrafoEnsayos } from "@/features/notas/components/GrafoEnsayos";
-import NewNoteModal from "@/features/notas/components/newNoteModal";
-import { HomeDashboard } from "@/features/notas/views/HomeDashboard";
-import { LibrosDashboard } from "@/features/notas/views/LibrosDashboard";
+import Editor from "@/features/ensayos/components/notas/EditorEnsayo";
+import { GrafoEnsayos } from "@/features/ensayos/components/notas/GrafoEnsayos";
+import NewNoteModal from "@/features/ensayos/components/notas/newNoteModal";
+import { HomeDashboard } from "@/features/ensayos/views/notas/HomeDashboard";
+import { LibrosDashboard } from "@/features/ensayos/views/notas/LibrosDashboard";
+import { useZotero } from "@/features/ensayos/hooks/notas/useZotero";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
-import { db } from "@/lib/api/client/db";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
 import { useAuth } from "@/providers/AuthProvider";
-
-export interface ZoteroSource {
-  title: string;
-  author: string;
-  year: string;
-  citekey?: string;
-  journal?: string;
-  url?: string;
-}
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -41,53 +32,12 @@ function setSaveIndicator(el: HTMLElement | null, status: SaveStatus) {
                           "color-mix(in srgb, var(--primary) 70%, transparent)";
 }
 
-const LS_ACTIVE       = "ensayos-active-id";
-const LS_HOME         = "ensayos-at-home";
-const DEXIE_ZOTERO_KEY = "zotero_file_handle";
-
-
-async function saveZoteroHandle(handle: FileSystemFileHandle) {
-  try {
-    if (!db) return;
-    await (db as any).reproductor_handles.put({ key: DEXIE_ZOTERO_KEY, handle });
-  } catch {}
-}
-
-async function loadZoteroHandle(): Promise<FileSystemFileHandle | null> {
-  try {
-    if (!db) return null;
-    const row = await (db as any).reproductor_handles.get(DEXIE_ZOTERO_KEY);
-    return row?.handle ?? null;
-  } catch { return null; }
-}
-
-function parseZoteroJson(json: any[]): ZoteroSource[] {
-  return json.map((item: any) => ({
-    title:   item.title || "",
-    author:  item.author
-      ? (Array.isArray(item.author)
-          ? item.author.map((a: any) => a.family || a.literal || "").filter(Boolean).join(", ")
-          : item.author)
-      : (item.creators?.[0]?.lastName || ""),
-    year:    item.issued?.["date-parts"]?.[0]?.[0]?.toString()
-          || item.date?.substring(0, 4) || "",
-    citekey: item.id || item["citation-key"] || "",
-    journal: item["container-title"] || item.publisher || "",
-    url:     item.URL || item.url || "",
-  }));
-}
-
-async function readZoteroFile(handle: FileSystemFileHandle): Promise<ZoteroSource[]> {
-  const file = await handle.getFile();
-  const text = await file.text();
-  const json  = JSON.parse(text);
-  const items = Array.isArray(json) ? json : (json.items || json.references || []);
-  return parseZoteroJson(items);
-}
+const LS_ACTIVE = "ensayos-active-id";
+const LS_HOME   = "ensayos-at-home";
 
 function EnsayosInner() {
   const { user } = useAuth() as { user: any };
-  const { toasts, toast, dismiss } = useToast();
+  const { toasts, dismiss } = useToast();
   const { confirm, ConfirmModal }  = useConfirm();
 
   const irAlHome = () => {
@@ -115,8 +65,7 @@ function EnsayosInner() {
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const [showNewNoteModal,  setShowNewNoteModal]  = useState(false);
 
-  const [sources,           setSources]           = useState<ZoteroSource[]>([]);
-  const [_zoteroConnected,   setZoteroConnected]   = useState(false);
+  const { sources } = useZotero();
   const [tagActivo,         setTagActivo]         = useState<string | null>(null);
 
   // For pre-filling the new note modal title (used when creating tag-pages)
@@ -200,95 +149,6 @@ function EnsayosInner() {
     window.addEventListener("ensayos-new-libro", handler);
     return () => window.removeEventListener("ensayos-new-libro", handler);
   }, []);
-
-  // ─── Zotero ────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    void (async () => {
-      const handle = await loadZoteroHandle();
-
-      if (!handle) {
-        const cached = localStorage.getItem("fran-zotero-cache");
-        if (cached) {
-          try { setSources(JSON.parse(cached)); } catch {}
-        }
-        return;
-      }
-
-      try {
-        const h    = handle as any;
-        const perm = await h.queryPermission({ mode: "read" });
-        const granted = perm === "granted"
-          ? "granted"
-          : await h.requestPermission({ mode: "read" });
-
-        if (granted !== "granted") return;
-
-        const parsed = await readZoteroFile(handle);
-        setSources(parsed);
-        setZoteroConnected(true);
-        localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-      } catch {
-        const cached = localStorage.getItem("fran-zotero-cache");
-        if (cached) {
-          try { setSources(JSON.parse(cached)); } catch {}
-        }
-      }
-    })();
-  }, []);
-
-  const connectZotero = useCallback(async () => {
-    if (!("showOpenFilePicker" in window)) {
-      const input = document.createElement("input");
-      input.type   = "file";
-      input.accept = ".json";
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) return;
-        try {
-          const text  = await file.text();
-          const json  = JSON.parse(text);
-          const items = Array.isArray(json) ? json : (json.items || json.references || []);
-          const parsed = parseZoteroJson(items);
-          setSources(parsed);
-          setZoteroConnected(true);
-          localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-        } catch { toast.error("Error al leer el archivo Zotero"); }
-      };
-      input.click();
-      return;
-    }
-
-    try {
-      const [handle] = await (window as any).showOpenFilePicker({
-        types:    [{ description: "Zotero JSON", accept: { "application/json": [".json"] } }],
-        multiple: false,
-      });
-      await saveZoteroHandle(handle);
-      const parsed = await readZoteroFile(handle);
-      setSources(parsed);
-      setZoteroConnected(true);
-      localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-    } catch (e: any) {
-      if (e.name !== "AbortError") console.error(e);
-    }
-  }, []);
-
-  const _refreshZotero = useCallback(async () => {
-    const handle = await loadZoteroHandle();
-    if (!handle) { void connectZotero(); return; }
-    try {
-      const h       = handle as any;
-      const perm    = await h.queryPermission({ mode: "read" });
-      const granted = perm === "granted"
-        ? "granted"
-        : await h.requestPermission({ mode: "read" });
-      if (granted !== "granted") return;
-      const parsed = await readZoteroFile(handle);
-      setSources(parsed);
-      localStorage.setItem("fran-zotero-cache", JSON.stringify(parsed));
-    } catch { void connectZotero(); }
-  }, [connectZotero]);
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 

@@ -24,7 +24,7 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import {
   SectionTitle,
   FieldInput,
-} from "@/features/cocina/components/SaludUi";
+} from "@/features/ensayos/components/cocina/SaludUi";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
