@@ -1864,30 +1864,24 @@ function ListaEventosConMinimapa({
   const selEraColor = selEra?.color ?? null;
 
   // ── Minimapa horizontal ─────────────────────────────────────────────────
-  // Franja compacta arriba de la lista: un punto por evento, distribuido
-  // proporcionalmente a su dia_absoluto real (no por índice), coloreado por
+  // Franja compacta arriba de la lista: un punto por evento, coloreado por
   // era. Da un vistazo de "dónde estoy" en la línea de tiempo completa y usa
   // el ancho horizontal que antes quedaba vacío. Clic en un punto selecciona
   // (y hace scroll a) ese evento en la lista de abajo.
+  //
+  // IMPORTANTE: la distribución es por ÍNDICE (uniforme), no proporcional al
+  // dia_absoluto real. Con proporción real, un cluster de eventos ocurridos
+  // en un rango corto de tiempo (ej. 5 eventos en el mismo año, en una línea
+  // de tiempo que abarca siglos) quedaba con sus puntos superpuestos —
+  // imposible de clickear individualmente — mientras los huecos sin eventos
+  // (siglos sin nada) desperdiciaban todo ese ancho. Al distribuir por índice
+  // cada evento recibe el mismo espacio sin importar cuán cerca esté en el
+  // tiempo de sus vecinos, así los clusters se separan y usan el espacio que
+  // antes quedaba vacío en los huecos.
   const eventosConFecha = useMemo(
     () => allEvents.filter((e) => e.dia_absoluto != null),
     [allEvents],
   );
-  const minDia = useMemo(
-    () =>
-      eventosConFecha.length
-        ? Math.min(...eventosConFecha.map((e) => e.dia_absoluto!))
-        : 0,
-    [eventosConFecha],
-  );
-  const maxDia = useMemo(
-    () =>
-      eventosConFecha.length
-        ? Math.max(...eventosConFecha.map((e) => e.dia_absoluto!))
-        : 1,
-    [eventosConFecha],
-  );
-  const rangoDias = Math.max(maxDia - minDia, 1);
 
   return (
     <div className="flex flex-col gap-2" style={{ minHeight: 120 }}>
@@ -1911,8 +1905,12 @@ function ListaEventosConMinimapa({
                 "color-mix(in srgb, var(--primary) 12%, transparent)",
             }}
           />
-          {eventosConFecha.map((evt) => {
-            const pct = ((evt.dia_absoluto! - minDia) / rangoDias) * 100;
+          {eventosConFecha.map((evt, idx) => {
+            // Distribución uniforme: idx/(n-1) en vez de (dia-min)/rango.
+            const pct =
+              eventosConFecha.length > 1
+                ? (idx / (eventosConFecha.length - 1)) * 100
+                : 50;
             const eraEvt = getEraEvt(evt.dia_absoluto);
             const eraColor = eraEvt?.color ?? null;
             const isSel = evt.id === evtSeleccionado;
