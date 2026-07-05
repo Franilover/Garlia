@@ -452,21 +452,50 @@ export const PanelInfoSidebar = ({
         </div>
       )}
 
-      {/* Estado — selector nativo (antes 3 botones) */}
-      <SelectorNativo
-        icon={
-          <span
-            className={`w-1.5 h-1.5 rounded-full inline-block ${ESTADO_DOT[localData.estado] ?? ESTADO_DOT.BORRADOR}`}
+      {/* Estado + Visibilidad (interruptor) lado a lado */}
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <SelectorNativo
+            icon={
+              <span
+                className={`w-1.5 h-1.5 rounded-full inline-block ${ESTADO_DOT[localData.estado] ?? ESTADO_DOT.BORRADOR}`}
+              />
+            }
+            label="Estado"
+            options={([...ESTADOS] as string[]).map((e) => ({
+              value: e,
+              label: ESTADO_LABEL[e] ?? e,
+            }))}
+            value={localData.estado}
+            onChange={handleEstadoChange}
           />
-        }
-        label="Estado"
-        options={([...ESTADOS] as string[]).map((e) => ({
-          value: e,
-          label: ESTADO_LABEL[e] ?? e,
-        }))}
-        value={localData.estado}
-        onChange={handleEstadoChange}
-      />
+        </div>
+        <div className="shrink-0 space-y-1">
+          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
+            {localData.visible ? <Eye size={10} /> : <EyeOff size={10} />}
+            Visible
+          </label>
+          <button
+            aria-label="Alternar visibilidad"
+            className={`relative w-9 h-[26px] rounded-full border transition-all cursor-pointer ${
+              localData.visible
+                ? "bg-emerald-500/15 border-emerald-400/30"
+                : "bg-primary/4 border-primary/10"
+            }`}
+            title={localData.visible ? "Pública" : "Oculta"}
+            type="button"
+            onClick={() => handleVisibleChange(!localData.visible)}
+          >
+            <div
+              className={`absolute top-0.5 w-[18px] h-[18px] rounded-full transition-all ${
+                localData.visible
+                  ? "left-[18px] bg-emerald-400"
+                  : "left-0.5 bg-primary/25"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Título */}
       <CampoTexto
@@ -575,33 +604,32 @@ export const PanelInfoSidebar = ({
         />
       </div>
 
-      {/* Reino */}
-      <div className="space-y-1">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          <Crown size={10} /> Reino
-          {savingUbi && (
-            <Loader2 className="ml-auto animate-spin text-primary/20" size={9} />
-          )}
-        </label>
-        <ComboSelector
-          emptyText="No hay reinos"
-          items={reinos}
-          mode="single"
-          noneLabel="Sin reino"
-          placeholder="Sin asignar…"
-          value={reinoId}
-          onChange={handleReinoChange}
-        />
-      </div>
+      {/* Reino / Ciudad */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
+            <Crown size={10} /> Reino
+            {savingUbi && (
+              <Loader2 className="ml-auto animate-spin text-primary/20" size={9} />
+            )}
+          </label>
+          <ComboSelector
+            emptyText="No hay reinos"
+            items={reinos}
+            mode="single"
+            noneLabel="Sin reino"
+            placeholder="Sin asignar…"
+            value={reinoId}
+            onChange={handleReinoChange}
+          />
+        </div>
 
-      {/* Ciudad */}
-      {reinoId && (
         <div className="space-y-1">
           <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
             <MapPin size={10} /> Ciudad
           </label>
           <ComboSelector
-            emptyText="Sin ciudades"
+            emptyText={reinoId ? "Sin ciudades" : "Elige un reino"}
             items={ciudadesFiltradas}
             mode="single"
             noneLabel="Sin ciudad"
@@ -610,38 +638,6 @@ export const PanelInfoSidebar = ({
             onChange={handleCiudadChange}
           />
         </div>
-      )}
-
-      {/* Visibilidad */}
-      <div className="space-y-1">
-        <label className="text-[8px] font-black text-primary/25 uppercase tracking-[0.15em] flex items-center gap-1.5">
-          {localData.visible ? <Eye size={10} /> : <EyeOff size={10} />}
-          Visibilidad
-        </label>
-        <button
-          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
-            localData.visible
-              ? "bg-emerald-500/8 border-emerald-400/25 text-emerald-400"
-              : "bg-primary/4 border-primary/10 text-primary/30 hover:border-primary/20 hover:text-primary/50"
-          }`}
-          type="button"
-          onClick={() => handleVisibleChange(!localData.visible)}
-        >
-          <span className="text-[9px] font-black uppercase tracking-widest">
-            {localData.visible ? "Pública" : "Oculta"}
-          </span>
-          <div
-            className={`relative w-7 h-3.5 rounded-full transition-all ${localData.visible ? "bg-emerald-400/40" : "bg-primary/10"}`}
-          >
-            <div
-              className={`absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all ${
-                localData.visible
-                  ? "left-[15px] bg-emerald-400"
-                  : "left-0.5 bg-primary/25"
-              }`}
-            />
-          </div>
-        </button>
       </div>
 
       {/* Notas / contexto */}
