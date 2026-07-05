@@ -1583,8 +1583,31 @@ function PanelListas({
                 onSelectCancion={async (id) => {
                   // Buscar la canción en la lista local primero
                   const local = canciones.find((c) => c.id === id);
+                  const abrir = (c: Cancion) => {
+                    // OJO: "cancion" es el último caso en la cadena de
+                    // precedencia que decide qué overlay mostrar (ver
+                    // `overlay` más arriba: reino > criatura > objeto >
+                    // ciudad > personaje > hechizo > don > runa > nota >
+                    // grupo > cancion). Si quedaba CUALQUIER otro overlay
+                    // seleccionado en memoria de antes, `selectCancion`
+                    // actualizaba el estado pero el panel de canción nunca
+                    // se mostraba — quedaba tapado por el overlay viejo.
+                    // Por eso limpiamos todo primero, igual que hace
+                    // `onSelectCapitulo` acá abajo.
+                    clearAllOverlays();
+                    selectCancion(c);
+                    // Este bloque vive dentro de "Entidades", no dentro de
+                    // su propia sección — hay que scrollear ahí para que
+                    // se vea, tal cual capítulos scrollea a `capitulosRef`.
+                    setTimeout(() => {
+                      entidadesRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }, 80);
+                  };
                   if (local) {
-                    selectCancion(local);
+                    abrir(local);
                     return;
                   }
                   // Si no está en memoria, buscarlo en Supabase
@@ -1596,7 +1619,7 @@ function PanelListas({
                       )
                       .eq("id", id)
                       .single();
-                    if (data) selectCancion(data as unknown as Cancion);
+                    if (data) abrir(data as unknown as Cancion);
                   } catch {}
                 }}
                 onSelectCapitulo={(capituloId, libroId) => {
@@ -1621,8 +1644,24 @@ function PanelListas({
                 onSelectPersonaje={async (id) => {
                   // Buscar el personaje en la lista local primero
                   const local = personajes.find((p) => p.id === id);
+                  const abrir = (p: Personaje) => {
+                    // Mismo problema que en canciones: limpiar overlays
+                    // viejos antes de abrir el nuevo, y scrollear a
+                    // "Entidades" (donde vive este overlay) — antes esto
+                    // solo cambiaba el estado sin mover la pantalla, así
+                    // que si no estabas ya mirando esa sección, parecía
+                    // que "no pasaba nada".
+                    clearAllOverlays();
+                    selectPersonaje(p);
+                    setTimeout(() => {
+                      entidadesRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      });
+                    }, 80);
+                  };
                   if (local) {
-                    selectPersonaje(local);
+                    abrir(local);
                     return;
                   }
                   // Si no está en memoria, buscarlo en Supabase
@@ -1632,7 +1671,7 @@ function PanelListas({
                       .select("id, nombre, img_url, especie, sobre, reino")
                       .eq("id", id)
                       .single();
-                    if (data) selectPersonaje(data as Personaje);
+                    if (data) abrir(data as Personaje);
                   } catch {}
                 }}
               />
