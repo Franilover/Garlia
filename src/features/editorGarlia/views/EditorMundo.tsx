@@ -785,13 +785,13 @@ function PanelListas({
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const capitulosRef = useRef<HTMLDivElement>(null);
 
-  // ── Atajos de sección (Alt+N) ─────────────────────────────────────────────
+  // ── Atajos de sección (Ctrl+Alt+N) ────────────────────────────────────────
   // Los 5 bloques grandes de la vista "mundo":
-  //   Alt+1 → Línea de tiempo
-  //   Alt+2 → Capítulos
-  //   Alt+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
-  //   Alt+4 → Mapa
-  //   Alt+5 → Relaciones / Misiones
+  //   Ctrl+Alt+1 → Línea de tiempo
+  //   Ctrl+Alt+2 → Capítulos
+  //   Ctrl+Alt+3 → Entidades (personajes, criaturas, reinos, dones, etc.)
+  //   Ctrl+Alt+4 → Mapa
+  //   Ctrl+Alt+5 → Relaciones / Misiones
   useSectionHotkeys([
     // OJO: "1" solo existe si la sección de Historia/línea de tiempo está
     // realmente montada (ver el `{textos && onTextoChange && onSave && (...)}`
