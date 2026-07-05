@@ -45,7 +45,7 @@ import { createPortal } from "react-dom";
 import { onSyncDone } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import type { EraMundo } from "@/lib/utils/calendario";
+import type { EraMundo} from "@/lib/utils/calendario";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
 import { SelectorFechaMundo } from "../components/calendario/SelectorFechaMundo";
@@ -1657,8 +1657,7 @@ function EventoDetallePanel({
                 ? `${eraColor}18`
                 : "color-mix(in srgb, var(--primary) 7%, transparent)",
               color:
-                eraColor ??
-                "color-mix(in srgb, var(--primary) 45%, transparent)",
+                eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)",
               border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
             }}
           >
@@ -1920,7 +1919,8 @@ function ListaEventosConMinimapa({
             className="absolute left-2 right-2 top-1/2 -translate-y-1/2"
             style={{
               height: 1,
-              background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+              background:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
             }}
           />
           {eventosConFecha.map((evt, idx) => {
@@ -1942,9 +1942,7 @@ function ListaEventosConMinimapa({
                   marginLeft: 8 - (16 * pct) / 100,
                   width: isSel ? 12 : 7,
                   height: isSel ? 12 : 7,
-                  background:
-                    eraColor ??
-                    "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  background: eraColor ?? "color-mix(in srgb, var(--primary) 35%, transparent)",
                   boxShadow: isSel
                     ? `0 0 0 3px ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
                     : "none",
@@ -2157,14 +2155,9 @@ function ListaEventosConMinimapa({
                                 type="button"
                                 onClick={() => {
                                   const willSelect = !isSel;
-                                  setEvtSeleccionado(
-                                    willSelect ? evt.id : null,
-                                  );
+                                  setEvtSeleccionado(willSelect ? evt.id : null);
                                   if (!willSelect) return;
-                                  if (
-                                    evt.source === "capitulo" &&
-                                    evt.capData
-                                  ) {
+                                  if (evt.source === "capitulo" && evt.capData) {
                                     onSelectCapitulo?.(
                                       evt.capData.id,
                                       evt.capData.libro_id,

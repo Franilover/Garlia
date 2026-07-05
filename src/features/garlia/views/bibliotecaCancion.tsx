@@ -1,6 +1,6 @@
 "use client";
 
-import { User, ChevronRight } from "lucide-react";
+import { User, ChevronRight, Music2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useMemo, useEffect } from "react";
 
@@ -72,6 +72,7 @@ const CancionCardGrid = ({
             <SmartImage
               alt={cancion.titulo}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              fallbackIcon={<Music2 size={22} />}
               src={cancion.portada_url || "/placeholder-cover.jpg"}
             />
           </div>
@@ -152,6 +153,7 @@ const CancionCardFila = ({
           <SmartImage
             alt={cancion.titulo}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            fallbackIcon={<Music2 size={14} />}
             src={cancion.portada_url || "/placeholder-cover.jpg"}
           />
         </div>

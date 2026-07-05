@@ -1,6 +1,7 @@
 "use client";
 import { AnimatePresence } from 'framer-motion';
-import React, { useState } from 'react';
+import { ImageOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
 import { MotionDiv } from "@/components/ui/Motion";
 
@@ -12,8 +13,15 @@ interface SmartImageProps {
   className?: string;
   contain?: boolean;
   priority?: boolean;
-  
   cacheBust?: boolean;
+  // Ícono a mostrar si la imagen no carga (URL rota, borrada, portada
+  // faltante, etc.). Antes esto no existía: cuando el <img> fallaba, el
+  // navegador caía a su propio manejo nativo de imagen rota, que muestra
+  // el texto `alt` — y como este componente siempre lo mete en una caja
+  // chica con `overflow-hidden`, lo único que quedaba visible era la
+  // primera letra del `alt`, gigante. Con esto mostramos un ícono en vez
+  // de dejar que el navegador improvise.
+  fallbackIcon?: React.ReactNode;
 }
 
 export const SmartImage = ({
@@ -23,13 +31,34 @@ export const SmartImage = ({
   contain = false,
   priority = false,
   cacheBust = false,
+  fallbackIcon,
 }: SmartImageProps) => {
   const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   const srcFinal =
     src && cacheBust
       ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
       : src;
+
+  // Si cambia el src (ej. otra canción/libro), dale otra chance: puede que
+  // la nueva URL sí cargue bien aunque la anterior haya fallado.
+  useEffect(() => {
+    setErrored(false);
+    setLoaded(false);
+  }, [srcFinal]);
+
+  if (!src || errored) {
+    return (
+      <div
+        className={`relative overflow-hidden bg-primary/5 flex items-center justify-center ${className}`}
+      >
+        <span className="text-primary/20">
+          {fallbackIcon ?? <ImageOff size={18} />}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden bg-primary/5 ${className}`}>
@@ -57,6 +86,7 @@ export const SmartImage = ({
           } ${loaded ? 'blur-0' : 'blur-xl'}`}
           loading={priority ? "eager" : "lazy"}
           src={srcFinal}
+          onError={() => setErrored(true)}
           onLoad={() => setLoaded(true)}
         />
       </MotionDiv>
