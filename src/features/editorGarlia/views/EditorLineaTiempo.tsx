@@ -45,7 +45,7 @@ import { createPortal } from "react-dom";
 import { onSyncDone } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
-import type { EraMundo} from "@/lib/utils/calendario";
+import type { EraMundo } from "@/lib/utils/calendario";
 import { diaAbsolutoAFecha, eraEnAnio } from "@/lib/utils/calendario";
 
 import { SelectorFechaMundo } from "../components/calendario/SelectorFechaMundo";
@@ -1594,6 +1594,7 @@ function EventoDetallePanel({
   diasAnioLista,
   onFieldChange,
   onDiaChange,
+  onClose,
 }: {
   evt: MundoTimelineEvent;
   era: EraMundo | null;
@@ -1605,6 +1606,7 @@ function EventoDetallePanel({
     value: string,
   ) => void;
   onDiaChange?: (id: string, dia: number) => void;
+  onClose?: () => void;
 }) {
   const editable = evt.source === "mundo" || evt.source === "reino";
 
@@ -1655,7 +1657,8 @@ function EventoDetallePanel({
                 ? `${eraColor}18`
                 : "color-mix(in srgb, var(--primary) 7%, transparent)",
               color:
-                eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)",
+                eraColor ??
+                "color-mix(in srgb, var(--primary) 45%, transparent)",
               border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
             }}
           >
@@ -1674,6 +1677,22 @@ function EventoDetallePanel({
           <Icon size={7} />
           {evt.source}
         </span>
+        {onClose && (
+          <button
+            className="ml-auto shrink-0 flex items-center justify-center rounded-full transition-all hover:opacity-100"
+            style={{
+              width: 18,
+              height: 18,
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+              opacity: 0.7,
+            }}
+            title="Cerrar"
+            type="button"
+            onClick={onClose}
+          >
+            <X size={11} />
+          </button>
+        )}
       </div>
 
       {/* Título */}
@@ -1901,8 +1920,7 @@ function ListaEventosConMinimapa({
             className="absolute left-2 right-2 top-1/2 -translate-y-1/2"
             style={{
               height: 1,
-              background:
-                "color-mix(in srgb, var(--primary) 12%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 12%, transparent)",
             }}
           />
           {eventosConFecha.map((evt, idx) => {
@@ -1924,7 +1942,9 @@ function ListaEventosConMinimapa({
                   marginLeft: 8 - (16 * pct) / 100,
                   width: isSel ? 12 : 7,
                   height: isSel ? 12 : 7,
-                  background: eraColor ?? "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  background:
+                    eraColor ??
+                    "color-mix(in srgb, var(--primary) 35%, transparent)",
                   boxShadow: isSel
                     ? `0 0 0 3px ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
                     : "none",
@@ -1946,7 +1966,7 @@ function ListaEventosConMinimapa({
         </div>
       )}
 
-      {/* ── Lista (grid) + detalle ── */}
+      {/* ── Lista (grid) ── */}
       <div className="flex gap-2 items-start flex-1 min-h-0">
         {/* ── Lista agrupada por ERA (cada era = su propia fila, obligatoria)
              y dentro de cada era, carriles por año dispuestos en flex-wrap:
@@ -1956,7 +1976,7 @@ function ListaEventosConMinimapa({
           ref={listRef}
           className="min-w-0"
           style={{
-            flex: selEvt ? "1 1 auto" : "1",
+            flex: "1",
             overflowY: "auto",
           }}
         >
@@ -2063,7 +2083,11 @@ function ListaEventosConMinimapa({
                     // estira según cuántos eventos tenga (en vez de un ancho
                     // fijo con eventos apilados hacia abajo). El header del
                     // año, al ser w-full del carril, se expande junto con él.
-                    const anchoEvento = selEvt ? 130 : 170;
+                    // Antes esto se achicaba a 130 cuando había un evento
+                    // seleccionado, para dejarle lugar al panel de detalle
+                    // que empujaba el layout. Ahora el panel flota encima
+                    // (no empuja nada), así que el ancho siempre es el mismo.
+                    const anchoEvento = 170;
                     const anchoCarril =
                       anchoEvento * carril.eventos.length +
                       6 * (carril.eventos.length - 1); // gaps entre tarjetas
@@ -2133,9 +2157,14 @@ function ListaEventosConMinimapa({
                                 type="button"
                                 onClick={() => {
                                   const willSelect = !isSel;
-                                  setEvtSeleccionado(willSelect ? evt.id : null);
+                                  setEvtSeleccionado(
+                                    willSelect ? evt.id : null,
+                                  );
                                   if (!willSelect) return;
-                                  if (evt.source === "capitulo" && evt.capData) {
+                                  if (
+                                    evt.source === "capitulo" &&
+                                    evt.capData
+                                  ) {
                                     onSelectCapitulo?.(
                                       evt.capData.id,
                                       evt.capData.libro_id,
@@ -2201,34 +2230,150 @@ function ListaEventosConMinimapa({
             ));
           })()}
         </div>
-
-        {/* ── Panel de detalle (editable para mundo/reino) ── */}
-        {/*
-          Antes: la lista se encogía a 180px fijos y el detalle tomaba
-          "flex-1" (el resto), pero el contenido del detalle no escalaba con
-          ese ancho ganado — quedaba solo texto centrado con mucho padding
-          vacío alrededor. Ahora el detalle tiene un ancho proporcional fijo
-          (no crece indefinidamente) y la lista sigue en grid con más de una
-          columna incluso con el detalle abierto, así ninguno de los dos
-          lados desperdicia espacio horizontal.
-        */}
-        {selEvt && (
-          <div
-            className="shrink-0 w-full sm:w-[300px] lg:w-[360px]"
-            style={{ maxWidth: "42%" }}
-          >
-            <EventoDetallePanel
-              diasAnioLista={diasAnioLista}
-              era={selEra}
-              eraColor={selEraColor}
-              evt={selEvt}
-              onDiaChange={onDiaChange}
-              onFieldChange={onFieldChange}
-            />
-          </div>
-        )}
       </div>
+
+      {/* ── Panel de detalle flotante (editable para mundo/reino) ── ────────
+          Antes este panel era un sibling en flex que empujaba la lista
+          (achicaba las tarjetas y ganaba ancho a su costa). Ahora flota
+          en un portal, anclado justo debajo/al lado de la tarjeta en la
+          que se hizo click, sin mover ni una tarjeta del lugar — igual
+          que el patrón que ya usa `EraDropdown` más abajo en este mismo
+          archivo (fixed + reposición en scroll/resize + cerrar al click
+          afuera o con Escape). */}
+      {selEvt && (
+        <EventoDetalleFlotante
+          anchorEl={itemRefs.current.get(selEvt.id) ?? null}
+          diasAnioLista={diasAnioLista}
+          era={selEra}
+          eraColor={selEraColor}
+          evt={selEvt}
+          onClose={() => setEvtSeleccionado(null)}
+          onDiaChange={onDiaChange}
+          onFieldChange={onFieldChange}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Wrapper que posiciona EventoDetallePanel como flotante (portal) ─────────
+// Se ancla al elemento de la tarjeta clickeada (`anchorEl`) en vez de a un
+// trigger fijo. Si la tarjeta seleccionada cambia de posición (porque el
+// usuario scrollea la lista, o la ventana cambia de tamaño), recalcula.
+// Si el evento seleccionado deja de existir en el DOM (ej. se borró, o la
+// lista se re-renderizó y el ref todavía no está listo), simplemente no
+// se muestra — no rompe nada, solo no hay panel hasta el próximo click.
+function EventoDetalleFlotante({
+  anchorEl,
+  evt,
+  era,
+  eraColor,
+  diasAnioLista,
+  onFieldChange,
+  onDiaChange,
+  onClose,
+}: {
+  anchorEl: HTMLElement | null;
+  evt: MundoTimelineEvent;
+  era: EraMundo | null;
+  eraColor: string | null;
+  diasAnioLista: number;
+  onFieldChange?: (
+    id: string,
+    field: "titulo" | "descripcion",
+    value: string,
+  ) => void;
+  onDiaChange?: (id: string, dia: number) => void;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  // Posición del panel — igual que EraDropdown: calcula contra el ancla,
+  // decide si abrir hacia abajo o hacia arriba según el espacio disponible,
+  // y recalcula si el usuario scrollea o cambia el tamaño de la ventana
+  // (así el panel "sigue" a la tarjeta en vez de quedar flotando en el
+  // aire cuando la lista se mueve debajo).
+  useEffect(() => {
+    if (!anchorEl) {
+      setPos(null);
+      return;
+    }
+    const update = () => {
+      const r = anchorEl.getBoundingClientRect();
+      const w = Math.min(Math.max(r.width, 280), 360);
+      let left = r.left;
+      if (left + w > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - w - 8);
+      }
+      const estimatedH = 320;
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top =
+        spaceBelow < estimatedH && r.top > estimatedH
+          ? Math.max(8, r.top - estimatedH - 6)
+          : r.bottom + 6;
+      setPos({ top, left, width: w });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorEl, evt.id]);
+
+  // Cerrar al click afuera o con Escape — el click adentro de la tarjeta
+  // de origen NO cuenta como "afuera" porque ese click ya lo maneja el
+  // propio botón de la tarjeta (des-selecciona o selecciona otro evento).
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (anchorEl?.contains(target)) return;
+      onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [anchorEl, onClose]);
+
+  if (!pos || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      className="fixed z-[9999] rounded-xl shadow-lg"
+      style={{
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+        maxHeight: "70vh",
+        overflowY: "auto",
+        background: "var(--bg-main)",
+      }}
+    >
+      <EventoDetallePanel
+        diasAnioLista={diasAnioLista}
+        era={era}
+        eraColor={eraColor}
+        evt={evt}
+        onClose={onClose}
+        onDiaChange={onDiaChange}
+        onFieldChange={onFieldChange}
+      />
+    </div>,
+    document.body,
   );
 }
 
