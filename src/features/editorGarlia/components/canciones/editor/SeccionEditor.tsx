@@ -1,17 +1,36 @@
 "use client";
 
-import { GripVertical, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
+import {
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+  Copy,
+  Trash2,
+} from "lucide-react";
 import React, { useState } from "react";
 
 import { useConfirm } from "@/components/ui/ConfirmModal";
-import type { Seccion, IdiomaKey } from "@/features/editorGarlia/hooks/canciones/types";
+import type {
+  Seccion,
+  IdiomaKey,
+} from "@/features/editorGarlia/hooks/canciones/types";
 
 import { SeccionTextarea } from "./SeccionTextarea";
 
 export const SeccionEditor = ({
-  sec, idiomaA, idiomaB, splitMode, countMode,
-  onSaveField, onSaveNombre, onDelete, onDuplicate, onMoveUp, onMoveDown,
-  isFirst, isLast,
+  sec,
+  idiomaA,
+  idiomaB,
+  splitMode,
+  countMode,
+  onSaveField,
+  onSaveNombre,
+  onDelete,
+  onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
 }: {
   sec: Seccion;
   idiomaA: IdiomaKey;
@@ -38,22 +57,48 @@ export const SeccionEditor = ({
           className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
           placeholder="NOMBRE DE SECCIÓN…"
           value={nombre}
-          onBlur={() => nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)}
-          onChange={e => setNombre(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+          onBlur={() =>
+            nombre !== sec.nombre_seccion && onSaveNombre(sec.id, nombre)
+          }
+          onChange={(e) => setNombre(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
         />
         <div className="flex items-center gap-0.5 shrink-0">
-          <button className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"   disabled={isFirst} onClick={onMoveUp}><ChevronUp   size={12} /></button>
-          <button className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all" disabled={isLast}  onClick={onMoveDown}><ChevronDown size={12} /></button>
+          <button
+            className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"
+            disabled={isFirst}
+            onClick={onMoveUp}
+          >
+            <ChevronUp size={12} />
+          </button>
+          <button
+            className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary disabled:opacity-20 transition-all"
+            disabled={isLast}
+            onClick={onMoveDown}
+          >
+            <ChevronDown size={12} />
+          </button>
           <button
             className="p-1 rounded-lg hover:bg-primary/10 text-primary/20 hover:text-primary transition-all"
             title="Duplicar sección"
             onClick={() => onDuplicate(sec)}
-          ><Copy size={12} /></button>
-          <button className="p-1 rounded-lg hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all" onClick={async () => {
-            const ok = await confirm({ message: `¿Eliminar sección "${nombre}"?`, danger: true });
-            if (ok) void onDelete(sec.id);
-          }}><Trash2 size={12} /></button>
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            className="p-1 rounded-lg hover:bg-[color-mix(in_srgb,var(--callout-danger-border)_10%,transparent)] text-primary/20 hover:text-[var(--callout-danger-border)] transition-all"
+            onClick={async () => {
+              const ok = await confirm({
+                message: `¿Eliminar sección "${nombre}"?`,
+                danger: true,
+              });
+              if (ok) void onDelete(sec.id);
+            }}
+          >
+            <Trash2 size={12} />
+          </button>
         </div>
       </div>
 

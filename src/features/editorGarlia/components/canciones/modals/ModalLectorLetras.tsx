@@ -1,20 +1,41 @@
 "use client";
 
 import {
-  X, Copy, Timer, FileText, Play, Pause, SkipBack, Clock,
-  Trash2, Upload, Dot,
+  X,
+  Copy,
+  Timer,
+  FileText,
+  Play,
+  Pause,
+  SkipBack,
+  Clock,
+  Trash2,
+  Upload,
+  Dot,
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
-
 import { IDIOMAS } from "@/features/editorGarlia/hooks/canciones/constants";
 import { useKaraoke } from "@/features/editorGarlia/hooks/canciones/useKaraoke";
-import { buildLineas, parseLrc, fmtTime } from "@/features/editorGarlia/hooks/canciones/karaokeUtils";
-import type { Seccion, IdiomaKey } from "@/features/editorGarlia/hooks/canciones/types";
+import {
+  buildLineas,
+  parseLrc,
+  fmtTime,
+} from "@/features/editorGarlia/hooks/canciones/karaokeUtils";
+import type {
+  Seccion,
+  IdiomaKey,
+} from "@/features/editorGarlia/hooks/canciones/types";
 import { supabase } from "@/lib/api/client/supabase";
 
 export const ModalLectorLetras = ({
-  isOpen, onClose, secciones, cancionTitulo, cancionId, duracion, onSeccionTimingsChange,
+  isOpen,
+  onClose,
+  secciones,
+  cancionTitulo,
+  cancionId,
+  duracion,
+  onSeccionTimingsChange,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -22,30 +43,56 @@ export const ModalLectorLetras = ({
   cancionTitulo: string;
   cancionId: string;
   duracion?: number | null;
-  onSeccionTimingsChange?: (seccionId: string, col: string, timings: Record<string, number>) => void;
+  onSeccionTimingsChange?: (
+    seccionId: string,
+    col: string,
+    timings: Record<string, number>,
+  ) => void;
 }) => {
-  const [idioma,         setIdioma]         = useState<IdiomaKey>("es");
-  const [modoKaraoke,    setModoKaraoke]    = useState(true);
-  const [zoom,           setZoom]           = useState(0.7);
-  const [editandoTiempo, setEditandoTiempo] = useState<{ seccionId: string; lineaIdx: number } | null>(null);
-  const [tiempoEditStr,  setTiempoEditStr]  = useState("");
-  const activaRef   = useRef<HTMLDivElement>(null);
+  const [idioma, setIdioma] = useState<IdiomaKey>("es");
+  const [modoKaraoke, setModoKaraoke] = useState(true);
+  const [zoom, setZoom] = useState(0.7);
+  const [editandoTiempo, setEditandoTiempo] = useState<{
+    seccionId: string;
+    lineaIdx: number;
+  } | null>(null);
+  const [tiempoEditStr, setTiempoEditStr] = useState("");
+  const activaRef = useRef<HTMLDivElement>(null);
   const lrcInputRef = useRef<HTMLInputElement>(null);
 
-  const karaoke   = useKaraoke(cancionId, idioma, secciones, duracion, onSeccionTimingsChange);
+  const karaoke = useKaraoke(
+    cancionId,
+    idioma,
+    secciones,
+    duracion,
+    onSeccionTimingsChange,
+  );
   const sliderMax = duracion ?? 600;
 
   const getLetra = (sec: Seccion, lang: IdiomaKey): string =>
-    (lang === "es" ? sec.letra_es : lang === "en" ? sec.letra_en : lang === "jp" ? sec.letra_jp : sec.letra_romaji) || "";
+    (lang === "es"
+      ? sec.letra_es
+      : lang === "en"
+        ? sec.letra_en
+        : lang === "jp"
+          ? sec.letra_jp
+          : sec.letra_romaji) || "";
 
   const handleCopy = () => {
     const texto = secciones
-      .map(s => { const l = getLetra(s, idioma); return l ? `${s.nombre_seccion}\n\n${l}` : ""; })
-      .filter(Boolean).join("\n\n---\n\n");
+      .map((s) => {
+        const l = getLetra(s, idioma);
+        return l ? `${s.nombre_seccion}\n\n${l}` : "";
+      })
+      .filter(Boolean)
+      .join("\n\n---\n\n");
     void navigator.clipboard.writeText(texto);
   };
 
-  const lineas      = useMemo(() => buildLineas(secciones, idioma), [secciones, idioma]);
+  const lineas = useMemo(
+    () => buildLineas(secciones, idioma),
+    [secciones, idioma],
+  );
   const lineaActiva = karaoke.getLineaActiva(lineas);
 
   useEffect(() => {
@@ -61,12 +108,20 @@ export const ModalLectorLetras = ({
     const parsed = parseLrc(texto, secciones, idioma);
     const col = `timings_${idioma}`;
     for (const [secId, timings] of Object.entries(parsed)) {
-      const data = Object.fromEntries(Object.entries(timings).map(([k, v]) => [String(k), v]));
-      await supabase.from("secciones_cancion").update({ [col]: data }).eq("id", secId);
+      const data = Object.fromEntries(
+        Object.entries(timings).map(([k, v]) => [String(k), v]),
+      );
+      await supabase
+        .from("secciones_cancion")
+        .update({ [col]: data })
+        .eq("id", secId);
       onSeccionTimingsChange?.(secId, col, data);
     }
     // force re-render of timings
-    setIdioma(prev => { setTimeout(() => setIdioma(prev), 50); return prev === "es" ? "en" : "es"; });
+    setIdioma((prev) => {
+      setTimeout(() => setIdioma(prev), 50);
+      return prev === "es" ? "en" : "es";
+    });
     if (lrcInputRef.current) lrcInputRef.current.value = "";
   };
 
@@ -82,8 +137,12 @@ export const ModalLectorLetras = ({
     const str = tiempoEditStr.trim();
     let seg: number | null = null;
     const mmss = str.match(/^(\d+):(\d+\.?\d*)$/);
-    if (mmss) { seg = parseInt(mmss[1]) * 60 + parseFloat(mmss[2]); }
-    else { const plain = parseFloat(str); if (!isNaN(plain)) seg = plain; }
+    if (mmss) {
+      seg = parseInt(mmss[1]) * 60 + parseFloat(mmss[2]);
+    } else {
+      const plain = parseFloat(str);
+      if (!isNaN(plain)) seg = plain;
+    }
 
     if (seg !== null) {
       karaoke.setTiempo(seccionId, lineaIdx, Math.round(seg * 10) / 10);
@@ -95,10 +154,12 @@ export const ModalLectorLetras = ({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center">
-      <div className="absolute inset-0 bg-primary/40 backdrop-blur-md" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-primary/40 backdrop-blur-md"
+        onClick={onClose}
+      />
 
       <div className="bg-bg-main w-full max-w-4xl h-[100dvh] md:h-[92vh] md:rounded-[var(--radius-card)] shadow-2xl relative z-10 border border-primary/10 flex flex-col overflow-hidden">
-
         {/* Header */}
         <div className="px-4 py-2.5 bg-white-custom border-b border-primary/10 flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -109,11 +170,20 @@ export const ModalLectorLetras = ({
             {/* Selector de idioma */}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               {IDIOMAS.map(({ id, label }) => (
-                <button key={id} className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
-                    idioma === id ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
+                <button
+                  key={id}
+                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
+                    idioma === id
+                      ? "bg-primary text-bg-main shadow"
+                      : "text-primary/40 hover:text-primary"
                   }`}
-                  onClick={() => { setIdioma(id); karaoke.reset(); }}
-                >{label}</button>
+                  onClick={() => {
+                    setIdioma(id);
+                    karaoke.reset();
+                  }}
+                >
+                  {label}
+                </button>
               ))}
             </div>
 
@@ -121,7 +191,9 @@ export const ModalLectorLetras = ({
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               <button
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
-                  modoKaraoke ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
+                  modoKaraoke
+                    ? "bg-primary text-bg-main shadow"
+                    : "text-primary/40 hover:text-primary"
                 }`}
                 onClick={() => setModoKaraoke(true)}
               >
@@ -129,7 +201,9 @@ export const ModalLectorLetras = ({
               </button>
               <button
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
-                  !modoKaraoke ? "bg-primary text-bg-main shadow" : "text-primary/40 hover:text-primary"
+                  !modoKaraoke
+                    ? "bg-primary text-bg-main shadow"
+                    : "text-primary/40 hover:text-primary"
                 }`}
                 onClick={() => setModoKaraoke(false)}
               >
@@ -139,16 +213,35 @@ export const ModalLectorLetras = ({
 
             {!modoKaraoke && (
               <div className="flex items-center gap-0.5">
-                <button className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm" onClick={() => setZoom(z => Math.max(0.4, z - 0.1))}>-</button>
-                <span className="text-[9px] font-black text-primary/50 w-8 text-center">{Math.round(zoom * 100)}%</span>
-                <button className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm" onClick={() => setZoom(z => Math.min(1.6, z + 0.1))}>+</button>
+                <button
+                  className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm"
+                  onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
+                >
+                  -
+                </button>
+                <span className="text-[9px] font-black text-primary/50 w-8 text-center">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  className="w-6 h-6 flex items-center justify-center bg-primary/5 rounded text-primary hover:bg-primary/10 font-bold text-sm"
+                  onClick={() => setZoom((z) => Math.min(1.6, z + 0.1))}
+                >
+                  +
+                </button>
               </div>
             )}
 
-            <button className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all" title="Copiar letra" onClick={handleCopy}>
+            <button
+              className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+              title="Copiar letra"
+              onClick={handleCopy}
+            >
               <Copy size={14} />
             </button>
-            <button className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all" onClick={onClose}>
+            <button
+              className="p-1.5 rounded-lg hover:bg-primary/10 text-primary/30 hover:text-primary transition-all"
+              onClick={onClose}
+            >
               <X size={16} />
             </button>
           </div>
@@ -165,7 +258,11 @@ export const ModalLectorLetras = ({
                 {karaoke.playing ? <Pause size={15} /> : <Play size={15} />}
               </button>
 
-              <button className="p-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0" title="Reiniciar" onClick={karaoke.reset}>
+              <button
+                className="p-2 rounded-xl border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+                title="Reiniciar"
+                onClick={karaoke.reset}
+              >
                 <SkipBack size={13} />
               </button>
 
@@ -174,31 +271,50 @@ export const ModalLectorLetras = ({
               </span>
 
               <div className="flex-1 min-w-0">
-                <input className="w-full h-1.5 rounded-full appearance-none cursor-pointer" max={sliderMax} min={0} step={0.1}
+                <input
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                  max={sliderMax}
+                  min={0}
+                  step={0.1}
                   style={{ accentColor: "var(--primary)" }}
                   type="range"
                   value={Math.min(karaoke.elapsed, sliderMax)}
-                  onChange={e => karaoke.seekTo(parseFloat(e.target.value))}
+                  onChange={(e) => karaoke.seekTo(parseFloat(e.target.value))}
                 />
               </div>
 
-              <button className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
-                  karaoke.modoEdit ? "bg-accent/20 border-accent text-accent" : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
+              <button
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
+                  karaoke.modoEdit
+                    ? "bg-accent/20 border-accent text-accent"
+                    : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
                 }`}
-                onClick={() => karaoke.setModoEdit(m => !m)}
+                onClick={() => karaoke.setModoEdit((m) => !m)}
               >
-                <Clock size={10} /> {karaoke.modoEdit ? "Vinculando" : "Vincular"}
+                <Clock size={10} />{" "}
+                {karaoke.modoEdit ? "Vinculando" : "Vincular"}
               </button>
 
-              <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+              <button
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
                 title="Importar archivo .lrc"
                 onClick={() => lrcInputRef.current?.click()}
               >
                 <Upload size={10} /> .lrc
               </button>
-              <input ref={lrcInputRef} accept=".lrc" className="hidden" type="file" onChange={handleLrcImport} />
+              <input
+                ref={lrcInputRef}
+                accept=".lrc"
+                className="hidden"
+                type="file"
+                onChange={handleLrcImport}
+              />
 
-              <button className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-red-400 hover:border-red-300/30 transition-all shrink-0" title="Borrar todos los tiempos" onClick={karaoke.borrarTodo}>
+              <button
+                className="p-2 rounded-xl border border-primary/15 text-primary/30 hover:text-[var(--callout-danger-border)] hover:border-[color-mix(in_srgb,var(--callout-danger-border)_30%,transparent)] transition-all shrink-0"
+                title="Borrar todos los tiempos"
+                onClick={karaoke.borrarTodo}
+              >
                 <Trash2 size={12} />
               </button>
             </div>
@@ -207,7 +323,8 @@ export const ModalLectorLetras = ({
               <div className="px-4 pb-2">
                 <p className="text-[9px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
                   <Dot className="animate-pulse" size={12} />
-                  Clic = marcar tiempo · Clic der = borrar · Clic en tiempo = editar número
+                  Clic = marcar tiempo · Clic der = borrar · Clic en tiempo =
+                  editar número
                 </p>
               </div>
             )}
@@ -218,7 +335,7 @@ export const ModalLectorLetras = ({
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-bg-main">
           {modoKaraoke ? (
             <div className="max-w-2xl mx-auto py-8 px-4 md:px-8">
-              {secciones.map(sec => {
+              {secciones.map((sec) => {
                 const texto = getLetra(sec, idioma);
                 if (!texto.trim()) return null;
                 const lineasSec = texto.split("\n");
@@ -226,18 +343,26 @@ export const ModalLectorLetras = ({
                   <div key={sec.id} className="mb-8">
                     <div className="flex items-center gap-3 mb-3 opacity-25">
                       <div className="h-px flex-1 bg-primary" />
-                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">{sec.nombre_seccion}</span>
+                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">
+                        {sec.nombre_seccion}
+                      </span>
                       <div className="h-px flex-1 bg-primary" />
                     </div>
 
                     {lineasSec.map((linea, lineaIdx) => {
-                      const tiempo     = karaoke.getTiempo(sec.id, lineaIdx);
-                      const globalIdx  = lineas.findIndex(l => l.seccionId === sec.id && l.lineaIdx === lineaIdx);
-                      const isActiva   = globalIdx === lineaActiva;
-                      const isPasada   = globalIdx < lineaActiva;
-                      const esEditable = editandoTiempo?.seccionId === sec.id && editandoTiempo?.lineaIdx === lineaIdx;
+                      const tiempo = karaoke.getTiempo(sec.id, lineaIdx);
+                      const globalIdx = lineas.findIndex(
+                        (l) =>
+                          l.seccionId === sec.id && l.lineaIdx === lineaIdx,
+                      );
+                      const isActiva = globalIdx === lineaActiva;
+                      const isPasada = globalIdx < lineaActiva;
+                      const esEditable =
+                        editandoTiempo?.seccionId === sec.id &&
+                        editandoTiempo?.lineaIdx === lineaIdx;
 
-                      if (!linea.trim()) return <div key={lineaIdx} className="h-2" />;
+                      if (!linea.trim())
+                        return <div key={lineaIdx} className="h-2" />;
 
                       return (
                         <div
@@ -251,10 +376,15 @@ export const ModalLectorLetras = ({
                                 : ""
                           }`}
                           onClick={() => {
-                            if (karaoke.modoEdit) karaoke.marcarLinea(sec.id, lineaIdx);
+                            if (karaoke.modoEdit)
+                              karaoke.marcarLinea(sec.id, lineaIdx);
                             else if (tiempo !== null) karaoke.seekTo(tiempo);
                           }}
-                          onContextMenu={e => { e.preventDefault(); if (karaoke.modoEdit) karaoke.borrarLinea(sec.id, lineaIdx); }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            if (karaoke.modoEdit)
+                              karaoke.borrarLinea(sec.id, lineaIdx);
+                          }}
                         >
                           {isActiva && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-primary rounded-r-full" />
@@ -268,11 +398,14 @@ export const ModalLectorLetras = ({
                                 placeholder="0:00"
                                 value={tiempoEditStr}
                                 onBlur={confirmarEdicion}
-                                onChange={e => setTiempoEditStr(e.target.value)}
-                                onClick={e => e.stopPropagation()}
-                                onKeyDown={e => {
+                                onChange={(e) =>
+                                  setTiempoEditStr(e.target.value)
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
                                   if (e.key === "Enter") confirmarEdicion();
-                                  if (e.key === "Escape") setEditandoTiempo(null);
+                                  if (e.key === "Escape")
+                                    setEditandoTiempo(null);
                                 }}
                               />
                             ) : (
@@ -289,20 +422,25 @@ export const ModalLectorLetras = ({
                                       : "text-transparent"
                                 }`}
                                 type="button"
-                                onClick={e => { e.stopPropagation(); iniciarEdicion(sec.id, lineaIdx); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  iniciarEdicion(sec.id, lineaIdx);
+                                }}
                               >
                                 {tiempo !== null ? fmtTime(tiempo) : "──:──"}
                               </button>
                             )}
                           </span>
 
-                          <span className={`text-lg md:text-xl font-serif leading-relaxed transition-all duration-200 flex-1 min-w-0 ${
-                            isActiva
-                              ? "text-primary font-bold scale-[1.02] origin-left"
-                              : isPasada
-                                ? "text-primary/25"
-                                : "text-primary/55"
-                          }`}>
+                          <span
+                            className={`text-lg md:text-xl font-serif leading-relaxed transition-all duration-200 flex-1 min-w-0 ${
+                              isActiva
+                                ? "text-primary font-bold scale-[1.02] origin-left"
+                                : isPasada
+                                  ? "text-primary/25"
+                                  : "text-primary/55"
+                            }`}
+                          >
                             {linea}
                           </span>
                         </div>
@@ -313,7 +451,6 @@ export const ModalLectorLetras = ({
               })}
               <div className="h-32" />
             </div>
-
           ) : (
             <div className="w-full overflow-x-hidden">
               <div
@@ -327,13 +464,18 @@ export const ModalLectorLetras = ({
                   minHeight: `${100 / zoom}%`,
                 }}
               >
-                {secciones.map(sec => {
+                {secciones.map((sec) => {
                   const texto = getLetra(sec, idioma);
                   return texto ? (
-                    <div key={sec.id} className="mb-16 last:mb-0 max-w-2xl mx-auto text-center">
+                    <div
+                      key={sec.id}
+                      className="mb-16 last:mb-0 max-w-2xl mx-auto text-center"
+                    >
                       <div className="mb-8 flex items-center justify-center gap-6 opacity-20">
                         <div className="h-px w-12 bg-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.5em] italic text-primary">{sec.nombre_seccion}</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.5em] italic text-primary">
+                          {sec.nombre_seccion}
+                        </span>
                         <div className="h-px w-12 bg-primary" />
                       </div>
                       <p className="text-foreground text-2xl md:text-4xl font-medium italic font-serif leading-[1.7] whitespace-pre-wrap break-words">
