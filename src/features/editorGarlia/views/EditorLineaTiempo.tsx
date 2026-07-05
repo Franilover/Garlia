@@ -1950,19 +1950,15 @@ function ListaEventosConMinimapa({
 
       {/* ── Lista (grid) + detalle ── */}
       <div className="flex gap-2 items-start flex-1 min-h-0">
-        {/* ── Lista agrupada en carriles por año — cada año es una columna
-             horizontal (con su propio carril de eventos apilados verticalmente
-             adentro), dispuestos lado a lado con scroll horizontal si no
-             entran todos. Esto reemplaza el grid continuo de antes (donde el
-             separador de año cortaba todo el ancho) por algo más parecido a
-             una línea de tiempo real: años distintos ocupan espacio distinto,
-             en paralelo, en vez de apilarse siempre hacia abajo. ── */}
+        {/* ── Lista agrupada por ERA (cada era = su propia fila, obligatoria)
+             y dentro de cada era, carriles por año dispuestos en flex-wrap:
+             se ponen lado a lado hasta llegar al borde del contenedor y ahí
+             continúan en la siguiente línea, sin scroll horizontal infinito. ── */}
         <div
           ref={listRef}
           className="min-w-0"
           style={{
             flex: selEvt ? "1 1 auto" : "1",
-            overflowX: "auto",
             overflowY: "auto",
           }}
         >
@@ -1971,199 +1967,227 @@ function ListaEventosConMinimapa({
               Sin eventos con fecha asignada.
             </p>
           )}
-          <div className="flex items-start gap-3 pb-1">
-            {(() => {
-              // Agrupar eventos consecutivos por año (y, dentro de cada
-              // grupo, recordar si hubo cambio de era para mostrar el
-              // badge de era como encabezado del carril).
-              type Carril = {
-                anio: number | null;
-                eraNombre: string | null;
-                eraColor: string | null;
-                eventos: MundoTimelineEvent[];
-              };
-              const carriles: Carril[] = [];
-              for (const evt of allEvents) {
-                const anio =
-                  evt.dia_absoluto != null
-                    ? Math.floor(evt.dia_absoluto / diasAnioLista)
-                    : null;
-                const eraEvt = getEraEvt(evt.dia_absoluto);
-                const last = carriles[carriles.length - 1];
-                if (last && last.anio === anio) {
-                  last.eventos.push(evt);
-                } else {
-                  carriles.push({
-                    anio,
-                    eraNombre: eraEvt?.nombre ?? null,
-                    eraColor: eraEvt?.color ?? null,
-                    eventos: [evt],
-                  });
-                }
+          {(() => {
+            // Paso 1 — Agrupar eventos consecutivos por año → carriles.
+            type Carril = {
+              anio: number | null;
+              eraId: string | null;
+              eventos: MundoTimelineEvent[];
+            };
+            const carriles: Carril[] = [];
+            for (const evt of allEvents) {
+              const anio =
+                evt.dia_absoluto != null
+                  ? Math.floor(evt.dia_absoluto / diasAnioLista)
+                  : null;
+              const eraEvt = getEraEvt(evt.dia_absoluto);
+              const eraId = eraEvt?.id ?? null;
+              const last = carriles[carriles.length - 1];
+              if (last && last.anio === anio && last.eraId === eraId) {
+                last.eventos.push(evt);
+              } else {
+                carriles.push({ anio, eraId, eventos: [evt] });
               }
+            }
 
-              let lastEraNombre: string | null | undefined = undefined;
+            // Paso 2 — Agrupar esos carriles consecutivos por ERA — cada era
+            //    obligatoriamente en su propia fila, nunca comparte fila con
+            //    la era anterior o siguiente.
+            type GrupoEra = {
+              eraId: string | null;
+              eraNombre: string | null;
+              eraColor: string | null;
+              carriles: Carril[];
+            };
+            const grupos: GrupoEra[] = [];
+            for (const carril of carriles) {
+              const eraEvt = getEraEvt(carril.eventos[0]?.dia_absoluto);
+              const last = grupos[grupos.length - 1];
+              if (last && last.eraId === carril.eraId) {
+                last.carriles.push(carril);
+              } else {
+                grupos.push({
+                  eraId: carril.eraId,
+                  eraNombre: eraEvt?.nombre ?? null,
+                  eraColor: eraEvt?.color ?? null,
+                  carriles: [carril],
+                });
+              }
+            }
 
-              return carriles.map((carril, i) => {
-                const mostrarEra =
-                  carril.eraNombre && carril.eraNombre !== lastEraNombre;
-                if (carril.eraNombre) lastEraNombre = carril.eraNombre;
-
-                return (
-                  <div
-                    key={`carril-${carril.anio ?? "sin-fecha"}-${i}`}
-                    className="flex flex-col gap-1 shrink-0"
-                    style={{ width: selEvt ? 150 : 200 }}
-                  >
-                    {/* Badge de era — solo cuando cambia respecto al carril anterior */}
-                    {mostrarEra && (
+            return grupos.map((grupo, gi) => (
+              <div
+                key={`era-grupo-${grupo.eraId ?? "sin-era"}-${gi}`}
+                className="mb-3"
+              >
+                {/* Badge de era — encabezado obligatorio de su propia fila */}
+                {grupo.eraNombre && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span
+                      className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                      style={{
+                        background: grupo.eraColor
+                          ? `${grupo.eraColor}18`
+                          : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                        color:
+                          grupo.eraColor ??
+                          "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        border: `1px solid ${grupo.eraColor ? `${grupo.eraColor}35` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                      }}
+                    >
                       <span
-                        className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 self-start"
                         style={{
-                          background: carril.eraColor
-                            ? `${carril.eraColor}18`
-                            : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                          color:
-                            carril.eraColor ??
-                            "color-mix(in srgb, var(--primary) 45%, transparent)",
-                          border: `1px solid ${carril.eraColor ? `${carril.eraColor}35` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-block",
-                            width: 5,
-                            height: 5,
-                            borderRadius: "50%",
-                            background: carril.eraColor ?? "currentColor",
-                            flexShrink: 0,
-                          }}
-                        />
-                        {carril.eraNombre}
-                      </span>
-                    )}
-
-                    {/* Encabezado del año — ancla del carril */}
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
-                        style={{
-                          color:
-                            carril.eraColor ??
-                            "color-mix(in srgb, var(--primary) 35%, transparent)",
-                          background: carril.eraColor
-                            ? `${carril.eraColor}10`
-                            : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                        }}
-                      >
-                        {carril.anio ?? "S/F"}
-                      </span>
-                      <div
-                        className="flex-1 h-px"
-                        style={{
-                          background: carril.eraColor
-                            ? `${carril.eraColor}15`
-                            : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          display: "inline-block",
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          background: grupo.eraColor ?? "currentColor",
+                          flexShrink: 0,
                         }}
                       />
-                    </div>
+                      {grupo.eraNombre}
+                    </span>
+                    <div
+                      className="flex-1 h-px"
+                      style={{
+                        background: grupo.eraColor
+                          ? `${grupo.eraColor}20`
+                          : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
+                    />
+                  </div>
+                )}
 
-                    {/* Eventos del año — apilados verticalmente dentro del carril */}
-                    {carril.eventos.map((evt) => {
-                      const eraEvt = getEraEvt(evt.dia_absoluto);
-                      const eraColor = eraEvt?.color ?? null;
-                      const isSel = evt.id === evtSeleccionado;
-                      const Icon = iconoPorSource(evt.source);
-
-                      return (
-                        <button
-                          key={`list-${evt.id}`}
-                          ref={(el) => {
-                            if (el) itemRefs.current.set(evt.id, el);
-                            else itemRefs.current.delete(evt.id);
-                          }}
-                          className="flex flex-col gap-1 px-2 py-1.5 rounded-lg text-left transition-all min-w-0 w-full"
+                {/* Carriles de año de esta era — envuelven al llegar al borde */}
+                <div className="flex flex-wrap items-start gap-3">
+                  {grupo.carriles.map((carril, i) => (
+                    <div
+                      key={`carril-${carril.anio ?? "sin-fecha"}-${gi}-${i}`}
+                      className="flex flex-col gap-1"
+                      style={{ width: selEvt ? 150 : 200 }}
+                    >
+                      {/* Encabezado del año — ancla del carril */}
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
                           style={{
-                            background: isSel
-                              ? eraColor
-                                ? `${eraColor}14`
-                                : "color-mix(in srgb, var(--primary) 6%, transparent)"
-                              : "color-mix(in srgb, var(--primary) 2%, transparent)",
-                            border: `1px solid ${
-                              isSel
-                                ? eraColor
-                                  ? `${eraColor}30`
-                                  : "color-mix(in srgb, var(--primary) 15%, transparent)"
-                                : "color-mix(in srgb, var(--primary) 8%, transparent)"
-                            }`,
-                          }}
-                          type="button"
-                          onClick={() => {
-                            const willSelect = !isSel;
-                            setEvtSeleccionado(willSelect ? evt.id : null);
-                            if (!willSelect) return;
-                            if (evt.source === "capitulo" && evt.capData) {
-                              onSelectCapitulo?.(
-                                evt.capData.id,
-                                evt.capData.libro_id,
-                              );
-                            } else if (
-                              evt.source === "cancion" &&
-                              evt.cancionData
-                            ) {
-                              onSelectCancion?.(evt.cancionData.id);
-                            } else if (
-                              evt.source === "cumpleanos" &&
-                              evt.cumpleanosData
-                            ) {
-                              onSelectPersonaje?.(evt.cumpleanosData.id);
-                            }
+                            color:
+                              grupo.eraColor ??
+                              "color-mix(in srgb, var(--primary) 35%, transparent)",
+                            background: grupo.eraColor
+                              ? `${grupo.eraColor}10`
+                              : "color-mix(in srgb, var(--primary) 4%, transparent)",
                           }}
                         >
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <Icon
-                              className="shrink-0"
-                              size={10}
-                              style={{
-                                color:
-                                  eraColor ??
-                                  "color-mix(in srgb, var(--primary) 40%, transparent)",
-                              }}
-                            />
-                            <span
-                              className="text-[10px] font-bold truncate flex-1"
-                              style={{
-                                color: isSel
-                                  ? "var(--primary)"
-                                  : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                              }}
-                            >
-                              {evt.title || (
-                                <span className="italic opacity-40">
-                                  Sin título
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                          {evt.reinoNombre && (
-                            <span
-                              className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
-                              style={{
-                                color:
-                                  "color-mix(in srgb, var(--primary) 30%, transparent)",
-                              }}
-                            >
-                              {evt.reinoNombre}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              });
-            })()}
-          </div>
+                          {carril.anio ?? "S/F"}
+                        </span>
+                        <div
+                          className="flex-1 h-px"
+                          style={{
+                            background: grupo.eraColor
+                              ? `${grupo.eraColor}15`
+                              : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                          }}
+                        />
+                      </div>
+
+                      {/* Eventos del año — apilados verticalmente dentro del carril */}
+                      {carril.eventos.map((evt) => {
+                        const eraEvt = getEraEvt(evt.dia_absoluto);
+                        const eraColor = eraEvt?.color ?? null;
+                        const isSel = evt.id === evtSeleccionado;
+                        const Icon = iconoPorSource(evt.source);
+
+                        return (
+                          <button
+                            key={`list-${evt.id}`}
+                            ref={(el) => {
+                              if (el) itemRefs.current.set(evt.id, el);
+                              else itemRefs.current.delete(evt.id);
+                            }}
+                            className="flex flex-col gap-1 px-2 py-1.5 rounded-lg text-left transition-all min-w-0 w-full"
+                            style={{
+                              background: isSel
+                                ? eraColor
+                                  ? `${eraColor}14`
+                                  : "color-mix(in srgb, var(--primary) 6%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                              border: `1px solid ${
+                                isSel
+                                  ? eraColor
+                                    ? `${eraColor}30`
+                                    : "color-mix(in srgb, var(--primary) 15%, transparent)"
+                                  : "color-mix(in srgb, var(--primary) 8%, transparent)"
+                              }`,
+                            }}
+                            type="button"
+                            onClick={() => {
+                              const willSelect = !isSel;
+                              setEvtSeleccionado(willSelect ? evt.id : null);
+                              if (!willSelect) return;
+                              if (evt.source === "capitulo" && evt.capData) {
+                                onSelectCapitulo?.(
+                                  evt.capData.id,
+                                  evt.capData.libro_id,
+                                );
+                              } else if (
+                                evt.source === "cancion" &&
+                                evt.cancionData
+                              ) {
+                                onSelectCancion?.(evt.cancionData.id);
+                              } else if (
+                                evt.source === "cumpleanos" &&
+                                evt.cumpleanosData
+                              ) {
+                                onSelectPersonaje?.(evt.cumpleanosData.id);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Icon
+                                className="shrink-0"
+                                size={10}
+                                style={{
+                                  color:
+                                    eraColor ??
+                                    "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                }}
+                              />
+                              <span
+                                className="text-[10px] font-bold truncate flex-1"
+                                style={{
+                                  color: isSel
+                                    ? "var(--primary)"
+                                    : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                                }}
+                              >
+                                {evt.title || (
+                                  <span className="italic opacity-40">
+                                    Sin título
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            {evt.reinoNombre && (
+                              <span
+                                className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
+                                style={{
+                                  color:
+                                    "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                }}
+                              >
+                                {evt.reinoNombre}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
         </div>
 
         {/* ── Panel de detalle (editable para mundo/reino) ── */}
