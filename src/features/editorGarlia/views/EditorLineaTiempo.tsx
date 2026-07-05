@@ -1922,7 +1922,8 @@ function ListaEventosConMinimapa({
                 key={`mini-${evt.id}`}
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full flex items-center justify-center transition-all hover:scale-125"
                 style={{
-                  left: `calc(8px + ${pct}% * (100% - 16px) / 100)`,
+                  left: `${pct}%`,
+                  marginLeft: 8 - (16 * pct) / 100,
                   width: isSel ? 12 : 7,
                   height: isSel ? 12 : 7,
                   background: eraColor ?? "color-mix(in srgb, var(--primary) 35%, transparent)",
