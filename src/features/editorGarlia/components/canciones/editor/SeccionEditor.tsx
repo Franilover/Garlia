@@ -32,7 +32,7 @@ export const SeccionEditor = ({
 
   return (
     <div>
-      <div className="flex items-center gap-2 px-4 pt-1.5 pb-0.5">
+      <div className="flex items-center gap-2 px-2 pt-1.5 pb-0.5">
         <GripVertical className="text-primary/15 shrink-0" size={13} />
         <input
           className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
@@ -57,7 +57,7 @@ export const SeccionEditor = ({
         </div>
       </div>
 
-      <div className={`px-4 pb-2 ${splitMode ? "flex gap-3" : ""}`}>
+      <div className={`px-2 pb-2 ${splitMode ? "flex gap-3" : ""}`}>
         {/*
           En split mode:
           - columna izquierda (idiomaA) toma como referencia idiomaB

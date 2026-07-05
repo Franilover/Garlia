@@ -285,9 +285,9 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
       {/* ── CONTENIDO SCROLLABLE ── */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === "letras" && (
-          <div className="px-4 sm:px-8 py-6 space-y-4 w-full">
+          <div className="px-2 sm:px-3 py-6 space-y-4 w-full">
             {secciones.length > 0 ? (
-              <div className="border border-primary/10 rounded-2xl bg-bg-main/50 shadow-xl overflow-hidden">
+              <div className="bg-bg-main/50 divide-y divide-primary/8">
                 {secciones.map((sec, i) => (
                   <SeccionEditor
                     key={sec.id}
