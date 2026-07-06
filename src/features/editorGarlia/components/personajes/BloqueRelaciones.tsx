@@ -60,7 +60,7 @@ function InputTipo({
   return (
     <div ref={ref} className="relative">
       <input
-        className="w-full bg-primary/[0.03] text-[10px] font-bold text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all"
+        className="w-full bg-primary/[0.03] text-micro font-bold text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all"
         placeholder="Tipo de relación…"
         value={value}
         onChange={(e) => {
@@ -82,7 +82,7 @@ function InputTipo({
               }}
             >
               <span className="shrink-0 w-1 h-1 rounded-full bg-primary/30" />
-              <span className="text-[10px] font-bold text-primary/70">{s}</span>
+              <span className="text-micro font-bold text-primary/70">{s}</span>
             </button>
           ))}
         </div>
@@ -167,7 +167,7 @@ function SelectorPersonaje({
       <div className="px-2.5 py-1.5 border-b border-primary/10">
         <input
           autoFocus
-          className="w-full bg-transparent text-[10px] font-bold text-primary outline-none placeholder:text-primary/25"
+          className="w-full bg-transparent text-micro font-bold text-primary outline-none placeholder:text-primary/25"
           placeholder="Buscar personaje…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -179,7 +179,7 @@ function SelectorPersonaje({
             <Loader2 className="animate-spin text-primary/20" size={12} />
           </div>
         ) : results.length === 0 ? (
-          <p className="text-[9px] text-primary/25 text-center py-3 font-bold uppercase tracking-widest italic">
+          <p className="text-micro text-primary/25 text-center py-3 font-bold uppercase tracking-widest italic">
             Sin resultados
           </p>
         ) : (
@@ -203,7 +203,7 @@ function SelectorPersonaje({
                   <UserCircle2 className="text-primary/20" size={9} />
                 )}
               </div>
-              <span className="text-[10px] font-bold text-primary/80 truncate">
+              <span className="text-micro font-bold text-primary/80 truncate">
                 {p.nombre}
               </span>
             </button>
@@ -292,12 +292,12 @@ function FormNuevaRelacion({
                       <UserCircle2 className="text-primary/20" size={8} />
                     )}
                   </div>
-                  <span className="flex-1 text-[10px] font-bold text-primary/80 truncate">
+                  <span className="flex-1 text-micro font-bold text-primary/80 truncate">
                     {personajeSel.nombre}
                   </span>
                 </>
               ) : (
-                <span className="flex-1 text-[10px] font-bold text-primary/25 italic">
+                <span className="flex-1 text-micro font-bold text-primary/25 italic">
                   Seleccionar…
                 </span>
               )}
@@ -322,7 +322,7 @@ function FormNuevaRelacion({
           {tiposExistentes.map((s) => (
             <button
               key={s}
-              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border transition-all
+              className={`px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest border transition-all
                 ${
                   tipo === s
                     ? "bg-primary/10 border-primary/25 text-primary"
@@ -341,7 +341,7 @@ function FormNuevaRelacion({
 
       <div className="flex items-center gap-2">
         <input
-          className="flex-1 bg-primary/[0.03] text-[10px] font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0"
+          className="flex-1 bg-primary/[0.03] text-micro font-medium text-primary outline-none placeholder:text-primary/20 border border-primary/10 focus:border-primary/25 rounded-md px-2.5 py-1.5 transition-all min-w-0"
           placeholder="Nota opcional…"
           value={nota}
           onChange={(e) => setNota(e.target.value)}
@@ -409,7 +409,7 @@ function FilaRelacion({
         )}
       </button>
       <button
-        className="flex-1 text-left text-[10px] font-bold text-primary/75 truncate leading-none min-w-0 hover:text-primary transition-colors"
+        className="flex-1 text-left text-micro font-bold text-primary/75 truncate leading-none min-w-0 hover:text-primary transition-colors"
         onClick={() => onSelectPersonaje?.(rel.personaje_rel_id)}
       >
         {rel.rel_nombre ?? "—"}
@@ -500,11 +500,11 @@ export function BloqueRelaciones({
       {/* Header */}
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Users className="text-primary/25 shrink-0" size={8} />
-        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
           Relaciones
         </span>
         {relaciones.length > 0 && (
-          <span className="text-[7px] font-black text-primary/20 tabular-nums leading-none">
+          <span className="text-micro font-black text-primary/20 tabular-nums leading-none">
             {relaciones.length}
           </span>
         )}
@@ -516,7 +516,7 @@ export function BloqueRelaciones({
           />
         )}
         <button
-          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border transition-all leading-none
+          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest border transition-all leading-none
             ${
               formVisible
                 ? "bg-primary/8 border-primary/20 text-primary"

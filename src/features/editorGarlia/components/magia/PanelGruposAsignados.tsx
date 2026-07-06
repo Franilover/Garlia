@@ -42,10 +42,10 @@ function FilaGrupo({
           <Layers className="text-primary/30" size={11} />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[11px] font-bold text-primary/85 truncate block">
+          <span className="text-micro font-bold text-primary/85 truncate block">
             {grupo.nombre}
           </span>
-          <span className="text-[9px] text-primary/30">
+          <span className="text-micro text-primary/30">
             {grupo.miembro_ids.length} criaturas
           </span>
         </div>
@@ -105,7 +105,7 @@ function SelectorAgregarGrupo({
   return (
     <div ref={ref} className="relative">
       <button
-        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-[9px] font-black uppercase tracking-widest transition-all"
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed text-micro font-black uppercase tracking-widest transition-all"
         style={{
           borderColor: `color-mix(in srgb, ${color} 22%, transparent)`,
           color: `color-mix(in srgb, ${color} 55%, transparent)`,
@@ -151,7 +151,7 @@ function SelectorAgregarGrupo({
                 />
                 <input
                   autoFocus
-                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                  className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-micro outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                   placeholder="Buscar grupo…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -164,7 +164,7 @@ function SelectorAgregarGrupo({
                   <Loader2 className="animate-spin text-primary/20" size={14} />
                 </div>
               ) : disponibles.length === 0 ? (
-                <p className="text-[9px] text-primary/25 text-center py-4 italic">
+                <p className="text-micro text-primary/25 text-center py-4 italic">
                   {grupos.length === asignados.length
                     ? "Todos los grupos ya están asignados"
                     : "Sin resultados"}
@@ -183,10 +183,10 @@ function SelectorAgregarGrupo({
                       <Layers className="text-primary/25" size={10} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[11px] font-medium text-primary/80 truncate block">
+                      <span className="text-micro font-medium text-primary/80 truncate block">
                         {g.nombre}
                       </span>
-                      <span className="text-[9px] text-primary/30">
+                      <span className="text-micro text-primary/30">
                         {g.miembro_ids.length} criaturas
                       </span>
                     </div>
@@ -235,19 +235,19 @@ export function PanelGruposAsignados({
 
   return (
     <div className="space-y-2">
-      <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+      <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
         <Layers size={9} /> Grupos de criaturas que pueden usarlo
       </label>
 
       {loadingGrupos ? (
         <div className="flex items-center gap-2 py-2">
           <Loader2 className="animate-spin text-primary/20" size={11} />
-          <span className="text-[10px] text-primary/25 italic">Cargando grupos…</span>
+          <span className="text-micro text-primary/25 italic">Cargando grupos…</span>
         </div>
       ) : (
         <div className="space-y-2">
           {asignados.length === 0 && (
-            <p className="text-[9px] text-primary/20 italic px-1">
+            <p className="text-micro text-primary/20 italic px-1">
               Sin grupos asignados — estará disponible para todos (universal)
             </p>
           )}

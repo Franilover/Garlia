@@ -24,12 +24,12 @@ const DropdownFiltro = ({
   onChange: (f: Filtros) => void;
 }) => (
   <div>
-    <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">
+    <p className="text-micro font-black uppercase text-primary/30 tracking-widest mb-2">
       {label}
     </p>
     <div className="relative">
       <select
-        className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-[10px] font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
+        className="w-full appearance-none bg-bg-main border border-primary/15 rounded-xl px-3 py-2 text-micro font-black uppercase text-primary outline-none focus:border-primary/40 transition-colors cursor-pointer pr-7"
         value={filtros[campo] as string}
         onChange={(e) => onChange({ ...filtros, [campo]: e.target.value })}
       >
@@ -69,7 +69,7 @@ export const PanelFiltros = ({
     <div className="space-y-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">
+          <p className="text-micro font-black uppercase text-primary/30 tracking-widest mb-2">
             Estado
           </p>
           <div className="flex gap-1 flex-wrap">
@@ -85,7 +85,7 @@ export const PanelFiltros = ({
           </div>
         </div>
         <div>
-          <p className="text-[9px] font-black uppercase text-primary/30 tracking-widest mb-2">
+          <p className="text-micro font-black uppercase text-primary/30 tracking-widest mb-2">
             Visibilidad
           </p>
           <div className="flex gap-1 flex-wrap">
@@ -153,7 +153,7 @@ export const PanelFiltros = ({
 
       {Object.values(filtros).some(Boolean) && (
         <button
-          className="text-[9px] font-black uppercase tracking-widest"
+          className="text-micro font-black uppercase tracking-widest"
           style={{ color: "var(--callout-danger-border)" }}
           onClick={() => onChange(FILTROS_VACIOS)}
           onMouseEnter={(e) => {

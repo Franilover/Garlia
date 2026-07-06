@@ -77,7 +77,7 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
               className={`
                 pointer-events-auto
                 flex items-center gap-3 px-5 py-3 rounded-[var(--radius-btn)]
-                border text-[11px] font-black uppercase tracking-widest
+                border text-micro font-black uppercase tracking-widest
                 shadow-lg backdrop-blur-sm whitespace-nowrap
                 ${classes}
               `}

@@ -12,7 +12,7 @@ export function Loading({ text = "Cargando...", fullScreen = true }: LoadingProp
     <div className={`flex items-center justify-center ${fullScreen ? "min-h-[60vh]" : "py-16"}`}>
       <div className="flex flex-col items-center gap-3">
         <Loader2 className="animate-spin" size={20} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-        <span className="text-[9px] font-black uppercase tracking-[0.3em]"
+        <span className="text-micro font-black uppercase tracking-[0.3em]"
           style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
           {text}
         </span>
@@ -30,7 +30,7 @@ export function EmptyState({ label, icon }: EmptyStateProps) {
   return (
     <div className="col-span-full py-20 flex flex-col items-center gap-3">
       {icon && <div className="opacity-20">{icon}</div>}
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] italic"
+      <p className="text-micro font-black uppercase tracking-[0.3em] italic"
         style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
         &quot;{label}&quot;
       </p>
@@ -63,7 +63,7 @@ export function Badge({ children, active, onClick, variant = "default" }: BadgeP
       {...(onClick ? { onClick } : {})}
       className={[
         "inline-flex items-center px-3 py-1 rounded-[var(--radius-btn)]",
-        "text-[9px] font-black uppercase tracking-widest transition-all",
+        "text-micro font-black uppercase tracking-widest transition-all",
         variants[variant],
         onClick ? "cursor-pointer active:scale-95" : "",
       ].join(" ")}
@@ -78,7 +78,7 @@ export function Divider({ label }: { label?: string }) {
     <div className="flex items-center gap-4 py-2">
       <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
       {label && (
-        <span className="text-[8px] font-black uppercase tracking-[0.4em]"
+        <span className="text-micro font-black uppercase tracking-[0.4em]"
           style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
           {label}
         </span>
@@ -99,11 +99,11 @@ export function StatRow({ icon, label, value }: StatRowProps) {
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-1.5" style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
         {icon}
-        <span className="font-serif italic text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 42%, transparent)" }}>
+        <span className="font-serif italic text-micro" style={{ color: "color-mix(in srgb, var(--primary) 42%, transparent)" }}>
           {label}
         </span>
       </div>
-      <span className="flex-1 mx-2 font-serif text-[10px] overflow-hidden text-center"
+      <span className="flex-1 mx-2 font-serif text-micro overflow-hidden text-center"
         style={{ color: "color-mix(in srgb, var(--primary) 12%, transparent)", letterSpacing: "0.2em" }}>
         . . . . . .
       </span>

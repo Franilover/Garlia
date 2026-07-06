@@ -577,7 +577,7 @@ export function GrafoEnsayos({
     <>
       {/* ── Botón trigger ── */}
       <button
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/8 hover:border-primary/25 hover:text-primary/70"
+        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-micro font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/8 hover:border-primary/25 hover:text-primary/70"
         style={{ fontFamily: "var(--font-mono)" }}
         title="Ver red de ensayos relacionados"
         onClick={() => setAbierto(true)}
@@ -610,10 +610,10 @@ export function GrafoEnsayos({
                   </button>
                 )}
                 <Network className="text-primary/40" size={11} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/50" style={{ fontFamily: "var(--font-mono)" }}>
+                <span className="text-micro font-black uppercase tracking-widest text-primary/50" style={{ fontFamily: "var(--font-mono)" }}>
                   red de ensayos
                 </span>
-                <span className="text-[11px] text-primary/30" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}>
+                <span className="text-micro text-primary/30" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}>
                   — {ensayoCentro.titulo || "Sin título"}
                 </span>
               </div>
@@ -679,7 +679,7 @@ export function GrafoEnsayos({
               ) : datos.nodos.filter(n => n.profundidad === 2 || n.profundidad === 3).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <FileText className="text-primary/15" size={28} />
-                  <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic" style={{ fontFamily: "var(--font-mono)" }}>
+                  <p className="text-micro font-bold text-primary/20 uppercase tracking-widest italic" style={{ fontFamily: "var(--font-mono)" }}>
                     ningún ensayo comparte estos tags
                   </p>
                 </div>

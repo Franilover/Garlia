@@ -1855,7 +1855,7 @@ export function GlobalCommandPalette() {
                 {/* Badge de prefijo activo */}
                 {activeGroup && (
                   <span
-                    className="shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                    className="shrink-0 text-micro font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -1879,7 +1879,7 @@ export function GlobalCommandPalette() {
                   onValueChange={setSearch}
                 />
                 <kbd
-                  className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded hidden sm:flex items-center"
+                  className="text-micro font-black uppercase tracking-widest px-1.5 py-0.5 rounded hidden sm:flex items-center"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -1907,7 +1907,7 @@ export function GlobalCommandPalette() {
                 {showCreateGrid && (
                   <Command.Group>
                     <div
-                      className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                      className="text-micro font-black uppercase tracking-widest px-3 pt-3 pb-2"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1944,7 +1944,7 @@ export function GlobalCommandPalette() {
                       return (
                         <Command.Group>
                           <div
-                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            className="text-micro font-black uppercase tracking-widest px-3 pt-3 pb-2"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1984,7 +1984,7 @@ export function GlobalCommandPalette() {
                       return (
                         <Command.Group key={groupName}>
                           <div
-                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            className="text-micro font-black uppercase tracking-widest px-3 pt-3 pb-2"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2026,7 +2026,7 @@ export function GlobalCommandPalette() {
                       return (
                         <Command.Group key={groupName}>
                           <div
-                            className="text-[8px] font-black uppercase tracking-widest px-3 pt-3 pb-2"
+                            className="text-micro font-black uppercase tracking-widest px-3 pt-3 pb-2"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2089,15 +2089,15 @@ export function GlobalCommandPalette() {
                   color: "color-mix(in srgb, var(--primary) 28%, transparent)",
                 }}
               >
-                <span className="text-[9px] font-black uppercase tracking-widest">
+                <span className="text-micro font-black uppercase tracking-widest">
                   ↑↓ navegar
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-widest">
+                <span className="text-micro font-black uppercase tracking-widest">
                   ↵ abrir
                 </span>
                 {inGridMode && (
                   <span
-                    className="text-[9px] font-black uppercase tracking-widest"
+                    className="text-micro font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -2108,7 +2108,7 @@ export function GlobalCommandPalette() {
                 )}
                 {showDynamic && (
                   <span
-                    className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest ml-auto"
+                    className="flex items-center gap-1 text-micro font-black uppercase tracking-widest ml-auto"
                     style={{
                       color: fromCache
                         ? "color-mix(in srgb, var(--primary) 40%, transparent)"
@@ -2124,7 +2124,7 @@ export function GlobalCommandPalette() {
                 )}
                 {!showDynamic && !showCreateGrid && (
                   <span
-                    className="text-[9px] font-black uppercase tracking-widest ml-auto"
+                    className="text-micro font-black uppercase tracking-widest ml-auto"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -2135,7 +2135,7 @@ export function GlobalCommandPalette() {
                 )}
                 {!showDynamic && !showCreateGrid && (
                   <span
-                    className="text-[9px] font-black uppercase tracking-widest"
+                    className="text-micro font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -2235,7 +2235,7 @@ function CommandGridItem({
       )}
 
       <p
-        className="text-[10px] font-semibold text-center leading-tight w-full truncate px-1"
+        className="text-micro font-semibold text-center leading-tight w-full truncate px-1"
         style={{ color: "var(--primary)" }}
       >
         {item.label.replace(/^(Nuevo|Nueva|New)\s+/i, "")}
@@ -2243,7 +2243,7 @@ function CommandGridItem({
 
       {item.description && (
         <p
-          className="text-[9px] text-center leading-tight w-full truncate px-1 -mt-1"
+          className="text-micro text-center leading-tight w-full truncate px-1 -mt-1"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}

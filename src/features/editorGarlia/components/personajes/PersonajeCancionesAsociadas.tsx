@@ -39,7 +39,7 @@ export function PersonajeCancionesAsociadas({
 
   if (!canciones.length)
     return (
-      <p className="text-[7px] font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
+      <p className="text-micro font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
         Sin canciones
       </p>
     );
@@ -68,11 +68,11 @@ export function PersonajeCancionesAsociadas({
             <Music2 className="shrink-0 text-primary/20" size={9} />
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-[8px] font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
+            <p className="text-micro font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
               {c.titulo}
             </p>
             {c.cantante && (
-              <p className="text-[7px] text-primary/25 truncate leading-tight">
+              <p className="text-micro text-primary/25 truncate leading-tight">
                 {c.cantante}
               </p>
             )}

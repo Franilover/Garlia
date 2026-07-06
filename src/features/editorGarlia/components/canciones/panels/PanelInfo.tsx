@@ -399,10 +399,10 @@ export const PanelInfo = ({
             <Beaker size={16} />
           </div>
           <div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">
+            <h3 className="text-micro font-black uppercase tracking-[0.25em] text-primary">
               Ficha Técnica
             </h3>
-            <p className="text-[9px] font-medium text-primary/30 uppercase tracking-widest">
+            <p className="text-micro font-medium text-primary/30 uppercase tracking-widest">
               Metadatos y créditos
             </p>
           </div>
@@ -421,7 +421,7 @@ export const PanelInfo = ({
         <section className="space-y-8">
           {/* Estado */}
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               <span
                 className={`w-1.5 h-1.5 rounded-full inline-block ${estadoActual.dot}`}
               />
@@ -434,7 +434,7 @@ export const PanelInfo = ({
                 return (
                   <button
                     key={e}
-                    className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                    className={`flex-1 py-2 rounded-xl text-micro font-black uppercase tracking-widest border transition-all ${
                       isActive
                         ? styles.active
                         : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/50"
@@ -451,7 +451,7 @@ export const PanelInfo = ({
 
           {/* Título */}
           <div className="group relative space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
               <Music size={12} /> Título
             </label>
             <input
@@ -492,7 +492,7 @@ export const PanelInfo = ({
             const filtered = getFilteredSuggestions(field.key);
             return (
               <div key={field.key} className="group relative space-y-2">
-                <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+                <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
                   {field.icon} {field.label}
                 </label>
                 <input
@@ -514,7 +514,7 @@ export const PanelInfo = ({
                       {filtered.map((s) => (
                         <button
                           key={s}
-                          className="w-full px-4 py-2 text-left text-[10px] font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-between group"
+                          className="w-full px-4 py-2 text-left text-micro font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors flex items-center justify-between group"
                           onClick={() => handleChange(field.key, s)}
                         >
                           {s}
@@ -533,7 +533,7 @@ export const PanelInfo = ({
 
           {/* Línea de tiempo */}
           <div className="group relative space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
               <Clock size={12} /> Línea de tiempo
             </label>
             <div className="relative max-w-xs">
@@ -549,14 +549,14 @@ export const PanelInfo = ({
                 onChange={handleDiaAbsolutoChange}
               />
             </div>
-            <p className="text-[8px] text-primary/20 leading-tight">
+            <p className="text-micro text-primary/20 leading-tight">
               Fecha de la canción en el calendario del mundo
             </p>
           </div>
 
           {/* Duración */}
           <div className="group relative space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
               <Clock size={12} /> Duración
             </label>
             <div className="flex items-center gap-3">
@@ -569,7 +569,7 @@ export const PanelInfo = ({
                 onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
               />
               {localData.duracion_segundos && (
-                <span className="text-[9px] text-primary/25 font-bold uppercase tracking-widest">
+                <span className="text-micro text-primary/25 font-bold uppercase tracking-widest">
                   {localData.duracion_segundos}s
                 </span>
               )}
@@ -578,7 +578,7 @@ export const PanelInfo = ({
 
           {/* Personaje */}
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               <Users size={12} /> Personaje
             </label>
             <ComboSelector
@@ -594,7 +594,7 @@ export const PanelInfo = ({
 
           {/* Reino */}
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               <Crown size={12} /> Reino
               {savingUbi && (
                 <Loader2
@@ -617,7 +617,7 @@ export const PanelInfo = ({
           {/* Ciudad — solo visible si hay reino seleccionado */}
           {reinoId && (
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+              <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
                 <MapPin size={12} /> Ciudad
               </label>
               <ComboSelector
@@ -637,11 +637,11 @@ export const PanelInfo = ({
         <section className="space-y-8 flex flex-col">
           {/* Emoción */}
           <div className="space-y-3">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               <Heart size={12} /> Emoción
               {emocionActiva && (
                 <span
-                  className={`ml-auto text-[8px] font-black px-2 py-0.5 rounded-full border ${emocionActiva.color}`}
+                  className={`ml-auto text-micro font-black px-2 py-0.5 rounded-full border ${emocionActiva.color}`}
                 >
                   {emocionActiva.label}
                 </span>
@@ -653,7 +653,7 @@ export const PanelInfo = ({
                 return (
                   <button
                     key={e.label}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest border transition-all cursor-pointer ${
                       isActive
                         ? e.color
                         : "border-primary/10 text-primary/25 hover:border-primary/25 hover:text-primary/50"
@@ -670,7 +670,7 @@ export const PanelInfo = ({
 
           {/* Visible */}
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2">
               {localData.visible ? <Eye size={12} /> : <EyeOff size={12} />}
               Visibilidad
             </label>
@@ -685,7 +685,7 @@ export const PanelInfo = ({
             >
               <div className="flex items-center gap-2.5">
                 {localData.visible ? <Eye size={13} /> : <EyeOff size={13} />}
-                <span className="text-[10px] font-black uppercase tracking-widest">
+                <span className="text-micro font-black uppercase tracking-widest">
                   {localData.visible ? "Pública" : "Oculta"}
                 </span>
               </div>
@@ -711,10 +711,10 @@ export const PanelInfo = ({
                 <FileText size={14} />
               </div>
               <div>
-                <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-primary">
+                <h3 className="text-micro font-black uppercase tracking-[0.25em] text-primary">
                   Contexto y Notas
                 </h3>
-                <p className="text-[9px] text-primary/25 font-medium mt-0.5">
+                <p className="text-micro text-primary/25 font-medium mt-0.5">
                   Inspiración, historia, referencias…
                 </p>
               </div>

@@ -62,7 +62,7 @@ export function EstudioLayout({
           </button>
           {colapsadoLabel && (
             <span
-              className="text-[9px] font-black uppercase text-primary/15 tracking-[0.25em] select-none"
+              className="text-micro font-black uppercase text-primary/15 tracking-[0.25em] select-none"
               style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
             >
               {colapsadoLabel}
@@ -135,7 +135,7 @@ export function EstudioLayout({
           </div>
 
           {}
-          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-[9px] font-black uppercase tracking-widest flex justify-between items-center">
+          <div className="shrink-0 px-5 py-3 border-t border-primary/10 text-micro font-black uppercase tracking-widest flex justify-between items-center">
             {isOffline ? (
               <span className="flex items-center gap-1 text-amber-400">
                 <WifiOff size={10} /> Sin conexión
@@ -161,7 +161,7 @@ export function EstudioLayout({
               onClick={() => setOpen(true)}
             >
               <PanelLeftOpen size={16} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Lista</span>
+              <span className="text-micro font-black uppercase tracking-widest">Lista</span>
             </button>
           </div>
         )}

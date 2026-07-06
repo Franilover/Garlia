@@ -264,13 +264,13 @@ export function ComboSelector(props: ComboSelectorProps) {
       {(label || hint) && (
         <div className="flex items-center gap-2">
           {label && (
-            <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
+            <label className="text-micro font-black uppercase tracking-widest text-primary/40 flex items-center gap-1.5">
               {icon && <span className="opacity-70">{icon}</span>}
               {label}
             </label>
           )}
           {hint && (
-            <span className="text-[8px] font-medium text-primary/25 normal-case">
+            <span className="text-micro font-medium text-primary/25 normal-case">
               {hint}
             </span>
           )}
@@ -283,7 +283,7 @@ export function ComboSelector(props: ComboSelectorProps) {
           {selectedItems.map((it) => (
             <span
               key={it.id}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-black uppercase tracking-wide border"
               style={{
                 background:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -323,7 +323,7 @@ export function ComboSelector(props: ComboSelectorProps) {
           }}
         >
           <button
-            className="flex-1 flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold transition-all min-w-0 hover:bg-primary/5"
+            className="flex-1 flex items-center gap-2 px-4 py-2.5 text-micro font-bold transition-all min-w-0 hover:bg-primary/5"
             style={{ color: "var(--primary)" }}
             type="button"
             onClick={() =>
@@ -360,7 +360,7 @@ export function ComboSelector(props: ComboSelectorProps) {
         </div>
       ) : (
         <button
-          className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          className="w-full flex items-center justify-between px-4 py-2.5 rounded-[var(--radius-btn)] text-micro font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
@@ -421,7 +421,7 @@ export function ComboSelector(props: ComboSelectorProps) {
             />
             <input
               ref={inputRef}
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
               placeholder="Buscar…"
               style={{
                 color: "var(--primary)",
@@ -455,7 +455,7 @@ export function ComboSelector(props: ComboSelectorProps) {
             {/* Opción ninguno (solo single) */}
             {showNone && (
               <button
-                className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all"
                 data-idx={0}
                 style={{
                   color: !props.value
@@ -484,7 +484,7 @@ export function ComboSelector(props: ComboSelectorProps) {
             )}
 
             {filtered.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+              <p className="text-micro text-primary/30 px-4 py-3 font-bold uppercase">
                 {query ? `Sin resultados para "${query}"` : emptyText}
               </p>
             ) : groups && groups.length > 0 ? (
@@ -514,7 +514,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                   return (
                     <button
                       key={it.id}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all"
                       data-idx={cursorIdx}
                       style={{
                         color: sel
@@ -539,7 +539,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                         ) : null}
                         <span className="truncate">{it.label}</span>
                         {it.sublabel && (
-                          <span className="text-[9px] normal-case font-medium opacity-50 truncate">
+                          <span className="text-micro normal-case font-medium opacity-50 truncate">
                             {it.sublabel}
                           </span>
                         )}
@@ -581,7 +581,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                             </span>
                           )}
                           <span
-                            className="text-[8px] font-black uppercase tracking-[0.25em]"
+                            className="text-micro font-black uppercase tracking-[0.25em]"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -605,7 +605,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                 return (
                   <button
                     key={it.id}
-                    className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all"
+                    className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all"
                     data-idx={cursorIdx}
                     style={{
                       color: sel
@@ -630,7 +630,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                       ) : null}
                       <span className="truncate">{it.label}</span>
                       {it.sublabel && (
-                        <span className="text-[9px] normal-case font-medium opacity-50 truncate">
+                        <span className="text-micro normal-case font-medium opacity-50 truncate">
                           {it.sublabel}
                         </span>
                       )}
@@ -664,7 +664,7 @@ export function ComboSelector(props: ComboSelectorProps) {
             ].map(({ key, label: kl }) => (
               <span key={key} className="flex items-center gap-1">
                 <kbd
-                  className="text-[7px] font-black uppercase px-1 py-0.5 rounded"
+                  className="text-micro font-black uppercase px-1 py-0.5 rounded"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -677,7 +677,7 @@ export function ComboSelector(props: ComboSelectorProps) {
                   {key}
                 </kbd>
                 <span
-                  className="text-[7px] font-bold uppercase tracking-wider"
+                  className="text-micro font-bold uppercase tracking-wider"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 25%, transparent)",

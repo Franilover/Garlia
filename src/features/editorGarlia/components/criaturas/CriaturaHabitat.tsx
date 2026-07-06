@@ -258,12 +258,12 @@ export function BloqueHabitat({
     <div className="space-y-3">
       {/* ── Reinos ── */}
       <div className="space-y-1.5">
-        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1">
+        <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1">
           <Globe size={9} /> Reinos
         </label>
 
         {loadingR ? (
-          <p className="text-[9px] text-primary/20 italic">Cargando…</p>
+          <p className="text-micro text-primary/20 italic">Cargando…</p>
         ) : (
           <>
             {reinoRows.length > 0 && (
@@ -271,7 +271,7 @@ export function BloqueHabitat({
                 {reinoRows.map((r) => (
                   <div
                     key={r.rowId}
-                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-[10px] font-bold transition-all"
+                    className="flex items-center gap-0.5 pl-2 pr-1 py-0.5 rounded-lg border text-micro font-bold transition-all"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -327,7 +327,7 @@ export function BloqueHabitat({
 
             <div className="relative">
               <button
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all cursor-pointer"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -364,7 +364,7 @@ export function BloqueHabitat({
                     >
                       <input
                         autoFocus
-                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                        className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                         placeholder="Buscar reino…"
                         value={searchR}
                         onChange={(e) => setSearchR(e.target.value)}
@@ -372,14 +372,14 @@ export function BloqueHabitat({
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {reinosDisponibles.length === 0 ? (
-                        <p className="text-[9px] text-primary/25 italic text-center py-3">
+                        <p className="text-micro text-primary/25 italic text-center py-3">
                           Sin resultados
                         </p>
                       ) : (
                         reinosDisponibles.map((r) => (
                           <button
                             key={r.id}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-micro font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
                             onMouseDown={() => {
                               void addReino(r);
@@ -402,12 +402,12 @@ export function BloqueHabitat({
 
       {/* ── Ciudades ── */}
       <div className="space-y-1.5">
-        <label className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1.5">
+        <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/25 flex items-center gap-1.5">
           <MapPin size={9} />
           Ciudades
           {reinoFiltro && (
             <span
-              className="text-[8px] font-bold px-1.5 py-0.5 rounded-md"
+              className="text-micro font-bold px-1.5 py-0.5 rounded-md"
               style={{
                 background:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -420,11 +420,11 @@ export function BloqueHabitat({
         </label>
 
         {loadingC ? (
-          <p className="text-[9px] text-primary/20 italic">Cargando…</p>
+          <p className="text-micro text-primary/20 italic">Cargando…</p>
         ) : (
           <>
             {ciudadesAsignadas.length === 0 && (
-              <p className="text-[9px] text-primary/20 italic py-1">
+              <p className="text-micro text-primary/20 italic py-1">
                 {reinoFiltro
                   ? "Sin ciudades en este reino"
                   : "Sin ciudades asignadas"}
@@ -451,7 +451,7 @@ export function BloqueHabitat({
                         className="shrink-0 text-primary/30 group-hover/ciudad:text-primary/60 transition-colors"
                         size={9}
                       />
-                      <span className="text-[10px] font-bold text-primary/65 truncate group-hover/ciudad:text-primary transition-colors underline-offset-2 group-hover/ciudad:underline">
+                      <span className="text-micro font-bold text-primary/65 truncate group-hover/ciudad:text-primary transition-colors underline-offset-2 group-hover/ciudad:underline">
                         {r.ciudadNombre}
                       </span>
                     </button>
@@ -468,7 +468,7 @@ export function BloqueHabitat({
 
             <div className="relative">
               <button
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all cursor-pointer"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -505,7 +505,7 @@ export function BloqueHabitat({
                     >
                       <input
                         autoFocus
-                        className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                        className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                         placeholder="Buscar ciudad…"
                         value={searchL}
                         onChange={(e) => setSearchL(e.target.value)}
@@ -513,14 +513,14 @@ export function BloqueHabitat({
                     </div>
                     <div className="max-h-40 overflow-y-auto p-1">
                       {ciudadesDisponibles.length === 0 ? (
-                        <p className="text-[9px] text-primary/25 italic text-center py-3">
+                        <p className="text-micro text-primary/25 italic text-center py-3">
                           Sin resultados
                         </p>
                       ) : (
                         ciudadesDisponibles.map((l) => (
                           <button
                             key={l.id}
-                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-micro font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                             type="button"
                             onMouseDown={() => {
                               void addCiudad(l);

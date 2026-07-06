@@ -202,7 +202,7 @@ export function EntidadOverlay({
         }}
       >
         <button
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary/70 transition-colors"
           type="button"
           onClick={clearAllOverlays}
         >

@@ -134,7 +134,7 @@ function SideSubItem({
 }) {
   return (
     <Link
-      className="flex items-center gap-3 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      className="flex items-center gap-3 px-3 py-2 text-micro font-black uppercase tracking-widest transition-all"
       href={href}
       style={{
         borderRadius: "var(--radius-btn)",
@@ -266,7 +266,7 @@ function SideNavItem({
             onClick={(e) => e.stopPropagation()}
           >
             <p
-              className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              className="text-micro font-black uppercase tracking-widest px-2 pb-1.5"
               style={{
                 color: "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
@@ -308,7 +308,7 @@ function MobileSubItem({
 }) {
   return (
     <Link
-      className="flex items-center gap-2.5 px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all"
+      className="flex items-center gap-2.5 px-3 py-2 text-micro font-black uppercase tracking-widest transition-all"
       href={href}
       style={{
         borderRadius: "var(--radius-btn)",
@@ -432,7 +432,7 @@ function MobileNavItem({
             onClick={(e) => e.stopPropagation()}
           >
             <p
-              className="text-[8px] font-black uppercase tracking-widest px-2 pb-1.5"
+              className="text-micro font-black uppercase tracking-widest px-2 pb-1.5"
               style={{
                 color: "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
@@ -636,7 +636,7 @@ const Navbar = () => {
                     }}
                   >
                     {isDark ? <Sun size={13} /> : <Moon size={13} />}
-                    <span className="text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-micro font-black uppercase tracking-widest">
                       {isDark ? "Modo claro" : "Modo oscuro"}
                     </span>
                   </button>

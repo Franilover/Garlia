@@ -197,7 +197,7 @@ export const SeccionEntidad = ({
         }}
       >
         <span
-          className="flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.2em] leading-none"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] leading-none"
           style={{
             color: "color-mix(in srgb, var(--primary) 38%, transparent)",
           }}
@@ -224,7 +224,7 @@ export const SeccionEntidad = ({
           {/* Contador de seleccionados */}
           {selectedIds.length > 0 && (
             <span
-              className="text-[7px] font-black tabular-nums"
+              className="text-micro font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
               {selectedIds.length}
@@ -265,7 +265,7 @@ export const SeccionEntidad = ({
             />
             <input
               ref={inputRef}
-              className="flex-1 bg-transparent outline-none text-[9px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
+              className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
               placeholder="Buscar…"
               style={{
                 color: "var(--primary)",
@@ -301,7 +301,7 @@ export const SeccionEntidad = ({
                 <Loader2 className="animate-spin" size={11} />
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-[7px] font-black uppercase text-primary/20 px-2.5 py-2 text-center tracking-[0.2em] italic">
+              <p className="text-micro font-black uppercase text-primary/20 px-2.5 py-2 text-center tracking-[0.2em] italic">
                 {query ? `Sin resultados` : emptyLabel}
               </p>
             ) : groups && groups.length > 0 ? (
@@ -355,7 +355,7 @@ export const SeccionEntidad = ({
                         />
                       ) : (
                         <div
-                          className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                          className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-micro font-black uppercase"
                           style={{
                             background: sel
                               ? "color-mix(in srgb, var(--primary) 15%, transparent)"
@@ -367,7 +367,7 @@ export const SeccionEntidad = ({
                           {e.nombre.charAt(0)}
                         </div>
                       )}
-                      <span className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight">
+                      <span className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide truncate leading-tight">
                         {e.nombre}
                       </span>
                       {sel && (
@@ -408,7 +408,7 @@ export const SeccionEntidad = ({
                             </span>
                           )}
                           <span
-                            className="text-[7px] font-black uppercase tracking-[0.2em]"
+                            className="text-micro font-black uppercase tracking-[0.2em]"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -460,7 +460,7 @@ export const SeccionEntidad = ({
                       />
                     ) : (
                       <div
-                        className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                        className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-micro font-black uppercase"
                         style={{
                           background: sel
                             ? "color-mix(in srgb, var(--primary) 15%, transparent)"
@@ -473,7 +473,7 @@ export const SeccionEntidad = ({
                       </div>
                     )}
 
-                    <span className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide truncate leading-tight">
+                    <span className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide truncate leading-tight">
                       {e.nombre}
                     </span>
 
@@ -506,7 +506,7 @@ export const SeccionEntidad = ({
             ].map(({ key, label: kl }) => (
               <span key={key} className="flex items-center gap-0.5">
                 <kbd
-                  className="text-[6px] font-black uppercase px-1 py-0.5 rounded"
+                  className="text-micro font-black uppercase px-1 py-0.5 rounded"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -519,7 +519,7 @@ export const SeccionEntidad = ({
                   {key}
                 </kbd>
                 <span
-                  className="text-[6px] font-bold uppercase tracking-wider"
+                  className="text-micro font-bold uppercase tracking-wider"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 22%, transparent)",
@@ -548,7 +548,7 @@ export const SeccionEntidad = ({
               {fallbackIcon}
             </span>
             <p
-              className="text-[7px] font-black uppercase tracking-[0.2em] leading-none"
+              className="text-micro font-black uppercase tracking-[0.2em] leading-none"
               style={{
                 color: "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
@@ -583,7 +583,7 @@ export const SeccionEntidad = ({
                   />
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-[9px] font-black uppercase"
+                    className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-micro font-black uppercase"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -595,7 +595,7 @@ export const SeccionEntidad = ({
                   </div>
                 )}
                 <span
-                  className="w-full text-center text-[8px] font-black uppercase tracking-wide leading-tight break-words line-clamp-2"
+                  className="w-full text-center text-micro font-black uppercase tracking-wide leading-tight break-words line-clamp-2"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 65%, transparent)",
@@ -651,7 +651,7 @@ export const SeccionEntidad = ({
                   />
                 ) : (
                   <div
-                    className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                    className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-micro font-black uppercase"
                     style={{
                       background:
                         "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -663,7 +663,7 @@ export const SeccionEntidad = ({
                   </div>
                 )}
                 <span
-                  className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide leading-tight break-words"
+                  className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide leading-tight break-words"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 65%, transparent)",
@@ -714,7 +714,7 @@ export const SeccionEntidad = ({
                         </span>
                       )}
                       <span
-                        className="text-[7px] font-black uppercase tracking-[0.2em]"
+                        className="text-micro font-black uppercase tracking-[0.2em]"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -750,7 +750,7 @@ export const SeccionEntidad = ({
                 />
               ) : (
                 <div
-                  className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[6px] font-black uppercase"
+                  className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-micro font-black uppercase"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -762,7 +762,7 @@ export const SeccionEntidad = ({
                 </div>
               )}
               <span
-                className="flex-1 min-w-0 text-[8px] font-black uppercase tracking-wide leading-tight break-words"
+                className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide leading-tight break-words"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 65%, transparent)",
                 }}

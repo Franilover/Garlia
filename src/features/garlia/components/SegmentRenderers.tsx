@@ -136,7 +136,7 @@ export function ImgInline({ url, caption }: { url: string; caption?: string }) {
         )}
       </div>
       {caption && (
-        <figcaption className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-primary/35">
+        <figcaption className="mt-3 text-center text-micro font-black uppercase tracking-[0.2em] text-primary/35">
           {caption}
         </figcaption>
       )}
@@ -225,7 +225,7 @@ export function SoundInline({ url, volume }: { url: string; volume: number }) {
       ) : (
         <Music2 size={12} />
       )}
-      <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+      <span className="text-micro font-black uppercase tracking-widest leading-none">
         {label}
       </span>
     </span>
@@ -283,7 +283,7 @@ export function FloatWord({
         >
           {word}
         </span>
-        <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)]/60 group-hover:bg-[var(--accent)] transition-colors" />
+        <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-accent/60 group-hover:bg-accent transition-colors" />
       </button>
 
       <AnimatePresence>
@@ -338,7 +338,7 @@ export function FloatWord({
                 </div>
                 {caption && (
                   <div className="bg-white-custom px-4 py-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 text-center">
+                    <p className="text-micro font-black uppercase tracking-widest text-primary/50 text-center">
                       {caption}
                     </p>
                   </div>
@@ -614,14 +614,14 @@ export function DropWord({
                     <div>
                       <p
                         className={cn(
-                          "font-black uppercase text-[11px] tracking-widest",
+                          "font-black uppercase text-micro tracking-widest",
                           messages[state].color,
                         )}
                       >
                         {messages[state].title}
                       </p>
                       {messages[state].sub && (
-                        <p className="text-[10px] text-primary/40 mt-1 font-medium italic">
+                        <p className="text-micro text-primary/40 mt-1 font-medium italic">
                           {messages[state].sub}
                         </p>
                       )}
@@ -634,13 +634,13 @@ export function DropWord({
                         transition={{ delay: 0.2 }}
                       >
                         <Icon className="text-primary/50" size={11} />
-                        <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">
+                        <span className="text-micro font-black text-primary/60 uppercase tracking-widest">
                           {entidadNombre}
                         </span>
                       </MotionDiv>
                     )}
                     <button
-                      className="text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors mt-1"
+                      className="text-micro font-black uppercase tracking-widest text-primary/25 hover:text-primary/50 transition-colors mt-1"
                       onClick={() => setOpen(false)}
                     >
                       Cerrar

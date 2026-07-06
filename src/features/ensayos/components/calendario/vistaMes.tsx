@@ -139,7 +139,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
         >
           <ChevronLeft size={13} />
         </button>
-        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary min-w-[9rem] text-center">
+        <span className="text-micro font-black uppercase tracking-[0.18em] text-primary min-w-[9rem] text-center">
           {MESES[mesActual]} {añoActual}
         </span>
         <button
@@ -156,7 +156,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
         {/* Cabecera días semana */}
         <div className="grid grid-cols-7 shrink-0">
           {["L","M","X","J","V","S","D"].map(d => (
-            <div key={d} className="text-center text-[7px] font-black uppercase text-primary/30 dark:text-primary/50 pb-1">{d}</div>
+            <div key={d} className="text-center text-micro font-black uppercase text-primary/30 dark:text-primary/50 pb-1">{d}</div>
           ))}
         </div>
 
@@ -178,7 +178,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                 key={dia}
                 className={cn(
                   "h-8 sm:h-14 w-full rounded-[var(--radius-btn)] flex flex-col items-center justify-center relative",
-                  "text-[11px] sm:text-[13px] font-black transition-all",
+                  "text-micro sm:text-sm font-black transition-all",
                   sel
                     ? "bg-primary text-[var(--btn-text)] shadow-sm shadow-primary/20"
                     : hoy
@@ -193,7 +193,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                 {tieneAlgo(dia) && (
                   <span className={cn(
                     "absolute bottom-[2px] w-[3px] h-[3px] rounded-full",
-                    sel ? "bg-[var(--btn-text)]/50" : "bg-primary/50"
+                    sel ? "bg-btn-text/50" : "bg-primary/50"
                   )} />
                 )}
               </MotionButton>
@@ -204,21 +204,21 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
         {/* Panel día seleccionado */}
         <div className="flex flex-col gap-2 border-t border-primary/8 pt-2.5 mt-0.5">
 
-          <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 shrink-0">
+          <span className="text-micro font-black uppercase tracking-widest text-primary/40 shrink-0">
             {diaSeleccionado} {MESES[mesActual].slice(0, 3)} {añoActual}
           </span>
 
           {/* Formulario */}
           <div className="flex gap-1.5 shrink-0">
             <select
-              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
+              className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-micro font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
               value={tipoEvento}
               onChange={e => setTipoEvento(e.target.value)}
             >
               {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <input
-              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-[var(--white-custom)] transition-all min-w-0 placeholder:text-[var(--input-text)]/40"
+              className="flex-1 bg-primary/5 dark:bg-primary/10 rounded-[var(--radius-btn)] px-3 py-1.5 text-micro text-[var(--input-text)] font-semibold outline-none border border-transparent focus:border-primary/20 focus:bg-white-custom transition-all min-w-0 placeholder:text-[var(--input-text)]/40"
               placeholder="Añadir evento..."
               type="text"
               value={nuevoEvento}
@@ -238,7 +238,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
           {/* Lista de eventos */}
           <div className="flex flex-col gap-1.5">
             {itemsDia.length === 0 ? (
-              <p className="text-[9px] font-medium text-[var(--text-on-card)]/20 italic pt-0.5">Sin eventos.</p>
+              <p className="text-micro font-medium text-[var(--text-on-card)]/20 italic pt-0.5">Sin eventos.</p>
             ) : itemsDia.map((item: any) => {
               const enEdicion = editandoId === item.id;
 
@@ -252,14 +252,14 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                   >
                     <div className="flex gap-1.5">
                       <select
-                        className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-[9px] font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
+                        className="bg-primary/8 dark:bg-primary/15 border border-transparent rounded-[var(--radius-btn)] px-2 py-1.5 text-micro font-black text-[var(--input-text)] outline-none focus:border-primary/20 cursor-pointer"
                         value={editTipo}
                         onChange={e => setEditTipo(e.target.value)}
                       >
                         {TIPOS_EVENTO.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                       <input
-                        className="flex-1 bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-3 py-1.5 text-[11px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 min-w-0"
+                        className="flex-1 bg-white-custom rounded-[var(--radius-btn)] px-3 py-1.5 text-micro text-[var(--input-text)] font-semibold outline-none border border-primary/20 min-w-0"
                         type="text"
                         value={editTitulo}
                         onChange={e => setEditTitulo(e.target.value)}
@@ -268,7 +268,7 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                     </div>
                     <div className="flex gap-1.5 items-center">
                       <input
-                        className="bg-[var(--white-custom)] rounded-[var(--radius-btn)] px-2 py-1.5 text-[10px] text-[var(--input-text)] font-semibold outline-none border border-primary/20 flex-1 min-w-0"
+                        className="bg-white-custom rounded-[var(--radius-btn)] px-2 py-1.5 text-micro text-[var(--input-text)] font-semibold outline-none border border-primary/20 flex-1 min-w-0"
                         type="date"
                         value={editFecha}
                         onChange={e => setEditFecha(e.target.value)}
@@ -304,18 +304,18 @@ export const VistaMes = ({ eventos, capitulosRaw, isAddingEvento, onAddEvento, o
                   )}
                   initial={{ opacity: 0, x: -4 }}
                 >
-                  <div className="w-5 h-5 bg-[var(--white-custom)] rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
+                  <div className="w-5 h-5 bg-white-custom rounded flex items-center justify-center shadow-sm shrink-0 border border-primary/8">
                     {item.esCapitulo
                       ? <BookOpen className="text-amber-500" size={10} />
-                      : <span className="text-[8px] font-black text-primary">{diaSeleccionado}</span>
+                      : <span className="text-micro font-black text-primary">{diaSeleccionado}</span>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-[var(--text-on-card)]/90 truncate">{item.titulo}</p>
-                    <p className="text-[7px] font-semibold text-primary/40 uppercase tracking-wide">{item.tipo}</p>
+                    <p className="text-micro font-bold text-[var(--text-on-card)]/90 truncate">{item.titulo}</p>
+                    <p className="text-micro font-semibold text-primary/40 uppercase tracking-wide">{item.tipo}</p>
                   </div>
                   {item.esCapitulo ? (
-                    <span className="text-[6px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                    <span className="text-micro font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">
                       Cap.
                     </span>
                   ) : (

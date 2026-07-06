@@ -105,11 +105,11 @@ const CampoTexto = ({
 
   return (
     <div className="group relative space-y-0.5">
-      <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1 group-focus-within:text-primary/50 transition-colors">
+      <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1 group-focus-within:text-primary/50 transition-colors">
         {icon} {label}
       </label>
       <input
-        className="w-full bg-transparent border-b border-primary/10 py-0.5 text-[10px] font-bold text-primary outline-none focus:border-primary/40 transition-all"
+        className="w-full bg-transparent border-b border-primary/10 py-0.5 text-micro font-bold text-primary outline-none focus:border-primary/40 transition-all"
         placeholder={placeholder}
         value={value}
         onBlur={() => setTimeout(() => setFocused(false), 200)}
@@ -127,7 +127,7 @@ const CampoTexto = ({
             {filtered.map((s) => (
               <button
                 key={s}
-                className="w-full px-2.5 py-1 text-left text-[9px] font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors"
+                className="w-full px-2.5 py-1 text-left text-micro font-bold text-primary/60 hover:bg-primary/5 hover:text-primary transition-colors"
                 onClick={() => onChange(s)}
               >
                 {s}
@@ -159,12 +159,12 @@ const SelectorNativo = ({
   emptyLabel?: string;
 }) => (
   <div className="space-y-0.5">
-    <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+    <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
       {icon} {label}
     </label>
     <div className="relative">
       <select
-        className="w-full appearance-none bg-primary/[0.03] border border-primary/10 rounded-lg pl-2 pr-5 py-1 text-[9px] font-black uppercase tracking-wider text-primary outline-none focus:border-primary/30 transition-all cursor-pointer"
+        className="w-full appearance-none bg-primary/[0.03] border border-primary/10 rounded-lg pl-2 pr-5 py-1 text-micro font-black uppercase tracking-wider text-primary outline-none focus:border-primary/30 transition-all cursor-pointer"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
@@ -471,7 +471,7 @@ export const PanelInfoSidebar = ({
           />
         </div>
         <div className="shrink-0 space-y-0.5">
-          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
             {localData.visible ? <Eye size={9} /> : <EyeOff size={9} />}
             Visible
           </label>
@@ -559,11 +559,11 @@ export const PanelInfoSidebar = ({
           onChange={(v) => handleChange("idioma", v)}
         />
         <div className="space-y-0.5">
-          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
             <Clock size={9} /> Duración
           </label>
           <input
-            className="w-full bg-transparent border-b border-primary/10 py-0.5 text-[10px] font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
+            className="w-full bg-transparent border-b border-primary/10 py-0.5 text-micro font-bold text-primary outline-none focus:border-primary/40 transition-all tabular-nums"
             placeholder="3:45"
             value={duracionInput}
             onBlur={handleDuracionBlur}
@@ -575,7 +575,7 @@ export const PanelInfoSidebar = ({
 
       {/* Línea de tiempo */}
       <div className="space-y-0.5">
-        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+        <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
           <Clock size={9} /> Línea de tiempo
           {savingDia && (
             <Loader2 className="ml-auto animate-spin text-primary/25" size={9} />
@@ -590,7 +590,7 @@ export const PanelInfoSidebar = ({
 
       {/* Personaje */}
       <div className="space-y-0.5">
-        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+        <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
           <Users size={9} /> Personaje
         </label>
         <ComboSelector
@@ -607,7 +607,7 @@ export const PanelInfoSidebar = ({
       {/* Reino / Ciudad */}
       <div className="grid grid-cols-2 gap-1.5">
         <div className="space-y-0.5">
-          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
             <Crown size={9} /> Reino
             {savingUbi && (
               <Loader2 className="ml-auto animate-spin text-primary/20" size={9} />
@@ -625,7 +625,7 @@ export const PanelInfoSidebar = ({
         </div>
 
         <div className="space-y-0.5">
-          <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+          <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
             <MapPin size={9} /> Ciudad
           </label>
           <ComboSelector
@@ -642,11 +642,11 @@ export const PanelInfoSidebar = ({
 
       {/* Notas / contexto */}
       <div className="space-y-1">
-        <label className="text-[7px] font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
+        <label className="text-micro font-black text-primary/25 uppercase tracking-[0.12em] flex items-center gap-1">
           <FileText size={9} /> Notas
         </label>
         <textarea
-          className="w-full bg-primary/[0.02] border border-primary/8 rounded-lg px-1.5 py-1 text-[9px] text-primary/80 placeholder:text-primary/20 outline-none focus:border-primary/20 transition-all resize-none min-h-[90px]"
+          className="w-full bg-primary/[0.02] border border-primary/8 rounded-lg px-1.5 py-1 text-micro text-primary/80 placeholder:text-primary/20 outline-none focus:border-primary/20 transition-all resize-none min-h-[90px]"
           placeholder="¿De qué trata? ¿Qué la inspiró?…"
           value={localData.info_cancion}
           onChange={(e) => handleChange("info_cancion", e.target.value)}
@@ -695,7 +695,7 @@ export const PanelInfoSidebar = ({
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}
             >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
                 <Beaker size={9} />
                 Ficha Técnica
               </span>

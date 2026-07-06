@@ -72,7 +72,7 @@ function ImagePickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+          <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> Imagen del mapa
           </h3>
           <button
@@ -231,7 +231,7 @@ export function EditorReino({
             <SaveIndicator status={status} />
 
             <button
-              className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
               onClick={del}
             >
               <Trash2 size={10} />
@@ -239,7 +239,7 @@ export function EditorReino({
             </button>
 
             <button
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
               disabled={status === "saving"}
               onClick={save}
             >

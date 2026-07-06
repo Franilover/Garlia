@@ -378,7 +378,7 @@ function BloqueMagicoUI({
         }}
       >
         <span
-          className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 38%, transparent)",
           }}
@@ -401,7 +401,7 @@ function BloqueMagicoUI({
         >
           {ids.length > 0 && (
             <span
-              className="text-[7px] font-black tabular-nums"
+              className="text-micro font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
               {ids.length}
@@ -442,7 +442,7 @@ function BloqueMagicoUI({
             />
             <input
               autoFocus
-              className="flex-1 bg-transparent outline-none text-[9px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
+              className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal placeholder:opacity-50"
               placeholder="Buscar…"
               style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
@@ -465,7 +465,7 @@ function BloqueMagicoUI({
                 <Loader2 className="animate-spin" size={11} />
               </div>
             ) : disponibles.length === 0 ? (
-              <p className="text-[8px] font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
+              <p className="text-micro font-black uppercase text-primary/25 px-3 py-2.5 text-center tracking-widest">
                 {search
                   ? "Sin resultados"
                   : gruposActuales.length === 0
@@ -488,7 +488,7 @@ function BloqueMagicoUI({
                     setOpen(false);
                   }}
                 >
-                  <span className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide truncate">
+                  <span className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide truncate">
                     {e.nombre}
                   </span>
                 </button>
@@ -509,7 +509,7 @@ function BloqueMagicoUI({
             }}
           />
           <p
-            className="text-[8px] font-black uppercase tracking-widest"
+            className="text-micro font-black uppercase tracking-widest"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -524,7 +524,7 @@ function BloqueMagicoUI({
             className="group flex items-center gap-2 px-3 py-1.5 transition-all hover:bg-primary/5"
           >
             <span
-              className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-wide truncate"
+              className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide truncate"
               style={{
                 color: "color-mix(in srgb, var(--primary) 65%, transparent)",
               }}

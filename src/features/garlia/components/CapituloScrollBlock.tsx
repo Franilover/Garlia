@@ -241,7 +241,7 @@ export function CapituloScrollBlock({ cap, onNavigate, esExtra = false, haySegSi
             {cap.titulo_capitulo}
           </h1>
           {!esExtra && (
-            <div className="flex items-center justify-center gap-4 mt-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
+            <div className="flex items-center justify-center gap-4 mt-4 text-micro font-black uppercase tracking-widest text-primary/25">
               <span className="flex items-center gap-1"><AlignLeft size={9} /> {words.toLocaleString()} palabras</span>
               <span className="flex items-center gap-1"><Clock size={9} /> ~{Math.max(1, Math.round(words / 200))} min</span>
             </div>

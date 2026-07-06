@@ -248,13 +248,13 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                     {cancion.titulo}
                   </h1>
                   <span
-                    className="text-[8px] font-bold px-1.5 py-0.5 rounded border leading-none shrink-0"
+                    className="text-micro font-bold px-1.5 py-0.5 rounded border leading-none shrink-0"
                     style={ESTADO_COLOR[cancion.estado]}
                   >
                     {cancion.estado}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[9px] font-medium text-primary/30 uppercase tracking-wider truncate">
+                <div className="flex items-center gap-2 text-micro font-medium text-primary/30 uppercase tracking-wider truncate">
                   <span className="flex items-center gap-1">
                     <Mic2 size={10} /> {cancion.cantante || "Artista"}
                   </span>
@@ -271,7 +271,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.15em] transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-black uppercase tracking-[0.15em] transition-all ${
                     activeTab === tab.id
                       ? "bg-primary text-bg-main"
                       : "text-primary/40 hover:text-primary"
@@ -286,10 +286,10 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
             {/* Acciones e Indicadores */}
             <div className="flex items-center gap-2">
               <div className="hidden sm:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black text-primary/40 leading-none">
+                <span className="text-micro font-black text-primary/40 leading-none">
                   {pct}%
                 </span>
-                <span className="text-[8px] font-bold text-primary/20 uppercase tracking-tighter">
+                <span className="text-micro font-bold text-primary/20 uppercase tracking-tighter">
                   Completado
                 </span>
               </div>
@@ -353,7 +353,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   )}
                 </div>
                 <button
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border transition-all shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-black uppercase border transition-all shrink-0 ${
                     splitMode
                       ? "bg-primary text-bg-main border-primary"
                       : "border-primary/10 text-primary/40 hover:border-primary/30"
@@ -372,7 +372,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                   {(["silabas", "vocales"] as const).map((m) => (
                     <button
                       key={m}
-                      className={`px-2 py-1 rounded-md text-[8px] font-black uppercase transition-all ${
+                      className={`px-2 py-1 rounded-md text-micro font-black uppercase transition-all ${
                         countMode === m
                           ? "bg-primary text-bg-main"
                           : "text-primary/30 hover:text-primary/60"
@@ -383,7 +383,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                     </button>
                   ))}
                 </div>
-                <span className="text-[9px] font-black text-primary/20 uppercase tracking-widest hidden sm:block">
+                <span className="text-micro font-black text-primary/20 uppercase tracking-widest hidden sm:block">
                   Secciones: {conLetra}/{secciones.length}
                 </span>
               </div>
@@ -403,7 +403,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.icon}
-                <span className="text-[8px] font-black uppercase tracking-widest">
+                <span className="text-micro font-black uppercase tracking-widest">
                   {tab.label}
                 </span>
               </button>
@@ -439,7 +439,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
               ) : (
                 <div className="flex flex-col items-center gap-3 py-20 text-primary/20">
                   <Layers size={48} strokeWidth={1} />
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">
+                  <p className="text-micro font-black uppercase tracking-[0.2em]">
                     Sin secciones aún
                   </p>
                 </div>
@@ -477,7 +477,7 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
                 </motion.div>
               ) : (
                 <button
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border border-dashed border-primary/10 text-[10px] font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all tracking-[0.3em]"
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border border-dashed border-primary/10 text-micro font-black uppercase text-primary/30 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all tracking-[0.3em]"
                   onClick={() => setAddingOpen(true)}
                 >
                   <Plus size={14} /> Añadir Sección

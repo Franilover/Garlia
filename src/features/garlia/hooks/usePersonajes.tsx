@@ -118,7 +118,7 @@ export function PersonajesDesbloqueadosToast({
             background: "color-mix(in srgb, var(--primary) 6%, transparent)",
           }}
         >
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
+          <span className="text-micro font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
             <Sword size={11} />
             {personajes.length === 1
               ? "Personaje desbloqueado"
@@ -151,7 +151,7 @@ export function PersonajesDesbloqueadosToast({
                 <p className="text-sm font-black uppercase italic text-primary tracking-tight">
                   {p.nombre}
                 </p>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">
+                <p className="text-micro font-bold uppercase tracking-widest text-primary/40">
                   Añadido a tu agenda
                 </p>
               </div>

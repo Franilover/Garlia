@@ -59,7 +59,7 @@ export const ModalNuevaCancion = ({
   return (
     <ModalBase onClose={onClose}>
       <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+        <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
           <Music size={12} /> Nueva Canción
         </h3>
         <button className="text-primary/30 hover:text-primary transition-colors" onClick={onClose}><X size={16} /></button>
@@ -75,11 +75,11 @@ export const ModalNuevaCancion = ({
         <SelectIdioma value={idioma} onChange={setIdioma} />
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
+          <label className="text-micro font-black uppercase text-primary/30 tracking-widest">Estado</label>
           <div className="flex gap-2">
             {ESTADOS.map(e => (
               <button
-                key={e} className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                key={e} className={`flex-1 py-2 rounded-xl text-micro font-black uppercase tracking-widest border transition-all ${
                   estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30"
                 }`}
                 type="button"
@@ -91,7 +91,7 @@ export const ModalNuevaCancion = ({
           </div>
         </div>
 
-        {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
+        {error && <p className="text-micro font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
         <BotonSubmit
           disabled={!titulo.trim()}

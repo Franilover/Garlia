@@ -42,7 +42,7 @@ export function PickerImagen({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 {icon} {titulo}
               </h3>
               <button
@@ -63,7 +63,7 @@ export function PickerImagen({
         </div>
       )}
       <button
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-[10px] font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-primary/15 text-micro font-black uppercase tracking-widest text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
         onClick={() => setOpen(true)}
       >
         {icon} {label}
@@ -93,7 +93,7 @@ export function PickerCaraBtn({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <Camera size={11} /> Imagen de perfil
               </h3>
               <button

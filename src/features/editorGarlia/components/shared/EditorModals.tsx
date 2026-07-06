@@ -205,7 +205,7 @@ export function ModalAcontecimiento({
             <Clock className="text-primary/50" size={12} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Añadir acontecimiento</p>
+            <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/40">Añadir acontecimiento</p>
           </div>
           <button className="text-primary/25 hover:text-primary transition-colors" onClick={onClose}>
             <X size={15} />
@@ -214,12 +214,12 @@ export function ModalAcontecimiento({
 
         <div className="p-4 space-y-3">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Ámbito</label>
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">Ámbito</label>
             <div className="flex gap-1.5">
               {(["global", "reino"] as const).map((s) => (
                 <button
                   key={s}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-micro font-black uppercase tracking-widest border transition-all"
                   style={
                     scope === s
                       ? { background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" }
@@ -236,11 +236,11 @@ export function ModalAcontecimiento({
 
           {scope === "reino" && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
+              <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">Reino</label>
               {loadingR ? (
                 <div className="flex items-center gap-2 px-3 py-2">
                   <Loader2 className="animate-spin text-primary/20" size={11} />
-                  <span className="text-[10px] text-primary/30">Cargando reinos…</span>
+                  <span className="text-micro text-primary/30">Cargando reinos…</span>
                 </div>
               ) : (
                 <select
@@ -259,7 +259,7 @@ export function ModalAcontecimiento({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
               Año / Era{" "}
               <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span>
             </label>
@@ -272,7 +272,7 @@ export function ModalAcontecimiento({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Título</label>
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">Título</label>
             <input
               className={`${INPUT} ${borderNorm}`}
               placeholder="La Gran Batalla, Fundación del Imperio…"
@@ -283,7 +283,7 @@ export function ModalAcontecimiento({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
               Qué ocurrió{" "}
               <span className="text-primary/20 normal-case tracking-normal font-medium">(opcional)</span>
             </label>
@@ -296,7 +296,7 @@ export function ModalAcontecimiento({
             />
           </div>
 
-          {error && <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>}
+          {error && <p className="text-micro text-red-400 font-medium px-1">{error}</p>}
         </div>
 
         <div
@@ -304,13 +304,13 @@ export function ModalAcontecimiento({
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
         >
           <button
-            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            className="px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
             onClick={onClose}
           >
             Cancelar
           </button>
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest transition-all disabled:opacity-40"
             disabled={!canSave || saving}
             style={{
               background: saved ? "color-mix(in srgb, #22c55e 80%, transparent)" : "var(--primary)",
@@ -448,7 +448,7 @@ export function ModalNuevoGrupo({
             {cfg ? <cfg.Icon size={12} style={{ color: cfg.color }} /> : <Layers className="text-primary/40" size={12} />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">
+            <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/40">
               {cfg ? `Nuevo grupo · ${cfg.labelPlural}` : "Nuevo grupo"}
             </p>
           </div>
@@ -459,7 +459,7 @@ export function ModalNuevoGrupo({
 
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Tipo de miembros</label>
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">Tipo de miembros</label>
             <div className="grid grid-cols-3 gap-1.5">
               {(Object.entries(GRUPO_MODAL_CONFIG) as [GrupoTipoLocal, typeof GRUPO_MODAL_CONFIG[GrupoTipoLocal]][]).map(([key, c]) => {
                 const isSelected = tipo === key;
@@ -492,7 +492,7 @@ export function ModalNuevoGrupo({
                       style={{ color: isSelected ? c.color : `color-mix(in srgb, ${c.color} 55%, transparent)` }}
                     />
                     <span
-                      className="text-[9px] font-black uppercase tracking-widest leading-tight text-center"
+                      className="text-micro font-black uppercase tracking-widest leading-tight text-center"
                       style={{ color: isSelected ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}
                     >
                       {c.labelPlural}
@@ -501,12 +501,12 @@ export function ModalNuevoGrupo({
                 );
               })}
             </div>
-            {tipo && cfg && <p className="text-[8px] text-primary/25 italic px-0.5">{cfg.ejemplo}</p>}
+            {tipo && cfg && <p className="text-micro text-primary/25 italic px-0.5">{cfg.ejemplo}</p>}
           </div>
 
           {tipo && (
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">Nombre del grupo</label>
+              <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">Nombre del grupo</label>
               <input
                 ref={inputRef}
                 className={`${INPUT} border-primary/15`}
@@ -518,7 +518,7 @@ export function ModalNuevoGrupo({
             </div>
           )}
 
-          {error && <p className="text-[10px] text-red-400 font-medium px-1">{error}</p>}
+          {error && <p className="text-micro text-red-400 font-medium px-1">{error}</p>}
         </div>
 
         <div
@@ -526,13 +526,13 @@ export function ModalNuevoGrupo({
           style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
         >
           <button
-            className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
+            className="px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-all border border-transparent hover:border-primary/10"
             onClick={onClose}
           >
             Cancelar
           </button>
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest transition-all disabled:opacity-40"
             disabled={!canSave || saving}
             style={{
               background: saved

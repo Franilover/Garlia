@@ -91,7 +91,7 @@ export function BloqueGrupoCategoria({
               }}
             >
               <button
-                className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
+                className="flex-1 flex items-center gap-2 px-3 py-2 text-micro font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
                 style={{ color: "var(--primary)" }}
                 title="Ir al grupo"
                 type="button"
@@ -122,7 +122,7 @@ export function BloqueGrupoCategoria({
 
       {actual.length === 0 && (
         <button
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-micro font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
@@ -131,7 +131,7 @@ export function BloqueGrupoCategoria({
           type="button"
           onClick={() => setOpen((o) => !o)}
         >
-          <span className="font-black uppercase text-[10px] tracking-wide">
+          <span className="font-black uppercase text-micro tracking-wide">
             Sin asignar
           </span>
           <ChevronDown
@@ -168,7 +168,7 @@ export function BloqueGrupoCategoria({
             />
             <input
               autoFocus
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
               placeholder="Buscar…"
               style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
@@ -192,7 +192,7 @@ export function BloqueGrupoCategoria({
           <div className="max-h-48 overflow-y-auto">
             {actual.length > 0 && (
               <button
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/5"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 }}
@@ -211,18 +211,18 @@ export function BloqueGrupoCategoria({
             )}
 
             {gruposDeCat.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+              <p className="text-micro text-primary/30 px-4 py-3 font-bold uppercase">
                 No hay grupos de «{label}» creados
               </p>
             ) : disponibles.length === 0 && actual.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+              <p className="text-micro text-primary/30 px-4 py-3 font-bold uppercase">
                 {search ? `Sin resultados para "${search}"` : "Todos asignados"}
               </p>
             ) : (
               disponibles.map((g) => (
                 <button
                   key={g.id}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/6"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -278,7 +278,7 @@ export function BloqueGruposCriatura({
 
   return (
     <div className="space-y-2">
-      <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
+      <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30 flex items-center gap-1">
         <Layers size={9} /> Grupos
       </label>
 
@@ -287,7 +287,7 @@ export function BloqueGruposCriatura({
           {gruposActuales.map((g) => (
             <div
               key={g.id}
-              className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-lg border text-[10px] font-bold"
+              className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-lg border text-micro font-bold"
               style={{
                 background:
                   "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -318,7 +318,7 @@ export function BloqueGruposCriatura({
 
       <div className="relative">
         <button
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all cursor-pointer"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
             color: "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -355,7 +355,7 @@ export function BloqueGruposCriatura({
               >
                 <input
                   autoFocus
-                  className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                  className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                   placeholder="Buscar grupo…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -363,14 +363,14 @@ export function BloqueGruposCriatura({
               </div>
               <div className="max-h-44 overflow-y-auto p-1">
                 {disponibles.length === 0 ? (
-                  <p className="text-[9px] text-primary/25 italic text-center py-3">
+                  <p className="text-micro text-primary/25 italic text-center py-3">
                     {search ? "Sin resultados" : "Ya está en todos los grupos"}
                   </p>
                 ) : (
                   disponibles.map((g) => (
                     <button
                       key={g.id}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-micro font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
                       type="button"
                       onMouseDown={() => {
                         onAdd(g.id);

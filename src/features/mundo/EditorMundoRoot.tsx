@@ -7,13 +7,20 @@
  *   - features/editorGarlia/views/editorGarlia.tsx  (823 líneas, orquestador)
  *   - features/editorGarlia/views/EditorMundo.tsx    (2395 líneas, panel único)
  *
- * Por un shell delgado (~80 líneas) que:
+ * Por un shell delgado (~90 líneas) que:
  *   1. Lee el store de navegación (useMundoNavigation, Zustand — sin Provider,
  *      se importa y usa directamente donde haga falta).
  *   2. Conecta la paleta de comandos externa vía un solo puente tipado.
  *   3. Renderiza SOLO la sección activa, con code-splitting (React.lazy),
  *      así el usuario no descarga el editor de letras de canciones para
  *      editar un personaje.
+ *
+ * Navegación tipo "un solo panel que se transforma": cuando section === null
+ * se muestra <MundoMenu /> con las 12 secciones agrupadas; al elegir una,
+ * el MISMO espacio pasa a mostrar la columna angosta (lista) + editor de esa
+ * sección — no se agrega una columna nueva al lado. Cada sección trae su
+ * propia X (SectionListHeader o FloatingBackButton) para volver al menú
+ * vía goToMenu().
  *
  * Requiere: npm install zustand (verificado zustand@5.0.14 + TS strict).
  *
@@ -32,7 +39,7 @@ import { WikilinkProvider } from "@/features/editorGarlia/components/shared/Wiki
 
 import { useMundoNavigation } from "./store/useMundoNavigationStore";
 import { useExternalCommandBridge } from "./store/useExternalCommandBridge";
-import { MundoSidebar } from "./shared/MundoSidebar";
+import { MundoMenu } from "./shared/MundoMenu";
 import { useCreateEntity } from "./shared/useCreateEntity";
 import { useWikilinkNavigate } from "./shared/useWikilinkNavigate";
 
@@ -91,6 +98,8 @@ function ActiveSection() {
   const navKey = useMundoNavigation((s) => s.navKey);
 
   switch (section) {
+    case null:
+      return <MundoMenu />;
     case "personajes":
       return <PersonajesSection selectedId={selectedId} navKey={navKey} />;
     case "criaturas":
@@ -145,12 +154,11 @@ function EditorMundoInner() {
   return (
     <div className="flex flex-col w-full h-full overflow-hidden" style={{ background: "var(--bg-main)" }}>
       {isOffline && (
-        <div className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-orange-400">
+        <div className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-micro font-black uppercase tracking-widest text-orange-400">
           <WifiOff size={10} /> Sin conexión · algunos datos pueden estar desactualizados
         </div>
       )}
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        <MundoSidebar />
         <WikilinkProvider onWikilink={handleWikilinkNavigate}>
           <Suspense fallback={<SectionFallback />}>
             <ActiveSection />

@@ -29,7 +29,7 @@ function EtiquetaChip({
 }) {
   return (
     <span
-      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all"
+      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-widest border transition-all"
       style={{
         background: "color-mix(in srgb, var(--primary) 8%, transparent)",
         borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
@@ -143,7 +143,7 @@ export function EditorNota({
       >
         {/* Título editable */}
         <input
-          className="w-full bg-transparent text-[13px] font-black text-primary outline-none placeholder:text-primary/25 border-b border-transparent focus:border-primary/15 pb-0.5 transition-colors"
+          className="w-full bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25 border-b border-transparent focus:border-primary/15 pb-0.5 transition-colors"
           placeholder="Título de la nota…"
           value={form.titulo}
           onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
@@ -165,7 +165,7 @@ export function EditorNota({
               <input
                 ref={tagInputRef}
                 autoFocus
-                className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-[9px] font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
+                className="w-24 bg-primary/5 border border-primary/15 rounded-lg px-2 py-0.5 text-micro font-medium outline-none focus:border-primary/30 text-primary placeholder:text-primary/25"
                 placeholder="Nueva etiqueta…"
                 value={etiquetaInput}
                 onBlur={(e) => {
@@ -203,7 +203,7 @@ export function EditorNota({
             </div>
           ) : (
             <button
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-dashed transition-all text-primary/25 hover:text-primary/50"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black uppercase tracking-widest border border-dashed transition-all text-primary/25 hover:text-primary/50"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -239,7 +239,7 @@ export function EditorNota({
       >
         {/* Eliminar */}
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-400/20 text-red-400/50 hover:text-red-400 hover:border-red-400/40 hover:bg-red-400/5 transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-400/20 text-red-400/50 hover:text-red-400 hover:border-red-400/40 hover:bg-red-400/5 transition-all"
           onClick={handleDelete}
         >
           <Trash2 size={10} /> Eliminar
@@ -249,7 +249,7 @@ export function EditorNota({
         <div className="flex items-center gap-2">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={handleSave}
           >
@@ -311,7 +311,7 @@ export function ListaNotas({
       >
         <div className="relative flex-1">
           <input
-            className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-2.5 pr-5 py-1.5 text-[10px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+            className="w-full bg-primary/4 border border-primary/10 rounded-xl pl-2.5 pr-5 py-1.5 text-micro font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
             placeholder="Buscar notas…"
             value={search}
             onChange={(e) => onSearch(e.target.value)}
@@ -348,12 +348,12 @@ export function ListaNotas({
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <FileText className="text-primary/15" size={20} strokeWidth={1} />
-            <p className="text-[9px] font-black uppercase tracking-widest text-primary/20">
+            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
               {search ? "Sin resultados" : "Sin notas aún"}
             </p>
             {!search && (
               <button
-                className="mt-1 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed transition-all text-primary/30 hover:text-primary/60"
+                className="mt-1 text-micro font-black uppercase tracking-widest px-3 py-1.5 rounded-xl border border-dashed transition-all text-primary/30 hover:text-primary/60"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -388,7 +388,7 @@ export function ListaNotas({
                 onClick={() => onSelect(n)}
               >
                 <p
-                  className={`text-[11px] font-bold truncate transition-colors ${
+                  className={`text-micro font-bold truncate transition-colors ${
                     isSelected
                       ? "text-primary"
                       : "text-primary/70 group-hover:text-primary/90"
@@ -400,7 +400,7 @@ export function ListaNotas({
                 </p>
                 {/* Preview del contenido */}
                 {n.contenido?.trim() && (
-                  <p className="text-[9px] text-primary/35 truncate mt-0.5 leading-tight">
+                  <p className="text-micro text-primary/35 truncate mt-0.5 leading-tight">
                     {n.contenido
                       .replace(/#+\s|[*_`]/g, "")
                       .trim()
@@ -413,7 +413,7 @@ export function ListaNotas({
                     {tags.slice(0, 3).map((tag) => (
                       <span
                         key={tag}
-                        className="px-1 py-0 rounded text-[7px] font-black uppercase tracking-wider"
+                        className="px-1 py-0 rounded text-micro font-black uppercase tracking-wider"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 7%, transparent)",
@@ -425,7 +425,7 @@ export function ListaNotas({
                       </span>
                     ))}
                     {tags.length > 3 && (
-                      <span className="text-[7px] text-primary/25">
+                      <span className="text-micro text-primary/25">
                         +{tags.length - 3}
                       </span>
                     )}

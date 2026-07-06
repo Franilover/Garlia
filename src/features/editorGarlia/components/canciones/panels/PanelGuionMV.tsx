@@ -160,10 +160,10 @@ export const PanelGuionMV = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
+          <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/35 flex items-center gap-1.5">
             <Film size={10} /> Guion del MV
           </p>
-          <p className="text-[8px] text-primary/20 font-bold uppercase tracking-widest mt-0.5">
+          <p className="text-micro text-primary/20 font-bold uppercase tracking-widest mt-0.5">
             {guion.length > 0
               ? `${guion.length} escena${guion.length !== 1 ? "s" : ""} · vinculadas a timestamps del karaoke`
               : "Escenas del MV vinculadas a momentos de la canción"}
@@ -174,7 +174,7 @@ export const PanelGuionMV = ({
             <Loader2 className="animate-spin text-primary/30" size={12} />
           )}
           <button
-            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest hover:opacity-90 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-bg-main rounded-xl text-micro font-black uppercase tracking-widest hover:opacity-90 transition-all"
             onClick={() => {
               resetForm();
               setFormOpen(true);
@@ -188,7 +188,7 @@ export const PanelGuionMV = ({
       {/* Timestamps disponibles del karaoke */}
       {timestampsDisponibles.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">
+          <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/25">
             Timestamps del karaoke — clic para añadir o editar escena
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -197,7 +197,7 @@ export const PanelGuionMV = ({
               return (
                 <button
                   key={ts}
-                  className={`font-mono text-[10px] font-black px-2.5 py-1 rounded-lg border transition-all ${
+                  className={`font-mono text-micro font-black px-2.5 py-1 rounded-lg border transition-all ${
                     tienEscena
                       ? "bg-primary/20 text-primary border-primary/40 hover:bg-primary/30"
                       : "bg-primary/5 text-primary/40 border-primary/15 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
@@ -205,7 +205,7 @@ export const PanelGuionMV = ({
                   onClick={() => handleTimestampClick(ts)}
                 >
                   {fmtTimeSeg(ts)}
-                  {tienEscena && <span className="ml-1 text-[8px]">✦</span>}
+                  {tienEscena && <span className="ml-1 text-micro">✦</span>}
                 </button>
               );
             })}
@@ -218,10 +218,10 @@ export const PanelGuionMV = ({
         <div className="flex flex-col items-center gap-3 py-12 text-primary/20 border border-dashed border-primary/10 rounded-xl">
           <Film size={36} strokeWidth={1} />
           <div className="text-center space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest">
+            <p className="text-micro font-black uppercase tracking-widest">
               Sin escenas aún
             </p>
-            <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">
+            <p className="text-micro font-bold uppercase tracking-widest opacity-60">
               Añade marcas de tiempo en el karaoke para usarlas como referencia,
               <br />o crea escenas manualmente con cualquier momento de la
               canción.
@@ -233,13 +233,13 @@ export const PanelGuionMV = ({
       {/* Formulario */}
       {formOpen && (
         <div className="border border-primary/15 rounded-xl bg-primary/3 p-4 space-y-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/40">
+          <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/40">
             {editId ? "Editar escena" : "Nueva escena"}
           </p>
 
           <div className="flex gap-3 items-end flex-wrap">
             <div className="space-y-1.5 w-28">
-              <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">
+              <label className="text-micro font-black uppercase text-primary/30 tracking-widest">
                 Tiempo
               </label>
               <div className="relative">
@@ -257,7 +257,7 @@ export const PanelGuionMV = ({
             </div>
 
             <div className="space-y-1.5 flex-1 min-w-0">
-              <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">
+              <label className="text-micro font-black uppercase text-primary/30 tracking-widest">
                 Tipo
               </label>
               <div className="flex gap-1 flex-wrap">
@@ -265,7 +265,7 @@ export const PanelGuionMV = ({
                   (t) => (
                     <button
                       key={t}
-                      className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                      className={`px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest border transition-all ${
                         formTipo === t
                           ? ""
                           : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/60"
@@ -283,7 +283,7 @@ export const PanelGuionMV = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[8px] font-black uppercase text-primary/30 tracking-widest">
+            <label className="text-micro font-black uppercase text-primary/30 tracking-widest">
               Descripción
             </label>
             <textarea
@@ -311,7 +311,7 @@ export const PanelGuionMV = ({
 
           <div className="flex items-center gap-2 pt-1 flex-wrap">
             <button
-              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-micro font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
               disabled={
                 !formDesc.trim() ||
                 !formTs.trim() ||
@@ -328,13 +328,13 @@ export const PanelGuionMV = ({
               {editId ? "Guardar cambios" : "Añadir escena"}
             </button>
             <button
-              className="px-3 py-2 rounded-xl border border-primary/15 text-[9px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+              className="px-3 py-2 rounded-xl border border-primary/15 text-micro font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
               type="button"
               onClick={resetForm}
             >
               Cancelar
             </button>
-            <p className="text-[8px] text-primary/20 font-bold uppercase tracking-widest">
+            <p className="text-micro text-primary/20 font-bold uppercase tracking-widest">
               Ctrl+Enter para guardar
             </p>
           </div>
@@ -354,7 +354,7 @@ export const PanelGuionMV = ({
                   {fmtTimeSeg(escena.timestamp_seg)}
                 </span>
                 <span
-                  className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded-md border whitespace-nowrap"
+                  className="text-micro font-black uppercase px-1.5 py-0.5 rounded-md border whitespace-nowrap"
                   style={TIPO_ESCENA_COLOR[escena.tipo]}
                 >
                   {TIPO_ESCENA_LABEL[escena.tipo]}

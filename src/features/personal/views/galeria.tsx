@@ -409,7 +409,7 @@ function EditModal({
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50">
+          <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50">
             Editar obra
           </h3>
           <button
@@ -491,7 +491,7 @@ function EditModal({
             {ratios.map((r) => (
               <button
                 key={r.value}
-                className="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border"
+                className="flex-1 py-2 rounded-xl text-micro font-black uppercase tracking-widest transition-all border"
                 style={{
                   background:
                     aspectRatio === r.value ? "var(--primary)" : "transparent",
@@ -512,7 +512,7 @@ function EditModal({
 
           <div className="flex gap-2 pt-1">
             <button
-              className="flex-1 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
+              className="flex-1 py-2.5 rounded-xl border text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -522,7 +522,7 @@ function EditModal({
               Cancelar
             </button>
             <button
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all"
               disabled={saving}
               style={{ background: "var(--primary)", color: "var(--btn-text)" }}
               onClick={handleSave}
@@ -597,7 +597,7 @@ function AddModal({
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+          <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> Nueva Obra
           </h3>
           <button
@@ -611,7 +611,7 @@ function AddModal({
         <div className="p-5">
           {step === "pick" ? (
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/30 text-center pb-2">
+              <p className="text-micro font-black uppercase tracking-widest text-primary/30 text-center pb-2">
                 Selecciona la imagen
               </p>
               <SimpleImagePicker
@@ -641,7 +641,7 @@ function AddModal({
               </div>
               <div className="flex gap-2">
                 <button
-                  className="px-4 py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
+                  className="px-4 py-2.5 rounded-xl border text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-all"
                   style={{
                     borderColor:
                       "color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -651,7 +651,7 @@ function AddModal({
                   Atrás
                 </button>
                 <button
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all"
                   disabled={saving}
                   style={{
                     background: "var(--primary)",
@@ -723,7 +723,7 @@ export default function GaleriaPage() {
             )}
           </div>
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest border border-dashed transition-all hover:opacity-80"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 30%, transparent)",

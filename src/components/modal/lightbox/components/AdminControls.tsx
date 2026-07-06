@@ -51,14 +51,14 @@ export const AdminControls = () => {
     }
   };
 
-  if (!isAdmin) return <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>;
+  if (!isAdmin) return <h2 className="text-white text-micro font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>;
 
   return (
     <div className="flex items-center gap-3">
       {editMode ? (
         <>
           <input
-            className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-[10px] uppercase font-black"
+            className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-micro uppercase font-black"
             value={nuevoTitulo}
             onChange={(e) => setNuevoTitulo(e.target.value)}
           />
@@ -67,7 +67,7 @@ export const AdminControls = () => {
         </>
       ) : (
         <>
-          <h2 className="text-white text-[10px] font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>
+          <h2 className="text-white text-micro font-black uppercase tracking-[0.4em]">{selectedImg?.alt}</h2>
           <button className="p-1 hover:bg-white/10 rounded" onClick={() => setEditMode(true)}><Edit3 size={14}/></button>
         </>
       )}

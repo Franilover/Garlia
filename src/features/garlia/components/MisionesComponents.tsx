@@ -111,7 +111,7 @@ export function EmptyMisiones({ label }: { label: string }) {
         }}
       />
       <p
-        className="font-serif italic text-[11px] text-center"
+        className="font-serif italic text-micro text-center"
         style={{
           color: "color-mix(in srgb, var(--primary) 30%, transparent)",
         }}
@@ -327,7 +327,7 @@ function EntidadesMision({ misionId }: { misionId: string }) {
           }}
         />
         <span
-          className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+          className="font-serif italic text-micro font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 28%, transparent)",
           }}
@@ -350,7 +350,7 @@ function EntidadesMision({ misionId }: { misionId: string }) {
             return (
               <div key={rol}>
                 <p
-                  className="text-[7px] font-black uppercase tracking-widest mb-1.5"
+                  className="text-micro font-black uppercase tracking-widest mb-1.5"
                   style={{ color: ROL_COLOR[rol] }}
                 >
                   {ROL_LABEL[rol]}
@@ -391,7 +391,7 @@ function EntidadesMision({ misionId }: { misionId: string }) {
                         )}
                       </div>
                       <span
-                        className="text-[10px] font-bold capitalize"
+                        className="text-micro font-bold capitalize"
                         style={{ color: "var(--primary)" }}
                       >
                         {e.nombre}
@@ -544,7 +544,7 @@ export function ModalMision({
                 }}
               />
               <span
-                className="text-[9px] font-black uppercase tracking-wider"
+                className="text-micro font-black uppercase tracking-wider"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 }}
@@ -559,7 +559,7 @@ export function ModalMision({
             <div className="mb-5">
               <div className="flex items-center justify-between mb-1.5">
                 <span
-                  className="text-[8px] font-black uppercase tracking-wider"
+                  className="text-micro font-black uppercase tracking-wider"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -568,7 +568,7 @@ export function ModalMision({
                   Progreso
                 </span>
                 <span
-                  className="text-[10px] font-black tabular-nums"
+                  className="text-micro font-black tabular-nums"
                   style={{ color: "var(--primary)" }}
                 >
                   {progreso}%
@@ -598,7 +598,7 @@ export function ModalMision({
                 }}
               />
               <span
-                className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                className="font-serif italic text-micro font-black uppercase tracking-widest"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 28%, transparent)",
                 }}
@@ -627,7 +627,7 @@ export function ModalMision({
               }}
             >
               <span
-                className="text-[11px] font-black tabular-nums"
+                className="text-micro font-black tabular-nums"
                 style={{ color: "var(--primary)" }}
               >
                 {mision.recompensa.xp} XP
@@ -653,7 +653,7 @@ export function ModalMision({
                   }}
                 />
                 <span
-                  className="text-[11px] font-black tabular-nums"
+                  className="text-micro font-black tabular-nums"
                   style={{ color: "var(--primary)" }}
                 >
                   {mision.recompensa.monedas}
@@ -680,7 +680,7 @@ export function ModalMision({
                   />
                 ) : null}
                 <span
-                  className="font-serif italic text-[10px]"
+                  className="font-serif italic text-micro"
                   style={{ color: "var(--primary)" }}
                 >
                   {mision.recompensa.item_nombre}
@@ -702,7 +702,7 @@ export function ModalMision({
               }}
             >
               <Lock size={12} />
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <span className="text-micro font-black uppercase tracking-wider">
                 Bloqueada
               </span>
             </button>
@@ -722,7 +722,7 @@ export function ModalMision({
               ) : (
                 <Check size={13} />
               )}
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <span className="text-micro font-black uppercase tracking-wider">
                 Reclamar recompensa
               </span>
             </button>
@@ -737,7 +737,7 @@ export function ModalMision({
               }}
             >
               <Clock size={12} />
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <span className="text-micro font-black uppercase tracking-wider">
                 Misión en curso
               </span>
             </div>
@@ -752,7 +752,7 @@ export function ModalMision({
               }}
             >
               <Check size={12} />
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <span className="text-micro font-black uppercase tracking-wider">
                 Completada
               </span>
             </div>
@@ -772,7 +772,7 @@ export function ModalMision({
               ) : (
                 <Scroll size={13} />
               )}
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <span className="text-micro font-black uppercase tracking-wider">
                 Aceptar misión
               </span>
             </button>

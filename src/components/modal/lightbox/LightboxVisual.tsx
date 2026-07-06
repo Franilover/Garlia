@@ -19,7 +19,7 @@ export default function LightboxVisual() {
       <header className="sticky top-0 w-full p-6 md:px-10 flex justify-between items-center z-[110] bg-black/80 backdrop-blur-md border-b border-white/5">
         <div className="flex flex-col flex-1 mr-4">
           <AdminControls />
-          <span className="text-white/30 text-[9px] font-mono mt-1 uppercase tracking-widest">
+          <span className="text-white/30 text-micro font-mono mt-1 uppercase tracking-widest">
             {tableContext} | {currentIndex + 1} de {gallery.length}
           </span>
         </div>

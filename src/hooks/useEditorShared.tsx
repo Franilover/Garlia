@@ -176,14 +176,14 @@ export function DraftRestoreBanner({
   if (!draft.hasDraft) return null;
 
   return (
-    <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[9px] font-black uppercase tracking-widest">
+    <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 text-micro font-black uppercase tracking-widest">
       <span className="flex items-center gap-2 text-amber-500">
         <Save size={11} />
         {label}
       </span>
       <div className="flex items-center gap-2">
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400 transition-all text-[9px] font-black uppercase"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-400 transition-all text-micro font-black uppercase"
           onClick={() => { onRestore(draft.draftValue); draft.dismiss(); }}
         >
           <RotateCcw size={10} /> Restaurar
@@ -225,7 +225,7 @@ export function SelectPersonaje({
 
   return (
     <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
+      <label className="text-micro font-black uppercase text-primary/30 tracking-widest">{label}</label>
       <div className="relative">
         <select
           className={selectCls}
@@ -270,7 +270,7 @@ export function SelectIdioma({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
+      <label className="text-micro font-black uppercase text-primary/30 tracking-widest">{label}</label>
       <div className="relative">
         <select
           className={selectCls}

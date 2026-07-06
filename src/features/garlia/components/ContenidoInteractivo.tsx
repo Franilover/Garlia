@@ -148,7 +148,7 @@ function SectionDivider({ label }: { label?: string }) {
     <div className="flex items-center gap-3 my-8">
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       {label && (
-        <span className="text-[9px] font-black uppercase tracking-widest text-primary/20 italic">
+        <span className="text-micro font-black uppercase tracking-widest text-primary/20 italic">
           {label}
         </span>
       )}

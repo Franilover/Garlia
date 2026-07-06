@@ -41,7 +41,8 @@ export type SectionKey =
 export type MagiaTipo = "hechizos" | "dones" | "runas";
 
 interface MundoNavState {
-  section: SectionKey;
+  /** null = mostrando el menú agrupado de secciones, sin ninguna abierta */
+  section: SectionKey | null;
   selectedId: string | null;
   /** Sub-tipo cuando section === "magia" */
   magiaTipo: MagiaTipo;
@@ -52,12 +53,14 @@ interface MundoNavState {
   openEntity: (section: SectionKey, id: string, magiaTipo?: MagiaTipo) => void;
   selectMagiaTipo: (tipo: MagiaTipo) => void;
   clearSelection: () => void;
+  /** Vuelve al menú de 12 secciones (la "X" para atrás) */
+  goToMenu: () => void;
 }
 
 export const useMundoNavigation = create<MundoNavState>()(
   persist(
     (set) => ({
-      section: "personajes",
+      section: null,
       selectedId: null,
       magiaTipo: "hechizos",
       navKey: 0,
@@ -75,6 +78,8 @@ export const useMundoNavigation = create<MundoNavState>()(
       selectMagiaTipo: (magiaTipo) => set({ magiaTipo, selectedId: null }),
 
       clearSelection: () => set({ selectedId: null }),
+
+      goToMenu: () => set({ section: null, selectedId: null }),
     }),
     {
       // Única clave de persistencia — reemplaza los 3 mecanismos previos

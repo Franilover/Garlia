@@ -8,7 +8,7 @@
  * internas para elegir el tipo, conectadas a `selectMagiaTipo()` del store.
  */
 
-import { ScrollText, Sparkles, Star } from "lucide-react";
+import { ScrollText, Sparkles, Star, X } from "lucide-react";
 import React from "react";
 
 import { EditorHechizos } from "@/features/editorGarlia/views/EditorHechizos";
@@ -30,17 +30,26 @@ const TIPOS: { key: MagiaTipo; label: string; Icon: React.ElementType }[] = [
 export function MagiaSection({ tipo, selectedId, navKey }: Props) {
   const selectMagiaTipo = useMundoNavigation((s) => s.selectMagiaTipo);
   const openEntity = useMundoNavigation((s) => s.openEntity);
+  const goToMenu = useMundoNavigation((s) => s.goToMenu);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-primary/10">
+        <button
+          type="button"
+          onClick={goToMenu}
+          className="p-1.5 rounded-lg text-primary/40 hover:bg-primary/10 hover:text-primary transition-colors shrink-0"
+          aria-label="Volver a secciones"
+        >
+          <X size={14} />
+        </button>
         {TIPOS.map(({ key, label, Icon }) => (
           <button
             key={key}
             type="button"
             onClick={() => selectMagiaTipo(key)}
             className={[
-              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors",
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wide transition-colors",
               tipo === key
                 ? "bg-primary/10 text-primary"
                 : "text-primary/40 hover:text-primary/70 hover:bg-primary/5",

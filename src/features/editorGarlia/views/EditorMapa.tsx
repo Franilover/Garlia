@@ -63,7 +63,7 @@ function Toast({
   }, [onClose]);
   return (
     <div
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-micro font-bold uppercase tracking-widest"
       style={{
         background: ok ? "rgba(5,150,105,0.95)" : "rgba(185,28,28,0.95)",
         color: "#fff",
@@ -210,7 +210,7 @@ function ModalNuevoTile({
           ].map(([lbl, val, setter]: any) => (
             <div key={lbl as string} className="flex flex-col gap-1">
               <label
-                className="text-[9px] font-bold uppercase tracking-widest"
+                className="text-micro font-bold uppercase tracking-widest"
                 style={{
                   color:
                     "color-mix(in srgb, var(--foreground) 50%, transparent)",
@@ -233,14 +233,14 @@ function ModalNuevoTile({
         </div>
 
         {isOccupied && (
-          <p className="text-[10px] font-bold text-red-400">
+          <p className="text-micro font-bold text-red-400">
             ⚠ [{col},{row}] ya existe
           </p>
         )}
-        {error && <p className="text-[10px] font-bold text-red-400">{error}</p>}
+        {error && <p className="text-micro font-bold text-red-400">{error}</p>}
 
         <button
-          className="btn-brand w-full justify-center py-2.5 text-[10px] uppercase disabled:opacity-50"
+          className="btn-brand w-full justify-center py-2.5 text-micro uppercase disabled:opacity-50"
           disabled={saving || isOccupied}
           onClick={handleCreate}
         >
@@ -272,7 +272,7 @@ function ImagePickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+          <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> {title ?? "Imagen del tile"}
           </h3>
           <button
@@ -478,7 +478,7 @@ export function EditorMapa({
               }}
             />
             <button
-              className="btn-brand flex items-center gap-1.5 px-3 py-2 text-[10px] uppercase"
+              className="btn-brand flex items-center gap-1.5 px-3 py-2 text-micro uppercase"
               onClick={() => setShowModal(true)}
             >
               <Plus size={11} /> Primer tile

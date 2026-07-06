@@ -1114,7 +1114,7 @@ export function UnifiedTileCanvas<
       {/* Cancelar selección de pin */}
       {selectedMarkerId && (
         <button
-          className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase"
+          className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase"
           style={{
             background:
               "color-mix(in srgb, var(--foreground) 70%, transparent)",
@@ -1130,7 +1130,7 @@ export function UnifiedTileCanvas<
       {tiles.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <p
-            className="text-[11px] font-black uppercase tracking-widest opacity-30"
+            className="text-micro font-black uppercase tracking-widest opacity-30"
             style={{ color: "var(--foreground)" }}
           >
             Sin tiles configurados
@@ -1142,7 +1142,7 @@ export function UnifiedTileCanvas<
       {editMode && tiles.length > 0 && (
         <div className="absolute top-2 left-2 z-10 pointer-events-none flex flex-col gap-1">
           <span
-            className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg"
+            className="text-micro font-bold uppercase tracking-widest px-2 py-1 rounded-lg"
             style={{
               background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
               color: "color-mix(in srgb, var(--foreground) 35%, transparent)",

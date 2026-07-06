@@ -560,13 +560,13 @@ export default function LibroDetalle() {
                   src={p.img_url}
                 />
               ) : (
-                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[7px] font-black text-primary/40">
+                <div className="w-full h-full bg-primary/10 flex items-center justify-center text-micro font-black text-primary/40">
                   {p.nombre[0]}
                 </div>
               )}
             </div>
             <span
-              className={`text-[8px] font-black uppercase tracking-wide ${i === 0 && cap.narrador_id === p.id ? "text-primary/60" : "text-primary/30"}`}
+              className={`text-micro font-black uppercase tracking-wide ${i === 0 && cap.narrador_id === p.id ? "text-primary/60" : "text-primary/30"}`}
             >
               {p.nombre}
             </span>
@@ -590,7 +590,7 @@ export default function LibroDetalle() {
         {reinos.map((r: any) => (
           <span
             key={r.id}
-            className="text-[8px] font-black uppercase tracking-wide text-primary/40 bg-primary/5 px-1.5 py-0.5 rounded"
+            className="text-micro font-black uppercase tracking-wide text-primary/40 bg-primary/5 px-1.5 py-0.5 rounded"
           >
             ♛ {r.nombre}
           </span>
@@ -598,7 +598,7 @@ export default function LibroDetalle() {
         {ciudades.map((c: any) => (
           <span
             key={c.id}
-            className="text-[8px] font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8"
+            className="text-micro font-bold uppercase tracking-wide text-primary/30 bg-primary/[0.03] px-1.5 py-0.5 rounded border border-primary/8"
           >
             ♖{c.nombre}
           </span>
@@ -611,7 +611,7 @@ export default function LibroDetalle() {
   const ListaCaps = ({ withPersonajes }: { withPersonajes: boolean }) => {
     if (loadingCaps && capitulos.length === 0)
       return (
-        <p className="text-center text-primary/25 font-bold text-[10px] uppercase tracking-widest py-12 italic animate-pulse">
+        <p className="text-center text-primary/25 font-bold text-micro uppercase tracking-widest py-12 italic animate-pulse">
           Cargando capítulos…
         </p>
       );
@@ -656,12 +656,12 @@ export default function LibroDetalle() {
                 {withPersonajes && <PersonajesRow cap={cap} />}
                 {withPersonajes && <LugarRow cap={cap} />}
                 {esRuta && (
-                  <span className="text-[8px] font-black uppercase tracking-widest text-blue-400">
+                  <span className="text-micro font-black uppercase tracking-widest text-blue-400">
                     ↳ Nodo de ruta
                   </span>
                 )}
                 <span
-                  className={`font-black uppercase text-[12px] group-hover:translate-x-1 transition-transform leading-snug ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}
+                  className={`font-black uppercase text-sm group-hover:translate-x-1 transition-transform leading-snug ${leido ? "text-primary/40 line-through decoration-primary/20" : "text-primary"}`}
                 >
                   {cap.orden}.{" "}
                   {esRuta
@@ -669,7 +669,7 @@ export default function LibroDetalle() {
                     : cap.titulo_capitulo}
                 </span>
                 {cap.fecha_publicacion && (
-                  <span className="text-primary/40 font-bold text-[9px] uppercase tracking-wider italic">
+                  <span className="text-primary/40 font-bold text-micro uppercase tracking-wider italic">
                     {new Date(cap.fecha_publicacion).toLocaleDateString(
                       "es-ES",
                     )}
@@ -779,7 +779,7 @@ export default function LibroDetalle() {
           <div className="flex flex-col gap-3">
             {capitulos.length > 0 && (
               <button
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-btn)] bg-primary text-[var(--btn-text)] font-black uppercase text-[10px] tracking-widest hover:opacity-90 transition-opacity"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-btn)] bg-primary text-[var(--btn-text)] font-black uppercase text-micro tracking-widest hover:opacity-90 transition-opacity"
                 onClick={() => {
                   navegarAlLector(rutaLector(capitulos[0].id));
                 }}
@@ -789,7 +789,7 @@ export default function LibroDetalle() {
               </button>
             )}
 
-            <p className="text-primary/40 text-[11px] italic leading-relaxed font-medium">
+            <p className="text-primary/40 text-micro italic leading-relaxed font-medium">
               {libro.sinopsis}
             </p>
 
@@ -800,13 +800,13 @@ export default function LibroDetalle() {
                   size={10}
                 />
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[8px] font-black uppercase tracking-widest text-primary/30">
+                  <span className="text-micro font-black uppercase tracking-widest text-primary/30">
                     Próximamente
                   </span>
-                  <span className="text-[10px] font-bold text-primary/50 italic">
+                  <span className="text-micro font-bold text-primary/50 italic">
                     {capituloProximo.titulo_capitulo}
                   </span>
-                  <span className="text-[8px] font-bold text-primary/25 uppercase tracking-wide">
+                  <span className="text-micro font-bold text-primary/25 uppercase tracking-wide">
                     {new Date(
                       capituloProximo.fecha_publicacion,
                     ).toLocaleDateString("es-ES")}

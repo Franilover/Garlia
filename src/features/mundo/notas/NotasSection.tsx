@@ -9,10 +9,11 @@
  * sección normal: usa `useNotas()` directamente, sin side-channels.
  */
 
-import { Plus, Search, StickyNote, Trash2 } from "lucide-react";
+import { StickyNote, Trash2 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { useNotas } from "../../editorGarlia/hooks/notas/useNotas";
+import { SectionListHeader } from "../shared/SectionListHeader";
 
 export function NotasSection() {
   const { notas, loading, crear, actualizar, eliminar } = useNotas();
@@ -44,25 +45,13 @@ export function NotasSection() {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <div className="w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0">
-        <div className="p-2 flex items-center gap-2 border-b border-primary/10">
-          <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
-            <Search size={12} className="text-primary/30" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar nota…"
-              className="flex-1 bg-transparent text-xs outline-none placeholder:text-primary/25"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-            aria-label="Crear nota"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+        <SectionListHeader
+          query={query}
+          onQueryChange={setQuery}
+          onCreate={handleCreate}
+          placeholder="Buscar nota…"
+          createLabel="Crear nota"
+        />
 
         <div className="flex-1 overflow-y-auto">
           {loading && notas.length === 0 ? (

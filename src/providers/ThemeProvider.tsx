@@ -352,7 +352,7 @@ export function ThemeSelector() {
       {/* Diseño */}
       <div className="flex flex-col gap-2">
         <p
-          className="text-[9px] font-black uppercase tracking-[0.2em]"
+          className="text-micro font-black uppercase tracking-[0.2em]"
           style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
         >
           Diseño
@@ -374,7 +374,7 @@ export function ThemeSelector() {
             onClick={() => setTheme(t.id)}
           >
             <span className="text-lg leading-none">{t.emoji}</span>
-            <p className="text-[11px] font-black uppercase tracking-wide leading-none">{t.label}</p>
+            <p className="text-micro font-black uppercase tracking-wide leading-none">{t.label}</p>
           </button>
         ))}
       </div>
@@ -383,7 +383,7 @@ export function ThemeSelector() {
       {!THEMES_WITH_OVERRIDE.has(theme) && (
         <div className="flex flex-col gap-2">
           <p
-            className="text-[9px] font-black uppercase tracking-[0.2em]"
+            className="text-micro font-black uppercase tracking-[0.2em]"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             Color

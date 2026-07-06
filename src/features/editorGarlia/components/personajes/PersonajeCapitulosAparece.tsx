@@ -42,7 +42,7 @@ export function PersonajeCapitulosAparece({
 
   if (!caps.length)
     return (
-      <p className="text-[7px] font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
+      <p className="text-micro font-black text-primary/20 uppercase tracking-[0.2em] text-center py-3 italic">
         Sin apariciones
       </p>
     );
@@ -57,15 +57,15 @@ export function PersonajeCapitulosAparece({
           type="button"
           onClick={() => navigateToCap(cap)}
         >
-          <span className="shrink-0 text-[7px] font-black tabular-nums text-accent/50 w-4 text-right leading-none">
+          <span className="shrink-0 text-micro font-black tabular-nums text-accent/50 w-4 text-right leading-none">
             {cap.orden}
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[8px] font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
+            <p className="text-micro font-black text-primary/70 truncate uppercase tracking-wide leading-tight group-hover:text-primary transition-colors">
               {cap.titulo_capitulo}
             </p>
             {cap.libro_titulo && (
-              <p className="text-[7px] text-primary/25 truncate leading-tight">
+              <p className="text-micro text-primary/25 truncate leading-tight">
                 {cap.libro_titulo}
               </p>
             )}

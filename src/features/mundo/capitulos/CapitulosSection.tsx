@@ -10,6 +10,13 @@
 
 import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
 
+import { FloatingBackButton } from "../shared/FloatingBackButton";
+
 export function CapitulosSection() {
-  return <EstudioCapitulos />;
+  return (
+    <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+      <FloatingBackButton />
+      <EstudioCapitulos />
+    </div>
+  );
 }

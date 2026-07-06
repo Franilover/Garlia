@@ -17,7 +17,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const labelStyle =
-    "block text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-2 ml-1";
+    "block text-micro font-black uppercase tracking-[0.2em] text-primary/60 mb-2 ml-1";
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -182,7 +182,7 @@ export default function LoginPage() {
         {mensaje && (
           <MotionP
             animate={{ opacity: 1 }}
-            className="mt-6 text-[10px] text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4"
+            className="mt-6 text-micro text-center text-primary font-black uppercase italic border-t border-primary/10 pt-4"
             initial={{ opacity: 0 }}
           >
             {mensaje}
@@ -190,7 +190,7 @@ export default function LoginPage() {
         )}
 
         <button
-          className="w-full mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-all underline decoration-1 underline-offset-8"
+          className="w-full mt-8 text-micro font-black uppercase tracking-[0.2em] text-primary/40 hover:text-primary transition-all underline decoration-1 underline-offset-8"
           onClick={() => {
             setIsRegistering(!isRegistering);
             setMensaje("");

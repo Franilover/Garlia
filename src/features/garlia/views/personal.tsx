@@ -360,7 +360,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             }}
           />
           <span
-            className="text-[9px] font-black uppercase tracking-[0.3em]"
+            className="text-micro font-black uppercase tracking-[0.3em]"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -478,7 +478,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {modalEntidad.data.reino && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -494,7 +494,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         )}
                         {modalEntidad.data.especie && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -529,7 +529,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {modalEntidad.data.reino && (
                         <span
-                          className="font-serif italic text-[9px] px-2 py-0.5"
+                          className="font-serif italic text-micro px-2 py-0.5"
                           style={{
                             background:
                               "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -545,7 +545,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       )}
                       {modalEntidad.data.especie && (
                         <span
-                          className="font-serif italic text-[9px] px-2 py-0.5"
+                          className="font-serif italic text-micro px-2 py-0.5"
                           style={{
                             background:
                               "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -592,7 +592,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <span
-                      className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                      className="font-serif italic text-micro font-black uppercase tracking-widest"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -620,7 +620,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <span
-                      className="font-serif italic text-[9px]"
+                      className="font-serif italic text-micro"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -631,7 +631,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                 ) : cancionesPersonaje.length === 0 ? (
                   <p
-                    className="font-serif italic text-[10px] py-4 text-center"
+                    className="font-serif italic text-micro py-4 text-center"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
@@ -702,14 +702,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         )}
                         <div className="flex-1 min-w-0">
                           <span
-                            className="font-serif italic text-[12px] truncate block group-hover:underline"
+                            className="font-serif italic text-sm truncate block group-hover:underline"
                             style={{ color: "var(--primary)" }}
                           >
                             {cancion.titulo ?? `Canción ${i + 1}`}
                           </span>
                           {cancion.info_cancion && (
                             <span
-                              className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                              className="text-micro font-black uppercase tracking-wider truncate block mt-0.5"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -890,7 +890,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           }}
                         />
                         <span
-                          className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                          className="font-serif italic text-micro font-black uppercase tracking-widest"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -987,14 +987,14 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           )}
                           <div className="flex-1 min-w-0">
                             <span
-                              className="font-serif italic text-[12px] truncate block group-hover:underline"
+                              className="font-serif italic text-sm truncate block group-hover:underline"
                               style={{ color: "var(--primary)" }}
                             >
                               {lugar.nombre}
                             </span>
                             {lugar.descripcion && (
                               <span
-                                className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                                className="text-micro font-black uppercase tracking-wider truncate block mt-0.5"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -1063,13 +1063,13 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               >
                 <div>
                   <p
-                    className="text-[10px] font-black uppercase tracking-widest"
+                    className="text-micro font-black uppercase tracking-widest"
                     style={{ color: "var(--primary)" }}
                   >
                     Elegir foto de perfil
                   </p>
                   <p
-                    className="text-[8px] font-bold uppercase tracking-widest mt-0.5"
+                    className="text-micro font-bold uppercase tracking-widest mt-0.5"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -1094,7 +1094,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 {personajesConImagen.length === 0 ? (
                   <div className="py-12 text-center">
                     <p
-                      className="text-[10px] font-black uppercase tracking-widest italic"
+                      className="text-micro font-black uppercase tracking-widest italic"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1134,7 +1134,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         />
                       </div>
                       <span
-                        className="text-[8px] font-black uppercase tracking-widest"
+                        className="text-micro font-black uppercase tracking-widest"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1190,7 +1190,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             />
                           </div>
                           <span
-                            className="text-[8px] font-black uppercase tracking-widest truncate w-full text-center"
+                            className="text-micro font-black uppercase tracking-widest truncate w-full text-center"
                             style={{
                               color: isSelected
                                 ? "var(--accent)"
@@ -1222,7 +1222,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     }}
                   />
                   <span
-                    className="text-[9px] font-black uppercase tracking-widest"
+                    className="text-micro font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1274,7 +1274,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 }}
               >
                 <p
-                  className="font-serif italic text-[11px]"
+                  className="font-serif italic text-micro"
                   style={{ color: "var(--primary)" }}
                 >
                   Elegir personaje favorito
@@ -1293,7 +1293,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
               <div className="overflow-y-auto flex-1 p-3">
                 <p
-                  className="font-serif italic text-[9px] px-2 mb-2"
+                  className="font-serif italic text-micro px-2 mb-2"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1303,7 +1303,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </p>
                 {misPersonajes.length === 0 ? (
                   <p
-                    className="font-serif italic text-[11px] text-center py-8"
+                    className="font-serif italic text-micro text-center py-8"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1364,7 +1364,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             )}
                           </div>
                           <span
-                            className="font-serif italic text-[9px] truncate w-full text-center"
+                            className="font-serif italic text-micro truncate w-full text-center"
                             style={{
                               color: isSelected
                                 ? "var(--accent)"
@@ -1421,7 +1421,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 }}
               >
                 <p
-                  className="font-serif italic text-[11px]"
+                  className="font-serif italic text-micro"
                   style={{ color: "var(--primary)" }}
                 >
                   Elegir mascota
@@ -1440,7 +1440,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               </div>
               <div className="overflow-y-auto flex-1 p-3">
                 <p
-                  className="font-serif italic text-[9px] px-2 mb-2"
+                  className="font-serif italic text-micro px-2 mb-2"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1450,7 +1450,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </p>
                 {misCriaturas.length === 0 ? (
                   <p
-                    className="font-serif italic text-[11px] text-center py-8"
+                    className="font-serif italic text-micro text-center py-8"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1510,7 +1510,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             )}
                           </div>
                           <span
-                            className="font-serif italic text-[9px] truncate w-full text-center"
+                            className="font-serif italic text-micro truncate w-full text-center"
                             style={{
                               color: isSelected
                                 ? "var(--accent)"
@@ -1571,7 +1571,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               >
                 <Scroll size={9} style={{ color: "var(--btn-text)" }} />
                 <span
-                  className="text-[9px] font-black uppercase tracking-[0.2em]"
+                  className="text-micro font-black uppercase tracking-[0.2em]"
                   style={{ color: "var(--btn-text)" }}
                 >
                   Misiones
@@ -1597,7 +1597,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   }}
                 />
                 <span
-                  className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
+                  className="text-micro font-black uppercase tracking-[0.22em] tabular-nums"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 55%, transparent)",
@@ -1609,7 +1609,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     misPersonajes.length}
                 </span>
                 <span
-                  className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
+                  className="text-micro font-black uppercase tracking-[0.2em] hidden sm:inline"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 36%, transparent)",
@@ -1663,7 +1663,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 }}
               >
                 <span
-                  className="text-[7px] font-black uppercase tracking-widest"
+                  className="text-micro font-black uppercase tracking-widest"
                   style={{ color: "var(--btn-text)" }}
                 >
                   Cambiar
@@ -1694,7 +1694,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     }}
                   />
                   <span
-                    className="text-[7px] font-black uppercase tracking-[0.22em]"
+                    className="text-micro font-black uppercase tracking-[0.22em]"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 48%, transparent)",
@@ -1753,7 +1753,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     }}
                   />
                   <p
-                    className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    className="text-micro font-black uppercase tracking-[0.3em]"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -1806,12 +1806,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           }}
                         >
                           {icon}
-                          <span className="text-[8px] font-black uppercase tracking-wider">
+                          <span className="text-micro font-black uppercase tracking-wider">
                             {label}
                           </span>
                         </div>
                         <span
-                          className="text-[13px] font-black tabular-nums"
+                          className="text-sm font-black tabular-nums"
                           style={{ color: "var(--primary)" }}
                         >
                           {count}
@@ -1857,7 +1857,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <p
-                      className="text-[8px] font-black uppercase tracking-[0.22em]"
+                      className="text-micro font-black uppercase tracking-[0.22em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1868,7 +1868,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   </div>
                   {!editingDesc ? (
                     <button
-                      className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 transition-all hover:opacity-80"
+                      className="text-micro font-black uppercase tracking-wider px-2.5 py-1 transition-all hover:opacity-80"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 45%, transparent)",
@@ -1888,7 +1888,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   ) : (
                     <div className="flex items-center gap-1.5">
                       <button
-                        className="text-[7px] font-black uppercase tracking-wider px-2 py-1"
+                        className="text-micro font-black uppercase tracking-wider px-2 py-1"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -1898,7 +1898,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         Cancelar
                       </button>
                       <button
-                        className="text-[7px] font-black uppercase tracking-wider px-2.5 py-1 disabled:opacity-50 transition-opacity"
+                        className="text-micro font-black uppercase tracking-wider px-2.5 py-1 disabled:opacity-50 transition-opacity"
                         disabled={savingDesc}
                         style={{
                           background: "var(--primary)",
@@ -1987,7 +1987,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      className="text-micro font-black uppercase tracking-[0.18em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 32%, transparent)",
@@ -2027,7 +2027,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           )}
                         </div>
                         <p
-                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          className="font-serif italic text-micro leading-tight capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {perfil.personaje_favorito.nombre}
@@ -2035,7 +2035,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </>
                     ) : (
                       <p
-                        className="font-serif italic text-[9px]"
+                        className="font-serif italic text-micro"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -2073,7 +2073,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      className="text-micro font-black uppercase tracking-[0.18em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 32%, transparent)",
@@ -2113,7 +2113,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           )}
                         </div>
                         <p
-                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          className="font-serif italic text-micro leading-tight capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {perfil.mascota.nombre}
@@ -2121,7 +2121,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       </>
                     ) : (
                       <p
-                        className="font-serif italic text-[9px]"
+                        className="font-serif italic text-micro"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -2147,7 +2147,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                     }}
                   />
                   <p
-                    className="text-[7px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                    className="text-micro font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2201,7 +2201,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                           )}
                         </div>
                         <span
-                          className="text-[9px] font-black uppercase tracking-wide capitalize"
+                          className="text-micro font-black uppercase tracking-wide capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {p.username}
@@ -2258,7 +2258,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       onClick={() => setTab(t.id)}
                     >
                       <t.icon size={11} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">
+                      <span className="text-micro font-black uppercase tracking-widest">
                         {t.label}
                       </span>
                     </button>
@@ -2306,7 +2306,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       onClick={() => setTab(t.id)}
                     >
                       <t.icon size={11} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">
+                      <span className="text-micro font-black uppercase tracking-widest">
                         {t.label}
                       </span>
                     </button>
@@ -2421,7 +2421,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {item.items.nombre}
@@ -2505,7 +2505,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {d.nombre ?? "Objeto"}
@@ -2600,7 +2600,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {d.nombre ?? "Criatura"}
@@ -2703,7 +2703,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[12px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-sm leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {d.nombre ?? "Contacto"}
@@ -2797,7 +2797,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {r.nombre}
@@ -2835,7 +2835,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2911,7 +2911,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
 
                         <div className="flex-1 min-w-0">
                           <p
-                            className="text-[10px] font-black uppercase tracking-tight truncate capitalize"
+                            className="text-micro font-black uppercase tracking-tight truncate capitalize"
                             style={{ color: "var(--primary)" }}
                           >
                             {p.username}
@@ -2927,7 +2927,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                             ].map(({ icon, n }, i) => (
                               <span
                                 key={i}
-                                className="flex items-center gap-0.5 text-[7px] font-black tabular-nums"
+                                className="flex items-center gap-0.5 text-micro font-black tabular-nums"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -2941,7 +2941,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         </div>
 
                         <span
-                          className="text-[8px] shrink-0"
+                          className="text-micro shrink-0"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 20%, transparent)",

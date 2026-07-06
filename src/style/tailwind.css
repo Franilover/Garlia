@@ -100,6 +100,18 @@
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
+  /* ── Escala reducida de tipografía (Fase 0) ──────────────────────────────
+     Reemplaza el uso disperso de text-[Npx] (6px a 20px, 1286 ocurrencias
+     detectadas) por 5 pasos con intención semántica clara. Cada paso cubre
+     un rol de UI, no un tamaño puntual — por eso no hay text-3xs/text-2xs
+     separados: toda etiqueta chica (badges, timestamps, labels) usa
+     text-micro sin distinguir "más o menos chica". */
+  --text-micro: 9px;   /* 6-11px original: badges, timestamps, labels */
+  --text-sm: 14px;     /* 12-13px original: cuerpo secundario/normal */
+  --text-base: 16px;   /* texto de cuerpo destacado / subtítulos chicos */
+  --text-xl: 20px;     /* 18-20px original: títulos de sección */
+  --text-3xl: 30px;    /* headers grandes */
+
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
   --animate-scanline: scanline-move 8s linear infinite;

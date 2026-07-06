@@ -213,7 +213,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             }}
           />
           <span
-            className="text-[9px] font-black uppercase tracking-[0.3em]"
+            className="text-micro font-black uppercase tracking-[0.3em]"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -238,7 +238,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           &quot;Explorador no encontrado&quot;
         </p>
         <Link
-          className="font-serif italic text-[9px] flex items-center gap-1.5 hover:opacity-70"
+          className="font-serif italic text-micro flex items-center gap-1.5 hover:opacity-70"
           href="/garlia/personal"
           style={{ color: "var(--primary)" }}
         >
@@ -403,7 +403,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           }}
                         />
                         <span
-                          className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                          className="font-serif italic text-micro font-black uppercase tracking-widest"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -499,14 +499,14 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           )}
                           <div className="flex-1 min-w-0">
                             <span
-                              className="font-serif italic text-[12px] truncate block group-hover:underline"
+                              className="font-serif italic text-sm truncate block group-hover:underline"
                               style={{ color: "var(--primary)" }}
                             >
                               {lugar.nombre}
                             </span>
                             {lugar.descripcion && (
                               <span
-                                className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                                className="text-micro font-black uppercase tracking-wider truncate block mt-0.5"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -633,7 +633,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {modalPersonaje.reino && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -649,7 +649,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         )}
                         {modalPersonaje.especie && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -703,7 +703,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {modalPersonaje.reino && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -719,7 +719,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         )}
                         {modalPersonaje.especie && (
                           <span
-                            className="font-serif italic text-[9px] px-2 py-0.5"
+                            className="font-serif italic text-micro px-2 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -767,7 +767,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       }}
                     />
                     <span
-                      className="font-serif italic text-[9px] font-black uppercase tracking-widest"
+                      className="font-serif italic text-micro font-black uppercase tracking-widest"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -795,7 +795,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       }}
                     />
                     <span
-                      className="font-serif italic text-[9px]"
+                      className="font-serif italic text-micro"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -806,7 +806,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                   </div>
                 ) : cancionesPersonaje.length === 0 ? (
                   <p
-                    className="font-serif italic text-[10px] py-4 text-center"
+                    className="font-serif italic text-micro py-4 text-center"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
@@ -877,14 +877,14 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         )}
                         <div className="flex-1 min-w-0">
                           <span
-                            className="font-serif italic text-[12px] truncate block group-hover:underline"
+                            className="font-serif italic text-sm truncate block group-hover:underline"
                             style={{ color: "var(--primary)" }}
                           >
                             {cancion.titulo ?? `Canción ${i + 1}`}
                           </span>
                           {cancion.info_cancion && (
                             <p
-                              className="font-serif italic text-[9px] truncate mt-0.5"
+                              className="font-serif italic text-micro truncate mt-0.5"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--foreground) 45%, transparent)",
@@ -1012,7 +1012,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             </h1>
             {perfil?.titulo && (
               <p
-                className="text-[8px] font-black uppercase tracking-[0.28em]"
+                className="text-micro font-black uppercase tracking-[0.28em]"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 38%, transparent)",
                 }}
@@ -1021,7 +1021,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               </p>
             )}
             <p
-              className="font-serif italic text-[10px]"
+              className="font-serif italic text-micro"
               style={{
                 color: "color-mix(in srgb, var(--primary) 45%, transparent)",
               }}
@@ -1040,7 +1040,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             }}
           />
           <span
-            className="text-[18px]"
+            className="text-base"
             style={{
               color: "color-mix(in srgb, var(--primary) 14%, transparent)",
             }}
@@ -1068,7 +1068,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
             }}
           />
           <span
-            className="font-serif italic text-[10px] select-none"
+            className="font-serif italic text-micro select-none"
             style={{
               color: "color-mix(in srgb, var(--primary) 28%, transparent)",
             }}
@@ -1110,7 +1110,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     }}
                   />
                   <p
-                    className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    className="text-micro font-black uppercase tracking-[0.3em]"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -1163,12 +1163,12 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           }}
                         >
                           {icon}
-                          <span className="text-[8px] font-black uppercase tracking-wider">
+                          <span className="text-micro font-black uppercase tracking-wider">
                             {label}
                           </span>
                         </div>
                         <span
-                          className="text-[13px] font-black tabular-nums"
+                          className="text-sm font-black tabular-nums"
                           style={{ color: "var(--primary)" }}
                         >
                           {count}
@@ -1213,7 +1213,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     }}
                   />
                   <p
-                    className="text-[8px] font-black uppercase tracking-[0.22em]"
+                    className="text-micro font-black uppercase tracking-[0.22em]"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -1270,7 +1270,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      className="text-micro font-black uppercase tracking-[0.18em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 32%, transparent)",
@@ -1310,7 +1310,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           )}
                         </div>
                         <p
-                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          className="font-serif italic text-micro leading-tight capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {perfil.personaje_favorito.nombre}
@@ -1318,7 +1318,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       </>
                     ) : (
                       <p
-                        className="font-serif italic text-[9px]"
+                        className="font-serif italic text-micro"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -1346,7 +1346,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.18em]"
+                      className="text-micro font-black uppercase tracking-[0.18em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 32%, transparent)",
@@ -1386,7 +1386,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           )}
                         </div>
                         <p
-                          className="font-serif italic text-[11px] leading-tight capitalize"
+                          className="font-serif italic text-micro leading-tight capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {perfil.mascota.nombre}
@@ -1394,7 +1394,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       </>
                     ) : (
                       <p
-                        className="font-serif italic text-[9px]"
+                        className="font-serif italic text-micro"
                         style={{
                           color:
                             "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -1420,7 +1420,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     }}
                   />
                   <p
-                    className="text-[7px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                    className="text-micro font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1474,7 +1474,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           )}
                         </div>
                         <span
-                          className="text-[9px] font-black uppercase tracking-wide capitalize"
+                          className="text-micro font-black uppercase tracking-wide capitalize"
                           style={{ color: "var(--primary)" }}
                         >
                           {p.username}
@@ -1532,7 +1532,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       onClick={() => setTab(t.id)}
                     >
                       <t.icon size={11} />
-                      <span className="text-[9px] font-black uppercase tracking-widest">
+                      <span className="text-micro font-black uppercase tracking-widest">
                         {t.label}
                       </span>
                     </button>
@@ -1580,7 +1580,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         onClick={() => setTab(t.id)}
                       >
                         <t.icon size={11} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-micro font-black uppercase tracking-widest">
                           {t.label}
                         </span>
                       </button>
@@ -1605,7 +1605,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     }}
                   />
                   <span
-                    className="text-[8px] font-black uppercase tracking-[0.22em] tabular-nums"
+                    className="text-micro font-black uppercase tracking-[0.22em] tabular-nums"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 38%, transparent)",
@@ -1766,7 +1766,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[12px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-sm leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {d.nombre ?? "Contacto"}
@@ -1868,7 +1868,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               }}
                             >
                               <p
-                                className="font-serif italic text-[9px] leading-tight capitalize truncate text-center"
+                                className="font-serif italic text-micro leading-tight capitalize truncate text-center"
                                 style={{ color: "var(--primary)" }}
                               >
                                 {r.nombre}
@@ -1904,7 +1904,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       }}
                     />
                     <p
-                      className="text-[7px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1978,7 +1978,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p
-                            className="text-[10px] font-black uppercase tracking-tight truncate capitalize"
+                            className="text-micro font-black uppercase tracking-tight truncate capitalize"
                             style={{ color: "var(--primary)" }}
                           >
                             {p.username}
@@ -1994,7 +1994,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                             ].map(({ icon, n }, i) => (
                               <span
                                 key={i}
-                                className="flex items-center gap-0.5 text-[7px] font-black tabular-nums"
+                                className="flex items-center gap-0.5 text-micro font-black tabular-nums"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -2007,7 +2007,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           </div>
                         </div>
                         <span
-                          className="text-[8px] shrink-0"
+                          className="text-micro shrink-0"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 20%, transparent)",

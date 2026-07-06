@@ -75,7 +75,7 @@ export function SelectorGrupoUnico({
           style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
         />
         <span
-          className="text-[8px] font-black uppercase tracking-[0.25em]"
+          className="text-micro font-black uppercase tracking-[0.25em]"
           style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
         >
           {label}
@@ -91,7 +91,7 @@ export function SelectorGrupoUnico({
           }}
         >
           <Loader2 className="animate-spin text-primary/30" size={10} />
-          <span className="text-[10px] text-primary/30">Cargando…</span>
+          <span className="text-micro text-primary/30">Cargando…</span>
         </div>
       ) : grupoActual ? (
         <div
@@ -102,7 +102,7 @@ export function SelectorGrupoUnico({
           }}
         >
           <button
-            className="flex-1 flex items-center gap-2 px-3 py-2 text-[11px] font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
+            className="flex-1 flex items-center gap-2 px-3 py-2 text-micro font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
             style={{ color: "var(--primary)" }}
             title={`Ir al grupo de ${label.toLowerCase()}`}
             type="button"
@@ -128,7 +128,7 @@ export function SelectorGrupoUnico({
         </div>
       ) : (
         <button
-          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-[11px] font-bold transition-all"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-[var(--radius-btn)] text-micro font-bold transition-all"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             border: open ? borderFocus : border,
@@ -137,7 +137,7 @@ export function SelectorGrupoUnico({
           type="button"
           onClick={() => setOpen((o) => !o)}
         >
-          <span className="font-black uppercase text-[10px] tracking-wide">
+          <span className="font-black uppercase text-micro tracking-wide">
             {emptyLabel}
           </span>
           <ChevronDown
@@ -172,7 +172,7 @@ export function SelectorGrupoUnico({
             />
             <input
               autoFocus
-              className="flex-1 bg-transparent outline-none text-[11px] font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
+              className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
               placeholder={`Buscar ${label.toLowerCase()}…`}
               style={{ color: "var(--primary)", caretColor: "var(--primary)" }}
               type="text"
@@ -194,7 +194,7 @@ export function SelectorGrupoUnico({
           <div className="max-h-48 overflow-y-auto">
             {grupoActual && (
               <button
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/5"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/5"
                 style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
                 type="button"
                 onMouseDown={() => {
@@ -211,11 +211,11 @@ export function SelectorGrupoUnico({
             )}
 
             {grupos.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+              <p className="text-micro text-primary/30 px-4 py-3 font-bold uppercase">
                 {noGruposLabel}
               </p>
             ) : disponibles.length === 0 ? (
-              <p className="text-[10px] text-primary/30 px-4 py-3 font-bold uppercase">
+              <p className="text-micro text-primary/30 px-4 py-3 font-bold uppercase">
                 {search
                   ? `Sin resultados para "${search}"`
                   : grupoActual
@@ -226,7 +226,7 @@ export function SelectorGrupoUnico({
               disponibles.map((g) => (
                 <button
                   key={g.id}
-                  className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-bold uppercase transition-all hover:bg-primary/6"
+                  className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/6"
                   style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
                   type="button"
                   onMouseDown={() => {

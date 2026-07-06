@@ -66,7 +66,7 @@ export function SubtipoInput({
     <div ref={ref} className="relative">
       <input
         ref={inputRef}
-        className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1 text-[10px] text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
+        className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1 text-micro text-primary outline-none focus:border-primary/25 placeholder:text-primary/25 transition-colors"
         placeholder={cfg.ejemplo}
         value={value}
         onChange={(e) => {
@@ -103,7 +103,7 @@ export function SubtipoInput({
                 }}
               />
               <span
-                className="text-[8px] font-black uppercase tracking-[0.25em]"
+                className="text-micro font-black uppercase tracking-[0.25em]"
                 style={{
                   color: `color-mix(in srgb, ${cfg.color} 45%, transparent)`,
                 }}
@@ -127,12 +127,12 @@ export function SubtipoInput({
                     type="button"
                     onMouseDown={() => select(s)}
                   >
-                    <span className="text-[9px] font-black uppercase tracking-wide text-primary/65">
+                    <span className="text-micro font-black uppercase tracking-wide text-primary/65">
                       {s}
                     </span>
                     {isCustom && (
                       <span
-                        className="text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
+                        className="text-micro font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md"
                         style={{
                           background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`,
                           color: `color-mix(in srgb, ${cfg.color} 60%, transparent)`,

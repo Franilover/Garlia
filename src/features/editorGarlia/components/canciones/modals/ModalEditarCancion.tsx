@@ -85,7 +85,7 @@ export const ModalEditarCancion = ({
   return (
     <ModalBase onClose={onClose}>
       <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+        <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
           <Pencil size={12} /> Editar Canción
         </h3>
         <button className="text-primary/30 hover:text-primary transition-colors" type="button" onClick={onClose}><X size={16} /></button>
@@ -101,26 +101,26 @@ export const ModalEditarCancion = ({
         <SelectIdioma value={idioma} onChange={setIdioma} />
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Duración (mm:ss)</label>
+          <label className="text-micro font-black uppercase text-primary/30 tracking-widest">Duración (mm:ss)</label>
           <input
-            className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20"
+            className="w-full bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-micro font-bold text-primary outline-none focus:border-primary/30 transition-colors placeholder:text-primary/20"
             placeholder="3:42"
             type="text"
             value={duracionStr}
             onChange={e => setDuracionStr(e.target.value)}
           />
-          <p className="text-[8px] text-primary/25 font-bold uppercase tracking-widest">
+          <p className="text-micro text-primary/25 font-bold uppercase tracking-widest">
             Usado para el slider del karaoke · formato min:seg
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Estado</label>
+          <label className="text-micro font-black uppercase text-primary/30 tracking-widest">Estado</label>
           <div className="flex gap-2">
             {ESTADOS.map(e => (
               <button
                 key={e}
-                className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                className={`flex-1 py-2 rounded-xl text-micro font-black uppercase tracking-widest border transition-all ${
                   estado === e ? "bg-primary text-bg-main border-primary" : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
                 }`}
                 type="button"
@@ -133,9 +133,9 @@ export const ModalEditarCancion = ({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
+          <label className="text-micro font-black uppercase text-primary/30 tracking-widest">Visibilidad</label>
           <button
-            className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-2.5 rounded-xl text-micro font-black uppercase tracking-widest border flex items-center justify-center gap-2 transition-all ${
               visible
                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                 : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary"
@@ -147,10 +147,10 @@ export const ModalEditarCancion = ({
           </button>
         </div>
 
-        {error && <p className="text-[9px] font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
+        {error && <p className="text-micro font-black uppercase text-red-400 tracking-widest">⚠ {error}</p>}
 
         <button
-          className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+          className="w-full bg-primary text-bg-main py-3 rounded-xl text-micro font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
           disabled={saving || !titulo.trim()}
           type="button"
           onClick={handleSave}

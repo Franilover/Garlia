@@ -103,19 +103,19 @@ function MacroPopover({
       transition={{ duration: 0.15 }}
       onClick={(e) => e.stopPropagation()}
     >
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 pb-1 border-b border-primary/8">
+      <p className="text-micro font-black uppercase tracking-widest text-primary/30 pb-1 border-b border-primary/8">
         {item.nombre} · {item.porcion_texto}
       </p>
       {macros.map(({ label, value, unit, Icon, color }) => (
         <div key={label} className="flex items-center gap-2">
           <Icon className={`${color} shrink-0`} size={11} />
-          <span className="text-[10px] font-bold text-primary/50 flex-1">
+          <span className="text-micro font-bold text-primary/50 flex-1">
             {label}
           </span>
-          <span className="text-[11px] font-black text-primary">
+          <span className="text-micro font-black text-primary">
             {value.toFixed(unit === "kcal" ? 0 : 1)}
           </span>
-          <span className="text-[9px] text-primary/25">{unit}</span>
+          <span className="text-micro text-primary/25">{unit}</span>
         </div>
       ))}
     </motion.div>
@@ -166,7 +166,7 @@ function IngredienteEditor({
     >
       <div className="mx-4 mb-3 rounded-[var(--radius-btn)] border border-primary/10 bg-bg-main overflow-hidden">
         <div className="px-3 py-2 border-b border-primary/8 flex items-center justify-between">
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+          <span className="text-micro font-black uppercase tracking-widest text-primary/40">
             Editar valores · por porción
           </span>
           <button
@@ -179,11 +179,11 @@ function IngredienteEditor({
         <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {fields.map(({ key, label, unit, step }) => (
             <div key={key} className="flex flex-col gap-1">
-              <label className="text-[8px] font-black uppercase tracking-widest text-primary/30 pl-0.5">
+              <label className="text-micro font-black uppercase tracking-widest text-primary/30 pl-0.5">
                 {label} ({unit})
               </label>
               <input
-                className="input-brand text-[11px] font-black py-1.5 px-2"
+                className="input-brand text-micro font-black py-1.5 px-2"
                 min="0"
                 step={step}
                 type="number"
@@ -197,7 +197,7 @@ function IngredienteEditor({
         </div>
         <div className="px-3 pb-3 flex justify-end">
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-accent text-white text-[9px] font-black uppercase tracking-widest"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-accent text-white text-micro font-black uppercase tracking-widest"
             onClick={() => {
               onUpdate(local);
               onClose();
@@ -233,27 +233,27 @@ function CartItemRow({
       <div className="flex items-center gap-2 px-4 py-2.5">
         {/* Nombre */}
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-black uppercase italic tracking-tight text-primary truncate">
+          <p className="text-micro font-black uppercase italic tracking-tight text-primary truncate">
             {item.nombre}
           </p>
-          <p className="text-[8px] text-primary/30 uppercase font-bold">
+          <p className="text-micro text-primary/30 uppercase font-bold">
             {item.porcion_texto}
           </p>
         </div>
 
         {/* Macros resumen */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-black text-primary/40">
+          <span className="text-micro font-black text-primary/40">
             {(kcal * entry.qty).toFixed(0)} kcal
           </span>
           {precio > 0 && (
-            <span className="text-[10px] font-black text-accent">
+            <span className="text-micro font-black text-accent">
               ${(precio * entry.qty).toFixed(0)}
             </span>
           )}
         </div>
         <div className="flex sm:hidden items-center gap-1.5 shrink-0">
-          <span className="text-[9px] font-black text-primary/40">
+          <span className="text-micro font-black text-primary/40">
             {(kcal * entry.qty).toFixed(0)} kcal
           </span>
         </div>
@@ -266,7 +266,7 @@ function CartItemRow({
           >
             <Minus size={10} />
           </button>
-          <span className="w-5 text-center text-[11px] font-black text-primary">
+          <span className="w-5 text-center text-micro font-black text-primary">
             {entry.qty}
           </span>
           <button
@@ -342,10 +342,10 @@ function IngredienteRow({
         <td className="px-3 py-3">
           <div className="flex items-center gap-1.5">
             <div>
-              <p className="text-[12px] font-black uppercase italic tracking-tight text-primary leading-none">
+              <p className="text-sm font-black uppercase italic tracking-tight text-primary leading-none">
                 {item.nombre}
               </p>
-              <p className="text-[9px] font-bold text-primary/30 uppercase mt-0.5">
+              <p className="text-micro font-bold text-primary/30 uppercase mt-0.5">
                 {item.porcion_texto}
               </p>
             </div>
@@ -371,11 +371,11 @@ function IngredienteRow({
               onClick={() => setPopoverOpen((p) => !p)}
             >
               <span
-                className={`text-[11px] font-black ${edits.kcal !== undefined ? "text-accent" : "text-primary"}`}
+                className={`text-micro font-black ${edits.kcal !== undefined ? "text-accent" : "text-primary"}`}
               >
                 {getEffective(item, edits, "kcal").toFixed(0)}
               </span>
-              <span className="text-[8px] text-primary/25 ml-0.5">kcal</span>
+              <span className="text-micro text-primary/25 ml-0.5">kcal</span>
             </button>
             <AnimatePresence>
               {popoverOpen && (
@@ -390,37 +390,37 @@ function IngredienteRow({
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
           <span
-            className={`text-[11px] font-black ${edits.proteinas !== undefined ? "text-accent" : "text-primary"}`}
+            className={`text-micro font-black ${edits.proteinas !== undefined ? "text-accent" : "text-primary"}`}
           >
             {getEffective(item, edits, "proteinas").toFixed(1)}
           </span>
-          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+          <span className="text-micro text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
           <span
-            className={`text-[11px] font-black ${edits.carbohidratos !== undefined ? "text-accent" : "text-primary"}`}
+            className={`text-micro font-black ${edits.carbohidratos !== undefined ? "text-accent" : "text-primary"}`}
           >
             {getEffective(item, edits, "carbohidratos").toFixed(1)}
           </span>
-          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+          <span className="text-micro text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-3 py-3 text-right hidden sm:table-cell">
           <span
-            className={`text-[11px] font-black ${edits.grasas !== undefined ? "text-accent" : "text-primary"}`}
+            className={`text-micro font-black ${edits.grasas !== undefined ? "text-accent" : "text-primary"}`}
           >
             {getEffective(item, edits, "grasas").toFixed(1)}
           </span>
-          <span className="text-[8px] text-primary/25 ml-0.5">g</span>
+          <span className="text-micro text-primary/25 ml-0.5">g</span>
         </td>
         <td className="px-4 py-3 text-right">
           {getEffective(item, edits, "precio") > 0 ? (
             <span
-              className={`text-[11px] font-black ${edits.precio !== undefined ? "text-accent" : "text-primary"}`}
+              className={`text-micro font-black ${edits.precio !== undefined ? "text-accent" : "text-primary"}`}
             >
               ${getEffective(item, edits, "precio").toFixed(0)}
             </span>
           ) : (
-            <span className="text-[10px] text-primary/15">—</span>
+            <span className="text-micro text-primary/15">—</span>
           )}
         </td>
       </tr>
@@ -581,7 +581,7 @@ export default function ComprasPage() {
               size={13}
             />
             <input
-              className="input-brand pl-9 pr-8 text-[11px] py-2"
+              className="input-brand pl-9 pr-8 text-micro py-2"
               placeholder="Buscar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -613,15 +613,15 @@ export default function ComprasPage() {
               <div className="flex items-center justify-between px-4 py-3 border-b border-accent/15">
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="text-accent" size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">
+                  <span className="text-micro font-black uppercase tracking-widest text-primary/60">
                     Carrito
                   </span>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">
+                  <span className="text-micro px-2 py-0.5 rounded-full bg-accent/20 text-accent font-black">
                     {totalCartItems}
                   </span>
                 </div>
                 <button
-                  className="text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-red-400 transition-colors"
+                  className="text-micro font-black uppercase tracking-widest text-primary/25 hover:text-red-400 transition-colors"
                   onClick={() => setCart({})}
                 >
                   Vaciar
@@ -646,35 +646,35 @@ export default function ComprasPage() {
               <div className="flex items-center gap-4 px-4 py-3 border-t border-accent/15 bg-accent/8 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Flame className="text-orange-400" size={11} />
-                  <span className="text-[10px] font-black text-primary">
+                  <span className="text-micro font-black text-primary">
                     {cartTotals.kcal.toFixed(0)}
                   </span>
-                  <span className="text-[8px] text-primary/30">kcal</span>
+                  <span className="text-micro text-primary/30">kcal</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Dumbbell className="text-blue-400" size={11} />
-                  <span className="text-[10px] font-black text-primary">
+                  <span className="text-micro font-black text-primary">
                     {cartTotals.proteinas.toFixed(1)}
                   </span>
-                  <span className="text-[8px] text-primary/30">g prot</span>
+                  <span className="text-micro text-primary/30">g prot</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Wheat className="text-amber-400" size={11} />
-                  <span className="text-[10px] font-black text-primary">
+                  <span className="text-micro font-black text-primary">
                     {cartTotals.carbohidratos.toFixed(1)}
                   </span>
-                  <span className="text-[8px] text-primary/30">g carb</span>
+                  <span className="text-micro text-primary/30">g carb</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Droplets className="text-yellow-400" size={11} />
-                  <span className="text-[10px] font-black text-primary">
+                  <span className="text-micro font-black text-primary">
                     {cartTotals.grasas.toFixed(1)}
                   </span>
-                  <span className="text-[8px] text-primary/30">g gras</span>
+                  <span className="text-micro text-primary/30">g gras</span>
                 </div>
                 {cartTotals.precio > 0 && (
                   <div className="ml-auto flex items-baseline gap-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">
+                    <span className="text-micro font-black uppercase tracking-widest text-primary/35">
                       Total
                     </span>
                     <span className="text-lg font-black italic tracking-tighter text-accent">
@@ -727,23 +727,23 @@ export default function ComprasPage() {
                       )}
                     </button>
                   </th>
-                  <th className="text-left px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 w-full">
+                  <th className="text-left px-3 py-3 text-micro font-black uppercase tracking-widest text-primary/30 w-full">
                     Ingrediente
                   </th>
-                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">
+                  <th className="text-right px-3 py-3 text-micro font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">
                     <span className="sm:hidden text-accent/70">Kcal ↗</span>
                     <span className="hidden sm:inline">Kcal</span>
                   </th>
-                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
+                  <th className="text-right px-3 py-3 text-micro font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
                     Prot
                   </th>
-                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
+                  <th className="text-right px-3 py-3 text-micro font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
                     Carb
                   </th>
-                  <th className="text-right px-3 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
+                  <th className="text-right px-3 py-3 text-micro font-black uppercase tracking-widest text-primary/30 whitespace-nowrap hidden sm:table-cell">
                     Gras
                   </th>
-                  <th className="text-right px-4 py-3 text-[9px] font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">
+                  <th className="text-right px-4 py-3 text-micro font-black uppercase tracking-widest text-primary/30 whitespace-nowrap">
                     Precio
                   </th>
                 </tr>
@@ -756,7 +756,7 @@ export default function ComprasPage() {
                         className="mx-auto text-primary/15 mb-2"
                         size={36}
                       />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">
+                      <p className="text-micro font-black uppercase tracking-widest text-primary/25">
                         Sin resultados
                       </p>
                     </td>
@@ -780,44 +780,44 @@ export default function ComprasPage() {
                   <tr className="border-t-2 border-primary/10 bg-primary/[0.02]">
                     <td className="pl-4 pr-2 py-3" />
                     <td className="px-3 py-3">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+                      <span className="text-micro font-black uppercase tracking-widest text-primary/40">
                         {items.length} ingredientes
                       </span>
                     </td>
                     <td className="px-3 py-3 text-right">
-                      <span className="text-[11px] font-black text-primary">
+                      <span className="text-micro font-black text-primary">
                         {tableTotals.kcal.toFixed(0)}
                       </span>
-                      <span className="text-[8px] text-primary/25 ml-0.5">
+                      <span className="text-micro text-primary/25 ml-0.5">
                         kcal
                       </span>
                     </td>
                     <td className="px-3 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">
+                      <span className="text-micro font-black text-primary">
                         {tableTotals.proteinas.toFixed(1)}
                       </span>
-                      <span className="text-[8px] text-primary/25 ml-0.5">
+                      <span className="text-micro text-primary/25 ml-0.5">
                         g
                       </span>
                     </td>
                     <td className="px-3 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">
+                      <span className="text-micro font-black text-primary">
                         {tableTotals.carbohidratos.toFixed(1)}
                       </span>
-                      <span className="text-[8px] text-primary/25 ml-0.5">
+                      <span className="text-micro text-primary/25 ml-0.5">
                         g
                       </span>
                     </td>
                     <td className="px-3 py-3 text-right hidden sm:table-cell">
-                      <span className="text-[11px] font-black text-primary">
+                      <span className="text-micro font-black text-primary">
                         {tableTotals.grasas.toFixed(1)}
                       </span>
-                      <span className="text-[8px] text-primary/25 ml-0.5">
+                      <span className="text-micro text-primary/25 ml-0.5">
                         g
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="text-[10px] text-primary/15">—</span>
+                      <span className="text-micro text-primary/15">—</span>
                     </td>
                   </tr>
                 </tfoot>
@@ -840,23 +840,23 @@ export default function ComprasPage() {
             <div className="max-w-5xl mx-auto px-5 py-4 flex items-center gap-4">
               <div className="flex items-center gap-2 shrink-0">
                 <ShoppingCart className="text-accent" size={15} />
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary/50">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/50">
                   {totalCartItems} ítem{totalCartItems !== 1 ? "s" : ""}
                 </span>
               </div>
               <div className="flex-1 flex items-center gap-3 overflow-x-auto">
-                <span className="text-[10px] font-bold text-primary/30 shrink-0">
+                <span className="text-micro font-bold text-primary/30 shrink-0">
                   {cartTotals.kcal.toFixed(0)} kcal
                 </span>
-                <span className="text-[10px] font-bold text-primary/30 shrink-0 hidden sm:inline">
+                <span className="text-micro font-bold text-primary/30 shrink-0 hidden sm:inline">
                   {cartTotals.proteinas.toFixed(1)}g prot
                 </span>
-                <span className="text-[10px] font-bold text-primary/30 shrink-0 hidden sm:inline">
+                <span className="text-micro font-bold text-primary/30 shrink-0 hidden sm:inline">
                   {cartTotals.carbohidratos.toFixed(1)}g carb
                 </span>
               </div>
               <div className="shrink-0 flex items-baseline gap-1.5">
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/35">
                   Total
                 </span>
                 {cartTotals.precio > 0 ? (
@@ -864,7 +864,7 @@ export default function ComprasPage() {
                     ${cartTotals.precio.toFixed(0)}
                   </span>
                 ) : (
-                  <span className="text-[11px] font-black text-primary/20">
+                  <span className="text-micro font-black text-primary/20">
                     —
                   </span>
                 )}

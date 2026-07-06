@@ -72,7 +72,7 @@ function SidebarContenido({
       <div>
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
           <BookOpen className="text-primary/25 shrink-0" size={8} />
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Capítulos
           </span>
         </div>
@@ -85,7 +85,7 @@ function SidebarContenido({
       <div>
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
           <Music2 className="text-primary/25 shrink-0" size={8} />
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Canciones
           </span>
         </div>
@@ -162,7 +162,7 @@ export function PersonajeSidebarPanel({
           }}
         >
           <span
-            className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
+            className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
             style={{
               color: "color-mix(in srgb, var(--primary) 40%, transparent)",
             }}

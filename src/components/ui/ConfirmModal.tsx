@@ -60,7 +60,7 @@ export function useConfirm() {
 
             {}
             {state.title && (
-              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary mb-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary mb-2">
                 {state.title}
               </h3>
             )}
@@ -71,13 +71,13 @@ export function useConfirm() {
             {}
             <div className="flex items-center gap-3">
               <button
-                className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-[var(--radius-btn)] border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
+                className="flex-1 py-3 text-micro font-black uppercase tracking-widest rounded-[var(--radius-btn)] border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/30 transition-all"
                 onClick={() => handleResponse(false)}
               >
                 {state.cancelLabel ?? "Cancelar"}
               </button>
               <button
-                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-[var(--radius-btn)] transition-all ${
+                className={`flex-1 py-3 text-micro font-black uppercase tracking-widest rounded-[var(--radius-btn)] transition-all ${
                   state.danger
                     ? "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20"
                     : "bg-primary text-btn-text hover:opacity-80"

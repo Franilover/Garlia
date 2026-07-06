@@ -53,7 +53,7 @@ export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?:
       className={cn(
         "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
         color,
-        compact ? "text-[9px]" : "text-[10px]"
+        compact ? "text-micro" : "text-micro"
       )}
       initial={{ opacity: 0, y: 4 }}
     >

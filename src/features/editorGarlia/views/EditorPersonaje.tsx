@@ -169,14 +169,14 @@ export function FormularioPersonaje({
           <SaveIndicator status={status} />
           {!compacto && (
             <button
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
               onClick={onDelete}
             >
               <Trash2 size={10} />
             </button>
           )}
           <button
-            className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={onSave}
           >
@@ -258,7 +258,7 @@ export function FormularioPersonaje({
                 {!compacto && (
                   <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
                     <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
-                      <span className="text-[8px] font-black uppercase tracking-[0.3em] text-primary/25">
+                      <span className="text-micro font-black uppercase tracking-[0.3em] text-primary/25">
                         Cuerpo
                       </span>
                     </div>
@@ -280,7 +280,7 @@ export function FormularioPersonaje({
                       )}
                       <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
                         <Maximize2 className="text-primary/50" size={14} />
-                        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+                        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
                           Cambiar
                         </span>
                         <SelectorImagen
@@ -465,7 +465,7 @@ export function FormularioPersonaje({
 
                 {/* Descripción */}
                 <textarea
-                  className="w-full min-h-[80px] bg-transparent border border-primary/10 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed outline-none focus:border-primary/25 transition-colors resize-none placeholder:text-primary/20"
+                  className="w-full min-h-[80px] bg-transparent border border-primary/10 rounded-xl px-3 py-2.5 text-micro leading-relaxed outline-none focus:border-primary/25 transition-colors resize-none placeholder:text-primary/20"
                   placeholder="Descripción del personaje…"
                   rows={4}
                   value={form.sobre ?? ""}

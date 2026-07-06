@@ -1073,18 +1073,18 @@ export default function Lector() {
         }}
       >
         <button
-          className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+          className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-micro uppercase tracking-widest"
           onClick={() => router.push(`/garlia/libros/${slugParam}`)}
         >
           <ChevronLeft size={14} /> Volver
         </button>
         {libroTitulo && (
-          <span className="text-primary/50 font-black text-[9px] uppercase tracking-wider italic truncate max-w-[45%] text-center">
+          <span className="text-primary/50 font-black text-micro uppercase tracking-wider italic truncate max-w-[45%] text-center">
             {libroTitulo}
           </span>
         )}
         <button
-          className="flex items-center gap-1.5 text-primary/40 hover:text-primary transition-colors font-black text-[9px] uppercase tracking-widest"
+          className="flex items-center gap-1.5 text-primary/40 hover:text-primary transition-colors font-black text-micro uppercase tracking-widest"
           onClick={() => setShowSidebar(true)}
         >
           <List size={13} /> Índice
@@ -1182,7 +1182,7 @@ export default function Lector() {
                 "linear-gradient(to bottom, color-mix(in srgb, var(--bg-main) 90%, transparent), transparent)",
             }}
           >
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/25 italic truncate max-w-sm">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25 italic truncate max-w-sm">
               {activeCapTitle}
             </span>
           </div>
@@ -1236,7 +1236,7 @@ export default function Lector() {
             {esExtra ? (
               /* Poemario / extra: solo botón volver al índice, sin anterior/siguiente */
               <button
-                className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
                 onClick={() => router.push(`/garlia/libros/${slugParam}`)}
               >
                 <List size={16} /> Índice
@@ -1246,7 +1246,7 @@ export default function Lector() {
               <div className="flex items-center justify-between w-full gap-4">
                 {capAnterior ? (
                   <button
-                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
                     onClick={() =>
                       router.push(
                         `/garlia/libros/${slugParam}/leer/${capAnterior.orden}`,
@@ -1260,7 +1260,7 @@ export default function Lector() {
                 )}
 
                 <button
-                  className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                  className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
                   onClick={() => router.push(`/garlia/libros/${slugParam}`)}
                 >
                   <List size={16} /> Índice
@@ -1268,7 +1268,7 @@ export default function Lector() {
 
                 {capSiguiente ? (
                   <button
-                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-[10px] uppercase tracking-widest transition-all"
+                    className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
                     onClick={() =>
                       router.push(
                         `/garlia/libros/${slugParam}/leer/${capSiguiente.orden}`,

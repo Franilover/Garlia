@@ -35,12 +35,12 @@ export function Modal({ open, onClose, title, subtitle, children, maxWidth = "ma
             {(title || subtitle) && (
               <div className="mb-6">
                 {title && (
-                  <h3 className="text-center text-primary font-black uppercase text-[10px] tracking-[0.3em] italic">
+                  <h3 className="text-center text-primary font-black uppercase text-micro tracking-[0.3em] italic">
                     {title}
                   </h3>
                 )}
                 {subtitle && (
-                  <p className="text-center text-primary/40 text-[9px] font-bold uppercase tracking-widest mt-1">
+                  <p className="text-center text-primary/40 text-micro font-bold uppercase tracking-widest mt-1">
                     {subtitle}
                   </p>
                 )}
@@ -124,7 +124,7 @@ interface BackBtnProps {
 export function BackBtn({ onClick, label = "Volver" }: BackBtnProps) {
   return (
     <button
-      className="flex items-center gap-2 font-black text-[10px] uppercase italic text-primary/40 hover:text-primary transition-colors group p-4"
+      className="flex items-center gap-2 font-black text-micro uppercase italic text-primary/40 hover:text-primary transition-colors group p-4"
       onClick={onClick}
     >
       <span className="group-hover:-translate-x-1 transition-transform">←</span>

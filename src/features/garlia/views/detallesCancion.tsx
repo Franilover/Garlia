@@ -323,7 +323,7 @@ useEffect(() => {
     return (
       <div className="h-screen flex items-center justify-center bg-bg-main flex-col gap-4 text-center px-6">
         <AlertCircle className="text-red-400" size={48} />
-        <p className="text-primary uppercase text-[10px] tracking-widest italic font-black">
+        <p className="text-primary uppercase text-micro tracking-widest italic font-black">
           Canción no encontrada
         </p>
         <Btn className="mt-4 rounded-full" onClick={() => router.push("/garlia/canciones")}>

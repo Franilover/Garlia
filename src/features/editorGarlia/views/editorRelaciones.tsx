@@ -443,7 +443,7 @@ export default function AdminDescubrimientos() {
           />
         </div>
         <p
-          className="text-[10px] font-black uppercase tracking-widest"
+          className="text-micro font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
@@ -485,7 +485,7 @@ export default function AdminDescubrimientos() {
                 color: "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
             />
-            <span className="text-[7px] font-black uppercase tracking-[0.15em] text-primary/35 flex-1">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/35 flex-1">
               Exploradores · {perfiles.length}
             </span>
           </div>
@@ -535,7 +535,7 @@ export default function AdminDescubrimientos() {
                     )}
                   </div>
                   <span
-                    className="flex-1 min-w-0 truncate text-[9px] font-bold uppercase tracking-wide"
+                    className="flex-1 min-w-0 truncate text-micro font-bold uppercase tracking-wide"
                     style={{
                       color: activo
                         ? "var(--primary)"
@@ -546,7 +546,7 @@ export default function AdminDescubrimientos() {
                   </span>
                   {p.rol === "admin" && (
                     <span
-                      className="shrink-0 rounded text-[6px] font-black uppercase tracking-wider px-1 py-0.5"
+                      className="shrink-0 rounded text-micro font-black uppercase tracking-wider px-1 py-0.5"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -627,7 +627,7 @@ export default function AdminDescubrimientos() {
 
               <div className="px-2 py-1.5 shrink-0">
                 <button
-                  className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all"
+                  className="flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-micro font-black uppercase tracking-widest transition-all"
                   onClick={() => {
                     setShowAdd(true);
                     setEntidadSel(null);
@@ -663,7 +663,7 @@ export default function AdminDescubrimientos() {
               ) : descubrimientos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-2 text-primary/20">
                   {TAB_CONFIG[tab].icon}
-                  <p className="text-[9px] font-black uppercase tracking-widest">
+                  <p className="text-micro font-black uppercase tracking-widest">
                     Sin {TAB_CONFIG[tab].label.toLowerCase()} descubiertos
                   </p>
                 </div>
@@ -702,7 +702,7 @@ export default function AdminDescubrimientos() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
+                        className="text-micro font-black uppercase tracking-tight capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
                         {row.nombre}
@@ -710,7 +710,7 @@ export default function AdminDescubrimientos() {
                       <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
                         {row.extra && (
                           <span
-                            className="min-w-0 truncate text-[7px] font-black uppercase tracking-wider"
+                            className="min-w-0 truncate text-micro font-black uppercase tracking-wider"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -732,7 +732,7 @@ export default function AdminDescubrimientos() {
                           </span>
                         )}
                         <span
-                          className="shrink-0 text-[7px] font-black tabular-nums"
+                          className="shrink-0 text-micro font-black tabular-nums"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -771,7 +771,7 @@ export default function AdminDescubrimientos() {
                 }}
               >
                 <p
-                  className="text-[7px] font-black uppercase tracking-[0.15em]"
+                  className="text-micro font-black uppercase tracking-[0.15em]"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -827,13 +827,13 @@ export default function AdminDescubrimientos() {
               >
                 <div>
                   <p
-                    className="text-[12px] font-black uppercase italic tracking-tight"
+                    className="text-sm font-black uppercase italic tracking-tight"
                     style={{ color: "var(--primary)" }}
                   >
                     Agregar {TAB_CONFIG[tab].label.slice(0, -1).toLowerCase()}
                   </p>
                   <p
-                    className="text-[8px] font-black uppercase tracking-wider mt-0.5"
+                    className="text-micro font-black uppercase tracking-wider mt-0.5"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -879,7 +879,7 @@ export default function AdminDescubrimientos() {
                   />
                   <input
                     autoFocus
-                    className="flex-1 bg-transparent outline-none text-[11px] font-black uppercase tracking-tight"
+                    className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-tight"
                     placeholder={`Buscar ${TAB_CONFIG[tab].label.toLowerCase()}…`}
                     style={{ color: "var(--primary)" }}
                     value={busquedaEnt}
@@ -904,7 +904,7 @@ export default function AdminDescubrimientos() {
                 {entsFiltradas.length === 0 ? (
                   <div className="flex items-center justify-center py-8">
                     <p
-                      className="text-[9px] font-black uppercase tracking-widest"
+                      className="text-micro font-black uppercase tracking-widest"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -960,14 +960,14 @@ export default function AdminDescubrimientos() {
 
                         <div className="flex-1 min-w-0">
                           <p
-                            className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
+                            className="text-micro font-black uppercase tracking-tight capitalize truncate"
                             style={{ color: "var(--primary)" }}
                           >
                             {e.nombre}
                           </p>
                           {e.extra && (
                             <p
-                              className="text-[8px] font-black uppercase tracking-wider truncate mt-0.5"
+                              className="text-micro font-black uppercase tracking-wider truncate mt-0.5"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -980,7 +980,7 @@ export default function AdminDescubrimientos() {
 
                         {yaTiene && (
                           <span
-                            className="text-[7px] font-black uppercase tracking-wider shrink-0 px-1.5 py-0.5"
+                            className="text-micro font-black uppercase tracking-wider shrink-0 px-1.5 py-0.5"
                             style={{
                               background:
                                 "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -1032,7 +1032,7 @@ export default function AdminDescubrimientos() {
                 }}
               >
                 <p
-                  className="text-[8px] font-black uppercase tracking-wider"
+                  className="text-micro font-black uppercase tracking-wider"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1117,7 +1117,7 @@ export default function AdminDescubrimientos() {
               )}
             </div>
             <span
-              className="text-[10px] font-black uppercase tracking-tight"
+              className="text-micro font-black uppercase tracking-tight"
               style={{
                 color: toast.ok ? "var(--callout-success-title)" : "#ef4444",
               }}

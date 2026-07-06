@@ -4,17 +4,17 @@ import React from "react";
 
 export const TEXT_VARIANTS = {
   
-  xs: "text-[9px] font-black uppercase tracking-[0.2em]",
-  sm: "text-[11px] font-bold tracking-tight",
+  xs: "text-micro font-black uppercase tracking-[0.2em]",
+  sm: "text-micro font-bold tracking-tight",
   md: "text-sm font-medium",
   lg: "text-lg font-serif italic",
   xl: "text-3xl font-black italic tracking-tighter",
   
   
-  lbl: "text-[9px] font-black text-primary/40 uppercase tracking-widest block",
-  cap: "text-[10px] font-black uppercase tracking-[0.3em] italic text-primary/30",
-  btn: "text-[10px] font-black uppercase tracking-widest",
-  err: "text-[9px] text-red-500 font-bold uppercase tracking-tight",
+  lbl: "text-micro font-black text-primary/40 uppercase tracking-widest block",
+  cap: "text-micro font-black uppercase tracking-[0.3em] italic text-primary/30",
+  btn: "text-micro font-black uppercase tracking-widest",
+  err: "text-micro text-red-500 font-bold uppercase tracking-tight",
 };
 
 interface TextProps {

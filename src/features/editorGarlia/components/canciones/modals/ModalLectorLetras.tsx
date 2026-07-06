@@ -163,7 +163,7 @@ export const ModalLectorLetras = ({
         {/* Header */}
         <div className="px-4 py-2.5 bg-white-custom border-b border-primary/10 flex-shrink-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-primary font-black uppercase text-[10px] tracking-[0.2em] italic truncate flex-1 min-w-0">
+            <span className="text-primary font-black uppercase text-micro tracking-[0.2em] italic truncate flex-1 min-w-0">
               {cancionTitulo}
             </span>
 
@@ -172,7 +172,7 @@ export const ModalLectorLetras = ({
               {IDIOMAS.map(({ id, label }) => (
                 <button
                   key={id}
-                  className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
+                  className={`px-2 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all ${
                     idioma === id
                       ? "bg-primary text-bg-main shadow"
                       : "text-primary/40 hover:text-primary"
@@ -190,7 +190,7 @@ export const ModalLectorLetras = ({
             {/* Modo karaoke / letra */}
             <div className="flex gap-0.5 p-0.5 bg-primary/5 rounded-lg border border-primary/10">
               <button
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all ${
                   modoKaraoke
                     ? "bg-primary text-bg-main shadow"
                     : "text-primary/40 hover:text-primary"
@@ -200,7 +200,7 @@ export const ModalLectorLetras = ({
                 <Timer size={10} /> Karaoke
               </button>
               <button
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all ${
                   !modoKaraoke
                     ? "bg-primary text-bg-main shadow"
                     : "text-primary/40 hover:text-primary"
@@ -219,7 +219,7 @@ export const ModalLectorLetras = ({
                 >
                   -
                 </button>
-                <span className="text-[9px] font-black text-primary/50 w-8 text-center">
+                <span className="text-micro font-black text-primary/50 w-8 text-center">
                   {Math.round(zoom * 100)}%
                 </span>
                 <button
@@ -284,7 +284,7 @@ export const ModalLectorLetras = ({
               </div>
 
               <button
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border transition-all shrink-0 ${
                   karaoke.modoEdit
                     ? "bg-accent/20 border-accent text-accent"
                     : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30"
@@ -296,7 +296,7 @@ export const ModalLectorLetras = ({
               </button>
 
               <button
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all shrink-0"
                 title="Importar archivo .lrc"
                 onClick={() => lrcInputRef.current?.click()}
               >
@@ -321,7 +321,7 @@ export const ModalLectorLetras = ({
 
             {karaoke.modoEdit && (
               <div className="px-4 pb-2">
-                <p className="text-[9px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
+                <p className="text-micro font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
                   <Dot className="animate-pulse" size={12} />
                   Clic = marcar tiempo · Clic der = borrar · Clic en tiempo =
                   editar número
@@ -343,7 +343,7 @@ export const ModalLectorLetras = ({
                   <div key={sec.id} className="mb-8">
                     <div className="flex items-center gap-3 mb-3 opacity-25">
                       <div className="h-px flex-1 bg-primary" />
-                      <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">
+                      <span className="text-micro font-black uppercase tracking-[0.4em] text-primary">
                         {sec.nombre_seccion}
                       </span>
                       <div className="h-px flex-1 bg-primary" />
@@ -394,7 +394,7 @@ export const ModalLectorLetras = ({
                             {esEditable ? (
                               <input
                                 autoFocus
-                                className="w-[52px] font-mono text-[10px] font-black text-primary bg-primary/10 border border-primary/30 rounded px-1 py-0.5 outline-none"
+                                className="w-[52px] font-mono text-micro font-black text-primary bg-primary/10 border border-primary/30 rounded px-1 py-0.5 outline-none"
                                 placeholder="0:00"
                                 value={tiempoEditStr}
                                 onBlur={confirmarEdicion}
@@ -410,7 +410,7 @@ export const ModalLectorLetras = ({
                               />
                             ) : (
                               <button
-                                className={`font-mono text-[10px] font-black tracking-widest transition-all rounded px-1 py-0.5 ${
+                                className={`font-mono text-micro font-black tracking-widest transition-all rounded px-1 py-0.5 ${
                                   tiempo !== null
                                     ? isActiva
                                       ? "text-primary bg-primary/10"
@@ -473,7 +473,7 @@ export const ModalLectorLetras = ({
                     >
                       <div className="mb-8 flex items-center justify-center gap-6 opacity-20">
                         <div className="h-px w-12 bg-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.5em] italic text-primary">
+                        <span className="text-micro font-black uppercase tracking-[0.5em] italic text-primary">
                           {sec.nombre_seccion}
                         </span>
                         <div className="h-px w-12 bg-primary" />

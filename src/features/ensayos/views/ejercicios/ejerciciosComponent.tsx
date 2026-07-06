@@ -147,7 +147,7 @@ const EjecutarRutina = ({
           initial={{ scale: 0.8, opacity: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">
+          <span className="text-micro font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">
             Completado
           </span>
           <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">
@@ -177,7 +177,7 @@ const EjecutarRutina = ({
     >
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
+          <span className="text-micro font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
             Rutina
           </span>
           <h2 className="text-lg font-black text-btn-text italic tracking-tight">
@@ -212,10 +212,10 @@ const EjecutarRutina = ({
           ))}
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
+          <span className="text-micro font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
             Ejercicio {ejercicioIdx + 1} de {(rutina.ejercicios ?? []).length}
           </span>
-          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
+          <span className="text-micro font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
             Serie {serieActual} de {ejercicio.series}
           </span>
         </div>
@@ -229,7 +229,7 @@ const EjecutarRutina = ({
             exit={{ opacity: 0, y: -20 }}
             initial={{ opacity: 0, y: 20 }}
           >
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
+            <span className="text-micro font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
               {ejercicio.musculo}
             </span>
             <h1 className="text-4xl sm:text-6xl font-black text-btn-text italic tracking-tighter leading-none">
@@ -245,7 +245,7 @@ const EjecutarRutina = ({
               ).map(([label, val], i, arr) => (
                 <React.Fragment key={label}>
                   <div className="flex flex-col items-center">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)]">
+                    <span className="text-micro font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)]">
                       {label}
                     </span>
                     <span className="text-2xl font-black text-btn-text tabular-nums">
@@ -259,7 +259,7 @@ const EjecutarRutina = ({
               ))}
             </div>
             {ejercicio.notas && (
-              <span className="text-[10px] font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">
+              <span className="text-micro font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">
                 * {ejercicio.notas}
               </span>
             )}
@@ -267,7 +267,7 @@ const EjecutarRutina = ({
         </AnimatePresence>
         {fase === "descanso" ? (
           <div className="flex flex-col items-center gap-4">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">
+            <span className="text-micro font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">
               Descansando
             </span>
             <div className="relative w-36 h-36">
@@ -298,7 +298,7 @@ const EjecutarRutina = ({
                 <span className="text-4xl font-black text-btn-text tabular-nums tracking-tighter">
                   {segundos}
                 </span>
-                <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">
+                <span className="text-micro font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">
                   seg
                 </span>
               </div>
@@ -389,10 +389,10 @@ const CardRutina = ({
 
           {/* Nombre + meta */}
           <div className="flex-1 min-w-0" title={rutina.descripcion}>
-            <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none block">
+            <span className="text-sm font-black text-primary tracking-tight truncate leading-none block">
               {rutina.nombre}
             </span>
-            <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block truncate">
+            <span className="text-micro font-bold text-primary/35 leading-none mt-0.5 block truncate">
               {rutina.tag} · {ejercicios.length} ejerc. · {totalSeries} series
             </span>
           </div>
@@ -448,21 +448,21 @@ const CardRutina = ({
                     initial={{ opacity: 0, x: -8 }}
                     transition={{ delay: i * 0.03 }}
                   >
-                    <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
+                    <span className="text-micro font-black text-primary/30 w-3.5 shrink-0">
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black text-primary truncate leading-tight">
+                      <p className="text-micro font-black text-primary truncate leading-tight">
                         {ej.nombre}
                       </p>
-                      <p className="text-[8px] font-bold text-primary/35 uppercase tracking-wide leading-tight">
+                      <p className="text-micro font-bold text-primary/35 uppercase tracking-wide leading-tight">
                         {ej.musculo}
                       </p>
                     </div>
-                    <span className="text-[9px] font-black text-primary/50 shrink-0">
+                    <span className="text-micro font-black text-primary/50 shrink-0">
                       {ej.series}×{ej.reps}
                     </span>
-                    <span className="text-[8px] font-bold text-primary/25 shrink-0">
+                    <span className="text-micro font-bold text-primary/25 shrink-0">
                       {ej.descanso}s
                     </span>
                   </MotionDiv>
@@ -530,7 +530,7 @@ const FormNuevaRutina = ({
       className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-4 shadow-lg shadow-primary/5"
       initial={{ opacity: 0, y: 12 }}
     >
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40 mb-3">
+      <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-3">
         Nueva rutina
       </p>
       <div className="space-y-2 mb-3">
@@ -561,13 +561,13 @@ const FormNuevaRutina = ({
               key={i}
               className="flex items-center gap-2 p-2 bg-primary/4 rounded-[var(--radius-btn)]"
             >
-              <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
+              <span className="text-micro font-black text-primary/30 w-3.5 shrink-0">
                 {i + 1}
               </span>
-              <span className="text-[11px] font-black text-primary flex-1 truncate">
+              <span className="text-micro font-black text-primary flex-1 truncate">
                 {ej.nombre}
               </span>
-              <span className="text-[9px] text-primary/40 font-bold shrink-0">
+              <span className="text-micro text-primary/40 font-bold shrink-0">
                 {ej.series}×{ej.reps}
               </span>
               <button
@@ -583,7 +583,7 @@ const FormNuevaRutina = ({
         </div>
       )}
       <div className="bg-primary/4 rounded-[var(--radius-btn)] p-3 mb-3 border-[length:var(--border-width)] border-primary/8">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">
+        <p className="text-micro font-black uppercase tracking-widest text-primary/30 mb-2">
           Añadir ejercicio
         </p>
         <div className="grid grid-cols-2 gap-1.5 mb-1.5">

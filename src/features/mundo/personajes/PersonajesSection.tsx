@@ -23,12 +23,13 @@
  *      La sección los usa solo para saber qué mostrar.
  */
 
-import { Plus, Search, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { SectionListHeader } from "../shared/SectionListHeader";
 import { PersonajeEditor } from "./PersonajeEditor";
 
 interface Personaje {
@@ -69,25 +70,13 @@ export function PersonajesSection({ selectedId }: Props) {
     <div className="flex-1 flex min-h-0 overflow-hidden">
       {/* Lista */}
       <div className="w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0">
-        <div className="p-2 flex items-center gap-2 border-b border-primary/10">
-          <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
-            <Search size={12} className="text-primary/30" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar personaje…"
-              className="flex-1 bg-transparent text-xs outline-none placeholder:text-primary/25"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-            aria-label="Crear personaje"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+        <SectionListHeader
+          query={query}
+          onQueryChange={setQuery}
+          onCreate={handleCreate}
+          placeholder="Buscar personaje…"
+          createLabel="Crear personaje"
+        />
 
         <div className="flex-1 overflow-y-auto">
           {loading && personajes.length === 0 ? (

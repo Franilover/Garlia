@@ -25,7 +25,7 @@ const ColumniaDia = ({
       "flex flex-col min-h-0 flex-1 rounded-[var(--radius-btn)] border transition-all cursor-pointer group",
       seleccionado
         ? "bg-primary/8 dark:bg-primary/12 border-primary/30 shadow-md shadow-primary/10"
-        : "bg-[var(--white-custom)] border-primary/10 hover:border-primary/25 hover:shadow-sm",
+        : "bg-white-custom border-primary/10 hover:border-primary/25 hover:shadow-sm",
       esHoy && !seleccionado && "border-primary/25 bg-primary/5 dark:bg-primary/10"
     )}
     onClick={onClick}
@@ -36,7 +36,7 @@ const ColumniaDia = ({
       seleccionado ? "border-primary/15" : "border-primary/8"
     )}>
       <span className={cn(
-        "text-[6px] sm:text-[7px] font-black uppercase tracking-widest transition-colors",
+        "text-micro sm:text-micro font-black uppercase tracking-widest transition-colors",
         esHoy ? "text-primary" : "text-primary/40 dark:text-primary/50"
       )}>
         {compact ? DIAS_SEMANA_LETRA[fecha.getDay()] : DIAS_SEMANA_CORTO[fecha.getDay()]}
@@ -49,14 +49,14 @@ const ColumniaDia = ({
           ? "bg-primary/15 text-primary"
           : "text-[var(--text-on-card)]/60 dark:text-[var(--text-on-card)]/70 group-hover:bg-primary/8"
       )}>
-        <span className="text-[10px] sm:text-xs font-black">{fecha.getDate()}</span>
+        <span className="text-micro sm:text-xs font-black">{fecha.getDate()}</span>
       </div>
     </div>
 
     {/* Eventos */}
     <div className="flex flex-col gap-1 p-1.5 flex-1 overflow-y-auto min-h-0">
       {eventos.length === 0 && (
-        <p className="text-[7px] text-primary/20 dark:text-primary/30 font-bold italic text-center mt-3">—</p>
+        <p className="text-micro text-primary/20 dark:text-primary/30 font-bold italic text-center mt-3">—</p>
       )}
       {eventos.map((ev) => <EventoBadge key={ev.id} compact={compact} item={ev} />)}
     </div>
@@ -149,7 +149,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Navegación */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            className="text-[9px] font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-[var(--btn-text)] transition-all shrink-0"
+            className="text-micro font-black uppercase tracking-widest border border-primary/20 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary hover:text-[var(--btn-text)] transition-all shrink-0"
             onClick={irAHoy}
           >
             Hoy
@@ -166,7 +166,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           >
             <ChevronRight size={16} />
           </button>
-          <span className="text-[10px] font-black uppercase tracking-wider text-[var(--text-on-card)]/70 flex-1 truncate">
+          <span className="text-micro font-black uppercase tracking-wider text-[var(--text-on-card)]/70 flex-1 truncate">
             {rangoTexto}
           </span>
         </div>
@@ -177,10 +177,10 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
             <button
               key={v.valor}
               className={cn(
-                "text-[8px] font-black uppercase tracking-wide px-2 py-1.5 rounded-[var(--radius-btn)] transition-all",
+                "text-micro font-black uppercase tracking-wide px-2 py-1.5 rounded-[var(--radius-btn)] transition-all",
                 vista === v.valor
                   ? "bg-primary text-[var(--btn-text)] shadow-md shadow-primary/20"
-                  : "text-primary/50 hover:text-primary hover:bg-[var(--white-custom)] dark:hover:bg-[var(--white-custom)]/20"
+                  : "text-primary/50 hover:text-primary hover:bg-white-custom dark:hover:bg-white-custom/20"
               )}
               onClick={() => setVista(v.valor)}
             >
@@ -229,7 +229,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Cabecera */}
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="text-primary/50" size={12} />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
+          <span className="text-micro font-black uppercase tracking-widest text-primary/50">
             {diaSeleccionado.getDate()} de {MESES[diaSeleccionado.getMonth()]} · {DIAS_SEMANA_CORTO[diaSeleccionado.getDay()]}
           </span>
         </div>
@@ -237,7 +237,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Formulario */}
         <div className="flex flex-col sm:flex-row gap-2 mb-2">
           <select
-            className="bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-3 py-2 text-[10px] font-black text-[var(--input-text)] outline-none focus:border-primary/30 cursor-pointer"
+            className="bg-white-custom border border-primary/12 rounded-[var(--radius-btn)] px-3 py-2 text-micro font-black text-[var(--input-text)] outline-none focus:border-primary/30 cursor-pointer"
             value={tipoEvento}
             onChange={e => setTipoEvento(e.target.value)}
           >
@@ -245,7 +245,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
           </select>
           <div className="flex gap-2 flex-1">
             <input
-              className="flex-1 bg-[var(--white-custom)] border border-primary/12 rounded-[var(--radius-btn)] px-4 py-2 text-[10px] font-bold text-[var(--input-text)] placeholder:text-[var(--input-text)]/40 outline-none focus:border-primary/30 min-w-0"
+              className="flex-1 bg-white-custom border border-primary/12 rounded-[var(--radius-btn)] px-4 py-2 text-micro font-bold text-[var(--input-text)] placeholder:text-[var(--input-text)]/40 outline-none focus:border-primary/30 min-w-0"
               placeholder="Nuevo evento..."
               type="text"
               value={nuevoEvento}
@@ -266,7 +266,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
         {/* Lista eventos día seleccionado */}
         <div className="space-y-1 sm:space-y-1.5 max-h-24 sm:max-h-36 overflow-y-auto">
           {eventosDiaSeleccionado.length === 0 ? (
-            <p className="text-[9px] font-bold text-[var(--text-on-card)]/25 italic px-1">Sin eventos para este día.</p>
+            <p className="text-micro font-bold text-[var(--text-on-card)]/25 italic px-1">Sin eventos para este día.</p>
           ) : eventosDiaSeleccionado.map(ev => (
             <MotionDiv
               key={ev.id}
@@ -275,7 +275,7 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 "flex items-center gap-3 p-2.5 rounded-[var(--radius-btn)] border",
                 ev.esCapitulo
                   ? "bg-amber-500/10 border-amber-500/25 dark:bg-amber-500/15 dark:border-amber-500/30"
-                  : "bg-[var(--white-custom)] border-primary/10 shadow-sm"
+                  : "bg-white-custom border-primary/10 shadow-sm"
               )}
               initial={{ opacity: 0, x: -6 }}
             >
@@ -286,11 +286,11 @@ export const VistaSemanal = ({ eventos, capitulosRaw, isAddingEvento, onAddEvent
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-black text-[var(--text-on-card)]/90 uppercase italic truncate">&quot;{ev.titulo}&quot;</p>
-                <p className="text-[7px] font-bold text-[var(--text-on-card)]/40 uppercase tracking-tight">{ev.tipo}</p>
+                <p className="text-micro font-black text-[var(--text-on-card)]/90 uppercase italic truncate">&quot;{ev.titulo}&quot;</p>
+                <p className="text-micro font-bold text-[var(--text-on-card)]/40 uppercase tracking-tight">{ev.tipo}</p>
               </div>
               {ev.esCapitulo && (
-                <span className="text-[7px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">Cap.</span>
+                <span className="text-micro font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase shrink-0">Cap.</span>
               )}
             </MotionDiv>
           ))}

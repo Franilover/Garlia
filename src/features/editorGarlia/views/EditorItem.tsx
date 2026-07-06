@@ -153,13 +153,13 @@ export function EditorItem({
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             onClick={del}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={save}
           >
@@ -272,7 +272,7 @@ export function EditorItem({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
                   Descripción
                 </label>
                 <MarkdownEditor

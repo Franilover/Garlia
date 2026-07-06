@@ -39,7 +39,7 @@ export function PickerImagenRunaBtn({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <Camera size={11} /> Imagen de la runa
               </h3>
               <button

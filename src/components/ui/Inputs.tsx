@@ -19,7 +19,7 @@ export function InputLine({ label, className = "", ...props }: InputProps) {
   return (
     <div className="space-y-1">
       {label && (
-        <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest block italic">
+        <label className="text-micro font-black text-primary/40 uppercase tracking-widest block italic">
           {label}
         </label>
       )}
@@ -44,7 +44,7 @@ export function Textarea({ label, className = "", ...props }: TextareaProps) {
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest block">
+        <label className="text-micro font-black text-primary/40 uppercase tracking-widest block">
           {label}
         </label>
       )}
@@ -70,7 +70,7 @@ export function Select({ label, options, className = "", ...props }: SelectProps
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-[9px] font-black text-primary/40 uppercase tracking-widest block">
+        <label className="text-micro font-black text-primary/40 uppercase tracking-widest block">
           {label}
         </label>
       )}

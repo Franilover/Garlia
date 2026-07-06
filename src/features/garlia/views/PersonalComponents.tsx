@@ -197,7 +197,7 @@ export function ModalDetalle({
             >
               <IconComp size={9} style={{ color: "var(--btn-text, white)" }} />
               <span
-                className="text-[8px] font-black uppercase tracking-widest"
+                className="text-micro font-black uppercase tracking-widest"
                 style={{ color: "var(--btn-text, white)" }}
               >
                 {isReino
@@ -235,7 +235,7 @@ export function ModalDetalle({
                 {tags.map((tag, i) => (
                   <span
                     key={i}
-                    className="flex items-center gap-1 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider"
+                    className="flex items-center gap-1 px-2 py-0.5 text-micro font-black uppercase tracking-wider"
                     style={{
                       background:
                         i === 0
@@ -265,7 +265,7 @@ export function ModalDetalle({
             >
               {descripcion ? (
                 <p
-                  className="text-[11px] leading-relaxed"
+                  className="text-micro leading-relaxed"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 58%, transparent)",
@@ -275,7 +275,7 @@ export function ModalDetalle({
                 </p>
               ) : (
                 <p
-                  className="text-[10px] italic font-black uppercase tracking-wider flex items-center gap-2"
+                  className="text-micro italic font-black uppercase tracking-wider flex items-center gap-2"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -312,7 +312,7 @@ export function ModalDetalle({
                       }}
                     />
                     <span
-                      className="text-[9px] font-black uppercase tracking-widest italic"
+                      className="text-micro font-black uppercase tracking-widest italic"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -331,7 +331,7 @@ export function ModalDetalle({
                 </div>
                 {cargandoCanciones ? (
                   <p
-                    className="text-[9px] italic text-center py-3"
+                    className="text-micro italic text-center py-3"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -341,7 +341,7 @@ export function ModalDetalle({
                   </p>
                 ) : !canciones || canciones.length === 0 ? (
                   <p
-                    className="text-[9px] italic text-center py-3"
+                    className="text-micro italic text-center py-3"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 20%, transparent)",
@@ -412,14 +412,14 @@ export function ModalDetalle({
                         )}
                         <div className="flex-1 min-w-0">
                           <span
-                            className="font-serif italic text-[12px] truncate block group-hover:underline"
+                            className="font-serif italic text-sm truncate block group-hover:underline"
                             style={{ color: "var(--primary)" }}
                           >
                             {cancion.titulo ?? `Canción ${i + 1}`}
                           </span>
                           {cancion.info_cancion && (
                             <span
-                              className="text-[9px] font-black uppercase tracking-wider truncate block mt-0.5"
+                              className="text-micro font-black uppercase tracking-wider truncate block mt-0.5"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -465,7 +465,7 @@ export function ModalDetalle({
                   }}
                 />
                 <span
-                  className="text-[8px] font-black uppercase tracking-widest"
+                  className="text-micro font-black uppercase tracking-widest"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -582,7 +582,7 @@ export function EntidadCard({
 
         <div className="flex-1 min-w-0 md:w-full">
           <p
-            className="text-[11px] font-black uppercase tracking-tight truncate leading-tight"
+            className="text-micro font-black uppercase tracking-tight truncate leading-tight"
             style={{ color: "var(--primary)" }}
           >
             {nombre}
@@ -596,7 +596,7 @@ export function EntidadCard({
               }}
             />
             <p
-              className="text-[8px] font-black uppercase tracking-widest truncate"
+              className="text-micro font-black uppercase tracking-widest truncate"
               style={{
                 color: "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
@@ -634,7 +634,7 @@ export function EmptyTab({ label }: { label: string }) {
         />
       </div>
       <p
-        className="text-[9px] font-black uppercase tracking-[0.3em] italic"
+        className="text-micro font-black uppercase tracking-[0.3em] italic"
         style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
       >
         {label}

@@ -1,11 +1,12 @@
 "use client";
 
-import { Map, Plus, Search } from "lucide-react";
+import { Map } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { SectionListHeader } from "../shared/SectionListHeader";
 import { ReinoEditor } from "./ReinoEditor";
 
 interface Reino {
@@ -43,25 +44,13 @@ export function ReinosSection({ selectedId }: Props) {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       <div className="w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0">
-        <div className="p-2 flex items-center gap-2 border-b border-primary/10">
-          <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
-            <Search size={12} className="text-primary/30" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar reino…"
-              className="flex-1 bg-transparent text-xs outline-none placeholder:text-primary/25"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-            aria-label="Crear reino"
-          >
-            <Plus size={14} />
-          </button>
-        </div>
+        <SectionListHeader
+          query={query}
+          onQueryChange={setQuery}
+          onCreate={handleCreate}
+          placeholder="Buscar reino…"
+          createLabel="Crear reino"
+        />
 
         <div className="flex-1 overflow-y-auto">
           {loading && reinos.length === 0 ? (

@@ -89,7 +89,7 @@ export function SelectorMiembros({
       {miembros.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 px-1 py-0.5 mb-0.5">
-            <span className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+            <span className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
               Miembros · {miembros.length}
             </span>
           </div>
@@ -128,11 +128,11 @@ export function SelectorMiembros({
                         <cfg.Icon className="text-primary/25" size={14} />
                       )}
                     </div>
-                    <p className="text-[7px] font-black text-primary/60 truncate w-full text-center leading-tight uppercase tracking-wide">
+                    <p className="text-micro font-black text-primary/60 truncate w-full text-center leading-tight uppercase tracking-wide">
                       {e.nombre}
                     </p>
                     {sub && (
-                      <p className="text-[6px] text-primary/25 truncate w-full text-center leading-tight">
+                      <p className="text-micro text-primary/25 truncate w-full text-center leading-tight">
                         {sub}
                       </p>
                     )}
@@ -146,7 +146,7 @@ export function SelectorMiembros({
 
       <div ref={ref} className="relative">
         <button
-          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
           style={{
             borderColor: `color-mix(in srgb, ${cfg.color} 20%, transparent)`,
             color: `color-mix(in srgb, ${cfg.color} 50%, transparent)`,
@@ -185,7 +185,7 @@ export function SelectorMiembros({
                   />
                   <input
                     autoFocus
-                    className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-[10px] outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+                    className="w-full bg-primary/5 border border-primary/10 rounded-lg pl-7 pr-2 py-1.5 text-micro outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
                     placeholder={`Buscar ${cfg.labelPlural.toLowerCase()}…`}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -201,7 +201,7 @@ export function SelectorMiembros({
                     />
                   </div>
                 ) : disponibles.length === 0 ? (
-                  <p className="text-[9px] text-primary/25 text-center py-4 italic">
+                  <p className="text-micro text-primary/25 text-center py-4 italic">
                     {search
                       ? "Sin resultados"
                       : `Todos los ${cfg.labelPlural.toLowerCase()} ya están en el grupo`}
@@ -232,11 +232,11 @@ export function SelectorMiembros({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[11px] font-medium text-primary/80 truncate block">
+                          <span className="text-micro font-medium text-primary/80 truncate block">
                             {e.nombre}
                           </span>
                           {sub && (
-                            <span className="text-[9px] text-primary/30 truncate block">
+                            <span className="text-micro text-primary/30 truncate block">
                               {sub}
                             </span>
                           )}

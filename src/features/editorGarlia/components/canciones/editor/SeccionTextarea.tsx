@@ -98,13 +98,13 @@ function SyllableOverlay({
           >
             {!vacia && (
               <>
-                <span className="text-[9px] font-black tabular-nums leading-none">
+                <span className="text-micro font-black tabular-nums leading-none">
                   {miN}
                 </span>
                 {refN !== null && (
                   <>
-                    <span className="text-[8px] opacity-40 mx-px">/</span>
-                    <span className="text-[9px] font-black tabular-nums leading-none opacity-55">
+                    <span className="text-micro opacity-40 mx-px">/</span>
+                    <span className="text-micro font-black tabular-nums leading-none opacity-55">
                       {refN}
                     </span>
                   </>
@@ -218,7 +218,7 @@ export const SeccionTextarea = ({
 
       {/* ── Banner sin conexión ── */}
       {st.mode === "pending" && !st.saving && (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 mb-1 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-400">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 mb-1 bg-blue-500/10 border border-blue-500/20 rounded-xl text-micro font-black uppercase tracking-widest text-blue-400">
           <WifiOff size={10} />
           Guardado sin conexión — se sincronizará al reconectar
         </div>
@@ -258,7 +258,7 @@ export const SeccionTextarea = ({
 
       {/* ── Mensaje de error ── */}
       {st.mode === "error" && st.msg && (
-        <p className="text-[9px] font-black uppercase text-red-400/80 tracking-widest px-1">⚠ {st.msg}</p>
+        <p className="text-micro font-black uppercase text-red-400/80 tracking-widest px-1">⚠ {st.msg}</p>
       )}
     </div>
   );

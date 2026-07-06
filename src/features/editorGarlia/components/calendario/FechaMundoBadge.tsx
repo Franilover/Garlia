@@ -32,7 +32,7 @@ export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
   // crashear formatFechaCorta y mostramos un placeholder en su lugar.
   if (!fecha.estacion) {
     return (
-      <span className="text-[9px] text-primary/30 italic">Fecha inválida</span>
+      <span className="text-micro text-primary/30 italic">Fecha inválida</span>
     );
   }
   const era = eraEnAnio(fecha.anio, cal.eras);
@@ -45,7 +45,7 @@ export function FechaMundoBadge({ diaAbsoluto }: { diaAbsoluto: number }) {
         />
       )}
       <span
-        className="text-[9px] font-bold"
+        className="text-micro font-bold"
         style={{ color: "var(--primary)" }}
       >
         {formatFechaCorta(fecha)}

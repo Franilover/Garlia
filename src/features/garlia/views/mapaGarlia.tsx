@@ -118,7 +118,7 @@ function Toast({
   return (
     <MotionDiv
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-[10px] font-bold uppercase tracking-widest"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-300 flex items-center gap-3 px-5 py-3 shadow-lg text-micro font-bold uppercase tracking-widest"
       exit={{ opacity: 0, y: 20 }}
       initial={{ opacity: 0, y: 20 }}
       style={{
@@ -174,7 +174,7 @@ function PanelContenido({
       <div className="flex flex-col gap-4 grow">
         <div className="flex flex-col gap-1">
           <label
-            className="text-[9px] font-bold uppercase tracking-widest ml-1"
+            className="text-micro font-bold uppercase tracking-widest ml-1"
             style={{
               color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             }}
@@ -216,7 +216,7 @@ function PanelContenido({
         </div>
         <div className="flex flex-col gap-1 grow">
           <label
-            className="text-[9px] font-bold uppercase tracking-widest ml-1"
+            className="text-micro font-bold uppercase tracking-widest ml-1"
             style={{
               color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             }}
@@ -256,7 +256,7 @@ function PanelContenido({
         </div>
         <div className="flex flex-col gap-1">
           <label
-            className="text-[9px] font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
+            className="text-micro font-bold uppercase tracking-widest ml-1 flex items-center gap-1"
             style={{
               color: "color-mix(in srgb, var(--foreground) 60%, transparent)",
             }}
@@ -289,7 +289,7 @@ function PanelContenido({
                 }}
               >
                 <span
-                  className="block text-[8px] font-bold uppercase"
+                  className="block text-micro font-bold uppercase"
                   style={{
                     color:
                       "color-mix(in srgb, var(--foreground) 40%, transparent)",
@@ -310,7 +310,7 @@ function PanelContenido({
 
         {!puntoSeleccionado && (
           <div
-            className="flex items-center gap-2 px-3 py-2.5 border text-[9px] font-bold uppercase tracking-wide"
+            className="flex items-center gap-2 px-3 py-2.5 border text-micro font-bold uppercase tracking-wide"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -324,7 +324,7 @@ function PanelContenido({
           </div>
         )}
         <button
-          className="btn-brand w-full justify-center text-[11px] uppercase py-4 mt-auto disabled:opacity-50"
+          className="btn-brand w-full justify-center text-micro uppercase py-4 mt-auto disabled:opacity-50"
           disabled={isSaving}
           style={{ letterSpacing: "0.12em" }}
           onClick={handleSaveChanges}
@@ -458,7 +458,7 @@ function PanelContenido({
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -528,7 +528,7 @@ function PanelContenido({
                           </div>
                           <div className="flex-1 min-w-0">
                             <p
-                              className="text-[10px] font-semibold uppercase leading-tight truncate"
+                              className="text-micro font-semibold uppercase leading-tight truncate"
                               style={{
                                 color: desbloqueado
                                   ? "var(--foreground)"
@@ -539,7 +539,7 @@ function PanelContenido({
                             </p>
                             {p.especie && (
                               <p
-                                className="text-[8px] mt-0.5 truncate"
+                                className="text-micro mt-0.5 truncate"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--accent) 55%, transparent)",
@@ -568,7 +568,7 @@ function PanelContenido({
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -626,7 +626,7 @@ function PanelContenido({
                           )}
                         </div>
                         <p
-                          className="text-[10px] font-semibold uppercase truncate"
+                          className="text-micro font-semibold uppercase truncate"
                           style={{ color: "var(--foreground)" }}
                         >
                           {c.nombre}
@@ -649,7 +649,7 @@ function PanelContenido({
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -707,7 +707,7 @@ function PanelContenido({
                           )}
                         </div>
                         <p
-                          className="text-[10px] font-semibold uppercase truncate"
+                          className="text-micro font-semibold uppercase truncate"
                           style={{ color: "var(--foreground)" }}
                         >
                           {item.nombre}
@@ -730,7 +730,7 @@ function PanelContenido({
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color:
                           "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -776,14 +776,14 @@ function PanelContenido({
                         />
                         <div className="flex-1 min-w-0">
                           <p
-                            className="text-[10px] font-semibold uppercase truncate"
+                            className="text-micro font-semibold uppercase truncate"
                             style={{ color: "var(--foreground)" }}
                           >
                             {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
                           </p>
                           {cap.libro_titulo && (
                             <p
-                              className="text-[8px] mt-0.5 truncate"
+                              className="text-micro mt-0.5 truncate"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--accent) 50%, transparent)",
@@ -808,7 +808,7 @@ function PanelContenido({
                 itemsCiudad.length === 0 &&
                 capitulosCiudad.length === 0 && (
                   <p
-                    className="text-center text-[9px] font-black uppercase tracking-widest py-4"
+                    className="text-center text-micro font-black uppercase tracking-widest py-4"
                     style={{
                       color:
                         "color-mix(in srgb, var(--accent) 25%, transparent)",
@@ -832,7 +832,7 @@ function PanelContenido({
                 }}
               />
               <span
-                className="text-[8px] font-black uppercase tracking-[0.3em]"
+                className="text-micro font-black uppercase tracking-[0.3em]"
                 style={{
                   color: "color-mix(in srgb, var(--accent) 60%, transparent)",
                 }}
@@ -900,7 +900,7 @@ function PanelContenido({
                     {/* Nombre + especie — derecha */}
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[11px] font-semibold uppercase leading-tight truncate"
+                        className="text-micro font-semibold uppercase leading-tight truncate"
                         style={{
                           color: desbloqueado
                             ? "var(--foreground)"
@@ -916,7 +916,7 @@ function PanelContenido({
                       </p>
                       {p.especie && (
                         <p
-                          className="text-[9px] font-medium mt-0.5 truncate"
+                          className="text-micro font-medium mt-0.5 truncate"
                           style={{
                             color:
                               "color-mix(in srgb, var(--accent) 55%, transparent)",
@@ -958,7 +958,7 @@ function PanelContenido({
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+                      className="text-micro font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
                       style={{
                         color:
                           "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -1000,7 +1000,7 @@ function PanelContenido({
                         )}
                         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
                           <p
-                            className="text-[12px] font-bold uppercase leading-tight"
+                            className="text-sm font-bold uppercase leading-tight"
                             style={{
                               color: "var(--foreground)",
                               fontFamily: "'Cinzel', serif",
@@ -1010,7 +1010,7 @@ function PanelContenido({
                           </p>
                           {libro.estado && (
                             <p
-                              className="text-[8px] font-black uppercase"
+                              className="text-micro font-black uppercase"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -1022,7 +1022,7 @@ function PanelContenido({
                           )}
                           {libro.sinopsis && (
                             <p
-                              className="text-[10px] italic leading-snug line-clamp-3"
+                              className="text-micro italic leading-snug line-clamp-3"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--foreground) 60%, transparent)",
@@ -1068,7 +1068,7 @@ function PanelContenido({
                           }}
                         />
                         <span
-                          className="text-[8px] font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
+                          className="text-micro font-black uppercase tracking-[0.3em] flex items-center gap-1.5"
                           style={{
                             color:
                               "color-mix(in srgb, var(--accent) 60%, transparent)",
@@ -1111,7 +1111,7 @@ function PanelContenido({
                             }
                           >
                             <span
-                              className="text-[8px] font-black shrink-0 px-1.5 py-0.5"
+                              className="text-micro font-black shrink-0 px-1.5 py-0.5"
                               style={{
                                 background:
                                   "color-mix(in srgb, var(--accent) 12%, transparent)",
@@ -1121,7 +1121,7 @@ function PanelContenido({
                               {cap.orden}
                             </span>
                             <p
-                              className="text-[10px] font-semibold uppercase truncate flex-1 min-w-0"
+                              className="text-micro font-semibold uppercase truncate flex-1 min-w-0"
                               style={{ color: "var(--foreground)" }}
                             >
                               {cap.titulo_capitulo ?? `Capítulo ${cap.orden}`}
@@ -3079,7 +3079,7 @@ export default function MapaInteractivo() {
             }}
           >
             <button
-              className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-all border"
+              className="flex items-center gap-2 px-4 py-2 text-micro font-semibold uppercase tracking-widest transition-all border"
               style={{
                 background: editMode
                   ? "color-mix(in srgb, #c43030 85%, var(--bg-menu))"
@@ -3099,7 +3099,7 @@ export default function MapaInteractivo() {
             </button>
             {editMode && (
               <button
-                className="flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
+                className="flex items-center gap-2 px-4 py-2 text-micro font-semibold uppercase tracking-widest disabled:opacity-50 transition-all"
                 disabled={isSaving}
                 style={{
                   background: "color-mix(in srgb, var(--accent) 70%, #1a5c30)",
@@ -3123,7 +3123,7 @@ export default function MapaInteractivo() {
           {editMode && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionDiv
               animate={{ opacity: 1, y: 0 }}
-              className="absolute left-1/2 -translate-x-1/2 z-50 text-[10px] font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
+              className="absolute left-1/2 -translate-x-1/2 z-50 text-micro font-semibold uppercase px-4 py-2 shadow-md flex items-center gap-2 bottom-[calc(56px+1rem)] md:bottom-16"
               exit={{ opacity: 0, y: 10 }}
               initial={{ opacity: 0, y: 10 }}
               style={{
@@ -3140,7 +3140,7 @@ export default function MapaInteractivo() {
               <Move size={12} /> Clickeá para mover el marcador
               {modifiedDetalles.size > 1 && (
                 <span
-                  className="px-1.5 py-0.5 text-[9px]"
+                  className="px-1.5 py-0.5 text-micro"
                   style={{
                     background:
                       "color-mix(in srgb, var(--bg-main) 20%, transparent)",
@@ -3157,7 +3157,7 @@ export default function MapaInteractivo() {
           {vistaActual === "reino" && (
             <MotionButton
               animate={{ opacity: 1, x: 0 }}
-              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest transition-colors"
+              className="absolute top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 text-micro font-semibold uppercase tracking-widest transition-colors"
               exit={{ opacity: 0, x: -20 }}
               initial={{ opacity: 0, x: -20 }}
               style={{
@@ -3181,7 +3181,7 @@ export default function MapaInteractivo() {
           {!panelOpen && (reinoSeleccionado || puntoSeleccionado) && (
             <MotionButton
               animate={{ opacity: 1, x: 0 }}
-              className="absolute top-4 z-50 flex items-center gap-2.5 px-3 py-2 text-[10px] font-bold uppercase transition-all"
+              className="absolute top-4 z-50 flex items-center gap-2.5 px-3 py-2 text-micro font-bold uppercase transition-all"
               exit={{ opacity: 0, x: 20 }}
               initial={{ opacity: 0, x: 20 }}
               style={{
@@ -3223,7 +3223,7 @@ export default function MapaInteractivo() {
           >
             {/* Label */}
             <span
-              className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap"
+              className="text-micro font-black uppercase tracking-widest whitespace-nowrap"
               style={{ color: "var(--accent)", letterSpacing: "0.15em" }}
             >
               {vistaActual === "reino" ? "Color Fondo Reino" : "Color Mar"}
@@ -3328,7 +3328,7 @@ export default function MapaInteractivo() {
             {/* Eyedropper hint */}
             {eyedropperActive && (
               <span
-                className="text-[9px] font-semibold uppercase animate-pulse whitespace-nowrap"
+                className="text-micro font-semibold uppercase animate-pulse whitespace-nowrap"
                 style={{ color: "var(--accent)", letterSpacing: "0.1em" }}
               >
                 Clickeá el mapa

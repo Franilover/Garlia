@@ -703,7 +703,7 @@ function EditorEntidadesInner() {
         {/* ── Indicador offline ────────────────────────────────────────────── */}
         {isOffline && (
           <div
-            className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-orange-400"
+            className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-micro font-black uppercase tracking-widest text-orange-400"
             style={{
               background:
                 "color-mix(in srgb, oklch(0.7 0.15 55) 8%, transparent)",
@@ -772,10 +772,10 @@ function EditorEntidadesInner() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center gap-3 text-primary/15 select-none">
                 <Globe size={48} strokeWidth={1} />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">
+                <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/25">
                   Worldbuilding
                 </p>
-                <p className="text-[10px] text-primary/20 tracking-widest">
+                <p className="text-micro text-primary/20 tracking-widest">
                   {loadingAll ? "Cargando…" : "Buscá cualquier entidad arriba"}
                 </p>
               </div>

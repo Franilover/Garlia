@@ -127,12 +127,12 @@ export function SelectorFechaMundo({
           <Loader2 className="animate-spin text-primary/30" size={9} />
         ) : fecha ? (
           <div className="flex-1 min-w-0">
-            <span className="text-[9px] font-bold text-primary truncate block">
+            <span className="text-micro font-bold text-primary truncate block">
               {formatFechaCorta(fecha)}
             </span>
           </div>
         ) : (
-          <span className="flex-1 text-[9px] text-primary/30 italic">
+          <span className="flex-1 text-micro text-primary/30 italic">
             {placeholder}
           </span>
         )}
@@ -287,7 +287,7 @@ function FechaMundoEditor({
     <div className="p-3 space-y-3">
       {/* Año */}
       <div className="space-y-1">
-        <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+        <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
           Año
         </label>
         <div className="flex items-center gap-1.5">
@@ -308,7 +308,7 @@ function FechaMundoEditor({
             <ChevronDown size={10} />
           </button>
           <input
-            className="flex-1 text-center rounded-lg border px-2 py-1 text-[11px] font-black outline-none transition-all"
+            className="flex-1 text-center rounded-lg border px-2 py-1 text-micro font-black outline-none transition-all"
             style={{
               background: "transparent",
               borderColor:
@@ -344,7 +344,7 @@ function FechaMundoEditor({
 
       {/* Estación */}
       <div className="space-y-1">
-        <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+        <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
           Estación
         </label>
         <div
@@ -380,10 +380,10 @@ function FechaMundoEditor({
                   setDiaEnEstStr("1");
                 }}
               >
-                <div className="text-[8px] font-black uppercase tracking-wide">
+                <div className="text-micro font-black uppercase tracking-wide">
                   {grupo.nombre}
                 </div>
-                <div className="text-[7px] opacity-60">{totalDias}d</div>
+                <div className="text-micro opacity-60">{totalDias}d</div>
               </button>
             );
           })}
@@ -392,7 +392,7 @@ function FechaMundoEditor({
 
       {/* Semana / día */}
       <div className="space-y-1">
-        <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+        <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
           Semana {semana} de {totalSemanas} · Día {diaEnSemana} de{" "}
           {config.dias_por_semana}
         </label>
@@ -419,7 +419,7 @@ function FechaMundoEditor({
                 {/* Etiqueta de la parte (solo si hay más de una) */}
                 {grupoActual.partes.length > 1 && (
                   <div
-                    className="text-center py-0.5 text-[7px] font-black uppercase tracking-widest"
+                    className="text-center py-0.5 text-micro font-black uppercase tracking-widest"
                     style={{
                       background: esActiva
                         ? "color-mix(in srgb, var(--accent) 10%, transparent)"
@@ -446,7 +446,7 @@ function FechaMundoEditor({
                   {Array.from({ length: config.dias_por_semana }, (_, i) => (
                     <div
                       key={i}
-                      className="text-center py-1 text-[7px] font-black uppercase tracking-widest text-primary/25"
+                      className="text-center py-1 text-micro font-black uppercase tracking-widest text-primary/25"
                     >
                       D{i + 1}
                     </div>
@@ -466,7 +466,7 @@ function FechaMundoEditor({
                     return (
                       <button
                         key={dia}
-                        className="rounded text-center py-0.5 text-[8px] font-bold transition-all"
+                        className="rounded text-center py-0.5 text-micro font-bold transition-all"
                         style={{
                           background: selected
                             ? "var(--accent)"
@@ -495,9 +495,9 @@ function FechaMundoEditor({
 
         {/* Input directo */}
         <div className="flex items-center gap-1 pt-0.5">
-          <span className="text-[8px] text-primary/30">Día directo:</span>
+          <span className="text-micro text-primary/30">Día directo:</span>
           <input
-            className="w-16 rounded-lg border px-2 py-0.5 text-[9px] font-black text-center outline-none"
+            className="w-16 rounded-lg border px-2 py-0.5 text-micro font-black text-center outline-none"
             max={estSel.duracion_dias}
             min={1}
             style={{
@@ -515,7 +515,7 @@ function FechaMundoEditor({
                 setDiaEnEst(n);
             }}
           />
-          <span className="text-[8px] text-primary/25">
+          <span className="text-micro text-primary/25">
             / {estSel.duracion_dias}
           </span>
         </div>
@@ -523,7 +523,7 @@ function FechaMundoEditor({
 
       {/* Resumen */}
       <div
-        className="rounded-lg px-2.5 py-2 text-[8px] font-bold"
+        className="rounded-lg px-2.5 py-2 text-micro font-bold"
         style={{
           background: "color-mix(in srgb, var(--primary) 4%, transparent)",
           color: "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -540,7 +540,7 @@ function FechaMundoEditor({
       <div className="flex gap-1.5">
         {onClear && (
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest transition-all"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -553,7 +553,7 @@ function FechaMundoEditor({
           </button>
         )}
         <button
-          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest transition-all"
           style={{ background: "var(--accent)", color: "white" }}
           type="button"
           onClick={handleConfirm}

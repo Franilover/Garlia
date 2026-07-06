@@ -318,7 +318,7 @@ function LibroCard({
           </div>
           <div className="flex flex-col gap-1 min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="text-primary font-black uppercase text-[11px] leading-tight tracking-tight line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
+              <h2 className="text-primary font-black uppercase text-micro leading-tight tracking-tight line-clamp-2 group-hover:text-[var(--accent)] transition-colors">
                 {libro.titulo}
               </h2>
               {libro.visibilidad !== "publico" && (
@@ -329,13 +329,13 @@ function LibroCard({
                   {libro.visibilidad === "oculto" && (
                     <Lock className="text-primary" size={8} />
                   )}
-                  <span className="text-[7px] font-black uppercase text-primary tracking-widest">
+                  <span className="text-micro font-black uppercase text-primary tracking-widest">
                     {libro.estado}
                   </span>
                 </div>
               )}
             </div>
-            <p className="text-primary/40 text-[10px] italic leading-relaxed font-medium line-clamp-2">
+            <p className="text-primary/40 text-micro italic leading-relaxed font-medium line-clamp-2">
               {libro.sinopsis}
             </p>
             {numCaps > 0 && (
@@ -346,7 +346,7 @@ function LibroCard({
                     style={{ width: `${progreso}%` }}
                   />
                 </div>
-                <span className="text-[8px] font-bold text-primary/30 uppercase tracking-wider whitespace-nowrap">
+                <span className="text-micro font-bold text-primary/30 uppercase tracking-wider whitespace-nowrap">
                   {leidosCount > 0
                     ? `${leidosCount}/${numCaps}`
                     : `${numCaps} caps`}
@@ -370,7 +370,7 @@ function LibroCard({
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
-              <p className="text-white/90 text-[11px] italic leading-relaxed font-medium line-clamp-5">
+              <p className="text-white/90 text-micro italic leading-relaxed font-medium line-clamp-5">
                 &ldquo;{libro.sinopsis}&rdquo;
               </p>
             </div>
@@ -383,7 +383,7 @@ function LibroCard({
                 {libro.visibilidad === "oculto" && (
                   <Lock className="text-primary" size={9} />
                 )}
-                <span className="text-[8px] font-black uppercase text-primary tracking-widest">
+                <span className="text-micro font-black uppercase text-primary tracking-widest">
                   {libro.estado}
                 </span>
               </div>
@@ -392,7 +392,7 @@ function LibroCard({
             {nuevo && (
               <div className="absolute top-4 right-4 z-20 bg-[var(--accent,var(--primary))]/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5">
                 <Sparkles className="text-white" size={8} />
-                <span className="text-[8px] font-black uppercase text-white tracking-widest">
+                <span className="text-micro font-black uppercase text-white tracking-widest">
                   Nuevo
                 </span>
               </div>
@@ -401,7 +401,7 @@ function LibroCard({
             {numCaps > 0 && (
               <div className="absolute bottom-4 right-4 z-20 bg-white-custom/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-primary/10 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <BookOpen className="text-primary/60" size={8} />
-                <span className="text-[8px] font-bold text-primary/70 tracking-wide">
+                <span className="text-micro font-bold text-primary/70 tracking-wide">
                   {numCaps} cap{numCaps !== 1 ? "s" : ""}
                 </span>
               </div>
@@ -420,7 +420,7 @@ function LibroCard({
                     style={{ width: `${progreso}%` }}
                   />
                 </div>
-                <span className="text-[8px] font-bold text-primary/25 uppercase tracking-wider whitespace-nowrap">
+                <span className="text-micro font-bold text-primary/25 uppercase tracking-wider whitespace-nowrap">
                   {leidosCount}/{numCaps}
                 </span>
               </div>
@@ -543,14 +543,14 @@ const Biblioteca = () => {
             {gruposOrdenados.map(({ id, nombre, items }) => (
               <section key={id ?? "__sin_grupo__"}>
                 <h2
-                  className="text-primary font-black uppercase text-[10px] tracking-[0.25em] italic mb-8 pb-3 flex items-center gap-3"
+                  className="text-primary font-black uppercase text-micro tracking-[0.25em] italic mb-8 pb-3 flex items-center gap-3"
                   style={{
                     borderBottom:
                       "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   }}
                 >
                   {nombre}
-                  <span className="text-primary/30 font-bold text-[9px]">
+                  <span className="text-primary/30 font-bold text-micro">
                     ({items.length})
                   </span>
                 </h2>

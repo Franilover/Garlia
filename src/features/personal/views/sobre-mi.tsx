@@ -117,7 +117,7 @@ export default function SobreMi() {
             {/* Columna derecha: herramientas en columna */}
             <MotionSection {...fade(0.24)} className="mt-10 md:mt-0 md:w-[28%] shrink-0">
               <div
-                className="flex items-center justify-center gap-2 text-[13px] font-black uppercase tracking-[0.4em] mb-6"
+                className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-[0.4em] mb-6"
                 style={{ color: "var(--primary)", opacity: 0.3 }}
               >
                 Herramientas
@@ -170,7 +170,7 @@ export default function SobreMi() {
             style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
           />
           <span
-            className="text-[20px] font-black"
+            className="text-xl font-black"
             style={{ color: "var(--primary)", opacity: 0.15 }}
           >⚝</span>
           <div
@@ -233,7 +233,7 @@ export default function SobreMi() {
         {/* ── REDES SOCIALES ── */}
         <MotionSection {...fade(0.36)} className="flex flex-col items-center text-center space-y-10">
           <div
-            className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.4em]"
+            className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
             style={{ color: "var(--primary)", opacity: 0.3 }}
           >
             Redes Sociales
@@ -302,7 +302,7 @@ export default function SobreMi() {
                     style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
                   >{social.label}</p>
                   <p
-                    className="text-[11px] font-medium"
+                    className="text-micro font-medium"
                     style={{ color: "var(--primary)", opacity: 0.35 }}
                   >{social.handle}</p>
                 </div>

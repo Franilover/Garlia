@@ -54,7 +54,7 @@ export const SeccionEditor = ({
       <div className="flex items-center gap-2 px-2 pt-1.5 pb-0.5">
         <GripVertical className="text-primary/15 shrink-0" size={13} />
         <input
-          className="flex-1 bg-transparent text-[11px] font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
+          className="flex-1 bg-transparent text-micro font-black uppercase text-primary outline-none tracking-widest placeholder:text-primary/20 min-w-0 hover:bg-primary/5 focus:bg-primary/8 rounded-lg px-2 py-0.5 -mx-2 transition-colors"
           placeholder="NOMBRE DE SECCIÓN…"
           value={nombre}
           onBlur={() =>

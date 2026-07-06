@@ -171,17 +171,17 @@ function DetalleEditor({
           size={11}
         />
         <span
-          className={`flex-1 text-[11px] font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}
+          className={`flex-1 text-micro font-black uppercase tracking-widest truncate ${form.oculto ? "text-primary/30 line-through" : "text-primary"}`}
         >
           {form.nombre}
         </span>
         {form.oculto && (
-          <span className="shrink-0 text-[8px] font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
+          <span className="shrink-0 text-micro font-black uppercase tracking-widest text-orange-400/70 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-lg flex items-center gap-1">
             <EyeOff size={8} /> Oculto
           </span>
         )}
         <button
-          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all border ${
+          className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest transition-all border ${
             form.oculto
               ? "text-orange-400 bg-orange-400/10 border-orange-400/30"
               : "text-primary/40 bg-primary/5 border-primary/10 hover:text-primary"
@@ -208,7 +208,7 @@ function DetalleEditor({
           }}
         >
           <div className="mt-3">
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+            <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
               Nombre
             </label>
             <input
@@ -221,7 +221,7 @@ function DetalleEditor({
             />
           </div>
           <div>
-            <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">
+            <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">
               Descripción
             </label>
             <MarkdownEditor
@@ -238,7 +238,7 @@ function DetalleEditor({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20"
                 onClick={async (e) => {
                   e.stopPropagation();
                   const ok = await confirm({
@@ -255,7 +255,7 @@ function DetalleEditor({
               </button>
               {onOpenEditor && (
                 <button
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/5 transition-all border border-primary/10 hover:border-primary/20"
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenEditor(form.id);
@@ -268,7 +268,7 @@ function DetalleEditor({
             <div className="flex items-center gap-2">
               <SaveIndicator status={status} />
               <button
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-btn-text rounded-xl text-micro font-black uppercase tracking-widest hover:bg-primary/90 transition-all"
                 onClick={() => saveDetalle(form)}
               >
                 <Check size={10} /> Guardar
@@ -320,7 +320,7 @@ function MapaNuevo({
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-primary/20">
           <Map size={22} strokeWidth={1} />
-          <span className="text-[9px] font-black uppercase tracking-widest">
+          <span className="text-micro font-black uppercase tracking-widest">
             Sin mapa
           </span>
         </div>
@@ -330,7 +330,7 @@ function MapaNuevo({
       <div className="absolute bottom-3 right-3 z-10 flex gap-1.5">
         {/* Geografía */}
         <button
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-opacity hover:opacity-80"
           style={{
             background: geoOpen
               ? "color-mix(in srgb, var(--accent) 18%, transparent)"
@@ -371,7 +371,7 @@ function MapaNuevo({
           >
             <Mountain size={10} style={{ color: "var(--accent)" }} />
             <span
-              className="flex-1 text-[9px] font-black uppercase tracking-[0.2em]"
+              className="flex-1 text-micro font-black uppercase tracking-[0.2em]"
               style={{
                 color: "color-mix(in srgb, var(--foreground) 40%, transparent)",
               }}
@@ -708,7 +708,7 @@ function SeccionReadOnly({
           }}
         />
         <span
-          className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+          className="text-micro font-black uppercase tracking-[0.2em] flex-1"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
@@ -717,7 +717,7 @@ function SeccionReadOnly({
         </span>
         {items.length > 0 && (
           <span
-            className="text-[7px] font-black px-1.5 py-0.5 rounded-md"
+            className="text-micro font-black px-1.5 py-0.5 rounded-md"
             style={{
               background: "color-mix(in srgb, var(--primary) 10%, transparent)",
               color: "color-mix(in srgb, var(--primary) 45%, transparent)",
@@ -742,7 +742,7 @@ function SeccionReadOnly({
           </div>
         ) : items.length === 0 ? (
           <p
-            className="text-[9px] font-bold uppercase tracking-widest text-center py-3 italic"
+            className="text-micro font-bold uppercase tracking-widest text-center py-3 italic"
             style={{
               color: "color-mix(in srgb, var(--primary) 22%, transparent)",
             }}
@@ -795,7 +795,7 @@ function SeccionReadOnly({
                   />
                 )}
               </div>
-              <span className="text-[10px] font-semibold truncate flex-1">
+              <span className="text-micro font-semibold truncate flex-1">
                 {item.nombre}
               </span>
             </button>
@@ -935,7 +935,7 @@ export function LoreTab({
         style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
       />
       <span
-        className="text-[9px] font-black uppercase tracking-[0.22em]"
+        className="text-micro font-black uppercase tracking-[0.22em]"
         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
       >
         {label}
@@ -970,7 +970,7 @@ export function LoreTab({
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              className="flex-1 px-2 py-2 text-[9px] font-black uppercase tracking-widest transition-all border-b-2"
+              className="flex-1 px-2 py-2 text-micro font-black uppercase tracking-widest transition-all border-b-2"
               style={
                 activeTab === tab.id
                   ? { borderColor: "var(--primary)", color: "var(--primary)" }
@@ -1018,7 +1018,7 @@ export function LoreTab({
               {activeTab === "sociedad" && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                    <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Cultura
                     </label>
                     <MarkdownEditor
@@ -1034,7 +1034,7 @@ export function LoreTab({
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                    <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Política
                     </label>
                     <MarkdownEditor
@@ -1050,7 +1050,7 @@ export function LoreTab({
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/35">
+                    <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Economía
                     </label>
                     <MarkdownEditor
@@ -1198,7 +1198,7 @@ export function LoreTab({
               }}
             >
               <span
-                className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
+                className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 40%, transparent)",
                 }}

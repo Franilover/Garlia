@@ -73,7 +73,7 @@ function ImagePickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+          <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
             <ImageIcon size={11} /> {title ?? "Elegir imagen"}
           </h3>
           <button
@@ -250,7 +250,7 @@ export function ReinoTileCanvas({
             }}
           >
             <Map className="text-primary/25" size={24} strokeWidth={1} />
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+            <p className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
               Sin tiles de mapa
             </p>
             <div className="flex gap-2">
@@ -263,7 +263,7 @@ export function ReinoTileCanvas({
               ).map(([c, r]) => (
                 <button
                   key={`${c}-${r}`}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-micro font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
                   onClick={() => addTile(c, r)}
                 >
                   <Plus size={9} /> {c},{r}
@@ -287,7 +287,7 @@ export function ReinoTileCanvas({
             }}
           >
             <Map className="text-primary/20" size={22} strokeWidth={1} />
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/30">
+            <p className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
               Este reino todavía no tiene mapa
             </p>
           </div>

@@ -336,7 +336,7 @@ const PanelColapsable = React.forwardRef<
           size={12}
         />
         <span
-          className="text-[10px] font-black uppercase tracking-[0.25em] flex-1 text-left"
+          className="text-micro font-black uppercase tracking-[0.25em] flex-1 text-left"
           style={{
             color: "color-mix(in srgb, var(--primary) 30%, transparent)",
           }}
@@ -1385,7 +1385,7 @@ function PanelListas({
         onClick={onClick}
       >
         <span
-          className={`text-[11px] font-bold text-center truncate${fullWidth || noMaxW ? "" : " max-w-[120px] sm:max-w-[90px]"}`}
+          className={`text-micro font-bold text-center truncate${fullWidth || noMaxW ? "" : " max-w-[120px] sm:max-w-[90px]"}`}
           style={{
             color:
               accentText ??
@@ -1512,7 +1512,7 @@ function PanelListas({
           onClick={toggle}
         >
           <span
-            className="text-[10px] font-black uppercase tracking-[0.25em] flex-1 text-center"
+            className="text-micro font-black uppercase tracking-[0.25em] flex-1 text-center"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -1534,7 +1534,7 @@ function PanelListas({
               <Loader2 className="animate-spin text-primary/20" size={14} />
             </div>
           ) : count === 0 ? (
-            <p className="text-[9px] text-primary/20 italic px-1 pb-2">
+            <p className="text-micro text-primary/20 italic px-1 pb-2">
               Sin {label.toLowerCase()} aún
             </p>
           ) : (
@@ -2088,7 +2088,7 @@ function PanelListas({
                       return (
                         <div key={tipo} className="flex flex-col gap-1">
                           <span
-                            className="block w-full text-[9px] font-black uppercase tracking-[0.2em] px-1 text-center"
+                            className="block w-full text-micro font-black uppercase tracking-[0.2em] px-1 text-center"
                             style={{
                               color:
                                 "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -2107,7 +2107,7 @@ function PanelListas({
                               >
                                 {subtipo && (
                                   <span
-                                    className="block w-full text-[8px] font-bold uppercase tracking-[0.15em] px-1 text-center"
+                                    className="block w-full text-micro font-bold uppercase tracking-[0.15em] px-1 text-center"
                                     style={{
                                       color:
                                         "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -2158,7 +2158,7 @@ function PanelListas({
                                             } as Grupo);
                                         }}
                                       >
-                                        <span className="text-[11px] font-bold text-center text-primary/70 truncate">
+                                        <span className="text-micro font-bold text-center text-primary/70 truncate">
                                           {g.nombre}
                                         </span>
                                       </button>
@@ -2200,7 +2200,7 @@ function PanelListas({
                       type="button"
                       onClick={() => setSelectedNota(n)}
                     >
-                      <span className="text-[11px] font-bold text-center text-primary/70 truncate">
+                      <span className="text-micro font-bold text-center text-primary/70 truncate">
                         {n.titulo || (
                           <span className="italic text-primary/30">
                             Sin título

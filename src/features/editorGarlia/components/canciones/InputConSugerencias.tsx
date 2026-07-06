@@ -37,7 +37,7 @@ export const InputConSugerencias = ({
 
   return (
     <div ref={ref} className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">{label}</label>
+      <label className="text-micro font-black uppercase text-primary/30 tracking-widest">{label}</label>
       <div className="relative">
         <input
           className="w-full bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/20"

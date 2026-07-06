@@ -279,13 +279,13 @@ export function EditorCriatura({
           <div className="shrink-0 flex items-center gap-1.5">
             <SaveIndicator status={status} />
             <button
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
               onClick={del}
             >
               <Trash2 size={9} />
             </button>
             <button
-              className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               disabled={status === "saving"}
               onClick={save}
             >
@@ -339,7 +339,7 @@ export function EditorCriatura({
               </div>
             </div>
             <div className="flex-1 min-w-0 flex flex-col gap-1">
-              <label className="text-[8px] font-black uppercase tracking-[0.25em] text-primary/30">
+              <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
                 Descripción
               </label>
               <MarkdownEditor
@@ -386,7 +386,7 @@ export function EditorCriatura({
                 ] as const
               ).map(({ label, subtipo, icon }) => (
                 <div key={subtipo} className="flex flex-col gap-0.5">
-                  <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest text-primary/30 mb-0.5">
+                  <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
                     {React.createElement(icon, { size: 7 })} {label}
                   </span>
                   <BloqueGrupoCategoria
@@ -615,7 +615,7 @@ export function EditorCriatura({
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}
             >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
+              <span className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
                 <SlidersHorizontal size={9} /> Entidades
               </span>
               <button

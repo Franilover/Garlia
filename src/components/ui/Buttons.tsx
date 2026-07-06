@@ -16,9 +16,9 @@ const btnVariants = cva(
         outline: "bg-transparent text-primary border border-primary/20 hover:border-primary/50",
       },
       size: {
-        sm: "px-3 py-1.5 text-[9px]",
-        md: "px-5 py-3 text-[10px]",
-        lg: "px-8 py-4 text-[11px]",
+        sm: "px-3 py-1.5 text-micro",
+        md: "px-5 py-3 text-micro",
+        lg: "px-8 py-4 text-micro",
       },
       fullWidth: {
         true: "w-full",

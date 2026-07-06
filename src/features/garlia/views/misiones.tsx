@@ -351,7 +351,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
             }}
           />
           <span
-            className="text-[9px] font-black uppercase tracking-[0.3em]"
+            className="text-micro font-black uppercase tracking-[0.3em]"
             style={{
               color: "color-mix(in srgb, var(--primary) 30%, transparent)",
             }}
@@ -417,7 +417,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                 >
                   <WifiOff size={8} style={{ color: "#d97706" }} />
                   <span
-                    className="text-[8px] font-black uppercase tracking-[0.18em]"
+                    className="text-micro font-black uppercase tracking-[0.18em]"
                     style={{ color: "#d97706" }}
                   >
                     Sin conexión
@@ -443,7 +443,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   }}
                 />
                 <span
-                  className="text-[9px] font-black uppercase tracking-[0.22em] tabular-nums"
+                  className="text-micro font-black uppercase tracking-[0.22em] tabular-nums"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 55%, transparent)",
@@ -452,7 +452,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   {perfil?.xp_total ?? 0}
                 </span>
                 <span
-                  className="text-[7px] font-black uppercase tracking-[0.2em] hidden sm:inline"
+                  className="text-micro font-black uppercase tracking-[0.2em] hidden sm:inline"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 36%, transparent)",
@@ -520,7 +520,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   }}
                 />
                 <span
-                  className="text-[7px] font-black uppercase tracking-[0.22em]"
+                  className="text-micro font-black uppercase tracking-[0.22em]"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 48%, transparent)",
@@ -577,7 +577,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                     }}
                   />
                   <p
-                    className="text-[7px] font-black uppercase tracking-[0.3em]"
+                    className="text-micro font-black uppercase tracking-[0.3em]"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 28%, transparent)",
@@ -616,12 +616,12 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                               "color-mix(in srgb, var(--primary) 40%, transparent)",
                           }}
                         >
-                          <span className="text-[8px] font-black uppercase tracking-wider">
+                          <span className="text-micro font-black uppercase tracking-wider">
                             {label}
                           </span>
                         </div>
                         <span
-                          className="text-[13px] font-black tabular-nums"
+                          className="text-sm font-black tabular-nums"
                           style={{ color: "var(--primary)" }}
                         >
                           {count}
@@ -680,12 +680,12 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                             "color-mix(in srgb, var(--primary) 40%, transparent)",
                         }}
                       >
-                        <span className="text-[8px] font-black uppercase tracking-wider">
+                        <span className="text-micro font-black uppercase tracking-wider">
                           {label}
                         </span>
                       </div>
                       <span
-                        className="text-[13px] font-black tabular-nums"
+                        className="text-sm font-black tabular-nums"
                         style={{ color: "var(--primary)" }}
                       >
                         {count}
@@ -740,11 +740,11 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                     onClick={() => setTab(id)}
                   >
                     <Icon size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">
+                    <span className="text-micro font-black uppercase tracking-widest">
                       {label}
                     </span>
                     <span
-                      className="text-[8px] font-black tabular-nums px-1"
+                      className="text-micro font-black tabular-nums px-1"
                       style={{
                         borderRadius: "2px",
                         background: isActive
@@ -799,11 +799,11 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                     onClick={() => setTab(id)}
                   >
                     <Icon size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-widest">
+                    <span className="text-micro font-black uppercase tracking-widest">
                       {label}
                     </span>
                     <span
-                      className="text-[8px] font-black tabular-nums px-1"
+                      className="text-micro font-black tabular-nums px-1"
                       style={{
                         borderRadius: "2px",
                         background: isActive
@@ -927,7 +927,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
 
                         <div className="flex flex-col gap-2 p-3 flex-1">
                           <h3
-                            className="font-serif italic text-[13px] leading-tight capitalize"
+                            className="font-serif italic text-sm leading-tight capitalize"
                             style={{ color: "var(--primary)" }}
                           >
                             {m.titulo}
@@ -939,7 +939,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
 
                           <div className="flex items-center gap-2 mt-auto pt-1">
                             <span
-                              className="flex items-center gap-1 text-[9px] font-black tabular-nums"
+                              className="flex items-center gap-1 text-micro font-black tabular-nums"
                               style={{
                                 color:
                                   "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -949,7 +949,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                             </span>
                             {!!m.recompensa.monedas && (
                               <span
-                                className="flex items-center gap-1 text-[9px] font-black tabular-nums"
+                                className="flex items-center gap-1 text-micro font-black tabular-nums"
                                 style={{
                                   color:
                                     "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -990,7 +990,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
           >
             <WifiOff size={11} style={{ color: "#d97706" }} />
             <span
-              className="text-[10px] font-black uppercase tracking-tight"
+              className="text-micro font-black uppercase tracking-tight"
               style={{ color: "#d97706" }}
             >
               {aviso}

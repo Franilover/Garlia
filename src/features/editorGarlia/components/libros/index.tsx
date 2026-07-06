@@ -59,7 +59,7 @@ export const EstadisticasEscritura = ({
   const lectura = readingTime(palabras);
   if (compact) {
     return (
-      <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/25">
+      <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest text-primary/25">
         <Hash size={9} />
         {palabras.toLocaleString()}
         <span className="text-primary/15">·</span>
@@ -69,7 +69,7 @@ export const EstadisticasEscritura = ({
     );
   }
   return (
-    <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-primary/25">
+    <div className="flex items-center gap-4 text-micro font-black uppercase tracking-widest text-primary/25">
       <span className="flex items-center gap-1">
         <Hash size={9} />
         {palabras.toLocaleString()} pal.
@@ -132,7 +132,7 @@ export const CapituloItem = ({
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-black tabular-nums transition-all"
+        className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-micro font-black tabular-nums transition-all"
         style={{
           background: selected
             ? "color-mix(in srgb, var(--bg-main) 15%, transparent)"
@@ -145,7 +145,7 @@ export const CapituloItem = ({
       </div>
 
       <span
-        className="flex-1 min-w-0 text-[10px] font-black uppercase italic tracking-tight truncate"
+        className="flex-1 min-w-0 text-micro font-black uppercase italic tracking-tight truncate"
         style={{ color: selected ? "var(--bg-main)" : "var(--primary)" }}
       >
         {cap.titulo_capitulo}
@@ -811,7 +811,7 @@ export const LibroCard = ({
           <BookMarked className="text-primary/25 shrink-0" size={9} />
         )}
         <span
-          className="flex-1 text-[8px] font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight"
+          className="flex-1 text-micro font-black uppercase italic tracking-tight text-primary/70 truncate leading-tight"
           title={libro.titulo}
         >
           {libro.titulo}
@@ -940,7 +940,7 @@ export const LibroCard = ({
             <Loader2 className="animate-spin text-primary/20" size={11} />
           </div>
         ) : capitulos.length === 0 ? (
-          <p className="text-[8px] text-primary/20 font-black uppercase tracking-widest px-1 py-2 text-center">
+          <p className="text-micro text-primary/20 font-black uppercase tracking-widest px-1 py-2 text-center">
             Sin caps
           </p>
         ) : (
@@ -964,7 +964,7 @@ export const LibroCard = ({
         }}
       >
         <button
-          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed border-primary/12 text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/50 hover:border-primary/25 hover:bg-primary/3 transition-all"
+          className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed border-primary/12 text-micro font-black uppercase tracking-widest text-primary/20 hover:text-primary/50 hover:border-primary/25 hover:bg-primary/3 transition-all"
           onClick={() => onNuevoCap(libro.id)}
         >
           <Plus size={8} /> Cap
@@ -1432,7 +1432,7 @@ export const VisibilidadCapPicker = ({
   return (
     <div ref={ref} className="relative">
       <button
-        className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide transition-all disabled:opacity-40 ${cfg.color}`}
+        className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-black uppercase tracking-wide transition-all disabled:opacity-40 ${cfg.color}`}
         disabled={saving}
         onClick={() => setOpen((o) => !o)}
       >
@@ -1459,7 +1459,7 @@ export const VisibilidadCapPicker = ({
             return (
               <button
                 key={v}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[9px] font-black uppercase tracking-wide text-left transition-all hover:bg-primary/6"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-micro font-black uppercase tracking-wide text-left transition-all hover:bg-primary/6"
                 style={{
                   color:
                     current === v
@@ -1502,7 +1502,7 @@ export const SelectorVisibilidad = ({
   label?: string;
 }) => (
   <div className="space-y-2">
-    <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+    <label className="text-micro font-black uppercase tracking-widest text-primary/40">
       {label}
     </label>
     <div className="flex gap-2">
@@ -1513,7 +1513,7 @@ export const SelectorVisibilidad = ({
         return (
           <button
             key={v}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-btn)] text-[9px] font-black uppercase tracking-wide border transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide border transition-all ${
               active
                 ? cfg.color + " shadow-sm"
                 : "border-primary/10 text-primary/30 hover:border-primary/25 hover:text-primary/60"
@@ -1528,11 +1528,11 @@ export const SelectorVisibilidad = ({
     </div>
     {value === "programado" && (
       <div className="mt-2">
-        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+        <label className="text-micro font-black uppercase tracking-widest text-primary/40">
           Fecha de publicación
         </label>
         <input
-          className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-[11px] font-bold text-primary outline-none focus:border-primary/30 transition-colors"
+          className="mt-1 w-full bg-primary/5 border border-primary/15 rounded-[var(--radius-btn)] px-3 py-2 text-micro font-bold text-primary outline-none focus:border-primary/30 transition-colors"
           type="date"
           value={fechaPublicacion || ""}
           onChange={(e) => onFechaChange?.(e.target.value)}
@@ -1640,7 +1640,7 @@ export const NarradorPill = ({ narradorId }: { narradorId: string }) => {
   if (!p) return null;
   return (
     <span
-      className="flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-wide"
+      className="flex items-center gap-1 px-2 py-0.5 rounded-full border text-micro font-black uppercase tracking-wide"
       style={{
         background: "color-mix(in srgb, var(--accent) 12%, transparent)",
         borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)",
@@ -1665,7 +1665,7 @@ export function SelectorImagenPortada({
   const [open, setOpen] = useState(false);
   return (
     <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase tracking-widest text-primary/40">
+      <label className="text-micro font-black uppercase tracking-widest text-primary/40">
         Portada
       </label>
       <div
@@ -1681,7 +1681,7 @@ export function SelectorImagenPortada({
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
               <BookMarked className="text-white" size={16} />
-              <span className="text-[9px] font-black uppercase text-white tracking-widest">
+              <span className="text-micro font-black uppercase text-white tracking-widest">
                 Cambiar
               </span>
             </div>
@@ -1699,7 +1699,7 @@ export function SelectorImagenPortada({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-primary/25 hover:text-primary/50 transition-colors">
             <BookMarked size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest text-center px-1">
+            <span className="text-micro font-black uppercase tracking-widest text-center px-1">
               Elegir portada
             </span>
           </div>
@@ -1715,7 +1715,7 @@ export function SelectorImagenPortada({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <BookMarked size={11} /> Portada del libro
               </h3>
               <button
@@ -1953,7 +1953,7 @@ const SeccionTriggerWarnings = ({
       <div className="flex items-center gap-1 mb-2">
         <span style={{ fontSize: 11, lineHeight: 1 }}>⚠️</span>
         <span
-          className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+          className="text-micro font-black uppercase tracking-[0.2em] flex-1"
           style={{
             color: "color-mix(in srgb, var(--primary) 35%, transparent)",
           }}
@@ -2001,7 +2001,7 @@ const SeccionTriggerWarnings = ({
                 {on && <Check size={7} style={{ color: "var(--bg-main)" }} />}
               </div>
               <span
-                className="text-[9px] font-bold"
+                className="text-micro font-bold"
                 style={{
                   color: on
                     ? "var(--callout-warning-title)"
@@ -2040,7 +2040,7 @@ const SeccionTriggerWarnings = ({
                 <Check size={7} style={{ color: "var(--bg-main)" }} />
               </div>
               <span
-                className="text-[9px] font-bold flex-1 truncate"
+                className="text-micro font-bold flex-1 truncate"
                 style={{ color: "var(--callout-warning-title)" }}
               >
                 {tw}
@@ -2062,7 +2062,7 @@ const SeccionTriggerWarnings = ({
           <input
             ref={inputRef}
             autoFocus
-            className="flex-1 min-w-0 rounded px-1.5 py-0.5 text-[9px] font-bold outline-none border transition-all"
+            className="flex-1 min-w-0 rounded px-1.5 py-0.5 text-micro font-bold outline-none border transition-all"
             placeholder="Ej: Acoso…"
             style={{
               background: "color-mix(in srgb, var(--primary) 4%, transparent)",
@@ -2105,7 +2105,7 @@ const SeccionTriggerWarnings = ({
         </div>
       ) : (
         <button
-          className="mt-1.5 w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+          className="mt-1.5 w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-micro font-black uppercase tracking-widest transition-all"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
             color: "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2476,7 +2476,7 @@ export const PanelPersonajesCapitulo = ({
             }}
           />
           <span
-            className="text-[8px] font-black uppercase tracking-[0.2em] flex-1"
+            className="text-micro font-black uppercase tracking-[0.2em] flex-1"
             style={{
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
@@ -2517,13 +2517,13 @@ export const PanelPersonajesCapitulo = ({
                   style={{ background: "var(--accent)" }}
                 />
                 <span
-                  className="text-[9px] font-black tabular-nums"
+                  className="text-micro font-black tabular-nums"
                   style={{ color: "var(--accent)" }}
                 >
                   {eraActual.momento}
                 </span>
                 {eraActual.label && (
-                  <span className="text-[8px] font-bold text-primary/35 italic truncate">
+                  <span className="text-micro font-bold text-primary/35 italic truncate">
                     {eraActual.label}
                   </span>
                 )}
@@ -2535,7 +2535,7 @@ export const PanelPersonajesCapitulo = ({
                   {eraActual.rasgos.map((rasgo) => (
                     <span
                       key={rasgo}
-                      className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border"
+                      className="px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border"
                       style={{
                         background:
                           "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -2554,7 +2554,7 @@ export const PanelPersonajesCapitulo = ({
               {/* Notas */}
               {eraActual.notas && (
                 <p
-                  className="text-[9px] leading-relaxed"
+                  className="text-micro leading-relaxed"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 45%, transparent)",
@@ -2566,7 +2566,7 @@ export const PanelPersonajesCapitulo = ({
             </>
           ) : (
             <p
-              className="text-[8px] font-black uppercase tracking-widest text-center py-1 italic"
+              className="text-micro font-black uppercase tracking-widest text-center py-1 italic"
               style={{
                 color: "color-mix(in srgb, var(--primary) 20%, transparent)",
               }}
@@ -2594,7 +2594,7 @@ export const PanelPersonajesCapitulo = ({
             }}
           />
           <span
-            className="text-[8px] font-black uppercase tracking-[0.2em]"
+            className="text-micro font-black uppercase tracking-[0.2em]"
             style={{
               color: "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
@@ -2798,7 +2798,7 @@ export const PanelPersonajesCapitulo = ({
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
               }}
             >
-              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/40 flex items-center gap-1.5">
                 <SlidersHorizontal size={9} />
                 Metadatos
               </span>
@@ -2876,13 +2876,13 @@ export const DialogSnippets = ({
   onChange: (v: string) => void;
 }) => (
   <div className="shrink-0 flex items-center gap-1 px-4 sm:px-8 py-1.5 border-b border-primary/5 flex-wrap">
-    <span className="text-[8px] font-black uppercase tracking-widest text-primary/20 mr-1">
+    <span className="text-micro font-black uppercase tracking-widest text-primary/20 mr-1">
       Diálogo
     </span>
     {DIALOG_SNIPPETS.map((s) => (
       <button
         key={s.label}
-        className="px-2.5 py-1 rounded-lg border border-primary/10 text-[11px] font-mono text-primary/50 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all select-none"
+        className="px-2.5 py-1 rounded-lg border border-primary/10 text-micro font-mono text-primary/50 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all select-none"
         title={s.title}
         type="button"
         onMouseDown={(e) => {

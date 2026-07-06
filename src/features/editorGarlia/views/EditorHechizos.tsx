@@ -148,14 +148,14 @@ export function EditorHechizos({
               strokeWidth={1}
               style={{ color: cfg.color, opacity: 0.2 }}
             />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/25">
+            <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/25">
               {cfg.label}
             </p>
-            <p className="text-[10px] text-primary/20 tracking-widest">
+            <p className="text-micro text-primary/20 tracking-widest">
               Seleccioná un {cfg.labelSing.toLowerCase()} o creá uno nuevo
             </p>
             <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all mt-2"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-micro font-black uppercase tracking-widest border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all mt-2"
               disabled={creating}
               onClick={handleCreate}
             >

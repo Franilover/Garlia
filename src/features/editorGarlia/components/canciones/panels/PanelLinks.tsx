@@ -84,13 +84,13 @@ export const PanelLinks = ({
   return (
     <div className="border-t border-primary/8 px-8 py-3">
       <button
-        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors w-full"
+        className="flex items-center gap-2 text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors w-full"
         onClick={() => setOpen((o) => !o)}
       >
         <Link2 size={12} />
         Enlaces
         {links.length > 0 && (
-          <span className="bg-primary/10 text-primary/60 rounded-full px-2 py-0.5 text-[8px]">
+          <span className="bg-primary/10 text-primary/60 rounded-full px-2 py-0.5 text-micro">
             {links.length}
           </span>
         )}
@@ -107,7 +107,7 @@ export const PanelLinks = ({
               {links.map((link, i) => (
                 <div key={i} className="flex items-center gap-2 group">
                   <a
-                    className="flex-1 flex items-center gap-1.5 text-[11px] font-bold text-primary/60 hover:text-primary transition-colors truncate min-w-0"
+                    className="flex-1 flex items-center gap-1.5 text-micro font-bold text-primary/60 hover:text-primary transition-colors truncate min-w-0"
                     href={link.url}
                     rel="noopener noreferrer"
                     target="_blank"
@@ -135,13 +135,13 @@ export const PanelLinks = ({
           <form className="space-y-2 pt-1" onSubmit={handleSubmit}>
             <div className="flex gap-2">
               <input
-                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
+                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-micro font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
                 placeholder="Título del enlace…"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
               />
               <input
-                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-[11px] font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
+                className="flex-1 bg-primary/5 border border-primary/15 rounded-xl px-3 py-2 text-micro font-medium text-primary outline-none focus:border-primary/40 transition-colors placeholder:text-primary/25"
                 placeholder="https://…"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -149,7 +149,7 @@ export const PanelLinks = ({
             </div>
             <div className="flex gap-2">
               <button
-                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 bg-primary text-bg-main rounded-xl text-micro font-black uppercase tracking-widest disabled:opacity-40 hover:opacity-90 transition-all"
                 disabled={!titulo.trim() || !url.trim() || saving}
                 type="submit"
               >
@@ -162,7 +162,7 @@ export const PanelLinks = ({
               </button>
               {editIdx !== null && (
                 <button
-                  className="px-3 py-2 rounded-xl border border-primary/15 text-[9px] font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
+                  className="px-3 py-2 rounded-xl border border-primary/15 text-micro font-black uppercase text-primary/40 hover:text-primary hover:border-primary/30 transition-all"
                   type="button"
                   onClick={handleCancel}
                 >

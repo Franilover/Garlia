@@ -30,10 +30,10 @@ export function SelectorTipoGrupo({
           size={20}
           strokeWidth={1}
         />
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/45">
+        <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/45">
           Tipo de grupo
         </p>
-        <p className="text-[8px] text-primary/25 mt-0.5">
+        <p className="text-micro text-primary/25 mt-0.5">
           ¿De qué serán los miembros?
         </p>
       </div>
@@ -75,10 +75,10 @@ export function SelectorTipoGrupo({
               }}
             />
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-primary/65 leading-tight">
+              <p className="text-micro font-black uppercase tracking-widest text-primary/65 leading-tight">
                 {cfg.labelPlural}
               </p>
-              <p className="text-[7px] text-primary/25 leading-tight mt-0.5">
+              <p className="text-micro text-primary/25 leading-tight mt-0.5">
                 {cfg.ejemplo}
               </p>
             </div>
@@ -86,7 +86,7 @@ export function SelectorTipoGrupo({
         ))}
       </div>
       <button
-        className="text-[8px] font-black uppercase tracking-widest text-primary/20 hover:text-primary/45 transition-colors"
+        className="text-micro font-black uppercase tracking-widest text-primary/20 hover:text-primary/45 transition-colors"
         onClick={onCancel}
       >
         Cancelar

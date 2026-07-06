@@ -549,7 +549,7 @@ export default function EditorMisiones() {
           />
         </div>
         <p
-          className="text-[10px] font-black uppercase tracking-widest"
+          className="text-micro font-black uppercase tracking-widest"
           style={{
             color: "color-mix(in srgb, var(--primary) 40%, transparent)",
           }}
@@ -585,7 +585,7 @@ export default function EditorMisiones() {
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
               />
-              <span className="text-[7px] font-black uppercase tracking-[0.15em] text-primary/35 truncate">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/35 truncate">
                 Misiones · {misiones.length}
               </span>
               {offline && (
@@ -599,14 +599,14 @@ export default function EditorMisiones() {
                   title="Mostrando datos guardados localmente"
                 >
                   <WifiOff size={7} />
-                  <span className="text-[6px] font-black uppercase tracking-wider">
+                  <span className="text-micro font-black uppercase tracking-wider">
                     offline
                   </span>
                 </span>
               )}
             </div>
             <button
-              className="flex items-center gap-1 px-1.5 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[7px] font-black uppercase tracking-widest transition-all disabled:opacity-40 shrink-0"
+              className="flex items-center gap-1 px-1.5 py-1 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-micro font-black uppercase tracking-widest transition-all disabled:opacity-40 shrink-0"
               disabled={offline}
               title={
                 offline ? "Necesitas conexión para crear misiones" : undefined
@@ -632,7 +632,7 @@ export default function EditorMisiones() {
             ) : misiones.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 text-primary/20">
                 <Scroll size={16} />
-                <p className="text-[9px] font-black uppercase tracking-widest">
+                <p className="text-micro font-black uppercase tracking-widest">
                   Sin misiones todavía
                 </p>
               </div>
@@ -679,7 +679,7 @@ export default function EditorMisiones() {
                       )}
                     </div>
                     <span
-                      className="flex-1 min-w-0 truncate text-[9px] font-bold uppercase tracking-wide"
+                      className="flex-1 min-w-0 truncate text-micro font-bold uppercase tracking-wide"
                       style={{
                         color: activa
                           ? "var(--primary)"
@@ -690,7 +690,7 @@ export default function EditorMisiones() {
                     </span>
                     {!m.activa && (
                       <span
-                        className="shrink-0 rounded text-[6px] font-black uppercase tracking-wider px-1 py-0.5"
+                        className="shrink-0 rounded text-micro font-black uppercase tracking-wider px-1 py-0.5"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -727,7 +727,7 @@ export default function EditorMisiones() {
         {!misionSel ? (
           <div className="flex-1 w-full flex items-center justify-center min-h-60">
             <p
-              className="text-[10px] font-black uppercase tracking-widest"
+              className="text-micro font-black uppercase tracking-widest"
               style={{
                 color: "color-mix(in srgb, var(--primary) 25%, transparent)",
               }}
@@ -771,14 +771,14 @@ export default function EditorMisiones() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2
-                  className="font-black uppercase italic tracking-tight text-[12px] capitalize truncate"
+                  className="font-black uppercase italic tracking-tight text-sm capitalize truncate"
                   style={{ color: "var(--primary)" }}
                 >
                   {misionSel.titulo}
                 </h2>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span
-                    className="text-[7px] font-black uppercase tracking-wider"
+                    className="text-micro font-black uppercase tracking-wider"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -787,7 +787,7 @@ export default function EditorMisiones() {
                     {DIFICULTAD_LABEL[misionSel.dificultad]}
                   </span>
                   <span
-                    className="flex items-center gap-1 text-[7px] font-black tabular-nums"
+                    className="flex items-center gap-1 text-micro font-black tabular-nums"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -797,7 +797,7 @@ export default function EditorMisiones() {
                   </span>
                   {!!misionSel.recompensa_monedas && (
                     <span
-                      className="flex items-center gap-1 text-[7px] font-black tabular-nums"
+                      className="flex items-center gap-1 text-micro font-black tabular-nums"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 40%, transparent)",
@@ -809,7 +809,7 @@ export default function EditorMisiones() {
                 </div>
               </div>
               <button
-                className="px-2 py-1 shrink-0 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[7px] font-black uppercase tracking-widest transition-all"
+                className="px-2 py-1 shrink-0 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-micro font-black uppercase tracking-widest transition-all"
                 onClick={() => abrirEditar(misionSel)}
               >
                 Editar
@@ -826,7 +826,7 @@ export default function EditorMisiones() {
                 }}
               >
                 <p
-                  className="text-[7px] font-black uppercase tracking-[0.2em]"
+                  className="text-micro font-black uppercase tracking-[0.2em]"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -850,7 +850,7 @@ export default function EditorMisiones() {
               ) : progreso.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-2 text-primary/20">
                   <User size={14} />
-                  <p className="text-[8px] font-black uppercase tracking-widest">
+                  <p className="text-micro font-black uppercase tracking-widest">
                     Nadie ha aceptado esta misión aún
                   </p>
                 </div>
@@ -891,13 +891,13 @@ export default function EditorMisiones() {
 
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[10px] font-black uppercase tracking-tight capitalize truncate"
+                        className="text-micro font-black uppercase tracking-tight capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
                         {row.perfil?.username ?? "Usuario"}
                       </p>
                       <span
-                        className="inline-flex items-center gap-1 text-[7px] font-black uppercase tracking-wider mt-0.5"
+                        className="inline-flex items-center gap-1 text-micro font-black uppercase tracking-wider mt-0.5"
                         style={{
                           color:
                             row.estado === "reclamada"
@@ -970,7 +970,7 @@ export default function EditorMisiones() {
 
                     {row.estado === "reclamada" && (
                       <span
-                        className="text-[7px] font-black uppercase tracking-wider px-1.5 py-1 shrink-0"
+                        className="text-micro font-black uppercase tracking-wider px-1.5 py-1 shrink-0"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 6%, transparent)",
@@ -1030,7 +1030,7 @@ export default function EditorMisiones() {
                 }}
               >
                 <p
-                  className="text-[12px] font-black uppercase italic tracking-tight"
+                  className="text-sm font-black uppercase italic tracking-tight"
                   style={{ color: "var(--primary)" }}
                 >
                   {form.id ? "Editar misión" : "Nueva misión"}
@@ -1079,7 +1079,7 @@ export default function EditorMisiones() {
                       }}
                     />
                     <span
-                      className="text-[8px] font-black uppercase tracking-widest"
+                      className="text-micro font-black uppercase tracking-widest"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1202,7 +1202,7 @@ export default function EditorMisiones() {
                   }}
                 >
                   <Award size={11} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">
+                  <span className="text-micro font-black uppercase tracking-widest">
                     Recompensa
                   </span>
                   <div
@@ -1292,7 +1292,7 @@ export default function EditorMisiones() {
                     )}
                   </div>
                   <span
-                    className="text-[9px] font-black uppercase tracking-wider"
+                    className="text-micro font-black uppercase tracking-wider"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 45%, transparent)",
@@ -1397,7 +1397,7 @@ export default function EditorMisiones() {
               )}
             </div>
             <span
-              className="text-[10px] font-black uppercase tracking-tight"
+              className="text-micro font-black uppercase tracking-tight"
               style={{
                 color: toast.ok ? "var(--callout-success-title)" : "#ef4444",
               }}
@@ -1434,7 +1434,7 @@ function Campo({
   return (
     <label className="flex flex-col gap-1.5">
       <span
-        className="text-[8px] font-black uppercase tracking-wider"
+        className="text-micro font-black uppercase tracking-wider"
         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
       >
         {label}
@@ -1466,7 +1466,7 @@ function PickerImagenMisionBtn({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
                 <Camera size={11} /> Imagen de la misión
               </h3>
               <button
@@ -1561,7 +1561,7 @@ function SelectorItemRecompensa({
   return (
     <div className="flex flex-col gap-1.5">
       <span
-        className="text-[8px] font-black uppercase tracking-wider"
+        className="text-micro font-black uppercase tracking-wider"
         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
       >
         Item de recompensa (opcional)
@@ -1599,7 +1599,7 @@ function SelectorItemRecompensa({
             )}
           </div>
           <span
-            className="flex-1 min-w-0 truncate text-[11px] font-bold capitalize"
+            className="flex-1 min-w-0 truncate text-micro font-bold capitalize"
             style={{ color: "var(--primary)" }}
           >
             {itemNombre}
@@ -1637,7 +1637,7 @@ function SelectorItemRecompensa({
 
       {itemId && (
         <button
-          className="text-[9px] font-black uppercase tracking-wider text-left transition-opacity hover:opacity-70 pl-0.5"
+          className="text-micro font-black uppercase tracking-wider text-left transition-opacity hover:opacity-70 pl-0.5"
           style={{
             color: "color-mix(in srgb, var(--primary) 35%, transparent)",
           }}
@@ -1661,7 +1661,7 @@ function SelectorItemRecompensa({
           >
             {/* Header modal */}
             <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-primary/8">
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.25em] text-primary/40 flex items-center gap-1.5">
                 <Package size={10} /> Seleccionar item
               </span>
               <button
@@ -1693,7 +1693,7 @@ function SelectorItemRecompensa({
                 />
                 <input
                   autoFocus
-                  className="flex-1 bg-transparent outline-none text-[11px]"
+                  className="flex-1 bg-transparent outline-none text-micro"
                   placeholder="Buscar item…"
                   style={{ color: "var(--primary)" }}
                   value={busqueda}
@@ -1718,7 +1718,7 @@ function SelectorItemRecompensa({
               ) : filtrados.length === 0 ? (
                 <div className="flex items-center justify-center py-10">
                   <p
-                    className="text-[9px] font-black uppercase tracking-widest"
+                    className="text-micro font-black uppercase tracking-widest"
                     style={{
                       color:
                         "color-mix(in srgb, var(--primary) 25%, transparent)",
@@ -1772,14 +1772,14 @@ function SelectorItemRecompensa({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-[11px] font-bold capitalize truncate"
+                        className="text-micro font-bold capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
                         {item.nombre}
                       </p>
                       {item.categoria && (
                         <p
-                          className="text-[9px] uppercase tracking-wider truncate"
+                          className="text-micro uppercase tracking-wider truncate"
                           style={{
                             color:
                               "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2070,7 +2070,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span
-        className="text-[8px] font-black uppercase tracking-wider"
+        className="text-micro font-black uppercase tracking-wider"
         style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
       >
         Entidades vinculadas ({loadingVinculos ? "…" : vinculos.length})
@@ -2107,7 +2107,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 )}
               </div>
               <span
-                className="flex-1 min-w-0 truncate text-[10px] font-bold capitalize"
+                className="flex-1 min-w-0 truncate text-micro font-bold capitalize"
                 style={{ color: "var(--primary)" }}
               >
                 {v.nombre}
@@ -2208,7 +2208,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
               style={{ borderBottom: divider }}
             >
               <span
-                className="text-[10px] font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
+                className="text-micro font-black uppercase tracking-[0.25em] flex items-center gap-1.5"
                 style={subtle}
               >
                 <Swords size={10} /> Vincular entidades
@@ -2249,12 +2249,12 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                     }}
                   >
                     {cfg.icon}
-                    <span className="text-[7px] font-black uppercase tracking-wider">
+                    <span className="text-micro font-black uppercase tracking-wider">
                       {cfg.label}
                     </span>
                     {count > 0 && (
                       <span
-                        className="text-[7px] font-black tabular-nums px-1 rounded"
+                        className="text-micro font-black tabular-nums px-1 rounded"
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -2284,7 +2284,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 <Search size={11} style={subtle} />
                 <input
                   autoFocus
-                  className="flex-1 bg-transparent outline-none text-[11px]"
+                  className="flex-1 bg-transparent outline-none text-micro"
                   placeholder={`Buscar ${TIPO_CONFIG[tipoActivo].label.toLowerCase()}…`}
                   style={{ color: "var(--primary)" }}
                   value={busqueda}
@@ -2308,7 +2308,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                 </div>
               ) : filtrados.length === 0 ? (
                 <p
-                  className="text-center text-[9px] font-black uppercase tracking-widest py-10"
+                  className="text-center text-micro font-black uppercase tracking-widest py-10"
                   style={subtle}
                 >
                   Sin resultados
@@ -2350,7 +2350,7 @@ function PanelEntidadesMision({ misionId }: { misionId: string }) {
                         )}
                       </div>
                       <span
-                        className="flex-1 min-w-0 truncate text-[11px] font-bold capitalize"
+                        className="flex-1 min-w-0 truncate text-micro font-bold capitalize"
                         style={{ color: "var(--primary)" }}
                       >
                         {entidad.nombre}

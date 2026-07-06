@@ -402,11 +402,11 @@ export function GrafoRelaciones({
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-primary/[0.06] bg-primary/[0.03]">
               <div className="flex items-center gap-2">
                 <GitFork className="text-primary/40" size={11} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/50">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/50">
                   Red de relaciones
                 </span>
                 {personajeNombre && (
-                  <span className="text-[9px] font-black text-primary/30">
+                  <span className="text-micro font-black text-primary/30">
                     — {personajeNombre}
                   </span>
                 )}
@@ -422,17 +422,17 @@ export function GrafoRelaciones({
             <div className="shrink-0 flex items-center gap-4 px-4 py-1.5 border-b border-primary/[0.04]">
               <div className="flex items-center gap-1.5">
                 <div className="w-5 h-px bg-primary/40" />
-                <span className="text-[7px] font-black uppercase tracking-widest text-primary/35">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/35">
                   Familia
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-5 h-px border-t border-dashed border-primary/30" />
-                <span className="text-[7px] font-black uppercase tracking-widest text-primary/35">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/35">
                   Otros
                 </span>
               </div>
-              <div className="ml-auto flex items-center gap-1 text-[7px] text-primary/25 font-bold italic">
+              <div className="ml-auto flex items-center gap-1 text-micro text-primary/25 font-bold italic">
                 Arrastrá los nodos · Scroll para zoom
               </div>
             </div>
@@ -445,7 +445,7 @@ export function GrafoRelaciones({
               ) : !datos || datos.nodos.length <= 1 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <UserCircle2 className="text-primary/15" size={28} />
-                  <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic">
+                  <p className="text-micro font-bold text-primary/20 uppercase tracking-widest italic">
                     Sin relaciones para mostrar
                   </p>
                 </div>

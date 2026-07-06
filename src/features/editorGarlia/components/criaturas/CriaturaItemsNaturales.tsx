@@ -227,14 +227,14 @@ export function BloqueItemsNaturales({
   if (loading)
     return (
       <div className="flex items-center gap-1.5 py-1">
-        <span className="text-[9px] text-primary/20 italic">Cargando…</span>
+        <span className="text-micro text-primary/20 italic">Cargando…</span>
       </div>
     );
 
   return (
     <div className="space-y-2">
       {items.length === 0 && (
-        <p className="text-[9px] text-primary/20 italic py-2">
+        <p className="text-micro text-primary/20 italic py-2">
           Sin ítems naturales
         </p>
       )}
@@ -264,7 +264,7 @@ export function BloqueItemsNaturales({
                     <Package className="text-primary/20" size={11} />
                   )}
                 </div>
-                <span className="flex-1 text-[10px] font-bold text-primary/65 truncate leading-tight">
+                <span className="flex-1 text-micro font-bold text-primary/65 truncate leading-tight">
                   {it.itemName}
                 </span>
               </button>
@@ -284,7 +284,7 @@ export function BloqueItemsNaturales({
 
       <div className="relative">
         <button
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-[9px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-dashed border-primary/15 text-micro font-black uppercase tracking-widest text-primary/30 hover:text-primary/60 hover:border-primary/30 transition-all cursor-pointer"
           onClick={() => setOpen((o) => !o)}
         >
           <Plus size={9} /> Añadir ítem
@@ -307,7 +307,7 @@ export function BloqueItemsNaturales({
             >
               <input
                 autoFocus
-                className="w-full bg-transparent text-[10px] text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
                 placeholder="Buscar ítem…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -315,7 +315,7 @@ export function BloqueItemsNaturales({
             </div>
             <div className="max-h-40 overflow-y-auto">
               {filtered.length === 0 && (
-                <p className="text-[9px] text-primary/25 italic text-center py-3">
+                <p className="text-micro text-primary/25 italic text-center py-3">
                   Sin resultados
                 </p>
               )}
@@ -340,7 +340,7 @@ export function BloqueItemsNaturales({
                       <Package className="text-primary/20" size={8} />
                     )}
                   </div>
-                  <span className="text-[10px] font-bold text-primary/65 truncate">
+                  <span className="text-micro font-bold text-primary/65 truncate">
                     {it.nombre}
                   </span>
                 </button>

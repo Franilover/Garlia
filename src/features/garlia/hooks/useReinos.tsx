@@ -98,7 +98,7 @@ export function ReinosDesbloqueadosToast({
           className="px-5 py-3 flex items-center justify-between border-b border-primary/8"
           style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
-          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
+          <span className="text-micro font-black uppercase tracking-[0.25em] text-primary italic flex items-center gap-2">
             <MapPin size={11} />
             {reinos.length === 1 ? "Reino descubierto" : `${reinos.length} reinos descubiertos`}
           </span>
@@ -117,7 +117,7 @@ export function ReinosDesbloqueadosToast({
               </div>
               <div>
                 <p className="text-sm font-black uppercase italic text-primary tracking-tight">{r.nombre}</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-primary/40">Añadido a tu mapa</p>
+                <p className="text-micro font-bold uppercase tracking-widest text-primary/40">Añadido a tu mapa</p>
               </div>
             </div>
           ))}

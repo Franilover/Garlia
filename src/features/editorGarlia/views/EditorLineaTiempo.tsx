@@ -144,7 +144,7 @@ function CapituloEventoRow({
           {/* Libro */}
           {cap.libroTitulo && (
             <span
-              className="text-[7px] font-black uppercase tracking-widest truncate"
+              className="text-micro font-black uppercase tracking-widest truncate"
               style={{
                 color: "color-mix(in srgb, var(--primary) 30%, transparent)",
               }}
@@ -202,7 +202,7 @@ function CapituloEventoRow({
               }}
             />
             <span
-              className="text-[8px] font-bold truncate"
+              className="text-micro font-bold truncate"
               style={{
                 color: "color-mix(in srgb, var(--primary) 65%, transparent)",
               }}
@@ -217,7 +217,7 @@ function CapituloEventoRow({
               {reinosDelCap.map((nombre) => (
                 <span
                   key={nombre}
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black uppercase tracking-widest"
                   style={{
                     background:
                       "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -286,7 +286,7 @@ function CancionMundoRow({
           {/* Reino */}
           {cancion.reinoNombre && (
             <span
-              className="text-[7px] font-black uppercase tracking-widest truncate"
+              className="text-micro font-black uppercase tracking-widest truncate"
               style={{
                 color: "color-mix(in srgb, var(--accent) 35%, transparent)",
               }}
@@ -341,7 +341,7 @@ function CancionMundoRow({
               }}
             />
             <span
-              className="text-[8px] font-bold truncate"
+              className="text-micro font-bold truncate"
               style={{
                 color: "color-mix(in srgb, var(--accent) 65%, var(--primary))",
               }}
@@ -351,7 +351,7 @@ function CancionMundoRow({
           </button>
           {cancion.cantante && (
             <span
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black uppercase tracking-widest truncate self-start"
               style={{
                 background: "color-mix(in srgb, var(--accent) 8%, transparent)",
                 color: "color-mix(in srgb, var(--accent) 50%, transparent)",
@@ -428,7 +428,7 @@ function CumpleanosTimelineRow({
               onClick={onNavigate}
             >
               <span
-                className="text-[9px] font-black uppercase italic truncate"
+                className="text-micro font-black uppercase italic truncate"
                 style={{ color: "var(--accent)" }}
               >
                 {data.nombre}
@@ -436,7 +436,7 @@ function CumpleanosTimelineRow({
             </button>
             {data.reino && (
               <span
-                className="flex items-center gap-0.5 text-[7px] font-black uppercase tracking-widest truncate mt-0.5"
+                className="flex items-center gap-0.5 text-micro font-black uppercase tracking-widest truncate mt-0.5"
                 style={{
                   color: "color-mix(in srgb, var(--accent) 50%, transparent)",
                 }}
@@ -591,7 +591,7 @@ function EventoMundoRow({
           ) : (
             <div className="shrink-0 flex items-center gap-1">
               <button
-                className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest transition-all"
+                className="px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest transition-all"
                 disabled={deleting}
                 style={{ background: "#ef444420", color: "#ef4444" }}
                 type="button"
@@ -604,7 +604,7 @@ function EventoMundoRow({
                 )}
               </button>
               <button
-                className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest"
+                className="px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
@@ -620,7 +620,7 @@ function EventoMundoRow({
         {/* Reino — siempre visible */}
         {evt.reinoNombre && (
           <span
-            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest truncate self-start"
+            className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black uppercase tracking-widest truncate self-start"
             style={{
               background: "color-mix(in srgb, var(--primary) 8%, transparent)",
               color: "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -636,7 +636,7 @@ function EventoMundoRow({
         {/* Descripción — solo en modo expandido */}
         {showDescripciones && (
           <textarea
-            className="px-1 text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y"
+            className="px-1 text-micro leading-relaxed bg-transparent outline-none w-full rounded resize-y"
             placeholder="Descripción…"
             rows={6}
             style={{
@@ -701,7 +701,7 @@ function ModalNuevoEvento({
         >
           <div className="flex items-center justify-between">
             <span
-              className="text-[10px] font-black uppercase tracking-[0.2em]"
+              className="text-micro font-black uppercase tracking-[0.2em]"
               style={{ color: "var(--primary)" }}
             >
               Nuevo evento
@@ -722,12 +722,12 @@ function ModalNuevoEvento({
 
           {/* Título */}
           <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+            <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
               Título
             </label>
             <input
               autoFocus
-              className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none transition-all"
+              className="w-full rounded-lg border px-2.5 py-1.5 text-micro font-bold outline-none transition-all"
               placeholder="Título del evento…"
               style={{
                 background: "transparent",
@@ -744,12 +744,12 @@ function ModalNuevoEvento({
           {/* Selector de reino — oculto cuando hay un reinoFijoId */}
           {reinoFijoId == null && (
             <div className="space-y-1">
-              <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+              <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
                 Reino
               </label>
               <div className="flex flex-wrap gap-1">
                 <button
-                  className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+                  className="px-2.5 py-1 rounded-lg border text-micro font-black uppercase tracking-widest transition-all"
                   style={
                     reinoId === null
                       ? {
@@ -774,7 +774,7 @@ function ModalNuevoEvento({
                 {reinos.map((r) => (
                   <button
                     key={r.id}
-                    className="px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all"
+                    className="px-2.5 py-1 rounded-lg border text-micro font-black uppercase tracking-widest transition-all"
                     style={
                       reinoId === r.id
                         ? {
@@ -803,7 +803,7 @@ function ModalNuevoEvento({
 
           {/* Selector de fecha */}
           <div className="space-y-1">
-            <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+            <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
               Fecha
             </label>
             <SelectorFechaMundo
@@ -816,7 +816,7 @@ function ModalNuevoEvento({
           {/* Acciones */}
           <div className="flex gap-1.5 pt-1">
             <button
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest transition-all"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -828,7 +828,7 @@ function ModalNuevoEvento({
               Cancelar
             </button>
             <button
-              className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest transition-all"
               disabled={!puedeCrear || creando}
               style={{
                 background: puedeCrear
@@ -1092,7 +1092,7 @@ function ModalEra({
         <div className="flex items-center justify-between">
           <div>
             <span
-              className="text-[11px] font-black uppercase tracking-[0.2em]"
+              className="text-micro font-black uppercase tracking-[0.2em]"
               style={{ color: "var(--primary)" }}
             >
               {era ? "Editar era" : "Nueva era"}
@@ -1104,7 +1104,7 @@ function ModalEra({
                   style={{ background: era.color ?? "var(--accent)" }}
                 />
                 <span
-                  className="text-[9px] font-bold"
+                  className="text-micro font-bold"
                   style={{ color: era.color ?? "var(--accent)" }}
                 >
                   {era.nombre}
@@ -1128,7 +1128,7 @@ function ModalEra({
 
         {error && (
           <div
-            className="px-3 py-2 rounded-lg text-[9px] font-bold"
+            className="px-3 py-2 rounded-lg text-micro font-bold"
             style={{
               background: "#ef444415",
               color: "#ef4444",
@@ -1141,12 +1141,12 @@ function ModalEra({
 
         {/* Nombre */}
         <div className="space-y-1">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+          <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
             Nombre
           </label>
           <input
             autoFocus
-            className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none"
+            className="w-full rounded-lg border px-2.5 py-1.5 text-micro font-bold outline-none"
             placeholder="ej. Prehistoria, Edad de Hierro…"
             style={{
               background: "transparent",
@@ -1162,11 +1162,11 @@ function ModalEra({
 
         {/* Descripción */}
         <div className="space-y-1">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+          <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
             Descripción (opcional)
           </label>
           <textarea
-            className="w-full rounded-lg border px-2.5 py-1.5 text-[10px] outline-none resize-none"
+            className="w-full rounded-lg border px-2.5 py-1.5 text-micro outline-none resize-none"
             placeholder="Breve descripción…"
             rows={2}
             style={{
@@ -1184,11 +1184,11 @@ function ModalEra({
         <div className="grid grid-cols-2 gap-2">
           {(["anio_inicio", "anio_fin"] as const).map((k, i) => (
             <div key={k} className="space-y-1">
-              <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+              <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
                 {i === 0 ? "Año inicio" : "Año fin (vacío = sin fin)"}
               </label>
               <input
-                className="w-full rounded-lg border px-2.5 py-1.5 text-[11px] font-bold outline-none text-center"
+                className="w-full rounded-lg border px-2.5 py-1.5 text-micro font-bold outline-none text-center"
                 placeholder={i === 0 ? "0" : "—"}
                 style={{
                   background: "transparent",
@@ -1206,7 +1206,7 @@ function ModalEra({
 
         {/* Color */}
         <div className="space-y-1.5">
-          <label className="text-[8px] font-black uppercase tracking-[0.18em] text-primary/35">
+          <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
             Color
           </label>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -1231,7 +1231,7 @@ function ModalEra({
                 value={form.color}
                 onChange={(e) => upd({ color: e.target.value })}
               />
-              <span className="text-[8px] text-primary/40 font-bold">Otro</span>
+              <span className="text-micro text-primary/40 font-bold">Otro</span>
             </label>
           </div>
           {/* Preview badge */}
@@ -1244,13 +1244,13 @@ function ModalEra({
               style={{ background: form.color }}
             />
             <span
-              className="text-[8px] font-black uppercase tracking-widest"
+              className="text-micro font-black uppercase tracking-widest"
               style={{ color: form.color }}
             >
               {form.nombre || "Nombre de la era"}
             </span>
             {form.anio_fin && (
-              <span className="text-[7px] text-primary/30 ml-1">
+              <span className="text-micro text-primary/30 ml-1">
                 {form.anio_inicio} – {form.anio_fin}
               </span>
             )}
@@ -1261,7 +1261,7 @@ function ModalEra({
         <div className="flex gap-1.5 pt-1">
           {era && !confirmDel && (
             <button
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest"
               disabled={saving}
               style={{ borderColor: "#ef444425", color: "#ef4444aa" }}
               type="button"
@@ -1273,7 +1273,7 @@ function ModalEra({
           {confirmDel && (
             <>
               <button
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest"
                 disabled={saving}
                 style={{ background: "#ef444420", color: "#ef4444" }}
                 type="button"
@@ -1287,7 +1287,7 @@ function ModalEra({
                 Confirmar
               </button>
               <button
-                className="px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+                className="px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest"
                 style={{
                   borderColor:
                     "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -1303,7 +1303,7 @@ function ModalEra({
           {!confirmDel && (
             <>
               <button
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest"
                 disabled={saving}
                 style={{
                   borderColor:
@@ -1316,7 +1316,7 @@ function ModalEra({
                 <X size={9} /> Cancelar
               </button>
               <button
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest disabled:opacity-40"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest disabled:opacity-40"
                 disabled={saving || !form.nombre.trim()}
                 style={{ background: "var(--accent)", color: "white" }}
                 type="button"
@@ -1378,19 +1378,19 @@ function ModalGestionEras({
         >
           <div>
             <span
-              className="text-[11px] font-black uppercase tracking-[0.2em]"
+              className="text-micro font-black uppercase tracking-[0.2em]"
               style={{ color: "var(--primary)" }}
             >
               Todas las eras
             </span>
-            <div className="text-[8px] text-primary/35 mt-0.5">
+            <div className="text-micro text-primary/35 mt-0.5">
               {erasOrdenadas.length} era{erasOrdenadas.length !== 1 ? "s" : ""}{" "}
               definida{erasOrdenadas.length !== 1 ? "s" : ""}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
             <button
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all"
               style={{ background: "var(--accent)", color: "white" }}
               type="button"
               onClick={onNewEra}
@@ -1421,11 +1421,11 @@ function ModalGestionEras({
                 size={20}
                 style={{ color: "var(--primary)" }}
               />
-              <p className="text-[9px] text-primary/30 font-bold uppercase tracking-widest">
+              <p className="text-micro text-primary/30 font-bold uppercase tracking-widest">
                 No hay eras definidas
               </p>
               <button
-                className="mt-3 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                className="mt-3 px-3 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest transition-all"
                 style={{ background: "var(--accent)", color: "white" }}
                 type="button"
                 onClick={onNewEra}
@@ -1474,13 +1474,13 @@ function ModalGestionEras({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="text-[10px] font-black truncate"
+                      className="text-micro font-black truncate"
                       style={{ color: era.color ?? "var(--primary)" }}
                     >
                       {era.nombre}
                     </span>
                     <span
-                      className="text-[7px] font-bold shrink-0"
+                      className="text-micro font-bold shrink-0"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -1494,7 +1494,7 @@ function ModalGestionEras({
                   </div>
                   {era.descripcion && (
                     <p
-                      className="text-[8px] leading-relaxed mt-0.5 line-clamp-2"
+                      className="text-micro leading-relaxed mt-0.5 line-clamp-2"
                       style={{
                         color:
                           "color-mix(in srgb, var(--primary) 50%, transparent)",
@@ -1505,7 +1505,7 @@ function ModalGestionEras({
                   )}
                 </div>
                 <span
-                  className="text-[7px] font-black uppercase tracking-widest shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-micro font-black uppercase tracking-widest shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{
                     color:
                       era.color ??
@@ -1651,7 +1651,7 @@ function EventoDetallePanel({
       <div className="flex items-center gap-1.5 flex-wrap">
         {era && (
           <span
-            className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
+            className="text-micro font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
             style={{
               background: eraColor
                 ? `${eraColor}18`
@@ -1665,7 +1665,7 @@ function EventoDetallePanel({
           </span>
         )}
         <span
-          className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+          className="flex items-center gap-1 text-micro font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
           style={{
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
             color: "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1697,7 +1697,7 @@ function EventoDetallePanel({
       {/* Título */}
       {editable ? (
         <input
-          className="text-[13px] font-black uppercase leading-tight bg-transparent outline-none w-full rounded px-0.5 -mx-0.5"
+          className="text-sm font-black uppercase leading-tight bg-transparent outline-none w-full rounded px-0.5 -mx-0.5"
           placeholder="Sin título"
           style={{ color: "var(--primary)" }}
           value={titulo}
@@ -1709,7 +1709,7 @@ function EventoDetallePanel({
         />
       ) : (
         <p
-          className="text-[13px] font-black uppercase leading-tight"
+          className="text-sm font-black uppercase leading-tight"
           style={{ color: "var(--primary)" }}
         >
           {evt.title || <span className="italic opacity-40">Sin título</span>}
@@ -1735,7 +1735,7 @@ function EventoDetallePanel({
         ) : (
           evt.dia_absoluto != null && (
             <p
-              className="text-[8px] font-black uppercase tracking-widest"
+              className="text-micro font-black uppercase tracking-widest"
               style={{
                 color:
                   eraColor ??
@@ -1748,7 +1748,7 @@ function EventoDetallePanel({
         )}
         {evt.reinoNombre && (
           <span
-            className="shrink-0 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest"
+            className="shrink-0 flex items-center gap-1 text-micro font-black uppercase tracking-widest"
             style={{
               color: "color-mix(in srgb, var(--primary) 40%, transparent)",
             }}
@@ -1771,7 +1771,7 @@ function EventoDetallePanel({
       {/* Descripción — a todo el ancho del panel */}
       {editable ? (
         <textarea
-          className="text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y flex-1 px-0.5 -mx-0.5"
+          className="text-micro leading-relaxed bg-transparent outline-none w-full rounded resize-y flex-1 px-0.5 -mx-0.5"
           placeholder="Sin descripción…"
           rows={5}
           style={{
@@ -1787,7 +1787,7 @@ function EventoDetallePanel({
         />
       ) : evt.description ? (
         <p
-          className="text-[11px] leading-relaxed"
+          className="text-micro leading-relaxed"
           style={{
             color: "color-mix(in srgb, var(--primary) 65%, transparent)",
           }}
@@ -1796,7 +1796,7 @@ function EventoDetallePanel({
         </p>
       ) : (
         <p
-          className="text-[10px] italic"
+          className="text-micro italic"
           style={{
             color: "color-mix(in srgb, var(--primary) 20%, transparent)",
           }}
@@ -1979,7 +1979,7 @@ function ListaEventosConMinimapa({
           }}
         >
           {allEvents.length === 0 && (
-            <p className="text-[9px] text-primary/20 italic px-2 py-2">
+            <p className="text-micro text-primary/20 italic px-2 py-2">
               Sin eventos con fecha asignada.
             </p>
           )}
@@ -2040,7 +2040,7 @@ function ListaEventosConMinimapa({
                 {grupo.eraNombre && (
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <span
-                      className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                      className="text-micro font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
                       style={{
                         background: grupo.eraColor
                           ? `${grupo.eraColor}18`
@@ -2099,7 +2099,7 @@ function ListaEventosConMinimapa({
                         {/* Encabezado del año — se expande a todo el ancho del carril */}
                         <div className="flex items-center gap-1.5 w-full">
                           <span
-                            className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
+                            className="text-micro font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
                             style={{
                               color:
                                 grupo.eraColor ??
@@ -2186,7 +2186,7 @@ function ListaEventosConMinimapa({
                                     }}
                                   />
                                   <span
-                                    className="text-[10px] font-bold truncate flex-1"
+                                    className="text-micro font-bold truncate flex-1"
                                     style={{
                                       color: isSel
                                         ? "var(--primary)"
@@ -2202,7 +2202,7 @@ function ListaEventosConMinimapa({
                                 </div>
                                 {evt.reinoNombre && (
                                   <span
-                                    className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
+                                    className="text-micro font-black uppercase tracking-widest truncate pl-[18px]"
                                     style={{
                                       color:
                                         "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -2437,7 +2437,7 @@ function EraDropdown({
       {/* Trigger */}
       <button
         ref={triggerRef}
-        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest transition-all"
         style={{
           background:
             open || value
@@ -3419,7 +3419,7 @@ export function PanelHistoriaMundo({
               }}
             >
               <button
-                className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all"
+                className="px-2 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all"
                 style={
                   filterReino === null
                     ? {
@@ -3440,7 +3440,7 @@ export function PanelHistoriaMundo({
               {reinosConEventos.map((r) => (
                 <button
                   key={r.id}
-                  className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all"
+                  className="px-2 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all"
                   style={
                     filterReino === r.id
                       ? {
@@ -3493,7 +3493,7 @@ export function PanelHistoriaMundo({
               }}
             >
               <button
-                className="flex items-center gap-1 px-2 py-1 text-[8px] font-black uppercase tracking-widest transition-all"
+                className="flex items-center gap-1 px-2 py-1 text-micro font-black uppercase tracking-widest transition-all"
                 style={{
                   color: "color-mix(in srgb, var(--primary) 50%, transparent)",
                   background: "transparent",
@@ -3528,7 +3528,7 @@ export function PanelHistoriaMundo({
 
             {/* + Evento */}
             <button
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest transition-all"
               style={{
                 background: "color-mix(in srgb, var(--accent) 8%, transparent)",
                 border:

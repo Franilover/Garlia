@@ -61,7 +61,7 @@ export const SidebarItem = ({
           <span className={`font-black text-sm uppercase italic tracking-tight leading-tight truncate flex-1 ${selected ? "text-bg-main" : ""}`}>
             {cancion.titulo}
           </span>
-          <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-1 rounded-full border ${
+          <span className={`shrink-0 text-micro font-black uppercase px-2 py-1 rounded-full border ${
             selected ? "bg-bg-main/20 text-bg-main border-bg-main/30" : ESTADO_COLOR[cancion.estado]
           }`}>
             {cancion.estado === "EN PROCESO" ? "WIP" : cancion.estado === "TERMINADA" ? "✓" : "…"}
@@ -71,7 +71,7 @@ export const SidebarItem = ({
           const p = cancion.personaje;
           const nombre = (Array.isArray(p) ? p[0]?.nombre : p?.nombre) || cancion.cantante;
           return nombre ? (
-            <p className={`text-[10px] mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
+            <p className={`text-micro mt-1 truncate ${selected ? "text-bg-main/70" : "text-primary/40"}`}>
               {nombre}
             </p>
           ) : null;
@@ -114,14 +114,14 @@ export const SidebarItem = ({
         {menuOpen && (
           <div className="absolute right-0 top-7 z-50 min-w-[160px] bg-bg-main border border-primary/15 rounded-xl shadow-xl shadow-primary/10 py-1 overflow-hidden">
             <button
-              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-micro font-black uppercase tracking-widest text-primary/60 hover:bg-primary/8 hover:text-primary transition-all flex items-center gap-2"
               onClick={e => { e.stopPropagation(); setMenuOpen(false); onEdit(cancion); }}
             >
               <Pencil size={11} /> Editar canción
             </button>
             <div className="h-px bg-primary/8 mx-2 my-1" />
             <button
-              className="w-full text-left px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-micro font-black uppercase tracking-widest text-red-400/70 hover:bg-red-500/8 hover:text-red-400 transition-all flex items-center gap-2"
               onClick={async e => {
                 e.stopPropagation();
                 setMenuOpen(false);

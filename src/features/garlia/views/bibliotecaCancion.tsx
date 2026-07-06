@@ -88,14 +88,14 @@ const CancionCardGrid = ({
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <div className="flex items-center gap-1 mb-1.5 opacity-40">
               <div className="h-px flex-1 bg-white/50" />
-              <span className="text-white/60 text-[7px]">✦</span>
+              <span className="text-white/60 text-micro">✦</span>
               <div className="h-px w-3 bg-white/50" />
             </div>
             <h2 className="text-white font-black uppercase text-xs leading-tight tracking-wider italic line-clamp-2 drop-shadow-sm group-hover:text-accent transition-colors duration-300">
               {cancion.titulo}
             </h2>
             {cancion.cantante && (
-              <p className="text-white/45 text-[7px] font-bold uppercase tracking-[0.2em] mt-1 truncate">
+              <p className="text-white/45 text-micro font-bold uppercase tracking-[0.2em] mt-1 truncate">
                 {cancion.cantante}
               </p>
             )}
@@ -137,7 +137,7 @@ const CancionCardFila = ({
             "color-mix(in srgb, var(--primary) 10%, transparent)";
         }}
       >
-        <span className="font-mono text-[8px] font-black text-primary/15 w-6 text-right shrink-0 select-none group-hover:text-primary/35 transition-colors tracking-wider">
+        <span className="font-mono text-micro font-black text-primary/15 w-6 text-right shrink-0 select-none group-hover:text-primary/35 transition-colors tracking-wider">
           {String(index + 1).padStart(3, "0")}
         </span>
         <div className="w-px h-7 bg-primary/10 shrink-0" />
@@ -158,11 +158,11 @@ const CancionCardFila = ({
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-primary font-black uppercase text-[11px] group-hover:text-accent transition-colors tracking-wide italic truncate">
+          <h2 className="text-primary font-black uppercase text-micro group-hover:text-accent transition-colors tracking-wide italic truncate">
             {cancion.titulo}
           </h2>
           {cancion.cantante && (
-            <p className="text-primary/35 text-[8px] font-bold uppercase tracking-[0.2em] truncate mt-0.5">
+            <p className="text-primary/35 text-micro font-bold uppercase tracking-[0.2em] truncate mt-0.5">
               {cancion.cantante}
             </p>
           )}
@@ -241,7 +241,7 @@ const PersonajeBloque = ({
             background: "color-mix(in srgb, var(--primary) 20%, transparent)",
           }}
         />
-        <p className="text-[10px] font-mono font-bold text-primary/40 tracking-widest uppercase whitespace-nowrap">
+        <p className="text-micro font-mono font-bold text-primary/40 tracking-widest uppercase whitespace-nowrap">
           {canciones.length} {canciones.length !== 1 ? "canciones" : "canción"}
         </p>
         <div

@@ -223,13 +223,13 @@ export function FormularioCiudad({
         <div className="shrink-0 flex items-center gap-2">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
             onClick={onDelete}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             disabled={status === "saving"}
             onClick={onSave}
           >
@@ -287,7 +287,7 @@ export function FormularioCiudad({
 
               {/* Descripción */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35">
+                <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
                   Descripción
                 </label>
                 <MarkdownEditor
@@ -307,7 +307,7 @@ export function FormularioCiudad({
           {/* Historia + Secretos en fila */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 min-w-0 space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+              <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                 <ScrollText size={9} /> Historia
               </label>
               <MarkdownEditor
@@ -322,7 +322,7 @@ export function FormularioCiudad({
               />
             </div>
             <div className="flex-1 min-w-0 space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
+              <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                 <Mountain size={9} /> Secretos
               </label>
               <MarkdownEditor

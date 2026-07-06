@@ -18,7 +18,7 @@ export const IdiomaTab = ({
     {IDIOMAS.filter((i) => i.id !== exclude).map(({ id, label }) => (
       <button
         key={id}
-        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+        className={`px-3 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest transition-all ${
           value === id
             ? "bg-primary text-bg-main"
             : "text-primary/40 hover:text-primary"

@@ -736,11 +736,11 @@ const PanelEditor = ({
                 <div className="flex items-center justify-between px-6 py-3 bg-white-custom/80 backdrop-blur-md border-b border-primary/10 shrink-0">
                   <div className="flex items-center gap-3">
                     <Eye className="text-primary/40" size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/50 italic">
+                    <span className="text-micro font-black uppercase tracking-widest text-primary/50 italic">
                       Vista previa — {cap?.titulo_capitulo}
                     </span>
                     {cap?.visibilidad !== "publico" && (
-                      <span className="flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--callout-warning-border)_30%,transparent)] bg-[color-mix(in_srgb,var(--callout-warning-border)_10%,transparent)] text-[var(--callout-warning-title)] tracking-wide">
+                      <span className="flex items-center gap-1 text-micro font-black uppercase px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--callout-warning-border)_30%,transparent)] bg-[color-mix(in_srgb,var(--callout-warning-border)_10%,transparent)] text-[var(--callout-warning-title)] tracking-wide">
                         <Lock size={8} />
                         {
                           VISIBILIDAD_CONFIG[cap?.visibilidad ?? "oculto"]
@@ -751,7 +751,7 @@ const PanelEditor = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <a
-                      className="text-[9px] font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"
+                      className="text-micro font-bold text-primary/25 uppercase tracking-widest hover:text-primary/50 transition-colors flex items-center gap-1"
                       href={`/garliaia/libros/${libroId}/leer/${capId}`}
                       rel="noopener noreferrer"
                       target="_blank"
@@ -803,10 +803,10 @@ const PanelEditor = ({
 
         {saveStatus === "pending" && !isOffline && (
           <div
-            className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-[color-mix(in_srgb,var(--callout-info-border)_8%,transparent)] border-b border-[color-mix(in_srgb,var(--callout-info-border)_15%,transparent)] text-[9px] font-black uppercase tracking-widest text-[var(--callout-info-title)]"
+            className="shrink-0 flex items-center gap-2 px-4 sm:px-8 py-2 bg-[color-mix(in_srgb,var(--callout-info-border)_8%,transparent)] border-b border-[color-mix(in_srgb,var(--callout-info-border)_15%,transparent)] text-micro font-black uppercase tracking-widest text-[var(--callout-info-title)]"
             style={{ opacity: 0.7 }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--callout-info-border)]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-callout-info-border" />
             Cambios pendientes de sincronizar
           </div>
         )}
@@ -882,12 +882,12 @@ const PanelEditor = ({
             {/* Meta row compacta */}
             <div className="flex items-center gap-2">
               {/* Info pills */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-[8px] font-black uppercase tracking-widest text-primary/30">
+              <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap text-micro font-black uppercase tracking-widest text-primary/30">
                 {/* Orden editable */}
                 <span className="flex items-center gap-0.5 shrink-0">
                   <Hash size={8} />
                   <input
-                    className="w-6 bg-transparent outline-none text-[8px] font-black tabular-nums text-center border-b border-transparent focus:border-primary/30 transition-all"
+                    className="w-6 bg-transparent outline-none text-micro font-black tabular-nums text-center border-b border-transparent focus:border-primary/30 transition-all"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     title="Orden del capítulo"
@@ -923,7 +923,7 @@ const PanelEditor = ({
                     <span className="flex items-center gap-1">
                       <input
                         autoFocus
-                        className="bg-primary/5 border border-primary/20 rounded px-1.5 py-0.5 text-[8px] font-bold text-primary outline-none"
+                        className="bg-primary/5 border border-primary/20 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none"
                         type="date"
                         value={fecha}
                         onChange={(e) => setFecha(e.target.value)}
@@ -1020,7 +1020,7 @@ const PanelEditor = ({
 
         {focusMode && (
           <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-primary/5">
-            <span className="text-[9px] font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
+            <span className="text-micro font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
               {cap.titulo_capitulo}
             </span>
             <div className="flex items-center gap-1.5">
@@ -1038,7 +1038,7 @@ const PanelEditor = ({
 
         {!focusMode && (
           <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
-            <span className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+            <span className="text-micro font-black uppercase tracking-widest text-primary/20">
               Escribe{" "}
               <kbd className="px-1.5 py-0.5 rounded bg-primary/8 text-primary/40 font-mono not-italic">
                 add
@@ -1166,7 +1166,7 @@ const ModalNuevoLibro = ({
   return (
     <ModalBase onClose={onClose}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
+        <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 italic flex items-center gap-2">
           <BookMarked size={12} /> Nuevo Libro
         </h3>
         <button
@@ -1185,7 +1185,7 @@ const ModalNuevoLibro = ({
           onChange={setTitulo}
         />
         {errorMsg && (
-          <p className="text-[10px] text-red-400 font-black uppercase tracking-widest">
+          <p className="text-micro text-red-400 font-black uppercase tracking-widest">
             {errorMsg}
           </p>
         )}
@@ -1293,7 +1293,7 @@ const ModalNuevoCapitulo = ({
   return (
     <ModalBase onClose={onClose}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/50 italic">
+        <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 italic">
           Nuevo Capítulo
         </h3>
         <button
@@ -1389,11 +1389,11 @@ function BibliotecaPortadas({
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 italic flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.25em] text-primary/40 italic flex items-center gap-1.5">
           <BookMarked size={11} /> Biblioteca
         </span>
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-micro font-black uppercase tracking-widest transition-all"
           onClick={onNuevoLibro}
         >
           <Plus size={10} /> Nuevo Libro
@@ -1409,7 +1409,7 @@ function BibliotecaPortadas({
         ) : libros.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-primary/20">
             <BookMarked size={28} />
-            <p className="text-[9px] font-black uppercase tracking-widest">
+            <p className="text-micro font-black uppercase tracking-widest">
               Sin libros · crea el primero
             </p>
           </div>
@@ -1477,7 +1477,7 @@ function BibliotecaPortadas({
 
                   {/* Badge visibilidad */}
                   <div
-                    className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wide backdrop-blur-sm"
+                    className="absolute top-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-wide backdrop-blur-sm"
                     style={{
                       background:
                         "color-mix(in srgb, var(--bg-main) 70%, transparent)",
@@ -1506,7 +1506,7 @@ function BibliotecaPortadas({
 
                 {/* Título */}
                 <p
-                  className="text-[9px] font-black uppercase tracking-wide leading-tight text-center px-0.5 truncate"
+                  className="text-micro font-black uppercase tracking-wide leading-tight text-center px-0.5 truncate"
                   style={{
                     color:
                       "color-mix(in srgb, var(--primary) 65%, transparent)",
@@ -1517,7 +1517,7 @@ function BibliotecaPortadas({
 
                 {/* Estado */}
                 {libro.estado && (
-                  <p className="text-[7px] font-black uppercase tracking-widest text-center text-primary/25 -mt-1">
+                  <p className="text-micro font-black uppercase tracking-widest text-center text-primary/25 -mt-1">
                     {libro.estado}
                   </p>
                 )}
@@ -1829,7 +1829,7 @@ function BarraLibro({
         {editTitulo ? (
           <input
             ref={titRef}
-            className="flex-1 min-w-0 bg-transparent outline-none border-b text-[10px] font-black uppercase italic tracking-tight text-primary"
+            className="flex-1 min-w-0 bg-transparent outline-none border-b text-micro font-black uppercase italic tracking-tight text-primary"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 30%, transparent)",
@@ -1847,7 +1847,7 @@ function BarraLibro({
           />
         ) : (
           <button
-            className="flex-1 min-w-0 text-left text-[10px] font-black uppercase italic tracking-tight text-primary/70 hover:text-primary truncate transition-colors"
+            className="flex-1 min-w-0 text-left text-micro font-black uppercase italic tracking-tight text-primary/70 hover:text-primary truncate transition-colors"
             title="Click para editar título"
             onClick={() => setEditTitulo(true)}
           >
@@ -1859,7 +1859,7 @@ function BarraLibro({
           {/* Visibilidad dropdown */}
           <div ref={dropVisRef} className="relative">
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border transition-all"
               style={{
                 borderColor:
                   vis === "publico"
@@ -1896,7 +1896,7 @@ function BarraLibro({
                 {(["publico", "programado", "oculto"] as const).map((v) => (
                   <button
                     key={v}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-micro font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                     style={{
                       color:
                         visibilidad === v
@@ -1923,7 +1923,7 @@ function BarraLibro({
           {/* Estado dropdown */}
           <div ref={dropEstRef} className="relative">
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -1950,7 +1950,7 @@ function BarraLibro({
                 {ESTADOS_LIBRO.map((est) => (
                   <button
                     key={est}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-micro font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                     style={{
                       color:
                         estado === est
@@ -1976,7 +1976,7 @@ function BarraLibro({
           {/* Grupo dropdown */}
           <div ref={dropGrupoRef} className="relative">
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border transition-all hover:border-primary/25 hover:text-primary/60"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -2002,7 +2002,7 @@ function BarraLibro({
                 }}
               >
                 <button
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-micro font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                   style={{
                     color: !grupoId
                       ? "var(--primary)"
@@ -2026,7 +2026,7 @@ function BarraLibro({
                 {gruposItems.map((g: any) => (
                   <button
                     key={g.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-micro font-black uppercase tracking-wide text-left hover:bg-primary/6 transition-all"
                     style={{
                       color:
                         grupoId === g.id
@@ -2056,7 +2056,7 @@ function BarraLibro({
           {/* TW — siempre visible, opaco si no tiene */}
           <div ref={dropTWRef} className="relative">
             <button
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] border transition-all"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-micro border transition-all"
               style={{
                 opacity: tws.length > 0 ? 1 : 0.3,
                 borderColor:
@@ -2125,7 +2125,7 @@ function BarraLibro({
                           )}
                         </div>
                         <span
-                          className="text-[9px] font-bold"
+                          className="text-micro font-bold"
                           style={{
                             color: on
                               ? "var(--callout-warning-title)"
@@ -2161,7 +2161,7 @@ function BarraLibro({
                           <Check size={7} style={{ color: "var(--bg-main)" }} />
                         </div>
                         <span
-                          className="text-[9px] font-bold flex-1 truncate"
+                          className="text-micro font-bold flex-1 truncate"
                           style={{ color: "var(--callout-warning-title)" }}
                         >
                           {tw}
@@ -2174,7 +2174,7 @@ function BarraLibro({
                   <div className="flex items-center gap-1">
                     <input
                       autoFocus
-                      className="flex-1 min-w-0 rounded px-2 py-1 text-[9px] font-bold outline-none border text-primary bg-transparent"
+                      className="flex-1 min-w-0 rounded px-2 py-1 text-micro font-bold outline-none border text-primary bg-transparent"
                       placeholder="Ej: Acoso…"
                       style={{
                         borderColor:
@@ -2208,7 +2208,7 @@ function BarraLibro({
                   </div>
                 ) : (
                   <button
-                    className="w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-[8px] font-black uppercase tracking-widest text-primary/25 hover:text-primary hover:border-primary/25 transition-all"
+                    className="w-full flex items-center justify-center gap-1 py-1 rounded border border-dashed text-micro font-black uppercase tracking-widest text-primary/25 hover:text-primary hover:border-primary/25 transition-all"
                     style={{
                       borderColor:
                         "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -2257,7 +2257,7 @@ function BarraLibro({
           {reinosDelLibro.map((r: any) => (
             <span
               key={r.id}
-              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wide border"
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -2281,7 +2281,7 @@ function BarraLibro({
           {ciudadesDelLibro.map((c: any) => (
             <span
               key={c.id}
-              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wide border"
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase tracking-wide border"
               style={{
                 borderColor:
                   "color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -2306,11 +2306,11 @@ function BarraLibro({
               "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
           }}
         >
-          <label className="text-[8px] font-black uppercase tracking-widest text-primary/35 block mb-1.5">
+          <label className="text-micro font-black uppercase tracking-widest text-primary/35 block mb-1.5">
             Sinopsis
           </label>
           <textarea
-            className="w-full bg-transparent border rounded px-2 py-1.5 text-[11px] text-primary outline-none focus:border-primary/30 resize-none transition-colors"
+            className="w-full bg-transparent border rounded px-2 py-1.5 text-micro text-primary outline-none focus:border-primary/30 resize-none transition-colors"
             placeholder="Descripción del libro…"
             rows={3}
             style={{
@@ -2412,7 +2412,7 @@ function SidebarLibros({
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary/35 flex-1 flex items-center gap-1">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/35 flex-1 flex items-center gap-1">
           <BookMarked size={10} /> Libros · {libros.length}
         </span>
         <button
@@ -2440,7 +2440,7 @@ function SidebarLibros({
         ) : libros.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2 text-primary/20">
             <BookMarked size={16} />
-            <p className="text-[7px] font-black uppercase tracking-widest text-center px-2">
+            <p className="text-micro font-black uppercase tracking-widest text-center px-2">
               Sin libros · crea el primero
             </p>
           </div>
@@ -2475,7 +2475,7 @@ function SidebarLibros({
                     />
                   )}
                   <span
-                    className="flex-1 min-w-0 text-[9px] font-black uppercase tracking-wide leading-tight truncate"
+                    className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide leading-tight truncate"
                     style={{
                       color: libroActivo
                         ? "var(--primary)"
@@ -2518,7 +2518,7 @@ function SidebarLibros({
                         <Loader2 className="animate-spin" size={12} />
                       </div>
                     ) : caps && caps.length === 0 ? (
-                      <p className="pl-7 pr-2 py-1.5 text-[7px] font-black uppercase tracking-widest text-primary/20">
+                      <p className="pl-7 pr-2 py-1.5 text-micro font-black uppercase tracking-widest text-primary/20">
                         Sin capítulos
                       </p>
                     ) : (
@@ -2540,7 +2540,7 @@ function SidebarLibros({
                           >
                             {/* Número de orden */}
                             <span
-                              className="shrink-0 text-[7px] font-black tabular-nums"
+                              className="shrink-0 text-micro font-black tabular-nums"
                               style={{
                                 color: activo
                                   ? "var(--primary)"
@@ -2554,7 +2554,7 @@ function SidebarLibros({
 
                             {/* Título */}
                             <span
-                              className="flex-1 min-w-0 text-[9px] font-bold uppercase tracking-wide leading-tight truncate"
+                              className="flex-1 min-w-0 text-micro font-bold uppercase tracking-wide leading-tight truncate"
                               style={{
                                 color: activo
                                   ? "var(--primary)"
@@ -2903,7 +2903,7 @@ export function EditorCapitulosPanel() {
           ) : (
             <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 text-primary/20">
               <BookMarked size={28} />
-              <p className="text-[9px] font-black uppercase tracking-widest text-center px-4">
+              <p className="text-micro font-black uppercase tracking-widest text-center px-4">
                 {loadingLibros
                   ? "Cargando…"
                   : libros.length === 0
@@ -2912,7 +2912,7 @@ export function EditorCapitulosPanel() {
               </p>
               {!loadingLibros && libros.length === 0 && (
                 <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-btn)] bg-primary/8 hover:bg-primary/15 text-primary/50 hover:text-primary text-micro font-black uppercase tracking-widest transition-all"
                   onClick={() => setShowNuevoLibro(true)}
                 >
                   <Plus size={10} /> Nuevo Libro

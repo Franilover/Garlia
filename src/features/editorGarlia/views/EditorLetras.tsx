@@ -418,7 +418,7 @@ const CancionCard = ({
         <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_DOT[cancion.estado] }} />
       )}
     </div>
-    <span className="text-[11px] font-bold text-primary/70 truncate max-w-[90px]">{cancion.titulo}</span>
+    <span className="text-micro font-bold text-primary/70 truncate max-w-[90px]">{cancion.titulo}</span>
   </button>
 );
 

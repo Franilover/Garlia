@@ -139,7 +139,7 @@ export function EditorGrupo({
 
         {/* Badge tipo */}
         <span
-          className="hidden sm:inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest"
+          className="hidden sm:inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest"
           style={{
             background: `color-mix(in srgb, ${cfg.color} 8%, transparent)`,
             color: `color-mix(in srgb, ${cfg.color} 60%, transparent)`,
@@ -153,13 +153,13 @@ export function EditorGrupo({
         <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             onClick={del}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={save}
           >
@@ -174,7 +174,7 @@ export function EditorGrupo({
           {/* Columna izquierda: subtipo + descripción */}
           <div className="flex flex-col gap-2 sm:w-56 sm:shrink-0">
             <div className="space-y-1">
-              <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+              <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
                 Tipo / subtipo
               </label>
               <SubtipoInput
@@ -186,11 +186,11 @@ export function EditorGrupo({
             </div>
 
             <div className="space-y-1 flex-1 flex flex-col">
-              <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+              <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
                 Descripción
               </label>
               <textarea
-                className="flex-1 w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-[9px] text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+                className="flex-1 w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
                 placeholder={`${cfg.ejemplo}`}
                 rows={4}
                 value={form.descripcion ?? ""}
@@ -206,7 +206,7 @@ export function EditorGrupo({
 
           {/* Columna derecha: miembros */}
           <div className="flex-1 min-w-0 space-y-1">
-            <label className="text-[7px] font-black uppercase tracking-[0.3em] text-primary/30">
+            <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
               {cfg.labelPlural}
             </label>
             <SelectorMiembros
@@ -230,7 +230,7 @@ export function EditorGrupo({
                     color: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
                   }}
                 />
-                <p className="text-[7px] font-black uppercase tracking-widest text-primary/20">
+                <p className="text-micro font-black uppercase tracking-widest text-primary/20">
                   Sin miembros aún
                 </p>
               </div>
@@ -336,10 +336,10 @@ export function EditorGrupoStandalone({
           }}
         >
           <Layers className="text-primary/35 shrink-0" size={11} />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/45 flex-1">
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/45 flex-1">
             Grupos
           </span>
-          <span className="text-[8px] text-primary/25 tabular-nums">
+          <span className="text-micro text-primary/25 tabular-nums">
             {grupos.length}
           </span>
         </div>
@@ -351,7 +351,7 @@ export function EditorGrupoStandalone({
               size={9}
             />
             <input
-              className="w-full bg-primary/[0.04] border border-primary/10 rounded-lg pl-6 pr-5 py-1 text-[9px] font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
+              className="w-full bg-primary/[0.04] border border-primary/10 rounded-lg pl-6 pr-5 py-1 text-micro font-medium outline-none focus:border-primary/25 text-primary placeholder:text-primary/25"
               placeholder="Buscar grupos…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -366,7 +366,7 @@ export function EditorGrupoStandalone({
             )}
           </div>
           <button
-            className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-[8px] font-black uppercase tracking-widest transition-all"
+            className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
             style={{
               borderColor:
                 "color-mix(in srgb, var(--primary) 18%, transparent)",
@@ -385,12 +385,12 @@ export function EditorGrupoStandalone({
           {grupos.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
               <Layers className="text-primary/15" size={20} strokeWidth={1} />
-              <p className="text-[8px] font-black uppercase tracking-widest text-primary/20">
+              <p className="text-micro font-black uppercase tracking-widest text-primary/20">
                 Sin grupos aún
               </p>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-[8px] text-primary/20 text-center py-6 italic">
+            <p className="text-micro text-primary/20 text-center py-6 italic">
               Sin resultados
             </p>
           ) : (
@@ -411,7 +411,7 @@ export function EditorGrupoStandalone({
                       }}
                     />
                     <span
-                      className="text-[7px] font-black uppercase tracking-[0.3em]"
+                      className="text-micro font-black uppercase tracking-[0.3em]"
                       style={{
                         color: `color-mix(in srgb, ${cfg.color} 40%, transparent)`,
                       }}
@@ -434,14 +434,14 @@ export function EditorGrupoStandalone({
                         }}
                       >
                         <p
-                          className={`text-[9px] font-black uppercase tracking-wide truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/60"}`}
+                          className={`text-micro font-black uppercase tracking-wide truncate ${selectedId === grupo.id ? "text-primary" : "text-primary/60"}`}
                         >
                           {grupo.nombre}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                           {grupo.subtipo && (
                             <span
-                              className="text-[7px] font-semibold px-1 py-px rounded"
+                              className="text-micro font-semibold px-1 py-px rounded"
                               style={{
                                 background: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 8%, transparent)`,
                                 color: `color-mix(in srgb, ${GRUPO_TIPO_CONFIG[grupo.tipo].color} 50%, transparent)`,
@@ -450,7 +450,7 @@ export function EditorGrupoStandalone({
                               {grupo.subtipo}
                             </span>
                           )}
-                          <span className="text-[7px] text-primary/25">
+                          <span className="text-micro text-primary/25">
                             {grupo.miembro_ids.length} miembros
                           </span>
                         </div>
@@ -489,10 +489,10 @@ export function EditorGrupoStandalone({
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-2 select-none">
             <Layers className="text-primary/15" size={24} strokeWidth={1} />
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/20">
+            <p className="text-micro font-black uppercase tracking-[0.3em] text-primary/20">
               Grupos
             </p>
-            <p className="text-[8px] text-primary/15 tracking-widest text-center max-w-xs px-4">
+            <p className="text-micro text-primary/15 tracking-widest text-center max-w-xs px-4">
               Agrupá personajes, criaturas, objetos o magia en facciones,
               manadas, colecciones y más
             </p>

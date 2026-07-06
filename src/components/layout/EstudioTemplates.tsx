@@ -26,7 +26,7 @@ interface CampoInputProps {
 export function CampoInput({ label, value, onChange, placeholder, autoFocus, type = "text" }: CampoInputProps) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[9px] font-black uppercase text-primary/30 tracking-widest">
+      <label className="text-micro font-black uppercase text-primary/30 tracking-widest">
         {label}
       </label>
       <input
@@ -56,7 +56,7 @@ export function BannerOffline({
     : "bg-blue-500/10 border-blue-500/20 text-blue-400";
 
   return (
-    <div className={`shrink-0 flex items-center gap-2 px-8 py-2.5 border-b text-[10px] font-black uppercase tracking-widest ${cls}`}>
+    <div className={`shrink-0 flex items-center gap-2 px-8 py-2.5 border-b text-micro font-black uppercase tracking-widest ${cls}`}>
       <WifiOff size={12} />
       {mensaje}
     </div>
@@ -149,7 +149,7 @@ interface BotonSubmitProps {
 export function BotonSubmit({ loading, disabled, labelNormal, labelLoading }: BotonSubmitProps) {
   return (
     <button
-      className="w-full bg-primary text-bg-main py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+      className="w-full bg-primary text-bg-main py-3 rounded-xl text-micro font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
       disabled={loading || disabled}
       type="submit"
     >

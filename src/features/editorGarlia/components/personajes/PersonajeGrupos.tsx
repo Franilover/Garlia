@@ -29,7 +29,7 @@ export function PersonajeGrupos({
       <div className="rounded-xl overflow-hidden border border-primary/10">
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
           <Users className="text-primary/25 shrink-0" size={8} />
-          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Grupos
           </span>
         </div>
@@ -45,7 +45,7 @@ export function PersonajeGrupos({
     <div className="rounded-xl overflow-hidden border border-primary/10">
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Users className="text-primary/25 shrink-0" size={8} />
-        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
           Grupos
         </span>
       </div>
@@ -60,7 +60,7 @@ export function PersonajeGrupos({
               className="shrink-0 text-primary/20 group-hover:text-primary/40 transition-colors"
               size={8}
             />
-            <span className="text-[8px] font-black uppercase tracking-wide text-primary/50 group-hover:text-primary/80 transition-colors truncate leading-tight">
+            <span className="text-micro font-black uppercase tracking-wide text-primary/50 group-hover:text-primary/80 transition-colors truncate leading-tight">
               {g.nombre}
             </span>
           </button>

@@ -65,7 +65,7 @@ export default function SimpleImagePicker({
       {/* Breadcrumb */}
       <div className="flex items-center gap-1 px-1 pb-3 flex-wrap">
         <button
-          className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
+          className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
           type="button"
           onClick={() => setStack([])}
         >
@@ -78,7 +78,7 @@ export default function SimpleImagePicker({
               size={10}
             />
             <button
-              className="text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
+              className="text-micro font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
               type="button"
               onClick={() => goBack(i + 1)}
             >
@@ -112,10 +112,10 @@ export default function SimpleImagePicker({
                       size={16}
                     />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface truncate">
+                      <p className="text-micro font-black uppercase tracking-widest text-on-surface truncate">
                         {folder.name}
                       </p>
-                      <p className="text-[9px] text-muted-on-surface">
+                      <p className="text-micro text-muted-on-surface">
                         {flattenImages(folder.children).length} imágenes
                       </p>
                     </div>
@@ -166,7 +166,7 @@ export default function SimpleImagePicker({
             )}
 
             {folders.length === 0 && images.length === 0 && (
-              <p className="text-center text-[11px] text-muted-on-surface py-10 uppercase tracking-widest">
+              <p className="text-center text-micro text-muted-on-surface py-10 uppercase tracking-widest">
                 Carpeta vacía
               </p>
             )}
@@ -177,7 +177,7 @@ export default function SimpleImagePicker({
       {/* Acciones */}
       <div className="pt-4 flex gap-3">
         <button
-          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
+          className="flex-1 py-4 text-micro font-black uppercase tracking-widest text-muted-on-surface hover:text-on-surface transition-colors"
           type="button"
           onClick={onClose}
         >
