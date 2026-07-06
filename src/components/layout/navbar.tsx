@@ -598,21 +598,31 @@ const Navbar = () => {
           <button
             type="button"
             onClick={mundoBackAction}
-            className="flex items-center justify-center transition-all shrink-0"
+            className="flex items-center justify-center transition-all shrink-0 mx-auto"
             style={{
               width: "36px",
               height: "40px",
-              color: "var(--primary)",
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderBottom:
-                "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              borderRadius: "var(--radius-btn)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              background: "transparent",
             }}
             title={mundoBackLabel}
             aria-label={mundoBackLabel}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background =
+                "color-mix(in srgb, var(--primary) 6%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color =
+                "color-mix(in srgb, var(--primary) 40%, transparent)";
+            }}
           >
-            {mundoSelectedId ? <ArrowLeft size={16} /> : <X size={16} />}
+            {mundoSelectedId ? <ArrowLeft size={15} /> : <X size={15} />}
           </button>
         )}
+        {showMundoBack && <NavDivider margin="6px 12px" />}
         <div className="relative shrink-0 mx-auto">
           <button
             className="flex items-center justify-center transition-all"
@@ -795,8 +805,8 @@ const Navbar = () => {
                   width: 34,
                   height: 34,
                   borderRadius: "var(--radius-btn)",
-                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  color: "var(--primary)",
+                  background: "transparent",
+                  color: "color-mix(in srgb, var(--primary) 40%, transparent)",
                 }}
                 title={mundoBackLabel}
                 aria-label={mundoBackLabel}
