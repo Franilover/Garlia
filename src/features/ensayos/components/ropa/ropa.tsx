@@ -11,8 +11,22 @@ import React, { useState, useMemo } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
-import { useOutfits, type Outfit, type Temporada, type Vibra, type Color } from "@/features/ensayos/hooks/ropa/useOutfits";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { cn } from "@/lib/utils/index";
+
+type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
+type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
+type Color     = "Negro" | "Blanco" | "Gris" | "Rosa" | "Rojo" | "Azul" | "Verde" | "Beige" | "Marrón" | "Lila";
+
+interface Outfit {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  imagen_url: string;
+  temporadas?: Temporada[];
+  vibras?: Vibra[];
+  colores?: Color[];
+}
 
 interface FormData {
   nombre: string;
@@ -99,7 +113,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
       <div className="flex items-center justify-between p-5 border-b border-primary/10">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-sm font-black uppercase tracking-widest text-on-surface">{title}</h3>
+          <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">{title}</h3>
         </div>
         <button
           className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors"
@@ -219,13 +233,15 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
 
 export default function ArmarioPage() {
   const {
-    outfits = [],
+    data: outfits = [],
     loading,
-    addOutfit,
-    updateOutfit,
-    deleteOutfit,
-    refetchOutfits,
-  } = useOutfits();
+    addRow: addOutfit,
+    updateRow: updateOutfit,
+    deleteRow: deleteOutfit,
+    refetch: refetchOutfits,
+  } = useSupabaseData<Outfit>("ropa", {
+    order: { campo: "created_at", asc: false },
+  });
 
   const [lightbox, setLightbox]           = useState<Outfit | null>(null);
   const [showNuevo, setShowNuevo]         = useState(false);
@@ -364,7 +380,7 @@ export default function ArmarioPage() {
                   <Trash2 className="text-red-400" size={18} />
                 </div>
                 <div>
-                  <p className="text-sm font-black uppercase text-on-surface">¿Borrar este outfit?</p>
+                  <p className="text-xs font-black uppercase text-on-surface">¿Borrar este outfit?</p>
                   <p className="text-[9px] text-muted-on-surface mt-0.5 uppercase tracking-widest">{confirmDelete.nombre}</p>
                 </div>
               </div>
@@ -435,7 +451,7 @@ export default function ArmarioPage() {
 
             {}
             <div className="p-5 border-t border-primary/10">
-              <p className="text-sm font-black uppercase text-on-surface">{lightbox.nombre}</p>
+              <p className="text-xs font-black uppercase text-on-surface">{lightbox.nombre}</p>
               {lightbox.descripcion && (
                 <p className="text-[9px] text-muted-on-surface mt-1 leading-relaxed">{lightbox.descripcion}</p>
               )}
@@ -467,7 +483,7 @@ export default function ArmarioPage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-black uppercase tracking-tighter text-primary italic leading-none">
+            <h1 className="text-2xl font-black uppercase tracking-tighter text-primary italic leading-none">
               Outfits
             </h1>
             <p className="text-muted-on-surface text-[9px] font-black uppercase tracking-widest mt-0.5">

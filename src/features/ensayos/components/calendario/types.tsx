@@ -36,11 +36,11 @@ export const VISTAS: { valor: VistaOpcion; label: string; short: string }[] = [
   - Usamos variantes con opacidad /10 y /15 que respetan el tema.
 */
 export const COLORES_EVENTO: Record<string, string> = {
-  "Plan":              "bg-primary/10 text-primary border-primary/20 dark:bg-primary/20 dark:border-primary/20",
+  "Plan":              "bg-primary/10 text-primary border-primary/20 dark:bg-primary/15 dark:border-primary/25",
   "Lanzamiento Libro": "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30",
   "Reunión":           "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30",
   "Personal":          "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30",
-  "default":           "bg-primary/10 text-foreground/70 border-primary/10 dark:bg-primary/10 dark:text-foreground/75",
+  "default":           "bg-primary/8 text-foreground/70 border-primary/12 dark:bg-primary/12 dark:text-foreground/75",
 };
 
 export const TIPOS_EVENTO = ["Plan", "Reunión", "Personal"] as const;
@@ -53,7 +53,7 @@ export const EventoBadge = ({ item, compact = false }: { item: Evento; compact?:
       className={cn(
         "rounded-[var(--radius-btn)] border px-2 py-1 flex items-center gap-1.5 cursor-default select-none",
         color,
-        compact ? "text-micro" : "text-micro"
+        compact ? "text-[9px]" : "text-[10px]"
       )}
       initial={{ opacity: 0, y: 4 }}
     >

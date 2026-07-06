@@ -1,0 +1,15 @@
+"use client";
+
+import { EditorMapa } from "@/features/editorGarlia/views/EditorMapa";
+
+import { useMundoNavigation } from "../store/useMundoNavigationStore";
+
+export function MapaSection() {
+  const openEntity = useMundoNavigation((s) => s.openEntity);
+
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto p-3">
+      <EditorMapa onSelectReino={(id) => openEntity("reinos", id)} />
+    </div>
+  );
+}

@@ -1,5 +1,5 @@
-import EditorEntidades from "@/features/editorGarlia/views/editorGarlia";
+import EditorMundoRoot from "@/features/mundo/EditorMundoRoot";
 
 export default function DashboardPage() {
-  return <EditorEntidades />;
+  return <EditorMundoRoot />;
 }

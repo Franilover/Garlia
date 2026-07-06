@@ -1594,6 +1594,7 @@ function EventoDetallePanel({
   diasAnioLista,
   onFieldChange,
   onDiaChange,
+  onClose,
 }: {
   evt: MundoTimelineEvent;
   era: EraMundo | null;
@@ -1605,6 +1606,7 @@ function EventoDetallePanel({
     value: string,
   ) => void;
   onDiaChange?: (id: string, dia: number) => void;
+  onClose?: () => void;
 }) {
   const editable = evt.source === "mundo" || evt.source === "reino";
 
@@ -1633,9 +1635,11 @@ function EventoDetallePanel({
     setSavingFecha(false);
   };
 
+  const Icon = iconoPorSource(evt.source);
+
   return (
     <div
-      className="flex-1 min-w-0 ml-2 rounded-xl p-3 flex flex-col gap-2"
+      className="rounded-xl p-3 flex flex-col gap-2"
       style={{
         background: eraColor
           ? `${eraColor}08`
@@ -1643,22 +1647,52 @@ function EventoDetallePanel({
         border: `1px solid ${eraColor ? `${eraColor}22` : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
       }}
     >
-      {/* Era badge */}
-      {era && (
+      {/* Era + tipo — misma fila, aprovecha el ancho ganado del panel */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {era && (
+          <span
+            className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full"
+            style={{
+              background: eraColor
+                ? `${eraColor}18`
+                : "color-mix(in srgb, var(--primary) 7%, transparent)",
+              color:
+                eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)",
+              border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+            }}
+          >
+            {era.nombre}
+          </span>
+        )}
         <span
-          className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full self-start"
+          className="flex items-center gap-1 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
           style={{
-            background: eraColor
-              ? `${eraColor}18`
-              : "color-mix(in srgb, var(--primary) 7%, transparent)",
-            color:
-              eraColor ?? "color-mix(in srgb, var(--primary) 45%, transparent)",
-            border: `1px solid ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
           }}
         >
-          {era.nombre}
+          <Icon size={7} />
+          {evt.source}
         </span>
-      )}
+        {onClose && (
+          <button
+            className="ml-auto shrink-0 flex items-center justify-center rounded-full transition-all hover:opacity-100"
+            style={{
+              width: 18,
+              height: 18,
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+              opacity: 0.7,
+            }}
+            title="Cerrar"
+            type="button"
+            onClick={onClose}
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
 
       {/* Título */}
       {editable ? (
@@ -1682,35 +1716,47 @@ function EventoDetallePanel({
         </p>
       )}
 
-      {/* Fecha */}
-      {editable ? (
-        <div className="relative">
-          {savingFecha && (
-            <Loader2
-              className="animate-spin absolute right-2 top-1.5 z-10 text-primary/30"
-              size={9}
+      {/* Fecha + reino — misma fila cuando hay espacio */}
+      <div className="flex items-center gap-2">
+        {editable ? (
+          <div className="relative flex-1 min-w-0">
+            {savingFecha && (
+              <Loader2
+                className="animate-spin absolute right-2 top-1.5 z-10 text-primary/30"
+                size={9}
+              />
+            )}
+            <SelectorFechaMundo
+              placeholder="Sin fecha…"
+              value={evt.dia_absoluto ?? null}
+              onChange={commitDia}
             />
-          )}
-          <SelectorFechaMundo
-            placeholder="Sin fecha…"
-            value={evt.dia_absoluto ?? null}
-            onChange={commitDia}
-          />
-        </div>
-      ) : (
-        evt.dia_absoluto != null && (
-          <p
-            className="text-[8px] font-black uppercase tracking-widest"
+          </div>
+        ) : (
+          evt.dia_absoluto != null && (
+            <p
+              className="text-[8px] font-black uppercase tracking-widest"
+              style={{
+                color:
+                  eraColor ??
+                  "color-mix(in srgb, var(--primary) 35%, transparent)",
+              }}
+            >
+              Año {Math.floor(evt.dia_absoluto / diasAnioLista)}
+            </p>
+          )
+        )}
+        {evt.reinoNombre && (
+          <span
+            className="shrink-0 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest"
             style={{
-              color:
-                eraColor ??
-                "color-mix(in srgb, var(--primary) 35%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
             }}
           >
-            Año {Math.floor(evt.dia_absoluto / diasAnioLista)}
-          </p>
-        )
-      )}
+            <Crown size={8} /> {evt.reinoNombre}
+          </span>
+        )}
+      </div>
 
       {/* Separador */}
       <div
@@ -1722,7 +1768,7 @@ function EventoDetallePanel({
         }}
       />
 
-      {/* Descripción */}
+      {/* Descripción — a todo el ancho del panel */}
       {editable ? (
         <textarea
           className="text-[11px] leading-relaxed bg-transparent outline-none w-full rounded resize-y flex-1 px-0.5 -mx-0.5"
@@ -1758,21 +1804,23 @@ function EventoDetallePanel({
           Sin descripción.
         </p>
       )}
-
-      {/* Source badge */}
-      <span
-        className="text-[7px] font-black uppercase tracking-widest self-start mt-auto px-1.5 py-0.5 rounded"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-          border:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        {evt.source}
-      </span>
     </div>
   );
+}
+
+// Ícono representativo por tipo de evento — usado en las tarjetas del grid
+// y en los puntos de la línea de tiempo horizontal.
+function iconoPorSource(source: MundoTimelineEvent["source"]) {
+  switch (source) {
+    case "capitulo":
+      return BookOpen;
+    case "cancion":
+      return Music;
+    case "cumpleanos":
+      return CalendarDays;
+    default:
+      return Clock;
+  }
 }
 
 // ── Lista vertical de eventos + minimap sincronizado por posición real ──────
@@ -1833,187 +1881,492 @@ function ListaEventosConMinimapa({
   const selEra = selEvt ? getEraEvt(selEvt.dia_absoluto) : null;
   const selEraColor = selEra?.color ?? null;
 
+  // ── Minimapa horizontal ─────────────────────────────────────────────────
+  // Franja compacta arriba de la lista: un punto por evento, coloreado por
+  // era. Da un vistazo de "dónde estoy" en la línea de tiempo completa y usa
+  // el ancho horizontal que antes quedaba vacío. Clic en un punto selecciona
+  // (y hace scroll a) ese evento en la lista de abajo.
+  //
+  // IMPORTANTE: la distribución es por ÍNDICE (uniforme), no proporcional al
+  // dia_absoluto real. Con proporción real, un cluster de eventos ocurridos
+  // en un rango corto de tiempo (ej. 5 eventos en el mismo año, en una línea
+  // de tiempo que abarca siglos) quedaba con sus puntos superpuestos —
+  // imposible de clickear individualmente — mientras los huecos sin eventos
+  // (siglos sin nada) desperdiciaban todo ese ancho. Al distribuir por índice
+  // cada evento recibe el mismo espacio sin importar cuán cerca esté en el
+  // tiempo de sus vecinos, así los clusters se separan y usan el espacio que
+  // antes quedaba vacío en los huecos.
+  const eventosConFecha = useMemo(
+    () => allEvents.filter((e) => e.dia_absoluto != null),
+    [allEvents],
+  );
+
   return (
-    <div className="flex gap-0" style={{ minHeight: 120 }}>
-      {/* ── Lista compacta ── */}
-      <div
-        ref={listRef}
-        className="flex flex-col gap-0.5 min-w-0"
-        style={{
-          flex: selEvt ? "0 0 auto" : "1",
-          width: selEvt ? 180 : undefined,
-          overflowY: "auto",
-        }}
-      >
-        {allEvents.length === 0 && (
-          <p className="text-[9px] text-primary/20 italic px-2 py-2">
-            Sin eventos con fecha asignada.
-          </p>
-        )}
-        {(() => {
-          const items: React.ReactNode[] = [];
-          let lastAnio: number | null = null;
-          let lastEraId: string | null | undefined = undefined;
-          for (const evt of allEvents) {
-            const anio =
-              evt.dia_absoluto != null
-                ? Math.floor(evt.dia_absoluto / diasAnioLista)
-                : null;
+    <div className="flex flex-col gap-2" style={{ minHeight: 120 }}>
+      {/* ── Minimapa horizontal: toda la línea de tiempo en una franja ── */}
+      {eventosConFecha.length > 1 && (
+        <div
+          className="relative shrink-0 rounded-lg"
+          style={{
+            height: 28,
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          {/* Línea base */}
+          <div
+            className="absolute left-2 right-2 top-1/2 -translate-y-1/2"
+            style={{
+              height: 1,
+              background:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          />
+          {eventosConFecha.map((evt, idx) => {
+            // Distribución uniforme: idx/(n-1) en vez de (dia-min)/rango.
+            const pct =
+              eventosConFecha.length > 1
+                ? (idx / (eventosConFecha.length - 1)) * 100
+                : 50;
             const eraEvt = getEraEvt(evt.dia_absoluto);
             const eraColor = eraEvt?.color ?? null;
             const isSel = evt.id === evtSeleccionado;
-
-            // Separador de ERA — solo cuando la era cambia
-            const eraId = eraEvt?.id ?? null;
-            if (eraId !== lastEraId && eraEvt?.nombre) {
-              lastEraId = eraId;
-              items.push(
-                <div
-                  key={`list-era-${eraEvt.id}`}
-                  className="flex items-center gap-1.5 mt-3 mb-1"
-                >
-                  <span
-                    className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
-                    style={{
-                      background: eraColor
-                        ? `${eraColor}18`
-                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
-                      color:
-                        eraColor ??
-                        "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      border: `1px solid ${eraColor ? `${eraColor}35` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: 5,
-                        height: 5,
-                        borderRadius: "50%",
-                        background: eraColor ?? "currentColor",
-                        flexShrink: 0,
-                      }}
-                    />
-                    {eraEvt.nombre}
-                  </span>
-                  <div
-                    className="flex-1 h-px"
-                    style={{
-                      background: eraColor
-                        ? `${eraColor}30`
-                        : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                  />
-                </div>,
-              );
-            } else if (eraId !== lastEraId) {
-              // Era cambió pero sin nombre (sin era) — resetear sin separador visible
-              lastEraId = eraId;
-            }
-
-            // Separador de AÑO — solo el número, sin repetir la era
-            if (anio !== null && anio !== lastAnio) {
-              lastAnio = anio;
-              items.push(
-                <div
-                  key={`list-sep-${anio}`}
-                  className="flex items-center gap-1.5 mt-1.5 mb-0.5"
-                >
-                  <span
-                    className="text-[7px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
-                    style={{
-                      color:
-                        eraColor ??
-                        "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      background: eraColor
-                        ? `${eraColor}10`
-                        : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                    }}
-                  >
-                    {anio}
-                  </span>
-                  <div
-                    className="flex-1 h-px"
-                    style={{
-                      background: eraColor
-                        ? `${eraColor}15`
-                        : "color-mix(in srgb, var(--primary) 6%, transparent)",
-                    }}
-                  />
-                </div>,
-              );
-            }
-
-            items.push(
+            const Icon = iconoPorSource(evt.source);
+            return (
               <button
-                key={`list-${evt.id}`}
-                ref={(el) => {
-                  if (el) itemRefs.current.set(evt.id, el);
-                  else itemRefs.current.delete(evt.id);
-                }}
-                className="flex items-center gap-2 px-2 py-1 rounded-lg w-full text-left transition-all"
+                key={`mini-${evt.id}`}
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full flex items-center justify-center transition-all hover:scale-125"
                 style={{
-                  background: isSel
-                    ? eraColor
-                      ? `${eraColor}14`
-                      : "color-mix(in srgb, var(--primary) 6%, transparent)"
-                    : "transparent",
-                  border: `1px solid ${
-                    isSel
-                      ? eraColor
-                        ? `${eraColor}30`
-                        : "color-mix(in srgb, var(--primary) 15%, transparent)"
-                      : "transparent"
-                  }`,
+                  left: `${pct}%`,
+                  marginLeft: 8 - (16 * pct) / 100,
+                  width: isSel ? 12 : 7,
+                  height: isSel ? 12 : 7,
+                  background: eraColor ?? "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  boxShadow: isSel
+                    ? `0 0 0 3px ${eraColor ? `${eraColor}30` : "color-mix(in srgb, var(--primary) 18%, transparent)"}`
+                    : "none",
+                  zIndex: isSel ? 2 : 1,
                 }}
+                title={evt.title || "Sin título"}
                 type="button"
                 onClick={() => {
-                  const willSelect = !isSel;
-                  setEvtSeleccionado(willSelect ? evt.id : null);
-                  if (!willSelect) return;
-                  if (evt.source === "capitulo" && evt.capData) {
-                    onSelectCapitulo?.(evt.capData.id, evt.capData.libro_id);
-                  } else if (evt.source === "cancion" && evt.cancionData) {
-                    onSelectCancion?.(evt.cancionData.id);
-                  } else if (
-                    evt.source === "cumpleanos" &&
-                    evt.cumpleanosData
-                  ) {
-                    onSelectPersonaje?.(evt.cumpleanosData.id);
-                  }
+                  setEvtSeleccionado(evt.id);
+                  itemRefs.current
+                    .get(evt.id)
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
                 }}
               >
-                <span
-                  className="text-[10px] font-bold truncate flex-1"
-                  style={{
-                    color: isSel
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 65%, transparent)",
-                  }}
-                >
-                  {evt.title || (
-                    <span className="italic opacity-40">Sin título</span>
-                  )}
-                </span>
-              </button>,
+                {isSel && <Icon color="var(--bg-main)" size={7} />}
+              </button>
             );
-          }
-          return items;
-        })()}
+          })}
+        </div>
+      )}
+
+      {/* ── Lista (grid) ── */}
+      <div className="flex gap-2 items-start flex-1 min-h-0">
+        {/* ── Lista agrupada por ERA (cada era = su propia fila, obligatoria)
+             y dentro de cada era, carriles por año dispuestos en flex-wrap:
+             se ponen lado a lado hasta llegar al borde del contenedor y ahí
+             continúan en la siguiente línea, sin scroll horizontal infinito. ── */}
+        <div
+          ref={listRef}
+          className="min-w-0"
+          style={{
+            flex: "1",
+            overflowY: "auto",
+          }}
+        >
+          {allEvents.length === 0 && (
+            <p className="text-[9px] text-primary/20 italic px-2 py-2">
+              Sin eventos con fecha asignada.
+            </p>
+          )}
+          {(() => {
+            // Paso 1 — Agrupar eventos consecutivos por año → carriles.
+            type Carril = {
+              anio: number | null;
+              eraId: string | null;
+              eventos: MundoTimelineEvent[];
+            };
+            const carriles: Carril[] = [];
+            for (const evt of allEvents) {
+              const anio =
+                evt.dia_absoluto != null
+                  ? Math.floor(evt.dia_absoluto / diasAnioLista)
+                  : null;
+              const eraEvt = getEraEvt(evt.dia_absoluto);
+              const eraId = eraEvt?.id ?? null;
+              const last = carriles[carriles.length - 1];
+              if (last && last.anio === anio && last.eraId === eraId) {
+                last.eventos.push(evt);
+              } else {
+                carriles.push({ anio, eraId, eventos: [evt] });
+              }
+            }
+
+            // Paso 2 — Agrupar esos carriles consecutivos por ERA — cada era
+            //    obligatoriamente en su propia fila, nunca comparte fila con
+            //    la era anterior o siguiente.
+            type GrupoEra = {
+              eraId: string | null;
+              eraNombre: string | null;
+              eraColor: string | null;
+              carriles: Carril[];
+            };
+            const grupos: GrupoEra[] = [];
+            for (const carril of carriles) {
+              const eraEvt = getEraEvt(carril.eventos[0]?.dia_absoluto);
+              const last = grupos[grupos.length - 1];
+              if (last && last.eraId === carril.eraId) {
+                last.carriles.push(carril);
+              } else {
+                grupos.push({
+                  eraId: carril.eraId,
+                  eraNombre: eraEvt?.nombre ?? null,
+                  eraColor: eraEvt?.color ?? null,
+                  carriles: [carril],
+                });
+              }
+            }
+
+            return grupos.map((grupo, gi) => (
+              <div
+                key={`era-grupo-${grupo.eraId ?? "sin-era"}-${gi}`}
+                className="mb-3"
+              >
+                {/* Badge de era — encabezado obligatorio de su propia fila */}
+                {grupo.eraNombre && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span
+                      className="text-[7px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1"
+                      style={{
+                        background: grupo.eraColor
+                          ? `${grupo.eraColor}18`
+                          : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                        color:
+                          grupo.eraColor ??
+                          "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        border: `1px solid ${grupo.eraColor ? `${grupo.eraColor}35` : "color-mix(in srgb, var(--primary) 12%, transparent)"}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          background: grupo.eraColor ?? "currentColor",
+                          flexShrink: 0,
+                        }}
+                      />
+                      {grupo.eraNombre}
+                    </span>
+                    <div
+                      className="flex-1 h-px"
+                      style={{
+                        background: grupo.eraColor
+                          ? `${grupo.eraColor}20`
+                          : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Carriles de año de esta era — envuelven al llegar al borde */}
+                <div className="flex flex-wrap items-start gap-3">
+                  {grupo.carriles.map((carril, i) => {
+                    // Ancho de cada tarjeta de evento — el carril entero se
+                    // estira según cuántos eventos tenga (en vez de un ancho
+                    // fijo con eventos apilados hacia abajo). El header del
+                    // año, al ser w-full del carril, se expande junto con él.
+                    // Antes esto se achicaba a 130 cuando había un evento
+                    // seleccionado, para dejarle lugar al panel de detalle
+                    // que empujaba el layout. Ahora el panel flota encima
+                    // (no empuja nada), así que el ancho siempre es el mismo.
+                    const anchoEvento = 170;
+                    const anchoCarril =
+                      anchoEvento * carril.eventos.length +
+                      6 * (carril.eventos.length - 1); // gaps entre tarjetas
+
+                    return (
+                      <div
+                        key={`carril-${carril.anio ?? "sin-fecha"}-${gi}-${i}`}
+                        className="flex flex-col gap-1"
+                        style={{ width: anchoCarril }}
+                      >
+                        {/* Encabezado del año — se expande a todo el ancho del carril */}
+                        <div className="flex items-center gap-1.5 w-full">
+                          <span
+                            className="text-[8px] font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
+                            style={{
+                              color:
+                                grupo.eraColor ??
+                                "color-mix(in srgb, var(--primary) 35%, transparent)",
+                              background: grupo.eraColor
+                                ? `${grupo.eraColor}10`
+                                : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                            }}
+                          >
+                            {carril.anio ?? "S/F"}
+                          </span>
+                          <div
+                            className="flex-1 h-px"
+                            style={{
+                              background: grupo.eraColor
+                                ? `${grupo.eraColor}15`
+                                : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            }}
+                          />
+                        </div>
+
+                        {/* Eventos del año — lado a lado (fila), no apilados hacia abajo */}
+                        <div className="flex flex-row gap-1.5">
+                          {carril.eventos.map((evt) => {
+                            const eraEvt = getEraEvt(evt.dia_absoluto);
+                            const eraColor = eraEvt?.color ?? null;
+                            const isSel = evt.id === evtSeleccionado;
+                            const Icon = iconoPorSource(evt.source);
+
+                            return (
+                              <button
+                                key={`list-${evt.id}`}
+                                ref={(el) => {
+                                  if (el) itemRefs.current.set(evt.id, el);
+                                  else itemRefs.current.delete(evt.id);
+                                }}
+                                className="flex flex-col gap-1 px-2 py-1.5 rounded-lg text-left transition-all min-w-0 shrink-0"
+                                style={{
+                                  width: anchoEvento,
+                                  background: isSel
+                                    ? eraColor
+                                      ? `${eraColor}14`
+                                      : "color-mix(in srgb, var(--primary) 6%, transparent)"
+                                    : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                                  border: `1px solid ${
+                                    isSel
+                                      ? eraColor
+                                        ? `${eraColor}30`
+                                        : "color-mix(in srgb, var(--primary) 15%, transparent)"
+                                      : "color-mix(in srgb, var(--primary) 8%, transparent)"
+                                  }`,
+                                }}
+                                type="button"
+                                onClick={() => {
+                                  const willSelect = !isSel;
+                                  setEvtSeleccionado(willSelect ? evt.id : null);
+                                  if (!willSelect) return;
+                                  if (evt.source === "capitulo" && evt.capData) {
+                                    onSelectCapitulo?.(
+                                      evt.capData.id,
+                                      evt.capData.libro_id,
+                                    );
+                                  } else if (
+                                    evt.source === "cancion" &&
+                                    evt.cancionData
+                                  ) {
+                                    onSelectCancion?.(evt.cancionData.id);
+                                  } else if (
+                                    evt.source === "cumpleanos" &&
+                                    evt.cumpleanosData
+                                  ) {
+                                    onSelectPersonaje?.(evt.cumpleanosData.id);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <Icon
+                                    className="shrink-0"
+                                    size={10}
+                                    style={{
+                                      color:
+                                        eraColor ??
+                                        "color-mix(in srgb, var(--primary) 40%, transparent)",
+                                    }}
+                                  />
+                                  <span
+                                    className="text-[10px] font-bold truncate flex-1"
+                                    style={{
+                                      color: isSel
+                                        ? "var(--primary)"
+                                        : "color-mix(in srgb, var(--primary) 65%, transparent)",
+                                    }}
+                                  >
+                                    {evt.title || (
+                                      <span className="italic opacity-40">
+                                        Sin título
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                {evt.reinoNombre && (
+                                  <span
+                                    className="text-[7px] font-black uppercase tracking-widest truncate pl-[18px]"
+                                    style={{
+                                      color:
+                                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                                    }}
+                                  >
+                                    {evt.reinoNombre}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
       </div>
 
-      {/* ── Panel de detalle (editable para mundo/reino) ── */}
+      {/* ── Panel de detalle flotante (editable para mundo/reino) ── ────────
+          Antes este panel era un sibling en flex que empujaba la lista
+          (achicaba las tarjetas y ganaba ancho a su costa). Ahora flota
+          en un portal, anclado justo debajo/al lado de la tarjeta en la
+          que se hizo click, sin mover ni una tarjeta del lugar — igual
+          que el patrón que ya usa `EraDropdown` más abajo en este mismo
+          archivo (fixed + reposición en scroll/resize + cerrar al click
+          afuera o con Escape). */}
       {selEvt && (
-        <EventoDetallePanel
+        <EventoDetalleFlotante
+          anchorEl={itemRefs.current.get(selEvt.id) ?? null}
           diasAnioLista={diasAnioLista}
           era={selEra}
           eraColor={selEraColor}
           evt={selEvt}
+          onClose={() => setEvtSeleccionado(null)}
           onDiaChange={onDiaChange}
           onFieldChange={onFieldChange}
         />
       )}
     </div>
+  );
+}
+
+// ── Wrapper que posiciona EventoDetallePanel como flotante (portal) ─────────
+// Se ancla al elemento de la tarjeta clickeada (`anchorEl`) en vez de a un
+// trigger fijo. Si la tarjeta seleccionada cambia de posición (porque el
+// usuario scrollea la lista, o la ventana cambia de tamaño), recalcula.
+// Si el evento seleccionado deja de existir en el DOM (ej. se borró, o la
+// lista se re-renderizó y el ref todavía no está listo), simplemente no
+// se muestra — no rompe nada, solo no hay panel hasta el próximo click.
+function EventoDetalleFlotante({
+  anchorEl,
+  evt,
+  era,
+  eraColor,
+  diasAnioLista,
+  onFieldChange,
+  onDiaChange,
+  onClose,
+}: {
+  anchorEl: HTMLElement | null;
+  evt: MundoTimelineEvent;
+  era: EraMundo | null;
+  eraColor: string | null;
+  diasAnioLista: number;
+  onFieldChange?: (
+    id: string,
+    field: "titulo" | "descripcion",
+    value: string,
+  ) => void;
+  onDiaChange?: (id: string, dia: number) => void;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  // Posición del panel — igual que EraDropdown: calcula contra el ancla,
+  // decide si abrir hacia abajo o hacia arriba según el espacio disponible,
+  // y recalcula si el usuario scrollea o cambia el tamaño de la ventana
+  // (así el panel "sigue" a la tarjeta en vez de quedar flotando en el
+  // aire cuando la lista se mueve debajo).
+  useEffect(() => {
+    if (!anchorEl) {
+      setPos(null);
+      return;
+    }
+    const update = () => {
+      const r = anchorEl.getBoundingClientRect();
+      const w = Math.min(Math.max(r.width, 280), 360);
+      let left = r.left;
+      if (left + w > window.innerWidth - 8) {
+        left = Math.max(8, window.innerWidth - w - 8);
+      }
+      const estimatedH = 320;
+      const spaceBelow = window.innerHeight - r.bottom;
+      const top =
+        spaceBelow < estimatedH && r.top > estimatedH
+          ? Math.max(8, r.top - estimatedH - 6)
+          : r.bottom + 6;
+      setPos({ top, left, width: w });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorEl, evt.id]);
+
+  // Cerrar al click afuera o con Escape — el click adentro de la tarjeta
+  // de origen NO cuenta como "afuera" porque ese click ya lo maneja el
+  // propio botón de la tarjeta (des-selecciona o selecciona otro evento).
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (anchorEl?.contains(target)) return;
+      onClose();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [anchorEl, onClose]);
+
+  if (!pos || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      className="fixed z-[9999] rounded-xl shadow-lg"
+      style={{
+        top: pos.top,
+        left: pos.left,
+        width: pos.width,
+        maxHeight: "70vh",
+        overflowY: "auto",
+        background: "var(--bg-main)",
+      }}
+    >
+      <EventoDetallePanel
+        diasAnioLista={diasAnioLista}
+        era={era}
+        eraColor={eraColor}
+        evt={evt}
+        onClose={onClose}
+        onDiaChange={onDiaChange}
+        onFieldChange={onFieldChange}
+      />
+    </div>,
+    document.body,
   );
 }
 

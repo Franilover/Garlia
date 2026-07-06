@@ -100,13 +100,6 @@
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
-  /* ── Escala de texto "micro" ──────────────────────────────────────────────
-     La UI usa mucho texto sub-12px (labels, badges, timestamps en widgets
-     densos). Antes existían dos tokens (8px y 10px) que competían por el
-     mismo uso — se consolidan en UNO solo: text-micro (9px).
-     Ver /DESIGN_TOKENS.md para las reglas de uso completas. */
-  --text-micro: 0.5625rem;  /* 9px */
-
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
   --animate-scanline: scanline-move 8s linear infinite;

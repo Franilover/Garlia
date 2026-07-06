@@ -25,8 +25,7 @@ import {
   SectionTitle,
   FieldInput,
 } from "@/features/ensayos/components/cocina/SaludUi";
-import { useIngredientes } from "@/features/ensayos/hooks/cocina/useIngredientes";
-import { useRecetas } from "@/features/ensayos/hooks/cocina/useRecetas";
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
 import { recetasQueries } from "@/lib/api/queries/personal/cocina/recetas";
 import type { Receta, Ingrediente, Inserts } from "@/lib/types/queries";
@@ -108,12 +107,12 @@ function MacroBadge({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-1">
-      <span className="text-micro font-black uppercase tracking-widest text-primary/40">
+      <span className="text-[7px] font-black uppercase tracking-widest text-primary/30">
         {label}
       </span>
-      <span className="text-micro font-black text-primary/70">
+      <span className="text-[9px] font-black text-primary/70">
         {value.toFixed(0)}
-        <span className="text-micro text-primary/40">{unit}</span>
+        <span className="text-[7px] text-primary/30">{unit}</span>
       </span>
     </div>
   );
@@ -151,20 +150,20 @@ function RecipeCard({
       onClick={onToggle}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
+        <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
           <span>{catEmoji}</span>
           {receta.categoria}
         </span>
-        <span className="text-primary/20">
+        <span className="text-primary/25">
           {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </span>
       </div>
 
       <div>
-        <h3 className="text-micro font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
+        <h3 className="text-[11px] font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
           {receta.nombre}
         </h3>
-        <div className="flex items-center gap-2.5 text-micro font-bold uppercase tracking-widest text-primary/40">
+        <div className="flex items-center gap-2.5 text-[8px] font-bold uppercase tracking-widest text-primary/30">
           <span className="flex items-center gap-0.5">
             <Clock size={9} />
             {receta.tiempo}
@@ -177,15 +176,15 @@ function RecipeCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-(--radius-btn) bg-bg-main border border-primary/10 px-1">
+      <div className="grid grid-cols-3 gap-1 rounded-(--radius-btn) bg-bg-main border border-primary/8 px-1">
         <MacroBadge label="Prot" unit="g" value={totales.proteinas} />
         <MacroBadge label="Carb" unit="g" value={totales.carbos} />
         <MacroBadge label="Gras" unit="g" value={totales.grasas} />
       </div>
 
-      <div className="flex items-center gap-1.5 rounded-(--radius-btn) bg-accent/20 border border-accent/20 px-3 py-1.5">
+      <div className="flex items-center gap-1.5 rounded-(--radius-btn) bg-accent/20 border border-accent/25 px-3 py-1.5">
         <Flame className="text-accent shrink-0 fill-accent/60" size={10} />
-        <span className="text-micro font-black tracking-widest uppercase text-primary/70">
+        <span className="text-[9px] font-black tracking-widest uppercase text-primary/70">
           {totales.kcal.toFixed(0)} kcal
         </span>
       </div>
@@ -213,9 +212,9 @@ function RecetaInline({ receta }: { receta: Receta }) {
     >
       <div className="card-main p-3 mt-2 space-y-3">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 pb-2 border-b border-primary/10">
+        <div className="flex items-start justify-between gap-3 pb-2 border-b border-primary/8">
           <div className="min-w-0">
-            <span className="text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text inline-flex items-center gap-1 mb-1.5">
+            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text inline-flex items-center gap-1 mb-1.5">
               <span>{catEmoji}</span>
               {receta.categoria}
             </span>
@@ -223,17 +222,17 @@ function RecetaInline({ receta }: { receta: Receta }) {
               {receta.nombre}
             </h2>
             {receta.descripcion && (
-              <p className="text-micro text-primary/40 mt-1 leading-relaxed">
+              <p className="text-[10px] text-primary/45 mt-1 leading-relaxed">
                 {receta.descripcion}
               </p>
             )}
           </div>
           <div className="flex items-center gap-3 shrink-0 pt-1">
-            <div className="flex items-center gap-1 text-micro font-bold text-primary/40">
-              <Clock className="text-primary/20" size={11} /> {receta.tiempo}
+            <div className="flex items-center gap-1 text-[9px] font-bold text-primary/45">
+              <Clock className="text-primary/25" size={11} /> {receta.tiempo}
             </div>
-            <div className="flex items-center gap-1 text-micro font-bold text-primary/40">
-              <ChefHat className="text-primary/20" size={11} />{" "}
+            <div className="flex items-center gap-1 text-[9px] font-bold text-primary/45">
+              <ChefHat className="text-primary/25" size={11} />{" "}
               {receta.dificultad}
             </div>
           </div>
@@ -241,51 +240,51 @@ function RecetaInline({ receta }: { receta: Receta }) {
 
         {/* Macros */}
         <div className="grid grid-cols-4 gap-1.5">
-          <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
+          <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
             <div className="flex justify-center mb-0.5">
               <Flame className="text-accent" size={10} />
             </div>
-            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+            <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
               Kcal
             </p>
-            <p className="text-micro font-black text-primary">
+            <p className="text-[11px] font-black text-primary">
               {totales.kcal.toFixed(0)}
             </p>
           </div>
-          <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
+          <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
             <div className="flex justify-center mb-0.5">
               <Dumbbell className="text-blue-400" size={10} />
             </div>
-            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+            <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
               Prot
             </p>
-            <p className="text-micro font-black text-primary">
+            <p className="text-[11px] font-black text-primary">
               {totales.proteinas.toFixed(0)}
-              <span className="text-micro text-primary/20">g</span>
+              <span className="text-[8px] text-primary/25">g</span>
             </p>
           </div>
-          <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
+          <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
             <div className="flex justify-center mb-0.5">
               <Wheat className="text-amber-400" size={10} />
             </div>
-            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+            <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
               Carb
             </p>
-            <p className="text-micro font-black text-primary">
+            <p className="text-[11px] font-black text-primary">
               {totales.carbos.toFixed(0)}
-              <span className="text-micro text-primary/20">g</span>
+              <span className="text-[8px] text-primary/25">g</span>
             </p>
           </div>
-          <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
+          <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
             <div className="flex justify-center mb-0.5">
               <Droplets className="text-emerald-400" size={10} />
             </div>
-            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+            <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
               Gras
             </p>
-            <p className="text-micro font-black text-primary">
+            <p className="text-[11px] font-black text-primary">
               {totales.grasas.toFixed(0)}
-              <span className="text-micro text-primary/20">g</span>
+              <span className="text-[8px] text-primary/25">g</span>
             </p>
           </div>
         </div>
@@ -293,25 +292,25 @@ function RecetaInline({ receta }: { receta: Receta }) {
         {/* Two-column: ingredientes + preparación */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <p className="text-micro font-black uppercase tracking-widest text-primary/40 px-0.5">
+            <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 px-0.5">
               Ingredientes
             </p>
-            <ul className="divide-y divide-primary/6 bg-bg-main rounded-(--radius-btn) border border-primary/10 px-2">
+            <ul className="divide-y divide-primary/6 bg-bg-main rounded-(--radius-btn) border border-primary/8 px-2">
               {ingredientesList.map((ing, i) => (
                 <li
                   key={i}
                   className="flex items-center justify-between py-1.5 gap-2"
                 >
-                  <span className="text-micro font-bold text-primary uppercase leading-tight flex-1 min-w-0 truncate">
+                  <span className="text-[10px] font-bold text-primary uppercase leading-tight flex-1 min-w-0 truncate">
                     {ing.nombre}
                   </span>
-                  <span className="text-micro font-black text-primary/40 shrink-0">
+                  <span className="text-[8px] font-black text-primary/30 shrink-0">
                     {ing.cantidad}
                   </span>
                 </li>
               ))}
               {ingredientesList.length === 0 && (
-                <li className="py-2 text-micro font-bold uppercase text-primary/20 text-center">
+                <li className="py-2 text-[9px] font-bold uppercase text-primary/25 text-center">
                   Sin ingredientes
                 </li>
               )}
@@ -320,16 +319,16 @@ function RecetaInline({ receta }: { receta: Receta }) {
 
           {instruccionesList.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-micro font-black uppercase tracking-widest text-primary/40 px-0.5">
+              <p className="text-[8px] font-black uppercase tracking-widest text-primary/30 px-0.5">
                 Preparación
               </p>
-              <ol className="space-y-1.5 bg-bg-main rounded-(--radius-btn) border border-primary/10 p-2">
+              <ol className="space-y-1.5 bg-bg-main rounded-(--radius-btn) border border-primary/8 p-2">
                 {instruccionesList.map((paso, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="w-4 h-4 rounded-full bg-bg-menu text-menu-text text-micro font-black flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="w-4 h-4 rounded-full bg-bg-menu text-menu-text text-[7px] font-black flex items-center justify-center shrink-0 mt-0.5">
                       {i + 1}
                     </span>
-                    <p className="text-micro font-bold leading-snug text-primary/70 uppercase">
+                    <p className="text-[10px] font-bold leading-snug text-primary/65 uppercase">
                       {paso}
                     </p>
                   </li>
@@ -366,7 +365,7 @@ function ModalAddReceta({
   const [pendingIng, setPendingIng] = useState<PendingIng | null>(null);
   const { toasts, toast, dismiss } = useToast();
 
-  const { ingredientes: dbIngredientes } = useIngredientes();
+  const { data: dbIngredientes } = useSupabaseData<Ingrediente>("ingredientes");
 
   const filteredDbIngredientes = useMemo(() => {
     if (!searchIng.trim()) return [];
@@ -468,13 +467,13 @@ function ModalAddReceta({
         >
           <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
             <div>
-              <div className="sm:hidden w-10 h-1 bg-primary/20 rounded-full mb-4" />
-              <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">
+              <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mb-4" />
+              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
                 Nueva <span className="text-primary/20">Receta</span>
               </h2>
             </div>
             <BtnIcon
-              className="hidden sm:flex border-none bg-primary/10 text-primary/40"
+              className="hidden sm:flex border-none bg-primary/8 text-primary/40"
               variant="ghost"
               onClick={onClose}
             >
@@ -497,11 +496,11 @@ function ModalAddReceta({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-micro font-black uppercase tracking-widest text-primary/40 pl-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
                       Categoría
                     </label>
                     <select
-                      className="input-brand text-micro font-bold appearance-none"
+                      className="input-brand text-[11px] font-bold appearance-none"
                       value={formData.categoria}
                       onChange={(e) =>
                         setFormData((p) => ({
@@ -526,17 +525,17 @@ function ModalAddReceta({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-micro font-black uppercase tracking-widest text-primary/40 pl-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
                     Dificultad
                   </label>
                   <div className="flex gap-2">
                     {DIFICULTADES.map((d) => (
                       <button
                         key={d}
-                        className={`flex-1 py-2 rounded-(--radius-btn) text-micro font-black uppercase tracking-wide border transition-all ${
+                        className={`flex-1 py-2 rounded-(--radius-btn) text-[10px] font-black uppercase tracking-wide border transition-all ${
                           formData.dificultad === d
                             ? "bg-bg-menu text-menu-text border-bg-menu"
-                            : "bg-bg-main border-primary/10 text-primary/40 hover:border-primary/20"
+                            : "bg-bg-main border-primary/15 text-primary/40 hover:border-primary/30"
                         }`}
                         type="button"
                         onClick={() =>
@@ -556,11 +555,11 @@ function ModalAddReceta({
 
                 <div className="relative">
                   <Search
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/40"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary/30"
                     size={14}
                   />
                   <input
-                    className="input-brand pl-10 text-micro"
+                    className="input-brand pl-10 text-[11px]"
                     placeholder="Buscar en mi despensa..."
                     type="text"
                     value={searchIng}
@@ -581,10 +580,10 @@ function ModalAddReceta({
                             type="button"
                             onClick={() => selectIngrediente(ing)}
                           >
-                            <span className="text-micro font-bold uppercase text-primary">
+                            <span className="text-[11px] font-bold uppercase text-primary">
                               {ing.nombre}
                             </span>
-                            <span className="text-micro font-black text-primary/40 flex items-center gap-1">
+                            <span className="text-[9px] font-black text-primary/30 flex items-center gap-1">
                               {ing.proteinas}g P{" "}
                               <Plus className="text-primary/40" size={10} />
                             </span>
@@ -605,22 +604,22 @@ function ModalAddReceta({
                       initial={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.18 }}
                     >
-                      <div className="bg-accent/10 border border-accent/20 rounded-(--radius-btn) p-3 space-y-2.5">
+                      <div className="bg-accent/10 border border-accent/25 rounded-(--radius-btn) p-3 space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-micro font-black uppercase text-primary">
+                          <span className="text-[11px] font-black uppercase text-primary">
                             {pendingIng.base.nombre}
                           </span>
-                          <span className="text-micro font-bold text-primary/40">
+                          <span className="text-[9px] font-bold text-primary/40">
                             {pendingIng.base.porcion_texto} / unidad
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="text-micro font-black uppercase tracking-widest text-primary/40 shrink-0">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 shrink-0">
                             Cant.
                           </span>
                           <button
-                            className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/40 hover:text-primary transition-all shrink-0"
+                            className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                             type="button"
                             onClick={() =>
                               setPendingIng((p) =>
@@ -636,7 +635,7 @@ function ModalAddReceta({
                             <Minus size={11} />
                           </button>
                           <input
-                            className="w-14 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1 text-micro font-black text-primary outline-none"
+                            className="w-14 text-center bg-white-custom border border-primary/10 rounded-(--radius-btn) py-1 text-[11px] font-black text-primary outline-none"
                             min="0.5"
                             step="0.5"
                             type="number"
@@ -656,7 +655,7 @@ function ModalAddReceta({
                             }
                           />
                           <button
-                            className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/40 hover:text-primary transition-all shrink-0"
+                            className="w-6 h-6 flex items-center justify-center bg-white-custom rounded-(--radius-btn) border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
                             type="button"
                             onClick={() =>
                               setPendingIng((p) =>
@@ -673,7 +672,7 @@ function ModalAddReceta({
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1 rounded-(--radius-btn) bg-white-custom border border-primary/10 px-1">
+                        <div className="grid grid-cols-3 gap-1 rounded-(--radius-btn) bg-white-custom border border-primary/8 px-1">
                           <MacroBadge
                             label="Prot"
                             unit="g"
@@ -723,17 +722,17 @@ function ModalAddReceta({
                     {formData.ingredientes.map((ing, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-2 bg-bg-main border border-primary/10 rounded-(--radius-btn) px-3 py-1.5"
+                        className="flex items-center gap-2 bg-bg-main border border-primary/8 rounded-(--radius-btn) px-3 py-1.5"
                       >
                         <div className="flex-1 min-w-0">
-                          <span className="text-micro font-black uppercase text-primary">
+                          <span className="text-[10px] font-black uppercase text-primary">
                             {ing.nombre}
                           </span>
-                          <span className="text-micro text-primary/40 ml-2">
+                          <span className="text-[8px] text-primary/30 ml-2">
                             {ing.cantidad}
                           </span>
                         </div>
-                        <span className="text-micro font-black text-primary/40 shrink-0">
+                        <span className="text-[8px] font-black text-primary/35 shrink-0">
                           {parseFloat(String(ing.kcal || 0)).toFixed(0)} kcal
                         </span>
                         <button
@@ -748,35 +747,35 @@ function ModalAddReceta({
 
                     {/* Totals row */}
                     <div className="grid grid-cols-4 gap-1.5 pt-1">
-                      <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
-                        <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+                      <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
+                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
                           Kcal
                         </p>
-                        <p className="text-micro font-black text-primary">
+                        <p className="text-[11px] font-black text-primary">
                           {totalesPreview.kcal.toFixed(0)}
                         </p>
                       </div>
-                      <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
-                        <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+                      <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
+                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
                           Prot
                         </p>
-                        <p className="text-micro font-black text-primary">
+                        <p className="text-[11px] font-black text-primary">
                           {totalesPreview.proteinas.toFixed(0)}g
                         </p>
                       </div>
-                      <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
-                        <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+                      <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
+                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
                           Carb
                         </p>
-                        <p className="text-micro font-black text-primary">
+                        <p className="text-[11px] font-black text-primary">
                           {totalesPreview.carbos.toFixed(0)}g
                         </p>
                       </div>
-                      <div className="bg-bg-main border border-primary/10 rounded-(--radius-btn) py-1.5 text-center">
-                        <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+                      <div className="bg-bg-main border border-primary/8 rounded-(--radius-btn) py-1.5 text-center">
+                        <p className="text-[7px] font-black uppercase tracking-widest text-primary/25">
                           Gras
                         </p>
-                        <p className="text-micro font-black text-primary">
+                        <p className="text-[11px] font-black text-primary">
                           {totalesPreview.grasas.toFixed(0)}g
                         </p>
                       </div>
@@ -790,7 +789,7 @@ function ModalAddReceta({
                 <SectionTitle>Pasos de preparación</SectionTitle>
                 <div className="flex gap-2">
                   <input
-                    className="input-brand flex-1 text-micro"
+                    className="input-brand flex-1 text-[11px]"
                     placeholder="Describe un paso…"
                     value={nuevoPaso}
                     onChange={(e) => setNuevoPaso(e.target.value)}
@@ -814,12 +813,12 @@ function ModalAddReceta({
                     {formData.instrucciones.map((paso, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-2.5 bg-bg-main border border-primary/10 rounded-(--radius-btn) px-3 py-2"
+                        className="flex items-start gap-2.5 bg-bg-main border border-primary/8 rounded-(--radius-btn) px-3 py-2"
                       >
-                        <span className="w-4 h-4 rounded-full bg-bg-menu text-menu-text text-micro font-black flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="w-4 h-4 rounded-full bg-bg-menu text-menu-text text-[7px] font-black flex items-center justify-center shrink-0 mt-0.5">
                           {idx + 1}
                         </span>
-                        <span className="text-micro font-bold text-primary/70 uppercase flex-1 leading-snug">
+                        <span className="text-[10px] font-bold text-primary/65 uppercase flex-1 leading-snug">
                           {paso}
                         </span>
                         <button
@@ -869,7 +868,7 @@ const RecetasPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openId, setOpenId] = useState<string | number | null>(null);
 
-  const { recetas: recipes, loading } = useRecetas();
+  const { data: recipes, loading } = useSupabaseData<Receta>("recetas");
 
   const filteredRecipes = recipes.filter((r) => {
     const matchesSearch =
@@ -904,18 +903,18 @@ const RecetasPage = () => {
 
           <div className="relative w-full sm:w-48">
             <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/40"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/30"
               size={11}
             />
             <input
-              className="input-brand pl-7 pr-7 text-micro py-1.5"
+              className="input-brand pl-7 pr-7 text-[10px] py-1.5"
               placeholder="Buscar..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
             {filter && (
               <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/40 hover:text-primary transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
                 onClick={() => setFilter("")}
               >
                 <X size={10} />
@@ -937,16 +936,16 @@ const RecetasPage = () => {
         {/* Category filters */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
-            className={`flex items-center gap-1 px-2 py-1 rounded-(--radius-btn) text-micro font-black uppercase tracking-wide transition-all border ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-(--radius-btn) text-[8px] font-black uppercase tracking-wide transition-all border ${
               catFilter === null
                 ? "bg-primary text-btn-text border-primary shadow-sm"
-                : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
+                : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
             }`}
             onClick={() => setCatFilter(null)}
           >
             Todas
             <span
-              className={`text-micro px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+              className={`text-[8px] px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
             >
               {recipes.length}
             </span>
@@ -959,17 +958,17 @@ const RecetasPage = () => {
             return (
               <button
                 key={label}
-                className={`flex items-center gap-1 px-2 py-1 rounded-(--radius-btn) text-micro font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-(--radius-btn) text-[8px] font-black uppercase tracking-wide transition-all border ${
                   active
                     ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
-                    : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
+                    : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
                 }`}
                 onClick={() => setCatFilter(active ? null : label)}
               >
                 <span>{emoji}</span>
                 {label}
                 <span
-                  className={`text-micro px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+                  className={`text-[8px] px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
                 >
                   {count}
                 </span>
@@ -979,7 +978,7 @@ const RecetasPage = () => {
 
           {activeFilters > 0 && (
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-(--radius-btn) text-micro font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-(--radius-btn) text-[8px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
               onClick={() => {
                 setFilter("");
                 setCatFilter(null);
@@ -991,7 +990,7 @@ const RecetasPage = () => {
           )}
 
           {activeFilters > 0 && (
-            <span className="text-micro font-bold text-primary/40 uppercase tracking-widest ml-1">
+            <span className="text-[8px] font-bold text-primary/30 uppercase tracking-widest ml-1">
               {filteredRecipes.length} resultado
               {filteredRecipes.length !== 1 ? "s" : ""}
             </span>
@@ -1002,13 +1001,13 @@ const RecetasPage = () => {
           <Loading fullScreen={false} />
         ) : filteredRecipes.length === 0 ? (
           <div className="text-center py-16 space-y-2">
-            <Utensils className="mx-auto text-primary/20" size={32} />
-            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
+            <Utensils className="mx-auto text-primary/15" size={32} />
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">
               {filter || catFilter ? "Sin resultados" : "Sin recetas aún"}
             </p>
             {(filter || catFilter) && (
               <button
-                className="text-micro font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
+                className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
                 onClick={() => {
                   setFilter("");
                   setCatFilter(null);

@@ -134,6 +134,7 @@ function CoverFlip({
             <SmartImage
               alt={titulo}
               className="w-full h-full object-cover"
+              fallbackIcon={<Music size={28} />}
               src={portada_url || "/placeholder-cover.jpg"}
             />
           </div>

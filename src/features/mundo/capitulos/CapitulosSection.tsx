@@ -1,0 +1,15 @@
+"use client";
+
+/**
+ * CapitulosSection
+ * ───────────────────────────────────────────────────────────────────────────
+ * `EditorCapitulos.tsx` (export default `EstudioCapitulos`) ya es un módulo
+ * completamente autónomo (libros, capítulos, línea de tiempo interna). No
+ * necesita props de navegación del store — es una hoja del árbol.
+ */
+
+import EstudioCapitulos from "@/features/editorGarlia/views/EditorCapitulos";
+
+export function CapitulosSection() {
+  return <EstudioCapitulos />;
+}

@@ -309,6 +309,7 @@ function LibroCard({
             <SmartImage
               alt={libro.titulo}
               className="w-full h-full object-cover"
+              fallbackIcon={<BookOpen size={20} />}
               src={libro.portada_url || "/placeholder-cover.jpg"}
             />
             {nuevo && (
@@ -364,6 +365,7 @@ function LibroCard({
             <SmartImage
               alt={libro.titulo}
               className="w-full h-full object-cover"
+              fallbackIcon={<BookOpen size={20} />}
               src={libro.portada_url || "/placeholder-cover.jpg"}
             />
 
