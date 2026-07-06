@@ -74,7 +74,7 @@ export function EntityCardGrid({
           {emptyLabel ?? `Sin ${title.toLowerCase()} todavía`}
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2">
           {items.map((item) => (
             <EntityCard
               key={item.id}
