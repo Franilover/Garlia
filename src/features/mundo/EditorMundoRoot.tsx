@@ -18,9 +18,10 @@
  * Navegación tipo "un solo panel que se transforma": cuando section === null
  * se muestra <MundoMenu /> con las 12 secciones agrupadas; al elegir una,
  * el MISMO espacio pasa a mostrar la columna angosta (lista) + editor de esa
- * sección — no se agrega una columna nueva al lado. Cada sección trae su
- * propia X (SectionListHeader o FloatingBackButton) para volver al menú
- * vía goToMenu().
+ * sección — no se agrega una columna nueva al lado. El botón de volver
+ * (X / flecha) vive en la navbar global (components/layout/navbar.tsx),
+ * que lee useMundoNavigation directamente — no hay botones de volver
+ * dentro de cada sección.
  *
  * Requiere: npm install zustand (verificado zustand@5.0.14 + TS strict).
  *

@@ -1,6 +1,7 @@
 "use client";
 import { AnimatePresence } from "framer-motion";
 import {
+  ArrowLeft,
   CircleUser,
   Flower2,
   PenTool,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   Cat,
   Search,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,6 +23,7 @@ import React, { useState, useEffect } from "react";
 
 import { useCommandPalette } from "@/components/command";
 import { MotionDiv } from "@/components/ui/Motion";
+import { useMundoNavigation } from "@/features/mundo/store/useMundoNavigationStore";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
 
@@ -485,6 +488,20 @@ const Navbar = () => {
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
   const personalIsActive = currentPath === "/garlia/personal";
 
+  // ── Botón de volver del editor de mundo ──────────────────────────────────
+  // Vive en la navbar (no flotando sobre el contenido) porque el editor de
+  // mundo (/myself/garlia) no tiene su propio header superior. Contextual:
+  //   - sin sección activa → no se muestra (ya estás en el menú de 12).
+  //   - con sección activa, sin entidad seleccionada → vuelve al menú.
+  //   - con entidad seleccionada (lista oculta) → vuelve a la lista.
+  const mundoSection = useMundoNavigation((s) => s.section);
+  const mundoSelectedId = useMundoNavigation((s) => s.selectedId);
+  const mundoGoToMenu = useMundoNavigation((s) => s.goToMenu);
+  const mundoClearSelection = useMundoNavigation((s) => s.clearSelection);
+  const showMundoBack = isGarliaeditor && mundoSection !== null;
+  const mundoBackAction = mundoSelectedId ? mundoClearSelection : mundoGoToMenu;
+  const mundoBackLabel = mundoSelectedId ? "Volver a la lista" : "Volver a secciones";
+
   // ── Link definitions ─────────────────────────────────────────────────────────
 
   const personalLinks: NavLinkDef[] = [
@@ -577,6 +594,25 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
+        {showMundoBack && (
+          <button
+            type="button"
+            onClick={mundoBackAction}
+            className="flex items-center justify-center transition-all shrink-0"
+            style={{
+              width: "36px",
+              height: "40px",
+              color: "var(--primary)",
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderBottom:
+                "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+            title={mundoBackLabel}
+            aria-label={mundoBackLabel}
+          >
+            {mundoSelectedId ? <ArrowLeft size={16} /> : <X size={16} />}
+          </button>
+        )}
         <div className="relative shrink-0 mx-auto">
           <button
             className="flex items-center justify-center transition-all"
@@ -750,6 +786,24 @@ const Navbar = () => {
         >
           {/* Theme toggle */}
           <div className="flex items-center gap-1 z-[101]">
+            {showMundoBack && (
+              <button
+                type="button"
+                onClick={mundoBackAction}
+                className="flex items-center justify-center transition-all"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "var(--radius-btn)",
+                  background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  color: "var(--primary)",
+                }}
+                title={mundoBackLabel}
+                aria-label={mundoBackLabel}
+              >
+                {mundoSelectedId ? <ArrowLeft size={16} /> : <X size={16} />}
+              </button>
+            )}
             <button
               className="flex items-center justify-center transition-all"
               style={{

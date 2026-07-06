@@ -13,7 +13,6 @@ import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorLineaTie
 
 import { useMundoSecciones } from "../../editorGarlia/hooks/mundo/useMundoSecciones";
 import { useMundoNavigation } from "../store/useMundoNavigationStore";
-import { FloatingBackButton } from "../shared/FloatingBackButton";
 
 export function LineaTiempoSection() {
   const { textos, setTextos, save } = useMundoSecciones();
@@ -21,7 +20,6 @@ export function LineaTiempoSection() {
 
   return (
     <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
-      <FloatingBackButton />
       <PanelHistoriaMundo
         texto={textos.historia}
         onChange={(v) => setTextos((t) => ({ ...t, historia: v }))}
