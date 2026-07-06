@@ -51,12 +51,12 @@ export function NotasSection() {
         ].join(" ")}
       >
         <SectionListHeader
+          activeSection="notas"
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar nota…"
           createLabel="Crear nota"
-          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">

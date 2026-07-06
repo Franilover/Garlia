@@ -249,10 +249,13 @@ export function EditorGrupoStandalone({
   onClickMiembro,
   autoCrear = false,
   initialSelectedId,
+  renderSiblingTabs,
 }: {
   onClickMiembro?: (id: string, tabla: string) => void;
   autoCrear?: boolean;
   initialSelectedId?: string | null;
+  /** Contenido opcional (ej. SiblingSectionTabs) renderizado arriba del buscador */
+  renderSiblingTabs?: () => React.ReactNode;
 }) {
   const { grupos, loaded, crearGrupo, actualizarGrupo, eliminarGrupo } =
     useGrupos();
@@ -328,6 +331,8 @@ export function EditorGrupoStandalone({
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
+        {renderSiblingTabs?.()}
+
         <div
           className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
           style={{
@@ -366,18 +371,13 @@ export function EditorGrupoStandalone({
             )}
           </div>
           <button
-            className="w-full flex items-center justify-center gap-1 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
-            style={{
-              borderColor:
-                "color-mix(in srgb, var(--primary) 18%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-xs font-semibold text-primary"
             onClick={() => {
               setCreando(true);
               setSelectedId(null);
             }}
           >
-            <Plus size={8} /> Nuevo grupo
+            <Plus size={13} /> Añadir
           </button>
         </div>
 

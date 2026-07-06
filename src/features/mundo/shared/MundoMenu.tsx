@@ -18,80 +18,10 @@
  *   Hechizos / Runas / Dones
  */
 
-import {
-  Bug,
-  Clock,
-  Layers,
-  Map,
-  Mountain,
-  MapPinned,
-  Music,
-  Package,
-  ScrollText,
-  Sparkles,
-  Star,
-  StickyNote,
-  Users,
-} from "lucide-react";
 import React from "react";
 
-import {
-  useMundoNavigation,
-  type SectionKey,
-} from "../store/useMundoNavigationStore";
-
-interface MenuItem {
-  key: SectionKey;
-  label: string;
-  Icon: React.ElementType;
-}
-
-interface MenuGroup {
-  title: string;
-  items: MenuItem[];
-}
-
-const GROUPS: MenuGroup[] = [
-  {
-    title: "Entidades",
-    items: [
-      { key: "personajes", label: "Personajes", Icon: Users },
-      { key: "criaturas", label: "Criaturas", Icon: Bug },
-      { key: "items", label: "Items", Icon: Package },
-    ],
-  },
-  {
-    title: "Geografía",
-    items: [
-      { key: "mapa", label: "Mapa", Icon: Mountain },
-      { key: "reinos", label: "Reinos", Icon: Map },
-      { key: "ciudades", label: "Ciudades", Icon: MapPinned },
-    ],
-  },
-  {
-    title: "Historia",
-    items: [
-      { key: "capitulos", label: "Capítulos", Icon: ScrollText },
-      { key: "letras", label: "Letras", Icon: Music },
-      { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
-    ],
-  },
-  {
-    title: "Organización",
-    items: [
-      { key: "grupos", label: "Grupos", Icon: Layers },
-      { key: "notas", label: "Notas", Icon: StickyNote },
-    ],
-  },
-  {
-    title: "Magia",
-    items: [
-      { key: "hechizos", label: "Hechizos", Icon: Sparkles },
-      { key: "runas", label: "Runas", Icon: ScrollText },
-      { key: "dones", label: "Dones", Icon: Star },
-    ],
-  },
-];
+import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { MUNDO_MENU_GROUPS, type MenuItem } from "./mundoMenuGroups";
 
 export function MundoMenu() {
   const selectSection = useMundoNavigation((s) => s.selectSection);
@@ -105,7 +35,7 @@ export function MundoMenu() {
       className="w-56 shrink-0 border-r border-primary/10 overflow-y-auto py-3"
       aria-label="Secciones del editor de mundo"
     >
-      {GROUPS.map((group) => (
+      {MUNDO_MENU_GROUPS.map((group) => (
         <div key={group.title} className="mb-3 last:mb-0">
           <div className="px-4 pb-1 text-micro font-black uppercase tracking-widest text-primary/30">
             {group.title}

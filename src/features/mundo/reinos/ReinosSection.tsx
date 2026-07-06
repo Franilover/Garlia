@@ -50,12 +50,12 @@ export function ReinosSection({ selectedId }: Props) {
         ].join(" ")}
       >
         <SectionListHeader
+          activeSection="reinos"
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar reino…"
           createLabel="Crear reino"
-          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">

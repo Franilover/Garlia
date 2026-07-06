@@ -15,6 +15,10 @@
 import { Plus, Search } from "lucide-react";
 import React from "react";
 
+import type { SectionKey } from "../store/useMundoNavigationStore";
+import { siblingsOf } from "./mundoMenuGroups";
+import { SiblingSectionTabs } from "./SiblingSectionTabs";
+
 interface Props {
   query: string;
   onQueryChange: (q: string) => void;
@@ -23,6 +27,8 @@ interface Props {
   createLabel: string;
   /** @deprecated el botón de volver ahora vive en la navbar; prop ignorada */
   hasSelection?: boolean;
+  /** Sección activa — si se pasa, muestra arriba los iconos de las secciones hermanas del mismo grupo */
+  activeSection?: SectionKey;
 }
 
 export function SectionListHeader({
@@ -31,9 +37,15 @@ export function SectionListHeader({
   onCreate,
   placeholder,
   createLabel,
+  activeSection,
 }: Props) {
+  const siblings = activeSection ? siblingsOf(activeSection) : [];
+
   return (
     <div className="border-b border-primary/10">
+      {activeSection && siblings.length > 1 && (
+        <SiblingSectionTabs active={activeSection} items={siblings} />
+      )}
       <div className="p-2 flex items-center gap-2">
         <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
           <Search size={12} className="text-primary/30" />

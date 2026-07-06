@@ -31,12 +31,15 @@ export function EditorHechizos({
   onSelectedIdChange,
   onItemSaved,
   onItemDeleted,
+  renderSiblingTabs,
 }: {
   modo: Modo;
   initialSelectedId?: string;
   onSelectedIdChange?: (id: string | null) => void;
   onItemSaved?: (item: EntidadMagica) => void;
   onItemDeleted?: (id: string) => void;
+  /** Contenido opcional (ej. SiblingSectionTabs) renderizado arriba del buscador */
+  renderSiblingTabs?: () => React.ReactNode;
 }) {
   const cfg = CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(modo);
@@ -136,6 +139,7 @@ export function EditorHechizos({
           selected ? "hidden" : "flex",
         ].join(" ")}
       >
+        {renderSiblingTabs?.()}
         <div className="p-2 flex items-center gap-2 border-b border-primary/10">
           <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
             <Search size={12} className="text-primary/30" />

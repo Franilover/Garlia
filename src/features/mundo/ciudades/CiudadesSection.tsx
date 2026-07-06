@@ -51,12 +51,12 @@ export function CiudadesSection({ selectedId }: Props) {
         ].join(" ")}
       >
         <SectionListHeader
+          activeSection="ciudades"
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar ciudad…"
           createLabel="Crear ciudad"
-          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">

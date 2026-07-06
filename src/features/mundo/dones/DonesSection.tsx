@@ -11,6 +11,8 @@ import React from "react";
 
 import { EditorHechizos } from "@/features/editorGarlia/views/EditorHechizos";
 
+import { siblingsOf } from "../shared/mundoMenuGroups";
+import { SiblingSectionTabs } from "../shared/SiblingSectionTabs";
 import { useMundoNavigation } from "../store/useMundoNavigationStore";
 
 interface Props {
@@ -29,6 +31,9 @@ export function DonesSection({ selectedId, navKey }: Props) {
       onSelectedIdChange={(id) => {
         if (id) openEntity("dones", id);
       }}
+      renderSiblingTabs={() => (
+        <SiblingSectionTabs active="dones" items={siblingsOf("dones")} />
+      )}
     />
   );
 }

@@ -51,12 +51,12 @@ export function CriaturasSection({ selectedId }: Props) {
         ].join(" ")}
       >
         <SectionListHeader
+          activeSection="criaturas"
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar criatura…"
           createLabel="Crear criatura"
-          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">
