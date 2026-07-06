@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
 
-import { useHobbys, type Hobby, type Registro } from "@/features/ensayos/hooks/hobbys/useHobbys";
+import { useHobbys, getTodayIdx, type Hobby, type Registro } from "@/features/ensayos/hooks/hobbys/useHobbys";
 import { cn } from "@/lib/utils/index";
 
 
