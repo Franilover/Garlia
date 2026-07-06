@@ -4,10 +4,12 @@
  * MundoHomeDashboard
  * ───────────────────────────────────────────────────────────────────────────
  * Reemplaza a <MundoMenu /> como vista por defecto cuando section === null.
- * Home dashboard a pantalla completa: tarjetas grandes de navegación +
- * widgets de Resumen, Favoritos y Editado recientemente (estos dos últimos
- * lado a lado para aprovechar el ancho; si solo uno tiene contenido, ese
- * ocupa el espacio completo).
+ * Home dashboard a pantalla completa:
+ *   Título
+ *   Resumen (conteos)
+ *   [Botones de navegación]  [Favoritos arriba, Recientes abajo]
+ * Las dos columnas usan todo el ancho disponible; en pantallas angostas
+ * caen a una sola columna.
  *
  * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas
  * son 8 SectionKey distintas pero renderizan TODAS la misma página combinada
@@ -211,16 +213,10 @@ function FavoritosYRecientes() {
   const hasFavoritos = ordenados.length > 0;
   const hasRecientes = loadingRecientes || recientes.length > 0;
 
-  // Si uno de los dos widgets no tiene nada que mostrar, el otro ocupa todo
-  // el ancho en vez de dejar una columna vacía.
   if (!hasFavoritos && !hasRecientes) return null;
 
   return (
-    <div
-      className={`mb-8 grid gap-6 ${
-        hasFavoritos && hasRecientes ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
-      }`}
-    >
+    <div className="flex flex-col gap-6">
       {hasFavoritos && (
         <ChipListWidget
           title="Favoritos"
@@ -253,7 +249,7 @@ export function MundoHomeDashboard() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="px-8 py-10">
         <header className="mb-8">
           <h1 className="text-2xl font-black text-primary">Editor de Mundo</h1>
           <p className="text-sm text-primary/40 mt-1">
@@ -262,25 +258,28 @@ export function MundoHomeDashboard() {
         </header>
 
         <ResumenWidget />
-        <FavoritosYRecientes />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ENTRIES.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => selectSection(item.key)}
-              className="group flex flex-col items-start gap-4 p-6 rounded-3xl border border-primary/10 bg-primary/[0.02] text-left transition-colors hover:bg-primary/5 hover:border-primary/25 min-h-[168px]"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:border-primary/25 transition-colors">
-                <item.Icon size={26} className="text-primary/60" strokeWidth={1.75} />
-              </div>
-              <div>
-                <div className="text-lg font-black text-primary/85 mb-1">{item.label}</div>
-                <div className="text-xs text-primary/40 leading-snug">{item.description}</div>
-              </div>
-            </button>
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {ENTRIES.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => selectSection(item.key)}
+                className="group flex flex-col items-start gap-4 p-6 rounded-3xl border border-primary/10 bg-primary/[0.02] text-left transition-colors hover:bg-primary/5 hover:border-primary/25 min-h-[168px]"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:border-primary/25 transition-colors">
+                  <item.Icon size={26} className="text-primary/60" strokeWidth={1.75} />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-primary/85 mb-1">{item.label}</div>
+                  <div className="text-xs text-primary/40 leading-snug">{item.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <FavoritosYRecientes />
         </div>
       </div>
     </div>
