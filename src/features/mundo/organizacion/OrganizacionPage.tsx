@@ -61,7 +61,7 @@ export function OrganizacionPage({ section, selectedId }: Props) {
           sinSubtipo.push(g);
         }
       }
-      const bloques = Array.from(porSubtipo.entries())
+      const bloques: { subtipo: string | null; items: typeof grupos }[] = Array.from(porSubtipo.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([subtipo, items]) => ({ subtipo, items }));
       if (sinSubtipo.length) bloques.push({ subtipo: null, items: sinSubtipo });
