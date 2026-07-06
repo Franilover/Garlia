@@ -9,7 +9,7 @@ export function MapaSection() {
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
   return (
-    <div className="relative flex-1 min-h-0 overflow-y-auto p-3">
+    <div className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
       <FloatingBackButton />
       <EditorMapa onSelectReino={(id) => openEntity("reinos", id)} />
     </div>

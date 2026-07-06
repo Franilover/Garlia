@@ -49,7 +49,7 @@ export function GruposSection({ selectedId, navKey }: Props) {
           Grupos
         </span>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         <EditorGrupoStandalone
           key={navKey}
           initialSelectedId={selectedId}
