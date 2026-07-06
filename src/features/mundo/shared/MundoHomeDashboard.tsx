@@ -5,7 +5,9 @@
  * ───────────────────────────────────────────────────────────────────────────
  * Reemplaza a <MundoMenu /> como vista por defecto cuando section === null.
  * Home dashboard a pantalla completa: tarjetas grandes de navegación +
- * widgets de Resumen, Favoritos y Editado recientemente.
+ * widgets de Resumen, Favoritos y Editado recientemente (estos dos últimos
+ * lado a lado para aprovechar el ancho; si solo uno tiene contenido, ese
+ * ocupa el espacio completo).
  *
  * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas
  * son 8 SectionKey distintas pero renderizan TODAS la misma página combinada
@@ -20,7 +22,9 @@
  * sin ese campo confirmado.
  *
  * "Favoritos" lee de useFavoritos (Zustand + persist, local al navegador).
- * Se marcan desde la estrella en cada EntityCard dentro de Entidades.
+ * Se marcan desde la estrella en cada EntityCard dentro de Entidades. El
+ * color de la estrella usa la variable de tema --accent (clase text-accent/
+ * fill-accent), igual que el resto de acentos de la app, no un color fijo.
  */
 
 import { Clock, Layers, Mountain, Music, ScrollText, Star, Users } from "lucide-react";
@@ -112,39 +116,6 @@ function ResumenWidget() {
   );
 }
 
-function FavoritosWidget() {
-  const favoritos = useFavoritos((s) => s.favoritos);
-  const openEntity = useMundoNavigation((s) => s.openEntity);
-
-  const ordenados = useMemo(
-    () => [...favoritos].sort((a, b) => b.addedAt - a.addedAt),
-    [favoritos],
-  );
-
-  if (ordenados.length === 0) return null;
-
-  return (
-    <div className="mb-8">
-      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
-        Favoritos
-      </h2>
-      <div className="flex flex-wrap gap-2">
-        {ordenados.map((fav) => (
-          <button
-            key={`${fav.section}:${fav.id}`}
-            type="button"
-            onClick={() => openEntity(fav.section, fav.id)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:bg-primary/5 hover:border-primary/25 transition-colors text-xs font-semibold text-primary/80"
-          >
-            <Star size={12} className="text-amber-400 fill-amber-400" />
-            {fav.nombre}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 interface RecienteRow {
   id: string;
   nombre: string;
@@ -162,8 +133,58 @@ function useRecientesPorTabla(tabla: string, section: SectionKey) {
   }, [data, loading, section]);
 }
 
-function RecientesWidget() {
+/** Widget genérico de chips clickeables, usado tanto por Favoritos como Recientes. */
+function ChipListWidget({
+  title,
+  emptyLabel,
+  loading,
+  chips,
+}: {
+  title: string;
+  emptyLabel?: string;
+  loading?: boolean;
+  chips: { key: string; label: string; onClick: () => void; Icon?: React.ElementType; starred?: boolean }[];
+}) {
+  return (
+    <div>
+      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
+        {title}
+      </h2>
+      {loading && chips.length === 0 ? (
+        <div className="text-xs text-primary/30">Cargando…</div>
+      ) : chips.length === 0 ? (
+        <div className="text-xs text-primary/25">{emptyLabel}</div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.onClick}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:bg-primary/5 hover:border-primary/25 transition-colors text-xs font-semibold text-primary/80"
+            >
+              {chip.starred ? (
+                <Star size={12} className="text-accent fill-accent shrink-0" />
+              ) : chip.Icon ? (
+                <chip.Icon size={12} className="text-primary/40 shrink-0" />
+              ) : null}
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FavoritosYRecientes() {
+  const favoritos = useFavoritos((s) => s.favoritos);
   const openEntity = useMundoNavigation((s) => s.openEntity);
+
+  const ordenados = useMemo(
+    () => [...favoritos].sort((a, b) => b.addedAt - a.addedAt),
+    [favoritos],
+  );
 
   const personajes = useRecientesPorTabla("personajes", "personajes");
   const criaturas = useRecientesPorTabla("criaturas", "criaturas");
@@ -171,7 +192,7 @@ function RecientesWidget() {
   const reinos = useRecientesPorTabla("reinos", "reinos");
   const ciudades = useRecientesPorTabla("ciudades", "ciudades");
 
-  const loadingAny =
+  const loadingRecientes =
     personajes.loading || criaturas.loading || items.loading || reinos.loading || ciudades.loading;
 
   const recientes = useMemo(() => {
@@ -187,32 +208,41 @@ function RecientesWidget() {
       .slice(0, 6);
   }, [personajes.items, criaturas.items, items.items, reinos.items, ciudades.items]);
 
-  if (!loadingAny && recientes.length === 0) return null;
+  const hasFavoritos = ordenados.length > 0;
+  const hasRecientes = loadingRecientes || recientes.length > 0;
+
+  // Si uno de los dos widgets no tiene nada que mostrar, el otro ocupa todo
+  // el ancho en vez de dejar una columna vacía.
+  if (!hasFavoritos && !hasRecientes) return null;
 
   return (
-    <div className="mb-8">
-      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
-        Editado recientemente
-      </h2>
-      {loadingAny && recientes.length === 0 ? (
-        <div className="text-xs text-primary/30">Cargando…</div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {recientes.map((r) => {
-            const Icon = ENTIDADES_ICONS[r.section] ?? Users;
-            return (
-              <button
-                key={`${r.section}:${r.id}`}
-                type="button"
-                onClick={() => openEntity(r.section, r.id)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:bg-primary/5 hover:border-primary/25 transition-colors text-xs font-semibold text-primary/80"
-              >
-                <Icon size={12} className="text-primary/40" />
-                {r.nombre}
-              </button>
-            );
-          })}
-        </div>
+    <div
+      className={`mb-8 grid gap-6 ${
+        hasFavoritos && hasRecientes ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
+      }`}
+    >
+      {hasFavoritos && (
+        <ChipListWidget
+          title="Favoritos"
+          chips={ordenados.map((fav) => ({
+            key: `${fav.section}:${fav.id}`,
+            label: fav.nombre,
+            starred: true,
+            onClick: () => openEntity(fav.section, fav.id),
+          }))}
+        />
+      )}
+      {hasRecientes && (
+        <ChipListWidget
+          title="Editado recientemente"
+          loading={loadingRecientes}
+          chips={recientes.map((r) => ({
+            key: `${r.section}:${r.id}`,
+            label: r.nombre,
+            Icon: ENTIDADES_ICONS[r.section] ?? Users,
+            onClick: () => openEntity(r.section, r.id),
+          }))}
+        />
       )}
     </div>
   );
@@ -232,8 +262,7 @@ export function MundoHomeDashboard() {
         </header>
 
         <ResumenWidget />
-        <FavoritosWidget />
-        <RecientesWidget />
+        <FavoritosYRecientes />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ENTRIES.map((item) => (

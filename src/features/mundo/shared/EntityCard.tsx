@@ -52,7 +52,7 @@ export function EntityCard({
         >
           <Star
             size={13}
-            className={isFavorite ? "text-amber-400 fill-amber-400" : "text-primary/40"}
+            className={isFavorite ? "text-accent fill-accent" : "text-primary/40"}
           />
         </button>
       )}

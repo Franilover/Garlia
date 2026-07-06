@@ -76,7 +76,6 @@ export function EntityCardGrid({
   return (
     <div className="mb-8 last:mb-0">
       <div className="flex items-center gap-2 mb-3 px-1">
-        <Icon size={13} className="text-primary/40" />
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
           {title}
         </h2>

@@ -190,10 +190,9 @@ export function OrganizacionPage({ section, selectedId }: Props) {
   );
 }
 
-function TipoHeader({ Icon, label }: { Icon: React.ElementType; label: string }) {
+function TipoHeader({ label }: { Icon?: React.ElementType; label: string }) {
   return (
     <div className="flex items-center gap-2 mb-3 px-1">
-      <Icon size={15} className="text-primary/60" />
       <h1 className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">{label}</h1>
       <div className="flex-1 h-px bg-primary/10" />
     </div>
