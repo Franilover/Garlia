@@ -44,6 +44,7 @@ interface PersonajeSidebarPanelProps {
   onSelectPersonaje?: (id: string) => void;
   onOpenGrupo?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
+  onNavigateCapitulo?: (capituloId: string) => void;
 }
 
 // ─── Contenido compartido entre inline y drawer ───────────────────────────────
@@ -55,6 +56,7 @@ function SidebarContenido({
   onSelectPersonaje,
   onOpenGrupo,
   onSelectCancion,
+  onNavigateCapitulo,
 }: Omit<PersonajeSidebarPanelProps, "modo" | "onCerrarDrawer">) {
   return (
     <>
@@ -76,7 +78,7 @@ function SidebarContenido({
             Capítulos
           </span>
         </div>
-        <PersonajeCapitulosAparece personajeId={personajeId} />
+        <PersonajeCapitulosAparece personajeId={personajeId} onNavigateCapitulo={onNavigateCapitulo} />
       </div>
 
       <Separador />

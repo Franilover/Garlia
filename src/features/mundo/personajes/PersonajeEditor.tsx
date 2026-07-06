@@ -14,6 +14,7 @@
 import { EditorPersonaje } from "@/features/editorGarlia/views/EditorPersonaje";
 
 import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useWikilinkNavigate } from "../shared/useWikilinkNavigate";
 
 interface Personaje {
   id: string;
@@ -23,6 +24,11 @@ interface Personaje {
 
 export function PersonajeEditor({ personaje }: { personaje: Personaje }) {
   const openEntity = useMundoNavigation((s) => s.openEntity);
+  // Resuelve nombre → id contra el cache de personajes/criaturas/items/
+  // reinos/ciudades/hechizos/dones/runas y navega. Reusado acá porque
+  // onNavigate("criaturas"/"reinos", nombre) de EditorPersonaje solo entrega
+  // el NOMBRE de la especie/reino, nunca el id (por diseño de ese formulario).
+  const navigateByName = useWikilinkNavigate();
 
   return (
     <EditorPersonaje
@@ -32,17 +38,21 @@ export function PersonajeEditor({ personaje }: { personaje: Personaje }) {
            no hace falta replicar el item en un estado padre paralelo. */
       }}
       onDeleted={() => openEntity("personajes", "")}
-      onNavigate={(tab, nombre) => {
-        // Navegar por nombre requiere resolver el id; delegado al mismo
-        // resolver de wikilinks para no duplicar la búsqueda por nombre.
-        window.dispatchEvent(
-          new CustomEvent("mundo-navigate-by-name", { detail: { tab, nombre } }),
-        );
-      }}
+      onNavigate={(_tab, nombre) => navigateByName(nombre)}
       onSelectPersonaje={(id) => openEntity("personajes", id)}
       onOpenGrupo={(id) => openEntity("grupos", id)}
       onNavigateCiudad={(id) => openEntity("ciudades", id)}
-      onSelectCancion={(id) => openEntity("letras", id)}
+      onNavigateCapitulo={(capituloId) => openEntity("capitulos", capituloId)}
+      onSelectCancion={(id) => {
+        // "letras" es una sección autónoma (EstudioLetras) que NO lee
+        // selectedId del store de Mundo — mantiene su propio id seleccionado
+        // en localStorage ("estudio-letras-last-id"). Para abrir una canción
+        // puntual desde acá hay que escribirle el id + disparar el mismo
+        // evento que ya usa su buscador interno (ver EditorLetras.tsx).
+        localStorage.setItem("estudio-letras-open-id", id);
+        window.dispatchEvent(new Event("estudio-letras-action"));
+        openEntity("letras", id);
+      }}
     />
   );
 }

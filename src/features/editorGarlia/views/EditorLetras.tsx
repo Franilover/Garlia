@@ -436,12 +436,20 @@ export default function EstudioLetras() {
 
   const [showNueva, setShowNueva] = useState(false);
 
-  // Señal desde el buscador para abrir "nueva canción"
-  // Usamos también el evento "storage" para detectar la señal cuando el componente
-  // ya estaba montado (el useEffect con [] solo corre al montar por primera vez).
+  // Señal desde el buscador para abrir "nueva canción", o desde otra sección
+  // (ej. Personajes → "ver canción") para abrir directamente una canción
+  // puntual por id. Mismo patrón que EditorCapitulos con
+  // "estudio-caps-action"/"estudio-caps-last-cap": quien quiera navegar acá
+  // escribe el id en localStorage y dispara el evento, en vez de depender de
+  // props — así funciona sin importar si este componente ya estaba montado.
   useEffect(() => {
     const check = () => {
       const action = localStorage.getItem("estudio-letras-action");
+      const cancionId = localStorage.getItem("estudio-letras-open-id");
+      if (cancionId) {
+        localStorage.removeItem("estudio-letras-open-id");
+        setSelectedId(cancionId);
+      }
       if (!action) return;
       localStorage.removeItem("estudio-letras-action");
       if (action === "nueva-cancion") setTimeout(() => setShowNueva(true), 120);

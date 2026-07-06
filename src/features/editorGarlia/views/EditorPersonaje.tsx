@@ -63,6 +63,7 @@ export function FormularioPersonaje({
   onOpenGrupo,
   onNavigateCiudad,
   onSelectCancion,
+  onNavigateCapitulo,
   onFechaNacimientoChange,
 }: {
   form: Personaje;
@@ -77,6 +78,7 @@ export function FormularioPersonaje({
   onOpenGrupo?: (id: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
+  onNavigateCapitulo?: (capituloId: string) => void;
   onFechaNacimientoChange: (dia: number | null) => void;
 }) {
   const especies = useNombresDeTabla("criaturas");
@@ -141,6 +143,7 @@ export function FormularioPersonaje({
     onSelectPersonaje,
     onOpenGrupo,
     onSelectCancion,
+    onNavigateCapitulo,
   };
 
   return (
@@ -513,6 +516,7 @@ export function EditorPersonaje({
   onOpenGrupo,
   onNavigateCiudad,
   onSelectCancion,
+  onNavigateCapitulo,
 }: {
   item: Personaje;
   onSaved: (p: Personaje) => void;
@@ -523,6 +527,7 @@ export function EditorPersonaje({
   onOpenGrupo?: (id: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onSelectCancion?: (id: string) => void;
+  onNavigateCapitulo?: (capituloId: string) => void;
 }) {
   const { form, setForm, status, save, remove, onFechaNacimientoChange } =
     usePersonajeForm(item, onSaved, onDeleted);
@@ -548,6 +553,7 @@ export function EditorPersonaje({
         onDelete={del}
         onFechaNacimientoChange={onFechaNacimientoChange}
         onNavigate={onNavigate}
+        onNavigateCapitulo={onNavigateCapitulo}
         onNavigateCiudad={onNavigateCiudad}
         onOpenGrupo={onOpenGrupo}
         onSave={save}

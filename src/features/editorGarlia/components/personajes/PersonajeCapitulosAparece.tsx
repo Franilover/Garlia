@@ -21,8 +21,17 @@ import {
 
 export function PersonajeCapitulosAparece({
   personajeId,
+  onNavigateCapitulo,
 }: {
   personajeId: string;
+  /**
+   * Cambia la sección activa del store de navegación de Mundo a "capitulos".
+   * Sin esto, EstudioCapitulos sí abre el capítulo correcto (localStorage +
+   * evento, ver abajo) pero EditorMundoRoot nunca deja de mostrar Personajes,
+   * porque section sigue en "personajes" — la sección visible depende
+   * SIEMPRE de useMundoNavigation, no de qué haga cada editor por su cuenta.
+   */
+  onNavigateCapitulo?: (capituloId: string) => void;
 }) {
   const { caps, loading } = useCapitulosConPersonaje(personajeId);
 
@@ -31,6 +40,7 @@ export function PersonajeCapitulosAparece({
     localStorage.setItem("estudio-caps-last-cap", cap.id);
     localStorage.setItem("estudio-caps-last-libro", cap.libro_id);
     window.dispatchEvent(new Event("estudio-caps-action"));
+    onNavigateCapitulo?.(cap.id);
   };
 
   if (loading)
