@@ -3,29 +3,20 @@
 /**
  * MundoMenu
  * ───────────────────────────────────────────────────────────────────────────
- * Menú de entrada cuando section === null. Ya no lista las 12 secciones
- * antiguas una por una — ahora que Entidades, Geografía, Magia y
- * Organización son páginas combinadas (grid de tarjetas con todos sus
- * tipos a la vez), el menú muestra una sola entrada grande por página.
- * Historia (Capítulos/Letras/Línea de Tiempo) sigue con sus 3 entradas
- * porque no se combinó.
+ * Menú de entrada cuando section === null. Entidades, Geografía y Magia ya
+ * no son 3 entradas separadas: personajes/criaturas/items/reinos/ciudades/
+ * hechizos/dones/runas viven TODOS en <EntidadesPage />, así que acá se
+ * muestra una sola entrada "Entidades" para las tres. Mapa y Organización
+ * siguen siendo páginas propias. Historia (Capítulos/Letras/Línea de
+ * Tiempo) sigue con sus 3 entradas porque no se combinó.
  *
  * Clickear "Entidades" navega a section: "personajes" (la primera del
  * grupo) — el switch en EditorMundoRoot ya sabe que cualquiera de
- * personajes/criaturas/items renderiza <EntidadesPage />, así que no
- * importa cuál se use como entry point.
+ * personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas renderiza
+ * <EntidadesPage />, así que no importa cuál se use como entry point.
  */
 
-import {
-  Bug,
-  Clock,
-  Layers,
-  Map,
-  Mountain,
-  Music,
-  ScrollText,
-  Sparkles,
-} from "lucide-react";
+import { Clock, Layers, Mountain, Music, ScrollText, Users } from "lucide-react";
 import React from "react";
 
 import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
@@ -37,10 +28,8 @@ interface MenuEntry {
 }
 
 const MENU_ENTRIES: MenuEntry[] = [
-  { key: "personajes", label: "Entidades", Icon: Bug },
-  { key: "reinos", label: "Geografía", Icon: Map },
+  { key: "personajes", label: "Entidades", Icon: Users },
   { key: "mapa", label: "Mapa", Icon: Mountain },
-  { key: "hechizos", label: "Magia", Icon: Sparkles },
   { key: "grupos", label: "Organización", Icon: Layers },
 ];
 

@@ -208,86 +208,109 @@ export function EntidadesPage({ section, selectedId }: Props) {
           if (data?.id) openEntity("personajes", data.id);
         }}
       />
-      <EntityCardGrid
-        title="Criaturas"
-        Icon={Bug}
-        loading={loadingC}
-        items={criaturas.map((c) => ({ id: c.id, nombre: c.nombre, imageUrl: c.imagen_url }))}
-        onItemClick={(id) => openEntity("criaturas", id)}
-        onCreate={async () => {
-          const { data } = await addCriatura({ nombre: "Nueva criatura" });
-          if (data?.id) openEntity("criaturas", data.id);
-        }}
-      />
-      <EntityCardGrid
-        title="Items"
-        Icon={Package}
-        loading={loadingI}
-        items={items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-        onItemClick={(id) => openEntity("items", id)}
-        onCreate={async () => {
-          const { data } = await addItem({ nombre: "Nuevo objeto" });
-          if (data?.id) openEntity("items", data.id);
-        }}
-      />
-      <EntityCardGrid
-        title="Reinos"
-        Icon={Map}
-        loading={loadingR}
-        items={reinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-        onItemClick={(id) => openEntity("reinos", id)}
-        onCreate={async () => {
-          const { data } = await addReino({ nombre: "Nuevo reino" });
-          if (data?.id) openEntity("reinos", data.id);
-        }}
-      />
-      <EntityCardGrid
-        title="Ciudades"
-        Icon={MapPinned}
-        loading={loadingCd}
-        items={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
-        onItemClick={(id) => openEntity("ciudades", id)}
-        onCreate={async () => {
-          const { data } = await addCiudad({ nombre: "Nueva ciudad" });
-          if (data?.id) openEntity("ciudades", data.id);
-        }}
-      />
-      <EntityCardGrid
-        title="Hechizos"
-        Icon={hechizos.cfg.Icon}
-        loading={hechizos.loading}
-        creating={hechizos.creating}
-        items={hechizos.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-        onItemClick={(id) => openEntity("hechizos", id)}
-        onCreate={async () => {
-          const id = await hechizos.create();
-          if (id) openEntity("hechizos", id);
-        }}
-      />
-      <EntityCardGrid
-        title="Dones"
-        Icon={dones.cfg.Icon}
-        loading={dones.loading}
-        creating={dones.creating}
-        items={dones.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-        onItemClick={(id) => openEntity("dones", id)}
-        onCreate={async () => {
-          const id = await dones.create();
-          if (id) openEntity("dones", id);
-        }}
-      />
-      <EntityCardGrid
-        title="Runas"
-        Icon={runas.cfg.Icon}
-        loading={runas.loading}
-        creating={runas.creating}
-        items={runas.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-        onItemClick={(id) => openEntity("runas", id)}
-        onCreate={async () => {
-          const id = await runas.create();
-          if (id) openEntity("runas", id);
-        }}
-      />
+
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Criaturas"
+            Icon={Bug}
+            loading={loadingC}
+            items={criaturas.map((c) => ({ id: c.id, nombre: c.nombre, imageUrl: c.imagen_url }))}
+            onItemClick={(id) => openEntity("criaturas", id)}
+            onCreate={async () => {
+              const { data } = await addCriatura({ nombre: "Nueva criatura" });
+              if (data?.id) openEntity("criaturas", data.id);
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Items"
+            Icon={Package}
+            loading={loadingI}
+            items={items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            onItemClick={(id) => openEntity("items", id)}
+            onCreate={async () => {
+              const { data } = await addItem({ nombre: "Nuevo objeto" });
+              if (data?.id) openEntity("items", data.id);
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Reinos"
+            Icon={Map}
+            loading={loadingR}
+            items={reinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
+            onItemClick={(id) => openEntity("reinos", id)}
+            onCreate={async () => {
+              const { data } = await addReino({ nombre: "Nuevo reino" });
+              if (data?.id) openEntity("reinos", data.id);
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Ciudades"
+            Icon={MapPinned}
+            loading={loadingCd}
+            items={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
+            onItemClick={(id) => openEntity("ciudades", id)}
+            onCreate={async () => {
+              const { data } = await addCiudad({ nombre: "Nueva ciudad" });
+              if (data?.id) openEntity("ciudades", data.id);
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Hechizos"
+            Icon={hechizos.cfg.Icon}
+            loading={hechizos.loading}
+            creating={hechizos.creating}
+            items={hechizos.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            onItemClick={(id) => openEntity("hechizos", id)}
+            onCreate={async () => {
+              const id = await hechizos.create();
+              if (id) openEntity("hechizos", id);
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Dones"
+            Icon={dones.cfg.Icon}
+            loading={dones.loading}
+            creating={dones.creating}
+            items={dones.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            onItemClick={(id) => openEntity("dones", id)}
+            onCreate={async () => {
+              const id = await dones.create();
+              if (id) openEntity("dones", id);
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <EntityCardGrid
+            title="Runas"
+            Icon={runas.cfg.Icon}
+            loading={runas.loading}
+            creating={runas.creating}
+            items={runas.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            onItemClick={(id) => openEntity("runas", id)}
+            onCreate={async () => {
+              const id = await runas.create();
+              if (id) openEntity("runas", id);
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
