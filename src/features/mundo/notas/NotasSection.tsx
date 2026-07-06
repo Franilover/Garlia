@@ -44,13 +44,19 @@ export function NotasSection() {
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-      <div className="w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0">
+      <div
+        className={[
+          "w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0",
+          selected ? "hidden" : "flex",
+        ].join(" ")}
+      >
         <SectionListHeader
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar nota…"
           createLabel="Crear nota"
+          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">

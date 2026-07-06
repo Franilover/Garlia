@@ -68,14 +68,20 @@ export function PersonajesSection({ selectedId }: Props) {
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-      {/* Lista */}
-      <div className="w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0">
+      {/* Lista — se oculta al abrir un personaje, el editor pasa a ocupar todo el ancho */}
+      <div
+        className={[
+          "w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0",
+          selected ? "hidden" : "flex",
+        ].join(" ")}
+      >
         <SectionListHeader
           query={query}
           onQueryChange={setQuery}
           onCreate={handleCreate}
           placeholder="Buscar personaje…"
           createLabel="Crear personaje"
+          hasSelection={!!selected}
         />
 
         <div className="flex-1 overflow-y-auto">
