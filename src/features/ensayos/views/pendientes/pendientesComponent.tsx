@@ -115,7 +115,7 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
       exit={{ opacity: 0, y: -6 }}
       initial={{ opacity: 0, y: -6 }}
     >
-      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Nueva categoría</p>
+      <p className="text-micro font-black uppercase tracking-widest text-primary/40">Nueva categoría</p>
       <input
         autoFocus
         className={inputCls}
@@ -125,12 +125,12 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
         onKeyDown={e => e.key === "Enter" && handleGuardar()}
       />
       <div>
-        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
+        <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="flex gap-2">
         <button
-          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
           disabled={!nombre.trim() || guardando}
           onClick={handleGuardar}
         >
@@ -138,7 +138,7 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
           Guardar
         </button>
         <button
-          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary/10 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest bg-primary/10 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
           onClick={onCancelar}
         >
           <X size={10} /> Cancelar
@@ -168,15 +168,15 @@ const FormEditarCategoria = ({ cat, onGuardar, onCancelar, guardando }: FormEdit
 
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
-      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
+      <p className="text-micro font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
       <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
-        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
+        <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="flex gap-2">
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-sm font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
           {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
         </button>
@@ -252,7 +252,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
           {fetchingTitle && (
             <div className="absolute inset-0 flex items-center gap-2 px-3 pointer-events-none">
               <Loader2 className="animate-spin text-primary/40" size={11} />
-              <span className="text-xs font-bold text-primary/40">Obteniendo título…</span>
+              <span className="text-sm font-bold text-primary/40">Obteniendo título…</span>
             </div>
           )}
         </div>
@@ -273,7 +273,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
         />
         <div className="flex gap-1.5 pt-0.5">
           <button
-            className="flex items-center gap-1 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest bg-primary text-btn-text px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
             disabled={!titulo.trim() || guardando || fetchingTitle}
             onClick={handleGuardar}
           >
@@ -281,7 +281,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
             Añadir
           </button>
           <button
-            className="flex items-center gap-1 text-2xs font-black uppercase tracking-widest bg-primary/10 text-primary px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-widest bg-primary/10 text-primary px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
             onClick={onCancelar}
           >
             <X size={9} /> Cancelar
@@ -326,7 +326,7 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
       </button>
 
       {/* Título */}
-      <span className={cn("flex-1 min-w-0 text-xs font-bold leading-none text-primary/70 truncate", item.hecho && "line-through")}>
+      <span className={cn("flex-1 min-w-0 text-sm font-bold leading-none text-primary/70 truncate", item.hecho && "line-through")}>
         {item.titulo}
       </span>
 
@@ -408,8 +408,8 @@ const CardCategoria = ({
                 <CatIcon name={cat.icon} size={13} />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <p className="text-xs font-black text-primary leading-none">{cat.nombre}</p>
-                <span className="text-3xs font-black uppercase tracking-widest text-primary/40">
+                <p className="text-sm font-black text-primary leading-none">{cat.nombre}</p>
+                <span className="text-micro font-black uppercase tracking-widest text-primary/40">
                   {pendientes.length > 0 ? pendientes.length : "—"}
                 </span>
               </div>
@@ -455,7 +455,7 @@ const CardCategoria = ({
           {/* Items pendientes */}
           <div className="px-2 pb-1">
             {pendientes.length === 0 && !anadiendo && (
-              <p className="text-2xs font-bold text-center py-2 text-primary/20">Vacío</p>
+              <p className="text-micro font-bold text-center py-2 text-primary/20">Vacío</p>
             )}
             <AnimatePresence mode="popLayout">
               {pendientes.map(item => (
@@ -468,7 +468,7 @@ const CardCategoria = ({
           {hechos.length > 0 && (
             <div className="border-t border-primary/5 px-3 py-1.5">
               <button
-                className="flex items-center gap-1 text-3xs font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all w-full"
+                className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all w-full"
                 onClick={() => setMostrarHechos(v => !v)}
               >
                 <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -497,7 +497,7 @@ const CardCategoria = ({
           {/* Eliminar categoría */}
           <div className="px-3 pb-2 pt-0.5">
             <button
-              className="flex items-center gap-1 text-3xs font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all"
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all"
               onClick={() => onEliminarCat(cat.id)}
             >
               <X size={8} /> Eliminar
@@ -550,8 +550,8 @@ export const PaginaPendientes = () => {
             { label: "hechos",      value: stats.hechos      },
           ].map(s => (
             <div key={s.label} className="flex items-baseline gap-1.5">
-              <span className="text-lg font-black text-primary tracking-tight leading-none">{s.value}</span>
-              <span className="text-3xs font-black uppercase tracking-widest text-primary/40">{s.label}</span>
+              <span className="text-base font-black text-primary tracking-tight leading-none">{s.value}</span>
+              <span className="text-micro font-black uppercase tracking-widest text-primary/40">{s.label}</span>
             </div>
           ))}
         </div>
@@ -559,9 +559,9 @@ export const PaginaPendientes = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-2xs font-black uppercase tracking-widest text-primary/40">Pendientes</span>
+        <span className="text-micro font-black uppercase tracking-widest text-primary/40">Pendientes</span>
         <button
-          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
           onClick={() => setCreandoCat(v => !v)}
         >
           {creandoCat ? <X size={11} /> : <Plus size={11} />}
@@ -585,13 +585,13 @@ export const PaginaPendientes = () => {
       {cargando ? (
         <div className="flex items-center justify-center py-10 gap-2 text-primary/40">
           <Loader2 className="animate-spin" size={14} />
-          <span className="text-xs font-bold">Cargando…</span>
+          <span className="text-sm font-bold">Cargando…</span>
         </div>
       ) : categorias.length === 0 && !creandoCat ? (
         <div className="text-center py-12">
           <BookOpen className="mx-auto mb-2 text-primary/20" size={28} />
-          <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Nada por aquí aún</p>
-          <p className="text-2xs text-primary/20 font-bold mt-1">Crea una categoría para empezar</p>
+          <p className="text-sm font-black text-primary/40 uppercase tracking-widest">Nada por aquí aún</p>
+          <p className="text-micro text-primary/20 font-bold mt-1">Crea una categoría para empezar</p>
         </div>
       ) : (
         // CSS columns = masonry nativo: columnas de altura independiente,

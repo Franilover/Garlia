@@ -62,7 +62,7 @@ export function PrendaForm({ initial, onSave, onClose, saving, title, icon }: Pr
       <div className="flex items-center justify-between p-5 border-b border-primary/10">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">{title}</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-on-surface">{title}</h3>
         </div>
         <button className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors" style={{ borderRadius: "9999px" }} onClick={onClose}>
           <X size={16} />

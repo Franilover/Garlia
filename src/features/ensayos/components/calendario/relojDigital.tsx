@@ -64,7 +64,7 @@ const NumSpinner = ({
   };
   return (
     <div className="flex flex-col items-center gap-1 select-none">
-      <span className="text-3xs font-black uppercase tracking-widest mb-0.5"
+      <span className="text-micro font-black uppercase tracking-widest mb-0.5"
         style={{ color: "color-mix(in srgb, var(--menu-text) 30%, transparent)" }}>
         {label}
       </span>
@@ -75,7 +75,7 @@ const NumSpinner = ({
       >
         <ChevronUp size={18} />
       </button>
-      <span className="text-4xl font-black tabular-nums tracking-tighter w-14 text-center"
+      <span className="text-3xl font-black tabular-nums tracking-tighter w-14 text-center"
         style={{ color: "var(--menu-text)" }}>
         {String(value).padStart(2, "0")}
       </span>
@@ -224,15 +224,15 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
         onClick={() => setPomPantallaCompleta(true)}
       >
         {/* Hora grande */}
-        <span className="text-2xl font-black tracking-tighter tabular-nums text-primary leading-none">
+        <span className="text-xl font-black tracking-tighter tabular-nums text-primary leading-none">
           {formatoHora}
         </span>
         {/* Actividad */}
-        <span className="text-3xs font-black uppercase tracking-widest text-primary/40 text-center leading-tight">
+        <span className="text-micro font-black uppercase tracking-widest text-primary/40 text-center leading-tight">
           {actividadActual ? actividadActual.actividad : "Tiempo libre"}
         </span>
         {/* Indicador pomodoro */}
-        <span className="text-3xs font-black uppercase tracking-widest text-primary/20 mt-0.5">
+        <span className="text-micro font-black uppercase tracking-widest text-primary/20 mt-0.5">
           ↗ Pomodoro
         </span>
       </MotionDiv>
@@ -256,14 +256,14 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                 {formatoHora}
               </span>
               {tareaSeleccionada && (
-                <span className="text-2xs font-black uppercase tracking-widest truncate max-w-xs px-4"
+                <span className="text-micro font-black uppercase tracking-widest truncate max-w-xs px-4"
                   style={{ color: "var(--menu-text)" }}>
                   ▶ {tareaSeleccionada.titulo}
                 </span>
               )}
               {}
               <button
-                className="flex items-center gap-2 text-3xs font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all"
+                className="flex items-center gap-2 text-micro font-black uppercase tracking-widest px-3 py-2 rounded-[var(--radius-btn)] transition-all"
                 style={styBorder}
                 onClick={() => setPomPantallaCompleta(false)}
                 onMouseEnter={e => {
@@ -312,7 +312,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                     {pomTerminado ? (
                       <>
                         <span className="text-3xl font-black text-emerald-400 uppercase tracking-tight">¡Listo!</span>
-                        <span className="text-2xs font-black uppercase tracking-widest" style={styMuted}>
+                        <span className="text-micro font-black uppercase tracking-widest" style={styMuted}>
                           Sesión completada
                         </span>
                       </>
@@ -322,11 +322,11 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                           style={{ fontSize: "min(12vw, 72px)", color: "var(--menu-text)" }}>
                           {timerStr}
                         </span>
-                        <span className="text-3xs font-black uppercase tracking-[0.3em]" style={styMuted}>
+                        <span className="text-micro font-black uppercase tracking-[0.3em]" style={styMuted}>
                           {pomActivo ? "concentrado" : "en pausa"}
                         </span>
                         {tareaSeleccionada && (
-                          <span className="text-3xs font-black uppercase tracking-tight mt-1 px-3 py-1 rounded-full"
+                          <span className="text-micro font-black uppercase tracking-tight mt-1 px-3 py-1 rounded-full"
                             style={{
                               background: "color-mix(in srgb, var(--menu-text) 8%, transparent)",
                               color: "color-mix(in srgb, var(--menu-text) 60%, transparent)",
@@ -355,7 +355,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                     const activo = pomHoras === p.h && pomMins === p.min;
                     return (
                       <button key={p.label}
-                        className="text-3xs font-black uppercase tracking-wide px-3 py-1.5 rounded-[var(--radius-btn)] transition-all disabled:opacity-40"
+                        className="text-micro font-black uppercase tracking-wide px-3 py-1.5 rounded-[var(--radius-btn)] transition-all disabled:opacity-40"
                         disabled={pomActivo}
                         style={activo ? {
                           background: "color-mix(in srgb, var(--menu-text) 14%, transparent)",
@@ -393,7 +393,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                   </button>
                   {(pomActivo || pomSegundos !== totalSegundosConfig) && !pomTerminado && (
                     <button
-                      className="text-3xs font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
+                      className="text-micro font-black uppercase tracking-widest px-4 py-3 rounded-[var(--radius-btn)] transition-all"
                       style={{
                         color: "color-mix(in srgb, var(--menu-text) 30%, transparent)",
                         border: "1px solid color-mix(in srgb, var(--menu-text) 10%, transparent)",
@@ -416,14 +416,14 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
               <div className="w-72 xl:w-80 flex flex-col px-6 py-6 gap-4 overflow-hidden">
                 <div className="flex items-center gap-2 shrink-0">
                   <CheckSquare size={14} style={styMuted} />
-                  <span className="text-3xs font-black uppercase tracking-widest" style={styMuted}>
+                  <span className="text-micro font-black uppercase tracking-widest" style={styMuted}>
                     Enfocar en tarea
                   </span>
                 </div>
 
                 {}
                 {!tareaSeleccionada ? (
-                  <p className="text-3xs italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
+                  <p className="text-micro italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
                     Selecciona una tarea para dedicarle este pomodoro.
                   </p>
                 ) : (
@@ -432,7 +432,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                       background: "color-mix(in srgb, var(--primary) 15%, transparent)",
                       border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
                     }}>
-                    <span className="text-2xs font-black uppercase tracking-tight flex-1"
+                    <span className="text-micro font-black uppercase tracking-tight flex-1"
                       style={{ color: "var(--menu-text)" }}>
                       {tareaSeleccionada.titulo}
                     </span>
@@ -445,7 +445,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                 {}
                 <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 min-h-0">
                   {tareasPendientes.length === 0 ? (
-                    <p className="text-3xs italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
+                    <p className="text-micro italic" style={{ color: "color-mix(in srgb, var(--menu-text) 20%, transparent)" }}>
                       Sin tareas pendientes.
                     </p>
                   ) : tareasPendientes.map((t: any) => {
@@ -466,7 +466,7 @@ export const RelojDigital = ({ horario, tareas = [] }: Props) => {
                         onMouseLeave={e => !seleccionada && (e.currentTarget.style.background = "color-mix(in srgb, var(--menu-text) 4%, transparent)")}
                       >
                         <Circle size={10} style={{ color: seleccionada ? "var(--primary)" : "color-mix(in srgb, var(--menu-text) 25%, transparent)", flexShrink: 0 }} />
-                        <span className="text-2xs font-bold uppercase tracking-tight truncate"
+                        <span className="text-micro font-bold uppercase tracking-tight truncate"
                           style={{ color: seleccionada ? "var(--menu-text)" : "color-mix(in srgb, var(--menu-text) 55%, transparent)" }}>
                           {t.titulo}
                         </span>

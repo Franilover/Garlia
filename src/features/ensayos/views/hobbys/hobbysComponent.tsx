@@ -109,7 +109,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       exit={{ opacity: 0, y: -6 }}
       initial={{ opacity: 0, y: -6 }}
     >
-      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Nuevo hobby</p>
+      <p className="text-micro font-black uppercase tracking-widest text-primary/40">Nuevo hobby</p>
 
       <input
         autoFocus
@@ -121,7 +121,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       />
 
       <div>
-        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
+        <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
 
@@ -137,11 +137,11 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
 
       <div className="flex gap-2">
-        <button className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>
+        <button className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-sm font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>
           Cancelar
         </button>
         <button
-          className="flex-1 py-2 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
+          className="flex-1 py-2 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
           disabled={!nombre.trim() || guardando}
           onClick={handleGuardar}
         >
@@ -176,10 +176,10 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
 
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
-      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
+      <p className="text-micro font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
       <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
-        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
+        <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -192,8 +192,8 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
       </div>
       <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
       <div className="flex gap-2">
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-sm font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-sm font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
           {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
         </button>
@@ -250,17 +250,17 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             {/* Nombre + meta */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black text-primary tracking-tight truncate leading-none">{hobby.nombre}</span>
+                <span className="text-sm font-black text-primary tracking-tight truncate leading-none">{hobby.nombre}</span>
                 {completado && <Check className="text-primary/70 shrink-0" size={10} />}
               </div>
-              <span className="text-2xs font-bold text-primary/40 leading-none mt-0.5 block">
+              <span className="text-micro font-bold text-primary/40 leading-none mt-0.5 block">
                 {hobby.freq_dia > 1 ? `${hobby.freq_dia}x · ` : ""}{hobby.freq_sem}d/sem{hobby.nota ? ` · ${hobby.nota}` : ""}
               </span>
             </div>
 
             {/* Contador + acciones */}
             <div className="flex items-center gap-1 shrink-0">
-              <span className="text-2xs font-black tabular-nums text-primary/70">{hechos}/{hobby.freq_sem}</span>
+              <span className="text-micro font-black tabular-nums text-primary/70">{hechos}/{hobby.freq_sem}</span>
               <button
                 className="w-6 h-6 flex items-center justify-center rounded text-primary/20 hover:text-primary/70 hover:bg-primary/10 transition-all opacity-0 group-hover:opacity-100"
                 title="Editar"
@@ -292,7 +292,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
                 <button
                   key={d}
                   className={cn(
-                    "flex-1 h-6 rounded text-3xs font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
+                    "flex-1 h-6 rounded text-micro font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
                     done
                       ? "bg-primary text-btn-text border-primary"
                       : isToday
@@ -358,8 +358,8 @@ export const PaginaHobbys = () => {
             { label: "semana",  value: `${stats.pctSem}%` },
           ].map(s => (
             <div key={s.label} className="flex items-baseline gap-1.5">
-              <span className="text-lg font-black text-primary tracking-tight leading-none">{s.value}</span>
-              <span className="text-3xs font-black uppercase tracking-widest text-primary/40">{s.label}</span>
+              <span className="text-base font-black text-primary tracking-tight leading-none">{s.value}</span>
+              <span className="text-micro font-black uppercase tracking-widest text-primary/40">{s.label}</span>
             </div>
           ))}
         </div>
@@ -367,9 +367,9 @@ export const PaginaHobbys = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-2xs font-black uppercase tracking-widest text-primary/40">{semana}</span>
+        <span className="text-micro font-black uppercase tracking-widest text-primary/40">{semana}</span>
         <button
-          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
           onClick={() => setCreando(v => !v)}
         >
           {creando ? <X size={11} /> : <Plus size={11} />}
@@ -393,13 +393,13 @@ export const PaginaHobbys = () => {
       {cargando ? (
         <div className="flex items-center justify-center py-10 gap-2 text-primary/40">
           <Loader2 className="animate-spin" size={14} />
-          <span className="text-xs font-bold">Cargando…</span>
+          <span className="text-sm font-bold">Cargando…</span>
         </div>
       ) : hobbys.length === 0 && !creando ? (
         <div className="text-center py-12">
           <Music className="mx-auto mb-2 text-primary/20" size={28} />
-          <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
-          <p className="text-2xs text-primary/20 font-bold mt-1">Añade uno para empezar a trackear</p>
+          <p className="text-sm font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
+          <p className="text-micro text-primary/20 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

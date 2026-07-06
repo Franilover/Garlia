@@ -14,21 +14,21 @@ señal de que probablemente estás inventando algo que ya existe.
 
 ## 1. Tamaños de texto
 
-Usar SIEMPRE una de estas clases. Nunca `text-[Npx]`.
+Usar SIEMPRE una de estas 5 clases. Nunca `text-[Npx]` ni las viejas
+`text-3xs`/`text-2xs`/`text-lg`/`text-2xl`/`text-4xl` (eliminadas: competían
+entre sí por el mismo uso con diferencias de 2-4px, imperceptibles).
 
-| Clase              | Tamaño | Uso                                                    |
-|---------------------|--------|---------------------------------------------------------|
-| `text-3xs`          | 8px    | La micro-etiqueta más chica: badges, contadores, iconos con label |
-| `text-2xs`          | 10px   | Etiqueta chica estándar: timestamps, tags, sub-labels   |
-| `text-xs`           | 12px   | Texto secundario normal (Tailwind default)             |
-| `text-sm`           | 14px   | Texto de cuerpo secundario                              |
-| `text-base`         | 16px   | Texto de cuerpo normal                                  |
-| `text-lg` / `text-xl` | 18–20px | Títulos de sección                                    |
-| `text-2xl`+         | 24px+  | Headers grandes                                         |
+| Clase        | Tamaño | Uso                                                        |
+|---------------|--------|--------------------------------------------------------------|
+| `text-micro`  | 9px    | TODA etiqueta chica: badges, timestamps, labels, contadores  |
+| `text-sm`     | 14px   | Texto de cuerpo, secundario o normal                          |
+| `text-base`   | 16px   | Texto de cuerpo destacado / subtítulos chicos                 |
+| `text-xl`     | 20px   | Títulos de sección                                             |
+| `text-3xl`    | 30px   | Headers grandes                                                |
 
-`text-3xs` y `text-2xs` están definidos en `style/tailwind.css`. Si de
-verdad necesitas algo fuera de esta tabla, se agrega ahí como token nuevo,
-no se escribe inline.
+`text-micro` está definido en `style/tailwind.css`. Si de verdad necesitas
+algo fuera de esta tabla, se agrega ahí como token nuevo, no se escribe
+inline.
 
 ## 2. Opacidad de color (`primary/N`, `accent/N`, etc.)
 
@@ -90,9 +90,9 @@ tema rompe el theming** en al menos uno de los 4 temas. Por eso las reglas
 
 ## Estado de la migración
 
-- [x] Tokens `text-3xs` / `text-2xs` agregados a `style/tailwind.css`
+- [x] Token `text-micro` (9px) agregado a `style/tailwind.css`, reemplaza los antiguos `text-3xs`/`text-2xs`
 - [ ] Centralizar paleta de colores de ropa (duplicada en `ropa.tsx` y `PrendaForms.tsx`)
-- [ ] Barrido de `text-[Npx]` → `text-3xs`/`text-2xs`/`text-xs`, dominio por dominio
+- [x] Barrido de `text-[Npx]` y consolidación completa a la escala de 5 tamaños (`micro`/`sm`/`base`/`xl`/`3xl`), en todo `ensayos/` incluyendo `ropa/`
 - [ ] Barrido de opacidades a la escala de 5 valores, dominio por dominio
 - [ ] Unificar `bg-[var(--white-custom)]` → `bg-white-custom`
 - [ ] Eliminar radios outlier (`rounded-lg`, `rounded-2xl`, `rounded-[5px]`, `rounded-[3px]`)

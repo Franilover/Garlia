@@ -281,7 +281,7 @@ export const IngredientesPage = () => {
               size={11}
             />
             <input
-              className="input-brand pl-7 pr-7 text-2xs py-1.5"
+              className="input-brand pl-7 pr-7 text-micro py-1.5"
               placeholder="Buscar..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -298,7 +298,7 @@ export const IngredientesPage = () => {
 
           <div className="flex items-center gap-1.5">
             <Link
-              className="flex items-center gap-1.5 text-3xs py-1.5 px-3 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/70 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              className="flex items-center gap-1.5 text-micro py-1.5 px-3 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/70 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
               href="/personal/salud/compras"
             >
               <ShoppingCart size={11} />
@@ -319,7 +319,7 @@ export const IngredientesPage = () => {
       <main className="px-3 pt-3 pb-6 space-y-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
-            className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide transition-all border ${
               catFilter === null
                 ? "bg-primary text-btn-text border-primary shadow-sm"
                 : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
@@ -328,7 +328,7 @@ export const IngredientesPage = () => {
           >
             Todos
             <span
-              className={`text-3xs px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+              className={`text-micro px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
             >
               {stats.total}
             </span>
@@ -341,7 +341,7 @@ export const IngredientesPage = () => {
             return (
               <button
                 key={label}
-                className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide transition-all border ${
                   active
                     ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
                     : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
@@ -351,7 +351,7 @@ export const IngredientesPage = () => {
                 <Icon size={10} />
                 {label}
                 <span
-                  className={`text-3xs px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+                  className={`text-micro px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
                 >
                   {count}
                 </span>
@@ -377,7 +377,7 @@ export const IngredientesPage = () => {
           ].map((f) => (
             <button
               key={f.key}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide transition-all border ${
                 stockFilter === f.key
                   ? "bg-accent/40 border-accent/40 text-primary"
                   : "bg-transparent border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/70"
@@ -394,7 +394,7 @@ export const IngredientesPage = () => {
 
           {activeFilters > 0 && (
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
               onClick={() => {
                 setFilter("");
                 setCatFilter(null);
@@ -407,7 +407,7 @@ export const IngredientesPage = () => {
           )}
 
           {(filter || catFilter || stockFilter !== "all") && (
-            <span className="text-3xs font-bold text-primary/40 uppercase tracking-widest ml-1">
+            <span className="text-micro font-bold text-primary/40 uppercase tracking-widest ml-1">
               {filteredItems.length} resultado
               {filteredItems.length !== 1 ? "s" : ""}
             </span>
@@ -419,12 +419,12 @@ export const IngredientesPage = () => {
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-16 space-y-2">
             <FlaskConical className="mx-auto text-primary/20" size={32} />
-            <p className="text-2xs font-black uppercase tracking-widest text-primary/20">
+            <p className="text-micro font-black uppercase tracking-widest text-primary/20">
               {filter || catFilter ? "Sin resultados" : "Despensa vacía"}
             </p>
             {(filter || catFilter) && (
               <button
-                className="text-2xs font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
+                className="text-micro font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
                 onClick={() => {
                   setFilter("");
                   setCatFilter(null);
@@ -462,7 +462,7 @@ export const IngredientesPage = () => {
                     initial={{ opacity: 0, y: 16 }}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-3xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
+                      <span className="text-micro font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
                         <CatIcon size={9} />
                         {item.categoria}
                       </span>
@@ -476,17 +476,17 @@ export const IngredientesPage = () => {
                             exit={{ opacity: 0, x: 8 }}
                             initial={{ opacity: 0, x: 8 }}
                           >
-                            <span className="text-3xs font-black uppercase text-red-400 tracking-wide">
+                            <span className="text-micro font-black uppercase text-red-400 tracking-wide">
                               ¿Eliminar?
                             </span>
                             <button
-                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-red-100 text-red-500 text-3xs font-black uppercase hover:bg-red-200 transition-all"
+                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-red-100 text-red-500 text-micro font-black uppercase hover:bg-red-200 transition-all"
                               onClick={() => handleDelete(item.id)}
                             >
                               Sí
                             </button>
                             <button
-                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-primary/10 text-primary/40 text-3xs font-black uppercase hover:bg-primary/20 transition-all"
+                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-primary/10 text-primary/40 text-micro font-black uppercase hover:bg-primary/20 transition-all"
                               onClick={() => setConfirmDelete(null)}
                             >
                               No
@@ -523,15 +523,15 @@ export const IngredientesPage = () => {
 
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-2xs font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
+                        <h3 className="text-micro font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
                           {item.nombre}
                         </h3>
-                        <p className="text-3xs font-bold uppercase tracking-widest text-primary/40">
+                        <p className="text-micro font-bold uppercase tracking-widest text-primary/40">
                           por {item.porcion_texto}
                         </p>
                       </div>
                       <button
-                        className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide border transition-all ${
+                        className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-micro font-black uppercase tracking-wide border transition-all ${
                           qtyOpen[item.id]
                             ? "bg-accent/20 border-accent/40 text-primary"
                             : "bg-bg-main border-primary/10 text-primary/40 hover:text-primary hover:border-primary/20"
@@ -554,7 +554,7 @@ export const IngredientesPage = () => {
                           transition={{ duration: 0.18 }}
                         >
                           <div className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 rounded-[var(--radius-btn)] px-2 py-1.5">
-                            <span className="text-3xs font-black uppercase tracking-widest text-primary/40 shrink-0">
+                            <span className="text-micro font-black uppercase tracking-widest text-primary/40 shrink-0">
                               Cant.
                             </span>
                             <button
@@ -572,7 +572,7 @@ export const IngredientesPage = () => {
                               <Minus size={9} />
                             </button>
                             <input
-                              className="w-12 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-0.5 text-2xs font-black text-primary outline-none"
+                              className="w-12 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-0.5 text-micro font-black text-primary outline-none"
                               min="0.1"
                               step="0.5"
                               type="number"
@@ -599,7 +599,7 @@ export const IngredientesPage = () => {
                               <Plus size={9} />
                             </button>
                             <button
-                              className="ml-auto text-3xs font-black uppercase text-primary/20 hover:text-primary transition-colors tracking-wide"
+                              className="ml-auto text-micro font-black uppercase text-primary/20 hover:text-primary transition-colors tracking-wide"
                               onClick={() => {
                                 setQtyMap((p) => ({ ...p, [item.id]: 1 }));
                               }}
@@ -675,12 +675,12 @@ export const IngredientesPage = () => {
                               size={10}
                             />
                             <span
-                              className={`text-3xs font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}
+                              className={`text-micro font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}
                             >
                               {q === 1 ? item.kcal : Math.round(item.kcal * q)}{" "}
                               kcal
                               {q !== 1 && (
-                                <span className="text-primary/40 font-semibold ml-1.5 normal-case tracking-normal text-3xs">
+                                <span className="text-primary/40 font-semibold ml-1.5 normal-case tracking-normal text-micro">
                                   ({item.kcal} c/u)
                                 </span>
                               )}
@@ -710,7 +710,7 @@ export const IngredientesPage = () => {
                           />
                         )}
                         <span
-                          className={`text-3xs font-black uppercase ${hasStock ? "text-green-600/70" : "text-red-400/70"}`}
+                          className={`text-micro font-black uppercase ${hasStock ? "text-green-600/70" : "text-red-400/70"}`}
                         >
                           {hasStock ? `${item.stock_actual} uds.` : "Agotado"}
                         </span>
@@ -762,7 +762,7 @@ export const IngredientesPage = () => {
               <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
                 <div>
                   <div className="sm:hidden w-10 h-1 bg-primary/20 rounded-full mb-4" />
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">
                     Nuevo <span className="text-primary/20">Insumo</span>
                   </h2>
                 </div>
@@ -788,11 +788,11 @@ export const IngredientesPage = () => {
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-3xs font-black uppercase tracking-widest text-primary/40 pl-1">
+                        <label className="text-micro font-black uppercase tracking-widest text-primary/40 pl-1">
                           Categoría
                         </label>
                         <select
-                          className="input-brand text-2xs font-bold appearance-none"
+                          className="input-brand text-micro font-bold appearance-none"
                           value={formData.categoria}
                           onChange={(e) =>
                             setFormData((p) => ({
@@ -928,7 +928,7 @@ export const IngredientesPage = () => {
               <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
                 <div>
                   <div className="sm:hidden w-10 h-1 bg-primary/20 rounded-full mb-4" />
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-primary">
                     Editar{" "}
                     <span className="text-primary/20">{editItem.nombre}</span>
                   </h2>
@@ -955,11 +955,11 @@ export const IngredientesPage = () => {
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-3xs font-black uppercase tracking-widest text-primary/40 pl-1">
+                        <label className="text-micro font-black uppercase tracking-widest text-primary/40 pl-1">
                           Categoría
                         </label>
                         <select
-                          className="input-brand text-2xs font-bold appearance-none"
+                          className="input-brand text-micro font-bold appearance-none"
                           value={editForm.categoria}
                           onChange={(e) =>
                             setEditForm((p) => ({

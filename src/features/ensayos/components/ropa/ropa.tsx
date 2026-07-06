@@ -99,7 +99,7 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
       <div className="flex items-center justify-between p-5 border-b border-primary/10">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-xs font-black uppercase tracking-widest text-on-surface">{title}</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-on-surface">{title}</h3>
         </div>
         <button
           className="p-1.5 text-muted-on-surface hover:text-on-surface transition-colors"
@@ -364,7 +364,7 @@ export default function ArmarioPage() {
                   <Trash2 className="text-red-400" size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase text-on-surface">¿Borrar este outfit?</p>
+                  <p className="text-sm font-black uppercase text-on-surface">¿Borrar este outfit?</p>
                   <p className="text-[9px] text-muted-on-surface mt-0.5 uppercase tracking-widest">{confirmDelete.nombre}</p>
                 </div>
               </div>
@@ -435,7 +435,7 @@ export default function ArmarioPage() {
 
             {}
             <div className="p-5 border-t border-primary/10">
-              <p className="text-xs font-black uppercase text-on-surface">{lightbox.nombre}</p>
+              <p className="text-sm font-black uppercase text-on-surface">{lightbox.nombre}</p>
               {lightbox.descripcion && (
                 <p className="text-[9px] text-muted-on-surface mt-1 leading-relaxed">{lightbox.descripcion}</p>
               )}
@@ -467,7 +467,7 @@ export default function ArmarioPage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tighter text-primary italic leading-none">
+            <h1 className="text-xl font-black uppercase tracking-tighter text-primary italic leading-none">
               Outfits
             </h1>
             <p className="text-muted-on-surface text-[9px] font-black uppercase tracking-widest mt-0.5">
