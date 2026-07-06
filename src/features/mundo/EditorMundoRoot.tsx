@@ -44,44 +44,27 @@ import { MundoMenu } from "./shared/MundoMenu";
 import { useCreateEntity } from "./shared/useCreateEntity";
 import { useWikilinkNavigate } from "./shared/useWikilinkNavigate";
 
-// ─── Code-splitting por sección ───────────────────────────────────────────────
-// Cada import() es un chunk separado. Cambiar de sección solo descarga lo que
-// hace falta; nada de cargar 88K de una vez para editar un solo personaje.
-const PersonajesSection = lazy(() =>
-  import("./personajes/PersonajesSection").then((m) => ({ default: m.PersonajesSection })),
+// ─── Code-splitting por página combinada ──────────────────────────────────
+// Personajes/Criaturas/Items, Hechizos/Dones/Runas, Grupos/Notas y
+// Reinos/Ciudades ahora viven cada uno en una sola página con grid de
+// tarjetas por tipo, en vez de secciones separadas con lista+buscador.
+const EntidadesPage = lazy(() =>
+  import("./entidades/EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
 );
-const CriaturasSection = lazy(() =>
-  import("./criaturas/CriaturasSection").then((m) => ({ default: m.CriaturasSection })),
+const GeografiaPage = lazy(() =>
+  import("./geografia/GeografiaPage").then((m) => ({ default: m.GeografiaPage })),
 );
-const ItemsSection = lazy(() =>
-  import("./items/ItemsSection").then((m) => ({ default: m.ItemsSection })),
+const MagiaPage = lazy(() =>
+  import("./magia/MagiaPage").then((m) => ({ default: m.MagiaPage })),
 );
-const ReinosSection = lazy(() =>
-  import("./reinos/ReinosSection").then((m) => ({ default: m.ReinosSection })),
-);
-const CiudadesSection = lazy(() =>
-  import("./ciudades/CiudadesSection").then((m) => ({ default: m.CiudadesSection })),
-);
-const GruposSection = lazy(() =>
-  import("./grupos/GruposSection").then((m) => ({ default: m.GruposSection })),
-);
-const HechizosSection = lazy(() =>
-  import("./hechizos/HechizosSection").then((m) => ({ default: m.HechizosSection })),
-);
-const DonesSection = lazy(() =>
-  import("./dones/DonesSection").then((m) => ({ default: m.DonesSection })),
-);
-const RunasSection = lazy(() =>
-  import("./runas/RunasSection").then((m) => ({ default: m.RunasSection })),
+const OrganizacionPage = lazy(() =>
+  import("./organizacion/OrganizacionPage").then((m) => ({ default: m.OrganizacionPage })),
 );
 const CapitulosSection = lazy(() =>
   import("./capitulos/CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
 );
 const LetrasSection = lazy(() =>
   import("./letras/LetrasSection").then((m) => ({ default: m.LetrasSection })),
-);
-const NotasSection = lazy(() =>
-  import("./notas/NotasSection").then((m) => ({ default: m.NotasSection })),
 );
 const MapaSection = lazy(() =>
   import("./mapa/MapaSection").then((m) => ({ default: m.MapaSection })),
@@ -101,35 +84,28 @@ function SectionFallback() {
 function ActiveSection() {
   const section = useMundoNavigation((s) => s.section);
   const selectedId = useMundoNavigation((s) => s.selectedId);
-  const navKey = useMundoNavigation((s) => s.navKey);
 
   switch (section) {
     case null:
       return <MundoMenu />;
     case "personajes":
-      return <PersonajesSection selectedId={selectedId} navKey={navKey} />;
     case "criaturas":
-      return <CriaturasSection selectedId={selectedId} navKey={navKey} />;
     case "items":
-      return <ItemsSection selectedId={selectedId} navKey={navKey} />;
+      return <EntidadesPage section={section} selectedId={selectedId} />;
     case "reinos":
-      return <ReinosSection selectedId={selectedId} navKey={navKey} />;
     case "ciudades":
-      return <CiudadesSection selectedId={selectedId} navKey={navKey} />;
-    case "grupos":
-      return <GruposSection selectedId={selectedId} navKey={navKey} />;
+      return <GeografiaPage section={section} selectedId={selectedId} />;
     case "hechizos":
-      return <HechizosSection selectedId={selectedId} navKey={navKey} />;
     case "dones":
-      return <DonesSection selectedId={selectedId} navKey={navKey} />;
     case "runas":
-      return <RunasSection selectedId={selectedId} navKey={navKey} />;
+      return <MagiaPage section={section} selectedId={selectedId} />;
+    case "grupos":
+    case "notas":
+      return <OrganizacionPage section={section} selectedId={selectedId} />;
     case "capitulos":
       return <CapitulosSection />;
     case "letras":
       return <LetrasSection />;
-    case "notas":
-      return <NotasSection />;
     case "mapa":
       return <MapaSection />;
     case "linea-tiempo":
