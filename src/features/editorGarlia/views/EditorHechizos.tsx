@@ -16,8 +16,8 @@
  *   src/features/editorGarlia/views/EditorHechizos.tsx
  */
 
-import { Loader2, Plus } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import { Loader2, Plus, Search } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
 import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/magia/types";
@@ -45,6 +45,7 @@ export function EditorHechizos({
     initialSelectedId ?? null,
   );
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
 
   // Sincronizar cuando llega un id desde afuera (buscador global)
   useEffect(() => {
@@ -55,6 +56,17 @@ export function EditorHechizos({
   }, [initialSelectedId]);
 
   const selected = items.find((i) => i.id === selectedId) ?? null;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((i) => i.nombre?.toLowerCase().includes(q));
+  }, [items, query]);
+
+  const selectItem = (id: string | null) => {
+    setSelectedId(id);
+    onSelectedIdChange?.(id);
+  };
 
   // Si hay selectedId pero el item no está en la lista aún, lo buscamos en Supabase.
   // Usamos ref para no repetir el fetch ante re-renders.
@@ -107,8 +119,9 @@ export function EditorHechizos({
         .select(selectFields)
         .single();
       if (error) throw error;
-      setItems((prev) => [data as unknown as EntidadMagica, ...prev]);
-      setSelectedId((data as any).id);
+      const created = data as unknown as EntidadMagica;
+      setItems((prev) => [created, ...prev]);
+      selectItem(created.id);
     } finally {
       setCreating(false);
     }
@@ -116,6 +129,67 @@ export function EditorHechizos({
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
+      {/* Lista — se oculta al abrir un item, el editor pasa a ocupar todo el ancho */}
+      <div
+        className={[
+          "w-64 shrink-0 border-r border-primary/10 flex flex-col min-h-0",
+          selected ? "hidden" : "flex",
+        ].join(" ")}
+      >
+        <div className="p-2 flex items-center gap-2 border-b border-primary/10">
+          <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
+            <Search size={12} className="text-primary/30" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Buscar ${cfg.labelSing.toLowerCase()}…`}
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={creating}
+            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors shrink-0 disabled:opacity-50"
+            aria-label={`Crear ${cfg.labelSing.toLowerCase()}`}
+          >
+            {creating ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Plus size={14} />
+            )}
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {loading && items.length === 0 ? (
+            <div className="p-4 text-xs text-primary/30 text-center">Cargando…</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-4 text-xs text-primary/30 text-center">
+              {items.length === 0 ? `Sin ${cfg.label.toLowerCase()} todavía` : "Sin resultados"}
+            </div>
+          ) : (
+            filtered.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                onClick={() => selectItem(i.id)}
+                className={[
+                  "w-full flex items-center gap-2 px-3 py-2 text-xs text-left transition-colors",
+                  i.id === selectedId
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-primary/70 hover:bg-primary/5",
+                ].join(" ")}
+              >
+                <cfg.Icon size={12} className="shrink-0 opacity-50" />
+                <span className="truncate">{i.nombre}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Editor */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {selected ? (
           <FormularioMagico
@@ -126,8 +200,7 @@ export function EditorHechizos({
             modo={modo}
             onDeleted={(id) => {
               setItems((prev) => prev.filter((i) => i.id !== id));
-              setSelectedId(null);
-              onSelectedIdChange?.(null);
+              selectItem(null);
               onItemDeleted?.(id);
             }}
             onSaved={(updated) => {
