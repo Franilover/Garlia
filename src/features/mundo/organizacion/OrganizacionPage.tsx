@@ -44,6 +44,32 @@ export function OrganizacionPage({ section, selectedId }: Props) {
     return map;
   }, [grupos]);
 
+  /** Dentro de cada tipo, agrupamos por subtipo (ej. "Familia", "Clan"…).
+   *  Los grupos sin subtipo caen en un balde aparte al final. */
+  const subtiposPorTipo = useMemo(() => {
+    const map: Partial<Record<GrupoTipo, { subtipo: string | null; items: typeof grupos }[]>> = {};
+    for (const [tipoStr, lista] of Object.entries(gruposPorTipo)) {
+      const tipo = tipoStr as GrupoTipo;
+      const porSubtipo = new Map<string, typeof grupos>();
+      const sinSubtipo: typeof grupos = [];
+      for (const g of lista ?? []) {
+        if (g.subtipo && g.subtipo.trim()) {
+          const key = g.subtipo.trim();
+          if (!porSubtipo.has(key)) porSubtipo.set(key, []);
+          porSubtipo.get(key)!.push(g);
+        } else {
+          sinSubtipo.push(g);
+        }
+      }
+      const bloques = Array.from(porSubtipo.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([subtipo, items]) => ({ subtipo, items }));
+      if (sinSubtipo.length) bloques.push({ subtipo: null, items: sinSubtipo });
+      map[tipo] = bloques;
+    }
+    return map;
+  }, [gruposPorTipo]);
+
   const selectedGrupo = useMemo(
     () => (section === "grupos" ? grupos.find((g) => g.id === selectedId) ?? null : null),
     [section, grupos, selectedId],
@@ -99,20 +125,59 @@ export function OrganizacionPage({ section, selectedId }: Props) {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
       {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
-        ([tipo, cfg]) => (
-          <EntityCardGrid
-            key={tipo}
-            title={cfg.labelPlural}
-            Icon={cfg.Icon}
-            loading={!loadedGrupos}
-            items={(gruposPorTipo[tipo] ?? []).map((g) => ({ id: g.id, nombre: g.nombre }))}
-            onItemClick={(id) => openEntity("grupos", id)}
-            onCreate={async () => {
-              const nuevo = await crearGrupo(tipo);
-              if (nuevo) openEntity("grupos", nuevo.id);
-            }}
-          />
-        ),
+        ([tipo, cfg]) => {
+          const bloques = subtiposPorTipo[tipo] ?? [];
+          if (!loadedGrupos && bloques.length === 0) {
+            // Todavía cargando y no hay nada de este tipo en caché: mostramos
+            // igual un bloque vacío con loading para que el layout no salte.
+            return (
+              <div key={tipo} className="mb-10 last:mb-0">
+                <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
+                <EntityCardGrid
+                  title={cfg.labelPlural}
+                  Icon={cfg.Icon}
+                  loading
+                  items={[]}
+                  onItemClick={() => {}}
+                  onCreate={async () => {
+                    const nuevo = await crearGrupo(tipo);
+                    if (nuevo) openEntity("grupos", nuevo.id);
+                  }}
+                />
+              </div>
+            );
+          }
+          if (bloques.length === 0) return null;
+
+          // Layout de las tarjetas de subtipo dentro del tipo, igual criterio
+          // que Entidades: 1 subtipo → ancho completo, 2 → mitad c/u, 3+ → tercio.
+          const layout: "full" | "half" | "third" =
+            bloques.length === 1 ? "full" : bloques.length === 2 ? "half" : "third";
+
+          return (
+            <div key={tipo} className="mb-10 last:mb-0">
+              <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
+              <div className="flex flex-col md:flex-row gap-6 flex-wrap">
+                {bloques.map((bloque, i) => (
+                  <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-1 min-w-[220px]">
+                    <EntityCardGrid
+                      title={bloque.subtipo ?? "Sin subtipo"}
+                      Icon={cfg.Icon}
+                      layout={layout}
+                      loading={!loadedGrupos}
+                      items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
+                      onItemClick={(id) => openEntity("grupos", id)}
+                      onCreate={async () => {
+                        const nuevo = await crearGrupo(tipo);
+                        if (nuevo) openEntity("grupos", nuevo.id);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        },
       )}
       <EntityCardGrid
         title="Notas"
@@ -125,6 +190,16 @@ export function OrganizacionPage({ section, selectedId }: Props) {
           if (nota) openEntity("notas", nota.id);
         }}
       />
+    </div>
+  );
+}
+
+function TipoHeader({ Icon, label }: { Icon: React.ElementType; label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3 px-1">
+      <Icon size={15} className="text-primary/60" />
+      <h1 className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">{label}</h1>
+      <div className="flex-1 h-px bg-primary/10" />
     </div>
   );
 }
