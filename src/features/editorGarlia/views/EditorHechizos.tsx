@@ -146,18 +146,21 @@ export function EditorHechizos({
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
             />
           </div>
+        </div>
+
+        <div className="p-2 pb-0">
           <button
             type="button"
             onClick={handleCreate}
             disabled={creating}
-            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors shrink-0 disabled:opacity-50"
-            aria-label={`Crear ${cfg.labelSing.toLowerCase()}`}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-xs font-semibold text-primary disabled:opacity-50"
           >
             {creating ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={13} className="animate-spin" />
             ) : (
-              <Plus size={14} />
+              <Plus size={13} />
             )}
+            Añadir
           </button>
         </div>
 
