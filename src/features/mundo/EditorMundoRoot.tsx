@@ -162,7 +162,10 @@ function EditorMundoInner() {
   }, []);
 
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden" style={{ background: "var(--bg-main)" }}>
+    <div
+      className="flex flex-col w-full overflow-hidden"
+      style={{ background: "var(--bg-main)", height: "100dvh" }}
+    >
       {isOffline && (
         <div className="shrink-0 flex items-center justify-center gap-2 py-1.5 text-micro font-black uppercase tracking-widest text-orange-400">
           <WifiOff size={10} /> Sin conexión · algunos datos pueden estar desactualizados
