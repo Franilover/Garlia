@@ -33,8 +33,15 @@ interface Props {
    * Cuántas de estas grillas van lado a lado en la fila:
    * "full" (sola, 16 columnas) | "half" (2 en la fila, 8 columnas c/u) |
    * "third" (3 en la fila, ~5 columnas c/u). Default: "full".
+   * Solo aplica a variant="grid" — variant="chips" siempre fluye libre.
    */
   layout?: "full" | "half" | "third";
+  /**
+   * "grid" (default): tarjetas cuadradas con imagen/ícono, columnas fijas.
+   * "chips": solo texto, sin imagen, ancho automático según el contenido
+   * (flex-wrap) para aprovechar mejor el espacio en vez de columnas rígidas.
+   */
+  variant?: "grid" | "chips";
 }
 
 const GRID_COLS_BY_LAYOUT: Record<NonNullable<Props["layout"]>, string> = {
@@ -53,6 +60,7 @@ export function EntityCardGrid({
   creating,
   emptyLabel,
   layout = "full",
+  variant = "grid",
 }: Props) {
   return (
     <div className="mb-8 last:mb-0">
@@ -85,6 +93,20 @@ export function EntityCardGrid({
       ) : items.length === 0 ? (
         <div className="py-6 text-xs text-primary/25 text-center">
           {emptyLabel ?? `Sin ${title.toLowerCase()} todavía`}
+        </div>
+      ) : variant === "chips" ? (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onItemClick(item.id)}
+              title={item.nombre}
+              className="px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/[0.03] hover:bg-primary/10 hover:border-primary/20 transition-colors text-xs font-semibold text-primary/80 text-left truncate max-w-[220px]"
+            >
+              {item.nombre}
+            </button>
+          ))}
         </div>
       ) : (
         <div className={`grid ${GRID_COLS_BY_LAYOUT[layout]} gap-1.5`}>

@@ -136,6 +136,7 @@ export function OrganizacionPage({ section, selectedId }: Props) {
                 <EntityCardGrid
                   title={cfg.labelPlural}
                   Icon={cfg.Icon}
+                  variant="chips"
                   loading
                   items={[]}
                   onItemClick={() => {}}
@@ -149,11 +150,6 @@ export function OrganizacionPage({ section, selectedId }: Props) {
           }
           if (bloques.length === 0) return null;
 
-          // Layout de las tarjetas de subtipo dentro del tipo, igual criterio
-          // que Entidades: 1 subtipo → ancho completo, 2 → mitad c/u, 3+ → tercio.
-          const layout: "full" | "half" | "third" =
-            bloques.length === 1 ? "full" : bloques.length === 2 ? "half" : "third";
-
           return (
             <div key={tipo} className="mb-10 last:mb-0">
               <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
@@ -163,7 +159,7 @@ export function OrganizacionPage({ section, selectedId }: Props) {
                     <EntityCardGrid
                       title={bloque.subtipo ?? "Sin subtipo"}
                       Icon={cfg.Icon}
-                      layout={layout}
+                      variant="chips"
                       loading={!loadedGrupos}
                       items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
                       onItemClick={(id) => openEntity("grupos", id)}
