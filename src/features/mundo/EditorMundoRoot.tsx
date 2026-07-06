@@ -40,7 +40,7 @@ import { WikilinkProvider } from "@/features/editorGarlia/components/shared/Wiki
 
 import { useMundoNavigation } from "./store/useMundoNavigationStore";
 import { useExternalCommandBridge } from "./store/useExternalCommandBridge";
-import { MundoMenu } from "./shared/MundoMenu";
+import { MundoHomeDashboard } from "./shared/MundoHomeDashboard";
 import { useCreateEntity } from "./shared/useCreateEntity";
 import { useWikilinkNavigate } from "./shared/useWikilinkNavigate";
 
@@ -81,7 +81,7 @@ function ActiveSection() {
 
   switch (section) {
     case null:
-      return <MundoMenu />;
+      return <MundoHomeDashboard />;
     case "personajes":
     case "criaturas":
     case "items":
