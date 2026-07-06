@@ -31,29 +31,29 @@ export type SectionKey =
   | "reinos"
   | "ciudades"
   | "grupos"
-  | "magia" // hechizos / dones / runas, sub-navegado con magiaTipo
+  | "hechizos"
+  | "dones"
+  | "runas"
   | "capitulos"
   | "letras"
   | "notas"
   | "mapa"
   | "linea-tiempo";
 
+/** @deprecated Magia ya no es una sub-navegación; "hechizos"/"dones"/"runas" son SectionKey propios. */
 export type MagiaTipo = "hechizos" | "dones" | "runas";
 
 interface MundoNavState {
   /** null = mostrando el menú agrupado de secciones, sin ninguna abierta */
   section: SectionKey | null;
   selectedId: string | null;
-  /** Sub-tipo cuando section === "magia" */
-  magiaTipo: MagiaTipo;
   /** Incrementa en cada "apertura puntual" de entidad, útil como React key para forzar remount sin setTimeout */
   navKey: number;
 
   selectSection: (section: SectionKey) => void;
-  openEntity: (section: SectionKey, id: string, magiaTipo?: MagiaTipo) => void;
-  selectMagiaTipo: (tipo: MagiaTipo) => void;
+  openEntity: (section: SectionKey, id: string) => void;
   clearSelection: () => void;
-  /** Vuelve al menú de 12 secciones (la "X" para atrás) */
+  /** Vuelve al menú de secciones (la "X" para atrás) */
   goToMenu: () => void;
 }
 
@@ -62,20 +62,16 @@ export const useMundoNavigation = create<MundoNavState>()(
     (set) => ({
       section: null,
       selectedId: null,
-      magiaTipo: "hechizos",
       navKey: 0,
 
       selectSection: (section) => set({ section, selectedId: null }),
 
-      openEntity: (section, id, magiaTipo) =>
+      openEntity: (section, id) =>
         set((state) => ({
           section,
           selectedId: id,
-          magiaTipo: magiaTipo ?? state.magiaTipo,
           navKey: state.navKey + 1,
         })),
-
-      selectMagiaTipo: (magiaTipo) => set({ magiaTipo, selectedId: null }),
 
       clearSelection: () => set({ selectedId: null }),
 
@@ -90,7 +86,6 @@ export const useMundoNavigation = create<MundoNavState>()(
       partialize: (state) => ({
         section: state.section,
         selectedId: state.selectedId,
-        magiaTipo: state.magiaTipo,
       }),
     },
   ),

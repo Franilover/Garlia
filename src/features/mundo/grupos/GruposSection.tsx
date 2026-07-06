@@ -25,9 +25,9 @@ const TABLA_TO_SECTION: Record<string, SectionKey> = {
   personajes: "personajes",
   criaturas: "criaturas",
   items: "items",
-  hechizos: "magia",
-  dones: "magia",
-  runas: "magia",
+  hechizos: "hechizos",
+  dones: "dones",
+  runas: "runas",
 };
 
 export function GruposSection({ selectedId, navKey }: Props) {
@@ -56,10 +56,7 @@ export function GruposSection({ selectedId, navKey }: Props) {
           onClickMiembro={(id, tabla) => {
             const section = TABLA_TO_SECTION[tabla];
             if (!section) return;
-            const magiaTipo = ["hechizos", "dones", "runas"].includes(tabla)
-              ? (tabla as "hechizos" | "dones" | "runas")
-              : undefined;
-            openEntity(section, id, magiaTipo);
+            openEntity(section, id);
           }}
         />
       </div>

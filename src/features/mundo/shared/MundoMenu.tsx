@@ -37,7 +37,6 @@ import React from "react";
 
 import {
   useMundoNavigation,
-  type MagiaTipo,
   type SectionKey,
 } from "../store/useMundoNavigationStore";
 
@@ -45,8 +44,6 @@ interface MenuItem {
   key: SectionKey;
   label: string;
   Icon: React.ElementType;
-  /** Si se define, abre "magia" con este sub-tipo en vez de section=key */
-  magiaTipo?: MagiaTipo;
 }
 
 interface MenuGroup {
@@ -89,24 +86,17 @@ const GROUPS: MenuGroup[] = [
   {
     title: "Magia",
     items: [
-      { key: "magia", label: "Hechizos", Icon: Sparkles, magiaTipo: "hechizos" },
-      { key: "magia", label: "Runas", Icon: ScrollText, magiaTipo: "runas" },
-      { key: "magia", label: "Dones", Icon: Star, magiaTipo: "dones" },
+      { key: "hechizos", label: "Hechizos", Icon: Sparkles },
+      { key: "runas", label: "Runas", Icon: ScrollText },
+      { key: "dones", label: "Dones", Icon: Star },
     ],
   },
 ];
 
 export function MundoMenu() {
   const selectSection = useMundoNavigation((s) => s.selectSection);
-  const selectMagiaTipo = useMundoNavigation((s) => s.selectMagiaTipo);
 
   const handleClick = (item: MenuItem) => {
-    if (item.magiaTipo) {
-      // Entra directo al sub-tipo de magia elegido, sin selectedId todavía.
-      selectMagiaTipo(item.magiaTipo);
-      selectSection("magia");
-      return;
-    }
     selectSection(item.key);
   };
 
@@ -123,7 +113,7 @@ export function MundoMenu() {
           <div className="flex flex-col gap-0.5 px-1.5">
             {group.items.map((item, i) => (
               <button
-                key={`${item.key}-${item.magiaTipo ?? i}`}
+                key={`${item.key}-${i}`}
                 type="button"
                 onClick={() => handleClick(item)}
                 className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors text-left text-primary/60 hover:bg-primary/5 hover:text-primary"

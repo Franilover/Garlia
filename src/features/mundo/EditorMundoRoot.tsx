@@ -65,8 +65,14 @@ const CiudadesSection = lazy(() =>
 const GruposSection = lazy(() =>
   import("./grupos/GruposSection").then((m) => ({ default: m.GruposSection })),
 );
-const MagiaSection = lazy(() =>
-  import("./magia/MagiaSection").then((m) => ({ default: m.MagiaSection })),
+const HechizosSection = lazy(() =>
+  import("./hechizos/HechizosSection").then((m) => ({ default: m.HechizosSection })),
+);
+const DonesSection = lazy(() =>
+  import("./dones/DonesSection").then((m) => ({ default: m.DonesSection })),
+);
+const RunasSection = lazy(() =>
+  import("./runas/RunasSection").then((m) => ({ default: m.RunasSection })),
 );
 const CapitulosSection = lazy(() =>
   import("./capitulos/CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
@@ -95,7 +101,6 @@ function SectionFallback() {
 function ActiveSection() {
   const section = useMundoNavigation((s) => s.section);
   const selectedId = useMundoNavigation((s) => s.selectedId);
-  const magiaTipo = useMundoNavigation((s) => s.magiaTipo);
   const navKey = useMundoNavigation((s) => s.navKey);
 
   switch (section) {
@@ -113,8 +118,12 @@ function ActiveSection() {
       return <CiudadesSection selectedId={selectedId} navKey={navKey} />;
     case "grupos":
       return <GruposSection selectedId={selectedId} navKey={navKey} />;
-    case "magia":
-      return <MagiaSection tipo={magiaTipo} selectedId={selectedId} navKey={navKey} />;
+    case "hechizos":
+      return <HechizosSection selectedId={selectedId} navKey={navKey} />;
+    case "dones":
+      return <DonesSection selectedId={selectedId} navKey={navKey} />;
+    case "runas":
+      return <RunasSection selectedId={selectedId} navKey={navKey} />;
     case "capitulos":
       return <CapitulosSection />;
     case "letras":

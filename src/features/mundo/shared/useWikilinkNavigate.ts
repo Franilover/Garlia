@@ -30,9 +30,9 @@ const SEARCHABLE: { tabla: string; section: SectionKey }[] = [
   { tabla: "items", section: "items" },
   { tabla: "reinos", section: "reinos" },
   { tabla: "ciudades", section: "ciudades" },
-  { tabla: "hechizos", section: "magia" },
-  { tabla: "dones", section: "magia" },
-  { tabla: "runas", section: "magia" },
+  { tabla: "hechizos", section: "hechizos" },
+  { tabla: "dones", section: "dones" },
+  { tabla: "runas", section: "runas" },
 ];
 
 export function useWikilinkNavigate() {
@@ -49,10 +49,7 @@ export function useWikilinkNavigate() {
           items.find((i) => norm(i.nombre)?.startsWith(t)) ??
           items.find((i) => norm(i.nombre)?.includes(t));
         if (found) {
-          const magiaTipo = ["hechizos", "dones", "runas"].includes(tabla)
-            ? (tabla as "hechizos" | "dones" | "runas")
-            : undefined;
-          openEntity(section, found.id, magiaTipo);
+          openEntity(section, found.id);
           return;
         }
       }

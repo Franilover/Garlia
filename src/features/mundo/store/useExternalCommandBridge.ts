@@ -19,7 +19,7 @@
 
 import { useEffect } from "react";
 
-import type { MagiaTipo, SectionKey } from "./useMundoNavigationStore";
+import type { SectionKey } from "./useMundoNavigationStore";
 import { useMundoNavigation } from "./useMundoNavigationStore";
 
 type OpenEntityDetail = { tabla: string; id: string };
@@ -36,9 +36,9 @@ const TABLA_TO_SECTION: Record<string, SectionKey> = {
   reinos: "reinos",
   ciudades: "ciudades",
   grupos_mundo: "grupos",
-  hechizos: "magia",
-  dones: "magia",
-  runas: "magia",
+  hechizos: "hechizos",
+  dones: "dones",
+  runas: "runas",
 };
 
 const MAGIA_TABLAS = new Set(["hechizos", "dones", "runas"]);
@@ -52,8 +52,7 @@ export function useExternalCommandBridge(onCreateEntity: (tab: string) => void) 
       const { tabla, id } = (e as CustomEvent<OpenEntityDetail>).detail;
       const section = TABLA_TO_SECTION[tabla];
       if (!section) return;
-      const magiaTipo = MAGIA_TABLAS.has(tabla) ? (tabla as MagiaTipo) : undefined;
-      openEntity(section, id, magiaTipo);
+      openEntity(section, id);
     };
 
     const handleCreateEntity = (e: Event) => {
@@ -64,7 +63,7 @@ export function useExternalCommandBridge(onCreateEntity: (tab: string) => void) 
     const handleAddMagic = (e: Event) => {
       const { key } = (e as CustomEvent<AddMagicDetail>).detail;
       if (MAGIA_TABLAS.has(key)) {
-        selectSection("magia");
+        selectSection(key as SectionKey);
         return;
       }
       const directSectionMap: Record<string, SectionKey> = {
@@ -92,10 +91,7 @@ export function useExternalCommandBridge(onCreateEntity: (tab: string) => void) 
         if (isFresh) {
           const section = TABLA_TO_SECTION[pending.tabla];
           if (section) {
-            const magiaTipo = MAGIA_TABLAS.has(pending.tabla)
-              ? (pending.tabla as MagiaTipo)
-              : undefined;
-            openEntity(section, pending.id, magiaTipo);
+            openEntity(section, pending.id);
           }
         }
       }
