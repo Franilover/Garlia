@@ -202,6 +202,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         Icon={Users}
         loading={loadingP}
         items={personajes.map((p) => ({ id: p.id, nombre: p.nombre, imageUrl: p.img_url }))}
+        section="personajes"
         onItemClick={(id) => openEntity("personajes", id)}
         onCreate={async () => {
           const { data } = await addPersonaje({ nombre: "Nuevo personaje" });
@@ -217,6 +218,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             Icon={Bug}
             loading={loadingC}
             items={criaturas.map((c) => ({ id: c.id, nombre: c.nombre, imageUrl: c.imagen_url }))}
+            section="criaturas"
             onItemClick={(id) => openEntity("criaturas", id)}
             onCreate={async () => {
               const { data } = await addCriatura({ nombre: "Nueva criatura" });
@@ -231,6 +233,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             Icon={Package}
             loading={loadingI}
             items={items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            section="items"
             onItemClick={(id) => openEntity("items", id)}
             onCreate={async () => {
               const { data } = await addItem({ nombre: "Nuevo objeto" });
@@ -248,6 +251,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             Icon={Map}
             loading={loadingR}
             items={reinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
+            section="reinos"
             onItemClick={(id) => openEntity("reinos", id)}
             onCreate={async () => {
               const { data } = await addReino({ nombre: "Nuevo reino" });
@@ -262,6 +266,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             Icon={MapPinned}
             loading={loadingCd}
             items={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
+            section="ciudades"
             onItemClick={(id) => openEntity("ciudades", id)}
             onCreate={async () => {
               const { data } = await addCiudad({ nombre: "Nueva ciudad" });
@@ -280,6 +285,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             loading={hechizos.loading}
             creating={hechizos.creating}
             items={hechizos.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            section="hechizos"
             onItemClick={(id) => openEntity("hechizos", id)}
             onCreate={async () => {
               const id = await hechizos.create();
@@ -295,6 +301,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             loading={dones.loading}
             creating={dones.creating}
             items={dones.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            section="dones"
             onItemClick={(id) => openEntity("dones", id)}
             onCreate={async () => {
               const id = await dones.create();
@@ -310,6 +317,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
             loading={runas.loading}
             creating={runas.creating}
             items={runas.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
+            section="runas"
             onItemClick={(id) => openEntity("runas", id)}
             onCreate={async () => {
               const id = await runas.create();

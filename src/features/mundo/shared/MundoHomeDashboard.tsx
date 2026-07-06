@@ -5,23 +5,30 @@
  * ───────────────────────────────────────────────────────────────────────────
  * Reemplaza a <MundoMenu /> como vista por defecto cuando section === null.
  * Home dashboard a pantalla completa: tarjetas grandes de navegación +
- * widget de resumen con conteos reales (personajes/criaturas/items/reinos/
- * ciudades, las únicas tablas confirmadas vía useSupabaseData en
- * EntidadesPage — Organización/Capítulos/Letras usan hooks propios con forma
- * distinta, así que no se fuerzan acá para no mostrar datos incorrectos).
+ * widgets de Resumen, Favoritos y Editado recientemente.
  *
  * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas
  * son 8 SectionKey distintas pero renderizan TODAS la misma página combinada
  * <EntidadesPage /> (ver switch en EditorMundoRoot). Lo mismo para
  * grupos/notas → <OrganizacionPage />. Por eso la navegación principal usa
  * una lista propia de "páginas reales" (ENTRIES), no MUNDO_MENU_GROUPS.
+ *
+ * "Editado recientemente" usa el campo updated_at de personajes/criaturas/
+ * items/reinos/ciudades (agregado vía migración SQL — ver
+ * agregar-updated-at.sql). Organización/Capítulos/Letras no se incluyen
+ * porque usan hooks propios con forma distinta (useNotas, useGrupos, etc.)
+ * sin ese campo confirmado.
+ *
+ * "Favoritos" lee de useFavoritos (Zustand + persist, local al navegador).
+ * Se marcan desde la estrella en cada EntityCard dentro de Entidades.
  */
 
-import { Clock, Layers, Mountain, Music, ScrollText, Users } from "lucide-react";
-import React from "react";
+import { Clock, Layers, Mountain, Music, ScrollText, Star, Users } from "lucide-react";
+import React, { useMemo } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
+import { useFavoritos } from "../store/useFavoritosStore";
 import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
 
 interface DashboardEntry {
@@ -54,6 +61,15 @@ const ENTRIES: DashboardEntry[] = [
     Icon: Clock,
   },
 ];
+
+/** Tablas/section de Entidades que tienen updated_at (ver migración SQL). */
+const ENTIDADES_ICONS: Record<string, React.ElementType> = {
+  personajes: Users,
+  criaturas: Users,
+  items: Users,
+  reinos: Mountain,
+  ciudades: Mountain,
+};
 
 function useCount(tabla: string) {
   const { data, loading } = useSupabaseData<{ id: string }>(tabla);
@@ -96,6 +112,112 @@ function ResumenWidget() {
   );
 }
 
+function FavoritosWidget() {
+  const favoritos = useFavoritos((s) => s.favoritos);
+  const openEntity = useMundoNavigation((s) => s.openEntity);
+
+  const ordenados = useMemo(
+    () => [...favoritos].sort((a, b) => b.addedAt - a.addedAt),
+    [favoritos],
+  );
+
+  if (ordenados.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
+        Favoritos
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {ordenados.map((fav) => (
+          <button
+            key={`${fav.section}:${fav.id}`}
+            type="button"
+            onClick={() => openEntity(fav.section, fav.id)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:bg-primary/5 hover:border-primary/25 transition-colors text-xs font-semibold text-primary/80"
+          >
+            <Star size={12} className="text-amber-400 fill-amber-400" />
+            {fav.nombre}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface RecienteRow {
+  id: string;
+  nombre: string;
+  updated_at?: string | null;
+}
+
+function useRecientesPorTabla(tabla: string, section: SectionKey) {
+  const { data, loading } = useSupabaseData<RecienteRow>(tabla);
+  return useMemo(() => {
+    if (loading) return { items: [], loading };
+    const items = (data ?? [])
+      .filter((r) => !!r.updated_at)
+      .map((r) => ({ section, id: r.id, nombre: r.nombre, updated_at: r.updated_at as string }));
+    return { items, loading };
+  }, [data, loading, section]);
+}
+
+function RecientesWidget() {
+  const openEntity = useMundoNavigation((s) => s.openEntity);
+
+  const personajes = useRecientesPorTabla("personajes", "personajes");
+  const criaturas = useRecientesPorTabla("criaturas", "criaturas");
+  const items = useRecientesPorTabla("items", "items");
+  const reinos = useRecientesPorTabla("reinos", "reinos");
+  const ciudades = useRecientesPorTabla("ciudades", "ciudades");
+
+  const loadingAny =
+    personajes.loading || criaturas.loading || items.loading || reinos.loading || ciudades.loading;
+
+  const recientes = useMemo(() => {
+    const todos = [
+      ...personajes.items,
+      ...criaturas.items,
+      ...items.items,
+      ...reinos.items,
+      ...ciudades.items,
+    ];
+    return todos
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 6);
+  }, [personajes.items, criaturas.items, items.items, reinos.items, ciudades.items]);
+
+  if (!loadingAny && recientes.length === 0) return null;
+
+  return (
+    <div className="mb-8">
+      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
+        Editado recientemente
+      </h2>
+      {loadingAny && recientes.length === 0 ? (
+        <div className="text-xs text-primary/30">Cargando…</div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {recientes.map((r) => {
+            const Icon = ENTIDADES_ICONS[r.section] ?? Users;
+            return (
+              <button
+                key={`${r.section}:${r.id}`}
+                type="button"
+                onClick={() => openEntity(r.section, r.id)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:bg-primary/5 hover:border-primary/25 transition-colors text-xs font-semibold text-primary/80"
+              >
+                <Icon size={12} className="text-primary/40" />
+                {r.nombre}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MundoHomeDashboard() {
   const selectSection = useMundoNavigation((s) => s.selectSection);
 
@@ -110,6 +232,8 @@ export function MundoHomeDashboard() {
         </header>
 
         <ResumenWidget />
+        <FavoritosWidget />
+        <RecientesWidget />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ENTRIES.map((item) => (

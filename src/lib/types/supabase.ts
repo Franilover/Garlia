@@ -689,6 +689,7 @@ export type Database = {
           nombre: string
           pensamiento: string | null
           relacion: string | null
+          updated_at: string
         }
         Insert: {
           alma?: string | null
@@ -704,6 +705,7 @@ export type Database = {
           nombre: string
           pensamiento?: string | null
           relacion?: string | null
+          updated_at?: string
         }
         Update: {
           alma?: string | null
@@ -719,6 +721,7 @@ export type Database = {
           nombre?: string
           pensamiento?: string | null
           relacion?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1708,6 +1711,7 @@ export type Database = {
           origen: string | null
           reino_ids: string[] | null
           sub_origen: string | null
+          updated_at: string
         }
         Insert: {
           categoria?: string | null
@@ -1720,6 +1724,7 @@ export type Database = {
           origen?: string | null
           reino_ids?: string[] | null
           sub_origen?: string | null
+          updated_at?: string
         }
         Update: {
           categoria?: string | null
@@ -1732,6 +1737,7 @@ export type Database = {
           origen?: string | null
           reino_ids?: string[] | null
           sub_origen?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -2430,6 +2436,7 @@ export type Database = {
           nombre: string
           reino: string | null
           sobre: string | null
+          updated_at: string
           variante_id: string | null
         }
         Insert: {
@@ -2445,6 +2452,7 @@ export type Database = {
           nombre: string
           reino?: string | null
           sobre?: string | null
+          updated_at?: string
           variante_id?: string | null
         }
         Update: {
@@ -2460,6 +2468,7 @@ export type Database = {
           nombre?: string
           reino?: string | null
           sobre?: string | null
+          updated_at?: string
           variante_id?: string | null
         }
         Relationships: [
@@ -2736,6 +2745,7 @@ export type Database = {
           nombre: string
           orden: number | null
           politica: string | null
+          updated_at: string
         }
         Insert: {
           coord_x?: number | null
@@ -2751,6 +2761,7 @@ export type Database = {
           nombre: string
           orden?: number | null
           politica?: string | null
+          updated_at?: string
         }
         Update: {
           coord_x?: number | null
@@ -2766,6 +2777,7 @@ export type Database = {
           nombre?: string
           orden?: number | null
           politica?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

@@ -11,6 +11,8 @@
 import { Loader2, Plus } from "lucide-react";
 import React from "react";
 
+import { useFavoritos } from "../store/useFavoritosStore";
+import type { SectionKey } from "../store/useMundoNavigationStore";
 import { EntityCard } from "./EntityCard";
 
 interface Item {
@@ -29,6 +31,12 @@ interface Props {
   onCreate?: () => void;
   creating?: boolean;
   emptyLabel?: string;
+  /**
+   * Si se pasa, cada tarjeta muestra una estrella para marcar/desmarcar
+   * favorito (persistido en useFavoritos, visible luego en el Home Dashboard).
+   * Se omite en listados que no representan una sola SectionKey concreta.
+   */
+  section?: SectionKey;
   /**
    * @deprecated Las columnas ahora son dinámicas (auto-fill según el ancho
    * disponible), así que este prop ya no cambia nada — se deja para no
@@ -61,7 +69,10 @@ export function EntityCardGrid({
   emptyLabel,
   variant = "grid",
   minCardWidth = 76,
+  section,
 }: Props) {
+  const isFavorito = useFavoritos((s) => s.isFavorito);
+  const toggleFavorito = useFavoritos((s) => s.toggleFavorito);
   return (
     <div className="mb-8 last:mb-0">
       <div className="flex items-center gap-2 mb-3 px-1">
@@ -121,6 +132,12 @@ export function EntityCardGrid({
               subtitle={item.subtitle}
               Icon={Icon}
               onClick={() => onItemClick(item.id)}
+              isFavorite={section ? isFavorito(section, item.id) : undefined}
+              onToggleFavorite={
+                section
+                  ? () => toggleFavorito({ section, id: item.id, nombre: item.nombre })
+                  : undefined
+              }
             />
           ))}
         </div>
