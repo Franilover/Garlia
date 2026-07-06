@@ -65,9 +65,9 @@ export function MundoMenu() {
               key={item.key}
               type="button"
               onClick={() => selectSection(item.key)}
-              className="flex items-center gap-2 px-3 py-2 text-sm font-bold rounded-lg transition-colors text-left text-primary/70 hover:bg-primary/5 hover:text-primary"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors text-left text-primary/70 hover:bg-primary/5 hover:text-primary"
             >
-              <item.Icon size={14} strokeWidth={2} />
+              <item.Icon size={12} strokeWidth={2} />
               {item.label}
             </button>
           ))}
