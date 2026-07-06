@@ -29,7 +29,19 @@ interface Props {
   onCreate?: () => void;
   creating?: boolean;
   emptyLabel?: string;
+  /**
+   * Cuántas de estas grillas van lado a lado en la fila:
+   * "full" (sola, 16 columnas) | "half" (2 en la fila, 8 columnas c/u) |
+   * "third" (3 en la fila, ~5 columnas c/u). Default: "full".
+   */
+  layout?: "full" | "half" | "third";
 }
+
+const GRID_COLS_BY_LAYOUT: Record<NonNullable<Props["layout"]>, string> = {
+  full: "grid-cols-4 sm:grid-cols-6 md:grid-cols-10 lg:grid-cols-[repeat(16,minmax(0,1fr))]",
+  half: "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-[repeat(8,minmax(0,1fr))]",
+  third: "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))]",
+};
 
 export function EntityCardGrid({
   title,
@@ -40,6 +52,7 @@ export function EntityCardGrid({
   onCreate,
   creating,
   emptyLabel,
+  layout = "full",
 }: Props) {
   return (
     <div className="mb-8 last:mb-0">
@@ -74,7 +87,7 @@ export function EntityCardGrid({
           {emptyLabel ?? `Sin ${title.toLowerCase()} todavía`}
         </div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 lg:grid-cols-[repeat(16,minmax(0,1fr))] gap-1.5">
+        <div className={`grid ${GRID_COLS_BY_LAYOUT[layout]} gap-1.5`}>
           {items.map((item) => (
             <EntityCard
               key={item.id}

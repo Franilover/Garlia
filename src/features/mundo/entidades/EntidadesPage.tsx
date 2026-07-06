@@ -213,6 +213,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Criaturas"
+            layout="half"
             Icon={Bug}
             loading={loadingC}
             items={criaturas.map((c) => ({ id: c.id, nombre: c.nombre, imageUrl: c.imagen_url }))}
@@ -226,6 +227,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Items"
+            layout="half"
             Icon={Package}
             loading={loadingI}
             items={items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
@@ -242,6 +244,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Reinos"
+            layout="half"
             Icon={Map}
             loading={loadingR}
             items={reinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
@@ -255,6 +258,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Ciudades"
+            layout="half"
             Icon={MapPinned}
             loading={loadingCd}
             items={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
@@ -271,6 +275,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Hechizos"
+            layout="third"
             Icon={hechizos.cfg.Icon}
             loading={hechizos.loading}
             creating={hechizos.creating}
@@ -285,6 +290,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Dones"
+            layout="third"
             Icon={dones.cfg.Icon}
             loading={dones.loading}
             creating={dones.creating}
@@ -299,6 +305,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <div className="flex-1 min-w-0">
           <EntityCardGrid
             title="Runas"
+            layout="third"
             Icon={runas.cfg.Icon}
             loading={runas.loading}
             creating={runas.creating}
