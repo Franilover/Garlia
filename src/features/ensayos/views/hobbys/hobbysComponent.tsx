@@ -7,30 +7,11 @@ import {
   Clapperboard, Mic, PersonStanding, Mountain, Music2,
   type LucideIcon,
 } from "lucide-react";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 
+import { useHobbys, type Hobby, type Registro } from "@/features/ensayos/hooks/hobbys/useHobbys";
 import { cn } from "@/lib/utils/index";
 
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
-interface Hobby {
-  id: string;
-  nombre: string;
-  icon: string;
-  color: number;
-  freq_dia: number;
-  freq_sem: number;
-  nota?: string;
-  orden: number;
-}
-
-interface Registro {
-  id: string;
-  hobby_id: string;
-  semana: string;
-  dias: boolean[];
-}
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -69,80 +50,13 @@ function HobbyIcon({ name, size = 16 }: { name: string; size?: number }) {
   return <Icon size={size} />;
 }
 
-// ─── Utils ────────────────────────────────────────────────────────────────────
-
-function getSemanaKey(): string {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const week = Math.ceil(
-    ((now.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
-  );
-  return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`;
-}
-
-function getTodayIdx(): number {
-  return (new Date().getDay() + 6) % 7;
-}
-
-// ─── Queries Supabase ─────────────────────────────────────────────────────────
-
-async function getSupabase() {
-  const { supabase } = await import("@/lib/api/client/supabase");
-  return supabase;
-}
-
-const hobbysQueries = {
-  async getAll(): Promise<Hobby[]> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("hobbys").select("*").order("orden", { ascending: true });
-    if (error) throw error;
-    return data ?? [];
-  },
-  async add(hobby: Omit<Hobby, "id">): Promise<Hobby> {
-    const sb = await getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
-    const { data, error } = await sb.from("hobbys").insert({ ...hobby, user_id: user?.id }).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, datos: Partial<Omit<Hobby, "id">>): Promise<Hobby> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("hobbys").update(datos).eq("id", id).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string): Promise<void> {
-    const sb = await getSupabase();
-    const { error } = await sb.from("hobbys").delete().eq("id", id);
-    if (error) throw error;
-  },
-};
-
-const registrosQueries = {
-  async getBySemana(semana: string): Promise<Registro[]> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("hobbys_registros").select("*").eq("semana", semana);
-    if (error) throw error;
-    return data ?? [];
-  },
-  async upsert(hobbyId: string, semana: string, dias: boolean[]): Promise<void> {
-    const sb = await getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
-    const { error } = await sb.from("hobbys_registros").upsert(
-      { hobby_id: hobbyId, semana, dias, user_id: user?.id },
-      { onConflict: "hobby_id,semana" }
-    );
-    if (error) throw error;
-  },
-};
-
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all";
+  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/20 transition-all";
 
 const selectCls =
-  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none appearance-none cursor-pointer";
+  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none appearance-none cursor-pointer";
 
 // ─── Selector de icono compartido ─────────────────────────────────────────────
 
@@ -155,7 +69,7 @@ const IconSelector = ({ value, onChange }: { value: string; onChange: (v: string
           "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
           value === name
             ? "bg-primary text-btn-text border-primary"
-            : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+            : "bg-primary/5 text-primary/70 border-transparent hover:bg-primary/10 hover:text-primary/70"
         )}
         title={label}
         type="button"
@@ -195,7 +109,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       exit={{ opacity: 0, y: -6 }}
       initial={{ opacity: 0, y: -6 }}
     >
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Nuevo hobby</p>
+      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Nuevo hobby</p>
 
       <input
         autoFocus
@@ -207,7 +121,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       />
 
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
 
@@ -223,7 +137,7 @@ const FormNuevoHobby = ({ onGuardar, onCancelar, guardando, orden }: FormNuevoHo
       <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
 
       <div className="flex gap-2">
-        <button className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>
+        <button className="flex-1 py-2 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>
           Cancelar
         </button>
         <button
@@ -262,10 +176,10 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
 
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
+      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Editar hobby</p>
       <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -278,7 +192,7 @@ const FormEditarHobby = ({ hobby, onGuardar, onCancelar, guardando }: FormEditar
       </div>
       <input className={inputCls} placeholder="Nota opcional..." value={nota} onChange={e => setNota(e.target.value)} />
       <div className="flex gap-2">
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
         <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
           {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
@@ -328,7 +242,7 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             {/* Icono */}
             <div className={cn(
               "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 transition-colors",
-              completado ? "bg-primary/15 text-primary/80" : "bg-primary/8 text-primary/50"
+              completado ? "bg-primary/20 text-primary/70" : "bg-primary/10 text-primary/70"
             )}>
               <HobbyIcon name={hobby.icon} size={15} />
             </div>
@@ -336,26 +250,26 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
             {/* Nombre + meta */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none">{hobby.nombre}</span>
-                {completado && <Check className="text-primary/50 shrink-0" size={10} />}
+                <span className="text-xs font-black text-primary tracking-tight truncate leading-none">{hobby.nombre}</span>
+                {completado && <Check className="text-primary/70 shrink-0" size={10} />}
               </div>
-              <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block">
+              <span className="text-2xs font-bold text-primary/40 leading-none mt-0.5 block">
                 {hobby.freq_dia > 1 ? `${hobby.freq_dia}x · ` : ""}{hobby.freq_sem}d/sem{hobby.nota ? ` · ${hobby.nota}` : ""}
               </span>
             </div>
 
             {/* Contador + acciones */}
             <div className="flex items-center gap-1 shrink-0">
-              <span className="text-[10px] font-black tabular-nums text-primary/50">{hechos}/{hobby.freq_sem}</span>
+              <span className="text-2xs font-black tabular-nums text-primary/70">{hechos}/{hobby.freq_sem}</span>
               <button
-                className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-primary/60 hover:bg-primary/8 transition-all opacity-0 group-hover:opacity-100"
+                className="w-6 h-6 flex items-center justify-center rounded text-primary/20 hover:text-primary/70 hover:bg-primary/10 transition-all opacity-0 group-hover:opacity-100"
                 title="Editar"
                 onClick={() => setEditando(true)}
               >
                 <PencilIcon size={11} />
               </button>
               <button
-                className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-accent hover:bg-accent/8 transition-all opacity-0 group-hover:opacity-100"
+                className="w-6 h-6 flex items-center justify-center rounded text-primary/20 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
                 title="Eliminar"
                 onClick={() => onEliminar(hobby.id)}
               >
@@ -365,8 +279,8 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
           </div>
 
           {/* Barra de progreso */}
-          <div className="h-0.5 bg-primary/8 rounded-full overflow-hidden mb-2">
-            <div className="h-full rounded-full transition-all duration-500 bg-primary/35" style={{ width: `${pct}%` }} />
+          <div className="h-0.5 bg-primary/10 rounded-full overflow-hidden mb-2">
+            <div className="h-full rounded-full transition-all duration-500 bg-primary/40" style={{ width: `${pct}%` }} />
           </div>
 
           {/* Días */}
@@ -378,12 +292,12 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
                 <button
                   key={d}
                   className={cn(
-                    "flex-1 h-6 rounded text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
+                    "flex-1 h-6 rounded text-3xs font-black uppercase tracking-widest transition-all flex items-center justify-center border-[length:var(--border-width)]",
                     done
                       ? "bg-primary text-btn-text border-primary"
                       : isToday
-                      ? "bg-primary/8 text-primary border-primary/25"
-                      : "bg-primary/3 text-primary/30 border-primary/6 hover:bg-primary/8 hover:text-primary/60"
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "bg-primary/5 text-primary/40 border-primary/5 hover:bg-primary/10 hover:text-primary/70"
                   )}
                   title={`${DIAS_FULL[i]}${done ? " · hecho" : ""}`}
                   onClick={() => onToggleDia(hobby.id, i)}
@@ -402,88 +316,21 @@ const CardHobby = ({ hobby, registro, onToggleDia, onEliminar, onEditar }: CardH
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export const PaginaHobbys = () => {
-  const [hobbys, setHobbys]       = useState<Hobby[]>([]);
-  const [registros, setRegistros] = useState<Registro[]>([]);
-  const [cargando, setCargando]   = useState(true);
-  const [creando, setCreando]     = useState(false);
-  const [guardando, setGuardando] = useState(false);
+  const {
+    hobbys, registros, cargando, guardando, semana, today,
+    crearHobby, editarHobby, eliminarHobby, toggleDia,
+  } = useHobbys();
 
-  const semana = useMemo(() => getSemanaKey(), []);
-  const today  = getTodayIdx();
-
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    try {
-      const [h, r] = await Promise.all([hobbysQueries.getAll(), registrosQueries.getBySemana(semana)]);
-      setHobbys(h);
-      setRegistros(r);
-    } catch (err) {
-      console.error("[PaginaHobbys] cargar:", err);
-    } finally {
-      setCargando(false);
-    }
-  }, [semana]);
-
-  useEffect(() => { void cargar(); }, [cargar]);
+  const [creando, setCreando] = useState(false);
 
   const handleGuardar = async (datos: Omit<Hobby, "id">) => {
-    setGuardando(true);
-    try {
-      const nuevo = await hobbysQueries.add(datos);
-      setHobbys(prev => [...prev, nuevo]);
-      setCreando(false);
-    } catch (err) {
-      console.error("[PaginaHobbys] guardar:", err);
-    } finally {
-      setGuardando(false);
-    }
+    const ok = await crearHobby(datos);
+    if (ok) setCreando(false);
   };
 
-  const handleEditar = async (id: string, datos: Partial<Omit<Hobby, "id">>) => {
-    try {
-      const updated = await hobbysQueries.update(id, datos);
-      setHobbys(prev => prev.map(h => h.id === id ? updated : h));
-    } catch (err) {
-      console.error("[PaginaHobbys] editar:", err);
-      void cargar();
-    }
-  };
-
-  const handleEliminar = async (id: string) => {
-    setHobbys(prev => prev.filter(h => h.id !== id));
-    try {
-      await hobbysQueries.delete(id);
-    } catch (err) {
-      console.error("[PaginaHobbys] eliminar:", err);
-      void cargar();
-    }
-  };
-
-  const handleToggleDia = async (hobbyId: string, diaIdx: number) => {
-    setRegistros(prev => {
-      const existing = prev.find(r => r.hobby_id === hobbyId && r.semana === semana);
-      if (existing) {
-        return prev.map(r =>
-          r.hobby_id === hobbyId && r.semana === semana
-            ? { ...r, dias: r.dias.map((v, i) => (i === diaIdx ? !v : v)) }
-            : r
-        );
-      }
-      const diasNuevos = Array(7).fill(false) as boolean[];
-      diasNuevos[diaIdx] = true;
-      return [...prev, { id: "tmp", hobby_id: hobbyId, semana, dias: diasNuevos }];
-    });
-
-    try {
-      const current = registros.find(r => r.hobby_id === hobbyId && r.semana === semana);
-      const diasActuales = current?.dias ?? Array(7).fill(false);
-      const nuevosDias = diasActuales.map((v, i) => (i === diaIdx ? !v : v));
-      await registrosQueries.upsert(hobbyId, semana, nuevosDias);
-    } catch (err) {
-      console.error("[PaginaHobbys] toggle día:", err);
-      void cargar();
-    }
-  };
+  const handleEditar = editarHobby;
+  const handleEliminar = eliminarHobby;
+  const handleToggleDia = toggleDia;
 
   const stats = useMemo(() => {
     const totalHoy = hobbys.reduce((acc, h) => {
@@ -512,7 +359,7 @@ export const PaginaHobbys = () => {
           ].map(s => (
             <div key={s.label} className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-primary tracking-tight leading-none">{s.value}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">{s.label}</span>
+              <span className="text-3xs font-black uppercase tracking-widest text-primary/40">{s.label}</span>
             </div>
           ))}
         </div>
@@ -520,9 +367,9 @@ export const PaginaHobbys = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">{semana}</span>
+        <span className="text-2xs font-black uppercase tracking-widest text-primary/40">{semana}</span>
         <button
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
           onClick={() => setCreando(v => !v)}
         >
           {creando ? <X size={11} /> : <Plus size={11} />}
@@ -552,7 +399,7 @@ export const PaginaHobbys = () => {
         <div className="text-center py-12">
           <Music className="mx-auto mb-2 text-primary/20" size={28} />
           <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Aún no tienes hobbys</p>
-          <p className="text-[11px] text-primary/25 font-bold mt-1">Añade uno para empezar a trackear</p>
+          <p className="text-2xs text-primary/20 font-bold mt-1">Añade uno para empezar a trackear</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

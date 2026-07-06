@@ -11,22 +11,8 @@ import React, { useState, useMemo } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
 import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useOutfits, type Outfit, type Temporada, type Vibra, type Color } from "@/features/ensayos/hooks/ropa/useOutfits";
 import { cn } from "@/lib/utils/index";
-
-type Temporada = "Primavera" | "Verano" | "Otoño" | "Invierno";
-type Vibra     = "Casual" | "Formal" | "Sport" | "Noche" | "Aesthetic";
-type Color     = "Negro" | "Blanco" | "Gris" | "Rosa" | "Rojo" | "Azul" | "Verde" | "Beige" | "Marrón" | "Lila";
-
-interface Outfit {
-  id: string;
-  nombre: string;
-  descripcion?: string;
-  imagen_url: string;
-  temporadas?: Temporada[];
-  vibras?: Vibra[];
-  colores?: Color[];
-}
 
 interface FormData {
   nombre: string;
@@ -233,15 +219,13 @@ function OutfitForm({ initial, onSave, onClose, saving, title, icon }: OutfitFor
 
 export default function ArmarioPage() {
   const {
-    data: outfits = [],
+    outfits = [],
     loading,
-    addRow: addOutfit,
-    updateRow: updateOutfit,
-    deleteRow: deleteOutfit,
-    refetch: refetchOutfits,
-  } = useSupabaseData<Outfit>("ropa", {
-    order: { campo: "created_at", asc: false },
-  });
+    addOutfit,
+    updateOutfit,
+    deleteOutfit,
+    refetchOutfits,
+  } = useOutfits();
 
   const [lightbox, setLightbox]           = useState<Outfit | null>(null);
   const [showNuevo, setShowNuevo]         = useState(false);

@@ -577,7 +577,7 @@ export function GrafoEnsayos({
     <>
       {/* ── Botón trigger ── */}
       <button
-        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/35 hover:bg-primary/8 hover:border-primary/25 hover:text-primary/70"
+        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-3xs font-bold uppercase tracking-widest border transition-all border-primary/10 text-primary/40 hover:bg-primary/10 hover:border-primary/20 hover:text-primary/70"
         style={{ fontFamily: "var(--font-mono)" }}
         title="Ver red de ensayos relacionados"
         onClick={() => setAbierto(true)}
@@ -592,7 +592,7 @@ export function GrafoEnsayos({
           onClick={() => setAbierto(false)}
         >
           <div
-            className="relative w-full max-w-5xl bg-bg-main rounded-2xl shadow-2xl border border-primary/15 flex flex-col overflow-hidden"
+            className="relative w-full max-w-5xl bg-bg-main rounded-2xl shadow-2xl border border-primary/10 flex flex-col overflow-hidden"
             style={{ height: "min(90vh, 680px)" }}
             onClick={e => e.stopPropagation()}
           >
@@ -602,7 +602,7 @@ export function GrafoEnsayos({
                 {/* Botón atrás si hay historial */}
                 {historial.length > 1 && (
                   <button
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-primary/40 hover:text-primary/70 hover:bg-primary/8 transition-all"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-primary/40 hover:text-primary/70 hover:bg-primary/10 transition-all"
                     title="Volver al ensayo anterior"
                     onClick={handleAtras}
                   >
@@ -610,15 +610,15 @@ export function GrafoEnsayos({
                   </button>
                 )}
                 <Network className="text-primary/40" size={11} />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/50" style={{ fontFamily: "var(--font-mono)" }}>
+                <span className="text-3xs font-black uppercase tracking-widest text-primary/70" style={{ fontFamily: "var(--font-mono)" }}>
                   red de ensayos
                 </span>
-                <span className="text-[11px] text-primary/30" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}>
+                <span className="text-2xs text-primary/40" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic" }}>
                   — {ensayoCentro.titulo || "Sin título"}
                 </span>
               </div>
               <button
-                className="w-6 h-6 flex items-center justify-center rounded-lg text-primary/30 hover:text-primary hover:bg-primary/10 transition-all"
+                className="w-6 h-6 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/10 transition-all"
                 onClick={() => setAbierto(false)}
               >
                 <X size={12} />
@@ -630,36 +630,36 @@ export function GrafoEnsayos({
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full border border-primary/40 bg-transparent" />
-                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>este ensayo</span>
+                  <span className="uppercase tracking-widest text-primary/40" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>este ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <svg height="10" viewBox="-5 -5 10 10" width="10">
                     <polygon className="text-primary/40" fill="none" points="0,-4 4,0 0,4 -4,0" stroke="currentColor" strokeWidth="1.2" />
                   </svg>
-                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags</span>
+                  <span className="uppercase tracking-widest text-primary/40" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <svg height="10" viewBox="-5 -5 10 10" width="10">
                     <polygon fill="rgba(100,150,255,0.25)" points="0,-4 4,0 0,4 -4,0" stroke="rgba(100,150,255,0.8)" strokeWidth="1.5" />
                   </svg>
-                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tag = ensayo</span>
+                  <span className="uppercase tracking-widest text-primary/40" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tag = ensayo</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full border border-dashed border-primary/20 bg-transparent" />
-                  <span className="uppercase tracking-widest text-primary/35" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>relacionados</span>
+                  <span className="uppercase tracking-widest text-primary/40" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>relacionados</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <svg height="8" viewBox="-4 -4 8 8" width="8">
-                    <polygon className="text-primary/25" fill="none" points="0,-3 3,0 0,3 -3,0" stroke="currentColor" strokeWidth="1" />
+                    <polygon className="text-primary/20" fill="none" points="0,-3 3,0 0,3 -3,0" stroke="currentColor" strokeWidth="1" />
                   </svg>
-                  <span className="uppercase tracking-widest text-primary/25" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags de relacionados</span>
+                  <span className="uppercase tracking-widest text-primary/20" style={{ fontFamily: "var(--font-mono)", fontSize: 8 }}>tags de relacionados</span>
                 </div>
               </div>
 
               {tagsCentro.slice(0, 8).map(tag => (
                 <div key={tag} className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ background: hashColor(tag, 0.75) }} />
-                  <span className="uppercase tracking-widest text-primary/30" style={{ fontFamily: "var(--font-mono)", fontSize: 7 }}>
+                  <span className="uppercase tracking-widest text-primary/40" style={{ fontFamily: "var(--font-mono)", fontSize: 7 }}>
                     #{tag}
                   </span>
                 </div>
@@ -678,8 +678,8 @@ export function GrafoEnsayos({
                 </div>
               ) : datos.nodos.filter(n => n.profundidad === 2 || n.profundidad === 3).length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <FileText className="text-primary/15" size={28} />
-                  <p className="text-[9px] font-bold text-primary/20 uppercase tracking-widest italic" style={{ fontFamily: "var(--font-mono)" }}>
+                  <FileText className="text-primary/20" size={28} />
+                  <p className="text-3xs font-bold text-primary/20 uppercase tracking-widest italic" style={{ fontFamily: "var(--font-mono)" }}>
                     ningún ensayo comparte estos tags
                   </p>
                 </div>

@@ -35,7 +35,7 @@ import {
   FieldInput,
   MacroBadge,
 } from "@/features/ensayos/components/cocina/SaludUi";
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
+import { useIngredientes } from "@/features/ensayos/hooks/cocina/useIngredientes";
 import { useToast } from "@/hooks/ui/useToast";
 import type { Ingrediente } from "@/lib/types/queries";
 
@@ -76,13 +76,13 @@ export const IngredientesPage = () => {
   const { toasts, toast, dismiss } = useToast();
 
   const {
-    data: ingredientes,
+    ingredientes,
     loading: hookLoading,
     refetch,
     addRow,
     updateRow,
     deleteRow,
-  } = useSupabaseData<Ingrediente>("ingredientes");
+  } = useIngredientes();
 
   const [localItems, setLocalItems] = useState<Ingrediente[] | null>(() =>
     ingredientes?.length ? ingredientes : null,
@@ -277,18 +277,18 @@ export const IngredientesPage = () => {
 
           <div className="relative w-full sm:w-48">
             <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/30"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/40"
               size={11}
             />
             <input
-              className="input-brand pl-7 pr-7 text-[10px] py-1.5"
+              className="input-brand pl-7 pr-7 text-2xs py-1.5"
               placeholder="Buscar..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
             {filter && (
               <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/40 hover:text-primary transition-colors"
                 onClick={() => setFilter("")}
               >
                 <X size={10} />
@@ -298,7 +298,7 @@ export const IngredientesPage = () => {
 
           <div className="flex items-center gap-1.5">
             <Link
-              className="flex items-center gap-1.5 text-[9px] py-1.5 px-3 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/50 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
+              className="flex items-center gap-1.5 text-3xs py-1.5 px-3 tracking-widest font-black uppercase rounded-[var(--radius-btn)] border border-primary/20 text-primary/70 hover:border-primary/40 hover:text-primary transition-all bg-white-custom"
               href="/personal/salud/compras"
             >
               <ShoppingCart size={11} />
@@ -319,16 +319,16 @@ export const IngredientesPage = () => {
       <main className="px-3 pt-3 pb-6 space-y-3">
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
-            className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-[8px] font-black uppercase tracking-wide transition-all border ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
               catFilter === null
                 ? "bg-primary text-btn-text border-primary shadow-sm"
-                : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+                : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
             }`}
             onClick={() => setCatFilter(null)}
           >
             Todos
             <span
-              className={`text-[8px] px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+              className={`text-3xs px-1 py-0.5 rounded-full font-black ${catFilter === null ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
             >
               {stats.total}
             </span>
@@ -341,17 +341,17 @@ export const IngredientesPage = () => {
             return (
               <button
                 key={label}
-                className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-[8px] font-black uppercase tracking-wide transition-all border ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
                   active
                     ? "bg-bg-menu text-menu-text border-bg-menu shadow-sm"
-                    : "bg-white-custom border-primary/15 text-primary/50 hover:border-primary/30 hover:text-primary"
+                    : "bg-white-custom border-primary/10 text-primary/70 hover:border-primary/20 hover:text-primary"
                 }`}
                 onClick={() => setCatFilter(active ? null : label)}
               >
                 <Icon size={10} />
                 {label}
                 <span
-                  className={`text-[8px] px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
+                  className={`text-3xs px-1 py-0.5 rounded-full font-black ${active ? "bg-btn-text/20" : "bg-primary/5 text-primary/40"}`}
                 >
                   {count}
                 </span>
@@ -377,10 +377,10 @@ export const IngredientesPage = () => {
           ].map((f) => (
             <button
               key={f.key}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-[8px] font-black uppercase tracking-wide transition-all border ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide transition-all border ${
                 stockFilter === f.key
-                  ? "bg-accent/30 border-accent/50 text-primary"
-                  : "bg-transparent border-primary/10 text-primary/35 hover:border-primary/25 hover:text-primary/60"
+                  ? "bg-accent/40 border-accent/40 text-primary"
+                  : "bg-transparent border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/70"
               }`}
               onClick={() =>
                 setStockFilter(stockFilter === f.key ? "all" : f.key)
@@ -394,7 +394,7 @@ export const IngredientesPage = () => {
 
           {activeFilters > 0 && (
             <button
-              className="flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-[8px] font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide text-primary/40 hover:text-primary border border-dashed border-primary/20 hover:border-primary/40 transition-all"
               onClick={() => {
                 setFilter("");
                 setCatFilter(null);
@@ -407,7 +407,7 @@ export const IngredientesPage = () => {
           )}
 
           {(filter || catFilter || stockFilter !== "all") && (
-            <span className="text-[8px] font-bold text-primary/30 uppercase tracking-widest ml-1">
+            <span className="text-3xs font-bold text-primary/40 uppercase tracking-widest ml-1">
               {filteredItems.length} resultado
               {filteredItems.length !== 1 ? "s" : ""}
             </span>
@@ -418,13 +418,13 @@ export const IngredientesPage = () => {
           <Loading fullScreen={false} />
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-16 space-y-2">
-            <FlaskConical className="mx-auto text-primary/15" size={32} />
-            <p className="text-[10px] font-black uppercase tracking-widest text-primary/25">
+            <FlaskConical className="mx-auto text-primary/20" size={32} />
+            <p className="text-2xs font-black uppercase tracking-widest text-primary/20">
               {filter || catFilter ? "Sin resultados" : "Despensa vacía"}
             </p>
             {(filter || catFilter) && (
               <button
-                className="text-[10px] font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
+                className="text-2xs font-black text-accent hover:text-primary transition-colors uppercase tracking-wide"
                 onClick={() => {
                   setFilter("");
                   setCatFilter(null);
@@ -462,7 +462,7 @@ export const IngredientesPage = () => {
                     initial={{ opacity: 0, y: 16 }}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
+                      <span className="text-3xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bg-menu text-menu-text flex items-center gap-1 shrink-0">
                         <CatIcon size={9} />
                         {item.categoria}
                       </span>
@@ -476,17 +476,17 @@ export const IngredientesPage = () => {
                             exit={{ opacity: 0, x: 8 }}
                             initial={{ opacity: 0, x: 8 }}
                           >
-                            <span className="text-[7px] font-black uppercase text-red-400 tracking-wide">
+                            <span className="text-3xs font-black uppercase text-red-400 tracking-wide">
                               ¿Eliminar?
                             </span>
                             <button
-                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-red-100 text-red-500 text-[7px] font-black uppercase hover:bg-red-200 transition-all"
+                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-red-100 text-red-500 text-3xs font-black uppercase hover:bg-red-200 transition-all"
                               onClick={() => handleDelete(item.id)}
                             >
                               Sí
                             </button>
                             <button
-                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-primary/8 text-primary/40 text-[7px] font-black uppercase hover:bg-primary/15 transition-all"
+                              className="px-1.5 py-0.5 rounded-[var(--radius-btn)] bg-primary/10 text-primary/40 text-3xs font-black uppercase hover:bg-primary/20 transition-all"
                               onClick={() => setConfirmDelete(null)}
                             >
                               No
@@ -523,18 +523,18 @@ export const IngredientesPage = () => {
 
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-[11px] font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
+                        <h3 className="text-2xs font-black uppercase italic tracking-tight leading-tight mb-0.5 text-primary">
                           {item.nombre}
                         </h3>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-primary/30">
+                        <p className="text-3xs font-bold uppercase tracking-widest text-primary/40">
                           por {item.porcion_texto}
                         </p>
                       </div>
                       <button
-                        className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-[8px] font-black uppercase tracking-wide border transition-all ${
+                        className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-[var(--radius-btn)] text-3xs font-black uppercase tracking-wide border transition-all ${
                           qtyOpen[item.id]
-                            ? "bg-accent/25 border-accent/40 text-primary"
-                            : "bg-bg-main border-primary/10 text-primary/35 hover:text-primary hover:border-primary/25"
+                            ? "bg-accent/20 border-accent/40 text-primary"
+                            : "bg-bg-main border-primary/10 text-primary/40 hover:text-primary hover:border-primary/20"
                         }`}
                         onClick={() =>
                           setQtyOpen((p) => ({ ...p, [item.id]: !p[item.id] }))
@@ -554,11 +554,11 @@ export const IngredientesPage = () => {
                           transition={{ duration: 0.18 }}
                         >
                           <div className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 rounded-[var(--radius-btn)] px-2 py-1.5">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-primary/40 shrink-0">
+                            <span className="text-3xs font-black uppercase tracking-widest text-primary/40 shrink-0">
                               Cant.
                             </span>
                             <button
-                              className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                              className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/40 hover:text-primary transition-all shrink-0"
                               onClick={() =>
                                 setQtyMap((p) => ({
                                   ...p,
@@ -572,7 +572,7 @@ export const IngredientesPage = () => {
                               <Minus size={9} />
                             </button>
                             <input
-                              className="w-12 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-0.5 text-[10px] font-black text-primary outline-none"
+                              className="w-12 text-center bg-white-custom border border-primary/10 rounded-[var(--radius-btn)] py-0.5 text-2xs font-black text-primary outline-none"
                               min="0.1"
                               step="0.5"
                               type="number"
@@ -588,7 +588,7 @@ export const IngredientesPage = () => {
                               }
                             />
                             <button
-                              className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-primary transition-all shrink-0"
+                              className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/40 hover:text-primary transition-all shrink-0"
                               onClick={() =>
                                 setQtyMap((p) => ({
                                   ...p,
@@ -599,7 +599,7 @@ export const IngredientesPage = () => {
                               <Plus size={9} />
                             </button>
                             <button
-                              className="ml-auto text-[7px] font-black uppercase text-primary/25 hover:text-primary transition-colors tracking-wide"
+                              className="ml-auto text-3xs font-black uppercase text-primary/20 hover:text-primary transition-colors tracking-wide"
                               onClick={() => {
                                 setQtyMap((p) => ({ ...p, [item.id]: 1 }));
                               }}
@@ -617,7 +617,7 @@ export const IngredientesPage = () => {
                         q === 1 ? undefined : Math.round(v * q * 10) / 10;
                       return (
                         <>
-                          <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/8 px-1">
+                          <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/10 px-1">
                             <MacroBadge
                               label="Prot"
                               scaled={sc(item.proteinas)}
@@ -641,7 +641,7 @@ export const IngredientesPage = () => {
                           {(item.fibra > 0 ||
                             item.sodio > 0 ||
                             item.agua_ml > 0) && (
-                            <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/8 px-1">
+                            <div className="grid grid-cols-3 gap-1 rounded-[var(--radius-btn)] bg-bg-main border border-primary/10 px-1">
                               {item.fibra > 0 && (
                                 <MacroBadge
                                   label="Fibra"
@@ -669,18 +669,18 @@ export const IngredientesPage = () => {
                             </div>
                           )}
 
-                          <div className="flex items-center gap-1.5 rounded-[var(--radius-btn)] bg-accent/20 border border-accent/25 px-3 py-1.5">
+                          <div className="flex items-center gap-1.5 rounded-[var(--radius-btn)] bg-accent/20 border border-accent/20 px-3 py-1.5">
                             <Flame
                               className="text-accent shrink-0 fill-accent/60"
                               size={10}
                             />
                             <span
-                              className={`text-[9px] font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}
+                              className={`text-3xs font-black tracking-widest uppercase flex-1 transition-colors ${q !== 1 ? "text-accent" : "text-primary/70"}`}
                             >
                               {q === 1 ? item.kcal : Math.round(item.kcal * q)}{" "}
                               kcal
                               {q !== 1 && (
-                                <span className="text-primary/30 font-semibold ml-1.5 normal-case tracking-normal text-[8px]">
+                                <span className="text-primary/40 font-semibold ml-1.5 normal-case tracking-normal text-3xs">
                                   ({item.kcal} c/u)
                                 </span>
                               )}
@@ -710,14 +710,14 @@ export const IngredientesPage = () => {
                           />
                         )}
                         <span
-                          className={`text-[9px] font-black uppercase ${hasStock ? "text-green-600/70" : "text-red-400/70"}`}
+                          className={`text-3xs font-black uppercase ${hasStock ? "text-green-600/70" : "text-red-400/70"}`}
                         >
                           {hasStock ? `${item.stock_actual} uds.` : "Agotado"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <button
-                          className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-red-300 hover:border-red-100 transition-all"
+                          className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/40 hover:text-red-300 hover:border-red-100 transition-all"
                           onClick={() =>
                             handleUpdateStock(item.id, item.stock_actual, -1)
                           }
@@ -725,7 +725,7 @@ export const IngredientesPage = () => {
                           <Minus size={10} />
                         </button>
                         <button
-                          className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/30 hover:text-green-400/80 hover:border-green-100 transition-all"
+                          className="w-5 h-5 flex items-center justify-center bg-white-custom rounded-[var(--radius-btn)] border border-primary/10 text-primary/40 hover:text-green-400/80 hover:border-green-100 transition-all"
                           onClick={() =>
                             handleUpdateStock(item.id, item.stock_actual, 1)
                           }
@@ -761,13 +761,13 @@ export const IngredientesPage = () => {
             >
               <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
                 <div>
-                  <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mb-4" />
+                  <div className="sm:hidden w-10 h-1 bg-primary/20 rounded-full mb-4" />
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
                     Nuevo <span className="text-primary/20">Insumo</span>
                   </h2>
                 </div>
                 <BtnIcon
-                  className="hidden sm:flex border-none bg-primary/8 text-primary/40"
+                  className="hidden sm:flex border-none bg-primary/10 text-primary/40"
                   variant="ghost"
                   onClick={() => setIsModalOpen(false)}
                 >
@@ -788,11 +788,11 @@ export const IngredientesPage = () => {
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
+                        <label className="text-3xs font-black uppercase tracking-widest text-primary/40 pl-1">
                           Categoría
                         </label>
                         <select
-                          className="input-brand text-[11px] font-bold appearance-none"
+                          className="input-brand text-2xs font-bold appearance-none"
                           value={formData.categoria}
                           onChange={(e) =>
                             setFormData((p) => ({
@@ -927,14 +927,14 @@ export const IngredientesPage = () => {
             >
               <div className="flex items-center justify-between px-7 pt-7 pb-4 shrink-0">
                 <div>
-                  <div className="sm:hidden w-10 h-1 bg-primary/15 rounded-full mb-4" />
+                  <div className="sm:hidden w-10 h-1 bg-primary/20 rounded-full mb-4" />
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter text-primary">
                     Editar{" "}
                     <span className="text-primary/20">{editItem.nombre}</span>
                   </h2>
                 </div>
                 <BtnIcon
-                  className="hidden sm:flex border-none bg-primary/8 text-primary/40"
+                  className="hidden sm:flex border-none bg-primary/10 text-primary/40"
                   variant="ghost"
                   onClick={() => setEditItem(null)}
                 >
@@ -955,11 +955,11 @@ export const IngredientesPage = () => {
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] font-black uppercase tracking-widest text-primary/40 pl-1">
+                        <label className="text-3xs font-black uppercase tracking-widest text-primary/40 pl-1">
                           Categoría
                         </label>
                         <select
-                          className="input-brand text-[11px] font-bold appearance-none"
+                          className="input-brand text-2xs font-bold appearance-none"
                           value={editForm.categoria}
                           onChange={(e) =>
                             setEditForm((p) => ({

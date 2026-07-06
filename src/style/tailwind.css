@@ -100,6 +100,17 @@
   --radius-input: var(--radius-input);
   --shadow-card: var(--shadow-card);
 
+  /* ── Escala de texto "micro" ──────────────────────────────────────────────
+     La UI usa mucho texto sub-12px (labels, badges, timestamps en widgets
+     densos) donde el text-xs de Tailwind (12px) es demasiado grande.
+     En vez de que cada componente escriba text-[7px]/[8px]/[9px]/[10px]/[11px]
+     a su gusto, se consolidan en DOS tamaños fijos:
+       - text-3xs (8px)  → la micro-etiqueta más chica (antes 7px/8px/9px)
+       - text-2xs (10px) → la etiqueta chica "estándar" (antes 10px/11px)
+     Ver /DESIGN_TOKENS.md para las reglas de uso completas. */
+  --text-3xs: 0.5rem;      /* 8px */
+  --text-2xs: 0.625rem;    /* 10px */
+
   --animate-cursor-blink: blink 1s step-end infinite;
   --animate-shake: shake 0.2s ease-in-out 0s 2;
   --animate-scanline: scanline-move 8s linear infinite;

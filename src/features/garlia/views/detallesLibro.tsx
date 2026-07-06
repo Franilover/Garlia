@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   TriangleAlert,
   ArrowLeft,
-  BookOpen,
-  User,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState, useRef } from "react";
@@ -556,7 +554,6 @@ export default function LibroDetalle() {
                 <SmartImage
                   alt={p.nombre}
                   className="w-full h-full object-cover"
-                  fallbackIcon={<User size={10} />}
                   src={p.img_url}
                 />
               ) : (
@@ -734,7 +731,6 @@ export default function LibroDetalle() {
             <SmartImage
               alt={libro.titulo}
               className="w-full h-full"
-              fallbackIcon={<BookOpen size={24} />}
               src={libro.portada_url || "/placeholder-cover.jpg"}
             />
           </div>
@@ -771,7 +767,6 @@ export default function LibroDetalle() {
             <SmartImage
               alt={libro.titulo}
               className="w-full h-full"
-              fallbackIcon={<BookOpen size={24} />}
               src={libro.portada_url || "/placeholder-cover.jpg"}
             />
           </div>

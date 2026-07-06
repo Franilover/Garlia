@@ -23,29 +23,8 @@ import React, {
 
 import { Btn, BtnIcon, Badge, Loading, EmptyState } from "@/components/ui";
 import { MotionDiv } from "@/components/ui/Motion";
-import {
-  rutinasQueries,
-  ejerciciosQueries,
-} from "@/lib/api/queries/personal/ejercicios";
+import { useRutinas, type Ejercicio, type Rutina } from "@/features/ensayos/hooks/ejercicios/useRutinas";
 import { cn } from "@/lib/utils/index";
-
-interface Ejercicio {
-  id: string;
-  nombre: string;
-  series: number;
-  reps: string;
-  descanso: number;
-  musculo: string;
-  notas?: string;
-  orden?: number;
-}
-interface Rutina {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  tag: string;
-  ejercicios: Ejercicio[];
-}
 
 const TAGS = ["Todas", "Fuerza", "Cardio", "Flexibilidad", "Movilidad"];
 const TAG_ICONS: Record<string, LucideIcon> = {
@@ -147,7 +126,7 @@ const EjecutarRutina = ({
           initial={{ scale: 0.8, opacity: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">
+          <span className="text-2xs font-black uppercase tracking-[0.4em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] italic">
             Completado
           </span>
           <h2 className="text-5xl font-black text-btn-text italic tracking-tighter text-center">
@@ -177,7 +156,7 @@ const EjecutarRutina = ({
     >
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
-          <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
+          <span className="text-3xs font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
             Rutina
           </span>
           <h2 className="text-lg font-black text-btn-text italic tracking-tight">
@@ -212,10 +191,10 @@ const EjecutarRutina = ({
           ))}
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
+          <span className="text-3xs font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
             Ejercicio {ejercicioIdx + 1} de {(rutina.ejercicios ?? []).length}
           </span>
-          <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
+          <span className="text-3xs font-black text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] uppercase tracking-widest">
             Serie {serieActual} de {ejercicio.series}
           </span>
         </div>
@@ -229,7 +208,7 @@ const EjecutarRutina = ({
             exit={{ opacity: 0, y: -20 }}
             initial={{ opacity: 0, y: 20 }}
           >
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
+            <span className="text-3xs font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic">
               {ejercicio.musculo}
             </span>
             <h1 className="text-4xl sm:text-6xl font-black text-btn-text italic tracking-tighter leading-none">
@@ -245,7 +224,7 @@ const EjecutarRutina = ({
               ).map(([label, val], i, arr) => (
                 <React.Fragment key={label}>
                   <div className="flex flex-col items-center">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)]">
+                    <span className="text-3xs font-black uppercase tracking-widest text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)]">
                       {label}
                     </span>
                     <span className="text-2xl font-black text-btn-text tabular-nums">
@@ -259,7 +238,7 @@ const EjecutarRutina = ({
               ))}
             </div>
             {ejercicio.notas && (
-              <span className="text-[10px] font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">
+              <span className="text-2xs font-bold text-[color-mix(in_srgb,var(--btn-text)_30%,transparent)] italic mt-1">
                 * {ejercicio.notas}
               </span>
             )}
@@ -267,7 +246,7 @@ const EjecutarRutina = ({
         </AnimatePresence>
         {fase === "descanso" ? (
           <div className="flex flex-col items-center gap-4">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">
+            <span className="text-3xs font-black uppercase tracking-[0.3em] text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)]">
               Descansando
             </span>
             <div className="relative w-36 h-36">
@@ -298,7 +277,7 @@ const EjecutarRutina = ({
                 <span className="text-4xl font-black text-btn-text tabular-nums tracking-tighter">
                   {segundos}
                 </span>
-                <span className="text-[8px] font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">
+                <span className="text-3xs font-black text-[color-mix(in_srgb,var(--btn-text)_40%,transparent)] uppercase tracking-widest">
                   seg
                 </span>
               </div>
@@ -383,16 +362,16 @@ const CardRutina = ({
       <div className="p-3 cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2.5">
           {/* Icono */}
-          <div className="w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 bg-primary/8 text-primary/50">
+          <div className="w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center shrink-0 bg-primary/10 text-primary/70">
             <Icon size={15} />
           </div>
 
           {/* Nombre + meta */}
           <div className="flex-1 min-w-0" title={rutina.descripcion}>
-            <span className="text-[13px] font-black text-primary tracking-tight truncate leading-none block">
+            <span className="text-xs font-black text-primary tracking-tight truncate leading-none block">
               {rutina.nombre}
             </span>
-            <span className="text-[10px] font-bold text-primary/35 leading-none mt-0.5 block truncate">
+            <span className="text-2xs font-bold text-primary/40 leading-none mt-0.5 block truncate">
               {rutina.tag} · {ejercicios.length} ejerc. · {totalSeries} series
             </span>
           </div>
@@ -400,7 +379,7 @@ const CardRutina = ({
           {/* Acciones */}
           <div className="flex items-center gap-1 shrink-0">
             <button
-              className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-accent hover:bg-accent/8 transition-all opacity-0 group-hover:opacity-100"
+              className="w-6 h-6 flex items-center justify-center rounded text-primary/20 hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100"
               title="Eliminar"
               onClick={(e) => {
                 e.stopPropagation();
@@ -423,7 +402,7 @@ const CardRutina = ({
               animate={{ rotate: expandida ? 180 : 0 }}
               transition={{ duration: 0.2 }}
             >
-              <ChevronDown className="text-primary/30" size={14} />
+              <ChevronDown className="text-primary/40" size={14} />
             </MotionDiv>
           </div>
         </div>
@@ -444,25 +423,25 @@ const CardRutina = ({
                   <MotionDiv
                     key={ej.id}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2 p-2 bg-primary/3 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5"
+                    className="flex items-center gap-2 p-2 bg-primary/5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/5"
                     initial={{ opacity: 0, x: -8 }}
                     transition={{ delay: i * 0.03 }}
                   >
-                    <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
+                    <span className="text-3xs font-black text-primary/40 w-3.5 shrink-0">
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black text-primary truncate leading-tight">
+                      <p className="text-2xs font-black text-primary truncate leading-tight">
                         {ej.nombre}
                       </p>
-                      <p className="text-[8px] font-bold text-primary/35 uppercase tracking-wide leading-tight">
+                      <p className="text-3xs font-bold text-primary/40 uppercase tracking-wide leading-tight">
                         {ej.musculo}
                       </p>
                     </div>
-                    <span className="text-[9px] font-black text-primary/50 shrink-0">
+                    <span className="text-3xs font-black text-primary/70 shrink-0">
                       {ej.series}×{ej.reps}
                     </span>
-                    <span className="text-[8px] font-bold text-primary/25 shrink-0">
+                    <span className="text-3xs font-bold text-primary/20 shrink-0">
                       {ej.descanso}s
                     </span>
                   </MotionDiv>
@@ -500,7 +479,7 @@ const FormNuevaRutina = ({
     musculo: "",
   });
   const inputCls =
-    "bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/30 placeholder:text-primary/20";
+    "bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-btn)] px-3 py-2 text-xs font-bold text-primary outline-none focus:border-primary/20 placeholder:text-primary/20";
 
   const addEjercicio = () => {
     if (!nuevoEj.nombre.trim()) return;
@@ -530,18 +509,18 @@ const FormNuevaRutina = ({
       className="bg-white-custom border-[length:var(--border-width)] border-primary/10 rounded-[var(--radius-card)] p-4 shadow-lg shadow-primary/5"
       initial={{ opacity: 0, y: 12 }}
     >
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40 mb-3">
+      <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-3">
         Nueva rutina
       </p>
       <div className="space-y-2 mb-3">
         <input
-          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
+          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/20 transition-all"
           placeholder="Nombre de la rutina..."
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
         />
         <input
-          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all"
+          className="w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/20 transition-all"
           placeholder="Descripción..."
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
@@ -559,19 +538,19 @@ const FormNuevaRutina = ({
           {ejercicios.map((ej, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 p-2 bg-primary/4 rounded-[var(--radius-btn)]"
+              className="flex items-center gap-2 p-2 bg-primary/5 rounded-[var(--radius-btn)]"
             >
-              <span className="text-[8px] font-black text-primary/30 w-3.5 shrink-0">
+              <span className="text-3xs font-black text-primary/40 w-3.5 shrink-0">
                 {i + 1}
               </span>
-              <span className="text-[11px] font-black text-primary flex-1 truncate">
+              <span className="text-2xs font-black text-primary flex-1 truncate">
                 {ej.nombre}
               </span>
-              <span className="text-[9px] text-primary/40 font-bold shrink-0">
+              <span className="text-3xs text-primary/40 font-bold shrink-0">
                 {ej.series}×{ej.reps}
               </span>
               <button
-                className="w-5 h-5 flex items-center justify-center rounded text-primary/30 hover:text-accent hover:bg-accent/8 transition-all shrink-0"
+                className="w-5 h-5 flex items-center justify-center rounded text-primary/40 hover:text-accent hover:bg-accent/10 transition-all shrink-0"
                 onClick={() =>
                   setEjercicios((p) => p.filter((_, j) => j !== i))
                 }
@@ -582,8 +561,8 @@ const FormNuevaRutina = ({
           ))}
         </div>
       )}
-      <div className="bg-primary/4 rounded-[var(--radius-btn)] p-3 mb-3 border-[length:var(--border-width)] border-primary/8">
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-2">
+      <div className="bg-primary/5 rounded-[var(--radius-btn)] p-3 mb-3 border-[length:var(--border-width)] border-primary/10">
+        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-2">
           Añadir ejercicio
         </p>
         <div className="grid grid-cols-2 gap-1.5 mb-1.5">
@@ -666,44 +645,12 @@ const FormNuevaRutina = ({
 };
 
 export const PaginaEjercicios = () => {
-  const [rutinas, setRutinas] = useState<Rutina[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const { rutinas, cargando, guardando, crearRutina, eliminarRutina } = useRutinas();
 
-  const fetchRutinas = useCallback(async () => {
-    setCargando(true);
-    try {
-      const { supabase } = await import("@/lib/api/client/supabase");
-      const { data, error } = await supabase
-        .from("rutinas")
-        .select("*, ejercicios(*)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setRutinas(
-        (data ?? []).map((r: any) => ({
-          ...r,
-          ejercicios: (r.ejercicios ?? []).sort(
-            (a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0),
-          ),
-        })),
-      );
-    } catch (err) {
-      console.error("[PaginaEjercicios] fetch:", err);
-      setRutinas([]);
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchRutinas();
-  }, [fetchRutinas]);
-
-  const refetch = fetchRutinas;
   const [rutinaActiva, setRutinaActiva] = useState<Rutina | null>(null);
   const [expandida, setExpandida] = useState<string | null>(null);
   const [filtroTag, setFiltroTag] = useState("Todas");
   const [creando, setCreando] = useState(false);
-  const [guardando, setGuardando] = useState(false);
 
   const rutinasFiltradas = useMemo(
     () =>
@@ -717,30 +664,12 @@ export const PaginaEjercicios = () => {
     datos: { nombre: string; descripcion: string; tag: string },
     ejercicios: Omit<Ejercicio, "id">[],
   ) => {
-    if (!datos.nombre.trim() || ejercicios.length === 0) return;
-    setGuardando(true);
-    try {
-      const rutinaCreada = await rutinasQueries.add(datos);
-      await ejerciciosQueries.reemplazar(
-        rutinaCreada.id,
-        ejercicios.map((e, i) => ({ ...e, orden: i })),
-      );
-      void refetch();
-      setCreando(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setGuardando(false);
-    }
+    const ok = await crearRutina(datos, ejercicios);
+    if (ok) setCreando(false);
   };
 
   const handleEliminar = async (id: string) => {
-    try {
-      await rutinasQueries.delete(id);
-      void refetch();
-    } catch (err) {
-      console.error(err);
-    }
+    await eliminarRutina(id);
   };
 
   return (

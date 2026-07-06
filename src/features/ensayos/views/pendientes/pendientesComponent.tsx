@@ -5,31 +5,11 @@ import {
   Film, Gamepad2, Tv, Rss, ExternalLink, Loader2, ChevronDown, Pencil as PencilIcon,
   type LucideIcon,
 } from "lucide-react";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 
+import { usePendientes, type Categoria, type Item } from "@/features/ensayos/hooks/pendientes/usePendientes";
 import { cn } from "@/lib/utils/index";
 
-
-// ─── Tipos ────────────────────────────────────────────────────────────────────
-
-interface Categoria {
-  id: string;
-  nombre: string;
-  icon: string;
-  color: number;
-  orden: number;
-}
-
-interface Item {
-  id: string;
-  categoria_id: string;
-  titulo: string;
-  url?: string;
-  nota?: string;
-  hecho: boolean;
-  orden: number;
-  created_at: string;
-}
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -52,66 +32,6 @@ function CatIcon({ name, size = 14 }: { name: string; size?: number }) {
   const Icon = ICON_MAP[name] ?? Music;
   return <Icon size={size} />;
 }
-
-// ─── Queries Supabase ─────────────────────────────────────────────────────────
-
-async function getSupabase() {
-  const { supabase } = await import("@/lib/api/client/supabase");
-  return supabase;
-}
-
-const categoriasQueries = {
-  async getAll(): Promise<Categoria[]> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("pendientes_categorias").select("*").order("orden", { ascending: true });
-    if (error) throw error;
-    return data ?? [];
-  },
-  async add(cat: Omit<Categoria, "id">): Promise<Categoria> {
-    const sb = await getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
-    const { data, error } = await sb.from("pendientes_categorias").insert({ ...cat, user_id: user?.id }).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async update(id: string, datos: Partial<Omit<Categoria, "id">>): Promise<Categoria> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("pendientes_categorias").update(datos).eq("id", id).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async delete(id: string): Promise<void> {
-    const sb = await getSupabase();
-    const { error } = await sb.from("pendientes_categorias").delete().eq("id", id);
-    if (error) throw error;
-  },
-};
-
-const itemsQueries = {
-  async getAll(): Promise<Item[]> {
-    const sb = await getSupabase();
-    const { data, error } = await sb.from("pendientes_items").select("*").order("orden", { ascending: true });
-    if (error) throw error;
-    return data ?? [];
-  },
-  async add(item: Omit<Item, "id" | "created_at">): Promise<Item> {
-    const sb = await getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
-    const { data, error } = await sb.from("pendientes_items").insert({ ...item, user_id: user?.id }).select().single();
-    if (error) throw error;
-    return data;
-  },
-  async toggleHecho(id: string, hecho: boolean): Promise<void> {
-    const sb = await getSupabase();
-    const { error } = await sb.from("pendientes_items").update({ hecho }).eq("id", id);
-    if (error) throw error;
-  },
-  async delete(id: string): Promise<void> {
-    const sb = await getSupabase();
-    const { error } = await sb.from("pendientes_items").delete().eq("id", id);
-    if (error) throw error;
-  },
-};
 
 // ─── Helpers de URL ───────────────────────────────────────────────────────────
 
@@ -145,7 +65,7 @@ async function fetchYoutubeTitle(url: string): Promise<string | null> {
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/15 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/25 transition-all";
+  "w-full bg-primary/5 border-[length:var(--border-width)] border-transparent focus:border-primary/10 focus:bg-white-custom rounded-[var(--radius-btn)] py-2 px-3 text-sm font-bold text-primary outline-none placeholder:text-primary/20 transition-all";
 
 // ─── Selector de icono compartido ─────────────────────────────────────────────
 
@@ -158,7 +78,7 @@ const IconSelector = ({ value, onChange }: { value: string; onChange: (v: string
           "w-8 h-8 rounded-[var(--radius-btn)] flex items-center justify-center transition-all border-[length:var(--border-width)]",
           value === name
             ? "bg-primary text-btn-text border-primary"
-            : "bg-primary/5 text-primary/50 border-transparent hover:bg-primary/10 hover:text-primary/70"
+            : "bg-primary/5 text-primary/70 border-transparent hover:bg-primary/10 hover:text-primary/70"
         )}
         title={label}
         type="button"
@@ -195,7 +115,7 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
       exit={{ opacity: 0, y: -6 }}
       initial={{ opacity: 0, y: -6 }}
     >
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Nueva categoría</p>
+      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Nueva categoría</p>
       <input
         autoFocus
         className={inputCls}
@@ -205,12 +125,12 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
         onKeyDown={e => e.key === "Enter" && handleGuardar()}
       />
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="flex gap-2">
         <button
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
           disabled={!nombre.trim() || guardando}
           onClick={handleGuardar}
         >
@@ -218,7 +138,7 @@ const FormNuevaCategoria = ({ onGuardar, onCancelar, guardando, orden }: FormNue
           Guardar
         </button>
         <button
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary/8 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/12 transition-all"
+          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary/10 text-primary px-3 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
           onClick={onCancelar}
         >
           <X size={10} /> Cancelar
@@ -248,14 +168,14 @@ const FormEditarCategoria = ({ cat, onGuardar, onCancelar, guardando }: FormEdit
 
   return (
     <div className="px-3 pb-3 border-t border-primary/5 pt-3 space-y-2.5">
-      <p className="text-[9px] font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
+      <p className="text-3xs font-black uppercase tracking-widest text-primary/40">Editar categoría</p>
       <input autoFocus className={inputCls} placeholder="Nombre..." value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => e.key === "Enter" && handleGuardar()} />
       <div>
-        <p className="text-[9px] font-black uppercase tracking-widest text-primary/30 mb-1.5">Icono</p>
+        <p className="text-3xs font-black uppercase tracking-widest text-primary/40 mb-1.5">Icono</p>
         <IconSelector value={icon} onChange={setIcon} />
       </div>
       <div className="flex gap-2">
-        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/15 text-xs font-black text-primary/60 hover:bg-primary/4 transition-all" onClick={onCancelar}>Cancelar</button>
+        <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] border-[length:var(--border-width)] border-primary/10 text-xs font-black text-primary/70 hover:bg-primary/5 transition-all" onClick={onCancelar}>Cancelar</button>
         <button className="flex-1 py-1.5 rounded-[var(--radius-btn)] bg-primary text-btn-text text-xs font-black hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center gap-1.5" disabled={!nombre.trim() || guardando} onClick={handleGuardar}>
           {guardando ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
           Guardar
@@ -314,7 +234,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
       initial={{ opacity: 0, height: 0 }}
     >
       <div
-        className={cn("pt-2 pb-1 space-y-1.5", dragOver && "ring-1 ring-primary/20 bg-primary/3 rounded-[var(--radius-btn)]")}
+        className={cn("pt-2 pb-1 space-y-1.5", dragOver && "ring-1 ring-primary/20 bg-primary/5 rounded-[var(--radius-btn)]")}
         onDragLeave={() => setDragOver(false)}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
         onDrop={handleDrop}
@@ -353,7 +273,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
         />
         <div className="flex gap-1.5 pt-0.5">
           <button
-            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 disabled:opacity-40 transition-all"
             disabled={!titulo.trim() || guardando || fetchingTitle}
             onClick={handleGuardar}
           >
@@ -361,7 +281,7 @@ const FormNuevoItem = ({ categoriaId, orden, onGuardar, onCancelar }: FormNuevoI
             Añadir
           </button>
           <button
-            className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary/8 text-primary px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/12 transition-all"
+            className="flex items-center gap-1 text-2xs font-black uppercase tracking-widest bg-primary/10 text-primary px-2.5 py-1.5 rounded-[var(--radius-btn)] hover:bg-primary/10 transition-all"
             onClick={onCancelar}
           >
             <X size={9} /> Cancelar
@@ -389,7 +309,7 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
       animate={{ opacity: 1, x: 0 }}
       className={cn(
         "flex items-center gap-2 py-1 px-1.5 rounded group transition-all",
-        item.hecho ? "opacity-35" : "hover:bg-primary/3"
+        item.hecho ? "opacity-35" : "hover:bg-primary/5"
       )}
       exit={{ opacity: 0, x: 4, scale: 0.97 }}
       initial={{ opacity: 0, x: -4 }}
@@ -398,15 +318,15 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
       <button
         className={cn(
           "w-3.5 h-3.5 rounded-[3px] border-[length:var(--border-width)] shrink-0 flex items-center justify-center transition-all",
-          item.hecho ? "bg-primary/20 border-primary/20" : "bg-transparent border-primary/25 hover:border-primary/50"
+          item.hecho ? "bg-primary/20 border-primary/20" : "bg-transparent border-primary/20 hover:border-primary/40"
         )}
         onClick={() => onToggle(item.id, !item.hecho)}
       >
-        {item.hecho && <Check className="text-primary/60" size={8} />}
+        {item.hecho && <Check className="text-primary/70" size={8} />}
       </button>
 
       {/* Título */}
-      <span className={cn("flex-1 min-w-0 text-[12px] font-bold leading-none text-primary/80 truncate", item.hecho && "line-through")}>
+      <span className={cn("flex-1 min-w-0 text-xs font-bold leading-none text-primary/70 truncate", item.hecho && "line-through")}>
         {item.titulo}
       </span>
 
@@ -414,7 +334,7 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
       <div className="flex items-center gap-1 shrink-0">
         {item.url && (
           <a
-            className="text-primary/30 hover:text-primary/60 transition-all"
+            className="text-primary/40 hover:text-primary/70 transition-all"
             href={cleanUrl(item.url)}
             rel="noopener noreferrer"
             target="_blank"
@@ -427,7 +347,7 @@ const CardItem = ({ item, onToggle, onEliminar }: CardItemProps) => {
           </a>
         )}
         <button
-          className="opacity-0 group-hover:opacity-100 text-primary/20 hover:text-primary/60 transition-all"
+          className="opacity-0 group-hover:opacity-100 text-primary/20 hover:text-primary/70 transition-all"
           onClick={() => onEliminar(item.id)}
         >
           <X size={11} />
@@ -484,12 +404,12 @@ const CardCategoria = ({
           {/* Header */}
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-primary/8 text-primary/50">
+              <div className="w-6 h-6 rounded flex items-center justify-center bg-primary/10 text-primary/70">
                 <CatIcon name={cat.icon} size={13} />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <p className="text-[13px] font-black text-primary leading-none">{cat.nombre}</p>
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary/30">
+                <p className="text-xs font-black text-primary leading-none">{cat.nombre}</p>
+                <span className="text-3xs font-black uppercase tracking-widest text-primary/40">
                   {pendientes.length > 0 ? pendientes.length : "—"}
                 </span>
               </div>
@@ -497,7 +417,7 @@ const CardCategoria = ({
 
             <div className="flex items-center gap-1">
               <button
-                className="w-6 h-6 flex items-center justify-center rounded text-primary/25 hover:text-primary/60 hover:bg-primary/8 transition-all"
+                className="w-6 h-6 flex items-center justify-center rounded text-primary/20 hover:text-primary/70 hover:bg-primary/10 transition-all"
                 title="Editar"
                 onClick={() => setEditando(true)}
               >
@@ -507,8 +427,8 @@ const CardCategoria = ({
                 className={cn(
                   "w-6 h-6 flex items-center justify-center rounded transition-all",
                   anadiendo
-                    ? "bg-primary/10 text-primary/60 hover:bg-primary/15"
-                    : "text-primary/30 hover:bg-primary/8 hover:text-primary/60"
+                    ? "bg-primary/10 text-primary/70 hover:bg-primary/20"
+                    : "text-primary/40 hover:bg-primary/10 hover:text-primary/70"
                 )}
                 title={anadiendo ? "Cancelar" : "Añadir ítem"}
                 onClick={() => setAnadiendo(v => !v)}
@@ -535,7 +455,7 @@ const CardCategoria = ({
           {/* Items pendientes */}
           <div className="px-2 pb-1">
             {pendientes.length === 0 && !anadiendo && (
-              <p className="text-[10px] font-bold text-center py-2 text-primary/20">Vacío</p>
+              <p className="text-2xs font-bold text-center py-2 text-primary/20">Vacío</p>
             )}
             <AnimatePresence mode="popLayout">
               {pendientes.map(item => (
@@ -548,7 +468,7 @@ const CardCategoria = ({
           {hechos.length > 0 && (
             <div className="border-t border-primary/5 px-3 py-1.5">
               <button
-                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/25 hover:text-primary/45 transition-all w-full"
+                className="flex items-center gap-1 text-3xs font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all w-full"
                 onClick={() => setMostrarHechos(v => !v)}
               >
                 <motion.div animate={{ rotate: mostrarHechos ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -577,7 +497,7 @@ const CardCategoria = ({
           {/* Eliminar categoría */}
           <div className="px-3 pb-2 pt-0.5">
             <button
-              className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-primary/15 hover:text-primary/40 transition-all"
+              className="flex items-center gap-1 text-3xs font-black uppercase tracking-widest text-primary/20 hover:text-primary/40 transition-all"
               onClick={() => onEliminarCat(cat.id)}
             >
               <X size={8} /> Eliminar
@@ -592,89 +512,24 @@ const CardCategoria = ({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export const PaginaPendientes = () => {
-  const [categorias, setCategorias]     = useState<Categoria[]>([]);
-  const [items, setItems]               = useState<Item[]>([]);
-  const [cargando, setCargando]         = useState(true);
-  const [creandoCat, setCreandoCat]     = useState(false);
-  const [guardandoCat, setGuardandoCat] = useState(false);
+  const {
+    categorias, items, cargando, guardandoCat,
+    crearCategoria, editarCategoria, eliminarCategoria,
+    agregarItem, toggleItem, eliminarItem,
+  } = usePendientes();
 
-  const cargar = useCallback(async () => {
-    setCargando(true);
-    try {
-      const [cats, its] = await Promise.all([categoriasQueries.getAll(), itemsQueries.getAll()]);
-      setCategorias(cats);
-      setItems(its);
-    } catch (err) {
-      console.error("[PaginaPendientes] cargar:", err);
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  useEffect(() => { void cargar(); }, [cargar]);
+  const [creandoCat, setCreandoCat] = useState(false);
 
   const handleGuardarCat = async (datos: Omit<Categoria, "id">) => {
-    setGuardandoCat(true);
-    try {
-      const nueva = await categoriasQueries.add(datos);
-      setCategorias(prev => [...prev, nueva]);
-      setCreandoCat(false);
-    } catch (err) {
-      console.error("[PaginaPendientes] guardar cat:", err);
-    } finally {
-      setGuardandoCat(false);
-    }
+    const ok = await crearCategoria(datos);
+    if (ok) setCreandoCat(false);
   };
 
-  const handleEditarCat = async (id: string, datos: Partial<Omit<Categoria, "id">>) => {
-    try {
-      const updated = await categoriasQueries.update(id, datos);
-      setCategorias(prev => prev.map(c => c.id === id ? updated : c));
-    } catch (err) {
-      console.error("[PaginaPendientes] editar cat:", err);
-      void cargar();
-    }
-  };
-
-  const handleEliminarCat = async (id: string) => {
-    setCategorias(prev => prev.filter(c => c.id !== id));
-    setItems(prev => prev.filter(i => i.categoria_id !== id));
-    try {
-      await categoriasQueries.delete(id);
-    } catch (err) {
-      console.error("[PaginaPendientes] eliminar cat:", err);
-      void cargar();
-    }
-  };
-
-  const handleAddItem = async (datos: Omit<Item, "id" | "created_at">) => {
-    try {
-      const nuevo = await itemsQueries.add(datos);
-      setItems(prev => [...prev, nuevo]);
-    } catch (err) {
-      console.error("[PaginaPendientes] add item:", err);
-    }
-  };
-
-  const handleToggleItem = async (id: string, hecho: boolean) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, hecho } : i));
-    try {
-      await itemsQueries.toggleHecho(id, hecho);
-    } catch (err) {
-      console.error("[PaginaPendientes] toggle:", err);
-      void cargar();
-    }
-  };
-
-  const handleEliminarItem = async (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-    try {
-      await itemsQueries.delete(id);
-    } catch (err) {
-      console.error("[PaginaPendientes] eliminar item:", err);
-      void cargar();
-    }
-  };
+  const handleEditarCat = editarCategoria;
+  const handleEliminarCat = eliminarCategoria;
+  const handleAddItem = agregarItem;
+  const handleToggleItem = toggleItem;
+  const handleEliminarItem = eliminarItem;
 
   const stats = useMemo(() => {
     const total      = items.length;
@@ -696,7 +551,7 @@ export const PaginaPendientes = () => {
           ].map(s => (
             <div key={s.label} className="flex items-baseline gap-1.5">
               <span className="text-lg font-black text-primary tracking-tight leading-none">{s.value}</span>
-              <span className="text-[9px] font-black uppercase tracking-widest text-primary/35">{s.label}</span>
+              <span className="text-3xs font-black uppercase tracking-widest text-primary/40">{s.label}</span>
             </div>
           ))}
         </div>
@@ -704,9 +559,9 @@ export const PaginaPendientes = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">Pendientes</span>
+        <span className="text-2xs font-black uppercase tracking-widest text-primary/40">Pendientes</span>
         <button
-          className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 text-2xs font-black uppercase tracking-widest bg-primary text-btn-text px-3 py-1.5 rounded-[var(--radius-btn)] hover:opacity-90 transition-opacity"
           onClick={() => setCreandoCat(v => !v)}
         >
           {creandoCat ? <X size={11} /> : <Plus size={11} />}
@@ -736,7 +591,7 @@ export const PaginaPendientes = () => {
         <div className="text-center py-12">
           <BookOpen className="mx-auto mb-2 text-primary/20" size={28} />
           <p className="text-xs font-black text-primary/40 uppercase tracking-widest">Nada por aquí aún</p>
-          <p className="text-[11px] text-primary/25 font-bold mt-1">Crea una categoría para empezar</p>
+          <p className="text-2xs text-primary/20 font-bold mt-1">Crea una categoría para empezar</p>
         </div>
       ) : (
         // CSS columns = masonry nativo: columnas de altura independiente,
