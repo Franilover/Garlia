@@ -340,9 +340,29 @@ export function UnifiedTileCanvas<
       centerImage();
     };
     apply();
+
+    // Si al montar el contenedor mide 0 (ej. al recargar la página directo
+    // en esta sección por el estado persistido de navegación, cuando el
+    // layout del sidebar/fuentes todavía no terminó de estabilizarse), el
+    // ResizeObserver puede no volver a disparar nunca — el contenedor ya
+    // no "cambia" de tamaño, simplemente nació en 0. Reintentamos unos
+    // frames hasta que mida algo real.
+    let raf = 0;
+    let attempts = 0;
+    const retryIfZero = () => {
+      if (container.clientHeight > 0 && container.clientWidth > 0) return;
+      if (++attempts > 30) return; // ~0.5s a 60fps, evita loop infinito
+      apply();
+      raf = requestAnimationFrame(retryIfZero);
+    };
+    raf = requestAnimationFrame(retryIfZero);
+
     const ro = new ResizeObserver(apply);
     ro.observe(container);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, [centerImage]);
 
   // Lee el factor cacheado — no mide el DOM en el hot path de eventos.

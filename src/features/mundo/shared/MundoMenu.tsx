@@ -112,7 +112,7 @@ export function MundoMenu() {
 
   return (
     <nav
-      className="w-64 shrink-0 border-r border-primary/10 overflow-y-auto py-3"
+      className="w-56 shrink-0 border-r border-primary/10 overflow-y-auto py-3"
       aria-label="Secciones del editor de mundo"
     >
       {GROUPS.map((group) => (
@@ -126,9 +126,9 @@ export function MundoMenu() {
                 key={`${item.key}-${item.magiaTipo ?? i}`}
                 type="button"
                 onClick={() => handleClick(item)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-colors text-left text-primary/60 hover:bg-primary/5 hover:text-primary"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors text-left text-primary/60 hover:bg-primary/5 hover:text-primary"
               >
-                <item.Icon size={14} strokeWidth={2} />
+                <item.Icon size={12} strokeWidth={2} />
                 {item.label}
               </button>
             ))}
