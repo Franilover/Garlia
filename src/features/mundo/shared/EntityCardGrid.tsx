@@ -48,7 +48,9 @@ export function EntityCardGrid({
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
           {title}
         </h2>
-        <span className="text-micro text-primary/25 tabular-nums">{items.length}</span>
+        <span className="text-micro text-primary/25 tabular-nums">
+          {items.length}
+        </span>
         <div className="flex-1" />
         {onCreate && (
           <button
@@ -68,13 +70,15 @@ export function EntityCardGrid({
       </div>
 
       {loading && items.length === 0 ? (
-        <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+        <div className="py-6 text-xs text-primary/30 text-center">
+          Cargando…
+        </div>
       ) : items.length === 0 ? (
         <div className="py-6 text-xs text-primary/25 text-center">
           {emptyLabel ?? `Sin ${title.toLowerCase()} todavía`}
         </div>
       ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-16 gap-2">
           {items.map((item) => (
             <EntityCard
               key={item.id}
