@@ -23,7 +23,7 @@ export function EntityCard({ nombre, imageUrl, Icon, onClick, subtitle }: Props)
     <button
       type="button"
       onClick={onClick}
-      className="group flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors hover:bg-primary/5 text-center"
+      className="group flex flex-col items-center gap-1 p-1 rounded-lg transition-colors hover:bg-primary/5 text-center"
     >
       <div className="w-full aspect-square rounded-xl overflow-hidden bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:border-primary/25 transition-colors">
         {imageUrl ? (

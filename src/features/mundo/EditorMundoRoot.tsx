@@ -45,17 +45,11 @@ import { useCreateEntity } from "./shared/useCreateEntity";
 import { useWikilinkNavigate } from "./shared/useWikilinkNavigate";
 
 // ─── Code-splitting por página combinada ──────────────────────────────────
-// Personajes/Criaturas/Items, Hechizos/Dones/Runas, Grupos/Notas y
-// Reinos/Ciudades ahora viven cada uno en una sola página con grid de
-// tarjetas por tipo, en vez de secciones separadas con lista+buscador.
+// Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas viven
+// TODOS juntos en EntidadesPage (una sola grilla grande de tarjetas).
+// Grupos/Notas siguen en OrganizacionPage aparte.
 const EntidadesPage = lazy(() =>
   import("./entidades/EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
-);
-const GeografiaPage = lazy(() =>
-  import("./geografia/GeografiaPage").then((m) => ({ default: m.GeografiaPage })),
-);
-const MagiaPage = lazy(() =>
-  import("./magia/MagiaPage").then((m) => ({ default: m.MagiaPage })),
 );
 const OrganizacionPage = lazy(() =>
   import("./organizacion/OrganizacionPage").then((m) => ({ default: m.OrganizacionPage })),
@@ -91,14 +85,12 @@ function ActiveSection() {
     case "personajes":
     case "criaturas":
     case "items":
-      return <EntidadesPage section={section} selectedId={selectedId} />;
     case "reinos":
     case "ciudades":
-      return <GeografiaPage section={section} selectedId={selectedId} />;
     case "hechizos":
     case "dones":
     case "runas":
-      return <MagiaPage section={section} selectedId={selectedId} />;
+      return <EntidadesPage section={section} selectedId={selectedId} />;
     case "grupos":
     case "notas":
       return <OrganizacionPage section={section} selectedId={selectedId} />;
