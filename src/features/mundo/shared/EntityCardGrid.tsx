@@ -30,25 +30,25 @@ interface Props {
   creating?: boolean;
   emptyLabel?: string;
   /**
-   * Cuántas de estas grillas van lado a lado en la fila:
-   * "full" (sola, 16 columnas) | "half" (2 en la fila, 8 columnas c/u) |
-   * "third" (3 en la fila, ~5 columnas c/u). Default: "full".
-   * Solo aplica a variant="grid" — variant="chips" siempre fluye libre.
+   * @deprecated Las columnas ahora son dinámicas (auto-fill según el ancho
+   * disponible), así que este prop ya no cambia nada — se deja para no
+   * romper a quien todavía lo pase. La cantidad de columnas se resuelve
+   * sola: un bloque "half" simplemente tiene menos ancho disponible que
+   * uno "full", y por lo tanto menos columnas, sin puntos de quiebre fijos.
    */
   layout?: "full" | "half" | "third";
   /**
-   * "grid" (default): tarjetas cuadradas con imagen/ícono, columnas fijas.
+   * "grid" (default): tarjetas cuadradas con imagen/ícono, columnas dinámicas
+   * (auto-fill) que se acomodan solas según el ancho disponible — más o
+   * menos columnas según cuánto espacio tenga el bloque en su fila, sin
+   * dejar espacio muerto.
    * "chips": solo texto, sin imagen, ancho automático según el contenido
-   * (flex-wrap) para aprovechar mejor el espacio en vez de columnas rígidas.
+   * (flex-wrap).
    */
   variant?: "grid" | "chips";
+  /** Ancho mínimo de cada tarjeta en px antes de que el grid agregue una columna más. Default: 76. */
+  minCardWidth?: number;
 }
-
-const GRID_COLS_BY_LAYOUT: Record<NonNullable<Props["layout"]>, string> = {
-  full: "grid-cols-4 sm:grid-cols-6 md:grid-cols-10 lg:grid-cols-[repeat(16,minmax(0,1fr))]",
-  half: "grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-[repeat(8,minmax(0,1fr))]",
-  third: "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-[repeat(5,minmax(0,1fr))]",
-};
 
 export function EntityCardGrid({
   title,
@@ -59,8 +59,8 @@ export function EntityCardGrid({
   onCreate,
   creating,
   emptyLabel,
-  layout = "full",
   variant = "grid",
+  minCardWidth = 76,
 }: Props) {
   return (
     <div className="mb-8 last:mb-0">
@@ -109,7 +109,10 @@ export function EntityCardGrid({
           ))}
         </div>
       ) : (
-        <div className={`grid ${GRID_COLS_BY_LAYOUT[layout]} gap-1.5`}>
+        <div
+          className="grid gap-1.5"
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minCardWidth}px, 1fr))` }}
+        >
           {items.map((item) => (
             <EntityCard
               key={item.id}
