@@ -202,10 +202,6 @@ export const SeccionEntidad = ({
       {/* ── Cabecera ── */}
       <div
         className="shrink-0 flex items-center justify-between px-2 py-1"
-        style={{
-          borderBottom:
-            "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
-        }}
       >
         <span
           className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] leading-none"
@@ -646,7 +642,7 @@ export const SeccionEntidad = ({
             const renderSelItem = (e: EntidadBase) => (
               <div
                 key={e.id}
-                className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
+                className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04]"
                 style={{ cursor: onEntityClick ? "pointer" : "default" }}
                 onClick={() => onEntityClick?.(e.id)}
               >
@@ -703,16 +699,10 @@ export const SeccionEntidad = ({
             return (
               <>
                 {ungroupedSel.map(renderSelItem)}
-                {groupedSel.map(({ group, items: gItems }, gi) => (
+                {groupedSel.map(({ group, items: gItems }) => (
                   <React.Fragment key={group.key}>
                     <div
                       className="flex items-center gap-1 px-3 py-0.5"
-                      style={{
-                        borderTop:
-                          ungroupedSel.length > 0 || gi > 0
-                            ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                            : undefined,
-                      }}
                     >
                       {group.icon && (
                         <span
@@ -745,7 +735,7 @@ export const SeccionEntidad = ({
           selected.map((e) => (
             <div
               key={e.id}
-              className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04] border-b border-primary/[0.04] last:border-0"
+              className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04]"
               style={{ cursor: onEntityClick ? "pointer" : "default" }}
               onClick={() => onEntityClick?.(e.id)}
             >
