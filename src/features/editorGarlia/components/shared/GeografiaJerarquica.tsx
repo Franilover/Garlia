@@ -129,6 +129,16 @@ export function GeografiaJerarquica({
 
   const personajesSinCiudad = personajes.filter((p) => !p.ciudad_id);
 
+  const reinosOrdenados = [...reinos].sort(
+    (a, b) => ciudadesDe(b.id).length - ciudadesDe(a.id).length
+  );
+  const reinosConCiudades = reinosOrdenados.filter(
+    (r) => ciudadesDe(r.id).length > 0
+  );
+  const reinosVacios = reinosOrdenados.filter(
+    (r) => ciudadesDe(r.id).length === 0
+  );
+
   const renderCiudad = (ciudad: Ciudad) => {
     const habitantes = personajesDe(ciudad.id);
     const vacia = habitantes.length === 0;
@@ -195,7 +205,7 @@ export function GeografiaJerarquica({
       </div>
 
       <div className="flex flex-col gap-8">
-        {reinos.map((reino) => (
+        {reinosConCiudades.map((reino) => (
           <div
             key={reino.id}
             className="pb-6 border-b border-primary/5 last:border-0"
@@ -208,14 +218,25 @@ export function GeografiaJerarquica({
               }
             />
             <div className="mt-3 flex flex-wrap gap-6">
-              {ciudadesDe(reino.id).length === 0 ? (
-                <div className="text-micro text-primary/25">Sin ciudades</div>
-              ) : (
-                ciudadesDe(reino.id).map(renderCiudad)
-              )}
+              {ciudadesDe(reino.id).map(renderCiudad)}
             </div>
           </div>
         ))}
+
+        {reinosVacios.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pb-2">
+            {reinosVacios.map((reino) => (
+              <NodoTitulo
+                key={reino.id}
+                label={reino.nombre}
+                onClick={() => onOpen("reinos", reino.id)}
+                onCreate={
+                  onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+                }
+              />
+            ))}
+          </div>
+        )}
 
         {personajesSinCiudad.length > 0 && (
           <div className="pb-2">
@@ -246,11 +267,13 @@ export function GeografiaJerarquica({
           </div>
         )}
 
-        {reinos.length === 0 && personajesSinCiudad.length === 0 && (
-          <div className="py-6 text-xs text-primary/25 text-center">
-            Sin reinos todavía
-          </div>
-        )}
+        {reinosConCiudades.length === 0 &&
+          reinosVacios.length === 0 &&
+          personajesSinCiudad.length === 0 && (
+            <div className="py-6 text-xs text-primary/25 text-center">
+              Sin reinos todavía
+            </div>
+          )}
       </div>
     </div>
   );
