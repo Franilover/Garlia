@@ -32,6 +32,13 @@ export function PersonajeGrupos({
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Grupos
           </span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          />
         </div>
         <div className="flex justify-center py-4">
           <Loader2 className="animate-spin text-primary/20" size={14} />
@@ -48,6 +55,13 @@ export function PersonajeGrupos({
         <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
           Grupos
         </span>
+        <div
+          className="flex-1 h-px"
+          style={{
+            background:
+              "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        />
       </div>
       <div>
         {grupos.map((g) => (

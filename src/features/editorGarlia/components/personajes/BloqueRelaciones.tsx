@@ -508,7 +508,13 @@ export function BloqueRelaciones({
             {relaciones.length}
           </span>
         )}
-        <div className="flex-1" />
+        <div
+          className="flex-1 h-px"
+          style={{
+            background:
+              "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        />
         {!loading && relaciones.length > 0 && (
           <GrafoRelaciones
             personajeId={personajeId}

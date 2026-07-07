@@ -57,23 +57,37 @@ function SidebarContenido({
       </div>
 
       {/* Capítulos */}
-      <div>
+      <div className="mt-3">
         <div className="flex items-center gap-1.5 px-2 py-1">
           <BookOpen className="text-primary/25 shrink-0" size={8} />
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Capítulos
           </span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          />
         </div>
         <PersonajeCapitulosAparece personajeId={personajeId} onNavigateCapitulo={onNavigateCapitulo} />
       </div>
 
       {/* Canciones */}
-      <div>
+      <div className="mt-3">
         <div className="flex items-center gap-1.5 px-2 py-1">
           <Music2 className="text-primary/25 shrink-0" size={8} />
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Canciones
           </span>
+          <div
+            className="flex-1 h-px"
+            style={{
+              background:
+                "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          />
         </div>
         <PersonajeCancionesAsociadas
           nombrePersonaje={nombrePersonaje}
@@ -83,13 +97,15 @@ function SidebarContenido({
       </div>
 
       {/* Grupos */}
-      <div className="p-2">
+      <div className="p-2 mt-1">
         <PersonajeGrupos personajeId={personajeId} onOpenGrupo={onOpenGrupo} />
       </div>
 
       {/* Hechizos — solo si la especie es mágica */}
       {especieEsMagica && (
-        <PersonajeHechizos grupoIds={grupoIds} personajeId={personajeId} />
+        <div className="mt-3">
+          <PersonajeHechizos grupoIds={grupoIds} personajeId={personajeId} />
+        </div>
       )}
     </>
   );
