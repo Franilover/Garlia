@@ -268,16 +268,32 @@ export function GeografiaJerarquica({
           {reinosConCiudades.map((reino) => (
             <div
               key={reino.id}
-              className="w-fit max-w-full p-4 rounded-xl bg-primary/[0.03] border border-primary/10"
+              className="w-fit max-w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden"
             >
-              <NodoTitulo
-                label={reino.nombre}
-                onClick={() => onOpen("reinos", reino.id)}
-                onCreate={
-                  onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
-                }
-              />
-              <div className="mt-3 flex flex-wrap gap-6">
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+                <span />
+                <button
+                  type="button"
+                  onClick={() => onOpen("reinos", reino.id)}
+                  title={reino.nombre}
+                  className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary hover:text-accent transition-colors"
+                >
+                  {reino.nombre}
+                </button>
+                <div className="justify-self-end">
+                  {onCreateCiudad && (
+                    <button
+                      type="button"
+                      onClick={() => onCreateCiudad(reino.id)}
+                      title="Añadir ciudad"
+                      className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                    >
+                      <Plus size={11} className="text-primary/60" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 flex flex-wrap gap-6">
                 {[
                   ...ciudadesDe(reino.id).map((c) => ({
                     tipo: "ciudad" as const,
