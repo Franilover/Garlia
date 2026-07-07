@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Cat,
   Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ import React, { useState, useEffect } from "react";
 import { useCommandPalette } from "@/components/command";
 import { MotionDiv } from "@/components/ui/Motion";
 import { useMundoNavigation } from "@/features/mundo/store/useMundoNavigationStore";
+import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
 
@@ -470,6 +472,15 @@ const Navbar = () => {
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
   const { setOpen: openPalette } = useCommandPalette();
+
+  // ── Botón de panel lateral (mobile) ───────────────────────────────────────
+  // Antes cada editor con aside propio (personajes, criaturas, reinos...)
+  // dibujaba su propio botón "sm:hidden" en su header para abrir el drawer.
+  // Ahora ese botón vive una sola vez, acá, y solo aparece si hay un editor
+  // registrado con panel lateral montado (ver useRegisterMobileAside).
+  const asideAvailable = useMobileAsidePanel((s) => s.available);
+  const asideOpen = useMobileAsidePanel((s) => s.open);
+  const toggleAside = useMobileAsidePanel((s) => s.toggle);
 
   const closeAll = () => {
     setThemeMenuOpen(false);
@@ -936,8 +947,32 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Search */}
+          {/* Search + panel lateral del editor activo (si expone uno) */}
           <div className="flex items-center gap-1 z-[101]">
+            {asideAvailable && (
+              <button
+                className="flex items-center justify-center transition-all"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "var(--radius-btn)",
+                  background: asideOpen
+                    ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                    : "transparent",
+                  color: asideOpen
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                }}
+                title="Entidades"
+                aria-label="Entidades"
+                onClick={() => {
+                  toggleAside();
+                  closeAll();
+                }}
+              >
+                <SlidersHorizontal size={16} />
+              </button>
+            )}
             <button
               className="flex items-center justify-center transition-all"
               style={{

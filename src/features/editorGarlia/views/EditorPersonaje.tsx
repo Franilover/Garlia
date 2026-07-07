@@ -27,9 +27,11 @@ import {
   Trash2,
   UserCircle2,
 } from "lucide-react";
-import { useState } from "react";
-
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import {
+  useMobileAsidePanel,
+  useRegisterMobileAside,
+} from "@/hooks/ui/useMobileAsidePanel";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import {
@@ -88,7 +90,9 @@ export function FormularioPersonaje({
     form.especie,
   );
 
-  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
+  useRegisterMobileAside();
+  const mobileAsideOpen = useMobileAsidePanel((s) => s.open);
+  const closeMobileAside = useMobileAsidePanel((s) => s.close);
 
   const reinoSeleccionadoId =
     reinosMin.find((r) => r.nombre === form.reino)?.id ?? null;
@@ -185,32 +189,7 @@ export function FormularioPersonaje({
           >
             <Save size={10} /> Guardar
           </button>
-          <button
-            className="sm:hidden flex items-center justify-center p-2 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
-            title="Entidades"
-            onClick={() => setMobileAsideOpen(true)}
-          >
-            <svg
-              fill="none"
-              height={13}
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-              width={13}
-            >
-              <line x1="4" x2="4" y1="21" y2="14" />
-              <line x1="4" x2="4" y1="10" y2="3" />
-              <line x1="12" x2="12" y1="21" y2="12" />
-              <line x1="12" x2="12" y1="8" y2="3" />
-              <line x1="20" x2="20" y1="21" y2="16" />
-              <line x1="20" x2="20" y1="12" y2="3" />
-              <line x1="1" x2="7" y1="14" y2="14" />
-              <line x1="9" x2="15" y1="8" y2="8" />
-              <line x1="17" x2="23" y1="16" y2="16" />
-            </svg>
-          </button>
-        </div>
-      </div>
+
 
       {/* Cuerpo: formulario + sidebar inline desktop */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -497,7 +476,7 @@ export function FormularioPersonaje({
         <PersonajeSidebarPanel
           modo="drawer"
           {...sidebarProps}
-          onCerrarDrawer={() => setMobileAsideOpen(false)}
+          onCerrarDrawer={closeMobileAside}
         />
       )}
     </div>

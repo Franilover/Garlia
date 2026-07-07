@@ -39,6 +39,11 @@ import {
 import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
 
+import {
+  useMobileAsidePanel,
+  useRegisterMobileAside,
+} from "@/hooks/ui/useMobileAsidePanel";
+
 import type {
   WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
 import {
@@ -146,7 +151,9 @@ export function EditorCriatura({
   const [savingReinos, setSavingReinos] = useState(false);
   const [savingCiudades, setSavingCiudades] = useState(false);
   const [savingCrafted, setSavingCrafted] = useState(false);
-  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
+  useRegisterMobileAside();
+  const mobileAsideOpen = useMobileAsidePanel((s) => s.open);
+  const closeMobileAside = useMobileAsidePanel((s) => s.close);
 
   // ── Derivados ─────────────────────────────────────────────────────────────
   const reinosSeleccionadosIds = reinoRows.map((r) => r.reinoId);
@@ -290,13 +297,6 @@ export function EditorCriatura({
               onClick={save}
             >
               <Save size={10} /> Guardar
-            </button>
-            <button
-              className="sm:hidden flex items-center justify-center p-1.5 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
-              title="Entidades"
-              onClick={() => setMobileAsideOpen(true)}
-            >
-              <SlidersHorizontal size={12} />
             </button>
           </div>
         </div>
@@ -596,7 +596,7 @@ export function EditorCriatura({
             style={{
               background: "color-mix(in srgb, var(--primary) 20%, transparent)",
             }}
-            onClick={() => setMobileAsideOpen(false)}
+            onClick={closeMobileAside}
           />
           <div
             className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
@@ -620,7 +620,7 @@ export function EditorCriatura({
               </span>
               <button
                 className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-                onClick={() => setMobileAsideOpen(false)}
+                onClick={closeMobileAside}
               >
                 <X size={13} />
               </button>

@@ -5,11 +5,15 @@ import {
   Save,
   Loader2,
   Image as ImageIcon,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
+
+import {
+  useMobileAsidePanel,
+  useRegisterMobileAside,
+} from "@/hooks/ui/useMobileAsidePanel";
 
 import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
@@ -116,7 +120,13 @@ export function EditorReino({
 }) {
   const [form, setForm] = useState<Reino>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [mobileAsideOpen, setMobileAsideOpen] = useState(false);
+  useRegisterMobileAside();
+  const mobileAsideOpen = useMobileAsidePanel((s) => s.open);
+  const closeMobileAside = useMobileAsidePanel((s) => s.close);
+  const openMobileAside = useMobileAsidePanel((s) => s.openPanel);
+  // LoreTab espera un setter booleano genérico (lo comparte con el resto de
+  // sus consumidores) — lo adaptamos al store global sin tocar su contrato.
+  const setMobileAsideOpen = (v: boolean) => (v ? openMobileAside() : closeMobileAside());
   const { ciudades: detalles, setCiudades: setDetalles } = useCiudadesDelReino(
     item.id,
   );
@@ -245,15 +255,6 @@ export function EditorReino({
             >
               <Save size={11} />
               <span className="hidden sm:inline">Guardar</span>
-            </button>
-
-            {/* Barra lateral — solo mobile */}
-            <button
-              className="sm:hidden flex items-center justify-center p-2 rounded-xl text-primary/30 hover:text-primary hover:bg-primary/8 transition-all border border-primary/10"
-              title="Entidades"
-              onClick={() => setMobileAsideOpen(true)}
-            >
-              <SlidersHorizontal size={13} />
             </button>
           </div>
         </div>
