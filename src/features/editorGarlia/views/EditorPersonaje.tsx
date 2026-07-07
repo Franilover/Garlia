@@ -32,6 +32,7 @@ import {
   useMobileAsidePanel,
   useRegisterMobileAside,
 } from "@/hooks/ui/useMobileAsidePanel";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import {
   PickerCaraBtn,
@@ -39,10 +40,14 @@ import {
 } from "@/features/editorGarlia/components/personajes/PersonajeImagePickers";
 import { PersonajeLineaDeTiempo } from "@/features/editorGarlia/components/personajes/PersonajeLineaDeTiempo";
 import { PersonajeSidebarPanel } from "@/features/editorGarlia/components/personajes/PersonajeSidebarPanel";
+import { useCiudades } from "@/features/editorGarlia/hooks/ciudades/useCiudades";
 import { useGruposDeCriatura } from "@/features/editorGarlia/hooks/grupos/useGruposDeCriatura";
 import { usePersonajeForm } from "@/features/editorGarlia/hooks/personajes/usePersonajeForm";
+import { useReinosMin } from "@/features/editorGarlia/hooks/reinos/useReinosMin";
 
+import { BloqueDones } from "@/features/editorGarlia/components/personajes/BloqueDones";
 import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
+import { useNombresDeTabla } from "../hooks/misc/useNombresDeTabla";
 import { type Personaje, type SaveStatus } from "../hooks/types";
 
 // ─── FormularioPersonaje ──────────────────────────────────────────────────────
@@ -78,6 +83,9 @@ export function FormularioPersonaje({
   onNavigateCapitulo?: (capituloId: string) => void;
   onFechaNacimientoChange: (dia: number | null) => void;
 }) {
+  const especies = useNombresDeTabla("criaturas");
+  const reinosMin = useReinosMin();
+  const ciudades = useCiudades();
   const { ids: grupoIds, esMagico: especieEsMagica } = useGruposDeCriatura(
     form.especie,
   );
@@ -85,6 +93,46 @@ export function FormularioPersonaje({
   useRegisterMobileAside();
   const mobileAsideOpen = useMobileAsidePanel((s) => s.open);
   const closeMobileAside = useMobileAsidePanel((s) => s.close);
+
+  const reinoSeleccionadoId =
+    reinosMin.find((r) => r.nombre === form.reino)?.id ?? null;
+  const ciudadesFiltradas = ciudades.filter((l) =>
+    reinoSeleccionadoId ? l.reino_id === reinoSeleccionadoId : !l.reino_id,
+  );
+
+  const territorioValue = form.reino
+    ? reinosMin.find((x) => x.nombre === form.reino)
+      ? `reino:${reinosMin.find((x) => x.nombre === form.reino)!.id}`
+      : null
+    : null;
+
+  const onTerritorioChange = (val: string | null) => {
+    if (!val) {
+      setForm((f) => ({ ...f, reino: "", ciudad_id: null }) as any);
+      return;
+    }
+    if (val.startsWith("reino:")) {
+      const r = reinosMin.find((x) => x.id === val.replace("reino:", ""));
+      setForm(
+        (f) => ({ ...f, reino: r?.nombre ?? "", ciudad_id: null }) as any,
+      );
+    }
+  };
+
+  const ubicacionValue = (form as any).ciudad_id
+    ? `ciudad:${(form as any).ciudad_id}`
+    : null;
+  const onUbicacionChange = (val: string | null) => {
+    setForm(
+      (f) =>
+        ({
+          ...f,
+          ciudad_id: val?.startsWith("ciudad:")
+            ? val.replace("ciudad:", "")
+            : null,
+        }) as any,
+    );
+  };
 
   const field =
     (k: keyof Personaje) =>
@@ -149,114 +197,263 @@ export function FormularioPersonaje({
         <div className="flex-1 min-w-0 overflow-y-auto">
           <div className="p-3 space-y-3">
             {/* Imágenes */}
-            <div className="w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
-              {/* Mobile: imagen grande */}
-              <div
-                className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
-                style={{ aspectRatio: "1 / 1" }}
-              >
-                {form.img_url ? (
-                  <img
-                    alt={form.nombre}
-                    className="w-full h-full object-cover"
-                    src={form.img_url}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="shrink-0 w-full sm:w-52 flex sm:flex-col gap-3 sm:gap-2">
+                {/* Mobile: imagen grande */}
+                <div
+                  className="sm:hidden relative w-full rounded-xl overflow-hidden border border-primary/10 bg-primary/3"
+                  style={{ aspectRatio: "1 / 1" }}
+                >
+                  {form.img_url ? (
+                    <img
+                      alt={form.nombre}
+                      className="w-full h-full object-cover"
+                      src={form.img_url}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <UserCircle2 className="text-primary/15" size={48} />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 z-10">
+                    <PickerCaraBtn
+                      value={form.img_url ?? ""}
+                      onChange={(url) =>
+                        setForm((f) => ({ ...f, img_url: url }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Desktop: selector normal */}
+                <div className="hidden sm:block w-full">
+                  <SelectorImagen
+                    aspect="square"
+                    label="Cara"
+                    placeholder={
+                      <UserCircle2 className="opacity-25" size={20} />
+                    }
+                    value={form.img_url ?? ""}
+                    onChange={(url) => setForm((f) => ({ ...f, img_url: url }))}
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <UserCircle2 className="text-primary/15" size={48} />
+                </div>
+
+                {!compacto && (
+                  <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
+                    <div className="px-2 py-1 border-b border-primary/[0.06]">
+                      <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                        Cuerpo
+                      </span>
+                    </div>
+                    <div
+                      className="relative w-full group bg-primary/2"
+                      style={{ aspectRatio: "1 / 2" }}
+                    >
+                      {form.img_cuerpo_url ? (
+                        <img
+                          alt="Cuerpo completo"
+                          className="absolute inset-0 w-full h-full object-contain"
+                          src={form.img_cuerpo_url}
+                          style={{ objectPosition: "top center" }}
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Maximize2 className="opacity-15" size={20} />
+                        </div>
+                      )}
+                      <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
+                        <Maximize2 className="text-primary/50" size={14} />
+                        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
+                          Cambiar
+                        </span>
+                        <SelectorImagen
+                          aspect="full"
+                          label=""
+                          placeholder={null}
+                          value={form.img_cuerpo_url ?? ""}
+                          onChange={(url) =>
+                            setForm((f) => ({ ...f, img_cuerpo_url: url }))
+                          }
+                        />
+                      </label>
+                    </div>
                   </div>
                 )}
-                <div className="absolute top-2 right-2 z-10">
-                  <PickerCaraBtn
-                    value={form.img_url ?? ""}
-                    onChange={(url) =>
-                      setForm((f) => ({ ...f, img_url: url }))
+
+                {/* Mobile: botón cuerpo */}
+                {!compacto && (
+                  <div className="sm:hidden">
+                    <PickerImagen
+                      icon={<Maximize2 size={11} />}
+                      label={
+                        form.img_cuerpo_url
+                          ? "Cambiar cuerpo"
+                          : "+ Imagen cuerpo"
+                      }
+                      titulo="Imagen cuerpo"
+                      value={form.img_cuerpo_url ?? ""}
+                      onChange={(url) =>
+                        setForm((f) => ({ ...f, img_cuerpo_url: url }))
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Columna derecha: combos + descripción */}
+              <div className="flex-1 min-w-0 space-y-3">
+                {/* Mobile: grid 2×2 */}
+                <div className="sm:hidden grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <ComboSelector
+                      allowNone
+                      items={especies.map((e) => ({ id: e, label: e }))}
+                      label="Especie"
+                      mode="single"
+                      noneLabel="Sin especie"
+                      placeholder="Humano, elfo…"
+                      value={form.especie ?? null}
+                      onChange={(v) =>
+                        setForm((f) => ({ ...f, especie: v ?? "" }) as any)
+                      }
+                      onNavigate={
+                        onNavigate
+                          ? (_id, nombre) => onNavigate("criaturas", nombre)
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <ComboSelector
+                    allowNone
+                    groups={[]}
+                    items={reinosMin.map((r) => ({
+                      id: `reino:${r.id}`,
+                      label: r.nombre,
+                    }))}
+                    label="Territorio"
+                    mode="single"
+                    noneLabel="Sin territorio"
+                    placeholder="Reino…"
+                    value={territorioValue}
+                    onChange={onTerritorioChange}
+                    onNavigate={
+                      onNavigate
+                        ? (id) => {
+                            const r = reinosMin.find(
+                              (x) => x.id === id.replace("reino:", ""),
+                            );
+                            if (r) onNavigate("reinos", r.nombre);
+                          }
+                        : undefined
                     }
                   />
+                  <ComboSelector
+                    allowNone
+                    groups={[]}
+                    items={ciudadesFiltradas.map((l) => ({
+                      id: `ciudad:${l.id}`,
+                      label: l.nombre,
+                    }))}
+                    label="Ubicación"
+                    mode="single"
+                    noneLabel="Sin ubicación"
+                    placeholder="Ciudad…"
+                    value={ubicacionValue}
+                    onChange={onUbicacionChange}
+                    onNavigate={
+                      onNavigateCiudad
+                        ? (id) => {
+                            if (id.startsWith("ciudad:"))
+                              onNavigateCiudad(id.replace("ciudad:", ""));
+                          }
+                        : undefined
+                    }
+                  />
+                  <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                 </div>
-              </div>
 
-              {/* Desktop: selector normal */}
-              <div className="hidden sm:block w-full">
-                <SelectorImagen
-                  aspect="square"
-                  label="Cara"
-                  placeholder={
-                    <UserCircle2 className="opacity-25" size={20} />
-                  }
-                  value={form.img_url ?? ""}
-                  onChange={(url) => setForm((f) => ({ ...f, img_url: url }))}
-                />
-              </div>
-
-              {!compacto && (
-                <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
-                  <div className="px-2 py-1 border-b border-primary/[0.06]">
-                    <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                      Cuerpo
-                    </span>
-                  </div>
-                  <div
-                    className="relative w-full group bg-primary/2"
-                    style={{ aspectRatio: "1 / 2" }}
-                  >
-                    {form.img_cuerpo_url ? (
-                      <img
-                        alt="Cuerpo completo"
-                        className="absolute inset-0 w-full h-full object-contain"
-                        src={form.img_cuerpo_url}
-                        style={{ objectPosition: "top center" }}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Maximize2 className="opacity-15" size={20} />
-                      </div>
-                    )}
-                    <label className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-bg-main/70 backdrop-blur-sm">
-                      <Maximize2 className="text-primary/50" size={14} />
-                      <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
-                        Cambiar
-                      </span>
-                      <SelectorImagen
-                        aspect="full"
-                        label=""
-                        placeholder={null}
-                        value={form.img_cuerpo_url ?? ""}
-                        onChange={(url) =>
-                          setForm((f) => ({ ...f, img_cuerpo_url: url }))
+                {/* Desktop: layout fila de 3 */}
+                <div className="hidden sm:flex flex-col sm:flex-row gap-2 items-start">
+                  <div className="flex-1 min-w-0 grid grid-cols-3 gap-2">
+                    <div className="space-y-1 col-span-1">
+                      <ComboSelector
+                        allowNone
+                        items={especies.map((e) => ({ id: e, label: e }))}
+                        label="Especie"
+                        mode="single"
+                        noneLabel="Sin especie"
+                        placeholder="Humano, elfo…"
+                        value={form.especie ?? null}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, especie: v ?? "" }) as any)
+                        }
+                        onNavigate={
+                          onNavigate
+                            ? (_id, nombre) => onNavigate("criaturas", nombre)
+                            : undefined
                         }
                       />
-                    </label>
+                    </div>
+                    <ComboSelector
+                      allowNone
+                      groups={[]}
+                      items={reinosMin.map((r) => ({
+                        id: `reino:${r.id}`,
+                        label: r.nombre,
+                      }))}
+                      label="Territorio"
+                      mode="single"
+                      noneLabel="Sin territorio"
+                      placeholder="Reino…"
+                      value={territorioValue}
+                      onChange={onTerritorioChange}
+                      onNavigate={
+                        onNavigate
+                          ? (id) => {
+                              const r = reinosMin.find(
+                                (x) => x.id === id.replace("reino:", ""),
+                              );
+                              if (r) onNavigate("reinos", r.nombre);
+                            }
+                          : undefined
+                      }
+                    />
+                    <ComboSelector
+                      allowNone
+                      groups={[]}
+                      items={ciudadesFiltradas.map((l) => ({
+                        id: `ciudad:${l.id}`,
+                        label: l.nombre,
+                      }))}
+                      label="Ubicación"
+                      mode="single"
+                      noneLabel="Sin ubicación"
+                      placeholder="Ciudad…"
+                      value={ubicacionValue}
+                      onChange={onUbicacionChange}
+                      onNavigate={
+                        onNavigateCiudad
+                          ? (id) => {
+                              if (id.startsWith("ciudad:"))
+                                onNavigateCiudad(id.replace("ciudad:", ""));
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className="shrink-0">
+                    <BloqueDones grupoIds={grupoIds} personajeId={form.id} />
                   </div>
                 </div>
-              )}
 
-              {/* Mobile: botón cuerpo */}
-              {!compacto && (
-                <div className="sm:hidden">
-                  <PickerImagen
-                    icon={<Maximize2 size={11} />}
-                    label={
-                      form.img_cuerpo_url
-                        ? "Cambiar cuerpo"
-                        : "+ Imagen cuerpo"
-                    }
-                    titulo="Imagen cuerpo"
-                    value={form.img_cuerpo_url ?? ""}
-                    onChange={(url) =>
-                      setForm((f) => ({ ...f, img_cuerpo_url: url }))
-                    }
-                  />
-                </div>
-              )}
+                {/* Línea de tiempo (reemplaza la descripción general) */}
+                <PersonajeLineaDeTiempo
+                  fechaNacimiento={(form as any).fecha_nacimiento ?? null}
+                  personajeId={form.id}
+                  onFechaNacimientoChange={onFechaNacimientoChange}
+                />
+              </div>
             </div>
-
-            {/* Línea de tiempo: a todo el ancho, gestiona la info del personaje */}
-            <PersonajeLineaDeTiempo
-              fechaNacimiento={(form as any).fecha_nacimiento ?? null}
-              personajeId={form.id}
-              onFechaNacimientoChange={onFechaNacimientoChange}
-            />
           </div>
         </div>
 
