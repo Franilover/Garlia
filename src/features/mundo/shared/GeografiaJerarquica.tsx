@@ -142,10 +142,17 @@ export function GeografiaJerarquica({
   const renderCiudad = (ciudad: Ciudad) => {
     const habitantes = personajesDe(ciudad.id);
     const vacia = habitantes.length === 0;
+    // Más personajes → más columnas → la ciudad ocupa más ancho horizontal.
+    const cols = Math.min(Math.max(habitantes.length, 1), 6);
+    const itemSize = 52;
+    const gapPx = 4;
+    const anchoPx = cols * itemSize + (cols - 1) * gapPx;
+
     return (
       <div
         key={ciudad.id}
-        className={vacia ? "w-fit shrink-0" : "w-[168px]"}
+        className={vacia ? "w-fit shrink-0" : "shrink-0"}
+        style={vacia ? undefined : { width: anchoPx }}
       >
         <NodoTitulo
           label={ciudad.nombre}
@@ -163,7 +170,7 @@ export function GeografiaJerarquica({
           <div
             className="mt-2 grid gap-1"
             style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
+              gridTemplateColumns: `repeat(${cols}, ${itemSize}px)`,
             }}
           >
             {habitantes.map((p) => (
@@ -205,27 +212,27 @@ export function GeografiaJerarquica({
       </div>
 
       <div className="flex flex-col gap-8">
-        {reinosConCiudades.map((reino) => (
-          <div
-            key={reino.id}
-            className="pb-6 border-b border-primary/5 last:border-0"
-          >
-            <NodoTitulo
-              label={reino.nombre}
-              onClick={() => onOpen("reinos", reino.id)}
-              onCreate={
-                onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
-              }
-            />
-            <div className="mt-3 flex flex-wrap gap-6">
-              {ciudadesDe(reino.id).map(renderCiudad)}
+        <div className="flex flex-wrap items-start gap-6">
+          {reinosConCiudades.map((reino) => (
+            <div
+              key={reino.id}
+              className="w-fit max-w-full p-4 rounded-xl bg-primary/[0.03] border border-primary/10"
+            >
+              <NodoTitulo
+                label={reino.nombre}
+                onClick={() => onOpen("reinos", reino.id)}
+                onCreate={
+                  onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+                }
+              />
+              <div className="mt-3 flex flex-wrap gap-6">
+                {ciudadesDe(reino.id).map(renderCiudad)}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {reinosVacios.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pb-2">
-            {reinosVacios.map((reino) => (
+          {reinosVacios.length > 0 &&
+            reinosVacios.map((reino) => (
               <NodoTitulo
                 key={reino.id}
                 label={reino.nombre}
@@ -235,11 +242,10 @@ export function GeografiaJerarquica({
                 }
               />
             ))}
-          </div>
-        )}
+        </div>
 
         {personajesSinCiudad.length > 0 && (
-          <div className="pb-2">
+          <div>
             <NodoTitulo
               label="Sin ciudad"
               variant="ciudad"
