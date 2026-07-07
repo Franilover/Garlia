@@ -129,6 +129,17 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
+  const [filtroEspecie, setFiltroEspecie] = useState<string | null>(null);
+  const criaturaFiltro = useMemo(
+    () => criaturas.find((c) => c.nombre === filtroEspecie) ?? null,
+    [criaturas, filtroEspecie],
+  );
+  const personajesFiltrados = useMemo(
+    () =>
+      filtroEspecie ? personajes.filter((p) => p.especie === filtroEspecie) : personajes,
+    [personajes, filtroEspecie],
+  );
+
   const selectedPersonaje = useMemo(
     () => (section === "personajes" ? personajes.find((p) => p.id === selectedId) : null),
     [section, personajes, selectedId],
@@ -199,25 +210,83 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <GeografiaJerarquica
-        reinos={reinos}
-        ciudades={ciudades}
-        personajes={personajes}
-        loading={loadingR || loadingCd || loadingP}
-        onOpen={(section, id) => openEntity(section, id)}
-        onCreateReino={async () => {
-          const { data } = await addReino({ nombre: "Nuevo reino" });
-          if (data?.id) openEntity("reinos", data.id);
-        }}
-        onCreateCiudad={async (reinoId) => {
-          const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
-          if (data?.id) openEntity("ciudades", data.id);
-        }}
-        onCreatePersonaje={async (ciudadId) => {
-          const { data } = await addPersonaje({ nombre: "Nuevo personaje", ciudad_id: ciudadId });
-          if (data?.id) openEntity("personajes", data.id);
-        }}
-      />
+      <div className="flex flex-col lg:flex-row gap-6">
+        <aside className="lg:w-56 shrink-0">
+          <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-3 lg:sticky lg:top-4">
+            <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-3 px-1">
+              Filtrar por criatura
+            </h3>
+
+            <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
+              <button
+                type="button"
+                onClick={() => setFiltroEspecie(null)}
+                className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  filtroEspecie === null
+                    ? "bg-primary/15 text-primary"
+                    : "text-primary/50 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
+                Todos los personajes
+              </button>
+              {criaturas.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() =>
+                    setFiltroEspecie((prev) => (prev === c.nombre ? null : c.nombre))
+                  }
+                  className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold truncate transition-colors ${
+                    filtroEspecie === c.nombre
+                      ? "bg-primary/15 text-primary"
+                      : "text-primary/50 hover:bg-primary/10 hover:text-primary"
+                  }`}
+                  title={c.nombre}
+                >
+                  {c.nombre}
+                </button>
+              ))}
+            </div>
+
+            {criaturaFiltro && (
+              <button
+                type="button"
+                onClick={() => openEntity("criaturas", criaturaFiltro.id)}
+                className="mt-3 w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors text-micro font-bold uppercase tracking-wide text-accent"
+              >
+                <Bug size={11} />
+                Editar criatura
+              </button>
+            )}
+          </div>
+        </aside>
+
+        <div className="flex-1 min-w-0">
+          <GeografiaJerarquica
+            reinos={reinos}
+            ciudades={ciudades}
+            personajes={personajesFiltrados}
+            loading={loadingR || loadingCd || loadingP}
+            onOpen={(section, id) => openEntity(section, id)}
+            onCreateReino={async () => {
+              const { data } = await addReino({ nombre: "Nuevo reino" });
+              if (data?.id) openEntity("reinos", data.id);
+            }}
+            onCreateCiudad={async (reinoId) => {
+              const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
+              if (data?.id) openEntity("ciudades", data.id);
+            }}
+            onCreatePersonaje={async (ciudadId) => {
+              const { data } = await addPersonaje({
+                nombre: "Nuevo personaje",
+                ciudad_id: ciudadId,
+                ...(filtroEspecie ? { especie: filtroEspecie } : {}),
+              });
+              if (data?.id) openEntity("personajes", data.id);
+            }}
+          />
+        </div>
+      </div>
 
       <div className="flex flex-col md:flex-row gap-6">
         <div className="flex-1 min-w-0">
