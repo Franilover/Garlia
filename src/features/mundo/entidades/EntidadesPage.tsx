@@ -16,7 +16,7 @@
  * muestra sin lógica extra acá.
  */
 
-import { Bug, Map, MapPinned, Package, Users } from "lucide-react";
+import { Bug, Package } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
@@ -32,6 +32,7 @@ import { ItemEditor } from "../items/ItemEditor";
 import { PersonajeEditor } from "../personajes/PersonajeEditor";
 import { ReinoEditor } from "../reinos/ReinoEditor";
 import { EntityCardGrid } from "../shared/EntityCardGrid";
+import { GeografiaJerarquica } from "../shared/GeografiaJerarquica";
 import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
 
 interface Personaje {
@@ -40,6 +41,7 @@ interface Personaje {
   img_url?: string;
   reino?: string;
   especie?: string;
+  ciudad_id?: string | null;
 }
 interface Criatura {
   id: string;
@@ -197,15 +199,22 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <EntityCardGrid
-        title="Personajes"
-        Icon={Users}
-        loading={loadingP}
-        items={personajes.map((p) => ({ id: p.id, nombre: p.nombre, imageUrl: p.img_url }))}
-        section="personajes"
-        onItemClick={(id) => openEntity("personajes", id)}
-        onCreate={async () => {
-          const { data } = await addPersonaje({ nombre: "Nuevo personaje" });
+      <GeografiaJerarquica
+        reinos={reinos}
+        ciudades={ciudades}
+        personajes={personajes}
+        loading={loadingR || loadingCd || loadingP}
+        onOpen={(section, id) => openEntity(section, id)}
+        onCreateReino={async () => {
+          const { data } = await addReino({ nombre: "Nuevo reino" });
+          if (data?.id) openEntity("reinos", data.id);
+        }}
+        onCreateCiudad={async (reinoId) => {
+          const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
+          if (data?.id) openEntity("ciudades", data.id);
+        }}
+        onCreatePersonaje={async (ciudadId) => {
+          const { data } = await addPersonaje({ nombre: "Nuevo personaje", ciudad_id: ciudadId });
           if (data?.id) openEntity("personajes", data.id);
         }}
       />
@@ -238,39 +247,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
             onCreate={async () => {
               const { data } = await addItem({ nombre: "Nuevo objeto" });
               if (data?.id) openEntity("items", data.id);
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Reinos"
-            layout="half"
-            Icon={Map}
-            loading={loadingR}
-            items={reinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-            section="reinos"
-            onItemClick={(id) => openEntity("reinos", id)}
-            onCreate={async () => {
-              const { data } = await addReino({ nombre: "Nuevo reino" });
-              if (data?.id) openEntity("reinos", data.id);
-            }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Ciudades"
-            layout="half"
-            Icon={MapPinned}
-            loading={loadingCd}
-            items={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
-            section="ciudades"
-            onItemClick={(id) => openEntity("ciudades", id)}
-            onCreate={async () => {
-              const { data } = await addCiudad({ nombre: "Nueva ciudad" });
-              if (data?.id) openEntity("ciudades", data.id);
             }}
           />
         </div>
