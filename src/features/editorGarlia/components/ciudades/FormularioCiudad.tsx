@@ -192,14 +192,14 @@ export function FormularioCiudad({
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* ── Header fijo ───────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 3%, transparent)",
         }}
       >
         {/* Thumbnail */}
-        <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url ? (
             <Image
               alt={form.nombre}
@@ -220,20 +220,20 @@ export function FormularioCiudad({
         />
 
         {/* Acciones */}
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
             onClick={onDelete}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             disabled={status === "saving"}
             onClick={onSave}
           >
-            <Save size={11} /> Guardar
+            <Save size={10} /> Guardar
           </button>
         </div>
       </div>
@@ -341,7 +341,7 @@ export function FormularioCiudad({
           {/* Entidades relacionadas */}
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Personajes */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
               <SeccionEntidad
                 allEntities={todosPersonajes.map((p) => ({
                   id: p.id,
@@ -367,7 +367,7 @@ export function FormularioCiudad({
             </div>
 
             {/* Criaturas */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
               <SeccionEntidad
                 allEntities={todasCriaturas}
                 emptyLabel="Sin criaturas en esta ciudad"
@@ -389,7 +389,7 @@ export function FormularioCiudad({
             </div>
 
             {/* Ítems */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden border border-primary/10">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
               <SeccionEntidad
                 allEntities={todosItems}
                 emptyLabel="Sin ítems en esta ciudad"

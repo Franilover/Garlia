@@ -241,7 +241,7 @@ export function EditorReino({
             <SaveIndicator status={status} />
 
             <button
-              className="flex items-center justify-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              className="flex items-center justify-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
               onClick={del}
             >
               <Trash2 size={10} />
@@ -249,11 +249,11 @@ export function EditorReino({
             </button>
 
             <button
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
               disabled={status === "saving"}
               onClick={save}
             >
-              <Save size={11} />
+              <Save size={10} />
               <span className="hidden sm:inline">Guardar</span>
             </button>
           </div>

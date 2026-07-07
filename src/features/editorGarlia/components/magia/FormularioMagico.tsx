@@ -127,15 +127,15 @@ export function FormularioMagico({
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b"
+        className="shrink-0 flex flex-col gap-1.5 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 3%, transparent)",
         }}
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           <div
-            className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl overflow-hidden flex items-center justify-center border"
+            className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden flex items-center justify-center border"
             style={{
               background: `color-mix(in srgb, ${cfg.color} 12%, transparent)`,
               borderColor: `color-mix(in srgb, ${cfg.color} 25%, transparent)`,
@@ -150,20 +150,20 @@ export function FormularioMagico({
             onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
           />
         </div>
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-1.5">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             onClick={del}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={save}
           >
-            <Save size={11} /> Guardar
+            <Save size={10} /> Guardar
           </button>
         </div>
       </div>

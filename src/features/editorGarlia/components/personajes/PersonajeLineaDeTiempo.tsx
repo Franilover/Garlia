@@ -422,7 +422,7 @@ export function PersonajeLineaDeTiempo({
   };
 
   return (
-    <div className="rounded-xl overflow-hidden border border-primary/10">
+    <div className="rounded-xl overflow-hidden">
       {/* Cabecera */}
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Clock className="text-primary/25 shrink-0" size={8} />

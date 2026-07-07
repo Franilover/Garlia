@@ -30,7 +30,7 @@ export function PersonajeHechizos({
     useHechizosDelPersonaje(personajeId, grupoIds);
 
   return (
-    <div className="rounded-xl overflow-hidden border border-primary/10">
+    <div className="rounded-xl overflow-hidden">
       <SeccionEntidad
         allEntities={disponibles}
         emptyLabel="Sin hechizos"

@@ -240,8 +240,8 @@ export function FormularioPersonaje({
 
                 {!compacto && (
                   <div className="hidden sm:block rounded-xl overflow-hidden border border-primary/10">
-                    <div className="px-2 py-1 border-b border-primary/10 bg-primary/[0.02]">
-                      <span className="text-micro font-black uppercase tracking-[0.3em] text-primary/25">
+                    <div className="px-2 py-1 border-b border-primary/[0.06]">
+                      <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                         Cuerpo
                       </span>
                     </div>
@@ -456,13 +456,11 @@ export function FormularioPersonaje({
                 />
 
                 {/* Línea de tiempo */}
-                <div className="rounded-xl overflow-hidden border border-primary/10">
-                  <PersonajeLineaDeTiempo
-                    fechaNacimiento={(form as any).fecha_nacimiento ?? null}
-                    personajeId={form.id}
-                    onFechaNacimientoChange={onFechaNacimientoChange}
-                  />
-                </div>
+                <PersonajeLineaDeTiempo
+                  fechaNacimiento={(form as any).fecha_nacimiento ?? null}
+                  personajeId={form.id}
+                  onFechaNacimientoChange={onFechaNacimientoChange}
+                />
               </div>
             </div>
           </div>

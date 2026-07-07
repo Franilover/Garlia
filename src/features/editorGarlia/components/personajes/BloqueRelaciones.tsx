@@ -496,7 +496,7 @@ export function BloqueRelaciones({
   const porTipo = (t: string) => relaciones.filter((r) => r.tipo === t);
 
   return (
-    <div className="rounded-xl overflow-hidden border border-primary/10">
+    <div className="rounded-xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Users className="text-primary/25 shrink-0" size={8} />

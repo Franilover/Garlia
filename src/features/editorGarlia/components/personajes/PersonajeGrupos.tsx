@@ -26,7 +26,7 @@ export function PersonajeGrupos({
 
   if (loading)
     return (
-      <div className="rounded-xl overflow-hidden border border-primary/10">
+      <div className="rounded-xl overflow-hidden">
         <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
           <Users className="text-primary/25 shrink-0" size={8} />
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
@@ -42,7 +42,7 @@ export function PersonajeGrupos({
   if (!grupos.length) return null;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-primary/10">
+    <div className="rounded-xl overflow-hidden">
       <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
         <Users className="text-primary/25 shrink-0" size={8} />
         <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">

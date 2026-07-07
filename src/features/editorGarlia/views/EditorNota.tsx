@@ -239,17 +239,17 @@ export function EditorNota({
       >
         {/* Eliminar */}
         <button
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-400/20 text-red-400/50 hover:text-red-400 hover:border-red-400/40 hover:bg-red-400/5 transition-all"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-400/20 text-red-400/50 hover:text-red-400 hover:border-red-400/40 hover:bg-red-400/5 transition-all"
           onClick={handleDelete}
         >
           <Trash2 size={10} /> Eliminar
         </button>
 
         {/* Guardar */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={handleSave}
           >

@@ -125,13 +125,13 @@ export function EditorItem({
 
       {/* ── Fixed header ────────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
+        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
           background: "color-mix(in srgb, var(--primary) 3%, transparent)",
         }}
       >
-        <div className="shrink-0 w-9 h-9 rounded-xl overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
           {form.imagen_url ? (
             <Image
               alt={form.nombre}
@@ -150,20 +150,20 @@ export function EditorItem({
           onChange={field("nombre")}
         />
 
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0 flex items-center gap-1.5">
           <SaveIndicator status={status} />
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
             onClick={del}
           >
             <Trash2 size={10} />
           </button>
           <button
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
             disabled={status === "saving"}
             onClick={save}
           >
-            <Save size={11} /> Guardar
+            <Save size={10} /> Guardar
           </button>
         </div>
       </div>
