@@ -534,10 +534,10 @@ export const SeccionEntidad = ({
       )}
 
       {/* ── Entidades seleccionadas ── */}
-      <div className={fill ? "flex-1 min-h-0 overflow-y-auto" : ""}>
+      <div className={fill ? "flex-1 min-h-0 overflow-y-auto flex flex-col" : ""}>
         {selected.length === 0 ? (
           <div
-            className="flex items-center gap-2 px-2.5 py-1.5"
+            className="flex-1 flex items-center gap-2 px-2.5 py-1.5"
             style={{ opacity: 0.35 }}
           >
             <span

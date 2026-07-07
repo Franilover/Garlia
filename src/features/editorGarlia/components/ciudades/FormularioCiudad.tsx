@@ -339,9 +339,9 @@ export function FormularioCiudad({
           </div>
 
           {/* Entidades relacionadas */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-stretch gap-4">
             {/* Personajes */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col bg-primary/[0.015]">
               <SeccionEntidad
                 allEntities={todosPersonajes.map((p) => ({
                   id: p.id,
@@ -367,7 +367,7 @@ export function FormularioCiudad({
             </div>
 
             {/* Criaturas */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col bg-primary/[0.015]">
               <SeccionEntidad
                 allEntities={todasCriaturas}
                 emptyLabel="Sin criaturas en esta ciudad"
@@ -389,7 +389,7 @@ export function FormularioCiudad({
             </div>
 
             {/* Ítems */}
-            <div className="flex-1 min-w-0 rounded-xl overflow-hidden">
+            <div className="flex-1 min-w-0 rounded-xl overflow-hidden flex flex-col bg-primary/[0.015]">
               <SeccionEntidad
                 allEntities={todosItems}
                 emptyLabel="Sin ítems en esta ciudad"

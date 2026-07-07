@@ -8,8 +8,7 @@
  *
  * Componentes extraídos a components/criaturas/:
  *   PickerImagenCriaturaBtn  → botón mobile de imagen
- *   BloqueGrupoCategoria     → selector de grupo por subtipo
- *   BloqueGruposCriatura     → chips + dropdown de grupos generales
+ *   BloqueGrupoCategoria     → selector de grupo por subtipo (Clasificación)
  *
  * Hooks extraídos a components/criaturas/:
  *   usePersonajesDeCriatura  → personajes de la especie + toggle
@@ -53,7 +52,6 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import {
   BloqueGrupoCategoria,
-  BloqueGruposCriatura,
   type GrupoMinExt,
 } from "@/features/editorGarlia/components/criaturas/BloqueGruposCriatura";
 import {
@@ -403,15 +401,6 @@ export function EditorCriatura({
               ))}
             </div>
           </div>
-
-          {/* Grupos */}
-          <BloqueGruposCriatura
-            gruposActuales={gruposActuales}
-            todosGrupos={todosGrupos}
-            onAdd={addToGrupo}
-            onRemove={removeFromGrupo}
-            onSelectGrupo={onSelectGrupo}
-          />
         </div>
 
         {/* ── BARRA DE ENTIDADES — fila horizontal inferior ────────────────── */}

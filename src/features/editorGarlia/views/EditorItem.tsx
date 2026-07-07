@@ -228,10 +228,10 @@ export function EditorItem({
               />
 
               {/* Origen + Territorio + Ciudades en tres columnas */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-stretch gap-4">
                 {/* Columna Origen — solo para ítems */}
                 {tabla === "items" && (
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
                     <SelectorGrupoUnico
                       emptyLabel="Sin origen"
                       label="Origen"
@@ -249,7 +249,7 @@ export function EditorItem({
                   </div>
                 )}
                 {/* Columna Territorio */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
                   <PanelTerritorio
                     allReinos={allReinos}
                     loadingReinos={loadingReinos}
@@ -261,7 +261,7 @@ export function EditorItem({
                   />
                 </div>
                 {/* Columna Ciudades */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
                   <PanelCiudades
                     allCiudades={allCiudades}
                     itemId={form.id}
