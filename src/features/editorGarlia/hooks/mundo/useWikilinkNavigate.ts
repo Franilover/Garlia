@@ -16,7 +16,7 @@ import { useCallback } from "react";
 
 import { useDataCache } from "@/providers/DataProvider";
 
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { useMundoNavigation, type SectionKey } from "./useMundoNavigationStore";
 
 const norm = (s: string | null | undefined) =>
   (s ?? "")

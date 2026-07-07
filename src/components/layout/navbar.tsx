@@ -24,7 +24,7 @@ import React, { useState, useEffect } from "react";
 
 import { useCommandPalette } from "@/components/command";
 import { MotionDiv } from "@/components/ui/Motion";
-import { useMundoNavigation } from "@/features/editorGarlia/components/mundo/store/useMundoNavigationStore";
+import { useMundoNavigation } from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";

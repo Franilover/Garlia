@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import React from "react";
 
-import type { SectionKey } from "../store/useMundoNavigationStore";
+import type { SectionKey } from "./useMundoNavigationStore";
 
 export interface MenuItem {
   key: SectionKey;

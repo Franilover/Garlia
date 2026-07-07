@@ -13,7 +13,7 @@
 import { X } from "lucide-react";
 import React from "react";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
 
 export function FloatingBackButton() {
   const goToMenu = useMundoNavigation((s) => s.goToMenu);

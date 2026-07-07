@@ -19,7 +19,7 @@
 import { Clock, Layers, Mountain, Music, ScrollText, Users } from "lucide-react";
 import React from "react";
 
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface MenuEntry {
   key: SectionKey;

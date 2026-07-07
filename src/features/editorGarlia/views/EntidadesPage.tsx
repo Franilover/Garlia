@@ -26,13 +26,13 @@ import { useEntidadesMagicas } from "@/features/editorGarlia/hooks/misc/useEntid
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { supabase } from "@/lib/api/client/supabase";
 
-import { CiudadEditor } from "../ciudades/CiudadEditor";
-import { CriaturaEditor } from "../criaturas/CriaturaEditor";
-import { ItemEditor } from "../items/ItemEditor";
-import { PersonajeEditor } from "../personajes/PersonajeEditor";
-import { ReinoEditor } from "../reinos/ReinoEditor";
-import { EntityCardGrid } from "../shared/EntityCardGrid";
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { CiudadEditor } from "../components/ciudades/CiudadEditor";
+import { CriaturaEditor } from "../components/criaturas/CriaturaEditor";
+import { ItemEditor } from "../components/items/ItemEditor";
+import { PersonajeEditor } from "../components/personajes/PersonajeEditor";
+import { ReinoEditor } from "../components/reinos/ReinoEditor";
+import { EntityCardGrid } from "../components/shared/EntityCardGrid";
+import { useMundoNavigation, type SectionKey } from "../hooks/mundo/useMundoNavigationStore";
 
 interface Personaje {
   id: string;

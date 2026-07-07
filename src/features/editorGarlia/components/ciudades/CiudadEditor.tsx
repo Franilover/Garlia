@@ -2,7 +2,7 @@
 
 import { EditorCiudad } from "@/features/editorGarlia/views/EditorCiudad";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface Ciudad {
   id: string;

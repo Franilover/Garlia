@@ -15,8 +15,8 @@
 import { Plus, Search } from "lucide-react";
 import React from "react";
 
-import type { SectionKey } from "../store/useMundoNavigationStore";
-import { siblingsOf } from "./mundoMenuGroups";
+import type { SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
+import { siblingsOf } from "../../hooks/mundo/mundoMenuGroups";
 import { SiblingSectionTabs } from "./SiblingSectionTabs";
 
 interface Props {

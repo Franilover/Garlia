@@ -34,8 +34,8 @@ import React, { useMemo } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
-import { useFavoritos } from "../store/useFavoritosStore";
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { useFavoritos } from "../../hooks/mundo/useFavoritosStore";
+import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface DashboardEntry {
   key: SectionKey;

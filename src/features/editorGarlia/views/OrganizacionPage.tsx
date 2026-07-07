@@ -21,9 +21,9 @@ import { EditorGrupo, GRUPO_TIPO_CONFIG, useGrupos, type GrupoTipo } from "@/fea
 import { useNotas } from "@/features/editorGarlia/hooks/notas/useNotas";
 import { type Nota } from "@/features/editorGarlia/hooks/types";
 
-import { EntityCardGrid } from "../shared/EntityCardGrid";
-import { TABLA_TO_SECTION } from "../store/useExternalCommandBridge";
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { EntityCardGrid } from "../components/shared/EntityCardGrid";
+import { TABLA_TO_SECTION } from "../hooks/mundo/useExternalCommandBridge";
+import { useMundoNavigation, type SectionKey } from "../hooks/mundo/useMundoNavigationStore";
 
 interface Props {
   section: SectionKey;

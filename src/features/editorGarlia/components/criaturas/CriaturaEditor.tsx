@@ -2,7 +2,7 @@
 
 import { EditorCriatura } from "@/features/editorGarlia/views/EditorCriatura";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface Criatura {
   id: string;

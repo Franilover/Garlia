@@ -11,8 +11,8 @@
 import { Loader2, Plus } from "lucide-react";
 import React from "react";
 
-import { useFavoritos } from "../store/useFavoritosStore";
-import type { SectionKey } from "../store/useMundoNavigationStore";
+import { useFavoritos } from "../../hooks/mundo/useFavoritosStore";
+import type { SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
 import { EntityCard } from "./EntityCard";
 
 interface Item {

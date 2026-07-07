@@ -14,7 +14,7 @@ import { useCallback } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
 
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { useMundoNavigation, type SectionKey } from "./useMundoNavigationStore";
 
 const SECTION_TABLE: Partial<Record<SectionKey, string>> = {
   personajes: "personajes",

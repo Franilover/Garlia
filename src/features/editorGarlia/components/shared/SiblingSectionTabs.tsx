@@ -14,7 +14,7 @@
 
 import React from "react";
 
-import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
+import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
 
 export interface SiblingItem {
   key: SectionKey;

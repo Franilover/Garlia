@@ -2,7 +2,7 @@
 
 import { EditorItem } from "@/features/editorGarlia/views/EditorItem";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface Item {
   id: string;

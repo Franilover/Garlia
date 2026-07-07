@@ -38,33 +38,33 @@ import React, { lazy, Suspense } from "react";
 import { AdminOnly } from "@/components/forms/AdminOnly";
 import { WikilinkProvider } from "@/features/editorGarlia/components/shared/WikilinkContext";
 
-import { useMundoNavigation } from "./store/useMundoNavigationStore";
-import { useExternalCommandBridge } from "./store/useExternalCommandBridge";
-import { MundoHomeDashboard } from "./shared/MundoHomeDashboard";
-import { useCreateEntity } from "./shared/useCreateEntity";
-import { useWikilinkNavigate } from "./shared/useWikilinkNavigate";
+import { useMundoNavigation } from "../hooks/mundo/useMundoNavigationStore";
+import { useExternalCommandBridge } from "../hooks/mundo/useExternalCommandBridge";
+import { MundoHomeDashboard } from "../components/shared/MundoHomeDashboard";
+import { useCreateEntity } from "../hooks/mundo/useCreateEntity";
+import { useWikilinkNavigate } from "../hooks/mundo/useWikilinkNavigate";
 
 // ─── Code-splitting por página combinada ──────────────────────────────────
 // Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas viven
 // TODOS juntos en EntidadesPage (una sola grilla grande de tarjetas).
 // Grupos/Notas siguen en OrganizacionPage aparte.
 const EntidadesPage = lazy(() =>
-  import("./entidades/EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
+  import("./EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
 );
 const OrganizacionPage = lazy(() =>
-  import("./organizacion/OrganizacionPage").then((m) => ({ default: m.OrganizacionPage })),
+  import("./OrganizacionPage").then((m) => ({ default: m.OrganizacionPage })),
 );
 const CapitulosSection = lazy(() =>
-  import("./capitulos/CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
+  import("./CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
 );
 const LetrasSection = lazy(() =>
-  import("./letras/LetrasSection").then((m) => ({ default: m.LetrasSection })),
+  import("./LetrasSection").then((m) => ({ default: m.LetrasSection })),
 );
 const MapaSection = lazy(() =>
-  import("./mapa/MapaSection").then((m) => ({ default: m.MapaSection })),
+  import("./MapaSection").then((m) => ({ default: m.MapaSection })),
 );
 const LineaTiempoSection = lazy(() =>
-  import("./mapa/LineaTiempoSection").then((m) => ({ default: m.LineaTiempoSection })),
+  import("./LineaTiempoSection").then((m) => ({ default: m.LineaTiempoSection })),
 );
 
 function SectionFallback() {

@@ -2,7 +2,7 @@
 
 import { EditorMapa } from "@/features/editorGarlia/views/EditorMapa";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../hooks/mundo/useMundoNavigationStore";
 
 export function MapaSection() {
   const openEntity = useMundoNavigation((s) => s.openEntity);

@@ -11,8 +11,8 @@
 
 import { PanelHistoriaMundo } from "@/features/editorGarlia/views/EditorLineaTiempo";
 
-import { useMundoSecciones } from "../../../hooks/mundo/useMundoSecciones";
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoSecciones } from "../hooks/mundo/useMundoSecciones";
+import { useMundoNavigation } from "../hooks/mundo/useMundoNavigationStore";
 
 export function LineaTiempoSection() {
   const { textos, setTextos, save } = useMundoSecciones();

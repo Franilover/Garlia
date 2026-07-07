@@ -13,8 +13,8 @@
 
 import { EditorPersonaje } from "@/features/editorGarlia/views/EditorPersonaje";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
-import { useWikilinkNavigate } from "../shared/useWikilinkNavigate";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
+import { useWikilinkNavigate } from "../../hooks/mundo/useWikilinkNavigate";
 
 interface Personaje {
   id: string;

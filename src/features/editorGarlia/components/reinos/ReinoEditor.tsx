@@ -2,7 +2,7 @@
 
 import { EditorReino } from "@/features/editorGarlia/views/EditorReino";
 
-import { useMundoNavigation } from "../store/useMundoNavigationStore";
+import { useMundoNavigation } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface Reino {
   id: string;

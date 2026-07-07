@@ -1,4 +1,4 @@
-import EditorMundoRoot from "@/features/editorGarlia/components/mundo/EditorMundoRoot";
+import EditorMundoRoot from "@/features/editorGarlia/views/EditorMundoRoot";
 
 export default function DashboardPage() {
   return <EditorMundoRoot />;
