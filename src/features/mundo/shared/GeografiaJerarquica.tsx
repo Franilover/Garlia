@@ -12,17 +12,19 @@
  *   [Reino 2]
  *   ...
  *
- * Cada nodo (reino / ciudad) se muestra SOLO como texto ([Nombre]) — sin
- * imagen ni tarjeta — y al hacer click abre su editor completo
+ * Cada nodo (reino / ciudad) se muestra como un botón tipo "chip" temático
+ * (sin corchetes) y al hacer click abre su editor completo
  * (openEntity("reinos", id) / openEntity("ciudades", id)), que ya trae
  * adentro sus propias ciudades / personajes. Los personajes sí usan la
  * tarjeta normal (imagen + nombre) porque son la hoja del árbol.
  *
  * Relaciones usadas:
- *  - Ciudad.reino_id   → agrupa ciudades bajo su reino
+ *  - Ciudad.reino_id   → agrupa ciudades bajo su reino (obligatorio: toda
+ *    ciudad pertenece a un único reino)
  *  - Personaje.ciudad_id → agrupa personajes bajo su ciudad
- * Reinos sin ciudades, ciudades sin reino_id y personajes sin ciudad_id
- * caen en un bloque final "Sin reino".
+ * Las ciudades de un reino se muestran en fila y hacen wrap horizontal a la
+ * fila de abajo cuando no caben. Solo quedan fuera de un reino los
+ * personajes sin ciudad_id, que caen en un bloque final "Sin ciudad".
  */
 
 import { Plus, Users } from "lucide-react";
@@ -64,20 +66,27 @@ function NodoTitulo({
   onClick,
   onCreate,
   creating,
+  variant = "reino",
 }: {
   label: string;
   onClick: () => void;
   onCreate?: () => void;
   creating?: boolean;
+  variant?: "reino" | "ciudad";
 }) {
+  const chipStyles =
+    variant === "reino"
+      ? "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/15"
+      : "bg-accent/10 hover:bg-accent/20 text-accent border border-accent/15";
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <button
         type="button"
         onClick={onClick}
-        className="text-sm font-black text-primary/85 hover:text-accent transition-colors"
+        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors ${chipStyles}`}
       >
-        [{label}]
+        {label}
       </button>
       {onCreate && (
         <button
@@ -85,7 +94,7 @@ function NodoTitulo({
           onClick={onCreate}
           disabled={creating}
           title="Añadir"
-          className="p-0.5 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
+          className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
         >
           <Plus size={11} className="text-primary/60" />
         </button>
@@ -106,30 +115,38 @@ export function GeografiaJerarquica({
   creatingReino,
 }: Props) {
   if (loading && reinos.length === 0) {
-    return <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>;
+    return (
+      <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+    );
   }
 
-  const ciudadesDe = (reinoId: string) => ciudades.filter((c) => c.reino_id === reinoId);
-  const personajesDe = (ciudadId: string) => personajes.filter((p) => p.ciudad_id === ciudadId);
+  const ciudadesDe = (reinoId: string) =>
+    ciudades.filter((c) => c.reino_id === reinoId);
+  const personajesDe = (ciudadId: string) =>
+    personajes.filter((p) => p.ciudad_id === ciudadId);
 
-  const ciudadesSinReino = ciudades.filter((c) => !c.reino_id);
   const personajesSinCiudad = personajes.filter((p) => !p.ciudad_id);
 
   const renderCiudad = (ciudad: Ciudad) => {
     const habitantes = personajesDe(ciudad.id);
     return (
-      <div key={ciudad.id} className="flex-1 min-w-[180px]">
+      <div key={ciudad.id} className="w-[200px]">
         <NodoTitulo
           label={ciudad.nombre}
+          variant="ciudad"
           onClick={() => onOpen("ciudades", ciudad.id)}
-          onCreate={onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined}
+          onCreate={
+            onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined
+          }
         />
         {habitantes.length === 0 ? (
           <div className="mt-2 text-micro text-primary/25">Sin personajes</div>
         ) : (
           <div
             className="mt-2 grid gap-1.5"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))" }}
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+            }}
           >
             {habitantes.map((p) => (
               <EntityCard
@@ -152,7 +169,9 @@ export function GeografiaJerarquica({
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
           Entidades
         </h2>
-        <span className="text-micro text-primary/25 tabular-nums">{reinos.length}</span>
+        <span className="text-micro text-primary/25 tabular-nums">
+          {reinos.length}
+        </span>
         <div className="flex-1" />
         {onCreateReino && (
           <button
@@ -169,11 +188,16 @@ export function GeografiaJerarquica({
 
       <div className="flex flex-col gap-8">
         {reinos.map((reino) => (
-          <div key={reino.id} className="pb-6 border-b border-primary/5 last:border-0">
+          <div
+            key={reino.id}
+            className="pb-6 border-b border-primary/5 last:border-0"
+          >
             <NodoTitulo
               label={reino.nombre}
               onClick={() => onOpen("reinos", reino.id)}
-              onCreate={onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined}
+              onCreate={
+                onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+              }
             />
             <div className="mt-3 flex flex-wrap gap-6">
               {ciudadesDe(reino.id).length === 0 ? (
@@ -185,44 +209,39 @@ export function GeografiaJerarquica({
           </div>
         ))}
 
-        {(ciudadesSinReino.length > 0 || personajesSinCiudad.length > 0) && (
+        {personajesSinCiudad.length > 0 && (
           <div className="pb-2">
             <NodoTitulo
-              label="Sin reino"
+              label="Sin ciudad"
+              variant="ciudad"
               onClick={() => {}}
-              onCreate={onCreateCiudad ? () => onCreateCiudad(null) : undefined}
+              onCreate={
+                onCreatePersonaje ? () => onCreatePersonaje(null) : undefined
+              }
             />
-            <div className="mt-3 flex flex-wrap gap-6">
-              {ciudadesSinReino.map(renderCiudad)}
-              {personajesSinCiudad.length > 0 && (
-                <div className="flex-1 min-w-[180px]">
-                  <NodoTitulo
-                    label="Sin ciudad"
-                    onClick={() => {}}
-                    onCreate={onCreatePersonaje ? () => onCreatePersonaje(null) : undefined}
-                  />
-                  <div
-                    className="mt-2 grid gap-1.5"
-                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))" }}
-                  >
-                    {personajesSinCiudad.map((p) => (
-                      <EntityCard
-                        key={p.id}
-                        nombre={p.nombre}
-                        imageUrl={p.img_url}
-                        Icon={Users}
-                        onClick={() => onOpen("personajes", p.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div
+              className="mt-2 grid gap-1.5"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+              }}
+            >
+              {personajesSinCiudad.map((p) => (
+                <EntityCard
+                  key={p.id}
+                  nombre={p.nombre}
+                  imageUrl={p.img_url}
+                  Icon={Users}
+                  onClick={() => onOpen("personajes", p.id)}
+                />
+              ))}
             </div>
           </div>
         )}
 
-        {reinos.length === 0 && ciudadesSinReino.length === 0 && personajesSinCiudad.length === 0 && (
-          <div className="py-6 text-xs text-primary/25 text-center">Sin reinos todavía</div>
+        {reinos.length === 0 && personajesSinCiudad.length === 0 && (
+          <div className="py-6 text-xs text-primary/25 text-center">
+            Sin reinos todavía
+          </div>
         )}
       </div>
     </div>
