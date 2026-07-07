@@ -8,7 +8,9 @@
  *   - Las eras se agrupan en "carriles" por año.
  *   - Cada carril muestra el año como encabezado arriba, y debajo sus
  *     eras como botones compactos dispuestos en fila horizontal.
- *   - Los carriles se apilan hacia abajo en orden cronológico.
+ *   - Los carriles se disponen lado a lado (fila) hasta llegar al borde
+ *     del contenedor, y ahí continúan en la siguiente línea (wrap):
+ *     horizontal primero, vertical después — igual que en EditorLineaTiempo.
  *   - Al hacer click en una era se abre un panel de detalle FLOTANTE
  *     (portal, anclado al botón clickeado) con la edición completa:
  *     fecha, edad, título, rasgos y notas. El panel no empuja el layout.
@@ -739,10 +741,15 @@ export function PersonajeLineaDeTiempo({
             : "Asigna un cumpleaños y agrega eras para construir la historia"}
         </p>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        // Carriles dispuestos lado a lado (fila) hasta llegar al borde del
+        // contenedor y ahí continúan en la siguiente línea — mismo patrón
+        // que ListaEventosConMinimapa en EditorLineaTiempo.tsx: horizontal
+        // primero, vertical (wrap) después. Cada carril tiene un ancho que
+        // se ajusta a la cantidad de eras que contiene.
+        <div className="flex flex-row flex-wrap items-start gap-3">
           {/* Carril de nacimiento — encabezado propio, siempre primero */}
           {fechaNacimiento != null && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" style={{ width: ANCHO_ERA_BTN }}>
               <div className="flex items-center gap-1.5 w-full">
                 <span
                   className="text-micro font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
@@ -775,44 +782,52 @@ export function PersonajeLineaDeTiempo({
             </div>
           )}
 
-          {/* Carriles por año */}
-          {carriles.map((carril, ci) => (
-            <div key={`carril-${carril.anio ?? "sf"}-${ci}`} className="flex flex-col gap-1">
-              <div className="flex items-center gap-1.5 w-full">
-                <span
-                  className="text-micro font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
-                  style={{
-                    color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    background: FIELD_BG,
-                  }}
-                >
-                  {carril.anio != null ? `Año ${carril.anio}` : "Sin año"}
-                </span>
-                <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
-              </div>
-              <div className="flex flex-row flex-wrap gap-1.5">
-                {carril.eras.map((era) => (
-                  <EraBoton
-                    key={era.id}
-                    btnRef={(el) => {
-                      if (el) btnRefs.current.set(era.id, el);
-                      else btnRefs.current.delete(era.id);
+          {/* Carriles por año — cada uno lado a lado, envolviendo al borde */}
+          {carriles.map((carril, ci) => {
+            const anchoCarril =
+              ANCHO_ERA_BTN * carril.eras.length + 6 * (carril.eras.length - 1);
+            return (
+              <div
+                key={`carril-${carril.anio ?? "sf"}-${ci}`}
+                className="flex flex-col gap-1"
+                style={{ width: anchoCarril }}
+              >
+                <div className="flex items-center gap-1.5 w-full">
+                  <span
+                    className="text-micro font-black tabular-nums px-1.5 py-0.5 rounded shrink-0"
+                    style={{
+                      color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      background: FIELD_BG,
                     }}
-                    edad={
-                      fechaNacimiento != null && diasPorAnio > 0
-                        ? calcularEdad(era.momento, fechaNacimiento, diasPorAnio)
-                        : null
-                    }
-                    era={era}
-                    isSel={era.id === selId}
-                    onClick={() =>
-                      setSelId((prev) => (prev === era.id ? null : era.id))
-                    }
-                  />
-                ))}
+                  >
+                    {carril.anio != null ? `Año ${carril.anio}` : "Sin año"}
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
+                </div>
+                <div className="flex flex-row gap-1.5">
+                  {carril.eras.map((era) => (
+                    <EraBoton
+                      key={era.id}
+                      btnRef={(el) => {
+                        if (el) btnRefs.current.set(era.id, el);
+                        else btnRefs.current.delete(era.id);
+                      }}
+                      edad={
+                        fechaNacimiento != null && diasPorAnio > 0
+                          ? calcularEdad(era.momento, fechaNacimiento, diasPorAnio)
+                          : null
+                      }
+                      era={era}
+                      isSel={era.id === selId}
+                      onClick={() =>
+                        setSelId((prev) => (prev === era.id ? null : era.id))
+                      }
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
