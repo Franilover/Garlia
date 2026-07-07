@@ -22,9 +22,12 @@
  *  - Ciudad.reino_id   → agrupa ciudades bajo su reino (obligatorio: toda
  *    ciudad pertenece a un único reino)
  *  - Personaje.ciudad_id → agrupa personajes bajo su ciudad
- * Las ciudades de un reino se muestran en fila y hacen wrap horizontal a la
- * fila de abajo cuando no caben. Solo quedan fuera de un reino los
- * personajes sin ciudad_id, que caen en un bloque final "Sin ciudad".
+ *  - Personaje.reino (nombre) → si un personaje no tiene ciudad pero sí
+ *    reino, se muestra dentro de ese reino bajo un slot "Sin Ciudad"
+ * Las ciudades (y el slot "Sin Ciudad") de un reino se muestran en fila y
+ * hacen wrap horizontal cuando no caben; los títulos largos se truncan para
+ * no sobreponerse a los nodos vecinos. Solo caen en el bloque final global
+ * "Sin ciudad" los personajes sin ciudad_id y sin reino válido asociado.
  */
 
 import { Plus, Users } from "lucide-react";
@@ -47,6 +50,7 @@ interface Personaje {
   nombre: string;
   img_url?: string | null;
   ciudad_id?: string | null;
+  reino?: string | null;
 }
 
 interface Props {
@@ -67,12 +71,14 @@ function NodoTitulo({
   onCreate,
   creating,
   variant = "reino",
+  maxWidthPx,
 }: {
   label: string;
   onClick: () => void;
   onCreate?: () => void;
   creating?: boolean;
   variant?: "reino" | "ciudad";
+  maxWidthPx?: number;
 }) {
   const chipStyles =
     variant === "reino"
@@ -80,11 +86,13 @@ function NodoTitulo({
       : "bg-accent/10 hover:bg-accent/20 text-accent border border-accent/15";
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 max-w-full">
       <button
         type="button"
         onClick={onClick}
-        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors ${chipStyles}`}
+        title={label}
+        style={maxWidthPx ? { maxWidth: maxWidthPx } : undefined}
+        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors truncate ${chipStyles}`}
       >
         {label}
       </button>
@@ -94,7 +102,7 @@ function NodoTitulo({
           onClick={onCreate}
           disabled={creating}
           title="Añadir"
-          className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
+          className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
         >
           <Plus size={11} className="text-primary/60" />
         </button>
@@ -127,40 +135,62 @@ export function GeografiaJerarquica({
   const personajesDe = (ciudadId: string) =>
     personajes.filter((p) => p.ciudad_id === ciudadId);
 
-  const personajesSinCiudad = personajes.filter((p) => !p.ciudad_id);
+  // Personajes sin ciudad_id, pero con un reino asignado directamente
+  // (por nombre) se agrupan dentro de ese reino, bajo un slot "Sin Ciudad".
+  const personajesSinCiudadDeReino = (reinoNombre: string) =>
+    personajes.filter((p) => !p.ciudad_id && p.reino === reinoNombre);
+
+  // Solo quedan huérfanos globales los que no tienen ni ciudad ni un reino
+  // válido asociado.
+  const personajesSinCiudad = personajes.filter(
+    (p) => !p.ciudad_id && !reinos.some((r) => r.nombre === p.reino)
+  );
 
   const reinosOrdenados = [...reinos].sort(
-    (a, b) => ciudadesDe(b.id).length - ciudadesDe(a.id).length
+    (a, b) =>
+      ciudadesDe(b.id).length +
+      personajesSinCiudadDeReino(b.nombre).length -
+      (ciudadesDe(a.id).length + personajesSinCiudadDeReino(a.nombre).length)
   );
   const reinosConCiudades = reinosOrdenados.filter(
-    (r) => ciudadesDe(r.id).length > 0
+    (r) => ciudadesDe(r.id).length > 0 || personajesSinCiudadDeReino(r.nombre).length > 0
   );
   const reinosVacios = reinosOrdenados.filter(
-    (r) => ciudadesDe(r.id).length === 0
+    (r) => ciudadesDe(r.id).length === 0 && personajesSinCiudadDeReino(r.nombre).length === 0
   );
 
-  const renderCiudad = (ciudad: Ciudad) => {
-    const habitantes = personajesDe(ciudad.id);
+  const renderColumna = ({
+    key,
+    nombre,
+    habitantes,
+    onClick,
+    onCreate,
+  }: {
+    key: string;
+    nombre: string;
+    habitantes: Personaje[];
+    onClick: () => void;
+    onCreate?: () => void;
+  }) => {
     const vacia = habitantes.length === 0;
-    // Más personajes → más columnas → la ciudad ocupa más ancho horizontal.
+    // Más personajes → más columnas → la columna ocupa más ancho horizontal.
     const cols = Math.min(Math.max(habitantes.length, 1), 6);
     const itemSize = 52;
     const gapPx = 4;
-    const anchoPx = cols * itemSize + (cols - 1) * gapPx;
+    const anchoPx = Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
 
     return (
       <div
-        key={ciudad.id}
+        key={key}
         className={vacia ? "w-fit shrink-0" : "shrink-0"}
         style={vacia ? undefined : { width: anchoPx }}
       >
         <NodoTitulo
-          label={ciudad.nombre}
+          label={nombre}
           variant="ciudad"
-          onClick={() => onOpen("ciudades", ciudad.id)}
-          onCreate={
-            onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined
-          }
+          maxWidthPx={vacia ? 140 : anchoPx}
+          onClick={onClick}
+          onCreate={onCreate}
         />
         {vacia ? (
           <div className="mt-1.5 text-micro text-primary/25">
@@ -187,6 +217,28 @@ export function GeografiaJerarquica({
       </div>
     );
   };
+
+  const renderCiudad = (ciudad: Ciudad) =>
+    renderColumna({
+      key: ciudad.id,
+      nombre: ciudad.nombre,
+      habitantes: personajesDe(ciudad.id),
+      onClick: () => onOpen("ciudades", ciudad.id),
+      onCreate: onCreatePersonaje
+        ? () => onCreatePersonaje!(ciudad.id)
+        : undefined,
+    });
+
+  const renderSinCiudadDeReino = (reino: Reino) =>
+    renderColumna({
+      key: `sin-ciudad-${reino.id}`,
+      nombre: "Sin Ciudad",
+      habitantes: personajesSinCiudadDeReino(reino.nombre),
+      onClick: () => {},
+      onCreate: onCreatePersonaje
+        ? () => onCreatePersonaje!(null)
+        : undefined,
+    });
 
   return (
     <div className="mb-8 last:mb-0">
@@ -226,7 +278,29 @@ export function GeografiaJerarquica({
                 }
               />
               <div className="mt-3 flex flex-wrap gap-6">
-                {ciudadesDe(reino.id).map(renderCiudad)}
+                {[
+                  ...ciudadesDe(reino.id).map((c) => ({
+                    tipo: "ciudad" as const,
+                    ciudad: c,
+                    count: personajesDe(c.id).length,
+                  })),
+                  ...(personajesSinCiudadDeReino(reino.nombre).length > 0
+                    ? [
+                        {
+                          tipo: "sinCiudad" as const,
+                          ciudad: null,
+                          count: personajesSinCiudadDeReino(reino.nombre)
+                            .length,
+                        },
+                      ]
+                    : []),
+                ]
+                  .sort((a, b) => b.count - a.count)
+                  .map((item) =>
+                    item.tipo === "ciudad"
+                      ? renderCiudad(item.ciudad)
+                      : renderSinCiudadDeReino(reino)
+                  )}
               </div>
             </div>
           ))}
