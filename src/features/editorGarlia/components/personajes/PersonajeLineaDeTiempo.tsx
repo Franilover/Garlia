@@ -3,9 +3,14 @@
 /**
  * PersonajeLineaDeTiempo.tsx
  * ──────────────────────────
- * UI de la línea de tiempo de eras de un personaje: crear, expandir,
- * editar rasgos/notas/etiqueta, eliminar eras, y selector de fecha de
+ * UI de la línea de tiempo de eras de un personaje: crear, editar
+ * rasgos/notas/etiqueta, eliminar eras, y selector de fecha de
  * nacimiento inline. Toda la lógica vive en useErasDelPersonaje.
+ *
+ * Cada era está siempre abierta y editable — no hay estado
+ * colapsado/expandido. El layout es de 2 columnas (fecha+meta a la
+ * izquierda, edición a la derecha) para aprovechar el ancho del panel
+ * en vez de apilar todo en una sola columna angosta.
  *
  * NOTA DE ARQUITECTURA: este componente depende de FechaMundoBadge,
  * SelectorFechaMundo y useCalendario, que hoy viven en
@@ -20,14 +25,7 @@
  * Ruta: src/features/editorGarlia/components/personajes/PersonajeLineaDeTiempo.tsx
  */
 
-import {
-  CalendarPlus,
-  Check,
-  Loader2,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { CalendarPlus, Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -56,13 +54,16 @@ function calcularEdad(
 // en vez de repetir el mismo string color-mix por todo el archivo.
 const LINE_COLOR = "color-mix(in srgb, var(--primary) 10%, transparent)";
 
+// Columna izquierda fija (fecha/edad/riel). Ancho generoso para que la
+// fecha nunca ajuste de línea y la columna derecha quede realmente libre.
+const META_COL_WIDTH = 132;
+
 // ─── EraItem ──────────────────────────────────────────────────────────────────
 
 function EraItem({
   era,
-  isOpen,
   edad,
-  onToggle,
+  isLast,
   onDelete,
   onAddRasgo,
   onRemoveRasgo,
@@ -70,10 +71,9 @@ function EraItem({
   onLabelChange,
 }: {
   era: Era;
-  isOpen: boolean;
   edad: number | null;
+  isLast: boolean;
   diasPorAnio: number;
-  onToggle: () => void;
   onDelete: () => void;
   onAddRasgo: (r: string) => void;
   onRemoveRasgo: (r: string) => void;
@@ -83,9 +83,9 @@ function EraItem({
   const [nuevoRasgo, setNuevoRasgo] = useState("");
 
   return (
-    <div className="flex gap-2.5">
+    <div className="flex gap-3">
       {/* Riel vertical continuo + nodo */}
-      <div className="shrink-0 flex flex-col items-center" style={{ width: 16 }}>
+      <div className="shrink-0 flex flex-col items-center" style={{ width: 12 }}>
         <div
           className="rounded-full shrink-0"
           style={{
@@ -96,19 +96,21 @@ function EraItem({
             background: "var(--bg-main)",
           }}
         />
-        <div className="flex-1 w-px mt-1" style={{ background: LINE_COLOR }} />
+        {!isLast && (
+          <div className="flex-1 w-px mt-1" style={{ background: LINE_COLOR }} />
+        )}
       </div>
 
-      <div className="flex-1 min-w-0 pb-3">
-        <button
-          className="w-full flex items-center gap-2 text-left"
-          type="button"
-          onClick={onToggle}
+      {/* Fila: columna meta (fecha/edad) + columna de edición, lado a lado */}
+      <div className="flex-1 min-w-0 flex gap-4 pb-4">
+        {/* Columna meta */}
+        <div
+          className="shrink-0 pt-0.5 flex flex-col gap-1"
+          style={{ width: META_COL_WIDTH }}
         >
           <span className="text-micro font-bold" style={{ color: "var(--primary)" }}>
             <FechaMundoBadge diaAbsoluto={era.momento} />
           </span>
-
           {edad !== null && edad >= 0 && (
             <span
               className="text-micro font-black tabular-nums"
@@ -117,52 +119,16 @@ function EraItem({
               {edad} {edad === 1 ? "año" : "años"}
             </span>
           )}
-
-          {era.label && (
-            <span className="text-micro text-primary/40 truncate">
-              {era.label}
-            </span>
-          )}
-
-          <span className="flex-1" />
-
           {era._saving && (
-            <Loader2 className="animate-spin text-primary/30 shrink-0" size={9} />
+            <Loader2 className="animate-spin text-primary/30" size={9} />
           )}
-        </button>
+        </div>
 
-        {/* Vista colapsada: rasgos resumidos */}
-        {!isOpen && (era.rasgos.length > 0 || era.notas) && (
-          <div className="flex flex-wrap items-center gap-1 mt-1">
-            {era.rasgos.slice(0, 4).map((r) => (
-              <span
-                key={r}
-                className="px-1.5 py-0.5 rounded-md text-micro text-primary/45"
-                style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}
-              >
-                {r}
-              </span>
-            ))}
-            {era.rasgos.length > 4 && (
-              <span className="text-micro text-primary/25">
-                +{era.rasgos.length - 4}
-              </span>
-            )}
-            {era.notas && (
-              <span className="text-micro text-primary/25 italic truncate">
-                {era.rasgos.length > 0 && "· "}
-                {era.notas.slice(0, 40)}
-                {era.notas.length > 40 && "…"}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Vista expandida: edición completa */}
-        {isOpen && (
-          <div className="mt-2 space-y-2">
+        {/* Columna de edición: usa todo el ancho restante */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-2">
             <input
-              className="w-full rounded-lg border px-2 py-1.5 text-micro font-bold outline-none transition-colors placeholder:font-normal placeholder:text-primary/25"
+              className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-micro font-bold outline-none transition-colors placeholder:font-normal placeholder:text-primary/25"
               maxLength={60}
               placeholder="Nombre del período (ej: Infancia, Exilio…)"
               style={{
@@ -174,74 +140,88 @@ function EraItem({
               value={era.label}
               onChange={(e) => onLabelChange(e.target.value)}
             />
+            <button
+              className="shrink-0 flex items-center gap-1 px-1.5 py-1.5 rounded-md text-micro text-primary/25 hover:text-accent transition-colors"
+              title="Eliminar era"
+              type="button"
+              onClick={onDelete}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-1">
-              <input
-                className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-micro outline-none transition-colors placeholder:text-primary/25"
-                maxLength={40}
-                placeholder="Añadir rasgo…"
-                style={{
-                  background: "transparent",
-                  borderColor: LINE_COLOR,
-                  color: "var(--primary)",
-                }}
-                type="text"
-                value={nuevoRasgo}
-                onChange={(e) => setNuevoRasgo(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Rasgos: input + chips */}
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex items-center gap-1">
+                <input
+                  className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-micro outline-none transition-colors placeholder:text-primary/25"
+                  maxLength={40}
+                  placeholder="Añadir rasgo…"
+                  style={{
+                    background: "transparent",
+                    borderColor: LINE_COLOR,
+                    color: "var(--primary)",
+                  }}
+                  type="text"
+                  value={nuevoRasgo}
+                  onChange={(e) => setNuevoRasgo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onAddRasgo(nuevoRasgo);
+                      setNuevoRasgo("");
+                    }
+                    if (e.key === "Escape") setNuevoRasgo("");
+                  }}
+                />
+                <button
+                  className="shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-20"
+                  disabled={!nuevoRasgo.trim()}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    color: "var(--primary)",
+                    border: `1px solid ${LINE_COLOR}`,
+                  }}
+                  type="button"
+                  onClick={() => {
                     onAddRasgo(nuevoRasgo);
                     setNuevoRasgo("");
-                  }
-                  if (e.key === "Escape") setNuevoRasgo("");
-                }}
-              />
-              <button
-                className="shrink-0 flex items-center justify-center rounded-lg transition-colors disabled:opacity-20"
-                disabled={!nuevoRasgo.trim()}
-                style={{
-                  width: 28,
-                  height: 28,
-                  color: "var(--primary)",
-                  border: `1px solid ${LINE_COLOR}`,
-                }}
-                type="button"
-                onClick={() => {
-                  onAddRasgo(nuevoRasgo);
-                  setNuevoRasgo("");
-                }}
-              >
-                <Plus size={12} />
-              </button>
+                  }}
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
+
+              {era.rasgos.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {era.rasgos.map((rasgo) => (
+                    <span
+                      key={rasgo}
+                      className="group flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md text-micro"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      }}
+                    >
+                      {rasgo}
+                      <button
+                        className="opacity-40 hover:opacity-100 transition-opacity"
+                        type="button"
+                        onClick={() => onRemoveRasgo(rasgo)}
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {era.rasgos.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {era.rasgos.map((rasgo) => (
-                  <span
-                    key={rasgo}
-                    className="group flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-md text-micro"
-                    style={{
-                      background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                      color: "color-mix(in srgb, var(--primary) 60%, transparent)",
-                    }}
-                  >
-                    {rasgo}
-                    <button
-                      className="opacity-40 hover:opacity-100 transition-opacity"
-                      type="button"
-                      onClick={() => onRemoveRasgo(rasgo)}
-                    >
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-
+            {/* Notas: comparte fila con rasgos en pantallas anchas */}
             <textarea
-              className="w-full rounded-lg border px-2 py-1.5 text-micro leading-relaxed outline-none transition-colors resize-none placeholder:text-primary/25"
+              className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-micro leading-relaxed outline-none transition-colors resize-none placeholder:text-primary/25"
               placeholder="Notas sobre este momento…"
               rows={2}
               style={{
@@ -252,18 +232,8 @@ function EraItem({
               value={era.notas}
               onChange={(e) => onNotasChange(e.target.value)}
             />
-
-            <div className="flex justify-end">
-              <button
-                className="flex items-center gap-1 px-1.5 py-1 rounded-md text-micro text-primary/30 hover:text-accent transition-colors"
-                type="button"
-                onClick={onDelete}
-              >
-                <Trash2 size={11} /> Eliminar era
-              </button>
-            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -285,13 +255,15 @@ function SelectorCumple({
   onGuardar: () => void;
 }) {
   return (
-    <div className="space-y-2">
-      <SelectorFechaMundo
-        placeholder="Seleccionar cumpleaños…"
-        value={draft}
-        onChange={onChange}
-      />
-      <div className="flex gap-1.5 justify-end">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+      <div className="flex-1 min-w-0">
+        <SelectorFechaMundo
+          placeholder="Seleccionar cumpleaños…"
+          value={draft}
+          onChange={onChange}
+        />
+      </div>
+      <div className="flex gap-1.5 justify-end shrink-0">
         <button
           className="px-2.5 py-1 rounded-lg text-micro text-primary/40 hover:text-primary transition-colors"
           type="button"
@@ -357,7 +329,6 @@ export function PersonajeLineaDeTiempo({
   const { guardar: guardarCumple, saving: savingCumple } =
     useGuardarCumpleanos(personajeId, onFechaNacimientoChange);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
   const [newMomento, setNewMomento] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -367,8 +338,7 @@ export function PersonajeLineaDeTiempo({
 
   const handleAddEra = async () => {
     const num = parseInt(newMomento.trim(), 10);
-    const era = await addEra(num, newLabel);
-    if (era) setExpandedId(era.id);
+    await addEra(num, newLabel);
     setNewMomento("");
     setNewLabel("");
     setAddingNew(false);
@@ -416,36 +386,38 @@ export function PersonajeLineaDeTiempo({
         </button>
       </div>
 
-      {/* Formulario de nueva era */}
+      {/* Formulario de nueva era: también en 2 columnas para consistencia */}
       {addingNew && (
         <div
           className="mb-3 p-2.5 rounded-xl space-y-2"
           style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
         >
-          <SelectorFechaMundo
-            placeholder="Seleccionar fecha…"
-            value={newMomento ? parseInt(newMomento, 10) : null}
-            onChange={(dia: number | null) =>
-              setNewMomento(dia != null ? String(dia) : "")
-            }
-          />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <SelectorFechaMundo
+              placeholder="Seleccionar fecha…"
+              value={newMomento ? parseInt(newMomento, 10) : null}
+              onChange={(dia: number | null) =>
+                setNewMomento(dia != null ? String(dia) : "")
+              }
+            />
+            <input
+              className="flex-1 min-w-0 rounded-lg border px-2 py-1.5 text-micro outline-none transition-colors placeholder:text-primary/25"
+              placeholder="Etiqueta (opcional)"
+              style={{ background: "transparent", borderColor: LINE_COLOR, color: "var(--primary)" }}
+              type="text"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleAddEra();
+                if (e.key === "Escape") setAddingNew(false);
+              }}
+            />
+          </div>
           {fechaInvalida && (
             <p className="text-micro text-accent/70">
               La era debe ser posterior al cumpleaños
             </p>
           )}
-          <input
-            className="w-full rounded-lg border px-2 py-1.5 text-micro outline-none transition-colors placeholder:text-primary/25"
-            placeholder="Etiqueta (opcional)"
-            style={{ background: "transparent", borderColor: LINE_COLOR, color: "var(--primary)" }}
-            type="text"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void handleAddEra();
-              if (e.key === "Escape") setAddingNew(false);
-            }}
-          />
           <div className="flex gap-1.5 justify-end">
             <button
               className="px-2.5 py-1 rounded-lg text-micro text-primary/40 hover:text-primary transition-colors"
@@ -484,11 +456,8 @@ export function PersonajeLineaDeTiempo({
         <div>
           {/* Nodo fijo: cumpleaños */}
           {fechaNacimiento != null && (
-            <div className="flex gap-2.5">
-              <div
-                className="shrink-0 flex flex-col items-center"
-                style={{ width: 16 }}
-              >
+            <div className="flex gap-3">
+              <div className="shrink-0 flex flex-col items-center" style={{ width: 12 }}>
                 <div
                   className="rounded-full shrink-0"
                   style={{
@@ -504,14 +473,11 @@ export function PersonajeLineaDeTiempo({
                   <div className="flex-1 w-px mt-1" style={{ background: LINE_COLOR }} />
                 )}
               </div>
-              <div className="flex items-center gap-2 pb-3">
+              <div className="flex items-center gap-2 pb-4">
                 <span className="text-micro font-bold" style={{ color: "var(--primary)" }}>
                   <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
                 </span>
-                <span
-                  className="text-micro font-bold"
-                  style={{ color: "var(--accent)" }}
-                >
+                <span className="text-micro font-bold" style={{ color: "var(--accent)" }}>
                   Nacimiento
                 </span>
               </div>
@@ -557,7 +523,7 @@ export function PersonajeLineaDeTiempo({
           {/* Banner de cumpleaños cuando hay eras pero no hay fecha */}
           {eras.length > 0 && fechaNacimiento == null && (
             <div
-              className="mb-3 px-2.5 py-2 rounded-xl border border-dashed space-y-1.5"
+              className="mb-3 px-2.5 py-2 rounded-xl border border-dashed"
               style={{
                 borderColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
               }}
@@ -586,8 +552,8 @@ export function PersonajeLineaDeTiempo({
             </div>
           )}
 
-          {/* Eras */}
-          {eras.map((era) => (
+          {/* Eras — todas siempre abiertas/editables, sin toggle */}
+          {eras.map((era, idx) => (
             <EraItem
               key={era.id}
               diasPorAnio={diasPorAnio}
@@ -597,15 +563,12 @@ export function PersonajeLineaDeTiempo({
                   : null
               }
               era={era}
-              isOpen={expandedId === era.id}
+              isLast={idx === eras.length - 1}
               onAddRasgo={(r) => addRasgo(era, r)}
               onDelete={() => deleteEra(era.id)}
               onLabelChange={(v) => changeLabel(era, v)}
               onNotasChange={(v) => changeNotas(era, v)}
               onRemoveRasgo={(r) => removeRasgo(era, r)}
-              onToggle={() =>
-                setExpandedId(expandedId === era.id ? null : era.id)
-              }
             />
           ))}
         </div>
