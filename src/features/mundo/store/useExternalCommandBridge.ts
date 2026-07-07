@@ -29,7 +29,7 @@ type AddMagicDetail = { key: string };
 // Mapeo tabla de Supabase → sección de navegación. Único lugar donde vive
 // esta correspondencia (antes estaba repetida como MUNDO_TABLAS +
 // tablaMap + magicCollections en distintos puntos de editorGarlia.tsx).
-const TABLA_TO_SECTION: Record<string, SectionKey> = {
+export const TABLA_TO_SECTION: Record<string, SectionKey> = {
   personajes: "personajes",
   criaturas: "criaturas",
   items: "items",
@@ -39,6 +39,18 @@ const TABLA_TO_SECTION: Record<string, SectionKey> = {
   hechizos: "hechizos",
   dones: "dones",
   runas: "runas",
+  // "libros" es el nombre de tabla que usa GRUPO_TIPO_CONFIG (cfg.tabla) para
+  // el tipo de grupo "Libros" — la sección de navegación equivalente es
+  // "capitulos" (misma que usa el resto del editor para libros/capítulos).
+  libros: "capitulos",
+  // Alias en singular: los mismos usados por garlia-add-magic / wikilinks.
+  libro: "capitulos",
+  capitulo: "capitulos",
+  cancion: "letras",
+  canciones: "letras",
+  letras: "letras",
+  ciudad: "ciudades",
+  grupos: "grupos",
 };
 
 const MAGIA_TABLAS = new Set(["hechizos", "dones", "runas"]);

@@ -22,6 +22,7 @@ import { useNotas } from "@/features/editorGarlia/hooks/notas/useNotas";
 import { type Nota } from "@/features/editorGarlia/hooks/types";
 
 import { EntityCardGrid } from "../shared/EntityCardGrid";
+import { TABLA_TO_SECTION } from "../store/useExternalCommandBridge";
 import { useMundoNavigation, type SectionKey } from "../store/useMundoNavigationStore";
 
 interface Props {
@@ -85,6 +86,10 @@ export function OrganizacionPage({ section, selectedId }: Props) {
         <EditorGrupo
           key={selectedGrupo.id}
           grupo={selectedGrupo}
+          onClickMiembro={(id, tabla) => {
+            const destino = TABLA_TO_SECTION[tabla];
+            if (destino) openEntity(destino, id);
+          }}
           onDeleted={async (id) => {
             await eliminarGrupo(id);
           }}
