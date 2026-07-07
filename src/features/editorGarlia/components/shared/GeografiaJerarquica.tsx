@@ -29,7 +29,7 @@ import { Plus, Users } from "lucide-react";
 import React from "react";
 
 import { EntityCard } from "./EntityCard";
-import type { SectionKey } from "../hooks/mundo/useMundoNavigationStore";
+import type { SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
 
 interface Reino {
   id: string;
@@ -106,11 +106,15 @@ export function GeografiaJerarquica({
   creatingReino,
 }: Props) {
   if (loading && reinos.length === 0) {
-    return <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>;
+    return (
+      <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+    );
   }
 
-  const ciudadesDe = (reinoId: string) => ciudades.filter((c) => c.reino_id === reinoId);
-  const personajesDe = (ciudadId: string) => personajes.filter((p) => p.ciudad_id === ciudadId);
+  const ciudadesDe = (reinoId: string) =>
+    ciudades.filter((c) => c.reino_id === reinoId);
+  const personajesDe = (ciudadId: string) =>
+    personajes.filter((p) => p.ciudad_id === ciudadId);
 
   const ciudadesSinReino = ciudades.filter((c) => !c.reino_id);
   const personajesSinCiudad = personajes.filter((p) => !p.ciudad_id);
@@ -122,14 +126,18 @@ export function GeografiaJerarquica({
         <NodoTitulo
           label={ciudad.nombre}
           onClick={() => onOpen("ciudades", ciudad.id)}
-          onCreate={onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined}
+          onCreate={
+            onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined
+          }
         />
         {habitantes.length === 0 ? (
           <div className="mt-2 text-micro text-primary/25">Sin personajes</div>
         ) : (
           <div
             className="mt-2 grid gap-1.5"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))" }}
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+            }}
           >
             {habitantes.map((p) => (
               <EntityCard
@@ -152,7 +160,9 @@ export function GeografiaJerarquica({
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
           Entidades
         </h2>
-        <span className="text-micro text-primary/25 tabular-nums">{reinos.length}</span>
+        <span className="text-micro text-primary/25 tabular-nums">
+          {reinos.length}
+        </span>
         <div className="flex-1" />
         {onCreateReino && (
           <button
@@ -169,11 +179,16 @@ export function GeografiaJerarquica({
 
       <div className="flex flex-col gap-8">
         {reinos.map((reino) => (
-          <div key={reino.id} className="pb-6 border-b border-primary/5 last:border-0">
+          <div
+            key={reino.id}
+            className="pb-6 border-b border-primary/5 last:border-0"
+          >
             <NodoTitulo
               label={reino.nombre}
               onClick={() => onOpen("reinos", reino.id)}
-              onCreate={onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined}
+              onCreate={
+                onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+              }
             />
             <div className="mt-3 flex flex-wrap gap-6">
               {ciudadesDe(reino.id).length === 0 ? (
@@ -199,11 +214,18 @@ export function GeografiaJerarquica({
                   <NodoTitulo
                     label="Sin ciudad"
                     onClick={() => {}}
-                    onCreate={onCreatePersonaje ? () => onCreatePersonaje(null) : undefined}
+                    onCreate={
+                      onCreatePersonaje
+                        ? () => onCreatePersonaje(null)
+                        : undefined
+                    }
                   />
                   <div
                     className="mt-2 grid gap-1.5"
-                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))" }}
+                    style={{
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(76px, 1fr))",
+                    }}
                   >
                     {personajesSinCiudad.map((p) => (
                       <EntityCard
@@ -221,9 +243,13 @@ export function GeografiaJerarquica({
           </div>
         )}
 
-        {reinos.length === 0 && ciudadesSinReino.length === 0 && personajesSinCiudad.length === 0 && (
-          <div className="py-6 text-xs text-primary/25 text-center">Sin reinos todavía</div>
-        )}
+        {reinos.length === 0 &&
+          ciudadesSinReino.length === 0 &&
+          personajesSinCiudad.length === 0 && (
+            <div className="py-6 text-xs text-primary/25 text-center">
+              Sin reinos todavía
+            </div>
+          )}
       </div>
     </div>
   );
