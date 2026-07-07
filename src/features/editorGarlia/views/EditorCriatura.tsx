@@ -414,7 +414,7 @@ export function EditorCriatura({
         >
           {/* Personajes */}
           <div
-            className="flex-1 flex flex-col min-w-0 border-r"
+            className="flex-1 flex flex-col min-w-0 h-full border-r"
             style={{
               borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             }}
@@ -441,7 +441,7 @@ export function EditorCriatura({
 
           {/* Territorio */}
           <div
-            className="shrink-0 flex flex-col border-r"
+            className="shrink-0 flex flex-col h-full border-r"
             style={{
               width: "max-content",
               minWidth: "110px",
@@ -469,7 +469,7 @@ export function EditorCriatura({
 
           {/* Ciudades */}
           <div
-            className="shrink-0 flex flex-col border-r"
+            className="shrink-0 flex flex-col h-full border-r"
             style={{
               width: "max-content",
               minWidth: "110px",
@@ -505,7 +505,7 @@ export function EditorCriatura({
 
           {/* Creaciones */}
           <div
-            className="shrink-0 flex flex-col border-r"
+            className="shrink-0 flex flex-col h-full border-r"
             style={{
               width: "max-content",
               minWidth: "110px",
@@ -534,7 +534,7 @@ export function EditorCriatura({
 
           {/* Hechizos + Dones */}
           <div
-            className="shrink-0 flex flex-col overflow-hidden"
+            className="shrink-0 flex flex-col h-full overflow-hidden"
             style={{ width: "110px" }}
           >
             {grupoEsMagico(gruposActuales) ? (
