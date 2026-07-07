@@ -202,6 +202,24 @@ export function useErasDelPersonaje(
     }, 800);
   };
 
+  // Cambia el día absoluto de la era (se usa tanto al editar la fecha
+  // directamente como al editar la edad, que recalcula el día absoluto
+  // manteniendo el mismo desfase dentro del año). Como esto puede alterar
+  // el orden cronológico de la lista, re-ordenamos tras aplicar el cambio.
+  const changeMomento = async (era: Era, nuevoMomento: number) => {
+    if (isNaN(nuevoMomento)) return;
+    setEras((prev) =>
+      prev
+        .map((e) => (e.id === era.id ? { ...e, momento: nuevoMomento, _saving: true } : e))
+        .sort((a, b) => a.momento - b.momento),
+    );
+    await (supabase as any)
+      .from("personaje_eras")
+      .update({ momento: nuevoMomento })
+      .eq("id", era.id);
+    updateEra(era.id, { _saving: false });
+  };
+
   return {
     eras,
     loading,
@@ -212,5 +230,6 @@ export function useErasDelPersonaje(
     removeRasgo,
     changeNotas,
     changeLabel,
+    changeMomento,
   };
 }
