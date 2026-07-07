@@ -19,18 +19,6 @@ import { PersonajeCapitulosAparece } from "@/features/editorGarlia/components/pe
 import { PersonajeGrupos } from "@/features/editorGarlia/components/personajes/PersonajeGrupos";
 import { PersonajeHechizos } from "@/features/editorGarlia/components/personajes/PersonajeHechizos";
 
-// ─── Separador entre secciones del drawer ─────────────────────────────────────
-function Separador() {
-  return (
-    <div
-      style={{
-        borderTop:
-          "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-      }}
-    />
-  );
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface PersonajeSidebarPanelProps {
   personajeId: string;
@@ -68,11 +56,9 @@ function SidebarContenido({
         />
       </div>
 
-      <Separador />
-
       {/* Capítulos */}
       <div>
-        <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+        <div className="flex items-center gap-1.5 px-2 py-1">
           <BookOpen className="text-primary/25 shrink-0" size={8} />
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Capítulos
@@ -81,11 +67,9 @@ function SidebarContenido({
         <PersonajeCapitulosAparece personajeId={personajeId} onNavigateCapitulo={onNavigateCapitulo} />
       </div>
 
-      <Separador />
-
       {/* Canciones */}
       <div>
-        <div className="flex items-center gap-1.5 px-2 py-1 border-b border-primary/[0.06]">
+        <div className="flex items-center gap-1.5 px-2 py-1">
           <Music2 className="text-primary/25 shrink-0" size={8} />
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30 leading-none">
             Canciones
@@ -98,8 +82,6 @@ function SidebarContenido({
         />
       </div>
 
-      <Separador />
-
       {/* Grupos */}
       <div className="p-2">
         <PersonajeGrupos personajeId={personajeId} onOpenGrupo={onOpenGrupo} />
@@ -107,10 +89,7 @@ function SidebarContenido({
 
       {/* Hechizos — solo si la especie es mágica */}
       {especieEsMagica && (
-        <>
-          <Separador />
-          <PersonajeHechizos grupoIds={grupoIds} personajeId={personajeId} />
-        </>
+        <PersonajeHechizos grupoIds={grupoIds} personajeId={personajeId} />
       )}
     </>
   );
