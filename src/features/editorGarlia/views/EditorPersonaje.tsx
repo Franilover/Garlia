@@ -189,7 +189,8 @@ export function FormularioPersonaje({
           >
             <Save size={10} /> Guardar
           </button>
-
+        </div>
+      </div>
 
       {/* Cuerpo: formulario + sidebar inline desktop */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
