@@ -121,7 +121,9 @@ export function GeografiaJerarquica({
   }
 
   const ciudadesDe = (reinoId: string) =>
-    ciudades.filter((c) => c.reino_id === reinoId);
+    ciudades
+      .filter((c) => c.reino_id === reinoId)
+      .sort((a, b) => personajesDe(b.id).length - personajesDe(a.id).length);
   const personajesDe = (ciudadId: string) =>
     personajes.filter((p) => p.ciudad_id === ciudadId);
 
@@ -129,8 +131,12 @@ export function GeografiaJerarquica({
 
   const renderCiudad = (ciudad: Ciudad) => {
     const habitantes = personajesDe(ciudad.id);
+    const vacia = habitantes.length === 0;
     return (
-      <div key={ciudad.id} className="w-[200px]">
+      <div
+        key={ciudad.id}
+        className={vacia ? "w-fit shrink-0" : "w-[168px]"}
+      >
         <NodoTitulo
           label={ciudad.nombre}
           variant="ciudad"
@@ -139,13 +145,15 @@ export function GeografiaJerarquica({
             onCreatePersonaje ? () => onCreatePersonaje(ciudad.id) : undefined
           }
         />
-        {habitantes.length === 0 ? (
-          <div className="mt-2 text-micro text-primary/25">Sin personajes</div>
+        {vacia ? (
+          <div className="mt-1.5 text-micro text-primary/25">
+            Sin personajes
+          </div>
         ) : (
           <div
-            className="mt-2 grid gap-1.5"
+            className="mt-2 grid gap-1"
             style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
             }}
           >
             {habitantes.map((p) => (
@@ -220,9 +228,9 @@ export function GeografiaJerarquica({
               }
             />
             <div
-              className="mt-2 grid gap-1.5"
+              className="mt-2 grid gap-1"
               style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
               }}
             >
               {personajesSinCiudad.map((p) => (
