@@ -71,6 +71,11 @@ export function EditorItem({
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
 
+  // Conteos de contenido de Territorio/Ciudades — permiten que la columna
+  // con más contenido ocupe proporcionalmente más espacio en la fila.
+  const [countTerritorio, setCountTerritorio] = useState(0);
+  const [countCiudades, setCountCiudades] = useState(0);
+
   // Catálogo compartido de reinos/ciudades — un solo fetch para ambos paneles
   const { allReinos, allCiudades, loadingReinos } = useItemCatalogosUbicacion();
 
@@ -231,7 +236,10 @@ export function EditorItem({
               <div className="flex flex-col sm:flex-row sm:items-stretch gap-4">
                 {/* Columna Origen — solo para ítems */}
                 {tabla === "items" && (
-                  <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
+                  <div
+                    className="min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]"
+                    style={{ flexGrow: form.origen ? 1 : 0.6, flexBasis: 0 }}
+                  >
                     <SelectorGrupoUnico
                       emptyLabel="Sin origen"
                       label="Origen"
@@ -249,7 +257,10 @@ export function EditorItem({
                   </div>
                 )}
                 {/* Columna Territorio */}
-                <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
+                <div
+                  className="min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]"
+                  style={{ flexGrow: Math.max(countTerritorio, 1), flexBasis: 0 }}
+                >
                   <PanelTerritorio
                     allReinos={allReinos}
                     loadingReinos={loadingReinos}
@@ -258,15 +269,20 @@ export function EditorItem({
                       setForm((f) => ({ ...f, reino_ids: ids }))
                     }
                     onNavigateReino={onNavigateReino}
+                    onSelectedCountChange={setCountTerritorio}
                   />
                 </div>
                 {/* Columna Ciudades */}
-                <div className="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]">
+                <div
+                  className="min-w-0 flex flex-col rounded-xl overflow-hidden bg-primary/[0.015]"
+                  style={{ flexGrow: Math.max(countCiudades, 1), flexBasis: 0 }}
+                >
                   <PanelCiudades
                     allCiudades={allCiudades}
                     itemId={form.id}
                     reinosSeleccionados={form.reino_ids ?? []}
                     onNavigateCiudad={onNavigateCiudad}
+                    onSelectedCountChange={setCountCiudades}
                   />
                 </div>
               </div>

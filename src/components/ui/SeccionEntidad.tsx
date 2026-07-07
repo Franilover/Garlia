@@ -47,6 +47,9 @@ type SeccionEntidadProps = {
   loading: boolean;
   saving: boolean;
   onToggle: (id: string, add: boolean) => void;
+  /** Notifica al padre cuántas entidades hay seleccionadas — útil para que
+   *  contenedores externos ajusten su ancho/alto proporcional al contenido. */
+  onSelectedCountChange?: (count: number) => void;
   onEntityClick?: (id: string) => void;
   /** Mostrar entidades seleccionadas en grid de N columnas en vez de lista (1 fila c/u) */
   columns?: number;
@@ -73,6 +76,7 @@ export const SeccionEntidad = ({
   onEntityClick,
   columns,
   fill = true,
+  onSelectedCountChange,
 }: SeccionEntidadProps) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -85,6 +89,13 @@ export const SeccionEntidad = ({
   // ── Entidades ──────────────────────────────────────────────────────────────
   const selected = allEntities.filter((e) => selectedIds.includes(e.id));
   const _available = allEntities.filter((e) => !selectedIds.includes(e.id));
+
+  // Notifica al padre cuántas entidades hay seleccionadas (para layouts
+  // proporcionales: columnas con más contenido ocupan más espacio).
+  useEffect(() => {
+    onSelectedCountChange?.(selected.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected.length]);
 
   // ── Filtrado por búsqueda (sobre todas las entidades, marcando las ya seleccionadas) ─
   const filtered = useMemo(() => {

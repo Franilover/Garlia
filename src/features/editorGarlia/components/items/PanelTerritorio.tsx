@@ -23,12 +23,14 @@ export function PanelTerritorio({
   loadingReinos,
   onChange,
   onNavigateReino,
+  onSelectedCountChange,
 }: {
   value: string[];
   allReinos: ReinoMin[];
   loadingReinos: boolean;
   onChange: (ids: string[]) => void;
   onNavigateReino?: (id: string) => void;
+  onSelectedCountChange?: (count: number) => void;
 }) {
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +52,7 @@ export function PanelTerritorio({
       saving={saving}
       selectedIds={value}
       onEntityClick={(id) => onNavigateReino?.(id)}
+      onSelectedCountChange={onSelectedCountChange}
       onToggle={handleToggle}
     />
   );

@@ -24,11 +24,13 @@ export function PanelCiudades({
   itemId,
   allCiudades,
   onNavigateCiudad,
+  onSelectedCountChange,
 }: {
   reinosSeleccionados: string[];
   itemId: string;
   allCiudades: CiudadMin[];
   onNavigateCiudad?: (id: string) => void;
+  onSelectedCountChange?: (count: number) => void;
 }) {
   const {
     rows: ciudadRows,
@@ -80,6 +82,7 @@ export function PanelCiudades({
       saving={saving}
       selectedIds={ciudadRows.map((r) => r.ciudadId)}
       onEntityClick={(id) => onNavigateCiudad?.(id)}
+      onSelectedCountChange={onSelectedCountChange}
       onToggle={handleToggle}
     />
   );
