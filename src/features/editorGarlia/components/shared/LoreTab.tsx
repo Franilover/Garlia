@@ -609,201 +609,109 @@ function usePersonajesDelReinoEditable(reinoId: string, reinoNombre: string) {
   return { personajes, allPersonajes, loading, add, remove };
 }
 
-// ─── Hook: items del reino — solo lectura, agregados desde ciudades ──
+// ─── Hook: items del reino (items.reino_ids — misma relación real que usa
+// PanelTerritorio en el editor del ítem) ───────────────────────────────────
+// add    → UPDATE items SET reino_ids = reino_ids + [reinoId] WHERE id = itemId
+// remove → UPDATE items SET reino_ids = reino_ids - [reinoId] WHERE id = itemId
+// Antes esta sección se armaba agregando items por su ciudad (items.ciudad_id
+// → ciudades.reino_id), una relación indirecta y de solo lectura que no tenía
+// nada que ver con el campo `reino_ids` que de verdad usa el ítem (visible en
+// su propio panel "Territorio"). Por eso un ítem podía aparecer listado acá
+// sin tener ningún reino cargado al abrirlo. Ahora usa la misma relación real
+// en ambos lados, así queda consistente y es editable desde acá también.
 
-function useItemsDelReino(reinoId: string) {
-  const [items, setItems] = useState<ItemMin[]>([]);
+type ItemMinConReinos = ItemMin & { reino_ids?: string[] | null };
+
+function useItemsDelReinoEditable(reinoId: string) {
+  const [items, setItems] = useState<ItemMinConReinos[]>([]);
+  const [allItems, setAllItems] = useState<ItemMinConReinos[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
 
     // ── 1. Local Dexie ──────────────────────────────────────────────────────
-    const localCiudades = await dexieReadAll<{ id: string }>(
-      "ciudades",
-      (r) => r.reino_id === reinoId,
-    );
-    if (localCiudades.length) {
-      const ciudadIds = new Set(localCiudades.map((c) => c.id));
-      const localItems = await dexieReadAll<ItemMin>("items", (r) =>
-        ciudadIds.has(r.ciudad_id),
-      );
-      if (localItems.length) {
-        setItems(localItems.sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        setLoading(false);
-      }
+    const [localLinked, localAll] = await Promise.all([
+      dexieReadAll<ItemMinConReinos>("items", (r) =>
+        Array.isArray(r.reino_ids) ? r.reino_ids.includes(reinoId) : false,
+      ),
+      dexieReadAll<ItemMinConReinos>("items"),
+    ]);
+    if (localLinked.length) {
+      setItems(localLinked.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      if (localAll.length) setAllItems(localAll);
+      setLoading(false);
     }
 
     if (!navigator.onLine) {
-      setLoading(false);
+      if (!localLinked.length) setLoading(false);
       return;
     }
 
     // ── 2. Remoto Supabase ──────────────────────────────────────────────────
-    const { data: ciudadesData } = await supabase
-      .from("ciudades")
-      .select("id")
-      .eq("reino_id", reinoId);
-    const ciudadIds = (ciudadesData ?? []).map((c: any) => c.id);
-
-    if (ciudadIds.length === 0) {
-      setItems([]);
-      setLoading(false);
-      return;
+    const [{ data: linked }, { data: all }] = await Promise.all([
+      supabase
+        .from("items")
+        .select("id, nombre, imagen_url, reino_ids")
+        .contains("reino_ids", [reinoId]),
+      supabase
+        .from("items")
+        .select("id, nombre, imagen_url, reino_ids")
+        .order("nombre"),
+    ]);
+    if (linked) {
+      setItems(
+        [...linked].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      );
     }
-
-    const { data } = await supabase
-      .from("items")
-      .select("id, nombre, imagen_url")
-      .in("ciudad_id", ciudadIds);
-    const merged = (data ?? []).sort((a: ItemMin, b: ItemMin) =>
-      a.nombre.localeCompare(b.nombre),
-    );
-    setItems(merged);
+    if (all) {
+      setAllItems(all);
+      await dexieWriteAll("items", all);
+    }
     setLoading(false);
-    // bulkPut aditivo: no borra items de otros reinos
-    if (data?.length && db && (db as any).items)
-      await (db as any).items.bulkPut(data);
   }, [reinoId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  return { items, loading };
-}
+  const add = async (itemId: string) => {
+    const found = allItems.find((i) => i.id === itemId);
+    const nextReinoIds = [...(found?.reino_ids ?? []), reinoId];
+    const { error } = await supabase
+      .from("items")
+      .update({ reino_ids: nextReinoIds })
+      .eq("id", itemId);
+    if (!error && found) {
+      const updated = { ...found, reino_ids: nextReinoIds };
+      setItems((prev) => [...prev, updated]);
+      setAllItems((prev) => prev.map((i) => (i.id === itemId ? updated : i)));
+      void dexiePut("items", updated);
+    }
+  };
 
-// ─── SeccionReadOnly — panel de solo lectura para items ──────────────────────
+  const remove = async (itemId: string) => {
+    const found = allItems.find((i) => i.id === itemId);
+    const nextReinoIds = (found?.reino_ids ?? []).filter(
+      (id) => id !== reinoId,
+    );
+    const { error } = await supabase
+      .from("items")
+      .update({ reino_ids: nextReinoIds })
+      .eq("id", itemId);
+    if (!error) {
+      setItems((prev) => prev.filter((i) => i.id !== itemId));
+      if (found) {
+        const updated = { ...found, reino_ids: nextReinoIds };
+        setAllItems((prev) =>
+          prev.map((i) => (i.id === itemId ? updated : i)),
+        );
+        void dexiePut("items", updated);
+      }
+    }
+  };
 
-function SeccionReadOnly({
-  label,
-  Icon,
-  FallbackIcon,
-  items,
-  loading,
-  emptyLabel,
-  onEntityClick,
-}: {
-  label: string;
-  Icon: React.ElementType;
-  FallbackIcon: React.ElementType;
-  items: { id: string; nombre: string; imagen_url?: string | null }[];
-  loading: boolean;
-  emptyLabel: string;
-  onEntityClick?: (id: string) => void;
-}) {
-  return (
-    <div className="flex flex-col">
-      {/* Header */}
-      <div
-        className="flex items-center gap-1.5 px-3 py-2 shrink-0"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-        }}
-      >
-        <Icon
-          size={9}
-          style={{
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-        />
-        <span
-          className="text-micro font-black uppercase tracking-[0.2em] flex-1"
-          style={{
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-        >
-          {label}
-        </span>
-        {items.length > 0 && (
-          <span
-            className="text-micro font-black px-1.5 py-0.5 rounded-md"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-            }}
-          >
-            {items.length}
-          </span>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="px-2 pb-2 flex flex-col gap-0.5">
-        {loading ? (
-          <div className="flex justify-center py-3">
-            <Loader2
-              className="animate-spin"
-              size={12}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 25%, transparent)",
-              }}
-            />
-          </div>
-        ) : items.length === 0 ? (
-          <p
-            className="text-micro font-bold uppercase tracking-widest text-center py-3 italic"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 22%, transparent)",
-            }}
-          >
-            {emptyLabel}
-          </p>
-        ) : (
-          items.map((item) => (
-            <button
-              key={item.id}
-              className="w-full flex items-center gap-2 px-1.5 py-1 rounded-lg transition-all text-left disabled:cursor-default"
-              disabled={!onEntityClick}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 65%, transparent)",
-              }}
-              type="button"
-              onClick={() => onEntityClick?.(item.id)}
-              onMouseEnter={(e) => {
-                if (onEntityClick)
-                  (e.currentTarget as HTMLElement).style.background =
-                    "color-mix(in srgb, var(--primary) 6%, transparent)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background =
-                  "transparent";
-              }}
-            >
-              <div
-                className="w-6 h-6 rounded-lg overflow-hidden shrink-0 flex items-center justify-center border"
-                style={{
-                  background:
-                    "color-mix(in srgb, var(--primary) 5%, transparent)",
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 12%, transparent)",
-                }}
-              >
-                {item.imagen_url ? (
-                  <Image
-                    alt={item.nombre}
-                    className="w-full h-full object-cover"
-                    src={item.imagen_url}
-                  />
-                ) : (
-                  <FallbackIcon
-                    size={11}
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 25%, transparent)",
-                    }}
-                  />
-                )}
-              </div>
-              <span className="text-micro font-semibold truncate flex-1">
-                {item.nombre}
-              </span>
-            </button>
-          ))
-        )}
-      </div>
-    </div>
-  );
+  return { items, allItems, loading, add, remove };
 }
 
 // ─── NAV config ───────────────────────────────────────────────────────────────
@@ -894,11 +802,13 @@ export function LoreTab({
     add: addPersonaje,
     remove: removePersonaje,
   } = usePersonajesDelReinoEditable(form.id, form.nombre);
-  const { items, loading: loadingItems } = useItemsDelReino(form.id);
+  const { items, allItems, loading: loadingItems, add: addItem, remove: removeItem } =
+    useItemsDelReinoEditable(form.id);
 
   // Estado saving por sección
   const [savingCriaturas, setSavingCriaturas] = useState(false);
   const [savingPersonajes, setSavingPersonajes] = useState(false);
+  const [savingItems, setSavingItems] = useState(false);
   const [_mobileAsideOpen, _setMobileAsideOpen] = useState(false);
   const mobileAsideOpen = mobileAsideOpenProp ?? _mobileAsideOpen;
   const setMobileAsideOpen = setMobileAsideOpenProp ?? _setMobileAsideOpen;
@@ -914,6 +824,12 @@ export function LoreTab({
     if (add) await addPersonaje(id);
     else await removePersonaje(id);
     setSavingPersonajes(false);
+  };
+  const handleToggleItem = async (id: string, add: boolean) => {
+    setSavingItems(true);
+    if (add) await addItem(id);
+    else await removeItem(id);
+    setSavingItems(false);
   };
 
   // ── Etiqueta de sección ───────────────────────────────────────────────────
@@ -1158,14 +1074,21 @@ export function LoreTab({
               "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
           }}
         />
-        <SeccionReadOnly
-          FallbackIcon={Package}
-          Icon={Package}
-          emptyLabel="Sin ítems en el reino"
-          items={items}
+        <SeccionEntidad
+          allEntities={allItems.map((i) => ({
+            id: i.id,
+            nombre: i.nombre,
+            imagen_url: i.imagen_url,
+          }))}
+          emptyLabel="Sin ítems"
+          fallbackIcon={<Package size={14} strokeWidth={1} />}
+          icon={<Package size={9} />}
           label="Ítems"
           loading={loadingItems}
-          onEntityClick={onSelectItem}
+          saving={savingItems}
+          selectedIds={items.map((i) => i.id)}
+          onEntityClick={(id) => onSelectItem?.(id)}
+          onToggle={handleToggleItem}
         />
       </aside>
 
@@ -1265,14 +1188,21 @@ export function LoreTab({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            <SeccionReadOnly
-              FallbackIcon={Package}
-              Icon={Package}
-              emptyLabel="Sin ítems en el reino"
-              items={items}
+            <SeccionEntidad
+              allEntities={allItems.map((i) => ({
+                id: i.id,
+                nombre: i.nombre,
+                imagen_url: i.imagen_url,
+              }))}
+              emptyLabel="Sin ítems"
+              fallbackIcon={<Package size={14} strokeWidth={1} />}
+              icon={<Package size={9} />}
               label="Ítems"
               loading={loadingItems}
-              onEntityClick={onSelectItem}
+              saving={savingItems}
+              selectedIds={items.map((i) => i.id)}
+              onEntityClick={(id) => onSelectItem?.(id)}
+              onToggle={handleToggleItem}
             />
           </div>
         </div>
