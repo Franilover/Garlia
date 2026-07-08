@@ -58,6 +58,8 @@ export type Item = {
   origen?: "Natural" | "Artificial" | null;
   sub_origen?: "Planta" | "Criatura" | null;
   reino_ids?: string[];
+  criatura_id?: string | null;
+  criatura?: { id: string; nombre: string; imagen_url?: string } | null;
 };
 
 export type Reino = {
@@ -206,4 +208,6 @@ export type Runa = {
   id: string;
   nombre: string;
   explicacion?: string;
+  criatura_id?: string | null;
+  criatura?: { id: string; nombre: string; imagen_url?: string } | null;
 };

@@ -25,8 +25,8 @@ export function useEntidadesMagicas(modo: Modo) {
     const tabla = CONFIG[modo].tabla;
     const selectFields =
       modo === "runas"
-        ? "id, nombre, explicacion, imagen_url"
-        : "id, nombre, explicacion, grupo_ids, imagen_url";
+        ? "id, nombre, explicacion, imagen_url, criatura_id"
+        : "id, nombre, explicacion, grupo_ids, imagen_url, criatura_id";
 
     const local = await dexieReadAll<EntidadMagica>(tabla);
     if (local.length) {

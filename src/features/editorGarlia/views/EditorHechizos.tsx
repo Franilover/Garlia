@@ -32,6 +32,7 @@ export function EditorHechizos({
   onItemSaved,
   onItemDeleted,
   renderSiblingTabs,
+  onNavigateCriatura,
 }: {
   modo: Modo;
   initialSelectedId?: string;
@@ -40,6 +41,7 @@ export function EditorHechizos({
   onItemDeleted?: (id: string) => void;
   /** Contenido opcional (ej. SiblingSectionTabs) renderizado arriba del buscador */
   renderSiblingTabs?: () => React.ReactNode;
+  onNavigateCriatura?: (id: string) => void;
 }) {
   const cfg = CONFIG[modo];
   const { items, setItems, loading } = useEntidadesMagicas(modo);
@@ -83,8 +85,8 @@ export function EditorHechizos({
     const tabla = CONFIG[modo].tabla;
     const selectFields =
       modo === "runas"
-        ? "id, nombre, explicacion, imagen_url"
-        : "id, nombre, explicacion, grupo_ids, imagen_url";
+        ? "id, nombre, explicacion, imagen_url, criatura_id"
+        : "id, nombre, explicacion, grupo_ids, imagen_url, criatura_id";
 
     supabase
       .from(tabla)
@@ -113,8 +115,8 @@ export function EditorHechizos({
           : { nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] };
       const selectFields =
         modo === "runas"
-          ? "id, nombre, explicacion, imagen_url"
-          : "id, nombre, explicacion, grupo_ids";
+          ? "id, nombre, explicacion, imagen_url, criatura_id"
+          : "id, nombre, explicacion, grupo_ids, criatura_id";
 
       const { data, error } = await supabase
         .from(cfg.tabla)
@@ -205,6 +207,7 @@ export function EditorHechizos({
             item={selected}
             loadingGrupos={loadingGrupos}
             modo={modo}
+            onNavigateCriatura={onNavigateCriatura}
             onDeleted={(id) => {
               setItems((prev) => prev.filter((i) => i.id !== id));
               selectItem(null);

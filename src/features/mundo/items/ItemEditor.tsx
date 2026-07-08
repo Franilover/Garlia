@@ -21,6 +21,7 @@ export function ItemEditor({ item }: { item: Item }) {
       onNavigateCiudad={(id) => openEntity("ciudades", id)}
       onNavigateReino={(id) => openEntity("reinos", id)}
       onSelectGrupo={(id) => openEntity("grupos", id)}
+      onNavigateCriatura={(id) => openEntity("criaturas", id)}
     />
   );
 }

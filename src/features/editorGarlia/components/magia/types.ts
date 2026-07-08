@@ -17,6 +17,8 @@ export type Hechizo = {
   explicacion?: string;
   grupo_ids?: string[];
   imagen_url?: string | null;
+  criatura_id?: string | null;
+  criatura?: { id: string; nombre: string; imagen_url?: string | null } | null;
 };
 
 export type Don = Hechizo;

@@ -16,14 +16,16 @@
  */
 
 
-import { Save, Trash2 } from "lucide-react";
+import { Bug, Save, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
 import { useWikilink } from "@/features/editorGarlia/components/shared/WikilinkContext";
+import { useCriaturasCatalogo } from "@/features/editorGarlia/hooks/misc/useCriaturasCatalogo";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 
@@ -40,6 +42,7 @@ export function FormularioMagico({
   loadingGrupos,
   onSaved,
   onDeleted,
+  onNavigateCriatura,
 }: {
   item: EntidadMagica;
   modo: Modo;
@@ -47,11 +50,13 @@ export function FormularioMagico({
   loadingGrupos: boolean;
   onSaved: (i: EntidadMagica) => void;
   onDeleted: (id: string) => void;
+  onNavigateCriatura?: (id: string) => void;
 }) {
   const [form, setForm] = useState<EntidadMagica>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const { onSnippetAction } = useWikilink();
+  const { criaturas: allCriaturas, loading: loadingCriaturas } = useCriaturasCatalogo();
   const cfg = CONFIG[modo];
 
   useEffect(() => {
@@ -66,6 +71,7 @@ export function FormularioMagico({
         nombre: form.nombre,
         explicacion: form.explicacion || null,
         imagen_url: (form as any).imagen_url || null,
+        criatura_id: (form as any).criatura_id ?? null,
       };
       if (modo !== "runas") {
         updatePayload.grupo_ids = form.grupo_ids ?? [];
@@ -200,6 +206,27 @@ export function FormularioMagico({
                 }
               />
             )}
+            <ComboSelector
+              allowNone
+              icon={<Bug size={11} />}
+              items={allCriaturas.map((c) => ({
+                id: c.id,
+                label: c.nombre,
+                imgUrl: c.imagen_url ?? null,
+              }))}
+              label="Criatura"
+              loading={loadingCriaturas}
+              mode="single"
+              noneLabel="Sin criatura"
+              placeholder={`Vincular a una criatura…`}
+              value={(form as any).criatura_id ?? null}
+              onChange={(id) =>
+                setForm((f) => ({ ...f, criatura_id: id } as any))
+              }
+              onNavigate={
+                onNavigateCriatura ? (id) => onNavigateCriatura(id) : undefined
+              }
+            />
             <div className="space-y-1.5">
               <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                 Explicación

@@ -25,7 +25,7 @@
  */
 
 
-import { Package, Save, Trash2 } from "lucide-react";
+import { Bug, Package, Save, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
@@ -34,11 +34,13 @@ import type {
 import {
   MarkdownEditor
 } from "@/components/forms/Markdown/MarkdownEditor";
+import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PanelCiudades } from "@/features/editorGarlia/components/items/PanelCiudades";
 import { PanelTerritorio } from "@/features/editorGarlia/components/items/PanelTerritorio";
 import { PickerImagenItemBtn } from "@/features/editorGarlia/components/items/PickerImagenItemBtn";
 import { SelectorGrupoUnico } from "@/features/editorGarlia/components/items/SelectorGrupoUnico";
+import { useCriaturasCatalogo } from "@/features/editorGarlia/hooks/misc/useCriaturasCatalogo";
 import { useItemCatalogosUbicacion } from "@/features/editorGarlia/hooks/misc/useItemCatalogosUbicacion";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";
 import { supabase } from "@/lib/api/client/supabase";
@@ -56,6 +58,7 @@ export function EditorItem({
   onNavigateCiudad,
   onNavigateReino,
   onSelectGrupo,
+  onNavigateCriatura,
 }: {
   item: Item;
   tabla?: string;
@@ -65,6 +68,7 @@ export function EditorItem({
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
+  onNavigateCriatura?: (id: string) => void;
 }) {
   const [form, setForm] = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -78,6 +82,8 @@ export function EditorItem({
 
   // Catálogo compartido de reinos/ciudades — un solo fetch para ambos paneles
   const { allReinos, allCiudades, loadingReinos } = useItemCatalogosUbicacion();
+  // Catálogo de criaturas para el selector "Criatura" (origen del ítem)
+  const { criaturas: allCriaturas, loading: loadingCriaturas } = useCriaturasCatalogo();
 
   useEffect(() => {
     setForm(item);
@@ -98,6 +104,7 @@ export function EditorItem({
         descripcion: form.descripcion,
         categoria: form.categoria,
         reino_ids: form.reino_ids ?? [],
+        criatura_id: form.criatura_id ?? null,
       };
       const { error } = await supabase
         .from(tabla)
@@ -230,6 +237,30 @@ export function EditorItem({
                   setForm((f) => ({ ...f, categoria: nombre ?? "" }))
                 }
                 onSelectGrupo={onSelectGrupo}
+              />
+
+              <ComboSelector
+                allowNone
+                icon={<Bug size={11} />}
+                items={allCriaturas.map((c) => ({
+                  id: c.id,
+                  label: c.nombre,
+                  imgUrl: c.imagen_url ?? null,
+                }))}
+                label="Criatura"
+                loading={loadingCriaturas}
+                mode="single"
+                noneLabel="Sin criatura"
+                placeholder="Vincular a una criatura…"
+                value={form.criatura_id ?? null}
+                onChange={(id) =>
+                  setForm((f) => ({ ...f, criatura_id: id }))
+                }
+                onNavigate={
+                  onNavigateCriatura
+                    ? (id) => onNavigateCriatura(id)
+                    : undefined
+                }
               />
 
               {/* Origen + Territorio + Ciudades en tres columnas */}

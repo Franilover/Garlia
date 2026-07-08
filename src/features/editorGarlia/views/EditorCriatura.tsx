@@ -63,6 +63,7 @@ import {
   BloqueMagico,
   grupoEsMagico,
 } from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
+import { BloqueEntidadesDeCriatura } from "@/features/editorGarlia/components/criaturas/BloqueEntidadesDeCriatura";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/criaturas/PickerImagenCriaturaBtn";
 import {
   SelectorImagen,
@@ -88,6 +89,7 @@ export function EditorCriatura({
   onSelectGrupo,
   onNavigateCiudad,
   onNavigateReino,
+  onNavigateEntidadMagica,
 }: {
   item: Criatura;
   onSaved: (c: Criatura) => void;
@@ -98,6 +100,11 @@ export function EditorCriatura({
   onSelectGrupo?: (grupoId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
+  /** Navega al editor de un hechizo/don/runa vinculado a esta criatura */
+  onNavigateEntidadMagica?: (
+    tipo: "hechizos" | "dones" | "runas",
+    id: string,
+  ) => void;
 }) {
   const [form, setForm] = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -352,6 +359,18 @@ export function EditorCriatura({
               />
             </div>
           </div>
+
+          {/* Vinculados: dones/runas/items/hechizos que tienen a esta criatura como origen */}
+          <BloqueEntidadesDeCriatura
+            criaturaId={form.id}
+            onNavigate={(tipo, id) => {
+              if (tipo === "items") {
+                onSelectItem?.(id);
+              } else {
+                onNavigateEntidadMagica?.(tipo, id);
+              }
+            }}
+          />
 
           {/* Clasificación */}
           <div

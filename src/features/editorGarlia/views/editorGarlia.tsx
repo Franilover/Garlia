@@ -767,6 +767,10 @@ function EditorEntidadesInner() {
                 key={tab}
                 initialSelectedId={selectedId ?? undefined}
                 modo={tab as "hechizos" | "dones" | "runas"}
+                onNavigateCriatura={(id) => {
+                  const found = allItems.criaturas.find((c: any) => c.id === id);
+                  if (found) handleSelect(found, "criaturas");
+                }}
                 onSelectedIdChange={(id) => setSelectedId(id)}
               />
             ) : (

@@ -1704,6 +1704,7 @@ export type Database = {
           categoria: string | null
           ciudad_id: string | null
           created_at: string
+          criatura_id: string | null
           descripcion: string | null
           id: string
           imagen_url: string | null
@@ -1717,6 +1718,7 @@ export type Database = {
           categoria?: string | null
           ciudad_id?: string | null
           created_at?: string
+          criatura_id?: string | null
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
@@ -1730,6 +1732,7 @@ export type Database = {
           categoria?: string | null
           ciudad_id?: string | null
           created_at?: string
+          criatura_id?: string | null
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
@@ -1740,6 +1743,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "items_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "criaturas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "items_ciudad_id_fkey"
             columns: ["ciudad_id"]
@@ -2914,6 +2924,7 @@ export type Database = {
       runas: {
         Row: {
           created_at: string
+          criatura_id: string | null
           explicacion: string | null
           id: string
           imagen_url: string | null
@@ -2922,6 +2933,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          criatura_id?: string | null
           explicacion?: string | null
           id?: string
           imagen_url?: string | null
@@ -2930,13 +2942,22 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          criatura_id?: string | null
           explicacion?: string | null
           id?: string
           imagen_url?: string | null
           nombre?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "runas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "criaturas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rutinas: {
         Row: {

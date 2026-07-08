@@ -86,8 +86,8 @@ function useMagiaCategoria(modo: "hechizos" | "dones" | "runas") {
           : { nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] };
       const selectFields =
         modo === "runas"
-          ? "id, nombre, explicacion, imagen_url"
-          : "id, nombre, explicacion, grupo_ids";
+          ? "id, nombre, explicacion, imagen_url, criatura_id"
+          : "id, nombre, explicacion, grupo_ids, criatura_id";
 
       const { data, error } = await supabase
         .from(cfg.tabla)
@@ -210,6 +210,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
               prev.map((i) => (i.id === updated.id ? updated : i)),
             );
           }}
+          onNavigateCriatura={(id) => openEntity("criaturas", id)}
         />
       </div>
     );

@@ -187,6 +187,23 @@ export function EntidadOverlay({
 
   if (!overlay) return null;
 
+  // Handler reutilizable: navega al editor de Criatura desde cualquier
+  // entidad que tenga un selector "Criatura" (Item, Hechizo, Don, Runa).
+  const navigateToCriatura = async (id: string) => {
+    const local = criaturas.find((x) => x.id === id);
+    clearAllOverlays();
+    if (local) {
+      setSelectedCriatura(local);
+      return;
+    }
+    const { data: remote } = await supabase
+      .from("criaturas")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (remote) setSelectedCriatura(remote as any);
+  };
+
   return (
     <div
       className="flex flex-col min-h-0 flex-1"
@@ -329,6 +346,19 @@ export function EntidadOverlay({
               clearAllOverlays();
               setSelectedPersonaje(p);
             }}
+            onNavigateEntidadMagica={async (tipo, id) => {
+              clearAllOverlays();
+              const { data: remote } = await supabase
+                .from(tipo)
+                .select("*")
+                .eq("id", id)
+                .single();
+              if (!remote) return;
+              const min = { id: remote.id, nombre: remote.nombre };
+              if (tipo === "hechizos") setSelectedHechizo(min);
+              else if (tipo === "dones") setSelectedDon(min);
+              else setSelectedRuna({ ...min, imagen_url: (remote as any).imagen_url });
+            }}
           />
         )}
         {overlay === "objeto" && selected.objeto && (
@@ -368,6 +398,7 @@ export function EntidadOverlay({
                 .single();
               if (remote) selectReino(remote as Reino);
             }}
+            onNavigateCriatura={navigateToCriatura}
             onSaved={(u) => {
               setObjetos((p) =>
                 p.map((o) => (o.id === u.id ? { ...o, ...u } : o)),
@@ -507,6 +538,7 @@ export function EntidadOverlay({
                 ),
               )
             }
+            onNavigateCriatura={navigateToCriatura}
             onSelectedIdChange={(id) => {
               if (!id) setSelectedHechizo(null);
             }}
@@ -529,6 +561,7 @@ export function EntidadOverlay({
                 ),
               )
             }
+            onNavigateCriatura={navigateToCriatura}
             onSelectedIdChange={(id) => {
               if (!id) setSelectedDon(null);
             }}
@@ -555,6 +588,7 @@ export function EntidadOverlay({
                 ),
               )
             }
+            onNavigateCriatura={navigateToCriatura}
             onSelectedIdChange={(id) => {
               if (!id) setSelectedRuna(null);
             }}
