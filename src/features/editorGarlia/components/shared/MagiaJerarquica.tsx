@@ -3,28 +3,28 @@
 /**
  * MagiaJerarquica
  * ───────────────────────────────────────────────────────────────────────────
- * Vista de "Entidades" agrupada por criatura de origen (columna `criatura_id`
- * en dones/runas/items/hechizos), análoga a GeografiaJerarquica pero de un
- * solo nivel:
+ * Vista de "Entidades" agrupada por criatura de origen, análoga a
+ * GeografiaJerarquica pero de un solo nivel:
  *
  *   [Criatura 1]
- *   Dones          Runas          Items          Hechizos
- *   [D1] [D2]      [R1]           [I1] [I2] [I3]  [H1]
+ *   Dones      Runas      Items      Hechizos      Personajes
+ *   [D1][D2]   [R1]       [I1][I2]   [H1]           [P1][P2]
  *
  *   [Criatura 2]
  *   ...
  *
  * Cada nodo "Criatura" es un chip temático que abre su editor completo
- * (openEntity("criaturas", id)). Las 4 categorías se muestran como columnas
- * internas; cada tarjeta abre el editor de esa entidad puntual
- * (openEntity("dones"|"runas"|"items"|"hechizos", id)).
+ * (openEntity("criaturas", id)). Las 5 categorías se muestran como columnas
+ * internas; cada tarjeta abre el editor de esa entidad puntual.
  *
- * Relación usada: Don/Runa/Item/Hechizo.criatura_id → agrupa bajo su criatura
- * de origen. Las entidades sin criatura_id caen en el bloque final global
- * "Sin criatura".
+ * Relaciones usadas:
+ *  - Don/Runa/Item/Hechizo.criatura_id → agrupa bajo su criatura de origen.
+ *  - Personaje.especie (nombre de la criatura, no FK) → agrupa personajes
+ *    bajo la criatura cuyo nombre coincide con su especie.
+ * Las entidades sin vínculo caen en el bloque final global "Sin criatura".
  */
 
-import { Plus, ScrollText, Sparkles, Star, Package, Bug } from "lucide-react";
+import { Plus, ScrollText, Sparkles, Star, Package, Bug, Users } from "lucide-react";
 import React, { useLayoutEffect, useRef, useState } from "react";
 
 import { EntityCard } from "./EntityCard";
@@ -41,6 +41,12 @@ interface EntidadHija {
   imagen_url?: string | null;
   criatura_id?: string | null;
 }
+interface Personaje {
+  id: string;
+  nombre: string;
+  img_url?: string | null;
+  especie?: string | null;
+}
 
 interface Props {
   criaturas: Criatura[];
@@ -48,6 +54,7 @@ interface Props {
   runas: EntidadHija[];
   items: EntidadHija[];
   hechizos: EntidadHija[];
+  personajes: Personaje[];
   loading?: boolean;
   onOpen: (section: SectionKey, id: string) => void;
   onCreateCriatura?: () => void;
@@ -55,6 +62,7 @@ interface Props {
     tipo: "dones" | "runas" | "items" | "hechizos",
     criaturaId: string | null,
   ) => void;
+  onCreatePersonaje?: (criatura: Criatura | null) => void;
   creatingCriatura?: boolean;
 }
 
@@ -174,10 +182,12 @@ export function MagiaJerarquica({
   runas,
   items,
   hechizos,
+  personajes,
   loading,
   onOpen,
   onCreateCriatura,
   onCreateHija,
+  onCreatePersonaje,
   creatingCriatura,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -202,16 +212,24 @@ export function MagiaJerarquica({
   const runasDe = (criaturaId: string) => runas.filter((r) => r.criatura_id === criaturaId);
   const itemsDe = (criaturaId: string) => items.filter((i) => i.criatura_id === criaturaId);
   const hechizosDe = (criaturaId: string) => hechizos.filter((h) => h.criatura_id === criaturaId);
+  // Personajes se agrupan por `especie` (nombre de la criatura, no FK) —
+  // se normalizan a la forma EntidadHija (img_url → imagen_url) para
+  // reutilizar el mismo componente Columna que el resto de categorías.
+  const personajesDe = (criaturaNombre: string): EntidadHija[] =>
+    personajes
+      .filter((p) => p.especie === criaturaNombre)
+      .map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }));
 
-  const totalDe = (criaturaId: string) =>
-    donesDe(criaturaId).length +
-    runasDe(criaturaId).length +
-    itemsDe(criaturaId).length +
-    hechizosDe(criaturaId).length;
+  const totalDe = (criatura: Criatura) =>
+    donesDe(criatura.id).length +
+    runasDe(criatura.id).length +
+    itemsDe(criatura.id).length +
+    hechizosDe(criatura.id).length +
+    personajesDe(criatura.nombre).length;
 
-  const criaturasOrdenadas = [...criaturas].sort((a, b) => totalDe(b.id) - totalDe(a.id));
-  const criaturasConVinculosBase = criaturasOrdenadas.filter((c) => totalDe(c.id) > 0);
-  const criaturasVacias = criaturasOrdenadas.filter((c) => totalDe(c.id) === 0);
+  const criaturasOrdenadas = [...criaturas].sort((a, b) => totalDe(b) - totalDe(a));
+  const criaturasConVinculosBase = criaturasOrdenadas.filter((c) => totalDe(c) > 0);
+  const criaturasVacias = criaturasOrdenadas.filter((c) => totalDe(c) === 0);
 
   // ── Estimación de ancho de cada card de criatura ──────────────────────────
   // Replica el cálculo de ancho de Columna (itemSize=52, gap=4, hasta 6
@@ -230,9 +248,10 @@ export function MagiaJerarquica({
       anchoColumna(runasDe(criatura.id).length),
       anchoColumna(itemsDe(criatura.id).length),
       anchoColumna(hechizosDe(criatura.id).length),
+      anchoColumna(personajesDe(criatura.nombre).length),
     ].filter((w) => w > 0);
     const gapInterno = 24;
-    const porFila = Math.min(anchosColumnas.length, 4) || 1;
+    const porFila = Math.min(anchosColumnas.length, 5) || 1;
     const filaMasAncha =
       anchosColumnas.slice(0, porFila).reduce((sum, w) => sum + w, 0) +
       gapInterno * (porFila - 1);
@@ -278,6 +297,7 @@ export function MagiaJerarquica({
   const criaturasConVinculos = reordenarSinHuecos(criaturasConVinculosBase);
 
   const sinCriaturaIds = new Set(criaturas.map((c) => c.id));
+  const criaturasNombres = new Set(criaturas.map((c) => c.nombre));
   const donesSinCriatura = dones.filter(
     (d) => !d.criatura_id || !sinCriaturaIds.has(d.criatura_id),
   );
@@ -290,11 +310,15 @@ export function MagiaJerarquica({
   const hechizosSinCriatura = hechizos.filter(
     (h) => !h.criatura_id || !sinCriaturaIds.has(h.criatura_id),
   );
+  const personajesSinCriatura: EntidadHija[] = personajes
+    .filter((p) => !p.especie || !criaturasNombres.has(p.especie))
+    .map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }));
   const totalSinCriatura =
     donesSinCriatura.length +
     runasSinCriatura.length +
     itemsSinCriatura.length +
-    hechizosSinCriatura.length;
+    hechizosSinCriatura.length +
+    personajesSinCriatura.length;
 
   return (
     <div className="mb-8 last:mb-0">
@@ -363,6 +387,18 @@ export function MagiaJerarquica({
                     />
                   );
                 })}
+                {personajesDe(criatura.nombre).length > 0 && (
+                  <Columna
+                    Icon={Users}
+                    entidades={personajesDe(criatura.nombre)}
+                    label="Personajes"
+                    section="personajes"
+                    onCreate={
+                      onCreatePersonaje ? () => onCreatePersonaje(criatura) : undefined
+                    }
+                    onOpen={onOpen}
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -416,6 +452,16 @@ export function MagiaJerarquica({
                     onOpen={onOpen}
                   />
                 ))}
+              {personajesSinCriatura.length > 0 && (
+                <Columna
+                  Icon={Users}
+                  entidades={personajesSinCriatura}
+                  label="Personajes"
+                  section="personajes"
+                  onCreate={onCreatePersonaje ? () => onCreatePersonaje(null) : undefined}
+                  onOpen={onOpen}
+                />
+              )}
             </div>
           </div>
         )}

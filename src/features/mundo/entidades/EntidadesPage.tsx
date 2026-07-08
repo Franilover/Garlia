@@ -16,7 +16,6 @@
  * muestra sin lógica extra acá.
  */
 
-import { Bug } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
@@ -130,39 +129,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
-  const [filtroEspecie, setFiltroEspecie] = useState<string | null>(null);
-  const criaturaFiltro = useMemo(
-    () => criaturas.find((c) => c.nombre === filtroEspecie) ?? null,
-    [criaturas, filtroEspecie],
-  );
-  const personajesFiltrados = useMemo(
-    () =>
-      filtroEspecie ? personajes.filter((p) => p.especie === filtroEspecie) : personajes,
-    [personajes, filtroEspecie],
-  );
-  const ciudadesFiltradas = useMemo(
-    () =>
-      filtroEspecie
-        ? ciudades.filter((c) =>
-            personajesFiltrados.some((p) => p.ciudad_id === c.id),
-          )
-        : ciudades,
-    [ciudades, personajesFiltrados, filtroEspecie],
-  );
-  const reinosFiltrados = useMemo(
-    () =>
-      filtroEspecie
-        ? reinos.filter(
-            (r) =>
-              ciudadesFiltradas.some((c) => c.reino_id === r.id) ||
-              personajesFiltrados.some(
-                (p) => !p.ciudad_id && p.reino === r.nombre,
-              ),
-          )
-        : reinos,
-    [reinos, ciudadesFiltradas, personajesFiltrados, filtroEspecie],
-  );
-
   const selectedPersonaje = useMemo(
     () => (section === "personajes" ? personajes.find((p) => p.id === selectedId) : null),
     [section, personajes, selectedId],
@@ -234,61 +200,12 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <div className="flex flex-col lg:flex-row-reverse gap-6">
-        <aside className="lg:w-64 shrink-0 flex">
-          <div className="w-full flex flex-col rounded-xl border border-primary/10 bg-primary/[0.03] p-3">
-            <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-3 px-1 shrink-0">
-              Filtrar por criatura
-            </h3>
-
-            <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
-              <button
-                type="button"
-                onClick={() => setFiltroEspecie(null)}
-                className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  filtroEspecie === null
-                    ? "bg-primary/15 text-primary"
-                    : "text-primary/50 hover:bg-primary/10 hover:text-primary"
-                }`}
-              >
-                Todos los personajes
-              </button>
-              {criaturas.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() =>
-                    setFiltroEspecie((prev) => (prev === c.nombre ? null : c.nombre))
-                  }
-                  className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold leading-snug break-words transition-colors ${
-                    filtroEspecie === c.nombre
-                      ? "bg-primary/15 text-primary"
-                      : "text-primary/50 hover:bg-primary/10 hover:text-primary"
-                  }`}
-                >
-                  {c.nombre}
-                </button>
-              ))}
-            </div>
-
-            {criaturaFiltro && (
-              <button
-                type="button"
-                onClick={() => openEntity("criaturas", criaturaFiltro.id)}
-                className="mt-3 w-full shrink-0 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors text-micro font-bold uppercase tracking-wide text-accent"
-              >
-                <Bug size={11} />
-                Editar criatura
-              </button>
-            )}
-          </div>
-        </aside>
-
+      <div className="flex flex-col gap-6">
         <div className="flex-1 min-w-0">
           <GeografiaJerarquica
-            reinos={reinosFiltrados}
-            ciudades={ciudadesFiltradas}
-            personajes={personajesFiltrados}
+            reinos={reinos}
+            ciudades={ciudades}
+            personajes={personajes}
             loading={loadingR || loadingCd || loadingP}
             onOpen={(section, id) => openEntity(section, id)}
             onCreateReino={async () => {
@@ -303,7 +220,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
               const { data } = await addPersonaje({
                 nombre: "Nuevo personaje",
                 ciudad_id: ciudadId,
-                ...(filtroEspecie ? { especie: filtroEspecie } : {}),
               });
               if (data?.id) openEntity("personajes", data.id);
             }}
@@ -316,7 +232,8 @@ export function EntidadesPage({ section, selectedId }: Props) {
         dones={dones.items}
         hechizos={hechizos.items}
         items={items}
-        loading={loadingC || loadingI || hechizos.loading || dones.loading || runas.loading}
+        loading={loadingC || loadingI || loadingP || hechizos.loading || dones.loading || runas.loading}
+        personajes={personajes}
         runas={runas.items}
         onCreateCriatura={async () => {
           const { data } = await addCriatura({ nombre: "Nueva criatura" });
@@ -342,6 +259,13 @@ export function EntidadesPage({ section, selectedId }: Props) {
             }
             openEntity(tipo, id);
           }
+        }}
+        onCreatePersonaje={async (criatura) => {
+          const { data } = await addPersonaje({
+            nombre: "Nuevo personaje",
+            ...(criatura ? { especie: criatura.nombre } : {}),
+          });
+          if (data?.id) openEntity("personajes", data.id);
         }}
         onOpen={(section, id) => openEntity(section, id)}
       />
