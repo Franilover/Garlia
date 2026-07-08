@@ -1029,6 +1029,7 @@ export function LoreTab({
           }))}
           emptyLabel="Sin personajes"
           fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+          fill={false}
           icon={<Users size={9} />}
           label="Personajes"
           loading={loadingPersonajesEditables}
@@ -1054,6 +1055,7 @@ export function LoreTab({
           }))}
           emptyLabel="Sin criaturas"
           fallbackIcon={<Bug size={14} strokeWidth={1} />}
+          fill={false}
           icon={<Bug size={9} />}
           label="Criaturas"
           loading={loadingCriaturas}
@@ -1082,6 +1084,7 @@ export function LoreTab({
           }))}
           emptyLabel="Sin ítems"
           fallbackIcon={<Package size={14} strokeWidth={1} />}
+          fill={false}
           icon={<Package size={9} />}
           label="Ítems"
           loading={loadingItems}
@@ -1143,6 +1146,7 @@ export function LoreTab({
               }))}
               emptyLabel="Sin personajes"
               fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Users size={9} />}
               label="Personajes"
               loading={loadingPersonajesEditables}
@@ -1168,6 +1172,7 @@ export function LoreTab({
               }))}
               emptyLabel="Sin criaturas"
               fallbackIcon={<Bug size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Bug size={9} />}
               label="Criaturas"
               loading={loadingCriaturas}
@@ -1196,6 +1201,7 @@ export function LoreTab({
               }))}
               emptyLabel="Sin ítems"
               fallbackIcon={<Package size={14} strokeWidth={1} />}
+              fill={false}
               icon={<Package size={9} />}
               label="Ítems"
               loading={loadingItems}
