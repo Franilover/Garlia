@@ -16,7 +16,7 @@
  * muestra sin lógica extra acá.
  */
 
-import { Bug, Package } from "lucide-react";
+import { Bug } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
@@ -33,6 +33,7 @@ import { PersonajeEditor } from "../components/personajes/PersonajeEditor";
 import { ReinoEditor } from "../components/reinos/ReinoEditor";
 import { EntityCardGrid } from "../components/shared/EntityCardGrid";
 import { GeografiaJerarquica } from "../components/shared/GeografiaJerarquica";
+import { MagiaJerarquica } from "../components/shared/MagiaJerarquica";
 import { useMundoNavigation, type SectionKey } from "../hooks/mundo/useMundoNavigationStore";
 
 interface Personaje {
@@ -54,6 +55,7 @@ interface Item {
   nombre: string;
   imagen_url?: string;
   categoria?: string;
+  criatura_id?: string | null;
 }
 interface Reino {
   id: string;
@@ -86,8 +88,8 @@ function useMagiaCategoria(modo: "hechizos" | "dones" | "runas") {
           : { nombre: `Nuevo ${cfg.labelSing}`, grupo_ids: [] };
       const selectFields =
         modo === "runas"
-          ? "id, nombre, explicacion, imagen_url"
-          : "id, nombre, explicacion, grupo_ids";
+          ? "id, nombre, explicacion, imagen_url, criatura_id"
+          : "id, nombre, explicacion, grupo_ids, criatura_id";
 
       const { data, error } = await supabase
         .from(cfg.tabla)
@@ -210,6 +212,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
               prev.map((i) => (i.id === updated.id ? updated : i)),
             );
           }}
+          onNavigateCriatura={(id) => openEntity("criaturas", id)}
         />
       </div>
     );
@@ -325,73 +328,38 @@ export function EntidadesPage({ section, selectedId }: Props) {
             }}
           />
         </div>
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Items"
-            layout="half"
-            Icon={Package}
-            loading={loadingI}
-            items={items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-            section="items"
-            onItemClick={(id) => openEntity("items", id)}
-            onCreate={async () => {
-              const { data } = await addItem({ nombre: "Nuevo objeto" });
-              if (data?.id) openEntity("items", data.id);
-            }}
-          />
-        </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Hechizos"
-            layout="third"
-            Icon={hechizos.cfg.Icon}
-            loading={hechizos.loading}
-            creating={hechizos.creating}
-            items={hechizos.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-            section="hechizos"
-            onItemClick={(id) => openEntity("hechizos", id)}
-            onCreate={async () => {
-              const id = await hechizos.create();
-              if (id) openEntity("hechizos", id);
-            }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Dones"
-            layout="third"
-            Icon={dones.cfg.Icon}
-            loading={dones.loading}
-            creating={dones.creating}
-            items={dones.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-            section="dones"
-            onItemClick={(id) => openEntity("dones", id)}
-            onCreate={async () => {
-              const id = await dones.create();
-              if (id) openEntity("dones", id);
-            }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Runas"
-            layout="third"
-            Icon={runas.cfg.Icon}
-            loading={runas.loading}
-            creating={runas.creating}
-            items={runas.items.map((i) => ({ id: i.id, nombre: i.nombre, imageUrl: i.imagen_url }))}
-            section="runas"
-            onItemClick={(id) => openEntity("runas", id)}
-            onCreate={async () => {
-              const id = await runas.create();
-              if (id) openEntity("runas", id);
-            }}
-          />
-        </div>
-      </div>
+      <MagiaJerarquica
+        criaturas={criaturas}
+        dones={dones.items}
+        hechizos={hechizos.items}
+        items={items}
+        loading={loadingC || loadingI || hechizos.loading || dones.loading || runas.loading}
+        runas={runas.items}
+        onCreateHija={async (tipo, criaturaId) => {
+          if (tipo === "items") {
+            const { data } = await addItem({
+              nombre: "Nuevo objeto",
+              ...(criaturaId ? { criatura_id: criaturaId } : {}),
+            });
+            if (data?.id) openEntity("items", data.id);
+            return;
+          }
+          const categoria = tipo === "hechizos" ? hechizos : tipo === "dones" ? dones : runas;
+          const id = await categoria.create();
+          if (id) {
+            if (criaturaId) {
+              await supabase.from(tipo).update({ criatura_id: criaturaId }).eq("id", id);
+              categoria.setItems((prev) =>
+                prev.map((i) => (i.id === id ? { ...i, criatura_id: criaturaId } as any : i)),
+              );
+            }
+            openEntity(tipo, id);
+          }
+        }}
+        onOpen={(section, id) => openEntity(section, id)}
+      />
     </div>
   );
 }
