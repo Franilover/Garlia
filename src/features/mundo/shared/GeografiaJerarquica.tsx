@@ -72,6 +72,7 @@ function NodoTitulo({
   creating,
   variant = "reino",
   maxWidthPx,
+  fill,
 }: {
   label: string;
   onClick: () => void;
@@ -79,6 +80,8 @@ function NodoTitulo({
   creating?: boolean;
   variant?: "reino" | "ciudad";
   maxWidthPx?: number;
+  /** Si es true, el chip ocupa el 100% del ancho de su contenedor (uso en grid dinámico) */
+  fill?: boolean;
 }) {
   const chipStyles =
     variant === "reino"
@@ -86,13 +89,15 @@ function NodoTitulo({
       : "bg-accent/10 hover:bg-accent/20 text-accent border border-accent/15";
 
   return (
-    <div className="flex items-center gap-1.5 max-w-full">
+    <div className={`flex items-center gap-1.5 max-w-full ${fill ? "w-full" : ""}`}>
       <button
         type="button"
         onClick={onClick}
         title={label}
         style={maxWidthPx ? { maxWidth: maxWidthPx } : undefined}
-        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors truncate ${chipStyles}`}
+        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors truncate ${chipStyles} ${
+          fill ? "flex-1 min-w-0 text-center" : ""
+        }`}
       >
         {label}
       </button>
@@ -320,20 +325,33 @@ export function GeografiaJerarquica({
               </div>
             </div>
           ))}
-
-          {reinosVacios.length > 0 &&
-            reinosVacios.map((reino) => (
-              <NodoTitulo
-                key={reino.id}
-                label={reino.nombre}
-                onClick={() => onOpen("reinos", reino.id)}
-                onCreate={
-                  onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
-                }
-              />
-            ))}
         </div>
 
+        {reinosVacios.length > 0 && (
+          <div>
+            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
+              Sin ciudades asignadas
+            </p>
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+              }}
+            >
+              {reinosVacios.map((reino) => (
+                <NodoTitulo
+                  key={reino.id}
+                  fill
+                  label={reino.nombre}
+                  onClick={() => onOpen("reinos", reino.id)}
+                  onCreate={
+                    onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        )}
         {personajesSinCiudad.length > 0 && (
           <div>
             <NodoTitulo
