@@ -1547,9 +1547,13 @@ export const SelectorVisibilidad = ({
 export const SelectorNarrador = ({
   value,
   onChange,
+  onNavigate,
 }: {
   value: string | null;
   onChange: (id: string | null) => void;
+  // Navegación opcional: muestra el lápiz junto al narrador seleccionado
+  // para saltar directo a su ficha de personaje.
+  onNavigate?: (id: string) => void;
 }) => {
   const { personajes, loading } = usePersonajes();
   const items = personajes.map((p) => ({
@@ -1569,6 +1573,7 @@ export const SelectorNarrador = ({
       placeholder="Sin narrador…"
       value={value}
       onChange={onChange}
+      onNavigate={onNavigate ? (id) => onNavigate(id) : undefined}
     />
   );
 };
@@ -2493,7 +2498,11 @@ export const PanelPersonajesCapitulo = ({
             />
           )}
         </div>
-        <SelectorNarrador value={narradorId} onChange={handleSaveNarrador} />
+        <SelectorNarrador
+          value={narradorId}
+          onChange={handleSaveNarrador}
+          onNavigate={(id) => dispatchOpen("personajes", id)}
+        />
       </div>
 
       {/* ── Era del narrador en la línea de tiempo ──────────────────────── */}
