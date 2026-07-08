@@ -139,6 +139,28 @@ export function EntidadesPage({ section, selectedId }: Props) {
       filtroEspecie ? personajes.filter((p) => p.especie === filtroEspecie) : personajes,
     [personajes, filtroEspecie],
   );
+  const ciudadesFiltradas = useMemo(
+    () =>
+      filtroEspecie
+        ? ciudades.filter((c) =>
+            personajesFiltrados.some((p) => p.ciudad_id === c.id),
+          )
+        : ciudades,
+    [ciudades, personajesFiltrados, filtroEspecie],
+  );
+  const reinosFiltrados = useMemo(
+    () =>
+      filtroEspecie
+        ? reinos.filter(
+            (r) =>
+              ciudadesFiltradas.some((c) => c.reino_id === r.id) ||
+              personajesFiltrados.some(
+                (p) => !p.ciudad_id && p.reino === r.nombre,
+              ),
+          )
+        : reinos,
+    [reinos, ciudadesFiltradas, personajesFiltrados, filtroEspecie],
+  );
 
   const selectedPersonaje = useMemo(
     () => (section === "personajes" ? personajes.find((p) => p.id === selectedId) : null),
@@ -210,8 +232,8 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <aside className="lg:w-56 shrink-0">
+      <div className="flex flex-col lg:flex-row-reverse gap-6">
+        <aside className="lg:w-64 shrink-0">
           <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-3 lg:sticky lg:top-4">
             <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-3 px-1">
               Filtrar por criatura
@@ -236,12 +258,11 @@ export function EntidadesPage({ section, selectedId }: Props) {
                   onClick={() =>
                     setFiltroEspecie((prev) => (prev === c.nombre ? null : c.nombre))
                   }
-                  className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold truncate transition-colors ${
+                  className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-bold leading-snug break-words transition-colors ${
                     filtroEspecie === c.nombre
                       ? "bg-primary/15 text-primary"
                       : "text-primary/50 hover:bg-primary/10 hover:text-primary"
                   }`}
-                  title={c.nombre}
                 >
                   {c.nombre}
                 </button>
@@ -263,8 +284,8 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
         <div className="flex-1 min-w-0">
           <GeografiaJerarquica
-            reinos={reinos}
-            ciudades={ciudades}
+            reinos={reinosFiltrados}
+            ciudades={ciudadesFiltradas}
             personajes={personajesFiltrados}
             loading={loadingR || loadingCd || loadingP}
             onOpen={(section, id) => openEntity(section, id)}
