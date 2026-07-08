@@ -9,6 +9,7 @@ import { ModalNuevaCancion } from "@/features/editorGarlia/components/canciones/
 import { useCanciones } from "@/features/editorGarlia/hooks/canciones/useCanciones";
 import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
 import { useLastOpenedId } from "@/hooks/useEditorShared";
+import { useMundoNavigation } from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
 
 /* ─── Estilos compartidos con el MarkdownEditor ─────────────────────────────── */
 /*
@@ -428,6 +429,7 @@ export default function EstudioLetras() {
   const { canciones, setCanciones, loading: loadingLista } = useCanciones();
   const [lastId, setLastId] = useLastOpenedId("estudio-letras-last-id");
   const [selectedId, _setSelectedId] = useState<string | null>(lastId);
+  const openEntity = useMundoNavigation((s) => s.openEntity);
 
   const setSelectedId = (id: string | null) => {
     _setSelectedId(id);
@@ -531,7 +533,13 @@ export default function EstudioLetras() {
           </header>
 
           <div className="flex-1">
-            <PanelEditor key={selectedId} cancionId={selectedId} />
+            <PanelEditor
+              key={selectedId}
+              cancionId={selectedId}
+              onNavigateCiudad={(id) => openEntity("ciudades", id)}
+              onNavigatePersonaje={(id) => openEntity("personajes", id)}
+              onNavigateReino={(id) => openEntity("reinos", id)}
+            />
           </div>
         </div>
       </>
