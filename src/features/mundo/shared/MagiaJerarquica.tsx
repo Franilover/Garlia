@@ -118,6 +118,7 @@ function Columna({
   entidades,
   onOpen,
   onCreate,
+  maxWidthPx,
 }: {
   label: string;
   Icon: React.ElementType;
@@ -125,11 +126,17 @@ function Columna({
   entidades: EntidadHija[];
   onOpen: (section: SectionKey, id: string) => void;
   onCreate?: () => void;
+  /** Ancho máximo disponible (px) para esta categoría; limita cuántas
+   * columnas internas puede tener el grid para no desbordar la card. */
+  maxWidthPx?: number;
 }) {
   const vacia = entidades.length === 0;
-  const cols = Math.min(Math.max(entidades.length, 1), 6);
   const itemSize = 52;
   const gapPx = 4;
+  const maxColsPorAncho = maxWidthPx
+    ? Math.max(1, Math.floor((maxWidthPx + gapPx) / (itemSize + gapPx)))
+    : 6;
+  const cols = Math.min(Math.max(entidades.length, 1), 6, maxColsPorAncho);
   const anchoPx = Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
 
   return (
@@ -250,16 +257,20 @@ export function MagiaJerarquica({
 
   const itemSize = 52;
   const gapPx = 4;
+  const disponibleColumna = anchoColumnaMasonry - 32; // p-4 a ambos lados
+  const maxColsPorAncho = Math.max(1, Math.floor((disponibleColumna + gapPx) / (itemSize + gapPx)));
   const anchoColumnaCategoria = (entidadesCount: number) => {
     if (entidadesCount === 0) return 0; // columna vacía no se renderiza
-    const cols = Math.min(Math.max(entidadesCount, 1), 6);
+    const cols = Math.min(Math.max(entidadesCount, 1), 6, maxColsPorAncho);
     return Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
   };
   // Altura de una columna-categoría (título + grid de EntityCard, que hace
-  // wrap interno cada `cols` items).
+  // wrap interno cada `cols` items). El tope de columnas coincide con el
+  // que usa <Columna> al renderizar, para que la estimación no se quede
+  // corta y termine desbordando (y recortándose) el ancho real de la card.
   const altoColumnaCategoria = (entidadesCount: number) => {
     if (entidadesCount === 0) return 0;
-    const cols = Math.min(Math.max(entidadesCount, 1), 6);
+    const cols = Math.min(Math.max(entidadesCount, 1), 6, maxColsPorAncho);
     const filas = Math.ceil(entidadesCount / cols);
     const alturaTitulo = 18;
     const margenSuperior = 8; // mt-2
@@ -423,6 +434,7 @@ export function MagiaJerarquica({
                             onCreateHija ? () => onCreateHija(key, criatura.id) : undefined
                           }
                           onOpen={onOpen}
+                          maxWidthPx={disponibleColumna}
                         />
                       );
                     })}
@@ -436,6 +448,7 @@ export function MagiaJerarquica({
                           onCreatePersonaje ? () => onCreatePersonaje(criatura) : undefined
                         }
                         onOpen={onOpen}
+                        maxWidthPx={disponibleColumna}
                       />
                     )}
                   </div>

@@ -196,18 +196,22 @@ export function GeografiaJerarquica({
 
   const itemSize = 52;
   const gapPx = 4;
+  const disponibleColumna = anchoColumnaMasonry - 32; // p-4 a ambos lados
+  const maxColsPorAncho = Math.max(1, Math.floor((disponibleColumna + gapPx) / (itemSize + gapPx)));
   const anchoCiudad = (habitantesCount: number) => {
     if (habitantesCount === 0) return 90; // chip "Sin personajes"
-    const cols = Math.min(Math.max(habitantesCount, 1), 6);
+    const cols = Math.min(Math.max(habitantesCount, 1), 6, maxColsPorAncho);
     return Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
   };
   // Altura de una columna-ciudad (chip título + grid de EntityCard, que hace
-  // wrap interno cada `cols` items).
+  // wrap interno cada `cols` items). El tope de columnas coincide con el que
+  // usa renderColumna al pintar, para que la estimación no se quede corta y
+  // termine desbordando (y recortándose) el ancho real de la card.
   const altoCiudad = (habitantesCount: number) => {
     const alturaTitulo = 24; // chip tipo pill (py-1)
     const margenSuperior = 8; // mt-1.5/mt-2
     if (habitantesCount === 0) return alturaTitulo + margenSuperior + 16; // "Sin personajes"
-    const cols = Math.min(Math.max(habitantesCount, 1), 6);
+    const cols = Math.min(Math.max(habitantesCount, 1), 6, maxColsPorAncho);
     const filas = Math.ceil(habitantesCount / cols);
     return alturaTitulo + margenSuperior + filas * itemSize + (filas - 1) * gapPx;
   };
@@ -281,18 +285,26 @@ export function GeografiaJerarquica({
     habitantes,
     onClick,
     onCreate,
+    anchoMaxDisponible,
   }: {
     key: string;
     nombre: string;
     habitantes: Personaje[];
     onClick: () => void;
     onCreate?: () => void;
+    /** Ancho máximo disponible (px); limita cuántas columnas internas puede
+     * tener el grid para no desbordar la card. */
+    anchoMaxDisponible?: number;
   }) => {
     const vacia = habitantes.length === 0;
-    // Más personajes → más columnas → la columna ocupa más ancho horizontal.
-    const cols = Math.min(Math.max(habitantes.length, 1), 6);
     const itemSize = 52;
     const gapPx = 4;
+    const maxColsPorAncho = anchoMaxDisponible
+      ? Math.max(1, Math.floor((anchoMaxDisponible + gapPx) / (itemSize + gapPx)))
+      : 6;
+    // Más personajes → más columnas → la columna ocupa más ancho horizontal,
+    // tope según el espacio real disponible.
+    const cols = Math.min(Math.max(habitantes.length, 1), 6, maxColsPorAncho);
     const anchoPx = Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
 
     return (
@@ -343,6 +355,7 @@ export function GeografiaJerarquica({
       onCreate: onCreatePersonaje
         ? () => onCreatePersonaje!(ciudad.id)
         : undefined,
+      anchoMaxDisponible: disponibleColumna,
     });
 
   const renderSinCiudadDeReino = (reino: Reino) =>
@@ -354,6 +367,7 @@ export function GeografiaJerarquica({
       onCreate: onCreatePersonaje
         ? () => onCreatePersonaje!(null)
         : undefined,
+      anchoMaxDisponible: disponibleColumna,
     });
 
   return (
