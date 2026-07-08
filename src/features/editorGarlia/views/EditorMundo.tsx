@@ -1433,6 +1433,10 @@ function PanelListas({
       collapsed?: boolean;
       onToggle?: () => void;
       onExpand?: () => void;
+      // Modo grid horizontal: exclusivo de Personajes. Solo tiene efecto
+      // real en desktop (fila horizontal); en mobile se ignora y cae al
+      // comportamiento dinámico normal.
+      horizontalGrid?: boolean;
     }
   >(function SeccionEntidades(
     {
@@ -1441,8 +1445,9 @@ function PanelListas({
       loading,
       children,
       cols: _cols = 3,
-      minColWidth = "60px",
+      minColWidth: minColWidthProp,
       defaultCollapsed = false,
+      horizontalGrid = false,
       storageKey,
       collapsed: collapsedProp,
       onToggle: onToggleProp,
@@ -1481,6 +1486,26 @@ function PanelListas({
     };
 
     const rootRef = useRef<HTMLDivElement>(null);
+
+    // ── Diseño dinámico según cantidad de items ─────────────────────────────
+    // En vez de un tamaño de celda fijo para toda sección sin importar cuántos
+    // ítems tenga, ajustamos el tamaño de celda a la cantidad real. Con muy
+    // pocos ítems (1-2) el grid deja de tener sentido y se muestra como lista
+    // vertical de una columna, aprovechando mejor el espacio en vez de dejar
+    // una celda diminuta suelta en una esquina.
+    const useListLayout = count > 0 && count <= 2 && !horizontalGrid;
+    const dynamicMinColWidth = (() => {
+      if (count <= 4) return "84px"; // pocos ítems → celdas grandes, tipo tarjeta
+      if (count <= 12) return "60px"; // cantidad media → grid compacto (tamaño previo)
+      return "48px"; // muchos ítems → celdas chicas, más columnas
+    })();
+    const minColWidth = minColWidthProp ?? dynamicMinColWidth;
+
+    // Grid horizontal: solo Personajes lo pide, y solo tiene efecto real en
+    // desktop (fila horizontal). En mobile, aunque se pida, no aplica porque
+    // ahí las secciones se apilan verticalmente y el grid dinámico normal
+    // ya se comporta bien.
+    const useHorizontalGrid = horizontalGrid && isDesktop;
 
     // Exponer expand() y el nodo DOM al padre vía ref
     React.useImperativeHandle(ref, () => ({
@@ -1537,6 +1562,20 @@ function PanelListas({
             <p className="text-micro text-primary/20 italic px-1 pb-2">
               Sin {label.toLowerCase()} aún
             </p>
+          ) : useListLayout ? (
+            // Muy pocos ítems: lista vertical de una columna en vez de un
+            // grid con celdas sueltas ocupando espacio de forma desigual.
+            <div className="flex flex-col gap-1.5">{children}</div>
+          ) : useHorizontalGrid ? (
+            // Modo grid horizontal (solo Personajes, solo desktop): fila que
+            // scrollea horizontalmente en vez de envolver hacia abajo, para
+            // secciones con fila propia ancha.
+            <div
+              className="grid grid-flow-col auto-cols-[minmax(60px,1fr)] gap-1.5 overflow-x-auto pb-1"
+              style={{ gridTemplateRows: "repeat(2, minmax(0, 1fr))" }}
+            >
+              {children}
+            </div>
           ) : (
             <div
               className="grid gap-1.5"
@@ -1783,6 +1822,7 @@ function PanelListas({
                   collapsed={isDesktop ? filaPersonajes.collapsed : undefined}
                   count={personajes.length}
                   defaultCollapsed={false}
+                  horizontalGrid
                   icon={Users}
                   label={el.personajes}
                   loading={loadingPersonajes}
