@@ -59,10 +59,7 @@ import {
   useCriaturaCiudades,
 } from "@/features/editorGarlia/components/criaturas/CriaturaHabitat";
 import { useCraftedItems } from "@/features/editorGarlia/components/criaturas/CriaturaItemsCraftedos";
-import {
-  BloqueMagico,
-  grupoEsMagico,
-} from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
+import { BloqueMagico } from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
 import { BloqueEntidadesDeCriatura } from "@/features/editorGarlia/components/criaturas/BloqueEntidadesDeCriatura";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/criaturas/PickerImagenCriaturaBtn";
 import {
@@ -551,47 +548,19 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Hechizos + Dones */}
+          {/* Dones — Hechizos ya vive en el bloque dinámico de arriba
+              (BloqueEntidadesDeCriatura), no hace falta duplicarlo acá. */}
           <div
             className="shrink-0 flex flex-col h-full overflow-hidden"
             style={{ width: "110px" }}
           >
-            {grupoEsMagico(gruposActuales) ? (
-              <>
-                <div
-                  className="flex-1 min-h-0 overflow-hidden flex flex-col border-b"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--primary) 7%, transparent)",
-                  }}
-                >
-                  <BloqueMagico
-                    criaturaId={form.id}
-                    gruposActuales={gruposActuales.map((g) => g.id)}
-                    icon={Sparkles}
-                    label="Hechizos"
-                    usarHook="hechizos"
-                  />
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                  <BloqueMagico
-                    criaturaId={form.id}
-                    gruposActuales={gruposActuales.map((g) => g.id)}
-                    icon={Star}
-                    label="Dones"
-                    usarHook="dones"
-                  />
-                </div>
-              </>
-            ) : (
-              <BloqueMagico
-                criaturaId={form.id}
-                gruposActuales={gruposActuales.map((g) => g.id)}
-                icon={Star}
-                label="Dones"
-                usarHook="dones"
-              />
-            )}
+            <BloqueMagico
+              criaturaId={form.id}
+              gruposActuales={gruposActuales.map((g) => g.id)}
+              icon={Star}
+              label="Dones"
+              usarHook="dones"
+            />
           </div>
         </div>
       </div>
@@ -733,23 +702,7 @@ export function EditorCriatura({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            {grupoEsMagico(gruposActuales) && (
-              <>
-                <BloqueMagico
-                  criaturaId={form.id}
-                  gruposActuales={gruposActuales.map((g) => g.id)}
-                  icon={Sparkles}
-                  label="Hechizos"
-                  usarHook="hechizos"
-                />
-                <div
-                  style={{
-                    borderTop:
-                      "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-                  }}
-                />
-              </>
-            )}
+            {/* Dones — Hechizos ya vive en el bloque dinámico de arriba. */}
             <BloqueMagico
               criaturaId={form.id}
               gruposActuales={gruposActuales.map((g) => g.id)}
