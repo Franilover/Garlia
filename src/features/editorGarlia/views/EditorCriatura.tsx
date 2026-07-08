@@ -60,7 +60,6 @@ import {
 } from "@/features/editorGarlia/components/criaturas/CriaturaHabitat";
 import { useCraftedItems } from "@/features/editorGarlia/components/criaturas/CriaturaItemsCraftedos";
 import { BloqueMagico } from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
-import { BloqueEntidadesDeCriatura } from "@/features/editorGarlia/components/criaturas/BloqueEntidadesDeCriatura";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/criaturas/PickerImagenCriaturaBtn";
 import {
   SelectorImagen,
@@ -357,18 +356,6 @@ export function EditorCriatura({
             </div>
           </div>
 
-          {/* Vinculados: dones/runas/items/hechizos que tienen a esta criatura como origen */}
-          <BloqueEntidadesDeCriatura
-            criaturaId={form.id}
-            onNavigate={(tipo, id) => {
-              if (tipo === "items") {
-                onSelectItem?.(id);
-              } else {
-                onNavigateEntidadMagica?.(tipo, id);
-              }
-            }}
-          />
-
           {/* Clasificación */}
           <div
             className="rounded-xl p-2.5"
@@ -548,8 +535,10 @@ export function EditorCriatura({
             />
           </div>
 
-          {/* Dones — Hechizos ya vive en el bloque dinámico de arriba
-              (BloqueEntidadesDeCriatura), no hace falta duplicarlo acá. */}
+          {/* Dones — este grupo (Personajes/Territorio/Ciudades/Creaciones/
+              Dones) es el bloque dinámico real (SeccionEntidad). El bloque
+              suelto "Vinculados" (BloqueEntidadesDeCriatura) que estaba
+              arriba, fuera de este grupo, se quitó por redundante. */}
           <div
             className="shrink-0 flex flex-col h-full overflow-hidden"
             style={{ width: "110px" }}
@@ -702,7 +691,7 @@ export function EditorCriatura({
                   "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
               }}
             />
-            {/* Dones — Hechizos ya vive en el bloque dinámico de arriba. */}
+            {/* Dones — bloque dinámico real; ver nota arriba en desktop. */}
             <BloqueMagico
               criaturaId={form.id}
               gruposActuales={gruposActuales.map((g) => g.id)}
