@@ -31,7 +31,6 @@ import { CriaturaEditor } from "../components/criaturas/CriaturaEditor";
 import { ItemEditor } from "../components/items/ItemEditor";
 import { PersonajeEditor } from "../components/personajes/PersonajeEditor";
 import { ReinoEditor } from "../components/reinos/ReinoEditor";
-import { EntityCardGrid } from "../components/shared/EntityCardGrid";
 import { GeografiaJerarquica } from "../components/shared/GeografiaJerarquica";
 import { MagiaJerarquica } from "../components/shared/MagiaJerarquica";
 import { useMundoNavigation, type SectionKey } from "../hooks/mundo/useMundoNavigationStore";
@@ -312,24 +311,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 min-w-0">
-          <EntityCardGrid
-            title="Criaturas"
-            layout="half"
-            Icon={Bug}
-            loading={loadingC}
-            items={criaturas.map((c) => ({ id: c.id, nombre: c.nombre, imageUrl: c.imagen_url }))}
-            section="criaturas"
-            onItemClick={(id) => openEntity("criaturas", id)}
-            onCreate={async () => {
-              const { data } = await addCriatura({ nombre: "Nueva criatura" });
-              if (data?.id) openEntity("criaturas", data.id);
-            }}
-          />
-        </div>
-      </div>
-
       <MagiaJerarquica
         criaturas={criaturas}
         dones={dones.items}
@@ -337,6 +318,10 @@ export function EntidadesPage({ section, selectedId }: Props) {
         items={items}
         loading={loadingC || loadingI || hechizos.loading || dones.loading || runas.loading}
         runas={runas.items}
+        onCreateCriatura={async () => {
+          const { data } = await addCriatura({ nombre: "Nueva criatura" });
+          if (data?.id) openEntity("criaturas", data.id);
+        }}
         onCreateHija={async (tipo, criaturaId) => {
           if (tipo === "items") {
             const { data } = await addItem({
