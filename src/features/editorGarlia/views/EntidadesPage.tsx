@@ -233,13 +233,13 @@ export function EntidadesPage({ section, selectedId }: Props) {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
       <div className="flex flex-col lg:flex-row-reverse gap-6">
-        <aside className="lg:w-64 shrink-0">
-          <div className="rounded-xl border border-primary/10 bg-primary/[0.03] p-3 lg:sticky lg:top-4">
-            <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-3 px-1">
+        <aside className="lg:w-64 shrink-0 flex">
+          <div className="w-full flex flex-col rounded-xl border border-primary/10 bg-primary/[0.03] p-3">
+            <h3 className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 mb-3 px-1 shrink-0">
               Filtrar por criatura
             </h3>
 
-            <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
+            <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto">
               <button
                 type="button"
                 onClick={() => setFiltroEspecie(null)}
@@ -273,7 +273,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
               <button
                 type="button"
                 onClick={() => openEntity("criaturas", criaturaFiltro.id)}
-                className="mt-3 w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors text-micro font-bold uppercase tracking-wide text-accent"
+                className="mt-3 w-full shrink-0 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent/20 transition-colors text-micro font-bold uppercase tracking-wide text-accent"
               >
                 <Bug size={11} />
                 Editar criatura
