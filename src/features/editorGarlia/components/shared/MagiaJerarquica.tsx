@@ -25,7 +25,7 @@
  */
 
 import { Plus, ScrollText, Sparkles, Star, Package, Bug } from "lucide-react";
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 
 import { EntityCard } from "./EntityCard";
 import type { SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -180,6 +180,20 @@ export function MagiaJerarquica({
   onCreateHija,
   creatingCriatura,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setContainerWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   if (loading && criaturas.length === 0) {
     return <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>;
   }
@@ -196,8 +210,72 @@ export function MagiaJerarquica({
     hechizosDe(criaturaId).length;
 
   const criaturasOrdenadas = [...criaturas].sort((a, b) => totalDe(b.id) - totalDe(a.id));
-  const criaturasConVinculos = criaturasOrdenadas.filter((c) => totalDe(c.id) > 0);
+  const criaturasConVinculosBase = criaturasOrdenadas.filter((c) => totalDe(c.id) > 0);
   const criaturasVacias = criaturasOrdenadas.filter((c) => totalDe(c.id) === 0);
+
+  // ── Estimación de ancho de cada card de criatura ──────────────────────────
+  // Replica el cálculo de ancho de Columna (itemSize=52, gap=4, hasta 6
+  // entidades por columna) para anticipar cuánto ocupará cada card sin medir
+  // el DOM directamente.
+  const itemSize = 52;
+  const gapPx = 4;
+  const anchoColumna = (entidadesCount: number) => {
+    if (entidadesCount === 0) return 0; // columna vacía no se renderiza
+    const cols = Math.min(Math.max(entidadesCount, 1), 6);
+    return Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
+  };
+  const anchoCriatura = (criatura: Criatura) => {
+    const anchosColumnas = [
+      anchoColumna(donesDe(criatura.id).length),
+      anchoColumna(runasDe(criatura.id).length),
+      anchoColumna(itemsDe(criatura.id).length),
+      anchoColumna(hechizosDe(criatura.id).length),
+    ].filter((w) => w > 0);
+    const gapInterno = 24;
+    const porFila = Math.min(anchosColumnas.length, 4) || 1;
+    const filaMasAncha =
+      anchosColumnas.slice(0, porFila).reduce((sum, w) => sum + w, 0) +
+      gapInterno * (porFila - 1);
+    return Math.max(filaMasAncha + 32, 140); // + padding de la card (p-4 ambos lados)
+  };
+
+  // ── Reordenamiento tipo First-Fit Decreasing ──────────────────────────────
+  // Ver GeografiaJerarquica.tsx para la explicación completa: reordena las
+  // criaturas (ya vienen de mayor a menor contenido) simulando filas de
+  // ancho real medido, para que una card angosta pueda "subir" a rellenar
+  // el hueco sobrante de la fila de arriba en vez de quedar forzada al
+  // orden secuencial de flex-wrap.
+  const ANCHO_REFERENCIA = containerWidth || 1100;
+  const GAP = 24;
+  function reordenarSinHuecos(list: Criatura[]): Criatura[] {
+    const pendientes = [...list];
+    const resultado: Criatura[] = [];
+    while (pendientes.length > 0) {
+      let anchoFila = 0;
+      let primero = true;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const espacioRestante = ANCHO_REFERENCIA - anchoFila - (primero ? 0 : GAP);
+        const idx = pendientes.findIndex((c) => anchoCriatura(c) <= espacioRestante);
+        if (idx === -1) {
+          if (primero) {
+            const [c] = pendientes.splice(0, 1);
+            resultado.push(c);
+            anchoFila = ANCHO_REFERENCIA + 1;
+            primero = false;
+            continue;
+          }
+          break;
+        }
+        const [c] = pendientes.splice(idx, 1);
+        resultado.push(c);
+        anchoFila += anchoCriatura(c) + (primero ? 0 : GAP);
+        primero = false;
+      }
+    }
+    return resultado;
+  }
+  const criaturasConVinculos = reordenarSinHuecos(criaturasConVinculosBase);
 
   const sinCriaturaIds = new Set(criaturas.map((c) => c.id));
   const donesSinCriatura = dones.filter(
@@ -240,7 +318,7 @@ export function MagiaJerarquica({
       </div>
 
       <div className="flex flex-col gap-8">
-        <div className="flex flex-wrap items-start gap-6">
+        <div ref={containerRef} className="flex flex-wrap items-start gap-6">
           {criaturasConVinculos.map((criatura) => (
             <div
               key={criatura.id}

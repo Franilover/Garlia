@@ -31,7 +31,7 @@
  */
 
 import { Plus, Users } from "lucide-react";
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 
 import { EntityCard } from "./EntityCard";
 import type { SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -127,6 +127,20 @@ export function GeografiaJerarquica({
   onCreatePersonaje,
   creatingReino,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setContainerWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   if (loading && reinos.length === 0) {
     return (
       <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
@@ -157,12 +171,85 @@ export function GeografiaJerarquica({
       personajesSinCiudadDeReino(b.nombre).length -
       (ciudadesDe(a.id).length + personajesSinCiudadDeReino(a.nombre).length)
   );
-  const reinosConCiudades = reinosOrdenados.filter(
+  const reinosConCiudadesBase = reinosOrdenados.filter(
     (r) => ciudadesDe(r.id).length > 0 || personajesSinCiudadDeReino(r.nombre).length > 0
   );
   const reinosVacios = reinosOrdenados.filter(
     (r) => ciudadesDe(r.id).length === 0 && personajesSinCiudadDeReino(r.nombre).length === 0
   );
+
+  // ── Estimación de ancho de cada card de reino ─────────────────────────────
+  // Replica el cálculo de ancho de renderColumna (itemSize=52, gap=4, hasta
+  // 6 columnas por ciudad) para poder anticipar cuánto ocupará cada card
+  // sin necesidad de medir el DOM.
+  const itemSize = 52;
+  const gapPx = 4;
+  const anchoCiudad = (habitantesCount: number) => {
+    if (habitantesCount === 0) return 90; // chip "Sin personajes"
+    const cols = Math.min(Math.max(habitantesCount, 1), 6);
+    return Math.max(cols * itemSize + (cols - 1) * gapPx, 90);
+  };
+  const anchoReino = (reino: Reino) => {
+    const anchosCiudades = ciudadesDe(reino.id).map((c) =>
+      anchoCiudad(personajesDe(c.id).length),
+    );
+    const sinCiudadCount = personajesSinCiudadDeReino(reino.nombre).length;
+    if (sinCiudadCount > 0) anchosCiudades.push(anchoCiudad(sinCiudadCount));
+    // Las ciudades hacen wrap interno (flex-wrap gap-6=24px) hasta un máximo
+    // razonable de fila; estimamos con un límite de ~3 ciudades por fila
+    // interna para acotar el ancho de cards con muchísimas ciudades.
+    const gapInterno = 24;
+    const porFila = Math.min(anchosCiudades.length, 3) || 1;
+    const filaMasAncha = anchosCiudades
+      .slice(0, porFila)
+      .reduce((sum, w) => sum + w, 0) + gapInterno * (porFila - 1);
+    return Math.max(filaMasAncha + 32, 140); // + padding de la card (p-4 ambos lados)
+  };
+
+  // ── Reordenamiento tipo First-Fit Decreasing ──────────────────────────────
+  // Reordena los reinos (ya vienen de mayor a menor contenido) simulando
+  // filas de un ancho de referencia: si el próximo reino en orden no entra
+  // en la fila actual, busca más adelante en la lista el primero que SÍ
+  // quepa (en vez de forzar un salto de línea con hueco vacío a la derecha).
+  // Con esto, un reino angosto que iba a caer varias posiciones después
+  // puede "subir" a rellenar el espacio sobrante de la fila de arriba.
+  const ANCHO_REFERENCIA = containerWidth || 1100; // fallback antes de medir
+  const GAP = 24;
+  function reordenarSinHuecos(items: Reino[]): Reino[] {
+    const pendientes = [...items];
+    const resultado: Reino[] = [];
+    while (pendientes.length > 0) {
+      let anchoFila = 0;
+      let primero = true;
+      // Llena la fila actual: en cada paso, toma el primer pendiente que
+      // quepa en el espacio restante (best-fit por orden de aparición).
+      // Si ninguno cabe, fuerza el primero de la lista (evita loop infinito
+      // con un solo reino gigante) y cierra la fila.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const espacioRestante = ANCHO_REFERENCIA - anchoFila - (primero ? 0 : GAP);
+        const idx = pendientes.findIndex((r) => anchoReino(r) <= espacioRestante);
+        if (idx === -1) {
+          if (primero) {
+            // El primer reino de la fila ya excede el ancho de referencia
+            // (card gigante): la toma igual, ocupa toda la fila.
+            const [r] = pendientes.splice(0, 1);
+            resultado.push(r);
+            anchoFila = ANCHO_REFERENCIA + 1;
+            primero = false;
+            continue;
+          }
+          break; // fila llena, pasa a la siguiente
+        }
+        const [r] = pendientes.splice(idx, 1);
+        resultado.push(r);
+        anchoFila += anchoReino(r) + (primero ? 0 : GAP);
+        primero = false;
+      }
+    }
+    return resultado;
+  }
+  const reinosConCiudades = reordenarSinHuecos(reinosConCiudadesBase);
 
   const renderColumna = ({
     key,
@@ -269,7 +356,7 @@ export function GeografiaJerarquica({
       </div>
 
       <div className="flex flex-col gap-8">
-        <div className="flex flex-wrap items-start gap-6">
+        <div ref={containerRef} className="flex flex-wrap items-start gap-6">
           {reinosConCiudades.map((reino) => (
             <div
               key={reino.id}
