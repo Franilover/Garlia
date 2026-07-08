@@ -43,7 +43,20 @@ import { PanelGuionMV } from "../panels/PanelGuionMV";
 import { PanelInfoSidebar } from "../panels/PanelInfoSidebar";
 import { PanelLinks } from "../panels/PanelLinks";
 
-export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
+export const PanelEditor = ({
+  cancionId,
+  onNavigatePersonaje,
+  onNavigateReino,
+  onNavigateCiudad,
+}: {
+  cancionId: string;
+  // Navegación cruzada opcional (ver PanelInfoSidebar): se propagan tal
+  // cual hacia el sidebar de metadatos, que es quien las conecta a los
+  // ComboSelector de Personaje/Reino/Ciudad.
+  onNavigatePersonaje?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
+}) => {
   const {
     cancion,
     setCancion,
@@ -521,6 +534,9 @@ export const PanelEditor = ({ cancionId }: { cancionId: string }) => {
           setCancion((prev) => (prev ? { ...prev, ...updates } : prev))
         }
         onMobileClose={() => setMobileSidebarOpen(false)}
+        onNavigateCiudad={onNavigateCiudad}
+        onNavigatePersonaje={onNavigatePersonaje}
+        onNavigateReino={onNavigateReino}
       />
     </div>
   );

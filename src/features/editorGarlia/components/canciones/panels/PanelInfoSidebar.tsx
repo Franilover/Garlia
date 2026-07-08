@@ -189,12 +189,22 @@ export const PanelInfoSidebar = ({
   onCancionUpdate,
   mobileOpen = false,
   onMobileClose,
+  onNavigatePersonaje,
+  onNavigateReino,
+  onNavigateCiudad,
 }: {
   cancionId: string;
   cancion: any;
   onCancionUpdate: (updates: any) => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  // Navegación cruzada: saltar al editor del personaje/reino/ciudad
+  // actualmente asignado a la canción (lápiz de edición en el ComboSelector).
+  // Opcionales: si el padre no los pasa, el ComboSelector simplemente no
+  // muestra el lápiz, como pasaba antes.
+  onNavigatePersonaje?: (id: string) => void;
+  onNavigateReino?: (id: string) => void;
+  onNavigateCiudad?: (id: string) => void;
 }) => {
   const [localData, setLocalData] = useState({
     titulo: cancion.titulo || "",
@@ -601,6 +611,11 @@ export const PanelInfoSidebar = ({
           placeholder="Sin asignar…"
           value={localData.personaje_id}
           onChange={handlePersonajeChange}
+          onNavigate={
+            onNavigatePersonaje
+              ? (id) => onNavigatePersonaje(id)
+              : undefined
+          }
         />
       </div>
 
@@ -621,6 +636,9 @@ export const PanelInfoSidebar = ({
             placeholder="Sin asignar…"
             value={reinoId}
             onChange={handleReinoChange}
+            onNavigate={
+              onNavigateReino ? (id) => onNavigateReino(id) : undefined
+            }
           />
         </div>
 
@@ -636,6 +654,9 @@ export const PanelInfoSidebar = ({
             placeholder="Sin asignar…"
             value={ciudadId}
             onChange={handleCiudadChange}
+            onNavigate={
+              onNavigateCiudad ? (id) => onNavigateCiudad(id) : undefined
+            }
           />
         </div>
       </div>

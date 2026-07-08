@@ -650,6 +650,32 @@ export function EntidadOverlay({
             <PanelEditor
               key={selected.cancion.id}
               cancionId={selected.cancion.id}
+              onNavigateCiudad={async (id) => {
+                const local = ciudades.find((x) => x.id === id);
+                clearAllOverlays();
+                if (local) {
+                  setSelectedCiudad(local as Ciudad);
+                  return;
+                }
+                const { data: remote } = await supabase
+                  .from("ciudades")
+                  .select("*")
+                  .eq("id", id)
+                  .single();
+                if (remote) setSelectedCiudad(remote as Ciudad);
+              }}
+              onNavigatePersonaje={(id) => {
+                const p = personajes.find((x) => x.id === id);
+                if (!p) return;
+                clearAllOverlays();
+                setSelectedPersonaje(p);
+              }}
+              onNavigateReino={(id) => {
+                const r = reinos.find((x) => x.id === id);
+                if (!r) return;
+                clearAllOverlays();
+                setSelectedReino(r);
+              }}
             />
           </div>
         )}
