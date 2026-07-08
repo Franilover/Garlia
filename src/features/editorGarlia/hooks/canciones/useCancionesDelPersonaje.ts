@@ -3,8 +3,18 @@
 /**
  * useCancionesDelPersonaje.ts
  * ────────────────────────────
- * Canciones asociadas a un personaje: por personaje_id, por su propio id,
- * o por coincidencia de nombre en el título.
+ * Canciones asociadas a un personaje: únicamente por personaje_id, que es
+ * el vínculo real (el mismo campo que guarda PanelInfoSidebar al asignar
+ * un personaje desde el editor de la canción).
+ *
+ * Antes esto también hacía match por coincidencia de nombre en el título
+ * (`titulo ILIKE %nombre%`), lo que mostraba canciones "fantasma": el
+ * personaje las veía listadas como si estuvieran vinculadas, pero al abrir
+ * esa canción en su editor el selector de Personaje salía vacío (porque
+ * personaje_id era null en realidad) — daba la falsa impresión de que el
+ * guardado no funcionaba. Se quitó esa heurística: ahora la lista siempre
+ * coincide con lo que se ve y se guarda del lado de la canción.
+ *
  * Dexie primero → Supabase en background.
  *
  * Ruta: src/features/editorGarlia/hooks/useCancionesDelPersonaje.ts
@@ -28,7 +38,6 @@ export type CancionMin = {
 
 export function useCancionesDelPersonaje(
   personajeId: string,
-  nombrePersonaje: string,
 ): { canciones: CancionMin[]; loading: boolean } {
   const [canciones, setCanciones] = useState<CancionMin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,21 +54,9 @@ export function useCancionesDelPersonaje(
             .equals(personajeId)
             .toArray()) ?? [];
 
-        const nombre = nombrePersonaje?.trim().toLowerCase() ?? "";
-        let byNombre: any[] = [];
-        if (nombre && byId.length === 0) {
-          const todas: any[] = (await (db as any).canciones?.toArray()) ?? [];
-          byNombre = todas.filter(
-            (c: any) =>
-              c.id === personajeId ||
-              (nombre && c.titulo?.toLowerCase().includes(nombre)),
-          );
-        }
-
-        const filtered = byId.length > 0 ? byId : byNombre;
-        if (filtered.length > 0) {
+        if (byId.length > 0) {
           setCanciones(
-            filtered.map((c: any) => ({
+            byId.map((c: any) => ({
               id: c.id,
               titulo: c.titulo ?? "Sin título",
               cantante: c.cantante ?? null,
@@ -77,22 +74,13 @@ export function useCancionesDelPersonaje(
       return;
     }
 
-    // ── 2. Supabase: por personaje_id, por id o por título ────────────────
+    // ── 2. Supabase: fuente de verdad, solo por personaje_id ──────────────
     try {
-      const nombre = nombrePersonaje?.trim() ?? "";
-      let query = supabase
+      const { data } = await supabase
         .from("canciones")
-        .select("id, titulo, cantante, portada_url");
-
-      if (nombre) {
-        query = query.or(
-          `personaje_id.eq.${personajeId},id.eq.${personajeId},titulo.ilike.%${nombre}%`,
-        );
-      } else {
-        query = query.or(`personaje_id.eq.${personajeId},id.eq.${personajeId}`);
-      }
-
-      const { data } = await query.order("titulo");
+        .select("id, titulo, cantante, portada_url")
+        .eq("personaje_id", personajeId)
+        .order("titulo");
       setCanciones(
         (data ?? []).map((c: any) => ({
           id: c.id,
@@ -104,7 +92,7 @@ export function useCancionesDelPersonaje(
     } catch {}
 
     setLoading(false);
-  }, [personajeId, nombrePersonaje]);
+  }, [personajeId]);
 
   useEffect(() => {
     void load();

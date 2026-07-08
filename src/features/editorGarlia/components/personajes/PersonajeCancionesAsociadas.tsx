@@ -18,17 +18,13 @@ import { useCancionesDelPersonaje } from "@/features/editorGarlia/hooks/cancione
 
 export function PersonajeCancionesAsociadas({
   personajeId,
-  nombrePersonaje,
   onSelectCancion,
 }: {
   personajeId: string;
-  nombrePersonaje: string;
+  nombrePersonaje?: string;
   onSelectCancion?: (id: string) => void;
 }) {
-  const { canciones, loading } = useCancionesDelPersonaje(
-    personajeId,
-    nombrePersonaje,
-  );
+  const { canciones, loading } = useCancionesDelPersonaje(personajeId);
 
   if (loading)
     return (
