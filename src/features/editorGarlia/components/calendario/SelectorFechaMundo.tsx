@@ -40,6 +40,33 @@ import {
   formatFechaCorta,
 } from "@/lib/utils/calendario";
 
+// ─── Etiqueta corta de estación ("Flo 1", "Eri 2", "Siv 1"…) ──────────────────
+// Primeras 3 letras del nombre base de la estación (sin el sufijo numérico
+// de las estaciones partidas, ej. "Florial1"/"Florial2" → base "Florial")
+// + el número de parte dentro de ese grupo (1, 2…), empezando en 1 aunque
+// la estación no tenga partes (ej. "Sivial" → "Siv 1"). Se usa SOLO para
+// el trigger compacto — nada de nombres completos ahí, solo estas 4-5
+// letras y números.
+function etiquetaEstacionCorta(estOrden: number, estaciones: Estacion[]): string {
+  const est = estaciones.find((e) => e.orden === estOrden);
+  if (!est) return String(estOrden);
+
+  const baseDe = (nombre: string) =>
+    /\d+$/.test(nombre) ? nombre.replace(/\s*\d+$/, "") : nombre;
+  const base = baseDe(est.nombre);
+
+  const grupo = [...estaciones]
+    .filter((e) => baseDe(e.nombre) === base)
+    .sort((a, b) => a.orden - b.orden);
+  const idx = grupo.findIndex((e) => e.orden === est.orden) + 1;
+
+  const abrev = base.slice(0, 3);
+  const abrevCapitalizada =
+    abrev.charAt(0).toUpperCase() + abrev.slice(1).toLowerCase();
+
+  return `${abrevCapitalizada} ${idx || 1}`;
+}
+
 // value: día absoluto | null
 // onChange: devuelve el nuevo día absoluto
 export function SelectorFechaMundo({
@@ -206,7 +233,7 @@ export function SelectorFechaMundo({
             onClick={() => setOpenNotify(!open)}
           >
             {fecha
-              ? `${fecha.anio}/${fecha.estacion.orden}/${fecha.dia_en_estacion}`
+              ? `${fecha.anio} / ${etiquetaEstacionCorta(fecha.estacion.orden, cal?.estaciones ?? [])} / ${fecha.dia_en_estacion}`
               : "—"}
           </button>
         </div>
