@@ -2646,7 +2646,7 @@ export default function MapaInteractivo() {
         supabase.from("ciudades").select("*").eq("reino_id", reino.id),
         supabase
           .from("personajes")
-          .select("id, nombre, img_url, especie, reino, sobre")
+          .select("id, nombre, img_url, especie, reino, sobre, fecha_nacimiento")
           .eq("reino", reino.nombre),
         supabase
           .from("libros")

@@ -2201,13 +2201,17 @@ export const PanelPersonajesCapitulo = ({
   const [savingNarr, setSavingNarr] = useState(false);
 
   // ── Era del narrador en la línea de tiempo del capítulo ─────────────────
-  // Muestra la era de personaje_eras cuyo momento <= orden_linea_tiempo del cap
-  const [eraActual, setEraActual] = useState<{
+  // Se cargan TODAS las eras del narrador una sola vez por narrador (no en
+  // cada cambio de fecha) y se guardan en Dexie; cuál de ellas es la
+  // "actual" según el momento del capítulo se calcula en el cliente con
+  // un useMemo — así cambiar la fecha ya no dispara un round-trip de red.
+  type EraNarrador = {
     momento: number;
     label: string;
     rasgos: string[];
     notas: string;
-  } | null>(null);
+  };
+  const [erasNarrador, setErasNarrador] = useState<EraNarrador[]>([]);
   const [loadingEra, setLoadingEra] = useState(false);
 
   // Cumpleaños del narrador — para mostrar su EDAD en este punto de la
@@ -2227,11 +2231,15 @@ export const PanelPersonajesCapitulo = ({
     }
     let cancelled = false;
     (async () => {
+      // 1. Dexie primero — instantáneo, sin esperar red
       try {
         const local = await (db as any).personajes?.get(narradorId);
         if (local && !cancelled)
           setNarradorFechaNacimiento(local.fecha_nacimiento ?? null);
       } catch {}
+      // 2. Supabase en background — y persistimos el resultado en Dexie
+      // (merge, no pisa el resto de la ficha) para que la próxima vez
+      // ya esté disponible sin red.
       if (!navigator.onLine || cancelled) return;
       try {
         const { data } = await supabase
@@ -2241,6 +2249,13 @@ export const PanelPersonajesCapitulo = ({
           .single();
         if (!cancelled)
           setNarradorFechaNacimiento((data as any)?.fecha_nacimiento ?? null);
+        if (data) {
+          try {
+            await (db as any).personajes?.update(narradorId, {
+              fecha_nacimiento: (data as any).fecha_nacimiento ?? null,
+            });
+          } catch {}
+        }
       } catch {}
     })();
     return () => {
@@ -2360,73 +2375,69 @@ export const PanelPersonajesCapitulo = ({
   const handleSaveNarrador = async (id: string | null) => {
     setNarradorId(id);
     setSavingNarr(true);
-    setEraActual(null);
+    setErasNarrador([]);
     try {
       await capUpdateMeta(capId, { narrador_id: id } as any);
     } catch {}
     setSavingNarr(false);
   };
 
-  // Cargar la era del narrador más cercana (<=) al dia_absoluto del capítulo
+  // Cargar TODAS las eras del narrador — una sola vez por narrador, no en
+  // cada cambio de fecha (antes esto era un round-trip de red cada vez que
+  // se elegía un día distinto en el selector, que era la causa de la
+  // demora). Dexie primero para respuesta instantánea, Supabase después en
+  // background para asegurar datos frescos y recachear.
   useEffect(() => {
     if (!narradorId) {
-      setEraActual(null);
+      setErasNarrador([]);
       return;
     }
-    const momento = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
     let cancelled = false;
     setLoadingEra(true);
 
     const cargar = async () => {
-      const apply = (data: any) => {
-        if (!data || cancelled) return;
-        setEraActual({
-          momento: data.momento,
-          label: data.label ?? "",
-          rasgos: data.rasgos ?? [],
-          notas: data.notas ?? "",
-        });
-        setLoadingEra(false);
-      };
-
       // 1. Dexie primero
       try {
-        let eras: any[] =
+        const eras: any[] =
           (await (db as any).personaje_eras
             ?.where("personaje_id")
             .equals(narradorId)
             .toArray()) ?? [];
-        if (eras.length) {
-          // Filtrar <= momento y tomar el mayor
-          if (momento != null && !isNaN(momento)) {
-            eras = eras.filter((e: any) => e.momento <= momento);
-          }
-          eras.sort((a: any, b: any) => b.momento - a.momento);
-          if (eras[0]) apply(eras[0]);
+        if (eras.length && !cancelled) {
+          setErasNarrador(
+            eras.map((e) => ({
+              momento: e.momento,
+              label: e.label ?? "",
+              rasgos: e.rasgos ?? [],
+              notas: e.notas ?? "",
+            })),
+          );
+          setLoadingEra(false);
         }
       } catch {}
 
-      // 2. Supabase en background
+      // 2. Supabase en background — reemplaza con datos frescos y recachea
       if (!navigator.onLine || cancelled) {
         if (!cancelled) setLoadingEra(false);
         return;
       }
       try {
-        let query = (supabase as any)
+        const { data: todas } = await (supabase as any)
           .from("personaje_eras")
           .select("id, personaje_id, momento, label, rasgos, notas")
-          .eq("personaje_id", narradorId)
-          .order("momento", { ascending: false });
-        if (momento != null && !isNaN(momento))
-          query = query.lte("momento", momento);
-        const { data } = await query.limit(1).maybeSingle();
+          .eq("personaje_id", narradorId);
         if (!cancelled) {
-          apply(data);
-          // Cachear todas las eras del narrador en Dexie para la próxima vez
-          const { data: todas } = await (supabase as any)
-            .from("personaje_eras")
-            .select("id, personaje_id, momento, label, rasgos, notas")
-            .eq("personaje_id", narradorId);
+          if (todas?.length) {
+            setErasNarrador(
+              todas.map((e: any) => ({
+                momento: e.momento,
+                label: e.label ?? "",
+                rasgos: e.rasgos ?? [],
+                notas: e.notas ?? "",
+              })),
+            );
+          }
+          setLoadingEra(false);
           if (todas?.length) {
             try {
               await (db as any).personaje_eras?.bulkPut(todas);
@@ -2442,7 +2453,22 @@ export const PanelPersonajesCapitulo = ({
     return () => {
       cancelled = true;
     };
-  }, [narradorId, ordenLinea]);
+  }, [narradorId]);
+
+  // La era "actual" según el momento del capítulo — cálculo 100% local a
+  // partir de erasNarrador, sin red. Misma regla que antes: la de mayor
+  // momento que sea <= al momento actual; si no hay fecha elegida, la más
+  // reciente de todas.
+  const eraActual = React.useMemo(() => {
+    if (!erasNarrador.length) return null;
+    const momento = ordenLinea.trim() ? parseInt(ordenLinea.trim(), 10) : null;
+    const candidatas =
+      momento != null && !isNaN(momento)
+        ? erasNarrador.filter((e) => e.momento <= momento)
+        : erasNarrador;
+    if (!candidatas.length) return null;
+    return candidatas.reduce((max, e) => (e.momento > max.momento ? e : max));
+  }, [erasNarrador, ordenLinea]);
 
   const _handleSaveOrdenCap = async () => {
     const num = parseInt(ordenCap.trim(), 10);
