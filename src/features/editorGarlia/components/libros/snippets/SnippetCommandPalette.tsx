@@ -32,6 +32,8 @@ import React, {
 
 import { parseSnippetRaw } from "@/features/editorGarlia/hooks/capitulos/types";
 
+import { useAllSections } from "@/components/forms/lexical-editor/nodes/sectionIndexRegistry";
+
 type SnippetType =
   | "drop"
   | "choice"
@@ -605,7 +607,6 @@ function FormDrop({
 
 function FormChoice({
   initialRaw,
-  listaSecciones = [],
   onInsert,
   onBack,
 }: {
@@ -621,10 +622,12 @@ function FormChoice({
   const [target, setTarget] = useState(
     init?.kind === "choice" ? (init as any).target : "",
   );
+  const secciones = useAllSections();
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+  const targetSection = secciones.find((s) => s.id === target);
   const snippet =
     texto.trim() && target.trim()
       ? `[[choice|${texto.trim()}|${target.trim()}]]`
@@ -653,13 +656,13 @@ function FormChoice({
             onChange={(e) => setTexto(e.target.value)}
           />
         </div>
-        {listaSecciones.length > 0 ? (
+        {secciones.length > 0 ? (
           <div>
             <div style={S.fieldLabel}>Sección destino</div>
             <div style={{ maxHeight: 160, overflowY: "auto" }}>
-              {listaSecciones.map((sec) => (
+              {secciones.map((sec) => (
                 <div
-                  key={sec.id}
+                  key={sec.nodeKey}
                   style={{
                     ...S.row(target === sec.id),
                     borderRadius: 6,
@@ -687,22 +690,26 @@ function FormChoice({
                 </div>
               ))}
             </div>
+            {target && !targetSection && (
+              <div style={{ ...S.sublabel, marginTop: 4, color: "#ef4444" }}>
+                ⚠ El destino actual (&quot;{target}&quot;) ya no existe en este
+                capítulo.
+              </div>
+            )}
           </div>
         ) : (
-          <div>
-            <div style={S.fieldLabel}>ID de sección destino</div>
-            <input
-              placeholder="ej: cofre-secreto"
-              style={{
-                ...S.fieldInput,
-                fontFamily: "var(--font-mono, monospace)",
-              }}
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-            />
-            <div style={{ ...S.sublabel, marginTop: 4 }}>
-              Creá primero una Sección en este capítulo.
-            </div>
+          <div
+            style={{
+              ...S.sublabel,
+              padding: "10px 8px",
+              border:
+                "1px dashed color-mix(in srgb, var(--foreground, #fff) 18%, transparent)",
+              borderRadius: 8,
+            }}
+          >
+            Todavía no hay secciones en este capítulo. Creá una primero con
+            <strong> Sección</strong> en el menú &quot;/&quot;, y después
+            volvé a insertar el Choice.
           </div>
         )}
         <button
@@ -805,7 +812,6 @@ function FormSection({
 
 function FormUse({
   initialRaw,
-  listaSecciones = [],
   onInsert,
   onBack,
 }: {
@@ -825,6 +831,7 @@ function FormUse({
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
+  const secciones = useAllSections();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -863,28 +870,20 @@ function FormUse({
     value: string;
     onChange: (v: string) => void;
     placeholder: string;
-  }) =>
-    listaSecciones.length > 0 ? (
-      <select
-        style={{ ...S.fieldInput, cursor: "pointer" }}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {listaSecciones.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.label || s.id}
-          </option>
-        ))}
-      </select>
-    ) : (
-      <input
-        placeholder={placeholder}
-        style={S.fieldInput}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    );
+  }) => (
+    <select
+      style={{ ...S.fieldInput, cursor: "pointer" }}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">{placeholder}</option>
+      {secciones.map((s) => (
+        <option key={s.nodeKey} value={s.id}>
+          {s.label || s.id}
+        </option>
+      ))}
+    </select>
+  );
 
   return (
     <>
@@ -966,22 +965,40 @@ function FormUse({
             </button>
           </div>
         )}
-        <div>
-          <div style={S.fieldLabel}>Sección si TIENE el ítem *</div>
-          <SeccionSelect
-            placeholder="— elegí sección —"
-            value={targetOk}
-            onChange={setTargetOk}
-          />
-        </div>
-        <div>
-          <div style={S.fieldLabel}>Sección si NO tiene (opcional)</div>
-          <SeccionSelect
-            placeholder="— ninguna —"
-            value={targetFail}
-            onChange={setTargetFail}
-          />
-        </div>
+        {secciones.length > 0 ? (
+          <>
+            <div>
+              <div style={S.fieldLabel}>Sección si TIENE el ítem *</div>
+              <SeccionSelect
+                placeholder="— elegí sección —"
+                value={targetOk}
+                onChange={setTargetOk}
+              />
+            </div>
+            <div>
+              <div style={S.fieldLabel}>Sección si NO tiene (opcional)</div>
+              <SeccionSelect
+                placeholder="— ninguna —"
+                value={targetFail}
+                onChange={setTargetFail}
+              />
+            </div>
+          </>
+        ) : (
+          <div
+            style={{
+              ...S.sublabel,
+              padding: "10px 8px",
+              border:
+                "1px dashed color-mix(in srgb, var(--foreground, #fff) 18%, transparent)",
+              borderRadius: 8,
+            }}
+          >
+            Todavía no hay secciones en este capítulo. Creá una primero con
+            <strong> Sección</strong> en el menú &quot;/&quot;, y después
+            volvé a insertar el Use.
+          </div>
+        )}
         <button
           disabled={!snippet}
           style={S.insertBtn("#f07574")}

@@ -54,6 +54,7 @@ import {
 } from "./FindReplacePlugin";
 import { HeadingBackspacePlugin } from "./HeadingBackspacePlugin";
 import { ListBackspacePlugin } from "./ListBackspacePlugin";
+import { SectionSyncPlugin } from "./SectionSyncPlugin";
 import {
   MarkdownCommandInsertPlugin,
   MarkdownCommandPalette,
@@ -877,6 +878,7 @@ export function RichEditor({
               <AutoClosePlugin />
               <HeadingBackspacePlugin />
               <ListBackspacePlugin />
+              <SectionSyncPlugin />
               <OnChangePlugin onChange={handleChange} />
 
               {wikiMenu.open && normalizedWikiEntities.length > 0 && (

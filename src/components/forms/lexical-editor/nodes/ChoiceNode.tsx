@@ -14,12 +14,17 @@ import type {
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 
+import { useSectionTarget } from "./sectionIndexRegistry";
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
 
 export interface ChoicePayload {
   label: string;
   target: string;
+  /** Cache del label de la sección destino al momento de crear/sincronizar
+   *  el choice — se usa como fallback visual si el índice todavía no cargó,
+   *  pero la fuente de verdad en vivo es useSectionTarget(target). */
+  targetLabel?: string;
 }
 
 export type SerializedChoiceNode = Spread<
@@ -36,11 +41,22 @@ function ChoiceChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
+  const target = useSectionTarget(payload.target);
+  const broken = !target.exists;
+  const targetLabel = target.exists
+    ? target.label || target.id
+    : payload.targetLabel || payload.target;
+
   return (
     <SnippetChip
+      broken={broken}
       icon="🔀"
       text={payload.label}
-      title={`Choice → ${payload.target}`}
+      title={
+        broken
+          ? `Choice → "${payload.target}" ya no existe`
+          : `Choice → ${targetLabel}`
+      }
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "choice",
@@ -88,7 +104,11 @@ export class ChoiceNode extends DecoratorNode<React.ReactNode> {
     serialized: SerializedLexicalNode & Record<string, unknown>,
   ): ChoiceNode {
     const s = serialized as unknown as SerializedChoiceNode;
-    return $createChoiceNode({ label: s.label, target: s.target });
+    return $createChoiceNode({
+      label: s.label,
+      target: s.target,
+      targetLabel: s.targetLabel,
+    });
   }
 
   exportJSON(): SerializedChoiceNode {
