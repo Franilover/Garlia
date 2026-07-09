@@ -163,49 +163,84 @@ export function SelectorFechaMundo({
   return (
     <div ref={ref} className="relative">
       {/* Trigger */}
-      <button
-        ref={triggerRef}
-        className={
-          hideTrigger
-            ? "block w-px h-px overflow-hidden opacity-0 pointer-events-none"
-            : compact
-              ? "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-left transition-all"
-              : "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
-        }
-        style={
-          hideTrigger
-            ? undefined
-            : {
-                background: open
-                  ? "color-mix(in srgb, var(--primary) 5%, transparent)"
-                  : "transparent",
-                borderColor: open
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }
-        }
-        type="button"
-        onClick={() => setOpenNotify(!open)}
-      >
-        {!hideTrigger && (
-          <>
-            <CalendarDays className="shrink-0 text-primary/30" size={11} />
+      {hideTrigger ? (
+        <button
+          ref={triggerRef}
+          className="block w-px h-px overflow-hidden opacity-0 pointer-events-none"
+          type="button"
+          onClick={() => setOpenNotify(!open)}
+        />
+      ) : compact ? (
+        <div className="inline-flex items-center gap-1.5">
+          {/* Botón — SOLO el ícono de calendario */}
+          <button
+            ref={triggerRef}
+            className="flex items-center justify-center w-6 h-6 rounded-md border shrink-0 transition-all"
+            style={{
+              background: open
+                ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                : "transparent",
+              borderColor: open
+                ? "color-mix(in srgb, var(--primary) 25%, transparent)"
+                : "color-mix(in srgb, var(--primary) 14%, transparent)",
+              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+            }}
+            type="button"
+            onClick={() => setOpenNotify(!open)}
+          >
             {loading ? (
-              <Loader2 className="animate-spin text-primary/30" size={9} />
-            ) : fecha ? (
-              <div className="flex-1 min-w-0">
-                <span className="text-micro font-bold text-primary truncate block">
-                  {formatFechaCorta(fecha)}
-                </span>
-              </div>
+              <Loader2 className="animate-spin" size={9} />
             ) : (
-              <span className="flex-1 text-micro text-primary/30 italic">
-                {placeholder}
-              </span>
+              <CalendarDays size={11} />
             )}
-          </>
-        )}
-      </button>
+          </button>
+          {/* Fuera del botón — solo números: Año / Estación / Día */}
+          <button
+            className="text-micro font-black tabular-nums transition-colors"
+            style={{
+              color: fecha
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+            type="button"
+            onClick={() => setOpenNotify(!open)}
+          >
+            {fecha
+              ? `${fecha.anio}/${fecha.estacion.orden}/${fecha.dia_en_estacion}`
+              : "—"}
+          </button>
+        </div>
+      ) : (
+        <button
+          ref={triggerRef}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
+          style={{
+            background: open
+              ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+              : "transparent",
+            borderColor: open
+              ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+          type="button"
+          onClick={() => setOpenNotify(!open)}
+        >
+          <CalendarDays className="shrink-0 text-primary/30" size={11} />
+          {loading ? (
+            <Loader2 className="animate-spin text-primary/30" size={9} />
+          ) : fecha ? (
+            <div className="flex-1 min-w-0">
+              <span className="text-micro font-bold text-primary truncate block">
+                {formatFechaCorta(fecha)}
+              </span>
+            </div>
+          ) : (
+            <span className="flex-1 text-micro text-primary/30 italic">
+              {placeholder}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Dropdown — renderizado en portal para no quedar cortado por contenedores con overflow */}
       {open &&
