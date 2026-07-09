@@ -9,6 +9,9 @@ import {
   Bookmark,
   Image as ImageIcon,
   Music2,
+  User,
+  PawPrint,
+  Package,
 } from "lucide-react";
 
 /**
@@ -21,6 +24,7 @@ import {
 import React, {
   useState,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
   useMemo,
@@ -369,9 +373,9 @@ function FormDrop({
     imagen_url?: string;
   };
   const TIPO_CFG = {
-    personaje: { icon: "👤", color: "#a09af0" },
-    criatura: { icon: "🐉", color: "#f07574" },
-    item: { icon: "🗡", color: "#e09a2a" },
+    personaje: { Icon: User },
+    criatura: { Icon: PawPrint },
+    item: { Icon: Package },
   };
 
   const [all, setAll] = useState<Ent[]>([]);
@@ -455,7 +459,7 @@ function FormDrop({
             gap: 8,
           }}
         >
-          <div style={S.selectedPill(cfg.color)}>
+          <div style={S.selectedPill()}>
             {selected.imagen_url ? (
               <Image
                 alt=""
@@ -469,11 +473,13 @@ function FormDrop({
                 }}
               />
             ) : (
-              <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
+              <span style={S.iconBox()}>
+                <cfg.Icon size={13} />
+              </span>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={S.label}>{selected.nombre}</div>
-              <div style={{ ...S.sublabel, color: cfg.color }}>
+              <div style={S.sublabel}>
                 {selected.tipo}
                 {selected.subtipo ? ` · ${selected.subtipo}` : ""}
               </div>
@@ -575,11 +581,13 @@ function FormDrop({
                   }}
                 />
               ) : (
-                <span style={S.iconBox(cfg.color)}>{cfg.icon}</span>
+                <span style={S.iconBox()}>
+                  <cfg.Icon size={13} />
+                </span>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={S.label}>{e.nombre}</div>
-                <div style={{ ...S.sublabel, color: cfg.color }}>
+                <div style={S.sublabel}>
                   {e.tipo}
                   {e.subtipo ? ` · ${e.subtipo}` : ""}
                 </div>
@@ -1592,17 +1600,60 @@ export function SnippetCommandPalette({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const pos = useMemo(() => {
-    const W = window.innerWidth,
-      H = window.innerHeight;
-    const w = 320,
-      maxH = 440;
-    let top = anchorRect.top + 24;
-    let left = anchorRect.left;
-    if (left + w > W - 8) left = W - w - 8;
-    if (left < 8) left = 8;
-    if (top + maxH > H - 8) top = anchorRect.top - maxH - 4;
-    return { top, left };
+  // Posición del popover: arranca pegado al cursor (anchorRect ya viene
+  // como la base del caret, ver SlashCommandPlugin) y se recalcula contra
+  // el tamaño REAL renderizado — no un alto fijo — porque el contenido
+  // cambia mucho entre el paso 1 (lista corta) y cada formulario del
+  // paso 2 (algunos con lista de entidades, imágenes, etc.), así que un
+  // "maxH" fijo terminaba cortando el popover o dejándolo muy lejos del
+  // cursor cuando el contenido real era más chico o más grande.
+  const [computedPos, setComputedPos] = useState(() => ({
+    top: anchorRect.top + 8,
+    left: anchorRect.left,
+  }));
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const margin = 8;
+    const gap = 8; // separación respecto al cursor/anchor
+
+    const recompute = () => {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const rect = el.getBoundingClientRect();
+      const w = rect.width || 300;
+      const h = rect.height || 200;
+
+      let left = anchorRect.left;
+      if (left + w > W - margin) left = W - w - margin;
+      if (left < margin) left = margin;
+
+      const spaceBelow = H - anchorRect.top - gap;
+      const spaceAbove = anchorRect.top - gap;
+      let top: number;
+      if (h <= spaceBelow || spaceBelow >= spaceAbove) {
+        // Preferimos abajo del cursor (como un autocomplete normal); si
+        // no entra completo igual lo clampeamos contra el borde inferior
+        // en vez de dejarlo salir de la pantalla.
+        top = anchorRect.top + gap;
+        if (top + h > H - margin) top = Math.max(margin, H - h - margin);
+      } else {
+        // No entra abajo pero sí (mejor) arriba del cursor.
+        top = anchorRect.top - h - gap;
+        if (top < margin) top = margin;
+      }
+      setComputedPos({ top, left });
+    };
+
+    recompute();
+    // El contenido cambia de alto de forma asincrónica (fetch de
+    // entidades, imágenes cargando, cambio de formulario) — un
+    // ResizeObserver mantiene la posición correcta sin tener que listar
+    // a mano cada dependencia que afecta el alto.
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [anchorRect]);
 
   useEffect(() => {
@@ -1697,7 +1748,13 @@ export function SnippetCommandPalette({
   return (
     <div
       ref={containerRef}
-      style={{ ...S.popover, top: pos.top, left: pos.left }}
+      style={{
+        ...S.popover,
+        top: computedPos.top,
+        left: computedPos.left,
+        maxHeight: "calc(100vh - 16px)",
+        overflowY: "auto",
+      }}
     >
       {!selectedType && (
         <>
