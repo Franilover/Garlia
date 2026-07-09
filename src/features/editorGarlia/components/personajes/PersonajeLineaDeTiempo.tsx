@@ -598,6 +598,11 @@ export function PersonajeLineaDeTiempo({
   const [cumpleSelectorOpen, setCumpleSelectorOpen] = useState(false);
   const [cumpleDraft, setCumpleDraft] = useState<number | null>(null);
 
+  // Edición rápida del cumpleaños desde el lápiz del bloque "Nacimiento":
+  // va directo al selector de fecha (sin la fila de Cancelar/Guardar, que
+  // no tiene sentido cuando el único campo a editar es la fecha).
+  const [cumpleQuickEdit, setCumpleQuickEdit] = useState(false);
+
   // Etapas colapsadas manualmente por el usuario (por defecto todas abiertas).
   const [etapasColapsadas, setEtapasColapsadas] = useState<Set<string>>(
     new Set(),
@@ -623,6 +628,14 @@ export function PersonajeLineaDeTiempo({
       setCumpleSelectorOpen(false);
       setCumpleDraft(null);
     }
+  };
+
+  // El selector de edición rápida confirma solo (ver v3 de
+  // SelectorFechaMundo: clickear un día ya es la acción final), así que acá
+  // simplemente guardamos apenas llega el nuevo valor y cerramos.
+  const handleGuardarCumpleRapido = async (dia: number | null) => {
+    if (dia != null) await guardarCumple(dia);
+    setCumpleQuickEdit(false);
   };
 
   // Abre el formulario "+ Era" sugiriendo una fecha dentro de la etapa
@@ -859,28 +872,42 @@ export function PersonajeLineaDeTiempo({
         </div>
       ) : puedeAgruparPorEtapa ? (
         <div className="space-y-3">
-          {/* Nacimiento — clickeable para editar la fecha existente */}
-          <button
-            className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors"
-            style={{
-              width: ANCHO_ERA_BTN,
-              background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-              border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
-            }}
-            type="button"
-            onClick={() => {
-              setCumpleDraft(fechaNacimiento);
-              setCumpleSelectorOpen(true);
-            }}
-          >
-            <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
-              Nacimiento
-              <Pencil className="opacity-40" size={9} />
-            </span>
-            <span className="text-micro text-primary/40">
-              <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
-            </span>
-          </button>
+          {/* Nacimiento — clickeable para editar la fecha existente, directo
+              al selector de fecha (sin la fila de Cancelar/Guardar). */}
+          <div className="relative" style={{ width: ANCHO_ERA_BTN }}>
+            <button
+              className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors w-full"
+              style={{
+                background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
+              }}
+              type="button"
+              onClick={() => setCumpleQuickEdit(true)}
+            >
+              <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
+                Nacimiento
+                <Pencil className="opacity-40" size={9} />
+              </span>
+              <span className="text-micro text-primary/40">
+                <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
+              </span>
+            </button>
+            {cumpleQuickEdit && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <SelectorFechaMundo
+                    autoOpen
+                    hideTrigger
+                    value={fechaNacimiento}
+                    onChange={handleGuardarCumpleRapido}
+                    onOpenChange={(o) => {
+                      if (!o) setCumpleQuickEdit(false);
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           {gruposPorEtapa.map(({ etapa, carriles: carrilesEtapa }) => {
             const totalEras = carrilesEtapa.reduce(
@@ -1004,27 +1031,40 @@ export function PersonajeLineaDeTiempo({
                 <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
               </div>
               <div className="flex flex-row gap-1.5">
-                <button
-                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors"
-                  style={{
-                    width: ANCHO_ERA_BTN,
-                    background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-                    border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
-                  }}
-                  type="button"
-                  onClick={() => {
-                    setCumpleDraft(fechaNacimiento);
-                    setCumpleSelectorOpen(true);
-                  }}
-                >
-                  <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
-                    Nacimiento
-                    <Pencil className="opacity-40" size={9} />
-                  </span>
-                  <span className="text-micro text-primary/40">
-                    <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
-                  </span>
-                </button>
+                <div className="relative" style={{ width: ANCHO_ERA_BTN }}>
+                  <button
+                    className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors w-full"
+                    style={{
+                      background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+                      border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
+                    }}
+                    type="button"
+                    onClick={() => setCumpleQuickEdit(true)}
+                  >
+                    <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
+                      Nacimiento
+                      <Pencil className="opacity-40" size={9} />
+                    </span>
+                    <span className="text-micro text-primary/40">
+                      <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
+                    </span>
+                  </button>
+                  {cumpleQuickEdit && (
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="pointer-events-auto">
+                        <SelectorFechaMundo
+                          autoOpen
+                          hideTrigger
+                          value={fechaNacimiento}
+                          onChange={handleGuardarCumpleRapido}
+                          onOpenChange={(o) => {
+                            if (!o) setCumpleQuickEdit(false);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

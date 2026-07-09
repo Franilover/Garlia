@@ -46,13 +46,28 @@ export function SelectorFechaMundo({
   value,
   onChange,
   placeholder = "Sin fecha asignada",
+  autoOpen = false,
+  hideTrigger = false,
+  onOpenChange,
 }: {
   value: number | null;
   onChange: (diaAbsoluto: number | null) => void;
   placeholder?: string;
+  // Si es true, el panel se abre solo al montar el componente — para
+  // ancladores externos (ej. un ícono de lápiz) que quieren ir DIRECTO al
+  // selector de fecha sin pasar por un trigger propio intermedio.
+  autoOpen?: boolean;
+  // Si es true, el botón trigger no se renderiza visualmente (queda con
+  // tamaño 0) — solo se usa como ancla invisible para posicionar el panel.
+  // Pensado para combinarse con `autoOpen` desde un elemento externo.
+  hideTrigger?: boolean;
+  // Notifica cuando el panel se abre/cierra — para que un elemento externo
+  // que montó este selector "a demanda" (con autoOpen) sepa cuándo
+  // desmontarlo tras cerrarse.
+  onOpenChange?: (open: boolean) => void;
 }) {
   const { cal, loading } = useCalendario();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{
@@ -62,16 +77,22 @@ export function SelectorFechaMundo({
   } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const setOpenNotify = (v: boolean) => {
+    setOpen(v);
+    onOpenChange?.(v);
+  };
+
   // Cerrar al click fuera (incluye el dropdown en portal)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
       if (ref.current?.contains(target)) return;
       if (dropdownRef.current?.contains(target)) return;
-      setOpen(false);
+      setOpenNotify(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Calcular posición y ancho del dropdown al abrir y al hacer scroll/resize.
@@ -139,34 +160,43 @@ export function SelectorFechaMundo({
       {/* Trigger */}
       <button
         ref={triggerRef}
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
-        style={{
-          background: open
-            ? "color-mix(in srgb, var(--primary) 5%, transparent)"
-            : "transparent",
-          borderColor: open
-            ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-            : "color-mix(in srgb, var(--primary) 12%, transparent)",
-        }}
+        className={
+          hideTrigger
+            ? "block w-px h-px overflow-hidden opacity-0 pointer-events-none"
+            : "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
+        }
+        style={
+          hideTrigger
+            ? undefined
+            : {
+                background: open
+                  ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+                  : "transparent",
+                borderColor: open
+                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+              }
+        }
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpenNotify(!open)}
       >
-        <CalendarDays
-          className="shrink-0 text-primary/30"
-          size={11}
-        />
-        {loading ? (
-          <Loader2 className="animate-spin text-primary/30" size={9} />
-        ) : fecha ? (
-          <div className="flex-1 min-w-0">
-            <span className="text-micro font-bold text-primary truncate block">
-              {formatFechaCorta(fecha)}
-            </span>
-          </div>
-        ) : (
-          <span className="flex-1 text-micro text-primary/30 italic">
-            {placeholder}
-          </span>
+        {!hideTrigger && (
+          <>
+            <CalendarDays className="shrink-0 text-primary/30" size={11} />
+            {loading ? (
+              <Loader2 className="animate-spin text-primary/30" size={9} />
+            ) : fecha ? (
+              <div className="flex-1 min-w-0">
+                <span className="text-micro font-bold text-primary truncate block">
+                  {formatFechaCorta(fecha)}
+                </span>
+              </div>
+            ) : (
+              <span className="flex-1 text-micro text-primary/30 italic">
+                {placeholder}
+              </span>
+            )}
+          </>
         )}
       </button>
 
@@ -195,13 +225,13 @@ export function SelectorFechaMundo({
               value={value}
               onChange={(dia) => {
                 onChange(dia);
-                setOpen(false);
+                setOpenNotify(false);
               }}
               onClear={
                 value != null
                   ? () => {
                       onChange(null);
-                      setOpen(false);
+                      setOpenNotify(false);
                     }
                   : undefined
               }
