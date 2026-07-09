@@ -1,5 +1,15 @@
 "use client";
 import Image from "next/image";
+import {
+  Search,
+  Swords,
+  GitBranch,
+  MousePointerClick,
+  DoorOpen,
+  Bookmark,
+  Image as ImageIcon,
+  Music2,
+} from "lucide-react";
 
 /**
  * SnippetCommandPalette — búsqueda unificada
@@ -41,71 +51,75 @@ interface PaletteProps {
 const CATS: {
   id: SnippetType;
   label: string;
-  icon: string;
-  color: string;
+  Icon: typeof Swords;
+  group: "narrativa" | "media";
   keywords: string[];
 }[] = [
   {
     id: "drop",
     label: "Drop",
-    icon: "⚔",
-    color: "#a09af0",
+    Icon: Swords,
+    group: "narrativa",
     keywords: ["drop", "entidad", "personaje", "criatura", "item"],
   },
   {
     id: "choice",
     label: "Choice",
-    icon: "🔀",
-    color: "#5aabf5",
+    Icon: GitBranch,
+    group: "narrativa",
     keywords: ["choice", "decisión", "boton", "botón"],
   },
   {
     id: "use",
     label: "Use",
-    icon: "👆",
-    color: "#f07574",
+    Icon: MousePointerClick,
+    group: "narrativa",
     keywords: ["use", "usar", "ítem", "inventario"],
   },
   {
     id: "gate",
     label: "Gate",
-    icon: "🚪",
-    color: "#e09a2a",
+    Icon: DoorOpen,
+    group: "narrativa",
     keywords: ["gate", "puerta", "condicional"],
   },
   {
     id: "section",
     label: "Sección",
-    icon: "›",
-    color: "#8b83e8",
+    Icon: Bookmark,
+    group: "narrativa",
     keywords: ["section", "sección", "seccion", "ancla"],
   },
   {
     id: "imagen",
     label: "Imagen",
-    icon: "🖼",
-    color: "#2dc896",
+    Icon: ImageIcon,
+    group: "media",
     keywords: ["imagen", "img", "foto", "dibujo"],
   },
   {
     id: "sound",
     label: "Sonido",
-    icon: "♪",
-    color: "#e87aaa",
+    Icon: Music2,
+    group: "media",
     keywords: ["sonido", "sound", "música", "musica", "audio"],
   },
 ];
+
+const GROUP_LABELS: Record<"narrativa" | "media", string> = {
+  narrativa: "Narrativa",
+  media: "Media",
+};
 
 const S = {
   popover: {
     position: "fixed" as const,
     zIndex: 9999,
-    background: "var(--bg-menu, var(--background))",
-    border:
-      "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 25%, transparent)",
-    borderRadius: 12,
-    boxShadow: "0 8px 32px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.1)",
-    width: 320,
+    background: "var(--surface-2, var(--background))",
+    border: "0.5px solid var(--border, rgba(255,255,255,0.1))",
+    borderRadius: 10,
+    boxShadow: "0 8px 24px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.08)",
+    width: 300,
     overflow: "hidden",
     fontFamily: "var(--font-sans, system-ui)",
   },
@@ -115,7 +129,7 @@ const S = {
     gap: 8,
     padding: "10px 12px 9px",
     borderBottom:
-      "1px solid color-mix(in srgb, var(--foreground, #fff) 6%, transparent)",
+      "0.5px solid color-mix(in srgb, var(--foreground, #fff) 8%, transparent)",
   },
   mainInput: {
     flex: 1,
@@ -123,9 +137,9 @@ const S = {
     border: "none",
     outline: "none",
     fontSize: 13,
-    fontWeight: 600,
+    fontWeight: 500,
     color: "var(--foreground, #fff)",
-    caretColor: "var(--color-primary, #7c6af7)",
+    caretColor: "var(--foreground, #fff)",
     minWidth: 0,
   },
   fieldInput: {
@@ -141,19 +155,29 @@ const S = {
     color: "var(--foreground, #fff)",
     outline: "none",
   },
-  list: { maxHeight: 280, overflowY: "auto" as const, padding: "4px 0" },
+  list: { maxHeight: 280, overflowY: "auto" as const, padding: "4px 6px" },
+  groupLabel: {
+    padding: "8px 8px 3px",
+    fontSize: 10,
+    fontWeight: 500,
+    textTransform: "uppercase" as const,
+    letterSpacing: ".06em",
+    color: "color-mix(in srgb, var(--foreground, #fff) 32%, transparent)",
+  } as React.CSSProperties,
   row: (active: boolean): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
-    gap: 10,
-    padding: "7px 12px",
+    gap: 9,
+    padding: "6px 8px",
+    borderRadius: 6,
     cursor: "pointer",
     background: active
-      ? "color-mix(in srgb, var(--color-primary, var(--primary)) 10%, transparent)"
+      ? "color-mix(in srgb, var(--foreground, #fff) 6%, transparent)"
       : "transparent",
-    transition: "background .1s",
   }),
-  iconBox: (_color: string): React.CSSProperties => ({
+  iconBox: (
+    color: string = "color-mix(in srgb, var(--foreground, #fff) 55%, transparent)",
+  ): React.CSSProperties => ({
     width: 28,
     height: 28,
     borderRadius: 8,
@@ -162,15 +186,19 @@ const S = {
     alignItems: "center",
     justifyContent: "center",
     background:
-      "color-mix(in srgb, var(--color-primary, var(--primary)) 10%, transparent)",
+      color.startsWith("#")
+        ? `color-mix(in srgb, ${color} 10%, transparent)`
+        : "color-mix(in srgb, var(--foreground, #fff) 5%, transparent)",
     border:
-      "0.5px solid color-mix(in srgb, var(--color-primary, var(--primary)) 22%, transparent)",
+      color.startsWith("#")
+        ? `0.5px solid color-mix(in srgb, ${color} 22%, transparent)`
+        : "0.5px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent)",
     fontSize: 13,
-    color: "var(--color-primary, var(--primary))",
+    color,
   }),
   label: {
-    fontSize: 12,
-    fontWeight: 500,
+    fontSize: 12.5,
+    fontWeight: 400,
     color: "var(--foreground, var(--foreground))",
     lineHeight: 1.2,
   } as React.CSSProperties,
@@ -182,11 +210,11 @@ const S = {
   } as React.CSSProperties,
   kbd: {
     fontSize: 9,
-    fontWeight: 800,
-    color: "color-mix(in srgb, var(--foreground, #fff) 25%, transparent)",
+    fontWeight: 500,
+    color: "color-mix(in srgb, var(--foreground, #fff) 30%, transparent)",
     background: "color-mix(in srgb, var(--foreground, #fff) 6%, transparent)",
     border:
-      "1px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent)",
+      "0.5px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent)",
     borderRadius: 4,
     padding: "1px 5px",
     marginLeft: "auto",
@@ -1677,16 +1705,10 @@ export function SnippetCommandPalette({
       {!selectedType && (
         <>
           <div style={S.header}>
-            <span
-              style={{
-                fontSize: 12,
-                color:
-                  "color-mix(in srgb,var(--color-primary,#7c6af7) 60%,transparent)",
-                flexShrink: 0,
-              }}
-            >
-              ✦
-            </span>
+            <Search
+              color="color-mix(in srgb, var(--foreground, #fff) 35%, transparent)"
+              size={14}
+            />
             <input
               ref={inputRef}
               placeholder="drop espada · imagen castillo · sonido lluvia…"
@@ -1705,48 +1727,54 @@ export function SnippetCommandPalette({
             {filteredCats.length === 0 && (
               <div style={S.empty}>Sin resultados</div>
             )}
-            {filteredCats.map((cat, i) => (
-              <div
-                key={cat.id}
-                style={S.row(i === activeIdx)}
-                onClick={() => {
-                  setChildQuery(searchQ);
-                  setSelectedType(cat.id);
-                }}
-                onMouseEnter={() => setActiveIdx(i)}
-              >
-                <span style={S.iconBox(cat.color)}>{cat.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={S.label}>{cat.label}</div>
-                  {searchQ && (
-                    <div style={{ ...S.sublabel, color: cat.color }}>
-                      buscar «{searchQ}»
-                    </div>
-                  )}
+            {(["narrativa", "media"] as const).map((group) => {
+              const itemsInGroup = filteredCats.filter(
+                (c) => c.group === group,
+              );
+              if (itemsInGroup.length === 0) return null;
+              return (
+                <div key={group}>
+                  <div style={S.groupLabel}>{GROUP_LABELS[group]}</div>
+                  {itemsInGroup.map((cat) => {
+                    const i = filteredCats.indexOf(cat);
+                    return (
+                      <div
+                        key={cat.id}
+                        style={S.row(i === activeIdx)}
+                        onClick={() => {
+                          setChildQuery(searchQ);
+                          setSelectedType(cat.id);
+                        }}
+                        onMouseEnter={() => setActiveIdx(i)}
+                      >
+                        <span style={S.iconBox()}>
+                          <cat.Icon size={14} />
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={S.label}>{cat.label}</div>
+                          {searchQ && (
+                            <div style={S.sublabel}>buscar «{searchQ}»</div>
+                          )}
+                        </div>
+                        {i === activeIdx && <span style={S.kbd}>↵</span>}
+                      </div>
+                    );
+                  })}
                 </div>
-                <span style={S.kbd}>↵</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div
             style={{
               padding: "6px 12px 8px",
               borderTop:
-                "1px solid color-mix(in srgb,var(--foreground) 5%,transparent)",
+                "0.5px solid color-mix(in srgb,var(--foreground) 6%,transparent)",
             }}
           >
             <span style={{ ...S.sublabel, fontSize: 8, opacity: 0.7 }}>
               tipo + nombre · ej:{" "}
-              <em
-                style={{
-                  color:
-                    "color-mix(in srgb,var(--color-primary,#7c6af7) 70%,transparent)",
-                  fontStyle: "normal",
-                }}
-              >
-                imagen castillo
-              </em>
+              <em style={{ fontStyle: "normal" }}>imagen castillo</em>
             </span>
           </div>
         </>
