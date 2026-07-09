@@ -3,14 +3,24 @@
 /**
  * PersonajeLineaDeTiempo.tsx
  * ──────────────────────────
- * UI de la línea de tiempo de eras de un personaje. Sigue el mismo
- * patrón visual que `ListaEventosConMinimapa` en EditorLineaTiempo.tsx:
- *   - Las eras se agrupan en "carriles" por año.
- *   - Cada carril muestra el año como encabezado arriba, y debajo sus
- *     eras como botones compactos dispuestos en fila horizontal.
- *   - Los carriles se disponen lado a lado (fila) hasta llegar al borde
- *     del contenedor, y ahí continúan en la siguiente línea (wrap):
- *     horizontal primero, vertical después — igual que en EditorLineaTiempo.
+ * UI de la línea de tiempo de eras de un personaje.
+ *   - Por defecto (si hay cumpleaños + calendario) las eras se agrupan
+ *     primero por ETAPA DE VIDA (Bebé, Infancia, Niñez, Adolescencia,
+ *     Adultez, Vejez — ver ETAPAS_VIDA) según la edad calculada de cada
+ *     era. Cada etapa se muestra siempre, aunque esté vacía, con su
+ *     propio botón "+ Era" para crear una directamente dentro de ella.
+ *   - Dentro de cada etapa, las eras se agrupan en "carriles" por año,
+ *     siguiendo el mismo patrón visual que `ListaEventosConMinimapa` en
+ *     EditorLineaTiempo.tsx: el año como encabezado arriba, y debajo sus
+ *     eras como botones compactos dispuestos en fila horizontal; los
+ *     carriles se disponen lado a lado hasta el borde del contenedor y
+ *     continúan en la siguiente línea (wrap).
+ *   - Sin cumpleaños o sin calendario no se puede calcular edad, así
+ *     que se cae a un listado plano de carriles por año (comportamiento
+ *     previo) sin agrupar por etapas.
+ *   - El bloque "Nacimiento" es clickeable: abre el mismo selector para
+ *     editar la fecha de nacimiento ya asignada (no solo para asignarla
+ *     por primera vez).
  *   - Al hacer click en una era se abre un panel de detalle FLOTANTE
  *     (portal, anclado al botón clickeado) con la edición completa:
  *     fecha, edad, título, rasgos y notas. El panel no empuja el layout.
@@ -33,8 +43,11 @@
 import {
   CalendarPlus,
   Check,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   X,
@@ -82,6 +95,35 @@ const FIELD_BG = "color-mix(in srgb, var(--primary) 3%, transparent)";
 
 // Ancho fijo de cada botón de era en el carril horizontal.
 const ANCHO_ERA_BTN = 150;
+
+// ─── Etapas de vida ───────────────────────────────────────────────────────────
+// Agrupación por defecto de la línea de tiempo: en vez de un único listado
+// de carriles por año, las eras se organizan primero por etapa de vida
+// (según la edad calculada de cada era) y, dentro de cada etapa, por año
+// (mismos carriles de siempre). `max: null` = sin tope superior.
+type EtapaVida = { id: string; label: string; min: number; max: number | null };
+
+const ETAPAS_VIDA: EtapaVida[] = [
+  { id: "bebe", label: "Bebé", min: 0, max: 1 },
+  { id: "infancia", label: "Infancia", min: 2, max: 6 },
+  { id: "ninez", label: "Niñez", min: 7, max: 12 },
+  { id: "adolescencia", label: "Adolescencia", min: 13, max: 17 },
+  { id: "adultez", label: "Adultez", min: 18, max: 64 },
+  { id: "vejez", label: "Vejez", min: 65, max: null },
+];
+
+function etapaLabelConRango(etapa: EtapaVida): string {
+  return etapa.max == null
+    ? `${etapa.label} (${etapa.min}+)`
+    : `${etapa.label} (${etapa.min}-${etapa.max})`;
+}
+
+function etapaParaEdad(edad: number): EtapaVida {
+  return (
+    ETAPAS_VIDA.find((e) => edad >= e.min && (e.max == null || edad <= e.max)) ??
+    ETAPAS_VIDA[ETAPAS_VIDA.length - 1]
+  );
+}
 
 // ─── EraBoton ─────────────────────────────────────────────────────────────────
 // Botón compacto: lo que se ve en el carril horizontal. Sin edición inline —
@@ -548,9 +590,18 @@ export function PersonajeLineaDeTiempo({
   const [addingNew, setAddingNew] = useState(false);
   const [newMomento, setNewMomento] = useState("");
   const [newLabel, setNewLabel] = useState("");
+  // Etapa desde la que se abrió el formulario "+ Era" (null = botón global
+  // de la cabecera). Solo se usa para prefijar la fecha sugerida y mostrar
+  // un rótulo con contexto en el formulario.
+  const [addingEtapa, setAddingEtapa] = useState<EtapaVida | null>(null);
 
   const [cumpleSelectorOpen, setCumpleSelectorOpen] = useState(false);
   const [cumpleDraft, setCumpleDraft] = useState<number | null>(null);
+
+  // Etapas colapsadas manualmente por el usuario (por defecto todas abiertas).
+  const [etapasColapsadas, setEtapasColapsadas] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [selId, setSelId] = useState<string | null>(null);
   const btnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -562,6 +613,7 @@ export function PersonajeLineaDeTiempo({
     setNewMomento("");
     setNewLabel("");
     setAddingNew(false);
+    setAddingEtapa(null);
   };
 
   const handleGuardarCumple = async () => {
@@ -571,6 +623,28 @@ export function PersonajeLineaDeTiempo({
       setCumpleSelectorOpen(false);
       setCumpleDraft(null);
     }
+  };
+
+  // Abre el formulario "+ Era" sugiriendo una fecha dentro de la etapa
+  // indicada (el primer día de su edad mínima) para que crear una era
+  // "dentro" de una sección quede lo más directo posible.
+  const abrirFormularioEnEtapa = (etapa: EtapaVida | null) => {
+    setAddingEtapa(etapa);
+    if (etapa && fechaNacimiento != null && diasPorAnio > 0) {
+      setNewMomento(String(fechaNacimiento + etapa.min * diasPorAnio));
+    } else if (fechaNacimiento != null) {
+      setNewMomento(String(fechaNacimiento));
+    }
+    setAddingNew(true);
+  };
+
+  const toggleEtapaColapsada = (id: string) => {
+    setEtapasColapsadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const fechaInvalida =
@@ -602,6 +676,28 @@ export function PersonajeLineaDeTiempo({
     return out;
   }, [eras, diasPorAnio, fechaNacimiento]);
 
+  // ── Agrupar carriles por etapa de vida (edad) ──────────────────────────────
+  // Solo es posible con cumpleaños + calendario asignados (necesitamos poder
+  // calcular la edad de cada era). Cada etapa siempre aparece — aunque no
+  // tenga eras — para poder crearlas directamente "dentro" de ella.
+  const puedeAgruparPorEtapa = fechaNacimiento != null && diasPorAnio > 0;
+  type GrupoEtapa = { etapa: EtapaVida; carriles: Carril[] };
+  const gruposPorEtapa = useMemo<GrupoEtapa[]>(() => {
+    if (!puedeAgruparPorEtapa) return [];
+    const porEtapa = new Map<string, Carril[]>();
+    for (const carril of carriles) {
+      if (carril.anio == null) continue;
+      const etapa = etapaParaEdad(carril.anio);
+      const list = porEtapa.get(etapa.id) ?? [];
+      list.push(carril);
+      porEtapa.set(etapa.id, list);
+    }
+    return ETAPAS_VIDA.map((etapa) => ({
+      etapa,
+      carriles: porEtapa.get(etapa.id) ?? [],
+    }));
+  }, [carriles, puedeAgruparPorEtapa]);
+
   const selEra = eras.find((e) => e.id === selId) ?? null;
 
   return (
@@ -621,11 +717,12 @@ export function PersonajeLineaDeTiempo({
           }}
           type="button"
           onClick={() => {
-            setAddingNew((v) => {
-              if (!v && fechaNacimiento != null)
-                setNewMomento(String(fechaNacimiento));
-              return !v;
-            });
+            if (addingNew) {
+              setAddingNew(false);
+              setAddingEtapa(null);
+            } else {
+              abrirFormularioEnEtapa(null);
+            }
           }}
         >
           {addingNew ? <X size={11} /> : <Plus size={11} />} Era
@@ -638,6 +735,14 @@ export function PersonajeLineaDeTiempo({
           className="mb-3 p-2.5 rounded-xl space-y-2"
           style={{ background: FIELD_BG }}
         >
+          {addingEtapa && (
+            <p
+              className="text-micro font-bold"
+              style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
+            >
+              Nueva era en {etapaLabelConRango(addingEtapa)}
+            </p>
+          )}
           <div className="flex items-center gap-1.5">
             <div className="flex-1 min-w-0">
               <SelectorFechaMundo
@@ -674,7 +779,10 @@ export function PersonajeLineaDeTiempo({
             <button
               className="px-2.5 py-1 rounded-lg text-micro text-primary/40 hover:text-primary transition-colors"
               type="button"
-              onClick={() => setAddingNew(false)}
+              onClick={() => {
+                setAddingNew(false);
+                setAddingEtapa(null);
+              }}
             >
               Cancelar
             </button>
@@ -699,8 +807,8 @@ export function PersonajeLineaDeTiempo({
         </div>
       )}
 
-      {/* Cumpleaños: no hay fecha asignada */}
-      {fechaNacimiento == null && (
+      {/* Cumpleaños: sin fecha asignada, o editable con un click si ya la tiene */}
+      {fechaNacimiento == null ? (
         <div className="mb-3">
           {!cumpleSelectorOpen ? (
             <button
@@ -727,12 +835,149 @@ export function PersonajeLineaDeTiempo({
             />
           )}
         </div>
-      )}
+      ) : cumpleSelectorOpen ? (
+        <div className="mb-3">
+          <SelectorCumple
+            draft={cumpleDraft}
+            saving={savingCumple}
+            onCancel={() => {
+              setCumpleSelectorOpen(false);
+              setCumpleDraft(null);
+            }}
+            onChange={setCumpleDraft}
+            onGuardar={handleGuardarCumple}
+          />
+        </div>
+      ) : null}
 
-      {/* Contenido: carriles por año, botones horizontales */}
+      {/* Contenido: por defecto agrupado en etapas de vida (Bebé, Infancia…);
+          si no hay cumpleaños/calendario para calcular edades, cae al listado
+          plano de carriles por año de siempre. */}
       {loading ? (
         <div className="flex justify-center py-4">
           <Loader2 className="animate-spin text-primary/20" size={14} />
+        </div>
+      ) : puedeAgruparPorEtapa ? (
+        <div className="space-y-3">
+          {/* Nacimiento — clickeable para editar la fecha existente */}
+          <button
+            className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors"
+            style={{
+              width: ANCHO_ERA_BTN,
+              background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+              border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
+            }}
+            type="button"
+            onClick={() => {
+              setCumpleDraft(fechaNacimiento);
+              setCumpleSelectorOpen(true);
+            }}
+          >
+            <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
+              Nacimiento
+              <Pencil className="opacity-40" size={9} />
+            </span>
+            <span className="text-micro text-primary/40">
+              <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
+            </span>
+          </button>
+
+          {gruposPorEtapa.map(({ etapa, carriles: carrilesEtapa }) => {
+            const totalEras = carrilesEtapa.reduce(
+              (n, c) => n + c.eras.length,
+              0,
+            );
+            const colapsada = etapasColapsadas.has(etapa.id);
+            return (
+              <div key={etapa.id}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <button
+                    className="flex items-center gap-1 shrink-0"
+                    type="button"
+                    onClick={() => toggleEtapaColapsada(etapa.id)}
+                  >
+                    {colapsada ? (
+                      <ChevronRight className="text-primary/30" size={11} />
+                    ) : (
+                      <ChevronDown className="text-primary/30" size={11} />
+                    )}
+                    <span
+                      className="text-micro font-black uppercase tracking-wide px-1.5 py-0.5 rounded"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                        background: FIELD_BG,
+                      }}
+                    >
+                      {etapaLabelConRango(etapa)}
+                    </span>
+                    {totalEras > 0 && (
+                      <span className="text-micro text-primary/30 tabular-nums">
+                        {totalEras}
+                      </span>
+                    )}
+                  </button>
+                  <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
+                  <button
+                    className="flex items-center gap-0.5 text-micro font-bold text-primary/35 hover:text-accent transition-colors shrink-0"
+                    type="button"
+                    onClick={() => abrirFormularioEnEtapa(etapa)}
+                  >
+                    <Plus size={10} /> Era
+                  </button>
+                </div>
+
+                {!colapsada &&
+                  (totalEras === 0 ? (
+                    <p className="text-micro text-primary/25 pl-3 pb-1">
+                      Sin eras en esta etapa todavía
+                    </p>
+                  ) : (
+                    <div className="flex flex-row flex-wrap items-start gap-3 pl-3">
+                      {carrilesEtapa.map((carril, ci) => (
+                        <div
+                          key={`carril-${etapa.id}-${carril.anio ?? "sf"}-${ci}`}
+                          className="flex flex-col gap-1"
+                          style={{
+                            width:
+                              ANCHO_ERA_BTN * carril.eras.length +
+                              6 * (carril.eras.length - 1),
+                          }}
+                        >
+                          <span
+                            className="text-micro font-bold tabular-nums text-primary/30"
+                          >
+                            Año {carril.anio}
+                          </span>
+                          <div className="flex flex-row gap-1.5">
+                            {carril.eras.map((era) => (
+                              <EraBoton
+                                key={era.id}
+                                btnRef={(el) => {
+                                  if (el) btnRefs.current.set(era.id, el);
+                                  else btnRefs.current.delete(era.id);
+                                }}
+                                edad={calcularEdad(
+                                  era.momento,
+                                  fechaNacimiento,
+                                  diasPorAnio,
+                                )}
+                                era={era}
+                                isSel={era.id === selId}
+                                onClick={() =>
+                                  setSelId((prev) =>
+                                    prev === era.id ? null : era.id,
+                                  )
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+              </div>
+            );
+          })}
         </div>
       ) : carriles.length === 0 ? (
         <p className="text-micro text-primary/25 py-1">
@@ -741,13 +986,9 @@ export function PersonajeLineaDeTiempo({
             : "Asigna un cumpleaños y agrega eras para construir la historia"}
         </p>
       ) : (
-        // Carriles dispuestos lado a lado (fila) hasta llegar al borde del
-        // contenedor y ahí continúan en la siguiente línea — mismo patrón
-        // que ListaEventosConMinimapa en EditorLineaTiempo.tsx: horizontal
-        // primero, vertical (wrap) después. Cada carril tiene un ancho que
-        // se ajusta a la cantidad de eras que contiene.
+        // Sin cumpleaños o sin calendario no se puede calcular edad, así que
+        // no hay etapas: se muestra el listado plano de carriles por año.
         <div className="flex flex-row flex-wrap items-start gap-3">
-          {/* Carril de nacimiento — encabezado propio, siempre primero */}
           {fechaNacimiento != null && (
             <div className="flex flex-col gap-1" style={{ width: ANCHO_ERA_BTN }}>
               <div className="flex items-center gap-1.5 w-full">
@@ -763,26 +1004,31 @@ export function PersonajeLineaDeTiempo({
                 <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
               </div>
               <div className="flex flex-row gap-1.5">
-                <div
-                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg"
+                <button
+                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg text-left transition-colors"
                   style={{
                     width: ANCHO_ERA_BTN,
                     background: "color-mix(in srgb, var(--accent) 6%, transparent)",
                     border: `1px solid color-mix(in srgb, var(--accent) 18%, transparent)`,
                   }}
+                  type="button"
+                  onClick={() => {
+                    setCumpleDraft(fechaNacimiento);
+                    setCumpleSelectorOpen(true);
+                  }}
                 >
-                  <span className="text-micro font-bold" style={{ color: "var(--accent)" }}>
+                  <span className="flex items-center gap-1 text-micro font-bold" style={{ color: "var(--accent)" }}>
                     Nacimiento
+                    <Pencil className="opacity-40" size={9} />
                   </span>
                   <span className="text-micro text-primary/40">
                     <FechaMundoBadge diaAbsoluto={fechaNacimiento} />
                   </span>
-                </div>
+                </button>
               </div>
             </div>
           )}
 
-          {/* Carriles por año — cada uno lado a lado, envolviendo al borde */}
           {carriles.map((carril, ci) => {
             const anchoCarril =
               ANCHO_ERA_BTN * carril.eras.length + 6 * (carril.eras.length - 1);
