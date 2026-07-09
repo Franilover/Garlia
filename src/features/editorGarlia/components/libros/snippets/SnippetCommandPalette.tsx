@@ -1599,6 +1599,7 @@ export function SnippetCommandPalette({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // Posición del popover: arranca pegado al cursor (anchorRect ya viene
   // como la base del caret, ver SlashCommandPlugin) y se recalcula contra
@@ -1716,6 +1717,15 @@ export function SnippetCommandPalette({
     setActiveIdx(0);
   }, [q]);
 
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const row = list.querySelector<HTMLElement>(
+      `[data-idx="${activeIdx}"]`,
+    );
+    row?.scrollIntoView({ block: "nearest" });
+  }, [activeIdx, filteredCats]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -1777,7 +1787,7 @@ export function SnippetCommandPalette({
             <span style={S.kbd}>esc</span>
           </div>
 
-          <div style={S.list}>
+          <div style={S.list} ref={listRef}>
             {filteredCats.length === 0 && (
               <div style={S.empty}>Sin resultados</div>
             )}
@@ -1794,6 +1804,7 @@ export function SnippetCommandPalette({
                     return (
                       <div
                         key={cat.id}
+                        data-idx={i}
                         style={S.row(i === activeIdx)}
                         onClick={() => {
                           setChildQuery(searchQ);
