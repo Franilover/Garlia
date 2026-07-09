@@ -582,6 +582,7 @@ export function PersonajeLineaDeTiempo({
     changeNotas,
     changeLabel,
     changeMomento,
+    reajustarErasPorNuevaFecha,
   } = useErasDelPersonaje(personajeId, fechaNacimiento);
 
   const { guardar: guardarCumple, saving: savingCumple } =
@@ -623,8 +624,12 @@ export function PersonajeLineaDeTiempo({
 
   const handleGuardarCumple = async () => {
     if (cumpleDraft == null) return;
+    const fechaAnterior = fechaNacimiento;
     const ok = await guardarCumple(cumpleDraft);
     if (ok) {
+      if (fechaAnterior != null && diasPorAnio > 0) {
+        await reajustarErasPorNuevaFecha(fechaAnterior, cumpleDraft, diasPorAnio);
+      }
       setCumpleSelectorOpen(false);
       setCumpleDraft(null);
     }
@@ -634,7 +639,13 @@ export function PersonajeLineaDeTiempo({
   // SelectorFechaMundo: clickear un día ya es la acción final), así que acá
   // simplemente guardamos apenas llega el nuevo valor y cerramos.
   const handleGuardarCumpleRapido = async (dia: number | null) => {
-    if (dia != null) await guardarCumple(dia);
+    if (dia != null) {
+      const fechaAnterior = fechaNacimiento;
+      await guardarCumple(dia);
+      if (fechaAnterior != null && diasPorAnio > 0) {
+        await reajustarErasPorNuevaFecha(fechaAnterior, dia, diasPorAnio);
+      }
+    }
     setCumpleQuickEdit(false);
   };
 
@@ -909,102 +920,111 @@ export function PersonajeLineaDeTiempo({
             )}
           </div>
 
-          {gruposPorEtapa.map(({ etapa, carriles: carrilesEtapa }) => {
-            const totalEras = carrilesEtapa.reduce(
-              (n, c) => n + c.eras.length,
-              0,
-            );
-            const colapsada = etapasColapsadas.has(etapa.id);
-            return (
-              <div key={etapa.id}>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <button
-                    className="flex items-center gap-1 shrink-0"
-                    type="button"
-                    onClick={() => toggleEtapaColapsada(etapa.id)}
-                  >
-                    {colapsada ? (
-                      <ChevronRight className="text-primary/30" size={11} />
-                    ) : (
-                      <ChevronDown className="text-primary/30" size={11} />
-                    )}
-                    <span
-                      className="text-micro font-black uppercase tracking-wide px-1.5 py-0.5 rounded"
-                      style={{
-                        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                        background: FIELD_BG,
-                      }}
+          <div className="flex flex-row flex-wrap items-start gap-3">
+            {gruposPorEtapa.map(({ etapa, carriles: carrilesEtapa }) => {
+              const totalEras = carrilesEtapa.reduce(
+                (n, c) => n + c.eras.length,
+                0,
+              );
+              const colapsada = etapasColapsadas.has(etapa.id);
+              return (
+                <div
+                  key={etapa.id}
+                  className="rounded-xl border p-2 space-y-1.5"
+                  style={{
+                    borderColor: LINE_COLOR,
+                    minWidth: ANCHO_ERA_BTN + 24,
+                  }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      className="flex items-center gap-1 shrink-0"
+                      type="button"
+                      onClick={() => toggleEtapaColapsada(etapa.id)}
                     >
-                      {etapaLabelConRango(etapa)}
-                    </span>
-                    {totalEras > 0 && (
-                      <span className="text-micro text-primary/30 tabular-nums">
-                        {totalEras}
+                      {colapsada ? (
+                        <ChevronRight className="text-primary/30" size={11} />
+                      ) : (
+                        <ChevronDown className="text-primary/30" size={11} />
+                      )}
+                      <span
+                        className="text-micro font-black uppercase tracking-wide px-1.5 py-0.5 rounded"
+                        style={{
+                          color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                          background: FIELD_BG,
+                        }}
+                      >
+                        {etapaLabelConRango(etapa)}
                       </span>
-                    )}
-                  </button>
-                  <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
-                  <button
-                    className="flex items-center gap-0.5 text-micro font-bold text-primary/35 hover:text-accent transition-colors shrink-0"
-                    type="button"
-                    onClick={() => abrirFormularioEnEtapa(etapa)}
-                  >
-                    <Plus size={10} /> Era
-                  </button>
-                </div>
+                      {totalEras > 0 && (
+                        <span className="text-micro text-primary/30 tabular-nums">
+                          {totalEras}
+                        </span>
+                      )}
+                    </button>
+                    <div className="flex-1 h-px" style={{ background: LINE_COLOR }} />
+                    <button
+                      className="flex items-center gap-0.5 text-micro font-bold text-primary/35 hover:text-accent transition-colors shrink-0"
+                      type="button"
+                      onClick={() => abrirFormularioEnEtapa(etapa)}
+                    >
+                      <Plus size={10} /> Era
+                    </button>
+                  </div>
 
-                {!colapsada &&
-                  (totalEras === 0 ? (
-                    <p className="text-micro text-primary/25 pl-3 pb-1">
-                      Sin eras en esta etapa todavía
-                    </p>
-                  ) : (
-                    <div className="flex flex-row flex-wrap items-start gap-3 pl-3">
-                      {carrilesEtapa.map((carril, ci) => (
-                        <div
-                          key={`carril-${etapa.id}-${carril.anio ?? "sf"}-${ci}`}
-                          className="flex flex-col gap-1"
-                          style={{
-                            width:
-                              ANCHO_ERA_BTN * carril.eras.length +
-                              6 * (carril.eras.length - 1),
-                          }}
-                        >
-                          <span
-                            className="text-micro font-bold tabular-nums text-primary/30"
+                  {!colapsada &&
+                    (totalEras === 0 ? (
+                      <p className="text-micro text-primary/25 pb-1">
+                        Sin eras en esta etapa todavía
+                      </p>
+                    ) : (
+                      <div className="flex flex-row items-start gap-3 overflow-x-auto pb-1">
+                        {carrilesEtapa.map((carril, ci) => (
+                          <div
+                            key={`carril-${etapa.id}-${carril.anio ?? "sf"}-${ci}`}
+                            className="flex flex-col gap-1 shrink-0"
+                            style={{
+                              width:
+                                ANCHO_ERA_BTN * carril.eras.length +
+                                6 * (carril.eras.length - 1),
+                            }}
                           >
-                            Año {carril.anio}
-                          </span>
-                          <div className="flex flex-row gap-1.5">
-                            {carril.eras.map((era) => (
-                              <EraBoton
-                                key={era.id}
-                                btnRef={(el) => {
-                                  if (el) btnRefs.current.set(era.id, el);
-                                  else btnRefs.current.delete(era.id);
-                                }}
-                                edad={calcularEdad(
-                                  era.momento,
-                                  fechaNacimiento,
-                                  diasPorAnio,
-                                )}
-                                era={era}
-                                isSel={era.id === selId}
-                                onClick={() =>
-                                  setSelId((prev) =>
-                                    prev === era.id ? null : era.id,
-                                  )
-                                }
-                              />
-                            ))}
+                            <span
+                              className="text-micro font-bold tabular-nums text-primary/30"
+                            >
+                              Año {carril.anio}
+                            </span>
+                            <div className="flex flex-row gap-1.5">
+                              {carril.eras.map((era) => (
+                                <EraBoton
+                                  key={era.id}
+                                  btnRef={(el) => {
+                                    if (el) btnRefs.current.set(era.id, el);
+                                    else btnRefs.current.delete(era.id);
+                                  }}
+                                  edad={calcularEdad(
+                                    era.momento,
+                                    fechaNacimiento,
+                                    diasPorAnio,
+                                  )}
+                                  era={era}
+                                  isSel={era.id === selId}
+                                  onClick={() =>
+                                    setSelId((prev) =>
+                                      prev === era.id ? null : era.id,
+                                    )
+                                  }
+                                />
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-              </div>
-            );
-          })}
+                        ))}
+                      </div>
+                    ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : carriles.length === 0 ? (
         <p className="text-micro text-primary/25 py-1">

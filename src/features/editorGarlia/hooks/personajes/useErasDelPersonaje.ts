@@ -220,6 +220,68 @@ export function useErasDelPersonaje(
     updateEra(era.id, { _saving: false });
   };
 
+  // Reajusta el `momento` de TODAS las eras cuando cambia la fecha de
+  // nacimiento del personaje, de forma que la EDAD de cada era se
+  // mantenga fija (es la fecha la que se adapta a la edad, no al revés).
+  // Para cada era se recalcula su edad y su desfase dentro del año usando
+  // la fecha de nacimiento ANTERIOR, y con eso se reconstruye el nuevo
+  // día absoluto sobre la fecha de nacimiento NUEVA.
+  const reajustarErasPorNuevaFecha = async (
+    fechaNacimientoAnterior: number,
+    fechaNacimientoNueva: number,
+    diasPorAnio: number,
+  ) => {
+    if (diasPorAnio <= 0) return;
+    if (fechaNacimientoAnterior === fechaNacimientoNueva) return;
+    if (!eras.length) return;
+
+    const actualizaciones = eras.map((era) => {
+      const delta = era.momento - fechaNacimientoAnterior;
+      const edad = Math.floor(delta / diasPorAnio);
+      const desfase = ((delta % diasPorAnio) + diasPorAnio) % diasPorAnio;
+      const nuevoMomento = fechaNacimientoNueva + edad * diasPorAnio + desfase;
+      return { id: era.id, nuevoMomento };
+    });
+
+    setEras((prev) =>
+      prev
+        .map((e) => {
+          const upd = actualizaciones.find((a) => a.id === e.id);
+          return upd ? { ...e, momento: upd.nuevoMomento, _saving: true } : e;
+        })
+        .sort((a, b) => a.momento - b.momento),
+    );
+
+    try {
+      await Promise.all(
+        actualizaciones.map((a) =>
+          (supabase as any)
+            .from("personaje_eras")
+            .update({ momento: a.nuevoMomento })
+            .eq("id", a.id),
+        ),
+      );
+    } catch {}
+
+    try {
+      if (db) {
+        await Promise.all(
+          actualizaciones.map(async (a) => {
+            const existing = await (db as any).personaje_eras?.get(a.id);
+            if (existing) {
+              await (db as any).personaje_eras?.put({
+                ...existing,
+                momento: a.nuevoMomento,
+              });
+            }
+          }),
+        );
+      }
+    } catch {}
+
+    setEras((prev) => prev.map((e) => ({ ...e, _saving: false })));
+  };
+
   return {
     eras,
     loading,
@@ -231,5 +293,6 @@ export function useErasDelPersonaje(
     changeNotas,
     changeLabel,
     changeMomento,
+    reajustarErasPorNuevaFecha,
   };
 }
