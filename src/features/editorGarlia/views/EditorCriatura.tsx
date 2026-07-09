@@ -43,11 +43,8 @@ import {
   useRegisterMobileAside,
 } from "@/hooks/ui/useMobileAsidePanel";
 
-import type {
-  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
-import {
-  MarkdownEditor
-} from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import {
@@ -105,7 +102,7 @@ export function EditorCriatura({
   const [form, setForm] = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
 
   // ── Grupos ────────────────────────────────────────────────────────────────
   const {
@@ -343,15 +340,15 @@ export function EditorCriatura({
               <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
                 Descripción
               </label>
-              <MarkdownEditor
-                toolbar
-                defaultMode="edit"
-                entities={entities}
+              <RichEditor
+                minHeight="8rem"
+                mode="edit"
                 placeholder="Aspecto físico general…"
-                rows={6}
+                showSplitMode={false}
                 value={form.descripcion ?? ""}
+                wikiEntities={entities}
                 onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                onSnippetAction={onSnippetAction}
+                onWikilinkNavigate={onWikilink}
               />
             </div>
           </div>

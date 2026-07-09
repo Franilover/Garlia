@@ -3,7 +3,7 @@
 import { Loader2, CheckCircle2, AlertCircle, WifiOff } from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { IDIOMAS, IDLE_STATE } from "@/features/editorGarlia/hooks/canciones/constants";
 import { dexieSecGet } from "@/features/editorGarlia/hooks/canciones/seccionesDb";
 import type { Seccion, IdiomaKey, ColState } from "@/features/editorGarlia/hooks/canciones/types";
@@ -40,23 +40,19 @@ function contar(linea: string, modo: CountMode) {
 }
 
 // ── Constantes de layout ─────────────────────────────────────────────────────
-// Deben coincidir con los valores reales del textarea en MarkdownEditor:
-//   fontSize: 11px  ·  lineHeight: 1.6 → ~18px  ·  paddingTop: 6px
-// Si cambias los estilos del MarkdownEditor, actualiza estas constantes.
 const FONT_SIZE_PX = 11;
-const LINE_H_PX    = Math.round(FONT_SIZE_PX * 1.6); // ≈ 18px  (line-height: 1.6)
-const PAD_TOP      = 6;                               // padding-top del textarea (px)
 
-// ── Overlay de contadores ────────────────────────────────────────────────────
+// ── Columna de contadores ────────────────────────────────────────────────────
 
 /**
- * Renderiza los contadores de sílabas/vocales por línea como un overlay
- * encima del textarea del MarkdownEditor.
- *
- * Se pasa como `renderOverlay` al MarkdownEditor, que lo monta dentro del
- * div position:relative que envuelve el textarea.
+ * Muestra el conteo de sílabas/vocales por línea en una columna lateral,
+ * una fila por línea de texto. A diferencia del overlay anterior (que
+ * posicionaba cada número en píxeles exactos sobre un <textarea>), esto
+ * es una lista simple — RichEditor (Lexical/contentEditable) no tiene el
+ * concepto de "línea de altura fija" que un textarea sí tiene, así que ya
+ * no se puede alinear pixel-perfect con el texto real.
  */
-function SyllableOverlay({
+function SyllableColumn({
   texto,
   refLineas,
   countMode,
@@ -70,8 +66,7 @@ function SyllableOverlay({
   return (
     <div
       aria-hidden
-      className="absolute top-0 right-0 flex flex-col pointer-events-none select-none"
-      style={{ paddingTop: PAD_TOP }}
+      className="flex flex-col shrink-0 select-none border-l border-primary/8 pl-2"
     >
       {lineas.map((linea, idx) => {
         const miN  = contar(linea, countMode);
@@ -93,8 +88,8 @@ function SyllableOverlay({
         return (
           <div
             key={idx}
-            className={`flex items-center justify-end pr-2.5 gap-0.5 ${color}`}
-            style={{ height: LINE_H_PX }}
+            className={`flex items-center justify-end gap-0.5 leading-[1.6] ${color}`}
+            style={{ fontSize: FONT_SIZE_PX }}
           >
             {!vacia && (
               <>
@@ -192,14 +187,9 @@ export const SeccionTextarea = ({
   const refCampo  = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
   const refLineas = refCampo ? ((sec[refCampo] as string) || "").split("\n") : null;
 
-  // ── Rows dinámico: crece con el contenido sin depender del flex layout ───
-  // autoResize de MarkdownEditor mide scrollHeight, pero dentro de un flex
-  // container con min-h-0 queda atrapado. Calculamos rows desde el nº de
-  // líneas para que minHeight del textarea sea siempre correcto.
-  const dynamicRows = Math.max(3, texto.split("\n").length + 1);
 
   // ── Border según estado ──────────────────────────────────────────────────
-  // El MarkdownEditor usa su propio borde; lo sobreescribimos vía className
+  // RichEditor usa su propio borde; lo sobreescribimos vía className
   // en el div contenedor para indicar estado de guardado.
   const statusRingClass =
     st.mode === "pending" ? "ring-1 ring-blue-500/40"  :
@@ -236,24 +226,20 @@ export const SeccionTextarea = ({
         </div>
       )}
 
-      {/* ── Editor markdown con overlay de contadores ── */}
-      <div className={statusRingClass}>
-        <MarkdownEditor
-          autoResize={false}
-          mode="edit"
-          placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
-          renderOverlay={(val) => (
-            <SyllableOverlay
-              countMode={countMode}
-              refLineas={refLineas}
-              texto={val}
-            />
-          )}
-          rows={dynamicRows}
-          toolbar={false}
-          value={texto}
-          onChange={onChange}
-        />
+      {/* ── Editor con columna de contadores al costado ── */}
+      <div className={`flex items-start gap-1 ${statusRingClass}`}>
+        <div className="flex-1 min-w-0">
+          <RichEditor
+            editable
+            minHeight="4rem"
+            mode="edit"
+            placeholder={`Letra en ${IDIOMAS.find(i => i.id === idioma)?.nombre}…`}
+            showSplitMode={false}
+            value={texto}
+            onChange={onChange}
+          />
+        </div>
+        <SyllableColumn countMode={countMode} refLineas={refLineas} texto={texto} />
       </div>
 
       {/* ── Mensaje de error ── */}

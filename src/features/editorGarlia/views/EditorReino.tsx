@@ -15,7 +15,7 @@ import {
   useRegisterMobileAside,
 } from "@/hooks/ui/useMobileAsidePanel";
 
-import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { LoreTab } from "@/features/editorGarlia/components/shared/LoreTab";
 import { ReinoTileCanvas } from "@/features/editorGarlia/components/reinos/ReinoTileCanvas";

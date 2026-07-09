@@ -21,7 +21,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { FormularioCiudad } from "@/features/editorGarlia/components/ciudades/FormularioCiudad";
 import { dexiePut, dexieDelete } from "@/hooks/data/useOfflineSync";

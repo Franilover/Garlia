@@ -1018,18 +1018,6 @@ const PanelEditor = ({
           </div>
         )}
 
-        {(
-          <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
-            <span className="text-micro font-black uppercase tracking-widest text-primary/20">
-              Escribe{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-primary/8 text-primary/40 font-mono not-italic">
-                add
-              </kbd>{" "}
-              para insertar elementos · Ctrl+S guarda
-            </span>
-          </div>
-        )}
-
         <div className="flex-1 min-h-0 flex overflow-hidden">
           <div
             ref={scrollRef}

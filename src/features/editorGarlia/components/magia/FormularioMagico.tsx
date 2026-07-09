@@ -20,7 +20,7 @@ import { Bug, Save, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
@@ -55,7 +55,7 @@ export function FormularioMagico({
   const [form, setForm] = useState<EntidadMagica>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
   const { criaturas: allCriaturas, loading: loadingCriaturas } = useCriaturasCatalogo();
   const cfg = CONFIG[modo];
 
@@ -231,14 +231,14 @@ export function FormularioMagico({
               <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                 Explicación
               </label>
-              <MarkdownEditor
-                toolbar
-                defaultMode="edit"
+              <RichEditor
+                minHeight={modo === "runas" ? "20rem" : "17.5rem"}
+                mode="edit"
                 placeholder={cfg.placeholder}
-                rows={modo === "runas" ? 16 : 14}
+                showSplitMode={false}
                 value={form.explicacion ?? ""}
                 onChange={(v) => setForm((f) => ({ ...f, explicacion: v }))}
-                onSnippetAction={onSnippetAction}
+                onWikilinkNavigate={onWikilink}
               />
             </div>
           </div>

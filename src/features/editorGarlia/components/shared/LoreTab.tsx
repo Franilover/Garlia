@@ -17,11 +17,8 @@ import {
 import Image from "next/image";
 import React, { useState, useRef, useEffect, useCallback } from "react";
 
-import type {
-  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
-import {
-  MarkdownEditor
-} from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { type Ciudad , INPUT_CLS, type SaveStatus, type Reino } from "@/features/editorGarlia/hooks/types";
@@ -106,9 +103,7 @@ function DetalleEditor({
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
-
-  const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
+  const { onWikilink } = useWikilink();
   useEffect(() => {
     if (
       detalle.coord_x !== prevCoords.current.x ||
@@ -224,15 +219,15 @@ function DetalleEditor({
             <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35 block mb-1">
               Descripción
             </label>
-            <MarkdownEditor
-              toolbar
-              defaultMode="edit"
-              entities={entities}
+            <RichEditor
+              minHeight="6rem"
+              mode="edit"
               placeholder="Describe esta ciudad…"
-              rows={4}
+              showSplitMode={false}
               value={form.descripcion ?? ""}
+              wikiEntities={entities}
               onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-              onSnippetAction={onSnippetAction}
+              onWikilinkNavigate={onWikilink}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -291,7 +286,7 @@ function MapaNuevo({
   onOpenDetalleEditor: _onOpenDetalleEditor,
   form,
   setForm,
-  onSnippetAction,
+  onWikilinkNavigate,
   onDetallesArrayChange,
 }: {
   MapaConPuntosComponent?: React.ComponentType<any>;
@@ -302,7 +297,7 @@ function MapaNuevo({
   onOpenDetalleEditor?: (id: string) => void;
   form: Reino;
   setForm: React.Dispatch<React.SetStateAction<Reino>>;
-  onSnippetAction: any;
+  onWikilinkNavigate?: (target: string) => void;
   onDetallesArrayChange?: (d: Ciudad[]) => void;
 }) {
   const [geoOpen, setGeoOpen] = useState(false);
@@ -386,15 +381,15 @@ function MapaNuevo({
             </button>
           </div>
           <div className="flex-1 p-3 overflow-y-auto">
-            <MarkdownEditor
+            <RichEditor
               key="geografia"
-              toolbar
-              defaultMode="edit"
+              minHeight="25rem"
+              mode="edit"
               placeholder="Paisajes, clima, fronteras, ciudades principales…"
-              rows={20}
+              showSplitMode={false}
               value={(form as any).geografia ?? ""}
               onChange={(v) => setForm((f) => ({ ...f, geografia: v }))}
-              onSnippetAction={onSnippetAction}
+              onWikilinkNavigate={onWikilinkNavigate}
             />
           </div>
         </div>
@@ -777,7 +772,7 @@ export function LoreTab({
   mobileAsideOpen?: boolean;
   setMobileAsideOpen?: (v: boolean) => void;
 }) {
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<
     "mapa" | "sociedad" | "lineatiempo"
@@ -917,7 +912,7 @@ export function LoreTab({
               onDetalleUpdate={onDetalleUpdate}
               onDetallesArrayChange={onDetallesArrayChange}
               onOpenDetalleEditor={onOpenDetalleEditor}
-              onSnippetAction={onSnippetAction}
+              onWikilinkNavigate={onWikilink}
             />
           </div>
         )}
@@ -937,48 +932,48 @@ export function LoreTab({
                     <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Cultura
                     </label>
-                    <MarkdownEditor
+                    <RichEditor
                       key="cultura"
-                      toolbar
-                      defaultMode="edit"
-                      entities={entities}
+                      minHeight="22.5rem"
+                      mode="edit"
                       placeholder="Tradiciones, religión, idioma, costumbres, arte…"
-                      rows={18}
+                      showSplitMode={false}
                       value={(form as any).cultura ?? ""}
+                      wikiEntities={entities}
                       onChange={(v) => setForm((f) => ({ ...f, cultura: v }))}
-                      onSnippetAction={onSnippetAction}
+                      onWikilinkNavigate={onWikilink}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Política
                     </label>
-                    <MarkdownEditor
+                    <RichEditor
                       key="politica"
-                      toolbar
-                      defaultMode="edit"
-                      entities={entities}
+                      minHeight="22.5rem"
+                      mode="edit"
                       placeholder="Sistema de gobierno, facciones, líderes, leyes…"
-                      rows={18}
+                      showSplitMode={false}
                       value={(form as any).politica ?? ""}
+                      wikiEntities={entities}
                       onChange={(v) => setForm((f) => ({ ...f, politica: v }))}
-                      onSnippetAction={onSnippetAction}
+                      onWikilinkNavigate={onWikilink}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">
                       Economía
                     </label>
-                    <MarkdownEditor
+                    <RichEditor
                       key="economia"
-                      toolbar
-                      defaultMode="edit"
-                      entities={entities}
+                      minHeight="22.5rem"
+                      mode="edit"
                       placeholder="Recursos, comercio, moneda, riqueza…"
-                      rows={18}
+                      showSplitMode={false}
                       value={(form as any).economia ?? ""}
+                      wikiEntities={entities}
                       onChange={(v) => setForm((f) => ({ ...f, economia: v }))}
-                      onSnippetAction={onSnippetAction}
+                      onWikilinkNavigate={onWikilink}
                     />
                   </div>
                 </div>

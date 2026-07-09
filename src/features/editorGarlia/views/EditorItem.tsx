@@ -29,11 +29,8 @@ import { Bug, Package, Save, Trash2 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
-import type {
-  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
-import {
-  MarkdownEditor
-} from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PanelCiudades } from "@/features/editorGarlia/components/items/PanelCiudades";
@@ -73,7 +70,7 @@ export function EditorItem({
   const [form, setForm] = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
 
   // Conteos de contenido de Territorio/Ciudades — permiten que la columna
   // con más contenido ocupe proporcionalmente más espacio en la fila.
@@ -322,15 +319,15 @@ export function EditorItem({
                 <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
                   Descripción
                 </label>
-                <MarkdownEditor
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
+                <RichEditor
+                  minHeight="12.5rem"
+                  mode="edit"
                   placeholder="Qué es, qué hace, su historia…"
-                  rows={10}
+                  showSplitMode={false}
                   value={form.descripcion ?? ""}
+                  wikiEntities={entities}
                   onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                  onSnippetAction={onSnippetAction}
+                  onWikilinkNavigate={onWikilink}
                 />
               </div>
             </div>

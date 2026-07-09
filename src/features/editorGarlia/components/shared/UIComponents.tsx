@@ -6,7 +6,7 @@ import {
 import Image from "next/image";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { normalize } from "@/components/layout/EstudioTemplates";
 import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
 
@@ -45,14 +45,14 @@ export function CampoArea({ label, value, onChange, placeholder, rows = 4 }: {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   placeholder?: string; rows?: number;
 }) {
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
   const handleChange = (v: string) => {
     onChange({ target: { value: v } } as React.ChangeEvent<HTMLTextAreaElement>);
   };
   return (
     <div className="space-y-1.5">
       <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/35">{label}</label>
-      <MarkdownEditor toolbar defaultMode="split" placeholder={placeholder} rows={rows} value={value} onChange={handleChange} onSnippetAction={onSnippetAction} />
+      <RichEditor minHeight={`${rows * 1.6}rem`} mode="split" placeholder={placeholder} value={value} onChange={handleChange} onWikilinkNavigate={onWikilink} />
     </div>
   );
 }

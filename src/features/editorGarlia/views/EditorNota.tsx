@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-import { MarkdownEditor } from "@/components/forms/Markdown/MarkdownEditor";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 
 import { SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
@@ -64,7 +64,7 @@ export function EditorNota({
   const [showTagInput, setShowTagInput] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const { confirm, ConfirmModal } = useConfirm();
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
 
   // Sync cuando cambia la nota seleccionada
   useEffect(() => {
@@ -219,14 +219,14 @@ export function EditorNota({
 
       {/* ── Contenido — Markdown ────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
-        <MarkdownEditor
-          toolbar
-          defaultMode="edit"
+        <RichEditor
+          minHeight="30rem"
+          mode="edit"
           placeholder="Escribe tu nota aquí… Ideas, referencias, fragmentos, recordatorios…"
-          rows={24}
+          showSplitMode={false}
           value={form.contenido ?? ""}
           onChange={(v) => setForm((f) => ({ ...f, contenido: v }))}
-          onSnippetAction={onSnippetAction}
+          onWikilinkNavigate={onWikilink}
         />
       </div>
 

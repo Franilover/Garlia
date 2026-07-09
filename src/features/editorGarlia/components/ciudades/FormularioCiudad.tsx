@@ -16,11 +16,8 @@ import { MapPin, Save, Trash2, Users, Bug, Package, Mountain, ScrollText } from 
 import Image from "next/image";
 import React, { useState } from "react";
 
-import type {
-  WikiEntity} from "@/components/forms/Markdown/MarkdownEditor";
-import {
-  MarkdownEditor
-} from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
+import { RichEditor } from "@/components/forms/lexical-editor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { SelectorImagen, SaveIndicator } from "@/features/editorGarlia/components/shared/UIComponents";
@@ -105,7 +102,7 @@ export function FormularioCiudad({
   const todosPersonajes = useTodosPersonajes();
   const todasCriaturas = useTodasCriaturas();
   const todosItems = useTodosItems();
-  const { onSnippetAction } = useWikilink();
+  const { onWikilink } = useWikilink();
 
   const [addingP, setAddingP] = useState<string | null>(null);
   const [addingC, setAddingC] = useState<string | null>(null);
@@ -290,15 +287,15 @@ export function FormularioCiudad({
                 <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35">
                   Descripción
                 </label>
-                <MarkdownEditor
-                  toolbar
-                  defaultMode="edit"
-                  entities={entities}
+                <RichEditor
+                  minHeight="8rem"
+                  mode="edit"
                   placeholder="Aspecto, atmósfera, primeras impresiones…"
-                  rows={6}
+                  showSplitMode={false}
                   value={form.descripcion ?? ""}
+                  wikiEntities={entities}
                   onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                  onSnippetAction={onSnippetAction}
+                  onWikilinkNavigate={onWikilink}
                 />
               </div>
             </div>
@@ -310,30 +307,30 @@ export function FormularioCiudad({
               <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                 <ScrollText size={9} /> Historia
               </label>
-              <MarkdownEditor
-                toolbar
-                defaultMode="edit"
-                entities={entities}
+              <RichEditor
+                minHeight="10rem"
+                mode="edit"
                 placeholder="Origen, eventos importantes, eras pasadas…"
-                rows={8}
+                showSplitMode={false}
                 value={form.historia ?? ""}
+                wikiEntities={entities}
                 onChange={(v) => setForm((f) => ({ ...f, historia: v }))}
-                onSnippetAction={onSnippetAction}
+                onWikilinkNavigate={onWikilink}
               />
             </div>
             <div className="flex-1 min-w-0 space-y-1.5">
               <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/35 flex items-center gap-1.5">
                 <Mountain size={9} /> Secretos
               </label>
-              <MarkdownEditor
-                toolbar
-                defaultMode="edit"
-                entities={entities}
+              <RichEditor
+                minHeight="10rem"
+                mode="edit"
                 placeholder="Lo que pocos saben, pasajes ocultos, maldiciones…"
-                rows={8}
+                showSplitMode={false}
                 value={form.secretos ?? ""}
+                wikiEntities={entities}
                 onChange={(v) => setForm((f) => ({ ...f, secretos: v }))}
-                onSnippetAction={onSnippetAction}
+                onWikilinkNavigate={onWikilink}
               />
             </div>
           </div>

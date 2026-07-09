@@ -27,7 +27,7 @@ import {
   Trash2,
   UserCircle2,
 } from "lucide-react";
-import type { WikiEntity } from "@/components/forms/Markdown/MarkdownEditor";
+import type { WikiEntity } from "@/components/forms/Markdown/commandItems";
 import {
   useMobileAsidePanel,
   useRegisterMobileAside,

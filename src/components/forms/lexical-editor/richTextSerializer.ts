@@ -22,11 +22,7 @@
  */
 import { $isCodeNode } from "@lexical/code";
 import { $isListNode, $isListItemNode } from "@lexical/list";
-import {
-  $convertFromMarkdownString,
-  LINEBREAK,
-  TRANSFORMERS,
-} from "@lexical/markdown";
+import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
 import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
 import {
   $isTableNode,
@@ -37,6 +33,7 @@ import {
 import type {
   LexicalNode} from "lexical";
 import {
+  $createLineBreakNode,
   $createTextNode,
   $getRoot,
   $insertNodes,
@@ -239,32 +236,30 @@ export function rawTextToLexicalTree(raw: string): void {
     },
   );
 
-  // 4) Una sola conversión de markdown → árbol Lexical real (listas,
+  // 4) Saltos de línea simples: $convertFromMarkdownString sigue la spec
+  // de Markdown, donde un solo "\n" dentro de un párrafo NO es un salto
+  // de línea (se junta con la línea siguiente) — solo una línea en
+  // blanco separa párrafos. Eso hacía desaparecer los saltos de línea
+  // simples que el usuario escribe con Enter. Para preservarlos,
+  // reemplazamos cada "\n" simple (uno solo, no parte de una línea en
+  // blanco) por un token propio ASCII sin espacios — mismo mecanismo que
+  // ya se usa para snippets — y luego, en el post-proceso, lo
+  // convertimos en un LineBreakNode real dentro del párrafo.
+  const linebreakToken = "xSoftBreakTokenxx";
+  working = working.replace(/([^\n])\n(?!\n)/g, `$1${linebreakToken}`);
+
+  // 5) Una sola conversión de markdown → árbol Lexical real (listas,
   // headings, bold, italic, etc. — todo lo que MarkdownShortcutPlugin
   // aplicaría si el usuario lo tipeara a mano).
-  //
-  // IMPORTANTE — saltos de línea simples: $convertFromMarkdownString
-  // sigue la spec de Markdown, donde un solo "\n" dentro de un párrafo
-  // NO es un salto de línea (se junta con la línea siguiente) — solo una
-  // línea en blanco separa párrafos. Eso hacía desaparecer los saltos de
-  // línea simples que el usuario escribe con Enter. Para preservarlos,
-  // convertimos cada "\n" simple (uno solo, no parte de una línea en
-  // blanco) en un hard-break markdown ("  \n" — dos espacios + salto),
-  // que el transformer LINEBREAK sí interpreta como salto de línea real
-  // dentro del mismo párrafo.
-  working = working.replace(/([^\n])\n(?!\n)/g, "$1  \n");
+  $convertFromMarkdownString(working, TRANSFORMERS);
 
-  $convertFromMarkdownString(working, [LINEBREAK, ...TRANSFORMERS]);
-
-  if (registry.size === 0) return; // nada que resolver — atajo común
-
-  // 5) Post-proceso: recorremos todos los TextNode del árbol recién
+  // 6) Post-proceso: recorremos todos los TextNode del árbol recién
   // creado buscando nuestros tokens y los reemplazamos in-place por el
-  // nodo real (DropNode, ChoiceNode, WikilinkNode, TableNode, etc).
+  // nodo real (DropNode, ChoiceNode, WikilinkNode, TableNode, LineBreakNode).
   // Un TextNode puede contener el token pegado a texto real a los
   // lados (ej: "Miras al xSnippetTokenxx0xx." tras la conversión), así
   // que separamos manualmente el texto sobrante alrededor del token.
-  const tokenRe = /xSnippetTokenxx(\d+)xx/;
+  const tokenRe = /xSnippetTokenxx(\d+)xx|xSoftBreakTokenxx/;
 
   function resolveTextNode(node: LexicalNode): void {
     if (node.getType() !== "text") return;
@@ -273,16 +268,19 @@ export function rawTextToLexicalTree(raw: string): void {
     if (!match) return;
 
     const token = match[0];
-    const entry = registry.get(token);
-    if (!entry) return;
+    const isSoftBreak = token === linebreakToken;
+    const entry = isSoftBreak ? null : registry.get(token);
+    if (!isSoftBreak && !entry) return;
 
     const before = text.slice(0, match.index);
     const after = text.slice(match.index + token.length);
 
     let replacement: LexicalNode | null = null;
-    if (entry.kind === "table" && entry.rows) {
+    if (isSoftBreak) {
+      replacement = $createLineBreakNode();
+    } else if (entry?.kind === "table" && entry.rows) {
       replacement = buildTableNode(entry.rows);
-    } else if (entry.kind === "snippet" && entry.raw) {
+    } else if (entry?.kind === "snippet" && entry.raw) {
       replacement = rawSnippetToNode(entry.raw);
     }
 
@@ -295,7 +293,8 @@ export function rawTextToLexicalTree(raw: string): void {
       const afterNode = $createTextNode(after);
       (node as any).insertBefore(afterNode);
       // El texto "after" puede contener OTRO token si había varios
-      // snippets en la misma línea original — lo resolvemos recursivo.
+      // snippets/saltos en la misma línea original — lo resolvemos
+      // recursivo.
       resolveTextNode(afterNode);
     }
     node.remove();
