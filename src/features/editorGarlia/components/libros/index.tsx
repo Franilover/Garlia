@@ -39,10 +39,12 @@ import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { SelectorFechaMundo } from "@/features/editorGarlia/components/calendario/SelectorFechaMundo";
+import { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";
 import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
 import { usePersonajes } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+import { diasPorAnio as calcDiasPorAnio } from "@/lib/utils/calendario";
 
 import { useCapitulos, useReinos } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
@@ -2208,6 +2210,44 @@ export const PanelPersonajesCapitulo = ({
   } | null>(null);
   const [loadingEra, setLoadingEra] = useState(false);
 
+  // Cumpleaños del narrador — para mostrar su EDAD en este punto de la
+  // historia en vez del número crudo de día absoluto (ej. "1007500").
+  const [narradorFechaNacimiento, setNarradorFechaNacimiento] = useState<
+    number | null
+  >(null);
+  const { cal: calNarrador } = useCalendario();
+  const diasPorAnioNarrador = calNarrador
+    ? calcDiasPorAnio(calNarrador.estaciones)
+    : 0;
+
+  useEffect(() => {
+    if (!narradorId) {
+      setNarradorFechaNacimiento(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const local = await (db as any).personajes?.get(narradorId);
+        if (local && !cancelled)
+          setNarradorFechaNacimiento(local.fecha_nacimiento ?? null);
+      } catch {}
+      if (!navigator.onLine || cancelled) return;
+      try {
+        const { data } = await supabase
+          .from("personajes")
+          .select("fecha_nacimiento")
+          .eq("id", narradorId)
+          .single();
+        if (!cancelled)
+          setNarradorFechaNacimiento((data as any)?.fecha_nacimiento ?? null);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [narradorId]);
+
   useEffect(() => {
     if (!capId) return;
     let cancelled = false;
@@ -2505,32 +2545,97 @@ export const PanelPersonajesCapitulo = ({
         />
       </div>
 
-      {/* ── Era del narrador en la línea de tiempo ──────────────────────── */}
-      {narradorId && (
-        <div
-          className="shrink-0 px-3 py-2.5 border-b space-y-2"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          }}
-        >
-          {loadingEra ? (
-            <div className="flex justify-center py-2">
+      {/* ── Línea de tiempo (fecha + edad/era del narrador, todo junto) ──── */}
+      <div
+        className="shrink-0 px-3 py-2.5 border-b space-y-2"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <Clock
+            size={8}
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          />
+          <span
+            className="text-micro font-black uppercase tracking-[0.2em]"
+            style={{
+              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+            }}
+          >
+            Línea de tiempo
+          </span>
+        </div>
+
+        {/* Fila 1: ícono de calendario + Año/Estación/Día — trigger compacto,
+            ya no ocupa toda la fila con un selector grande. */}
+        {(() => {
+          const diaActual = ordenLinea.trim()
+            ? parseInt(ordenLinea.trim(), 10)
+            : null;
+          return (
+            <div className="flex items-center gap-1.5">
+              <SelectorFechaMundo
+                compact
+                placeholder="Sin fecha"
+                value={diaActual}
+                onChange={async (dia) => {
+                  setOrdenLinea(dia != null ? String(dia) : "");
+                  setSavingOrden(true);
+                  try {
+                    await capUpdateMeta(capId, { dia_absoluto: dia } as any);
+                  } catch {}
+                  setSavingOrden(false);
+                }}
+              />
+              {savingOrden && (
+                <Loader2 className="animate-spin text-primary/30" size={9} />
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Fila 2+: edad del narrador en este punto + título de su era,
+            rasgos y notas — todo en la misma sección. */}
+        {narradorId &&
+          (loadingEra ? (
+            <div className="flex justify-center py-1.5">
               <Loader2 className="animate-spin text-primary/20" size={10} />
             </div>
           ) : eraActual ? (
             <>
-              {/* Etiqueta del momento */}
               <div className="flex items-center gap-1.5">
                 <div
                   className="w-1.5 h-1.5 rounded-full shrink-0"
                   style={{ background: "var(--accent)" }}
                 />
-                <span
-                  className="text-micro font-black tabular-nums"
-                  style={{ color: "var(--accent)" }}
-                >
-                  {eraActual.momento}
-                </span>
+                {narradorFechaNacimiento != null &&
+                diasPorAnioNarrador > 0 &&
+                ordenLinea.trim() ? (
+                  <span
+                    className="text-micro font-black tabular-nums"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    {Math.floor(
+                      (parseInt(ordenLinea.trim(), 10) -
+                        narradorFechaNacimiento) /
+                        diasPorAnioNarrador,
+                    )}{" "}
+                    años
+                  </span>
+                ) : (
+                  <span
+                    className="text-micro font-bold italic"
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  >
+                    Edad desconocida
+                  </span>
+                )}
                 {eraActual.label && (
                   <span className="text-micro font-bold text-primary/35 italic truncate">
                     {eraActual.label}
@@ -2582,65 +2687,9 @@ export const PanelPersonajesCapitulo = ({
             >
               {ordenLinea
                 ? "Sin era registrada en este momento"
-                : "Asigna un nº de línea de tiempo para ver la era"}
+                : "Asigna una fecha para ver la era"}
             </p>
-          )}
-        </div>
-      )}
-
-      {/* ── Posición en línea de tiempo ─────────────────────────────────── */}
-      <div
-        className="shrink-0 px-3 py-2.5 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-        }}
-      >
-        <div className="flex items-center gap-1 mb-1.5">
-          <Clock
-            size={8}
-            style={{
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-          />
-          <span
-            className="text-micro font-black uppercase tracking-[0.2em]"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
-          >
-            Línea de tiempo
-          </span>
-        </div>
-        <div className="space-y-1.5">
-          {/* Selector de fecha del calendario del mundo */}
-          {(() => {
-            const diaActual = ordenLinea.trim()
-              ? parseInt(ordenLinea.trim(), 10)
-              : null;
-            return (
-              <div className="relative">
-                {savingOrden && (
-                  <Loader2
-                    className="animate-spin absolute right-2 top-2 z-10 text-primary/30"
-                    size={8}
-                  />
-                )}
-                <SelectorFechaMundo
-                  placeholder="Sin fecha en la línea de tiempo"
-                  value={diaActual}
-                  onChange={async (dia) => {
-                    setOrdenLinea(dia != null ? String(dia) : "");
-                    setSavingOrden(true);
-                    try {
-                      await capUpdateMeta(capId, { dia_absoluto: dia } as any);
-                    } catch {}
-                    setSavingOrden(false);
-                  }}
-                />
-              </div>
-            );
-          })()}
-        </div>
+          ))}
       </div>
 
       {/* ── Reinos ──────────────────────────────────── */}

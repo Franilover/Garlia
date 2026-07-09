@@ -48,6 +48,7 @@ export function SelectorFechaMundo({
   placeholder = "Sin fecha asignada",
   autoOpen = false,
   hideTrigger = false,
+  compact = false,
   onOpenChange,
 }: {
   value: number | null;
@@ -61,6 +62,10 @@ export function SelectorFechaMundo({
   // tamaño 0) — solo se usa como ancla invisible para posicionar el panel.
   // Pensado para combinarse con `autoOpen` desde un elemento externo.
   hideTrigger?: boolean;
+  // Trigger angosto (inline, ancho justo al contenido) en vez de ocupar
+  // todo el ancho del contenedor — para meterlo al lado de otros datos
+  // (ej. junto a la edad de un personaje) en vez de en su propia fila.
+  compact?: boolean;
   // Notifica cuando el panel se abre/cierra — para que un elemento externo
   // que montó este selector "a demanda" (con autoOpen) sepa cuándo
   // desmontarlo tras cerrarse.
@@ -163,7 +168,9 @@ export function SelectorFechaMundo({
         className={
           hideTrigger
             ? "block w-px h-px overflow-hidden opacity-0 pointer-events-none"
-            : "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
+            : compact
+              ? "inline-flex items-center gap-1.5 px-2 py-1 rounded-md border text-left transition-all"
+              : "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
         }
         style={
           hideTrigger
