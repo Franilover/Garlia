@@ -36,7 +36,11 @@ function applyInlineMarkdown(text: string): string {
     .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
 }
 
-/* Renderiza texto respetando saltos de línea simples como párrafos */
+/* Renderiza texto respetando saltos de línea: una línea en blanco separa
+ * párrafos reales; un solo "\n" dentro de un bloque es un salto de línea
+ * suave (<br/>), no un párrafo nuevo — mismo criterio que usa el editor
+ * (RichEditor/Lexical) y el renderer de markdown estándar, para que lo
+ * que el usuario ve al escribir coincida con lo que ve el lector. */
 function TextoMarkdown({
   value,
   className,
@@ -44,22 +48,29 @@ function TextoMarkdown({
   value: string;
   className?: string;
 }) {
-  const paragraphs = value.split("\n");
+  const bloques = value.split(/\n{2,}/);
   return (
     <>
-      {paragraphs.map((para, pi) => {
-        if (para.trim() === "") {
+      {bloques.map((bloque, bi) => {
+        if (bloque.trim() === "") {
           return (
-            <p key={pi} aria-hidden style={{ margin: 0, minHeight: "1em" }} />
+            <p key={bi} aria-hidden style={{ margin: 0, minHeight: "1em" }} />
           );
         }
+        const lineas = bloque.split("\n");
         return (
-          <p
-            dangerouslySetInnerHTML={{ __html: applyInlineMarkdown(para) }}
-            key={pi}
-            className={className}
-            style={{ margin: "0 0 0.6em 0" }}
-          />
+          <p key={bi} className={className} style={{ margin: "0 0 0.6em 0" }}>
+            {lineas.map((linea, li) => (
+              <React.Fragment key={li}>
+                {li > 0 && <br />}
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: applyInlineMarkdown(linea),
+                  }}
+                />
+              </React.Fragment>
+            ))}
+          </p>
         );
       })}
     </>

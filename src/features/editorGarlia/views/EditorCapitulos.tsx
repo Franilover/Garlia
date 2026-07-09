@@ -62,10 +62,8 @@ import type {
   SnippetAction,
 } from "@/components/forms/Markdown/commandItems";
 import {
-  renderMarkdown,
-  renderMathInElement,
   PROSE_STYLES,
-} from "@/components/forms/Markdown/markdownRenderer";
+} from "@/components/forms/Markdown/proseStyles";
 import {
   BannerOffline,
   ModalBase,
@@ -156,23 +154,6 @@ const DIALOG_COMMANDS: MdCommandItem[] = [
     snippet: "–",
   },
 ];
-
-// ─── MarkdownPreviewPane ──────────────────────────────────────────────────────
-
-const MarkdownPreviewPane = ({ contenido }: { contenido: string }) => {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const html = React.useMemo(() => renderMarkdown(contenido), [contenido]);
-  React.useEffect(() => {
-    renderMathInElement(ref.current);
-  }, [html]);
-  return (
-    <div
-      dangerouslySetInnerHTML={{ __html: html }}
-      ref={ref}
-      className="prose-mundo lector-texto"
-    />
-  );
-};
 
 // ─── PanelEditor ──────────────────────────────────────────────────────────────
 
@@ -773,7 +754,7 @@ const PanelEditor = ({
                       {cap?.titulo_capitulo}
                     </h1>
                     {contenido ? (
-                      <MarkdownPreviewPane contenido={contenido} />
+                      <ContenidoInteractivo texto={contenido} onNavigate={() => {}} />
                     ) : (
                       <span className="text-primary/25 italic text-sm">
                         Sin contenido aún…

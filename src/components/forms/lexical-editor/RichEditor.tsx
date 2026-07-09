@@ -14,8 +14,8 @@
  *   - Modo preview genérico vía prop `renderPreview` — cada consumidor
  *     decide cómo renderizar. EditorCapitulos pasa ContenidoInteractivo
  *     (mismo componente del lector real) para resolver [[drop|...]] y
- *     similares; sin esa prop, cae a renderMarkdown (markdown plano),
- *     igual que el comportamiento original.
+ *     similares; sin esa prop, cae a un fallback local de markdown
+ *     plano (sin dependencia de features/ ni de markdownRenderer.ts).
  *   - SnippetCommandPalette existente conectado sin cambios
  *
  * Props compatibles con las del MarkdownEditor anterior para simplificar
@@ -160,14 +160,15 @@ export interface RichEditorProps {
   /**
    * Cómo renderizar el panel de "Preview"/"Split". RichEditor es
    * genérico — no todos los consumidores usan el formato [[kind|...]]
-   * de snippets (drop/choice/gate/etc). Por defecto usa el markdown
-   * plano estándar (renderMarkdown), igual que antes.
+   * de snippets (drop/choice/gate/etc). Por defecto usa un fallback
+   * local de markdown plano (bold/italic/code/wikilinks + soft-break
+   * vs blank-line), sin dependencias de features/.
    *
    * EditorCapitulos debe pasar una función que use ContenidoInteractivo
    * (el mismo componente del lector real) para que el preview resuelva
-   * [[drop|...]], [[choice|...]], etc. correctamente — con
-   * renderMarkdown esos snippets se mostraban como texto raw literal,
-   * porque ese pipeline solo entiende markdown normal y [[TOC]].
+   * [[drop|...]], [[choice|...]], etc. correctamente — con el fallback
+   * genérico esos snippets se muestran como texto raw literal, porque
+   * ese fallback solo entiende markdown normal y wikilinks simples.
    *
    *   // En EditorCapitulos.tsx:
    *   renderPreview={(raw) => (
@@ -394,6 +395,69 @@ function ModeTogglePlugin({
         );
       })}
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fallback de preview genérico (sin dominio, sin features/)
+// ─────────────────────────────────────────────────────────────────────────────
+// RichEditor es UI genérica (components/forms/lexical-editor/) y no debe
+// importar de features/ (mismo principio que ya documentaba MarkdownEditor.tsx:
+// "no debe conocer features/"). Por eso este fallback es local y chico, en vez
+// de reusar ContenidoInteractivo (que vive en features/garlia/).
+//
+// Mismo criterio que el resto del sistema (editor Lexical y
+// ContenidoInteractivo/TextoMarkdown): una línea en blanco separa párrafos
+// reales; un solo "\n" dentro de un bloque es un salto de línea suave (<br/>),
+// no un párrafo nuevo.
+function applyInlinePlainMarkdown(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(
+      /\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]/g,
+      (_, target: string, alias?: string) => {
+        const label = (alias?.trim() || target.trim()).replace(/"/g, "&quot;");
+        const safeTarget = target.trim().replace(/"/g, "&quot;");
+        return `<a class="wikilink" data-wikilink="${safeTarget}" href="javascript:void(0)" title="Ir a: ${safeTarget}">${label}</a>`;
+      },
+    )
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/~~(.+?)~~/g, "<del>$1</del>")
+    .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
+}
+
+function PlainMarkdownFallback({ value }: { value: string }) {
+  const bloques = value.split(/\n{2,}/);
+  return (
+    <>
+      {bloques.map((bloque, bi) => {
+        if (bloque.trim() === "") {
+          return (
+            <p key={bi} aria-hidden style={{ margin: 0, minHeight: "1em" }} />
+          );
+        }
+        const lineas = bloque.split("\n");
+        return (
+          <p key={bi} style={{ margin: "0 0 0.6em 0" }}>
+            {lineas.map((linea, li) => (
+              <React.Fragment key={li}>
+                {li > 0 && <br />}
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: applyInlinePlainMarkdown(linea),
+                  }}
+                />
+              </React.Fragment>
+            ))}
+          </p>
+        );
+      })}
+    </>
   );
 }
 
@@ -673,24 +737,6 @@ export function RichEditor({
     [onChange],
   );
 
-  // Fallback por defecto: markdown plano estándar, igual que el
-  // comportamiento original. Se carga perezosamente (dynamic import)
-  // para no forzar esta dependencia en el bundle de editores que ya
-  // pasan su propio `renderPreview` (como EditorCapitulos).
-  const [fallbackHtml, setFallbackHtml] = useState("");
-  useEffect(() => {
-    if (renderPreview || mode === "edit") return;
-    let cancelled = false;
-    void import("@/components/forms/Markdown/markdownRenderer").then(
-      ({ renderMarkdown }) => {
-        if (!cancelled) setFallbackHtml(renderMarkdown(value));
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [renderPreview, mode, value]);
-
   const editorStyle: React.CSSProperties = {
     minHeight,
     flex: 1,
@@ -883,7 +929,6 @@ export function RichEditor({
               </div>
             ) : (
               <div
-                dangerouslySetInnerHTML={{ __html: fallbackHtml }}
                 className="prose-mundo"
                 style={{
                   flex: 1,
@@ -893,10 +938,9 @@ export function RichEditor({
                   lineHeight: 1.8,
                 }}
                 onClick={(e) => {
-                  // Mismo mecanismo que MarkdownPreviewWithSnippets del
-                  // MarkdownEditor viejo: renderMarkdown ya marca los
-                  // wikilinks con data-wikilink, acá solo conectamos el
-                  // click a onWikilinkNavigate.
+                  // Mismo mecanismo que antes: los wikilinks se marcan con
+                  // data-wikilink, acá solo conectamos el click a
+                  // onWikilinkNavigate.
                   const a = (e.target as HTMLElement).closest(
                     "a[data-wikilink]",
                   );
@@ -905,7 +949,9 @@ export function RichEditor({
                   const target = a.getAttribute("data-wikilink");
                   if (target) onWikilinkNavigate?.(target);
                 }}
-              />
+              >
+                <PlainMarkdownFallback value={value} />
+              </div>
             ))}
         </div>
       </LexicalComposer>
