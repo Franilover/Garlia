@@ -74,13 +74,39 @@ export function SelectorFechaMundo({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Calcular posición del dropdown al abrir y al hacer scroll/resize
+  // Calcular posición y ancho del dropdown al abrir y al hacer scroll/resize.
+  // El ancho ya NO se limita al ancho del trigger que lo abre (que puede ser
+  // angosto, ej. un campo de fecha en un formulario compacto): se calcula a
+  // partir de lo que el calendario necesita para mostrarse cómodo — columnas
+  // de día × partes de estación en paralelo (ej. "Florial 1 / Florial 2") —
+  // y se acota solo por el viewport.
   useEffect(() => {
     if (!open) return;
     const update = () => {
       const r = triggerRef.current?.getBoundingClientRect();
-      if (!r) return;
-      const dropdownWidth = Math.max(r.width, 280);
+      if (!r || !cal) return;
+
+      const maxPartesEnParalelo = Math.max(
+        1,
+        ...Object.values(
+          cal.estaciones.reduce<Record<string, number>>((acc, est) => {
+            const base = /\d+$/.test(est.nombre)
+              ? est.nombre.replace(/\s*\d+$/, "")
+              : `${est.nombre}__${est.id}`;
+            acc[base] = (acc[base] ?? 0) + 1;
+            return acc;
+          }, {}),
+        ),
+      );
+
+      const CELDA = 26; // ancho aprox. de cada botón de día
+      const anchoUnaParte = cal.config.dias_por_semana * CELDA + 16;
+      const contenido = maxPartesEnParalelo * anchoUnaParte + 10;
+      const dropdownWidth = Math.min(
+        Math.max(contenido, r.width, 300),
+        window.innerWidth - 16,
+      );
+
       let left = r.left;
       if (left + dropdownWidth > window.innerWidth - 8) {
         left = Math.max(8, window.innerWidth - dropdownWidth - 8);
@@ -100,7 +126,7 @@ export function SelectorFechaMundo({
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [open]);
+  }, [open, cal]);
 
   const fechaRaw =
     cal && value != null
