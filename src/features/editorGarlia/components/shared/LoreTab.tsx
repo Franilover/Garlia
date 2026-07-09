@@ -104,6 +104,7 @@ function DetalleEditor({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { confirm, ConfirmModal } = useConfirm();
   const { onWikilink } = useWikilink();
+  const prevCoords = useRef({ x: detalle.coord_x, y: detalle.coord_y });
   useEffect(() => {
     if (
       detalle.coord_x !== prevCoords.current.x ||
