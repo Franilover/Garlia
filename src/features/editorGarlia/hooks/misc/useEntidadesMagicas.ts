@@ -3,53 +3,35 @@
 /**
  * useEntidadesMagicas.ts
  * ────────────────────────
- * Catálogo de hechizos/dones/runas: Dexie primero, Supabase después,
- * sincronización local al final.
+ * Catálogo de hechizos/dones/runas.
+ *
+ * Migrado a useSupabaseData: reemplaza el Dexie+Supabase manual por el
+ * hook central (misma tabla dinámica según `modo`, mismo select de campos),
+ * ganando además sync offline en cola y realtime, que la versión anterior
+ * no tenía.
  *
  * Ruta destino:
  *   src/features/editorGarlia/hooks/useEntidadesMagicas.ts
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import { CONFIG, type EntidadMagica, type Modo } from "@/features/editorGarlia/components/magia/types";
-import { supabase } from "@/lib/api/client/supabase";
-import { dexieReadAll, dexieWriteAll } from "@/lib/utils/dexieHelpers";
-
+import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 export function useEntidadesMagicas(modo: Modo) {
-  const [items, setItems] = useState<EntidadMagica[]>([]);
-  const [loading, setLoading] = useState(true);
+  const tabla = CONFIG[modo].tabla;
+  const selectFields =
+    modo === "runas"
+      ? "id, nombre, explicacion, imagen_url, criatura_id"
+      : "id, nombre, explicacion, grupo_ids, imagen_url, criatura_id";
 
-  const load = useCallback(async () => {
-    const tabla = CONFIG[modo].tabla;
-    const selectFields =
-      modo === "runas"
-        ? "id, nombre, explicacion, imagen_url, criatura_id"
-        : "id, nombre, explicacion, grupo_ids, imagen_url, criatura_id";
+  const { data, setData, loading } = useSupabaseData<EntidadMagica>(tabla, {
+    select: selectFields,
+    order: { campo: "nombre" },
+  });
 
-    const local = await dexieReadAll<EntidadMagica>(tabla);
-    if (local.length) {
-      setItems(local);
-      setLoading(false);
-    }
+  const items = useMemo(() => data, [data]);
 
-    if (!navigator.onLine) {
-      if (!local.length) setLoading(false);
-      return;
-    }
-
-    setLoading(!local.length);
-    const { data } = await supabase.from(tabla).select(selectFields).order("nombre");
-    const result = (data ?? []) as unknown as EntidadMagica[];
-    setItems(result);
-    setLoading(false);
-    await dexieWriteAll(tabla, result);
-  }, [modo]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  return { items, setItems, loading };
+  return { items, setItems: setData, loading };
 }
