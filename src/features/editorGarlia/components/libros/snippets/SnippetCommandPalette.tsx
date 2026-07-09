@@ -266,7 +266,7 @@ const S = {
     color: "color-mix(in srgb, var(--foreground, #fff) 35%, transparent)",
     marginBottom: 4,
   } as React.CSSProperties,
-  selectedPill: (_color: string): React.CSSProperties => ({
+  selectedPill: (_color?: string): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
     gap: 8,
@@ -305,13 +305,11 @@ function flattenTree(
 
 function FormHeader({
   label,
-  icon,
-  color,
+  Icon,
   onBack,
 }: {
   label: string;
-  icon: string;
-  color: string;
+  Icon: typeof Swords;
   onBack: () => void;
 }) {
   return (
@@ -321,20 +319,19 @@ function FormHeader({
       </button>
       <span
         style={{
-          ...S.iconBox(color),
+          ...S.iconBox(),
           width: 22,
           height: 22,
-          fontSize: 11,
           borderRadius: 6,
         }}
       >
-        {icon}
+        <Icon size={12} />
       </span>
       <span
         style={{
           fontSize: 11,
-          fontWeight: 800,
-          color,
+          fontWeight: 500,
+          color: "color-mix(in srgb, var(--foreground, #fff) 55%, transparent)",
           textTransform: "uppercase" as const,
           letterSpacing: ".08em",
         }}
@@ -449,7 +446,7 @@ function FormDrop({
     const cfg = TIPO_CFG[selected.tipo];
     return (
       <>
-        <FormHeader color="#a09af0" icon="⚔" label="Drop" onBack={onBack} />
+        <FormHeader Icon={Swords} label="Drop" onBack={onBack} />
         <div
           style={{
             padding: "10px 12px",
@@ -521,7 +518,7 @@ function FormDrop({
 
   return (
     <>
-      <FormHeader color="#a09af0" icon="⚔" label="Drop" onBack={onBack} />
+      <FormHeader Icon={Swords} label="Drop" onBack={onBack} />
       <div style={{ padding: "10px 12px 6px" }}>
         <input
           ref={inputRef}
@@ -627,7 +624,7 @@ function FormChoice({
 
   return (
     <>
-      <FormHeader color="#5aabf5" icon="🔀" label="Choice" onBack={onBack} />
+      <FormHeader Icon={GitBranch} label="Choice" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -661,12 +658,12 @@ function FormChoice({
                     marginBottom: 2,
                     border:
                       target === sec.id
-                        ? "1px solid color-mix(in srgb,#5aabf5 40%,transparent)"
+                        ? "1px solid color-mix(in srgb, var(--foreground, #fff) 30%, transparent)"
                         : "1px solid transparent",
                   }}
                   onClick={() => setTarget(sec.id)}
                 >
-                  <span style={S.iconBox("#5aabf5")}>›</span>
+                  <span style={S.iconBox()}><Bookmark size={11} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={S.label}>{sec.label || sec.id}</div>
                     <div
@@ -750,7 +747,7 @@ function FormSection({
 
   return (
     <>
-      <FormHeader color="#8b83e8" icon="›" label="Sección" onBack={onBack} />
+      <FormHeader Icon={Bookmark} label="Sección" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -883,7 +880,7 @@ function FormUse({
 
   return (
     <>
-      <FormHeader color="#f07574" icon="👆" label="Use Ítem" onBack={onBack} />
+      <FormHeader Icon={MousePointerClick} label="Use Ítem" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -937,15 +934,15 @@ function FormUse({
                   onClick={() => setItem(it)}
                   onMouseEnter={() => setActive(i)}
                 >
-                  <span style={S.iconBox("#f07574")}>👆</span>
+                  <span style={S.iconBox()}><MousePointerClick size={11} /></span>
                   <span style={S.label}>{it.nombre}</span>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div style={S.selectedPill("#f07574")}>
-            <span style={S.iconBox("#f07574")}>👆</span>
+          <div style={S.selectedPill()}>
+            <span style={S.iconBox()}><MousePointerClick size={11} /></span>
             <span style={{ ...S.label, flex: 1 }}>{item.nombre}</span>
             <button
               style={{
@@ -1034,7 +1031,7 @@ function FormGate({
 
   return (
     <>
-      <FormHeader color="#e09a2a" icon="🚪" label="Gate" onBack={onBack} />
+      <FormHeader Icon={DoorOpen} label="Gate" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -1079,15 +1076,15 @@ function FormGate({
                   onClick={() => setItem(it)}
                   onMouseEnter={() => setActive(i)}
                 >
-                  <span style={S.iconBox("#e09a2a")}>🚪</span>
+                  <span style={S.iconBox()}><DoorOpen size={11} /></span>
                   <span style={S.label}>{it.nombre}</span>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div style={S.selectedPill("#e09a2a")}>
-            <span style={S.iconBox("#e09a2a")}>🚪</span>
+          <div style={S.selectedPill()}>
+            <span style={S.iconBox()}><DoorOpen size={11} /></span>
             <span style={{ ...S.label, flex: 1 }}>{item.nombre}</span>
             <button
               style={{
@@ -1211,7 +1208,7 @@ function FormImagen({
 
   return (
     <>
-      <FormHeader color="#2dc896" icon="🖼" label="Imagen" onBack={onBack} />
+      <FormHeader Icon={ImageIcon} label="Imagen" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -1231,17 +1228,17 @@ function FormImagen({
                 padding: "6px",
                 borderRadius: 7,
                 cursor: "pointer",
-                border: `1px solid color-mix(in srgb,#2dc896 ${mode === m ? 40 : 15}%,transparent)`,
+                border: `1px solid color-mix(in srgb, var(--foreground, #fff) ${mode === m ? 30 : 10}%, transparent)`,
                 fontSize: 10,
                 fontWeight: 800,
                 textTransform: "uppercase" as const,
                 background:
                   mode === m
-                    ? "color-mix(in srgb,#2dc896 18%,transparent)"
+                    ? "color-mix(in srgb, var(--foreground, #fff) 8%, transparent)"
                     : "none",
                 color:
                   mode === m
-                    ? "#2dc896"
+                    ? "var(--foreground, #fff)"
                     : "color-mix(in srgb,var(--foreground) 35%,transparent)",
               }}
               onClick={() => setMode(m)}
@@ -1306,7 +1303,7 @@ function FormImagen({
             ))}
           </div>
         ) : (
-          <div style={S.selectedPill("#2dc896")}>
+          <div style={S.selectedPill()}>
             <Image
               alt=""
               src={selected}
@@ -1442,7 +1439,7 @@ function FormSound({
 
   return (
     <>
-      <FormHeader color="#e87aaa" icon="♪" label="Sonido" onBack={onBack} />
+      <FormHeader Icon={Music2} label="Sonido" onBack={onBack} />
       <div
         style={{
           padding: "10px 12px",
@@ -1487,7 +1484,7 @@ function FormSound({
                 ...S.row(i === active || selected === f.url),
                 border:
                   selected === f.url
-                    ? "1px solid color-mix(in srgb,#e87aaa 35%,transparent)"
+                    ? "1px solid color-mix(in srgb, var(--foreground, #fff) 30%, transparent)"
                     : "1px solid transparent",
                 borderRadius: 6,
                 marginBottom: 2,
@@ -1497,7 +1494,7 @@ function FormSound({
             >
               <button
                 style={{
-                  ...S.iconBox("#e87aaa"),
+                  ...S.iconBox(),
                   cursor: "pointer",
                   border: "none",
                   flexShrink: 0,
@@ -1535,7 +1532,7 @@ function FormSound({
               step="0.1"
               style={{
                 width: "100%",
-                accentColor: "#e87aaa",
+                accentColor: "var(--foreground, #7c7c7c)",
                 cursor: "pointer",
               }}
               type="range"
