@@ -24,7 +24,7 @@
 import { CodeNode } from "@lexical/code";
 import { LinkNode } from "@lexical/link";
 import { ListNode, ListItemNode } from "@lexical/list";
-import { TRANSFORMERS } from "@lexical/markdown";
+import { LINEBREAK, TRANSFORMERS } from "@lexical/markdown";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -773,7 +773,7 @@ export function RichEditor({
                   </div>
                 }
               />
-              <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
+              <MarkdownShortcutPlugin transformers={[LINEBREAK, ...TRANSFORMERS]} />
               <HistoryPlugin />
               {autoFocus && <AutoFocusPlugin />}
               <InitialContentPlugin

@@ -22,7 +22,11 @@
  */
 import { $isCodeNode } from "@lexical/code";
 import { $isListNode, $isListItemNode } from "@lexical/list";
-import { $convertFromMarkdownString, TRANSFORMERS } from "@lexical/markdown";
+import {
+  $convertFromMarkdownString,
+  LINEBREAK,
+  TRANSFORMERS,
+} from "@lexical/markdown";
 import { $isHeadingNode, $isQuoteNode } from "@lexical/rich-text";
 import {
   $isTableNode,
@@ -35,7 +39,8 @@ import type {
 import {
   $createTextNode,
   $getRoot,
-  $insertNodes
+  $insertNodes,
+  $isLineBreakNode,
 } from "lexical";
 
 import {
@@ -237,7 +242,19 @@ export function rawTextToLexicalTree(raw: string): void {
   // 4) Una sola conversión de markdown → árbol Lexical real (listas,
   // headings, bold, italic, etc. — todo lo que MarkdownShortcutPlugin
   // aplicaría si el usuario lo tipeara a mano).
-  $convertFromMarkdownString(working, TRANSFORMERS);
+  //
+  // IMPORTANTE — saltos de línea simples: $convertFromMarkdownString
+  // sigue la spec de Markdown, donde un solo "\n" dentro de un párrafo
+  // NO es un salto de línea (se junta con la línea siguiente) — solo una
+  // línea en blanco separa párrafos. Eso hacía desaparecer los saltos de
+  // línea simples que el usuario escribe con Enter. Para preservarlos,
+  // convertimos cada "\n" simple (uno solo, no parte de una línea en
+  // blanco) en un hard-break markdown ("  \n" — dos espacios + salto),
+  // que el transformer LINEBREAK sí interpreta como salto de línea real
+  // dentro del mismo párrafo.
+  working = working.replace(/([^\n])\n(?!\n)/g, "$1  \n");
+
+  $convertFromMarkdownString(working, [LINEBREAK, ...TRANSFORMERS]);
 
   if (registry.size === 0) return; // nada que resolver — atajo común
 
@@ -400,6 +417,7 @@ export function serializeRootToRaw(): string {
     if ($isSectionNode(node)) return sectionPayloadToRaw(node.getPayload());
     if ($isWikilinkNode(node)) return wikilinkPayloadToRaw(node.getPayload());
     if ($isTableNode(node)) return serializeTableNode(node, walkNode);
+    if ($isLineBreakNode(node)) return "\n";
 
     if (node.getType() === "text") {
       return (node as any).getTextContent();
@@ -483,7 +501,7 @@ export function serializeRootToRaw(): string {
     lines.push(serializeBlock(child));
   }
 
-  return lines.join("\n").trim();
+  return lines.join("\n");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

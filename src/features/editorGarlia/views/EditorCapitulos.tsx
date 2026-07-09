@@ -1052,7 +1052,7 @@ const PanelEditor = ({
                 editable={!loading && initializedCapId === cap?.id}
                 insertRef={mdInsertRef}
                 minHeight={focusMode ? "30rem" : "20rem"}
-                mode="edit"
+                mode={focusMode ? "split" : "edit"}
                 placeholder="Empieza a escribir…"
                 renderPreview={renderChapterPreview}
                 value={contenido}
