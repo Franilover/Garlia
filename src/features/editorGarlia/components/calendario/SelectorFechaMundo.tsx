@@ -6,20 +6,17 @@
  * Selector de fecha del calendario del mundo: muestra la fecha legible y
  * al hacer click abre un editor inline (año/estación/día) en un portal.
  *
- * Rediseño (v2): mismo contrato de props y misma lógica de conversión de
- * fechas que antes — lo que cambia es la presentación:
- *   - Trigger con ícono de calendario y estado hover/focus más claro.
- *   - El panel abre con una animación breve de fade + scale (mount state).
- *   - Cabecera FIJA (sticky) con la fecha resultante en grande, en vivo,
- *     mientras se edita — así siempre se ve el resultado sin scrollear.
- *   - Selector de año como "stepper" con feedback visual más fuerte.
- *   - Estaciones como tarjetas con un acento de color por estación
- *     (derivado de forma determinística de su nombre) para ubicarse de
- *     un vistazo.
- *   - Grilla de días con botones circulares, mejor contraste de
- *     seleccionado/hoy-de-la-estación y accesos rápidos (+7/-7, primer/
- *     último día de la estación).
- *   - Pie FIJO (sticky) con Limpiar / Confirmar, siempre visible.
+ * Rediseño (v3): foco 100% en velocidad, sin scroll y sin clicks de más.
+ *   - Un solo click elige el día Y CONFIRMA (ya no hay botón "Confirmar"
+ *     aparte — clickear un día es la acción final).
+ *   - Año y estación en una sola fila compacta arriba de la grilla de
+ *     días, sin secciones separadas ni encabezados repetidos.
+ *   - Todo el panel es lo bastante compacto para no necesitar scroll
+ *     interno con calendarios de hasta ~8 estaciones / ~40 días —
+ *     conserva overflow como red de seguridad para calendarios enormes,
+ *     pero deja de ser el flujo esperado.
+ *   - Solo colores del tema (var(--primary), var(--accent), var(--bg-main));
+ *     nada de paletas propias por estación.
  *
  * Incluye FechaMundoEditor como componente privado (solo lo usa este
  * selector, no se exporta).
@@ -27,15 +24,7 @@
  * Ruta: src/features/editorGarlia/components/calendario/SelectorFechaMundo.tsx
  */
 
-import {
-  CalendarDays,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  X,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -51,28 +40,6 @@ import {
   formatFechaCorta,
 } from "@/lib/utils/calendario";
 
-// ─── Acento de color por estación ──────────────────────────────────────────────
-// Determinístico a partir del nombre base (sin importar el orden), para que
-// cada estación tenga siempre el mismo color entre renders/pantallas.
-const ACENTOS_ESTACION = [
-  "#f59e0b", // ámbar
-  "#22c55e", // verde
-  "#3b82f6", // azul
-  "#ec4899", // rosa
-  "#a855f7", // violeta
-  "#14b8a6", // teal
-  "#ef4444", // rojo
-  "#84cc16", // lima
-];
-
-function acentoParaNombre(nombre: string): string {
-  let hash = 0;
-  for (let i = 0; i < nombre.length; i++) {
-    hash = (hash * 31 + nombre.charCodeAt(i)) >>> 0;
-  }
-  return ACENTOS_ESTACION[hash % ACENTOS_ESTACION.length];
-}
-
 // value: día absoluto | null
 // onChange: devuelve el nuevo día absoluto
 export function SelectorFechaMundo({
@@ -86,9 +53,6 @@ export function SelectorFechaMundo({
 }) {
   const { cal, loading } = useCalendario();
   const [open, setOpen] = useState(false);
-  // Estado separado para animar la salida: el portal sigue montado un
-  // instante más mientras la transición de opacidad/escala se completa.
-  const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{
@@ -98,23 +62,17 @@ export function SelectorFechaMundo({
   } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const closeAnimado = () => {
-    setVisible(false);
-    window.setTimeout(() => setOpen(false), 120);
-  };
-
   // Cerrar al click fuera (incluye el dropdown en portal)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
       if (ref.current?.contains(target)) return;
       if (dropdownRef.current?.contains(target)) return;
-      if (open) closeAnimado();
+      setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, []);
 
   // Calcular posición del dropdown al abrir y al hacer scroll/resize
   useEffect(() => {
@@ -123,14 +81,12 @@ export function SelectorFechaMundo({
       const r = triggerRef.current?.getBoundingClientRect();
       if (!r) return;
       const dropdownWidth = Math.max(r.width, 280);
-      // Evitar que se salga por la derecha
       let left = r.left;
       if (left + dropdownWidth > window.innerWidth - 8) {
         left = Math.max(8, window.innerWidth - dropdownWidth - 8);
       }
-      // Si no hay espacio abajo, abrir hacia arriba
       const spaceBelow = window.innerHeight - r.bottom;
-      const estimatedHeight = 460;
+      const estimatedHeight = 340;
       const top =
         spaceBelow < estimatedHeight && r.top > estimatedHeight
           ? r.top - estimatedHeight - 4
@@ -146,23 +102,11 @@ export function SelectorFechaMundo({
     };
   }, [open]);
 
-  // Disparar la animación de entrada en el frame siguiente al montar.
-  useEffect(() => {
-    if (!open) return;
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, [open]);
-
   const fechaRaw =
     cal && value != null
       ? diaAbsolutoAFecha(value, cal.estaciones, cal.config)
       : null;
-  // Si el día absoluto cae fuera de cualquier estación definida (datos viejos
-  // o calendario incompleto), diaAbsolutoAFecha puede devolver `estacion`
-  // como undefined. En ese caso tratamos la fecha como inválida para no
-  // romper formatFechaCorta / formatFechaMundo.
   const fecha = fechaRaw && fechaRaw.estacion ? fechaRaw : null;
-  const acentoActual = fecha ? acentoParaNombre(fecha.estacion.nombre) : null;
 
   return (
     <div ref={ref} className="relative">
@@ -172,26 +116,18 @@ export function SelectorFechaMundo({
         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left transition-all"
         style={{
           background: open
-            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
-            : "color-mix(in srgb, var(--primary) 2%, transparent)",
+            ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+            : "transparent",
           borderColor: open
-            ? "color-mix(in srgb, var(--accent) 35%, transparent)"
+            ? "color-mix(in srgb, var(--primary) 22%, transparent)"
             : "color-mix(in srgb, var(--primary) 12%, transparent)",
-          boxShadow: open
-            ? "0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)"
-            : "none",
         }}
         type="button"
-        onClick={() => (open ? closeAnimado() : setOpen(true))}
+        onClick={() => setOpen((v) => !v)}
       >
         <CalendarDays
-          className="shrink-0"
+          className="shrink-0 text-primary/30"
           size={11}
-          style={{
-            color: fecha
-              ? (acentoActual as string)
-              : "color-mix(in srgb, var(--primary) 30%, transparent)",
-          }}
         />
         {loading ? (
           <Loader2 className="animate-spin text-primary/30" size={9} />
@@ -206,11 +142,6 @@ export function SelectorFechaMundo({
             {placeholder}
           </span>
         )}
-        <ChevronDown
-          className="shrink-0 text-primary/25 transition-transform duration-150"
-          size={9}
-          style={{ transform: open ? "rotate(180deg)" : undefined }}
-        />
       </button>
 
       {/* Dropdown — renderizado en portal para no quedar cortado por contenedores con overflow */}
@@ -221,18 +152,14 @@ export function SelectorFechaMundo({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[9999] rounded-2xl border shadow-xl overflow-hidden flex flex-col transition-all duration-150 ease-out"
+            className="fixed z-[9999] rounded-xl border shadow-lg overflow-hidden"
             style={{
               top: pos.top,
               left: pos.left,
               width: pos.width,
-              maxHeight: "min(460px, calc(100vh - 16px))",
+              maxHeight: "calc(100vh - 16px)",
               background: "var(--bg-main)",
               borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              opacity: visible ? 1 : 0,
-              transform: visible
-                ? "translateY(0) scale(1)"
-                : "translateY(-4px) scale(0.98)",
             }}
           >
             <FechaMundoEditor
@@ -242,17 +169,16 @@ export function SelectorFechaMundo({
               value={value}
               onChange={(dia) => {
                 onChange(dia);
-                closeAnimado();
+                setOpen(false);
               }}
               onClear={
                 value != null
                   ? () => {
                       onChange(null);
-                      closeAnimado();
+                      setOpen(false);
                     }
                   : undefined
               }
-              onRequestClose={closeAnimado}
             />
           </div>,
           document.body,
@@ -262,9 +188,9 @@ export function SelectorFechaMundo({
 }
 
 // ─── FechaMundoEditor ─────────────────────────────────────────────────────────
-// Editor: selecciona año, estación y día. Cabecera y pie sticky para que el
-// resultado y las acciones nunca queden fuera de vista. Privado — solo lo
-// usa SelectorFechaMundo, por eso no se exporta.
+// Editor compacto: año + estación en una fila, grilla de días debajo.
+// Clickear un día CONFIRMA directamente (sin paso extra). Privado — solo
+// lo usa SelectorFechaMundo, por eso no se exporta.
 function FechaMundoEditor({
   value,
   estaciones,
@@ -272,7 +198,6 @@ function FechaMundoEditor({
   eras: _eras,
   onChange,
   onClear,
-  onRequestClose,
 }: {
   value: number | null;
   estaciones: Estacion[];
@@ -280,24 +205,19 @@ function FechaMundoEditor({
   eras: EraMundo[];
   onChange: (dia: number) => void;
   onClear?: () => void;
-  onRequestClose: () => void;
 }) {
   const estOrdenadas = [...estaciones].sort((a, b) => a.orden - b.orden);
 
   // ─── Agrupar estaciones por nombre base ──────────────────────────────────
   // "Florial1" / "Florial2" → grupo "Florial" con 2 partes (mostradas como
-  // dos calendarios lado a lado). Los nombres SIN sufijo numérico (ej.
-  // "Sivial") quedan cada uno en su propio grupo, aunque se repitan —
-  // representan estaciones distintas del calendario (una a mitad de año,
-  // otra al final), no dos mitades de la misma.
+  // dos calendarios lado a lado). Los nombres SIN sufijo numérico quedan
+  // cada uno en su propio grupo, aunque se repitan.
   type GrupoEstacion = { nombre: string; partes: Estacion[] };
   const gruposEstacion: GrupoEstacion[] = [];
   {
     const porNombreBase = new Map<string, Estacion[]>();
     for (const est of estOrdenadas) {
       const tieneSufijo = /\d+$/.test(est.nombre);
-      // Clave única: si no tiene sufijo numérico, cada estación es su propio
-      // grupo (usamos su id para no fusionar duplicados de nombre).
       const base = tieneSufijo
         ? est.nombre.replace(/\s*\d+$/, "")
         : `${est.nombre}__${est.id}`;
@@ -305,7 +225,6 @@ function FechaMundoEditor({
       arr.push(est);
       porNombreBase.set(base, arr);
     }
-    // Mantener el orden de aparición original
     const vistos = new Set<string>();
     for (const est of estOrdenadas) {
       const tieneSufijo = /\d+$/.test(est.nombre);
@@ -322,7 +241,6 @@ function FechaMundoEditor({
   const grupoDeEstacion = (orden: number) =>
     gruposEstacion.find((g) => g.partes.some((p) => p.orden === orden));
 
-  // Estado inicial desde value
   const inicial =
     value != null ? diaAbsolutoAFecha(value, estaciones, config) : null;
 
@@ -333,394 +251,188 @@ function FechaMundoEditor({
   const [estOrden, setEstOrden] = useState(
     inicial?.estacion?.orden ?? estOrdenadas[0]?.orden ?? 1,
   );
-  const [diaEnEst, setDiaEnEst] = useState(inicial?.dia_en_estacion ?? 1);
-  const [diaEnEstStr, setDiaEnEstStr] = useState(
-    String(inicial?.dia_en_estacion ?? 1),
-  );
+  const [parteActiva, setParteActiva] = useState(estOrden);
 
   const estSel =
-    estOrdenadas.find((e) => e.orden === estOrden) ?? estOrdenadas[0];
-  const grupoActual = grupoDeEstacion(estOrden) ?? gruposEstacion[0];
-  const acentoSel = acentoParaNombre(grupoActual?.nombre ?? estSel.nombre);
+    estOrdenadas.find((e) => e.orden === parteActiva) ?? estOrdenadas[0];
+  const grupoActual = grupoDeEstacion(parteActiva) ?? gruposEstacion[0];
+  const diaSeleccionado =
+    inicial && inicial.anio === anio && inicial.estacion?.orden === parteActiva
+      ? inicial.dia_en_estacion
+      : null;
 
-  const semana = Math.floor((diaEnEst - 1) / config.dias_por_semana) + 1;
-  const diaEnSemana = ((diaEnEst - 1) % config.dias_por_semana) + 1;
-  const totalSemanas = Math.ceil(estSel.duracion_dias / config.dias_por_semana);
-
-  // Vista previa en vivo del resultado, según el estado actual del editor
-  // (no hace falta confirmar para verla — se actualiza con cada click).
-  const diaClamp = Math.max(1, Math.min(diaEnEst, estSel.duracion_dias));
-  const previewFecha = diaAbsolutoAFecha(
-    fechaADiaAbsoluto(
-      { anio, estacion_orden: estOrden, dia_en_estacion: diaClamp },
-      estaciones,
-      config,
-    ),
-    estaciones,
-    config,
-  );
-
-  const handleConfirm = () => {
-    const dia = fechaADiaAbsoluto(
-      {
-        anio,
-        estacion_orden: estOrden,
-        dia_en_estacion: diaClamp,
-      },
+  // Confirma directo: un click en un día ES la acción completa.
+  const elegirDia = (estacionOrden: number, dia: number) => {
+    const diaAbsoluto = fechaADiaAbsoluto(
+      { anio, estacion_orden: estacionOrden, dia_en_estacion: dia },
       estaciones,
       config,
     );
-    onChange(dia);
+    onChange(diaAbsoluto);
   };
 
-  const irADia = (dia: number) => {
-    const clamped = Math.max(1, Math.min(dia, estSel.duracion_dias));
-    setDiaEnEst(clamped);
-    setDiaEnEstStr(String(clamped));
+  const commitAnio = () => {
+    const n = parseInt(anioStr, 10);
+    if (!isNaN(n)) setAnio(n);
+    else setAnioStr(String(anio));
   };
 
   return (
-    <div className="flex flex-col min-h-0">
-      {/* Cabecera fija: vista previa en vivo del resultado */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          background: `color-mix(in srgb, ${acentoSel} 7%, var(--bg-main))`,
-        }}
-      >
-        <span
-          className="shrink-0 w-2 h-2 rounded-full"
-          style={{ background: acentoSel }}
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-micro font-black text-primary truncate">
-            {formatFechaCorta(previewFecha)}
-          </p>
-          <p className="text-micro text-primary/35">
-            Semana {semana} de {totalSemanas} · Día {diaEnSemana} de{" "}
-            {config.dias_por_semana}
-          </p>
-        </div>
+    <div className="p-2.5 space-y-2">
+      {/* Año + Estación en una sola fila — sin secciones separadas */}
+      <div className="flex items-center gap-1.5">
         <button
-          className="shrink-0 flex items-center justify-center w-5 h-5 rounded-md text-primary/30 hover:text-primary transition-colors"
+          className="flex items-center justify-center w-6 h-6 rounded-md border shrink-0 transition-colors"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "var(--primary)",
+          }}
           type="button"
-          onClick={onRequestClose}
+          onClick={() => {
+            const v = anio - 1;
+            setAnio(v);
+            setAnioStr(String(v));
+          }}
         >
-          <X size={12} />
+          <ChevronLeft size={11} />
         </button>
-      </div>
+        <input
+          className="w-14 text-center rounded-md border px-1 py-1 text-micro font-black outline-none shrink-0"
+          style={{
+            background: "transparent",
+            borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+            color: "var(--primary)",
+          }}
+          type="number"
+          value={anioStr}
+          onChange={(e) => setAnioStr(e.target.value)}
+          onBlur={commitAnio}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+        />
+        <button
+          className="flex items-center justify-center w-6 h-6 rounded-md border shrink-0 transition-colors"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            color: "var(--primary)",
+          }}
+          type="button"
+          onClick={() => {
+            const v = anio + 1;
+            setAnio(v);
+            setAnioStr(String(v));
+          }}
+        >
+          <ChevronRight size={11} />
+        </button>
 
-      {/* Contenido scrolleable */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3.5">
-        {/* Año */}
-        <div className="space-y-1">
-          <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
-            Año
-          </label>
-          <div className="flex items-center gap-1.5">
-            <button
-              className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all active:scale-95"
-              style={{
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              }}
-              type="button"
-              onClick={() => {
-                const v = anio - 1;
-                setAnio(v);
-                setAnioStr(String(v));
-              }}
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <input
-              className="flex-1 text-center rounded-lg border px-2 py-1.5 text-sm font-black outline-none transition-all"
-              style={{
-                background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-                borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-                color: "var(--primary)",
-              }}
-              type="number"
-              value={anioStr}
-              onChange={(e) => {
-                setAnioStr(e.target.value);
-                const n = parseInt(e.target.value, 10);
-                if (!isNaN(n)) setAnio(n);
-              }}
-            />
-            <button
-              className="flex items-center justify-center w-7 h-7 rounded-lg border transition-all active:scale-95"
-              style={{
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                color: "var(--primary)",
-              }}
-              type="button"
-              onClick={() => {
-                const v = anio + 1;
-                setAnio(v);
-                setAnioStr(String(v));
-              }}
-            >
-              <ChevronRight size={12} />
-            </button>
-          </div>
-        </div>
+        <div className="w-px h-5 shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
 
-        {/* Estación */}
-        <div className="space-y-1">
-          <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
-            Estación
-          </label>
-          <div
-            className="grid gap-1.5"
-            style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-          >
-            {gruposEstacion.map((grupo) => {
-              const activo = grupo.partes.some((p) => p.orden === estOrden);
-              const totalDias = grupo.partes.reduce(
-                (s, p) => s + p.duracion_dias,
-                0,
-              );
-              const acento = acentoParaNombre(grupo.nombre);
-              return (
-                <button
-                  key={grupo.nombre}
-                  className="relative px-2 py-1.5 rounded-lg border text-center transition-all overflow-hidden active:scale-95"
-                  style={{
-                    background: activo
-                      ? `color-mix(in srgb, ${acento} 14%, transparent)`
-                      : "color-mix(in srgb, var(--primary) 2%, transparent)",
-                    borderColor: activo
-                      ? `color-mix(in srgb, ${acento} 45%, transparent)`
-                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    color: activo
-                      ? acento
-                      : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  }}
-                  type="button"
-                  onClick={() => {
-                    const primera = grupo.partes[0];
-                    setEstOrden(primera.orden);
-                    setDiaEnEst(1);
-                    setDiaEnEstStr("1");
-                  }}
-                >
-                  <span
-                    className="absolute left-0 top-0 bottom-0 w-0.5"
-                    style={{ background: activo ? acento : "transparent" }}
-                  />
-                  <div className="text-micro font-black uppercase tracking-wide">
-                    {grupo.nombre}
-                  </div>
-                  <div className="text-micro opacity-60">{totalDias}d</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Semana / día */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <label className="text-micro font-black uppercase tracking-[0.18em] text-primary/35">
-              Día
-            </label>
-            <div className="flex items-center gap-1">
+        {/* Estaciones: fila compacta que envuelve si no entra */}
+        <div className="flex-1 min-w-0 flex flex-wrap gap-1">
+          {gruposEstacion.map((grupo) => {
+            const activo = grupo.partes.some((p) => p.orden === parteActiva);
+            return (
               <button
-                className="text-micro font-bold px-1.5 py-0.5 rounded transition-colors"
-                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                key={grupo.nombre}
+                className="px-1.5 py-1 rounded-md text-micro font-black uppercase tracking-wide transition-colors"
+                style={{
+                  background: activo
+                    ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  color: activo
+                    ? "var(--accent)"
+                    : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
                 type="button"
-                onClick={() => irADia(1)}
+                onClick={() => setParteActiva(grupo.partes[0].orden)}
               >
-                Primero
+                {grupo.nombre}
               </button>
-              <span className="text-primary/15">·</span>
-              <button
-                className="text-micro font-bold px-1.5 py-0.5 rounded transition-colors"
-                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                type="button"
-                onClick={() => irADia(estSel.duracion_dias)}
-              >
-                Último
-              </button>
-            </div>
-          </div>
-
-          {/* Grid(s) de días — uno por cada parte del grupo (ej. Florial 1 / Florial 2) */}
-          <div
-            className="grid gap-1.5"
-            style={{
-              gridTemplateColumns: `repeat(${grupoActual.partes.length}, 1fr)`,
-            }}
-          >
-            {grupoActual.partes.map((parte, idx) => {
-              const esActiva = parte.orden === estOrden;
-              return (
-                <div
-                  key={parte.id}
-                  className="rounded-lg border overflow-hidden"
-                  style={{
-                    borderColor: esActiva
-                      ? `color-mix(in srgb, ${acentoSel} 35%, transparent)`
-                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  }}
-                >
-                  {/* Etiqueta de la parte (solo si hay más de una) */}
-                  {grupoActual.partes.length > 1 && (
-                    <div
-                      className="text-center py-0.5 text-micro font-black uppercase tracking-widest"
-                      style={{
-                        background: esActiva
-                          ? `color-mix(in srgb, ${acentoSel} 10%, transparent)`
-                          : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                        color: esActiva
-                          ? acentoSel
-                          : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      }}
-                    >
-                      {grupoActual.nombre} {idx + 1}
-                    </div>
-                  )}
-                  {/* Cabecera de días de semana */}
-                  <div
-                    className="grid border-b"
-                    style={{
-                      gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)`,
-                      borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                    }}
-                  >
-                    {Array.from({ length: config.dias_por_semana }, (_, i) => (
-                      <div
-                        key={i}
-                        className="text-center py-1 text-micro font-black uppercase tracking-widest text-primary/25"
-                      >
-                        D{i + 1}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Días */}
-                  <div
-                    className="grid p-1.5 gap-1"
-                    style={{
-                      gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)`,
-                    }}
-                  >
-                    {Array.from({ length: parte.duracion_dias }, (_, i) => {
-                      const dia = i + 1;
-                      const selected = esActiva && dia === diaEnEst;
-                      return (
-                        <button
-                          key={dia}
-                          className="aspect-square rounded-full flex items-center justify-center text-micro font-bold transition-all active:scale-90"
-                          style={{
-                            background: selected
-                              ? acentoSel
-                              : "transparent",
-                            color: selected
-                              ? "white"
-                              : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                            fontWeight: selected ? 900 : undefined,
-                            boxShadow: selected
-                              ? `0 0 0 3px color-mix(in srgb, ${acentoSel} 20%, transparent)`
-                              : undefined,
-                          }}
-                          type="button"
-                          onClick={() => {
-                            setEstOrden(parte.orden);
-                            setDiaEnEst(dia);
-                            setDiaEnEstStr(String(dia));
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!selected)
-                              (e.currentTarget as HTMLButtonElement).style.background =
-                                "color-mix(in srgb, var(--primary) 6%, transparent)";
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!selected)
-                              (e.currentTarget as HTMLButtonElement).style.background =
-                                "transparent";
-                          }}
-                        >
-                          {dia}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Input directo + pasos rápidos ±7 */}
-          <div className="flex items-center gap-1 pt-0.5">
-            <button
-              className="text-micro font-bold px-1.5 py-0.5 rounded transition-colors"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              type="button"
-              onClick={() => irADia(diaEnEst - 7)}
-            >
-              −7
-            </button>
-            <input
-              className="w-14 rounded-lg border px-2 py-0.5 text-micro font-black text-center outline-none"
-              max={estSel.duracion_dias}
-              min={1}
-              style={{
-                background: "transparent",
-                borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-                color: "var(--primary)",
-              }}
-              type="number"
-              value={diaEnEstStr}
-              onChange={(e) => {
-                setDiaEnEstStr(e.target.value);
-                const n = parseInt(e.target.value, 10);
-                if (!isNaN(n) && n >= 1 && n <= estSel.duracion_dias)
-                  setDiaEnEst(n);
-              }}
-            />
-            <span className="text-micro text-primary/25">/ {estSel.duracion_dias}</span>
-            <button
-              className="text-micro font-bold px-1.5 py-0.5 rounded transition-colors"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              type="button"
-              onClick={() => irADia(diaEnEst + 7)}
-            >
-              +7
-            </button>
-          </div>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Pie fijo: acciones */}
-      <div
-        className="shrink-0 flex gap-1.5 p-2.5 border-t"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-      >
         {onClear && (
           <button
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-micro font-black uppercase tracking-widest transition-all active:scale-95"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
+            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-primary/30 hover:text-primary transition-colors"
+            title="Quitar fecha"
             type="button"
             onClick={onClear}
           >
-            <X size={8} /> Limpiar
+            <X size={11} />
           </button>
         )}
-        <button
-          className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-micro font-black uppercase tracking-widest transition-all active:scale-95"
-          style={{ background: acentoSel, color: "white" }}
-          type="button"
-          onClick={handleConfirm}
-        >
-          <Check size={9} /> Confirmar
-        </button>
+      </div>
+
+      {/* Partes de la estación activa (ej. Florial 1 / Florial 2) lado a lado */}
+      <div
+        className="grid gap-1.5"
+        style={{
+          gridTemplateColumns: `repeat(${grupoActual.partes.length}, 1fr)`,
+        }}
+      >
+        {grupoActual.partes.map((parte, idx) => {
+          const esActiva = parte.orden === parteActiva;
+          return (
+            <div
+              key={parte.id}
+              className="rounded-lg overflow-hidden"
+              style={{
+                background: esActiva
+                  ? "color-mix(in srgb, var(--primary) 3%, transparent)"
+                  : "transparent",
+              }}
+            >
+              {grupoActual.partes.length > 1 && (
+                <button
+                  className="w-full text-center py-0.5 text-micro font-black uppercase tracking-widest transition-colors"
+                  style={{
+                    color: esActiva
+                      ? "var(--accent)"
+                      : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                  }}
+                  type="button"
+                  onClick={() => setParteActiva(parte.orden)}
+                >
+                  {grupoActual.nombre} {idx + 1}
+                </button>
+              )}
+              <div
+                className="grid gap-0.5 p-1"
+                style={{
+                  gridTemplateColumns: `repeat(${config.dias_por_semana}, 1fr)`,
+                }}
+              >
+                {Array.from({ length: parte.duracion_dias }, (_, i) => {
+                  const dia = i + 1;
+                  const selected =
+                    parte.orden === parteActiva && dia === diaSeleccionado;
+                  return (
+                    <button
+                      key={dia}
+                      className="rounded text-center py-1 text-micro font-bold transition-colors"
+                      style={{
+                        background: selected
+                          ? "var(--accent)"
+                          : "transparent",
+                        color: selected
+                          ? "var(--bg-main)"
+                          : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                        fontWeight: selected ? 900 : undefined,
+                      }}
+                      type="button"
+                      onClick={() => elegirDia(parte.orden, dia)}
+                    >
+                      {dia}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
