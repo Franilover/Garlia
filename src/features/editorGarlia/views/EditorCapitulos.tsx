@@ -811,7 +811,7 @@ const PanelEditor = ({
           </div>
         )}
 
-        {!focusMode && (
+        {(
           <div className="shrink-0 px-5 pt-4 pb-2 border-b border-primary/8 space-y-1.5">
             {/* Título editable */}
             {editingTitle ? (
@@ -1018,25 +1018,7 @@ const PanelEditor = ({
           </div>
         )}
 
-        {focusMode && (
-          <div className="shrink-0 flex items-center justify-between px-4 py-1.5 border-b border-primary/5">
-            <span className="text-micro font-black uppercase italic tracking-tight text-primary/35 truncate max-w-xs">
-              {cap.titulo_capitulo}
-            </span>
-            <div className="flex items-center gap-1.5">
-              <EstadisticasEscritura compact={true} texto={contenido} />
-              <SaveIndicator status={saveStatus} />
-              <button
-                className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
-                onClick={onToggleFocus}
-              >
-                <Minimize2 size={11} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!focusMode && (
+        {(
           <div className="shrink-0 px-4 sm:px-8 py-1.5 border-b border-primary/5">
             <span className="text-micro font-black uppercase tracking-widest text-primary/20">
               Escribe{" "}
@@ -1083,7 +1065,7 @@ const PanelEditor = ({
           </div>
         </div>
 
-        {!focusMode && (
+        {(
           <div className="shrink-0 px-3 sm:px-8 py-2 sm:py-2.5 border-t border-primary/5 flex items-center justify-between">
             <EstadisticasEscritura texto={contenido} />
           </div>
@@ -1092,7 +1074,7 @@ const PanelEditor = ({
       {/* ── Barra lateral: Narrador / línea de tiempo / territorio / personajes ── */}
       {/* Ahora es una columna independiente a la altura completa, al lado del */}
       {/* editor — ya no queda debajo del título del capítulo. */}
-      {!focusMode && (
+      {(
         <PanelPersonajesCapitulo
           capId={capId}
           criaturas_ids={criaturasIds}
