@@ -52,16 +52,26 @@ export function SectionSyncPlugin(): null {
           const node = stack.pop()!;
           if ($isSectionNode(node)) {
             const payload = node.getPayload();
-            const entry: SectionIndexEntry = {
-              id: payload.id,
-              label: payload.label,
-              nodeKey: node.getKey(),
-            };
-            nextByNodeKey.set(entry.nodeKey, entry);
+            // Ignoramos secciones sin id todavía (ej. recién insertadas,
+            // el usuario no terminó de tipear/autogenerar el id) — no las
+            // publicamos al índice para que ni el picker ni el sync de
+            // renames trabajen con un id vacío.
+            if (payload.id && payload.id.trim()) {
+              const entry: SectionIndexEntry = {
+                id: payload.id,
+                label: payload.label,
+                nodeKey: node.getKey(),
+              };
+              nextByNodeKey.set(entry.nodeKey, entry);
 
-            const prev = prevByNodeKey.current.get(entry.nodeKey);
-            if (prev && prev.id && prev.id !== entry.id) {
-              renames.push({ fromId: prev.id, toId: entry.id, label: entry.label });
+              const prev = prevByNodeKey.current.get(entry.nodeKey);
+              if (prev && prev.id && prev.id !== entry.id) {
+                renames.push({
+                  fromId: prev.id,
+                  toId: entry.id,
+                  label: entry.label,
+                });
+              }
             }
           }
           const anyNode = node as unknown as {

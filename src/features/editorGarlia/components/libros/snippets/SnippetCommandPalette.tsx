@@ -617,10 +617,10 @@ function FormChoice({
 }) {
   const init = parseSnippetRaw(initialRaw);
   const [texto, setTexto] = useState(
-    init?.kind === "choice" ? (init as any).texto : "",
+    init?.kind === "choice" ? ((init as any).texto ?? "") : "",
   );
   const [target, setTarget] = useState(
-    init?.kind === "choice" ? (init as any).target : "",
+    init?.kind === "choice" ? ((init as any).target ?? "") : "",
   );
   const secciones = useAllSections();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -672,7 +672,7 @@ function FormChoice({
                         ? "1px solid color-mix(in srgb, var(--foreground, #fff) 30%, transparent)"
                         : "1px solid transparent",
                   }}
-                  onClick={() => setTarget(sec.id)}
+                  onClick={() => setTarget(sec.id ?? "")}
                 >
                   <span style={S.iconBox()}><Bookmark size={11} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -822,7 +822,7 @@ function FormUse({
 }) {
   const init = parseSnippetRaw(initialRaw);
   const [palabra, setPalabra] = useState(
-    init?.kind === "use" ? (init as any).label : "",
+    init?.kind === "use" ? ((init as any).label ?? "") : "",
   );
   const [targetOk, setTargetOk] = useState("");
   const [targetFail, setTargetFail] = useState("");
