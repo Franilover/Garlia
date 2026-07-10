@@ -93,9 +93,9 @@ export class GateNode extends DecoratorNode<React.ReactNode> {
   ): GateNode {
     const s = serialized as unknown as SerializedGateNode;
     return $createGateNode({
-      itemId: s.itemId,
-      tieneTexto: s.tieneTexto,
-      noTieneTexto: s.noTieneTexto,
+      itemId: s.itemId ?? "",
+      tieneTexto: s.tieneTexto ?? "",
+      noTieneTexto: s.noTieneTexto ?? "",
     });
   }
 
@@ -122,7 +122,8 @@ export class GateNode extends DecoratorNode<React.ReactNode> {
   }
 
   getTextContent(): string {
-    return `[gate: ${this.__payload.tieneTexto.slice(0, 20)}]`;
+    const texto = this.__payload.tieneTexto ?? "";
+    return `[gate: ${texto.slice(0, 20)}]`;
   }
 
   isInline(): true {
