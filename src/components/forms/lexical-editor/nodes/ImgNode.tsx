@@ -15,6 +15,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { Image as ImageIcon, WrapText } from "lucide-react";
 
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
@@ -48,7 +49,7 @@ function ImgChipView({
 }) {
   return (
     <SnippetChip
-      icon={payload.float ? "🖼↩" : "🖼"}
+      icon={payload.float ? <WrapText size={10} /> : <ImageIcon size={10} />}
       text={payload.float ? (payload.word ?? imgLabel(payload)) : imgLabel(payload)}
       title={payload.float ? `Float: ${payload.word}` : `Imagen: ${imgLabel(payload)}`}
       onClick={() =>

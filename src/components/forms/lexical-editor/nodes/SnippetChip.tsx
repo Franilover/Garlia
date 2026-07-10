@@ -12,7 +12,6 @@ import React, { useState, useCallback } from "react";
 import {
   chipBaseStyle,
   chipColorStyle,
-  chipBrokenStyle,
   chipDotStyle,
   chipDeleteBtnStyle,
 } from "./sharedTypes";
@@ -22,16 +21,13 @@ export function SnippetChip({
   text,
   title,
   maxTextWidth = 140,
-  broken = false,
   onClick,
   onDelete,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   text: string;
   title: string;
   maxTextWidth?: number;
-  /** true si el nodo referencia algo que ya no existe (ej. sección borrada) */
-  broken?: boolean;
   onClick: () => void;
   onDelete: () => void;
 }) {
@@ -56,17 +52,22 @@ export function SnippetChip({
   return (
     <span
       contentEditable={false}
-      style={{
-        ...chipBaseStyle,
-        ...(broken ? chipBrokenStyle(hovered) : chipColorStyle(hovered)),
-      }}
-      title={broken ? `⚠ Destino no encontrado — ${title}` : title}
+      style={{ ...chipBaseStyle, ...chipColorStyle(hovered) }}
+      title={title}
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <span style={chipDotStyle} />
-      <span style={{ fontSize: 9, lineHeight: 1 }}>{broken ? "⚠" : icon}</span>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          lineHeight: 1,
+        }}
+      >
+        {icon}
+      </span>
       <span
         style={{
           maxWidth: maxTextWidth,

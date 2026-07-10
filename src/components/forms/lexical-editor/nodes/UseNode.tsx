@@ -13,8 +13,8 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { MousePointerClick } from "lucide-react";
 
-import { useSectionTarget } from "./sectionIndexRegistry";
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
 
@@ -23,9 +23,6 @@ export interface UsePayload {
   itemId: string;
   sectionOk: string;
   sectionFail?: string;
-  /** Cache visual — fuente de verdad en vivo es useSectionTarget. */
-  sectionOkLabel?: string;
-  sectionFailLabel?: string;
 }
 
 export type SerializedUseNode = Spread<
@@ -42,25 +39,11 @@ function UseChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
-  const ok = useSectionTarget(payload.sectionOk);
-  const fail = useSectionTarget(payload.sectionFail ?? "");
-  // Roto si el destino "ok" (obligatorio) no existe, o si hay un destino
-  // "fail" declarado (opcional) que tampoco existe.
-  const broken = !ok.exists || (!!payload.sectionFail && !fail.exists);
-  const okLabel = ok.exists ? ok.label || ok.id : payload.sectionOkLabel || payload.sectionOk;
-
   return (
     <SnippetChip
-      broken={broken}
-      icon="👆"
+      icon={<MousePointerClick size={10} />}
       text={payload.word}
-      title={
-        broken
-          ? `Usar ítem → destino roto (ok:${payload.sectionOk}${
-              payload.sectionFail ? `, fail:${payload.sectionFail}` : ""
-            })`
-          : `Usar ítem → ok:${okLabel}`
-      }
+      title={`Usar ítem → ok:${payload.sectionOk}`}
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "use",
@@ -113,8 +96,6 @@ export class UseNode extends DecoratorNode<React.ReactNode> {
       itemId: s.itemId,
       sectionOk: s.sectionOk,
       sectionFail: s.sectionFail,
-      sectionOkLabel: s.sectionOkLabel,
-      sectionFailLabel: s.sectionFailLabel,
     });
   }
 

@@ -13,6 +13,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { Music2 } from "lucide-react";
 
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
@@ -43,7 +44,7 @@ function SoundChipView({
 }) {
   return (
     <SnippetChip
-      icon="♪"
+      icon={<Music2 size={10} />}
       text={soundLabel(payload.url)}
       title={`Sonido — volumen ${payload.volume}`}
       onClick={() =>

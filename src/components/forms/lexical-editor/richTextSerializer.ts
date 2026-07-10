@@ -94,6 +94,7 @@ import {
 // Los gate son multilinea, los demás son single-line
 // ─────────────────────────────────────────────────────────────────────────────
 
+const GATE_RE = /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g;
 const SNIPPET_RE =
   /\[\[(?:drop|img|float|sound|choice|use|section|cita)[^\]]*\]\]/g;
 // Wikilinks: [[Nombre]] SIN "kind|" — debe evaluarse por separado porque
@@ -102,83 +103,6 @@ const SNIPPET_RE =
 // como si fueran wikilinks.
 const WIKILINK_RE =
   /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate)\|)([^\[\]|]+)\]\]/g;
-
-/**
- * Extrae bloques [[gate|itemId|...]] balanceando corchetes en vez de un
- * regex lazy — un gate puede contener snippets anidados como
- * [[choice|texto|target]], y esos "]]" internos rompían el viejo
- * `/\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g` (lazy: cerraba en el primer "]]"
- * que encontraba, cortando el gate a la mitad y dejando el resto —
- * incluido el choice anidado — flotando como texto/snippet suelto fuera
- * del gate). Mismo bug existía en el parser del lector (types.ts) y se
- * corrigió ahí en paralelo.
- */
-function extractGateMatches(text: string): string[] {
-  const matches: string[] = [];
-  const openTag = "[[gate|";
-  let searchFrom = 0;
-
-  while (true) {
-    const start = text.indexOf(openTag, searchFrom);
-    if (start === -1) break;
-
-    // Balanceamos "[[" vs "]]" desde el inicio del gate para encontrar
-    // el cierre REAL, aunque haya "[[...]]" anidados adentro.
-    let depth = 0;
-    let i = start;
-    let end = -1;
-    while (i < text.length) {
-      if (text.startsWith("[[", i)) {
-        depth++;
-        i += 2;
-        continue;
-      }
-      if (text.startsWith("]]", i)) {
-        depth--;
-        i += 2;
-        if (depth === 0) {
-          end = i;
-          break;
-        }
-        continue;
-      }
-      i++;
-    }
-
-    if (end === -1) {
-      // Gate sin cierre balanceado (contenido corrupto/truncado) — no lo
-      // tratamos como gate para no tragarnos el resto del documento.
-      searchFrom = start + openTag.length;
-      continue;
-    }
-
-    matches.push(text.slice(start, end));
-    searchFrom = end;
-  }
-
-  return matches;
-}
-
-/** Reemplaza cada bloque [[gate|...]] balanceado por el resultado de
- *  `replacer`, mismo contrato que String.replace con función. */
-function replaceGateBlocks(
-  text: string,
-  replacer: (match: string) => string,
-): string {
-  const matches = extractGateMatches(text);
-  if (matches.length === 0) return text;
-
-  let result = "";
-  let cursor = 0;
-  for (const match of matches) {
-    const idx = text.indexOf(match, cursor);
-    if (idx === -1) continue; // no debería pasar, pero no rompemos por las dudas
-    result += text.slice(cursor, idx) + replacer(match);
-    cursor = idx + match.length;
-  }
-  result += text.slice(cursor);
-  return result;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convierte un raw [[kind|...]] string → LexicalNode
@@ -295,9 +219,8 @@ export function rawTextToLexicalTree(raw: string): void {
     },
   );
 
-  // 2) Gates multilinea. Balanceamos corchetes en vez de un regex lazy
-  // porque un gate puede tener [[choice|...]] anidado adentro.
-  working = replaceGateBlocks(working, (match) => {
+  // 2) Gates multilinea.
+  working = working.replace(GATE_RE, (match) => {
     const token = nextToken();
     registry.set(token, { kind: "snippet", raw: match });
     return token;

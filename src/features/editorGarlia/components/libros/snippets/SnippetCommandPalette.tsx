@@ -32,8 +32,6 @@ import React, {
 
 import { parseSnippetRaw } from "@/features/editorGarlia/hooks/capitulos/types";
 
-import { useAllSections } from "@/components/forms/lexical-editor/nodes/sectionIndexRegistry";
-
 type SnippetType =
   | "drop"
   | "choice"
@@ -307,6 +305,16 @@ function flattenTree(
   return result;
 }
 
+// Mantiene visible el ítem activo cuando se navega con flechas — sin esto,
+// el índice avanzaba pero la fila resaltada se iba fuera del área visible
+// del scroll y el usuario tenía que scrollear a mano para verla (lento,
+// además de que parecía que las flechas "no hacían nada").
+function scrollActiveIntoView(container: HTMLElement | null, idx: number) {
+  if (!container) return;
+  const el = container.querySelector<HTMLElement>(`[data-idx="${idx}"]`);
+  el?.scrollIntoView({ block: "nearest" });
+}
+
 // ── Header compartido para todos los forms ───────────────────────────────────
 
 function FormHeader({
@@ -386,6 +394,11 @@ function FormDrop({
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<Ent | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(listRef.current, active);
+  }, [active]);
 
   useEffect(() => {
     void fetch("/api/entidades")
@@ -517,7 +530,7 @@ function FormDrop({
               )
             }
           >
-            ⚔ Insertar Drop
+            <Swords size={12} /> Insertar Drop
           </button>
         </div>
       </>
@@ -553,7 +566,7 @@ function FormDrop({
           }}
         />
       </div>
-      <div style={S.list}>
+      <div ref={listRef} style={S.list}>
         {loading && <div style={S.empty}>Cargando…</div>}
         {!loading && filtered.length === 0 && (
           <div style={S.empty}>Sin resultados</div>
@@ -563,6 +576,7 @@ function FormDrop({
           return (
             <div
               key={e.id}
+              data-idx={i}
               style={S.row(i === active || e.id === initialId)}
               onClick={() => {
                 setSelected(e);
@@ -607,6 +621,7 @@ function FormDrop({
 
 function FormChoice({
   initialRaw,
+  listaSecciones = [],
   onInsert,
   onBack,
 }: {
@@ -617,17 +632,15 @@ function FormChoice({
 }) {
   const init = parseSnippetRaw(initialRaw);
   const [texto, setTexto] = useState(
-    init?.kind === "choice" ? ((init as any).texto ?? "") : "",
+    init?.kind === "choice" ? (init as any).texto : "",
   );
   const [target, setTarget] = useState(
-    init?.kind === "choice" ? ((init as any).target ?? "") : "",
+    init?.kind === "choice" ? (init as any).target : "",
   );
-  const secciones = useAllSections();
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-  const targetSection = secciones.find((s) => s.id === target);
   const snippet =
     texto.trim() && target.trim()
       ? `[[choice|${texto.trim()}|${target.trim()}]]`
@@ -656,13 +669,13 @@ function FormChoice({
             onChange={(e) => setTexto(e.target.value)}
           />
         </div>
-        {secciones.length > 0 ? (
+        {listaSecciones.length > 0 ? (
           <div>
             <div style={S.fieldLabel}>Sección destino</div>
             <div style={{ maxHeight: 160, overflowY: "auto" }}>
-              {secciones.map((sec) => (
+              {listaSecciones.map((sec) => (
                 <div
-                  key={sec.nodeKey}
+                  key={sec.id}
                   style={{
                     ...S.row(target === sec.id),
                     borderRadius: 6,
@@ -672,7 +685,7 @@ function FormChoice({
                         ? "1px solid color-mix(in srgb, var(--foreground, #fff) 30%, transparent)"
                         : "1px solid transparent",
                   }}
-                  onClick={() => setTarget(sec.id ?? "")}
+                  onClick={() => setTarget(sec.id)}
                 >
                   <span style={S.iconBox()}><Bookmark size={11} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -690,26 +703,22 @@ function FormChoice({
                 </div>
               ))}
             </div>
-            {target && !targetSection && (
-              <div style={{ ...S.sublabel, marginTop: 4, color: "#ef4444" }}>
-                ⚠ El destino actual (&quot;{target}&quot;) ya no existe en este
-                capítulo.
-              </div>
-            )}
           </div>
         ) : (
-          <div
-            style={{
-              ...S.sublabel,
-              padding: "10px 8px",
-              border:
-                "1px dashed color-mix(in srgb, var(--foreground, #fff) 18%, transparent)",
-              borderRadius: 8,
-            }}
-          >
-            Todavía no hay secciones en este capítulo. Creá una primero con
-            <strong> Sección</strong> en el menú &quot;/&quot;, y después
-            volvé a insertar el Choice.
+          <div>
+            <div style={S.fieldLabel}>ID de sección destino</div>
+            <input
+              placeholder="ej: cofre-secreto"
+              style={{
+                ...S.fieldInput,
+                fontFamily: "var(--font-mono, monospace)",
+              }}
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+            />
+            <div style={{ ...S.sublabel, marginTop: 4 }}>
+              Creá primero una Sección en este capítulo.
+            </div>
           </div>
         )}
         <button
@@ -717,7 +726,7 @@ function FormChoice({
           style={S.insertBtn("#5aabf5")}
           onClick={() => snippet && onInsert(snippet)}
         >
-          🔀 Insertar Choice
+          <GitBranch size={12} /> Insertar Choice
         </button>
       </div>
     </>
@@ -801,7 +810,7 @@ function FormSection({
           style={S.insertBtn("#8b83e8")}
           onClick={() => snippet && onInsert(snippet)}
         >
-          › Insertar Sección
+          <Bookmark size={12} /> Insertar Sección
         </button>
       </div>
     </>
@@ -812,6 +821,7 @@ function FormSection({
 
 function FormUse({
   initialRaw,
+  listaSecciones = [],
   onInsert,
   onBack,
 }: {
@@ -822,7 +832,7 @@ function FormUse({
 }) {
   const init = parseSnippetRaw(initialRaw);
   const [palabra, setPalabra] = useState(
-    init?.kind === "use" ? ((init as any).label ?? "") : "",
+    init?.kind === "use" ? (init as any).label : "",
   );
   const [targetOk, setTargetOk] = useState("");
   const [targetFail, setTargetFail] = useState("");
@@ -831,8 +841,12 @@ function FormUse({
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
-  const secciones = useAllSections();
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(listRef.current, active);
+  }, [active]);
 
   useEffect(() => {
     void fetch("/api/entidades?tipo=item")
@@ -870,20 +884,28 @@ function FormUse({
     value: string;
     onChange: (v: string) => void;
     placeholder: string;
-  }) => (
-    <select
-      style={{ ...S.fieldInput, cursor: "pointer" }}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">{placeholder}</option>
-      {secciones.map((s) => (
-        <option key={s.nodeKey} value={s.id}>
-          {s.label || s.id}
-        </option>
-      ))}
-    </select>
-  );
+  }) =>
+    listaSecciones.length > 0 ? (
+      <select
+        style={{ ...S.fieldInput, cursor: "pointer" }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {listaSecciones.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label || s.id}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        placeholder={placeholder}
+        style={S.fieldInput}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
 
   return (
     <>
@@ -932,11 +954,15 @@ function FormUse({
                   setItem(filtered[active]);
               }}
             />
-            <div style={{ maxHeight: 120, overflowY: "auto", marginTop: 4 }}>
+            <div
+              ref={listRef}
+              style={{ maxHeight: 120, overflowY: "auto", marginTop: 4 }}
+            >
               {loading && <div style={S.empty}>Cargando…</div>}
               {filtered.map((it, i) => (
                 <div
                   key={it.id}
+                  data-idx={i}
                   style={S.row(i === active)}
                   onClick={() => setItem(it)}
                   onMouseEnter={() => setActive(i)}
@@ -965,46 +991,28 @@ function FormUse({
             </button>
           </div>
         )}
-        {secciones.length > 0 ? (
-          <>
-            <div>
-              <div style={S.fieldLabel}>Sección si TIENE el ítem *</div>
-              <SeccionSelect
-                placeholder="— elegí sección —"
-                value={targetOk}
-                onChange={setTargetOk}
-              />
-            </div>
-            <div>
-              <div style={S.fieldLabel}>Sección si NO tiene (opcional)</div>
-              <SeccionSelect
-                placeholder="— ninguna —"
-                value={targetFail}
-                onChange={setTargetFail}
-              />
-            </div>
-          </>
-        ) : (
-          <div
-            style={{
-              ...S.sublabel,
-              padding: "10px 8px",
-              border:
-                "1px dashed color-mix(in srgb, var(--foreground, #fff) 18%, transparent)",
-              borderRadius: 8,
-            }}
-          >
-            Todavía no hay secciones en este capítulo. Creá una primero con
-            <strong> Sección</strong> en el menú &quot;/&quot;, y después
-            volvé a insertar el Use.
-          </div>
-        )}
+        <div>
+          <div style={S.fieldLabel}>Sección si TIENE el ítem *</div>
+          <SeccionSelect
+            placeholder="— elegí sección —"
+            value={targetOk}
+            onChange={setTargetOk}
+          />
+        </div>
+        <div>
+          <div style={S.fieldLabel}>Sección si NO tiene (opcional)</div>
+          <SeccionSelect
+            placeholder="— ninguna —"
+            value={targetFail}
+            onChange={setTargetFail}
+          />
+        </div>
         <button
           disabled={!snippet}
           style={S.insertBtn("#f07574")}
           onClick={() => snippet && onInsert(snippet)}
         >
-          👆 Insertar Use
+          <MousePointerClick size={12} /> Insertar Use
         </button>
       </div>
     </>
@@ -1029,6 +1037,11 @@ function FormGate({
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(listRef.current, active);
+  }, [active]);
 
   useEffect(() => {
     void fetch("/api/entidades?tipo=item")
@@ -1092,11 +1105,15 @@ function FormGate({
                   setItem(filtered[active]);
               }}
             />
-            <div style={{ maxHeight: 140, overflowY: "auto", marginTop: 4 }}>
+            <div
+              ref={listRef}
+              style={{ maxHeight: 140, overflowY: "auto", marginTop: 4 }}
+            >
               {loading && <div style={S.empty}>Cargando…</div>}
               {filtered.map((it, i) => (
                 <div
                   key={it.id}
+                  data-idx={i}
                   style={S.row(i === active)}
                   onClick={() => setItem(it)}
                   onMouseEnter={() => setActive(i)}
@@ -1158,7 +1175,7 @@ function FormGate({
           style={S.insertBtn("#e09a2a")}
           onClick={() => snippet && onInsert(snippet)}
         >
-          🚪 Insertar Gate
+          <DoorOpen size={12} /> Insertar Gate
         </button>
       </div>
     </>
@@ -1194,6 +1211,11 @@ function FormImagen({
   const [word, setWord] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(listRef.current, active);
+  }, [active]);
 
   useEffect(() => {
     void fetch("/api/dibujos")
@@ -1295,7 +1317,7 @@ function FormImagen({
           />
         </div>
         {!selected ? (
-          <div style={{ maxHeight: 180, overflowY: "auto" }}>
+          <div ref={listRef} style={{ maxHeight: 180, overflowY: "auto" }}>
             {loading && <div style={S.empty}>Cargando…</div>}
             {!loading && filtered.length === 0 && (
               <div style={S.empty}>Sin resultados</div>
@@ -1303,6 +1325,7 @@ function FormImagen({
             {filtered.map((f, i) => (
               <div
                 key={f.url}
+                data-idx={i}
                 style={S.row(i === active)}
                 onClick={() => setSelected(f.url)}
                 onMouseEnter={() => setActive(i)}
@@ -1384,7 +1407,7 @@ function FormImagen({
           style={S.insertBtn("#2dc896")}
           onClick={() => snippet && onInsert(snippet)}
         >
-          🖼 Insertar Imagen
+          <ImageIcon size={12} /> Insertar Imagen
         </button>
       </div>
     </>
@@ -1413,6 +1436,11 @@ function FormSound({
   const [active, setActive] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(listRef.current, active);
+  }, [active]);
 
   useEffect(() => {
     void fetch("/api/sonidos")
@@ -1497,7 +1525,7 @@ function FormSound({
             }}
           />
         </div>
-        <div style={{ maxHeight: 180, overflowY: "auto" }}>
+        <div ref={listRef} style={{ maxHeight: 180, overflowY: "auto" }}>
           {loading && <div style={S.empty}>Cargando…</div>}
           {!loading && filtered.length === 0 && (
             <div style={S.empty}>Sin resultados</div>
@@ -1505,6 +1533,7 @@ function FormSound({
           {filtered.map((f, i) => (
             <div
               key={f.url}
+              data-idx={i}
               style={{
                 ...S.row(i === active || selected === f.url),
                 border:
@@ -1577,7 +1606,7 @@ function FormSound({
             selected && onInsert(`[[sound|${selected}|${volume.toFixed(1)}]]`)
           }
         >
-          ♪ Insertar Sonido
+          <Music2 size={12} /> Insertar Sonido
         </button>
       </div>
     </>
@@ -1616,7 +1645,11 @@ export function SnippetCommandPalette({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const catListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollActiveIntoView(catListRef.current, activeIdx);
+  }, [activeIdx]);
 
   // Posición del popover: arranca pegado al cursor (anchorRect ya viene
   // como la base del caret, ver SlashCommandPlugin) y se recalcula contra
@@ -1734,15 +1767,6 @@ export function SnippetCommandPalette({
     setActiveIdx(0);
   }, [q]);
 
-  useEffect(() => {
-    const list = listRef.current;
-    if (!list) return;
-    const row = list.querySelector<HTMLElement>(
-      `[data-idx="${activeIdx}"]`,
-    );
-    row?.scrollIntoView({ block: "nearest" });
-  }, [activeIdx, filteredCats]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -1804,7 +1828,7 @@ export function SnippetCommandPalette({
             <span style={S.kbd}>esc</span>
           </div>
 
-          <div style={S.list} ref={listRef}>
+          <div ref={catListRef} style={S.list}>
             {filteredCats.length === 0 && (
               <div style={S.empty}>Sin resultados</div>
             )}

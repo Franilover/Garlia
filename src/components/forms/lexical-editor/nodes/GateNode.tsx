@@ -16,6 +16,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { DoorOpen } from "lucide-react";
 
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
@@ -42,7 +43,7 @@ function GateChipView({
 }) {
   return (
     <SnippetChip
-      icon="🚪"
+      icon={<DoorOpen size={10} />}
       text={`Gate: ${payload.itemId.slice(0, 8)}…`}
       title={`Gate — ítem: ${payload.itemId}`}
       onClick={() =>
@@ -93,9 +94,9 @@ export class GateNode extends DecoratorNode<React.ReactNode> {
   ): GateNode {
     const s = serialized as unknown as SerializedGateNode;
     return $createGateNode({
-      itemId: s.itemId ?? "",
-      tieneTexto: s.tieneTexto ?? "",
-      noTieneTexto: s.noTieneTexto ?? "",
+      itemId: s.itemId,
+      tieneTexto: s.tieneTexto,
+      noTieneTexto: s.noTieneTexto,
     });
   }
 
@@ -122,8 +123,7 @@ export class GateNode extends DecoratorNode<React.ReactNode> {
   }
 
   getTextContent(): string {
-    const texto = this.__payload.tieneTexto ?? "";
-    return `[gate: ${texto.slice(0, 20)}]`;
+    return `[gate: ${this.__payload.tieneTexto.slice(0, 20)}]`;
   }
 
   isInline(): true {

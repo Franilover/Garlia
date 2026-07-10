@@ -296,6 +296,16 @@ export function MarkdownCommandPalette({
     return () => document.removeEventListener("mousedown", h);
   }, [onClose]);
 
+  // Mismo fix que en SnippetCommandPalette: sin esto, navegar con flechas
+  // avanzaba el índice pero la fila resaltada podía quedar fuera del área
+  // visible del scroll, obligando a scrollear a mano.
+  useEffect(() => {
+    const el = menuRef.current?.querySelector<HTMLElement>(
+      `[data-idx="${selectedIdx}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIdx]);
+
   return (
     <div
       ref={menuRef}
@@ -330,6 +340,7 @@ export function MarkdownCommandPalette({
         filtered.map((item, idx) => (
           <div
             key={item.id}
+            data-idx={idx}
             style={{
               display: "flex",
               alignItems: "center",

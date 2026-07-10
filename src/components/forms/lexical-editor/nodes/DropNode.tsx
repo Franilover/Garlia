@@ -16,6 +16,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { Swords, User, PawPrint, Package } from "lucide-react";
 
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
@@ -32,10 +33,10 @@ export type SerializedDropNode = Spread<
   SerializedLexicalNode
 >;
 
-const ICONS: Record<DropPayload["tipo"], string> = {
-  personaje: "👤",
-  criatura: "🐉",
-  item: "🗡",
+const ICONS: Record<DropPayload["tipo"], React.ReactNode> = {
+  personaje: <User size={10} />,
+  criatura: <PawPrint size={10} />,
+  item: <Package size={10} />,
 };
 
 function DropChipView({
@@ -49,7 +50,7 @@ function DropChipView({
 }) {
   return (
     <SnippetChip
-      icon={ICONS[payload.tipo] ?? "⚔"}
+      icon={ICONS[payload.tipo] ?? <Swords size={10} />}
       text={payload.word}
       title={`Drop: ${payload.entidadNombre}`}
       onClick={() =>

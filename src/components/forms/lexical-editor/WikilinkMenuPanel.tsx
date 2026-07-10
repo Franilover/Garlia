@@ -54,15 +54,6 @@ export function WikilinkMenuPanel({
     return () => document.removeEventListener("mousedown", h);
   }, [menuRef, onClose]);
 
-  useEffect(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const row = menu.querySelector<HTMLElement>(
-      `[data-idx="${selectedIdx}"]`,
-    );
-    row?.scrollIntoView({ block: "nearest" });
-  }, [menuRef, selectedIdx, filtered]);
-
   if (filtered.length === 0 && !query) return null;
 
   return (
@@ -99,7 +90,6 @@ export function WikilinkMenuPanel({
         filtered.map((entity, idx) => (
           <div
             key={entity.name}
-            data-idx={idx}
             style={{
               display: "flex",
               alignItems: "center",

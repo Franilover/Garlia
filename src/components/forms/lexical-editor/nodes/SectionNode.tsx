@@ -14,6 +14,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { Bookmark } from "lucide-react";
 
 import { snippetEditHandler } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
@@ -39,7 +40,7 @@ function SectionChipView({
 }) {
   return (
     <SnippetChip
-      icon="›"
+      icon={<Bookmark size={10} />}
       text={payload.label ?? payload.id}
       title={`Sección — id: ${payload.id}`}
       onClick={() =>

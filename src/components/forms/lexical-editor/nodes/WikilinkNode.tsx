@@ -21,6 +21,7 @@ import type {
 } from "lexical";
 import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
+import { Link } from "lucide-react";
 
 import { SnippetChip } from "./SnippetChip";
 
@@ -46,7 +47,7 @@ function WikilinkChipView({
 }) {
   return (
     <SnippetChip
-      icon="»"
+      icon={<Link size={10} />}
       text={payload.target}
       title={`Ir a: ${payload.target}`}
       onClick={() => onNavigate?.(payload.target)}

@@ -95,26 +95,6 @@ export function chipColorStyle(hovered: boolean): React.CSSProperties {
   };
 }
 
-/** Mismo estilo que chipColorStyle pero para chips cuyo target (sección)
- *  ya no existe — usado por Choice/Use cuando el sync detecta orfandad. */
-export function chipBrokenStyle(hovered: boolean): React.CSSProperties {
-  return {
-    background: hovered
-      ? "color-mix(in srgb, #ef4444 22%, transparent)"
-      : "color-mix(in srgb, #ef4444 12%, transparent)",
-    border: "1px solid color-mix(in srgb, #ef4444 40%, transparent)",
-    color: "#ef4444",
-  };
-}
-
-/** Entrada del índice de secciones vivas del documento — construido por
- *  useSectionIndex() y consumido por SectionSyncPlugin y los pickers. */
-export interface SectionIndexEntry {
-  id: string;
-  label?: string;
-  nodeKey: string;
-}
-
 export const chipDotStyle: React.CSSProperties = {
   width: 4,
   height: 4,

@@ -117,61 +117,10 @@ function extractGateBlocks(texto: string): {
     string,
     { tieneTexto: string; noTieneTexto: string; itemId: string }
   >();
-
-  // Encuentra el cierre "]]" real de un [[gate|...]] balanceando corchetes,
-  // en vez de un regex lazy que corta en el primer "]]" — un gate puede
-  // contener snippets anidados como [[choice|texto|target]], cuyo propio
-  // "]]" rompía el viejo /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g (cerraba ahí
-  // en vez del cierre real del gate, dejando el resto del gate — incluido
-  // el choice anidado — flotando como texto suelto fuera de él).
-  const openTag = "[[gate|";
-  let searchFrom = 0;
+  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
   let counter = 0;
-  let resultado = texto;
-  const replacements: { start: number; end: number; placeholder: string }[] =
-    [];
 
-  while (true) {
-    const start = texto.indexOf(openTag, searchFrom);
-    if (start === -1) break;
-
-    const afterTag = start + openTag.length;
-    const firstPipe = texto.indexOf("|", afterTag);
-    if (firstPipe === -1) {
-      searchFrom = afterTag;
-      continue;
-    }
-
-    let depth = 0;
-    let i = start;
-    let end = -1;
-    while (i < texto.length) {
-      if (texto.startsWith("[[", i)) {
-        depth++;
-        i += 2;
-        continue;
-      }
-      if (texto.startsWith("]]", i)) {
-        depth--;
-        i += 2;
-        if (depth === 0) {
-          end = i;
-          break;
-        }
-        continue;
-      }
-      i++;
-    }
-
-    if (end === -1) {
-      // Sin cierre balanceado (contenido corrupto/truncado) — no lo
-      // tratamos como gate para no tragarnos el resto del documento.
-      searchFrom = afterTag;
-      continue;
-    }
-
-    const itemId = texto.slice(afterTag, firstPipe);
-    const contenido = texto.slice(firstPipe + 1, end - 2); // sin el "]]" final
+  const resultado = texto.replace(gateRegex, (_, itemId, contenido) => {
     const separatorIdx = contenido.indexOf("===");
     const tieneTexto =
       separatorIdx >= 0
@@ -181,18 +130,9 @@ function extractGateBlocks(texto: string): {
       separatorIdx >= 0 ? contenido.slice(separatorIdx + 3).trim() : "";
     const placeholder = `\x00GATE_${counter}\x00`;
     gates.set(placeholder, { itemId: itemId.trim(), tieneTexto, noTieneTexto });
-    replacements.push({ start, end, placeholder });
     counter++;
-    searchFrom = end;
-  }
-
-  // Aplicamos los reemplazos de atrás hacia adelante para no invalidar
-  // los índices de los anteriores.
-  for (let j = replacements.length - 1; j >= 0; j--) {
-    const r = replacements[j];
-    resultado =
-      resultado.slice(0, r.start) + r.placeholder + resultado.slice(r.end);
-  }
+    return placeholder;
+  });
 
   return { resultado, gates };
 }
