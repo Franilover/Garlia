@@ -5,52 +5,59 @@
  * ───────────────────────────────────────────────────────────────────────────
  * Puente entre Ensayos (feature independiente de notas tipo Obsidian) y el
  * editor de Garlia: muestra en la tab "Inicio" los ensayos etiquetados "GOS"
- * (case-insensitive). Al clickear uno, el padre (MundoHomeContent) abre
- * <EnsayoGosScreen /> — el editor de ensayos completo reusado DENTRO de
- * /myself/garlia — vía la prop onOpen, sin salir de la página.
+ * (case-insensitive), con botón para crear uno nuevo directo con esa tag.
+ * Al clickear un ensayo, el padre (MundoHomeContent) abre <EnsayoGosScreen />
+ * — el editor de ensayos completo reusado DENTRO de /myself/garlia — vía la
+ * prop onOpen, sin salir de la página.
  *
- * Es sólo lectura (useSupabaseData("ensayos")) — no hay estado compartido ni
- * importa nada de src/features/ensayos más que el tipo de fila.
+ * Lectura + creación via useEnsayoEditorLogic (misma lógica que usa
+ * EnsayosShell) — no hay estado compartido más allá de esas dos cosas.
  */
 
-import { FileText } from "lucide-react";
-import React, { useMemo } from "react";
+import { FileText, Plus } from "lucide-react";
+import React, { useMemo, useState } from "react";
 
-import { useSupabaseData } from "@/hooks/data/useSupabaseData";
-
-interface EnsayoRow {
-  id: string;
-  titulo?: string;
-  tags?: string[];
-}
+import NewNoteModal from "@/features/ensayos/components/notas/newNoteModal";
+import { useEnsayoEditorLogic } from "@/features/ensayos/hooks/notas/useEnsayoEditorLogic";
 
 interface Props {
   onOpen: (ensayoId: string) => void;
 }
 
 export function EnsayosGosWidget({ onOpen }: Props) {
-  const { data, loading } = useSupabaseData<EnsayoRow>("ensayos");
+  const { ensayos, loading, crearNotaPendiente } = useEnsayoEditorLogic(null);
+  const [showModal, setShowModal] = useState(false);
 
   const gosEnsayos = useMemo(
     () =>
-      (data ?? []).filter((e) =>
-        (e.tags ?? []).some((t) => t.trim().toLowerCase() === "gos"),
+      ensayos.filter((e: any) =>
+        (e.tags ?? []).some((t: string) => t.trim().toLowerCase() === "gos"),
       ),
-    [data],
+    [ensayos],
   );
-
-  if (!loading && gosEnsayos.length === 0) return null;
 
   return (
     <div>
-      <h2 className="text-micro font-black uppercase tracking-widest text-primary/30 mb-3">
-        Ensayos · GOS
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-micro font-black uppercase tracking-widest text-primary/30">
+          Ensayos · GOS
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-1 text-micro font-bold text-primary/40 hover:text-primary transition-colors"
+        >
+          <Plus size={12} /> Nuevo
+        </button>
+      </div>
+
       {loading ? (
         <div className="text-xs text-primary/30">Cargando…</div>
+      ) : gosEnsayos.length === 0 ? (
+        <div className="text-xs text-primary/25">Sin ensayos con tag GOS todavía</div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {gosEnsayos.map((e) => (
+          {gosEnsayos.map((e: any) => (
             <button
               key={e.id}
               type="button"
@@ -62,6 +69,17 @@ export function EnsayosGosWidget({ onOpen }: Props) {
             </button>
           ))}
         </div>
+      )}
+
+      {showModal && (
+        <NewNoteModal
+          onClose={() => setShowModal(false)}
+          onConfirm={async (titulo) => {
+            const id = await crearNotaPendiente(titulo, ["gos"]);
+            setShowModal(false);
+            if (id) onOpen(id);
+          }}
+        />
       )}
     </div>
   );
