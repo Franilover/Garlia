@@ -486,17 +486,27 @@ export function GeografiaJerarquica({
           </div>
         )}
         {personajesSinCiudad.length > 0 && (
-          <div>
-            <NodoTitulo
-              label="Sin ciudad"
-              variant="ciudad"
-              onClick={() => {}}
-              onCreate={
-                onCreatePersonaje ? () => onCreatePersonaje(null) : undefined
-              }
-            />
+          <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+              <span />
+              <span className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary">
+                Sin ciudad
+              </span>
+              <div className="justify-self-end">
+                {onCreatePersonaje && (
+                  <button
+                    type="button"
+                    onClick={() => onCreatePersonaje(null)}
+                    title="Añadir personaje"
+                    className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  >
+                    <Plus size={11} className="text-primary/60" />
+                  </button>
+                )}
+              </div>
+            </div>
             <div
-              className="mt-2 grid gap-1"
+              className="p-4 grid gap-1"
               style={{
                 gridTemplateColumns: "repeat(auto-fill, minmax(52px, 1fr))",
               }}

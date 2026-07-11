@@ -546,17 +546,32 @@ export function EntidadesPage({ section, selectedId }: Props) {
             );
           },
         )}
-        <EntityCardGrid
+        <MundoCard
           title="Notas"
           Icon={StickyNote}
-          loading={loadingNotas}
-          items={notas.map((n: Nota) => ({ id: n.id, nombre: n.titulo || "Sin título" }))}
-          onItemClick={(id) => openEntity("notas", id)}
           onCreate={async () => {
             const nota = await crearNota("Nueva nota");
             if (nota) openEntity("notas", nota.id);
           }}
-        />
+        >
+          {loadingNotas && notas.length === 0 ? (
+            <div className="w-full py-6 text-xs text-primary/30 text-center">Cargando…</div>
+          ) : notas.length === 0 ? (
+            <div className="w-full py-6 text-xs text-primary/25 text-center">Sin notas todavía</div>
+          ) : (
+            notas.map((n: Nota) => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => openEntity("notas", n.id)}
+                title={n.titulo || "Sin título"}
+                className="px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/[0.03] hover:bg-primary/10 hover:border-primary/20 transition-colors text-xs font-semibold text-primary/80 text-left truncate max-w-[220px]"
+              >
+                {n.titulo || "Sin título"}
+              </button>
+            ))
+          )}
+        </MundoCard>
       </div>
 
       {showNuevaCancion && (

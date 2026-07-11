@@ -485,9 +485,16 @@ export function MagiaJerarquica({
         )}
 
         {totalSinCriatura > 0 && (
-          <div>
-            <NodoCriatura label="Sin criatura" onClick={() => {}} />
-            <div className="mt-3 flex flex-wrap gap-6">
+          <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+              <span />
+              <span className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary flex items-center gap-1.5">
+                <Bug size={11} className="shrink-0" />
+                Sin criatura
+              </span>
+              <span />
+            </div>
+            <div className="p-4 flex flex-wrap gap-6">
               {[
                 { key: "dones" as const, label: "Dones", Icon: Star, section: "dones" as SectionKey, entidades: donesSinCriatura },
                 { key: "runas" as const, label: "Runas", Icon: ScrollText, section: "runas" as SectionKey, entidades: runasSinCriatura },
