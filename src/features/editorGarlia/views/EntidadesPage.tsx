@@ -529,11 +529,16 @@ export function EntidadesPage({ section, selectedId }: Props) {
             <div className="py-6 text-xs text-primary/25 text-center">Sin canciones todavía</div>
           ) : (
             cancionesAgrupadas.map(({ idioma, compositores }) => (
-              <div key={idioma} className="mb-5 last:mb-0">
-                <h3 className="text-micro font-bold uppercase tracking-[0.2em] text-primary/40 mb-2 px-1">
-                  {idioma}
-                </h3>
-                <div className="flex flex-row flex-wrap gap-6 items-start">
+              <div
+                key={idioma}
+                className="mb-6 last:mb-0 w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden"
+              >
+                <div className="flex items-center justify-center px-4 py-2.5 bg-primary/10 border-b border-primary/10">
+                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">
+                    {idioma}
+                  </h3>
+                </div>
+                <div className="p-4 flex flex-row flex-wrap gap-6 items-start">
                   {compositores.map(({ compositor, cantantes }) => (
                     <div key={compositor} className="flex-none w-fit max-w-full">
                       <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
