@@ -460,31 +460,6 @@ export function GeografiaJerarquica({
           ))}
         </div>
 
-        {reinosVacios.length > 0 && (
-          <div>
-            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
-              Sin ciudades asignadas
-            </p>
-            <div
-              className="grid gap-2"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              }}
-            >
-              {reinosVacios.map((reino) => (
-                <NodoTitulo
-                  key={reino.id}
-                  fill
-                  label={reino.nombre}
-                  onClick={() => onOpen("reinos", reino.id)}
-                  onCreate={
-                    onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        )}
         {personajesSinCiudad.length > 0 && (
           <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
@@ -518,6 +493,31 @@ export function GeografiaJerarquica({
                   imageUrl={p.img_url}
                   Icon={Users}
                   onClick={() => onOpen("personajes", p.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {reinosVacios.length > 0 && (
+          <div>
+            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
+              Sin ciudades asignadas
+            </p>
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+              }}
+            >
+              {reinosVacios.map((reino) => (
+                <NodoTitulo
+                  key={reino.id}
+                  fill
+                  label={reino.nombre}
+                  onClick={() => onOpen("reinos", reino.id)}
+                  onCreate={
+                    onCreateCiudad ? () => onCreateCiudad(reino.id) : undefined
+                  }
                 />
               ))}
             </div>

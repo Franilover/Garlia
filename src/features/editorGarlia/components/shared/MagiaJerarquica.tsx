@@ -458,32 +458,6 @@ export function MagiaJerarquica({
           ))}
         </div>
 
-        {criaturasVacias.length > 0 && (
-          <div>
-            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
-              Sin dones, runas, items ni hechizos
-            </p>
-            <div
-              className="grid gap-2"
-              style={{
-                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              }}
-            >
-              {criaturasVacias.map((criatura) => (
-                <NodoCriatura
-                  key={criatura.id}
-                  fill
-                  label={criatura.nombre}
-                  onClick={() => onOpen("criaturas", criatura.id)}
-                  onCreate={
-                    onCreateHija ? () => onCreateHija("dones", criatura.id) : undefined
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {totalSinCriatura > 0 && (
           <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
@@ -523,6 +497,31 @@ export function MagiaJerarquica({
                   onOpen={onOpen}
                 />
               )}
+            </div>
+          </div>
+        )}
+        {criaturasVacias.length > 0 && (
+          <div>
+            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
+              Sin dones, runas, items ni hechizos
+            </p>
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+              }}
+            >
+              {criaturasVacias.map((criatura) => (
+                <NodoCriatura
+                  key={criatura.id}
+                  fill
+                  label={criatura.nombre}
+                  onClick={() => onOpen("criaturas", criatura.id)}
+                  onCreate={
+                    onCreateHija ? () => onCreateHija("dones", criatura.id) : undefined
+                  }
+                />
+              ))}
             </div>
           </div>
         )}
