@@ -88,13 +88,12 @@ export function MundoTabs() {
               key={tab.key}
               type="button"
               onClick={() => handleClick(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              className={`flex-1 flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 active
                   ? "bg-primary/10 text-primary"
                   : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
               }`}
             >
-              <tab.Icon size={13} strokeWidth={2} />
               {tab.label}
             </button>
           );

@@ -116,7 +116,19 @@ function useMagiaCategoria(modo: "hechizos" | "dones" | "runas") {
   return { items, setItems, loading, creating, create, cfg };
 }
 
+const SUB_TABS: { key: "reinos" | "criaturas" | "canciones" | "organizacion"; label: string }[] = [
+  { key: "reinos", label: "Reinos" },
+  { key: "criaturas", label: "Criaturas" },
+  { key: "canciones", label: "Canciones" },
+  { key: "organizacion", label: "Organización" },
+];
+
 export function EntidadesPage({ section, selectedId }: Props) {
+  // ── Sub-navegación: Reinos / Criaturas / Canciones / Organización ───────
+  const [subTab, setSubTab] = useState<"reinos" | "criaturas" | "canciones" | "organizacion">(
+    "reinos",
+  );
+
   // ── Entidades ──────────────────────────────────────────────────────────
   const { data: personajes, loading: loadingP, addRow: addPersonaje } =
     useSupabaseData<Personaje>("personajes");
@@ -372,78 +384,104 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <div className="flex flex-col gap-6">
-        <div className="flex-1 min-w-0">
-          <GeografiaJerarquica
-            reinos={reinos}
-            ciudades={ciudades}
-            personajes={personajes}
-            loading={loadingR || loadingCd || loadingP}
-            onOpen={(section, id) => openEntity(section, id)}
-            onCreateReino={async () => {
-              const { data } = await addReino({ nombre: "Nuevo reino" });
-              if (data?.id) openEntity("reinos", data.id);
-            }}
-            onCreateCiudad={async (reinoId) => {
-              const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
-              if (data?.id) openEntity("ciudades", data.id);
-            }}
-            onCreatePersonaje={async (ciudadId) => {
-              const { data } = await addPersonaje({
-                nombre: "Nuevo personaje",
-                ciudad_id: ciudadId,
-              });
-              if (data?.id) openEntity("personajes", data.id);
-            }}
-          />
-        </div>
+      {/* ── Sub-barra: Reinos / Criaturas / Canciones / Organización ──────── */}
+      <div className="flex items-center gap-1 mb-6 px-1 pb-2 border-b border-primary/[0.06]">
+        {SUB_TABS.map((tab) => {
+          const active = subTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setSubTab(tab.key)}
+              className={`flex-1 flex items-center justify-center px-3 py-1 rounded-md text-micro font-bold uppercase tracking-[0.1em] transition-colors ${
+                active
+                  ? "bg-primary/[0.06] text-primary/80"
+                  : "text-primary/35 hover:bg-primary/[0.03] hover:text-primary/60"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      <MagiaJerarquica
-        criaturas={criaturas}
-        dones={dones.items}
-        hechizos={hechizos.items}
-        items={items}
-        loading={loadingC || loadingI || loadingP || hechizos.loading || dones.loading || runas.loading}
-        personajes={personajes}
-        runas={runas.items}
-        onCreateCriatura={async () => {
-          const { data } = await addCriatura({ nombre: "Nueva criatura" });
-          if (data?.id) openEntity("criaturas", data.id);
-        }}
-        onCreateHija={async (tipo, criaturaId) => {
-          if (tipo === "items") {
-            const { data } = await addItem({
-              nombre: "Nuevo objeto",
-              ...(criaturaId ? { criatura_id: criaturaId } : {}),
-            });
-            if (data?.id) openEntity("items", data.id);
-            return;
-          }
-          const categoria = tipo === "hechizos" ? hechizos : tipo === "dones" ? dones : runas;
-          const id = await categoria.create();
-          if (id) {
-            if (criaturaId) {
-              await supabase.from(tipo).update({ criatura_id: criaturaId }).eq("id", id);
-              categoria.setItems((prev) =>
-                prev.map((i) => (i.id === id ? { ...i, criatura_id: criaturaId } as any : i)),
-              );
+      {subTab === "reinos" && (
+        <div className="flex flex-col gap-6">
+          <div className="flex-1 min-w-0">
+            <GeografiaJerarquica
+              reinos={reinos}
+              ciudades={ciudades}
+              personajes={personajes}
+              loading={loadingR || loadingCd || loadingP}
+              onOpen={(section, id) => openEntity(section, id)}
+              onCreateReino={async () => {
+                const { data } = await addReino({ nombre: "Nuevo reino" });
+                if (data?.id) openEntity("reinos", data.id);
+              }}
+              onCreateCiudad={async (reinoId) => {
+                const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
+                if (data?.id) openEntity("ciudades", data.id);
+              }}
+              onCreatePersonaje={async (ciudadId) => {
+                const { data } = await addPersonaje({
+                  nombre: "Nuevo personaje",
+                  ciudad_id: ciudadId,
+                });
+                if (data?.id) openEntity("personajes", data.id);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {subTab === "criaturas" && (
+        <MagiaJerarquica
+          criaturas={criaturas}
+          dones={dones.items}
+          hechizos={hechizos.items}
+          items={items}
+          loading={loadingC || loadingI || loadingP || hechizos.loading || dones.loading || runas.loading}
+          personajes={personajes}
+          runas={runas.items}
+          onCreateCriatura={async () => {
+            const { data } = await addCriatura({ nombre: "Nueva criatura" });
+            if (data?.id) openEntity("criaturas", data.id);
+          }}
+          onCreateHija={async (tipo, criaturaId) => {
+            if (tipo === "items") {
+              const { data } = await addItem({
+                nombre: "Nuevo objeto",
+                ...(criaturaId ? { criatura_id: criaturaId } : {}),
+              });
+              if (data?.id) openEntity("items", data.id);
+              return;
             }
-            openEntity(tipo, id);
-          }
-        }}
-        onCreatePersonaje={async (criatura) => {
-          const { data } = await addPersonaje({
-            nombre: "Nuevo personaje",
-            ...(criatura ? { especie: criatura.nombre } : {}),
-          });
-          if (data?.id) openEntity("personajes", data.id);
-        }}
-        onOpen={(section, id) => openEntity(section, id)}
-      />
+            const categoria = tipo === "hechizos" ? hechizos : tipo === "dones" ? dones : runas;
+            const id = await categoria.create();
+            if (id) {
+              if (criaturaId) {
+                await supabase.from(tipo).update({ criatura_id: criaturaId }).eq("id", id);
+                categoria.setItems((prev) =>
+                  prev.map((i) => (i.id === id ? { ...i, criatura_id: criaturaId } as any : i)),
+                );
+              }
+              openEntity(tipo, id);
+            }
+          }}
+          onCreatePersonaje={async (criatura) => {
+            const { data } = await addPersonaje({
+              nombre: "Nuevo personaje",
+              ...(criatura ? { especie: criatura.nombre } : {}),
+            });
+            if (data?.id) openEntity("personajes", data.id);
+          }}
+          onOpen={(section, id) => openEntity(section, id)}
+        />
+      )}
 
       {/* ── Canciones ─────────────────────────────────────────────────── */}
-      <div className="mt-10 pt-6 border-t border-primary/10">
+      {subTab === "canciones" && (
+      <div>
         <div className="flex items-center gap-2 mb-4 px-1">
           <div className="flex-1" />
           <button
@@ -486,9 +524,11 @@ export function EntidadesPage({ section, selectedId }: Props) {
           ))
         )}
       </div>
+      )}
 
       {/* ── Organización (Grupos + Notas) ──────────────────────────────── */}
-      <div className="mt-10 pt-6 border-t border-primary/10">
+      {subTab === "organizacion" && (
+      <div>
         <div className="flex flex-row flex-wrap gap-6 items-start">
           {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
             ([tipo, cfg]) => {
@@ -565,6 +605,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
           )}
         </MundoCard>
       </div>
+      )}
 
       {showNuevaCancion && (
         <ModalNuevaCancion
