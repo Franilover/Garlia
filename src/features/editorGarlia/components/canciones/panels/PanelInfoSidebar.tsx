@@ -560,11 +560,16 @@ export const PanelInfoSidebar = ({
 
       {/* Idioma / Duración */}
       <div className="grid grid-cols-2 gap-1.5">
-        <CampoTexto
+        <SelectorNativo
+          allowEmpty
+          emptyLabel="Sin idioma"
           icon={<Globe size={9} />}
           label="Idioma"
-          placeholder="Japonés…"
-          suggestions={suggestions.idioma || []}
+          options={[
+            { value: "Español", label: "Español" },
+            { value: "Japonés", label: "Japonés" },
+            { value: "Inglés", label: "Inglés" },
+          ]}
           value={localData.idioma}
           onChange={(v) => handleChange("idioma", v)}
         />

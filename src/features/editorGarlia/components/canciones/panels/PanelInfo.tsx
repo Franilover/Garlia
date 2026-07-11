@@ -462,7 +462,30 @@ export const PanelInfo = ({
             />
           </div>
 
-          {/* Cantante / Compositor / Idioma / Tema con sugerencias */}
+          {/* Idioma */}
+          <div className="group relative space-y-2">
+            <label className="text-micro font-black text-primary/25 uppercase tracking-[0.2em] flex items-center gap-2 group-focus-within:text-primary/50 transition-colors">
+              <Globe size={12} /> Idioma
+            </label>
+            <div className="relative">
+              <select
+                className="w-full bg-transparent border-b border-primary/10 py-2 text-sm font-bold text-primary outline-none focus:border-primary/40 transition-all appearance-none cursor-pointer"
+                value={localData.idioma}
+                onChange={(e) => handleChange("idioma", e.target.value)}
+              >
+                <option value="">Sin idioma</option>
+                <option value="Español">Español</option>
+                <option value="Japonés">Japonés</option>
+                <option value="Inglés">Inglés</option>
+              </select>
+              <ChevronDown
+                className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-primary/30"
+                size={12}
+              />
+            </div>
+          </div>
+
+          {/* Cantante / Compositor / Tema con sugerencias */}
           {[
             {
               label: "Cantante",
@@ -475,12 +498,6 @@ export const PanelInfo = ({
               key: "compositor",
               icon: <PenLine size={12} />,
               placeholder: "Deco*27...",
-            },
-            {
-              label: "Idioma",
-              key: "idioma",
-              icon: <Globe size={12} />,
-              placeholder: "Japonés...",
             },
             {
               label: "Tema",

@@ -442,6 +442,57 @@ export function EntidadesPage({ section, selectedId }: Props) {
         onOpen={(section, id) => openEntity(section, id)}
       />
 
+      {/* ── Canciones ─────────────────────────────────────────────────── */}
+      <div className="mt-10 pt-6 border-t border-primary/10">
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <Music size={13} className="text-primary/50" />
+          <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
+            Canciones
+          </h2>
+          <span className="text-micro text-primary/25 tabular-nums">{canciones.length}</span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={() => setShowNuevaCancion(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-micro font-bold uppercase tracking-wide text-primary"
+          >
+            <Plus size={11} />
+            Añadir
+          </button>
+        </div>
+
+        {loadingCanciones && canciones.length === 0 ? (
+          <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+        ) : canciones.length === 0 ? (
+          <div className="py-6 text-xs text-primary/25 text-center">Sin canciones todavía</div>
+        ) : (
+          cancionesAgrupadas.map(({ idioma, compositores }) => (
+            <MundoCard key={idioma} title={idioma} Icon={Music}>
+              {compositores.map(({ compositor, cantantes }) => (
+                <div key={compositor} className="flex-none w-fit max-w-full">
+                  <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
+                    {compositor}
+                  </h4>
+                  <div className="flex flex-row flex-wrap gap-4 items-start">
+                    {cantantes.map(({ cantante, canciones: cancionesGrupo }) => (
+                      <div key={cantante} className="flex-none w-fit max-w-full">
+                        <EntityCardGrid
+                          title={cantante}
+                          Icon={Music}
+                          variant="chips"
+                          items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
+                          onItemClick={(id) => openEntity("letras", id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </MundoCard>
+          ))
+        )}
+      </div>
+
       {/* ── Organización (Grupos + Notas) ──────────────────────────────── */}
       <div className="mt-10 pt-6 border-t border-primary/10">
         <TipoHeader label="Organización" />
@@ -450,47 +501,44 @@ export function EntidadesPage({ section, selectedId }: Props) {
             const bloques = subtiposPorTipo[tipo] ?? [];
             if (!loadedGrupos && bloques.length === 0) {
               return (
-                <div key={tipo} className="mb-10 last:mb-0">
-                  <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
-                  <EntityCardGrid
-                    title={cfg.labelPlural}
-                    Icon={cfg.Icon}
-                    variant="chips"
-                    loading
-                    items={[]}
-                    onItemClick={() => {}}
-                    onCreate={async () => {
-                      const nuevo = await crearGrupo(tipo);
-                      if (nuevo) openEntity("grupos", nuevo.id);
-                    }}
-                  />
-                </div>
+                <MundoCard
+                  key={tipo}
+                  title={cfg.labelPlural}
+                  Icon={cfg.Icon}
+                  onCreate={async () => {
+                    const nuevo = await crearGrupo(tipo);
+                    if (nuevo) openEntity("grupos", nuevo.id);
+                  }}
+                >
+                  <div className="w-full py-6 text-xs text-primary/30 text-center">Cargando…</div>
+                </MundoCard>
               );
             }
             if (bloques.length === 0) return null;
 
             return (
-              <div key={tipo} className="mb-10 last:mb-0">
-                <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
-                <div className="flex flex-col md:flex-row gap-6 flex-wrap">
-                  {bloques.map((bloque, i) => (
-                    <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-1 min-w-[220px]">
-                      <EntityCardGrid
-                        title={bloque.subtipo ?? "Sin subtipo"}
-                        Icon={cfg.Icon}
-                        variant="chips"
-                        loading={!loadedGrupos}
-                        items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
-                        onItemClick={(id) => openEntity("grupos", id)}
-                        onCreate={async () => {
-                          const nuevo = await crearGrupo(tipo);
-                          if (nuevo) openEntity("grupos", nuevo.id);
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <MundoCard
+                key={tipo}
+                title={cfg.labelPlural}
+                Icon={cfg.Icon}
+                onCreate={async () => {
+                  const nuevo = await crearGrupo(tipo);
+                  if (nuevo) openEntity("grupos", nuevo.id);
+                }}
+              >
+                {bloques.map((bloque, i) => (
+                  <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-none w-fit max-w-full">
+                    <EntityCardGrid
+                      title={bloque.subtipo ?? "Sin subtipo"}
+                      Icon={cfg.Icon}
+                      variant="chips"
+                      loading={!loadedGrupos}
+                      items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
+                      onItemClick={(id) => openEntity("grupos", id)}
+                    />
+                  </div>
+                ))}
+              </MundoCard>
             );
           },
         )}
@@ -505,65 +553,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
             if (nota) openEntity("notas", nota.id);
           }}
         />
-        <div className="mb-8 last:mb-0">
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <Music size={13} className="text-primary/50" />
-            <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
-              Canciones
-            </h2>
-            <span className="text-micro text-primary/25 tabular-nums">{canciones.length}</span>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={() => setShowNuevaCancion(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-micro font-bold uppercase tracking-wide text-primary"
-            >
-              <Plus size={11} />
-              Añadir
-            </button>
-          </div>
-
-          {loadingCanciones && canciones.length === 0 ? (
-            <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
-          ) : canciones.length === 0 ? (
-            <div className="py-6 text-xs text-primary/25 text-center">Sin canciones todavía</div>
-          ) : (
-            cancionesAgrupadas.map(({ idioma, compositores }) => (
-              <div
-                key={idioma}
-                className="mb-6 last:mb-0 w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden"
-              >
-                <div className="flex items-center justify-center px-4 py-2.5 bg-primary/10 border-b border-primary/10">
-                  <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">
-                    {idioma}
-                  </h3>
-                </div>
-                <div className="p-4 flex flex-row flex-wrap gap-6 items-start">
-                  {compositores.map(({ compositor, cantantes }) => (
-                    <div key={compositor} className="flex-none w-fit max-w-full">
-                      <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
-                        {compositor}
-                      </h4>
-                      <div className="flex flex-row flex-wrap gap-4 items-start">
-                        {cantantes.map(({ cantante, canciones: cancionesGrupo }) => (
-                          <div key={cantante} className="flex-none w-fit max-w-full">
-                            <EntityCardGrid
-                              title={cantante}
-                              Icon={Music}
-                              variant="chips"
-                              items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
-                              onItemClick={(id) => openEntity("letras", id)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {showNuevaCancion && (
@@ -584,6 +573,57 @@ function TipoHeader({ label, Icon: _Icon }: { Icon?: React.ElementType; label: s
     <div className="flex items-center gap-2 mb-3 px-1">
       <h1 className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">{label}</h1>
       <div className="flex-1 h-px bg-primary/10" />
+    </div>
+  );
+}
+
+/**
+ * MundoCard
+ * ───────────────────────────────────────────────────────────────────────────
+ * Card "de mundo" reutilizable — mismo lenguaje visual que usan las cards de
+ * Reino (GeografiaJerarquica) y Criatura (MagiaJerarquica): borde redondeado,
+ * barra de título centrada con fondo tenue, y contenido libre debajo.
+ * Sirve para unificar cualquier nivel de agrupación de la página (Idioma,
+ * Compositor, Tipo de grupo, etc.) bajo un mismo estilo.
+ */
+function MundoCard({
+  title,
+  Icon,
+  onCreate,
+  creating,
+  children,
+}: {
+  title: string;
+  Icon?: React.ElementType;
+  onCreate?: () => void;
+  creating?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-6 last:mb-0 w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2.5 bg-primary/10 border-b border-primary/10">
+        <span />
+        <div className="flex items-center gap-2 justify-self-center max-w-[280px]">
+          {Icon && <Icon size={13} className="text-primary shrink-0" />}
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary truncate">
+            {title}
+          </h3>
+        </div>
+        <div className="justify-self-end">
+          {onCreate && (
+            <button
+              type="button"
+              onClick={onCreate}
+              disabled={creating}
+              title="Añadir"
+              className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
+            >
+              <Plus size={12} className="text-primary/70" />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="p-4 flex flex-row flex-wrap gap-6 items-start">{children}</div>
     </div>
   );
 }
