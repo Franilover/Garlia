@@ -456,13 +456,7 @@ export function GeografiaJerarquica({
 
         {personajesSinCiudad.length > 0 && (
           <div>
-            <div className="flex items-center gap-3 mb-3 px-1">
-              <div className="h-px flex-1 bg-primary/10" />
-              <span className="text-micro font-black uppercase tracking-[0.25em] text-primary/40 shrink-0">
-                Sin ciudad
-              </span>
-              <div className="h-px flex-1 bg-primary/10" />
-            </div>
+            <div className="h-px mb-3 bg-primary/10" />
             <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
               <span />
