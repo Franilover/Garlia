@@ -81,11 +81,6 @@ function autoLayout(
   return result;
 }
 
-const NODE_COLOR: Record<StoryNode["kind"], string> = {
-  "chapter-start": "#5b8def",
-  section: "color-mix(in srgb, var(--foreground) 12%, transparent)",
-};
-
 const EDGE_COLOR: Record<StoryEdge["type"], string> = {
   choice: "#5b8def",
   "gate-tiene": "#22c55e",
