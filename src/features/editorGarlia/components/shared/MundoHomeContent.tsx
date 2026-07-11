@@ -9,6 +9,11 @@
  * fijas de arriba, así que acá solo queda:
  *   Resumen (conteos)
  *   Favoritos / Editado recientemente
+ *   Ensayos con tag "GOS" (ver EnsayosGosWidget)
+ *
+ * Cuando se clickea un ensayo GOS, este componente muda a mostrar
+ * <EnsayoGosScreen /> a pantalla completa (estado local ensayoAbiertoId, NO
+ * toca useMundoNavigation) — "Volver" limpia ese estado y regresa acá.
  *
  * "Editado recientemente" usa el campo updated_at de personajes/criaturas/
  * items/reinos/ciudades (agregado vía migración SQL — ver
@@ -29,6 +34,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import { useFavoritos } from "../../hooks/mundo/useFavoritosStore";
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
+import { EnsayoGosScreen } from "./EnsayoGosScreen";
 import { EnsayosGosWidget } from "./EnsayosGosWidget";
 
 /** Tablas/section de Entidades que tienen updated_at (ver migración SQL). */
@@ -208,6 +214,12 @@ function FavoritosYRecientes() {
 }
 
 export function MundoHomeContent() {
+  const [ensayoAbiertoId, setEnsayoAbiertoId] = React.useState<string | null>(null);
+
+  if (ensayoAbiertoId) {
+    return <EnsayoGosScreen ensayoId={ensayoAbiertoId} onClose={() => setEnsayoAbiertoId(null)} />;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-8 py-10">
@@ -219,7 +231,7 @@ export function MundoHomeContent() {
         <ResumenWidget />
         <FavoritosYRecientes />
         <div className="mt-6">
-          <EnsayosGosWidget />
+          <EnsayosGosWidget onOpen={setEnsayoAbiertoId} />
         </div>
       </div>
     </div>
