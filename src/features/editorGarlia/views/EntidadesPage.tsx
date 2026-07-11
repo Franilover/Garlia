@@ -611,11 +611,11 @@ function MundoCard({
         fill ? "w-full mb-6 last:mb-0" : "flex-none w-fit max-w-full"
       }`}
     >
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2.5 bg-primary/10 border-b border-primary/10">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3 py-1.5 bg-primary/10 border-b border-primary/10">
         <span />
-        <div className="flex items-center gap-2 justify-self-center max-w-[280px]">
-          {Icon && <Icon size={11} className="text-primary shrink-0" />}
-          <h3 className="text-xs font-black uppercase tracking-[0.15em] text-primary truncate">
+        <div className="flex items-center gap-1.5 justify-self-center max-w-[280px]">
+          {Icon && <Icon size={9} className="text-primary/70 shrink-0" />}
+          <h3 className="text-micro font-bold uppercase tracking-[0.12em] text-primary/70 truncate">
             {title}
           </h3>
         </div>
@@ -628,7 +628,7 @@ function MundoCard({
               title="Añadir"
               className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
-              <Plus size={11} className="text-primary/70" />
+              <Plus size={9} className="text-primary/60" />
             </button>
           )}
         </div>

@@ -86,12 +86,12 @@ function NodoCriatura({
   fill?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-1.5 max-w-full ${fill ? "w-full" : ""}`}>
+    <div className={`flex items-center gap-1 max-w-full ${fill ? "w-full" : ""}`}>
       <button
         type="button"
         onClick={onClick}
         title={label}
-        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors truncate bg-primary/10 hover:bg-primary/20 text-primary border border-primary/15 ${
+        className={`px-2.5 py-0.5 rounded-full text-micro font-bold tracking-wide transition-colors truncate bg-primary/10 hover:bg-primary/20 text-primary/70 border border-primary/15 ${
           fill ? "flex-1 min-w-0 text-center" : ""
         }`}
       >
@@ -104,7 +104,7 @@ function NodoCriatura({
           title="Añadir"
           className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors shrink-0"
         >
-          <Plus size={11} className="text-primary/60" />
+          <Plus size={9} className="text-primary/60" />
         </button>
       )}
     </div>
@@ -141,10 +141,10 @@ function Columna({
 
   return (
     <div className={vacia ? "w-fit shrink-0" : "shrink-0"} style={vacia ? undefined : { width: anchoPx }}>
-      <div className="flex items-center gap-1.5">
-        <Icon size={11} className="text-accent/60 shrink-0" />
+      <div className="flex items-center gap-1">
+        <Icon size={9} className="text-accent/50 shrink-0" />
         <span
-          className="text-micro font-black uppercase tracking-[0.15em] truncate"
+          className="text-micro font-bold uppercase tracking-[0.1em] text-primary/60 truncate"
           style={{ maxWidth: vacia ? 140 : anchoPx }}
           title={label}
         >
@@ -157,7 +157,7 @@ function Columna({
             title={`Añadir ${label.toLowerCase()}`}
             className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors shrink-0"
           >
-            <Plus size={10} className="text-primary/60" />
+            <Plus size={9} className="text-primary/60" />
           </button>
         )}
       </div>
@@ -391,15 +391,15 @@ export function MagiaJerarquica({
                   key={criatura.id}
                   className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden"
                 >
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3 py-1.5 bg-primary/10 border-b border-primary/10">
                     <span />
                     <button
                       type="button"
                       onClick={() => onOpen("criaturas", criatura.id)}
                       title={criatura.nombre}
-                      className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary hover:text-accent transition-colors flex items-center gap-1.5"
+                      className="justify-self-center max-w-[280px] truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70 hover:text-accent transition-colors flex items-center gap-1"
                     >
-                      <Bug size={11} className="shrink-0" />
+                      <Bug size={9} className="shrink-0" />
                       {criatura.nombre}
                     </button>
                     <span />
@@ -458,10 +458,10 @@ export function MagiaJerarquica({
           <div>
             <div className="h-px mb-3 bg-primary/10" />
             <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3 py-1.5 bg-primary/10 border-b border-primary/10">
               <span />
-              <span className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary flex items-center gap-1.5">
-                <Bug size={11} className="shrink-0" />
+              <span className="justify-self-center max-w-[280px] truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70 flex items-center gap-1">
+                <Bug size={9} className="shrink-0" />
                 Sin criatura
               </span>
               <span />

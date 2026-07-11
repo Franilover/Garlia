@@ -85,17 +85,17 @@ function NodoTitulo({
 }) {
   const chipStyles =
     variant === "reino"
-      ? "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/15"
-      : "bg-accent/10 hover:bg-accent/20 text-accent border border-accent/15";
+      ? "bg-primary/10 hover:bg-primary/20 text-primary/70 border border-primary/15"
+      : "bg-accent/10 hover:bg-accent/20 text-accent/80 border border-accent/15";
 
   return (
-    <div className={`flex items-center gap-1.5 max-w-full ${fill ? "w-full" : ""}`}>
+    <div className={`flex items-center gap-1 max-w-full ${fill ? "w-full" : ""}`}>
       <button
         type="button"
         onClick={onClick}
         title={label}
         style={maxWidthPx ? { maxWidth: maxWidthPx } : undefined}
-        className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide transition-colors truncate ${chipStyles} ${
+        className={`px-2.5 py-0.5 rounded-full text-micro font-bold tracking-wide transition-colors truncate ${chipStyles} ${
           fill ? "flex-1 min-w-0 text-center" : ""
         }`}
       >
@@ -109,7 +109,7 @@ function NodoTitulo({
           title="Añadir"
           className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
         >
-          <Plus size={11} className="text-primary/60" />
+          <Plus size={9} className="text-primary/60" />
         </button>
       )}
     </div>
@@ -400,13 +400,13 @@ export function GeografiaJerarquica({
                   key={reino.id}
                   className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden"
                 >
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3 py-1.5 bg-primary/10 border-b border-primary/10">
                     <span />
                     <button
                       type="button"
                       onClick={() => onOpen("reinos", reino.id)}
                       title={reino.nombre}
-                      className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary hover:text-accent transition-colors"
+                      className="justify-self-center max-w-[280px] truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70 hover:text-accent transition-colors"
                     >
                       {reino.nombre}
                     </button>
@@ -418,7 +418,7 @@ export function GeografiaJerarquica({
                           title="Añadir ciudad"
                           className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
                         >
-                          <Plus size={11} className="text-primary/60" />
+                          <Plus size={9} className="text-primary/60" />
                         </button>
                       )}
                     </div>
@@ -458,9 +458,9 @@ export function GeografiaJerarquica({
           <div>
             <div className="h-px mb-3 bg-primary/10" />
             <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3 py-1.5 bg-primary/10 border-b border-primary/10">
               <span />
-              <span className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary">
+              <span className="justify-self-center max-w-[280px] truncate text-micro font-bold uppercase tracking-[0.12em] text-primary/70">
                 Sin ciudad
               </span>
               <div className="justify-self-end">
@@ -471,7 +471,7 @@ export function GeografiaJerarquica({
                     title="Añadir personaje"
                     className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
                   >
-                    <Plus size={11} className="text-primary/60" />
+                    <Plus size={9} className="text-primary/60" />
                   </button>
                 )}
               </div>
