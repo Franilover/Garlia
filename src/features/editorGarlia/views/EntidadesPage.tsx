@@ -445,10 +445,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
       {/* ── Canciones ─────────────────────────────────────────────────── */}
       <div className="mt-10 pt-6 border-t border-primary/10">
         <div className="flex items-center gap-2 mb-4 px-1">
-          <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
-            Canciones
-          </h2>
-          <span className="text-micro text-primary/25 tabular-nums">{canciones.length}</span>
           <div className="flex-1" />
           <button
             type="button"
