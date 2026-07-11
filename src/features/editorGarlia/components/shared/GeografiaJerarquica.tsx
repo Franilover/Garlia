@@ -461,7 +461,15 @@ export function GeografiaJerarquica({
         </div>
 
         {personajesSinCiudad.length > 0 && (
-          <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
+          <div>
+            <div className="flex items-center gap-3 mb-3 px-1">
+              <div className="h-px flex-1 bg-primary/10" />
+              <span className="text-micro font-black uppercase tracking-[0.25em] text-primary/40 shrink-0">
+                Sin ciudad
+              </span>
+              <div className="h-px flex-1 bg-primary/10" />
+            </div>
+            <div className="w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/10">
               <span />
               <span className="justify-self-center max-w-[280px] truncate text-xs font-black uppercase tracking-[0.15em] text-primary">
@@ -496,13 +504,18 @@ export function GeografiaJerarquica({
                 />
               ))}
             </div>
+            </div>
           </div>
         )}
         {reinosVacios.length > 0 && (
           <div>
-            <p className="mb-2 px-1 text-micro font-bold uppercase tracking-widest text-primary/25">
-              Sin ciudades asignadas
-            </p>
+            <div className="flex items-center gap-3 mb-3 px-1">
+              <div className="h-px flex-1 bg-primary/10" />
+              <span className="text-micro font-black uppercase tracking-[0.25em] text-primary/40 shrink-0">
+                Sin ciudades asignadas
+              </span>
+              <div className="h-px flex-1 bg-primary/10" />
+            </div>
             <div
               className="grid gap-2"
               style={{
