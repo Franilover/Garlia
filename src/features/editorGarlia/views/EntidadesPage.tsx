@@ -16,11 +16,15 @@
  * muestra sin lógica extra acá.
  */
 
-import { StickyNote } from "lucide-react";
+import { Music, StickyNote } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
+import { PanelEditor } from "@/features/editorGarlia/components/canciones/editor/PanelEditor";
+import { ModalNuevaCancion } from "@/features/editorGarlia/components/canciones/modals/ModalNuevaCancion";
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
 import { CONFIG, type EntidadMagica } from "@/features/editorGarlia/components/magia/types";
+import { useCanciones } from "@/features/editorGarlia/hooks/canciones/useCanciones";
+import type { Cancion } from "@/features/editorGarlia/hooks/canciones/types";
 import { useGruposCriaturas } from "@/features/editorGarlia/hooks/grupos/useGruposCriaturas";
 import { useNotas } from "@/features/editorGarlia/hooks/notas/useNotas";
 import { type Nota } from "@/features/editorGarlia/hooks/types";
@@ -173,6 +177,10 @@ export function EntidadesPage({ section, selectedId }: Props) {
     return map;
   }, [gruposPorTipo]);
 
+  // ── Canciones ─────────────────────────────────────────────────────────
+  const { canciones, setCanciones, loading: loadingCanciones } = useCanciones();
+  const [showNuevaCancion, setShowNuevaCancion] = useState(false);
+
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
   const selectedPersonaje = useMemo(
@@ -202,6 +210,10 @@ export function EntidadesPage({ section, selectedId }: Props) {
   const selectedNota = useMemo(
     () => (section === "notas" ? notas.find((n) => n.id === selectedId) ?? null : null),
     [section, notas, selectedId],
+  );
+  const selectedCancion = useMemo(
+    () => (section === "letras" ? canciones.find((c) => c.id === selectedId) ?? null : null),
+    [section, canciones, selectedId],
   );
 
   const activeMagiaCategoria =
@@ -253,6 +265,20 @@ export function EntidadesPage({ section, selectedId }: Props) {
           onSaved={async (updated) => {
             await actualizarGrupo(updated);
           }}
+        />
+      </div>
+    );
+  }
+
+  if (selectedCancion) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <PanelEditor
+          key={selectedCancion.id}
+          cancionId={selectedCancion.id}
+          onNavigateCiudad={(id) => openEntity("ciudades", id)}
+          onNavigatePersonaje={(id) => openEntity("personajes", id)}
+          onNavigateReino={(id) => openEntity("reinos", id)}
         />
       </div>
     );
@@ -434,7 +460,25 @@ export function EntidadesPage({ section, selectedId }: Props) {
             if (nota) openEntity("notas", nota.id);
           }}
         />
+        <EntityCardGrid
+          title="Canciones"
+          Icon={Music}
+          loading={loadingCanciones}
+          items={canciones.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
+          onItemClick={(id) => openEntity("letras", id)}
+          onCreate={() => setShowNuevaCancion(true)}
+        />
       </div>
+
+      {showNuevaCancion && (
+        <ModalNuevaCancion
+          onClose={() => setShowNuevaCancion(false)}
+          onCreated={(c) => {
+            setCanciones((prev) => [c, ...prev]);
+            openEntity("letras", c.id);
+          }}
+        />
+      )}
     </div>
   );
 }

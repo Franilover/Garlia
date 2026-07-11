@@ -3,22 +3,22 @@
 /**
  * MundoMenu
  * ───────────────────────────────────────────────────────────────────────────
- * Menú de entrada cuando section === null. Entidades, Geografía, Magia y
- * Organización ya no son entradas separadas: personajes/criaturas/items/
- * reinos/ciudades/hechizos/dones/runas/grupos/notas viven TODOS en
- * <EntidadesPage />, así que acá se muestra una sola entrada "Entidades"
- * para todas ellas (Organización aparece como bloque al fondo del grid).
- * Mapa sigue siendo página propia. Historia (Capítulos/Letras/Línea de
- * Tiempo) sigue con sus 3 entradas porque no se combinó.
+ * Menú de entrada cuando section === null. Entidades, Geografía, Magia,
+ * Organización y Canciones ya no son entradas separadas: personajes/
+ * criaturas/items/reinos/ciudades/hechizos/dones/runas/grupos/notas/letras
+ * viven TODOS en <EntidadesPage />, así que acá se muestra una sola entrada
+ * "Entidades" para todas ellas (Organización y Canciones aparecen como
+ * bloques al fondo del grid). Mapa sigue siendo página propia. Capítulos y
+ * Línea de Tiempo siguen con entradas propias porque no se combinaron.
  *
  * Clickear "Entidades" navega a section: "personajes" (la primera del
  * grupo) — el switch en EditorMundoRoot ya sabe que cualquiera de
  * personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas/grupos/
- * notas renderiza <EntidadesPage />, así que no importa cuál se use como
- * entry point.
+ * notas/letras renderiza <EntidadesPage />, así que no importa cuál se use
+ * como entry point.
  */
 
-import { Clock, Mountain, Music, ScrollText, Users } from "lucide-react";
+import { Clock, Mountain, ScrollText, Users } from "lucide-react";
 import React from "react";
 
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -36,7 +36,6 @@ const MENU_ENTRIES: MenuEntry[] = [
 
 const HISTORIA_ENTRIES: MenuEntry[] = [
   { key: "capitulos", label: "Capítulos", Icon: ScrollText },
-  { key: "letras", label: "Letras", Icon: Music },
   { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
 ];
 

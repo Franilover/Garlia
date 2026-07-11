@@ -12,17 +12,17 @@
  * caen a una sola columna.
  *
  * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas/
- * grupos/notas son 10 SectionKey distintas pero renderizan TODAS la misma
- * página combinada <EntidadesPage /> (ver switch en EditorMundoRoot), con el
- * bloque de Organización (Grupos + Notas) al fondo del grid. Por eso la
- * navegación principal usa una lista propia de "páginas reales" (ENTRIES),
- * no MUNDO_MENU_GROUPS.
+ * grupos/notas/letras son 11 SectionKey distintas pero renderizan TODAS la
+ * misma página combinada <EntidadesPage /> (ver switch en EditorMundoRoot),
+ * con los bloques de Organización (Grupos + Notas) y Canciones al fondo del
+ * grid. Por eso la navegación principal usa una lista propia de "páginas
+ * reales" (ENTRIES), no MUNDO_MENU_GROUPS.
  *
  * "Editado recientemente" usa el campo updated_at de personajes/criaturas/
  * items/reinos/ciudades (agregado vía migración SQL — ver
- * agregar-updated-at.sql). Organización/Capítulos/Letras no se incluyen
- * porque usan hooks propios con forma distinta (useNotas, useGrupos, etc.)
- * sin ese campo confirmado.
+ * agregar-updated-at.sql). Organización/Canciones/Capítulos no se incluyen
+ * porque usan hooks propios con forma distinta (useNotas, useGrupos,
+ * useCanciones, etc.) sin ese campo confirmado.
  *
  * "Favoritos" lee de useFavoritos (Zustand + persist, local al navegador).
  * Se marcan desde la estrella en cada EntityCard dentro de Entidades. El
@@ -30,7 +30,7 @@
  * fill-accent), igual que el resto de acentos de la app, no un color fijo.
  */
 
-import { Clock, Mountain, Music, ScrollText, Star, Users } from "lucide-react";
+import { Clock, Mountain, ScrollText, Star, Users } from "lucide-react";
 import React, { useMemo } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -50,12 +50,11 @@ const ENTRIES: DashboardEntry[] = [
     key: "personajes",
     label: "Entidades",
     description:
-      "Personajes, criaturas, items, reinos, ciudades, hechizos, dones, runas, grupos y notas",
+      "Personajes, criaturas, items, reinos, ciudades, hechizos, dones, runas, grupos, notas y canciones",
     Icon: Users,
   },
   { key: "mapa", label: "Mapa", description: "Vista geográfica del mundo", Icon: Mountain },
   { key: "capitulos", label: "Capítulos", description: "Libros y capítulos", Icon: ScrollText },
-  { key: "letras", label: "Letras", description: "Canciones y letras", Icon: Music },
   {
     key: "linea-tiempo",
     label: "Línea de Tiempo",

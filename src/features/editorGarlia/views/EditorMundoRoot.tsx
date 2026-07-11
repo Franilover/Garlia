@@ -45,17 +45,15 @@ import { useCreateEntity } from "../hooks/mundo/useCreateEntity";
 import { useWikilinkNavigate } from "../hooks/mundo/useWikilinkNavigate";
 
 // ─── Code-splitting por página combinada ──────────────────────────────────
-// Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas/Grupos/Notas
-// viven TODOS juntos en EntidadesPage (una sola grilla grande de tarjetas,
-// con el bloque de Organización — Grupos + Notas — al fondo).
+// Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas/Grupos/
+// Notas/Letras viven TODOS juntos en EntidadesPage (una sola grilla grande
+// de tarjetas, con los bloques de Organización — Grupos + Notas — y
+// Canciones al fondo).
 const EntidadesPage = lazy(() =>
   import("./EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
 );
 const CapitulosSection = lazy(() =>
   import("./CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
-);
-const LetrasSection = lazy(() =>
-  import("./LetrasSection").then((m) => ({ default: m.LetrasSection })),
 );
 const MapaSection = lazy(() =>
   import("./MapaSection").then((m) => ({ default: m.MapaSection })),
@@ -89,11 +87,10 @@ function ActiveSection() {
     case "runas":
     case "grupos":
     case "notas":
+    case "letras":
       return <EntidadesPage section={section} selectedId={selectedId} />;
     case "capitulos":
       return <CapitulosSection />;
-    case "letras":
-      return <LetrasSection />;
     case "mapa":
       return <MapaSection />;
     case "linea-tiempo":

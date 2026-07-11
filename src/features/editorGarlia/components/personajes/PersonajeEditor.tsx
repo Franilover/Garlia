@@ -43,16 +43,7 @@ export function PersonajeEditor({ personaje }: { personaje: Personaje }) {
       onOpenGrupo={(id) => openEntity("grupos", id)}
       onNavigateCiudad={(id) => openEntity("ciudades", id)}
       onNavigateCapitulo={(capituloId) => openEntity("capitulos", capituloId)}
-      onSelectCancion={(id) => {
-        // "letras" es una sección autónoma (EstudioLetras) que NO lee
-        // selectedId del store de Mundo — mantiene su propio id seleccionado
-        // en localStorage ("estudio-letras-last-id"). Para abrir una canción
-        // puntual desde acá hay que escribirle el id + disparar el mismo
-        // evento que ya usa su buscador interno (ver EditorLetras.tsx).
-        localStorage.setItem("estudio-letras-open-id", id);
-        window.dispatchEvent(new Event("estudio-letras-action"));
-        openEntity("letras", id);
-      }}
+      onSelectCancion={(id) => openEntity("letras", id)}
     />
   );
 }
