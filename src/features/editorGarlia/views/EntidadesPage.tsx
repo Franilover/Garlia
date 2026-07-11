@@ -16,7 +16,7 @@
  * muestra sin lógica extra acá.
  */
 
-import { Music, StickyNote } from "lucide-react";
+import { Music, Plus, StickyNote } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { PanelEditor } from "@/features/editorGarlia/components/canciones/editor/PanelEditor";
@@ -180,6 +180,51 @@ export function EntidadesPage({ section, selectedId }: Props) {
   // ── Canciones ─────────────────────────────────────────────────────────
   const { canciones, setCanciones, loading: loadingCanciones } = useCanciones();
   const [showNuevaCancion, setShowNuevaCancion] = useState(false);
+
+  /** Agrupa canciones por Idioma → Compositor → Cantante, en ese orden.
+   *  Los valores vacíos caen en un balde "Sin …" que siempre queda al final. */
+  const cancionesAgrupadas = useMemo(() => {
+    const SIN = new Set(["Sin idioma", "Sin compositor", "Sin cantante"]);
+    const sortKeys = (keys: string[]) =>
+      keys.sort((a, b) => {
+        if (SIN.has(a) && !SIN.has(b)) return 1;
+        if (SIN.has(b) && !SIN.has(a)) return -1;
+        return a.localeCompare(b, "es");
+      });
+
+    const porIdioma = new Map<string, Map<string, Map<string, Cancion[]>>>();
+    for (const c of canciones) {
+      const idioma = c.idioma?.trim() || "Sin idioma";
+      const compositor = c.compositor?.trim() || "Sin compositor";
+      const cantante = c.cantante?.trim() || "Sin cantante";
+
+      if (!porIdioma.has(idioma)) porIdioma.set(idioma, new Map());
+      const porCompositor = porIdioma.get(idioma)!;
+
+      if (!porCompositor.has(compositor)) porCompositor.set(compositor, new Map());
+      const porCantante = porCompositor.get(compositor)!;
+
+      if (!porCantante.has(cantante)) porCantante.set(cantante, []);
+      porCantante.get(cantante)!.push(c);
+    }
+
+    return sortKeys(Array.from(porIdioma.keys())).map((idioma) => {
+      const porCompositor = porIdioma.get(idioma)!;
+      return {
+        idioma,
+        compositores: sortKeys(Array.from(porCompositor.keys())).map((compositor) => {
+          const porCantante = porCompositor.get(compositor)!;
+          return {
+            compositor,
+            cantantes: sortKeys(Array.from(porCantante.keys())).map((cantante) => ({
+              cantante,
+              canciones: porCantante.get(cantante)!,
+            })),
+          };
+        }),
+      };
+    });
+  }, [canciones]);
 
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
@@ -460,14 +505,59 @@ export function EntidadesPage({ section, selectedId }: Props) {
             if (nota) openEntity("notas", nota.id);
           }}
         />
-        <EntityCardGrid
-          title="Canciones"
-          Icon={Music}
-          loading={loadingCanciones}
-          items={canciones.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
-          onItemClick={(id) => openEntity("letras", id)}
-          onCreate={() => setShowNuevaCancion(true)}
-        />
+        <div className="mb-8 last:mb-0">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <Music size={13} className="text-primary/50" />
+            <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
+              Canciones
+            </h2>
+            <span className="text-micro text-primary/25 tabular-nums">{canciones.length}</span>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setShowNuevaCancion(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-micro font-bold uppercase tracking-wide text-primary"
+            >
+              <Plus size={11} />
+              Añadir
+            </button>
+          </div>
+
+          {loadingCanciones && canciones.length === 0 ? (
+            <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+          ) : canciones.length === 0 ? (
+            <div className="py-6 text-xs text-primary/25 text-center">Sin canciones todavía</div>
+          ) : (
+            cancionesAgrupadas.map(({ idioma, compositores }) => (
+              <div key={idioma} className="mb-5 last:mb-0">
+                <h3 className="text-micro font-bold uppercase tracking-[0.2em] text-primary/40 mb-2 px-1">
+                  {idioma}
+                </h3>
+                <div className="flex flex-col gap-3 pl-3 border-l border-primary/10">
+                  {compositores.map(({ compositor, cantantes }) => (
+                    <div key={compositor}>
+                      <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
+                        {compositor}
+                      </h4>
+                      <div className="flex flex-col gap-2 pl-3">
+                        {cantantes.map(({ cantante, canciones: cancionesGrupo }) => (
+                          <EntityCardGrid
+                            key={cantante}
+                            title={cantante}
+                            Icon={Music}
+                            variant="chips"
+                            items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
+                            onItemClick={(id) => openEntity("letras", id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {showNuevaCancion && (
