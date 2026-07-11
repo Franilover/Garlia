@@ -15,13 +15,12 @@
  *      así el usuario no descarga el editor de letras de canciones para
  *      editar un personaje.
  *
- * Navegación tipo "un solo panel que se transforma": cuando section === null
- * se muestra <MundoMenu /> con las 12 secciones agrupadas; al elegir una,
- * el MISMO espacio pasa a mostrar la columna angosta (lista) + editor de esa
- * sección — no se agrega una columna nueva al lado. El botón de volver
- * (X / flecha) vive en la navbar global (components/layout/navbar.tsx),
- * que lee useMundoNavigation directamente — no hay botones de volver
- * dentro de cada sección.
+ * Navegación por tabs fijas arriba (<MundoTabs />, siempre visible):
+ * Inicio / Entidades / Mapa / Historia. Al elegir una, el espacio debajo de
+ * las tabs muestra la sección correspondiente — no se agrega una columna
+ * nueva al lado. El botón de volver (X / flecha) dentro de cada sección
+ * vive en la navbar global (components/layout/navbar.tsx), que lee
+ * useMundoNavigation directamente.
  *
  * Requiere: npm install zustand (verificado zustand@5.0.14 + TS strict).
  *
@@ -40,7 +39,8 @@ import { WikilinkProvider } from "@/features/editorGarlia/components/shared/Wiki
 
 import { useMundoNavigation } from "../hooks/mundo/useMundoNavigationStore";
 import { useExternalCommandBridge } from "../hooks/mundo/useExternalCommandBridge";
-import { MundoHomeDashboard } from "../components/shared/MundoHomeDashboard";
+import { MundoHomeContent } from "../components/shared/MundoHomeContent";
+import { MundoTabs } from "../components/shared/MundoTabs";
 import { useCreateEntity } from "../hooks/mundo/useCreateEntity";
 import { useWikilinkNavigate } from "../hooks/mundo/useWikilinkNavigate";
 
@@ -76,7 +76,7 @@ function ActiveSection() {
 
   switch (section) {
     case null:
-      return <MundoHomeDashboard />;
+      return <MundoHomeContent />;
     case "personajes":
     case "criaturas":
     case "items":
@@ -132,6 +132,7 @@ function EditorMundoInner() {
           <WifiOff size={10} /> Sin conexión · algunos datos pueden estar desactualizados
         </div>
       )}
+      <MundoTabs />
       <div className="flex-1 flex min-h-0 overflow-hidden">
         <WikilinkProvider onWikilink={handleWikilinkNavigate}>
           <Suspense fallback={<SectionFallback />}>
