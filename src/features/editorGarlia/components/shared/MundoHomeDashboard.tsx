@@ -30,7 +30,7 @@
  * fill-accent), igual que el resto de acentos de la app, no un color fijo.
  */
 
-import { Clock, Layers, Mountain, Music, ScrollText, Star, Users } from "lucide-react";
+import { Clock, Mountain, Music, ScrollText, Star, Users } from "lucide-react";
 import React, { useMemo } from "react";
 
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
@@ -49,16 +49,11 @@ const ENTRIES: DashboardEntry[] = [
   {
     key: "personajes",
     label: "Entidades",
-    description: "Personajes, criaturas, items, reinos, ciudades, hechizos, dones y runas",
+    description:
+      "Personajes, criaturas, items, reinos, ciudades, hechizos, dones, runas, grupos y notas",
     Icon: Users,
   },
   { key: "mapa", label: "Mapa", description: "Vista geográfica del mundo", Icon: Mountain },
-  {
-    key: "grupos",
-    label: "Organización",
-    description: "Grupos y notas",
-    Icon: Layers,
-  },
   { key: "capitulos", label: "Capítulos", description: "Libros y capítulos", Icon: ScrollText },
   { key: "letras", label: "Letras", description: "Canciones y letras", Icon: Music },
   {
