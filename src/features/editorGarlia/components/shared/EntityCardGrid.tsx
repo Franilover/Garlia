@@ -8,7 +8,7 @@
  * Varias de estas apiladas verticalmente forman la página completa.
  */
 
-import { Loader2, Plus } from "lucide-react";
+import { Box, Loader2, Plus } from "lucide-react";
 import React from "react";
 
 import { useFavoritos } from "../../hooks/mundo/useFavoritosStore";
@@ -129,7 +129,7 @@ export function EntityCardGrid({
               nombre={item.nombre}
               imageUrl={item.imageUrl}
               subtitle={item.subtitle}
-              Icon={Icon}
+              Icon={Icon ?? Box}
               onClick={() => onItemClick(item.id)}
               isFavorite={section ? isFavorito(section, item.id) : undefined}
               onToggleFavorite={
