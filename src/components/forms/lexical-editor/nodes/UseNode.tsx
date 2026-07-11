@@ -39,11 +39,26 @@ function UseChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
+  const useChipText = (() => {
+    const partes = [
+      payload.sectionOk ? `✓${payload.sectionOk}` : null,
+      payload.sectionFail ? `✗${payload.sectionFail}` : null,
+    ].filter(Boolean);
+    return partes.length > 0
+      ? `${payload.word} → ${partes.join(" ")}`
+      : `${payload.word} → (sin destino)`;
+  })();
+
   return (
     <SnippetChip
       icon={<MousePointerClick size={10} />}
-      text={payload.word}
-      title={`Usar ítem → ok:${payload.sectionOk}`}
+      maxTextWidth={220}
+      text={useChipText}
+      title={
+        payload.sectionOk
+          ? `Usar ítem → ok:${payload.sectionOk}${payload.sectionFail ? ` · fail:${payload.sectionFail}` : ""}`
+          : "Usar ítem sin sección destino — no genera salto"
+      }
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "use",

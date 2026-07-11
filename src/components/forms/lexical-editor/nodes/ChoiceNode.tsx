@@ -40,8 +40,16 @@ function ChoiceChipView({
   return (
     <SnippetChip
       icon={<GitBranch size={10} />}
-      text={payload.label}
-      title={`Choice → ${payload.target}`}
+      text={
+        payload.target
+          ? `${payload.label} → ${payload.target}`
+          : `${payload.label} → (sin destino)`
+      }
+      title={
+        payload.target
+          ? `Choice → ${payload.target}`
+          : "Choice sin sección destino — no genera salto"
+      }
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "choice",

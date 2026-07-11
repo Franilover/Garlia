@@ -47,6 +47,12 @@ export {
   gateRawToPayload,
 } from "./nodes/GateNode";
 export {
+  $createFlagNode,
+  $isFlagNode,
+  flagPayloadToRaw,
+  flagRawToPayload,
+} from "./nodes/FlagNode";
+export {
   $createSectionNode,
   $isSectionNode,
   sectionPayloadToRaw,

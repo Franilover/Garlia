@@ -53,6 +53,12 @@ import {
   dropRawToPayload,
 } from "./nodes/DropNode";
 import {
+  $createFlagNode,
+  $isFlagNode,
+  flagPayloadToRaw,
+  flagRawToPayload,
+} from "./nodes/FlagNode";
+import {
   $createGateNode,
   $isGateNode,
   gatePayloadToRaw,
@@ -95,14 +101,18 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GATE_RE = /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g;
+// [[flag|if|...]] es multilinea igual que gate (mismo motivo: el cuerpo
+// contiene "===" y texto libre). [[flag|set|...]] en cambio es single-line
+// y cae en SNIPPET_RE junto a los demás snippets simples.
+const FLAG_IF_RE = /\[\[flag\|if\|[^\|]+\|[^\|]*\|[\s\S]+?\]\]/g;
 const SNIPPET_RE =
-  /\[\[(?:drop|img|float|sound|choice|use|section|cita)[^\]]*\]\]/g;
+  /\[\[(?:drop|img|float|sound|choice|use|section|cita|flag\|set)[^\]]*\]\]/g;
 // Wikilinks: [[Nombre]] SIN "kind|" — debe evaluarse por separado porque
 // no calza con el patrón "[[palabra|...]]" de los demás snippets. Excluye
 // explícitamente los kind conocidos para no capturar snippets malformados
 // como si fueran wikilinks.
 const WIKILINK_RE =
-  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate)\|)([^\[\]|]+)\]\]/g;
+  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate|flag)\|)([^\[\]|]+)\]\]/g;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convierte un raw [[kind|...]] string → LexicalNode
@@ -141,6 +151,10 @@ export function rawSnippetToNode(raw: string): LexicalNode | null {
     case "gate": {
       const p = gateRawToPayload(raw);
       return p ? $createGateNode(p) : null;
+    }
+    case "flag": {
+      const p = flagRawToPayload(raw);
+      return p ? $createFlagNode(p) : null;
     }
     case "section": {
       const p = sectionRawToPayload(raw);
@@ -219,8 +233,14 @@ export function rawTextToLexicalTree(raw: string): void {
     },
   );
 
-  // 2) Gates multilinea.
+  // 2) Gates y flag-if multilinea (mismo motivo: cuerpo con "===" y texto
+  // libre que no debe tocar el resto del pipeline de markdown).
   working = working.replace(GATE_RE, (match) => {
+    const token = nextToken();
+    registry.set(token, { kind: "snippet", raw: match });
+    return token;
+  });
+  working = working.replace(FLAG_IF_RE, (match) => {
     const token = nextToken();
     registry.set(token, { kind: "snippet", raw: match });
     return token;
@@ -413,6 +433,7 @@ export function serializeRootToRaw(): string {
     if ($isChoiceNode(node)) return choicePayloadToRaw(node.getPayload());
     if ($isUseNode(node)) return parseUsePayloadToRaw(node.getPayload());
     if ($isGateNode(node)) return gatePayloadToRaw(node.getPayload());
+    if ($isFlagNode(node)) return flagPayloadToRaw(node.getPayload());
     if ($isSectionNode(node)) return sectionPayloadToRaw(node.getPayload());
     if ($isWikilinkNode(node)) return wikilinkPayloadToRaw(node.getPayload());
     if ($isTableNode(node)) return serializeTableNode(node, walkNode);

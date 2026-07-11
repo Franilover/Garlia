@@ -24,6 +24,8 @@ import {
   AlignLeft,
   TriangleAlert,
   MapPin,
+  Waypoints,
+  Ban,
 } from "lucide-react";
 import React, {
   useState,
@@ -87,7 +89,14 @@ import {
 import {
   useCapituloEditor,
   useReinos,
+  useChapterGraph,
+  usePosicionesNodos,
 } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
+import {
+  insertChoiceAtEndOfSection,
+  type StoryGraph,
+} from "@/features/editorGarlia/hooks/capitulos/storyGraph";
+import { NodeGraphCanvas } from "@/features/editorGarlia/components/libros/NodeGraphCanvas";
 import { SnippetCommandPalette } from "@/features/editorGarlia/components/libros/snippets/SnippetCommandPalette";
 // SnippetOverlay eliminado — reemplazado por nodos Lexical reales
 import { ContenidoInteractivo } from "@/features/garlia/components/ContenidoInteractivo";
@@ -202,21 +211,36 @@ const PanelEditor = ({
   const [listaSnippetCaps, setListaSnippetCaps] = useState<
     { id: string; orden: number; titulo_capitulo: string }[]
   >([]);
-  const listaSecciones = useMemo(() => {
-    const matches = [
-      ...contenido.matchAll(/\[\[section\|([^\|\]]+)(?:\|([^\]]+))?\]\]/g),
-    ];
-    return matches.map((m) => ({
-      id: m[1].trim(),
-      label: (m[2] ?? m[1]).trim(),
-    }));
-  }, [contenido]);
+  // Fase 1 del rediseño Choice/Gate: listaSecciones ahora se deriva del grafo
+  // narrativo completo (storyGraph.ts) en vez de un regex suelto acá. Se
+  // mantiene la misma forma { id, label }[] que ya consumía FormChoice para
+  // no romper nada; `chapterGraph` completo (con huérfanas/rotas) queda
+  // disponible para cuando se conecte el panel visual (Fase 3).
+  const chapterGraph = useChapterGraph(capId, titulo, contenido);
+  const listaSecciones = useMemo(
+    () =>
+      chapterGraph.nodes
+        .filter((n) => n.kind === "section")
+        .map((n) => ({ id: n.id, label: n.label })),
+    [chapterGraph],
+  );
   const [palette, setPalette] = useState<{
     anchorRect: { top: number; left: number };
     initialRaw?: string;
     initialQuery?: string;
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Fase 2 del rediseño Choice/Gate: toggle "Escribir / Grafo nodo" en el
+  // panel central. En modo grafo se reemplaza el RichEditor por dos
+  // sub-vistas: "problemas" (huérfanas + links rotos) y "canvas" (Fase 3:
+  // editor visual interactivo, nodos arrastrables + drag-to-connect).
+  const [vistaEditor, setVistaEditor] = useState<"escribir" | "grafo">(
+    "escribir",
+  );
+  const [vistaGrafo, setVistaGrafo] = useState<"problemas" | "canvas">(
+    "canvas",
+  );
+  const { posiciones, setPos } = usePosicionesNodos(capId);
   const timer = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mdInsertRef = useRef<((raw: string) => void) | null>(null);
@@ -425,6 +449,26 @@ const PanelEditor = ({
       if (!isTouchDevice) requestAnimationFrame(() => centerCursor());
     },
     [doSave, draft, centerCursor, capId],
+  );
+
+  // Fase 3 del rediseño Choice/Gate: dispara al soltar un drag-to-connect en
+  // NodeGraphCanvas. Agrega un [[choice]] al final de la sección origen —
+  // nunca reescribe texto existente. `label` genérico porque el autor puede
+  // (y probablemente va a querer) editarlo después desde el chip inline,
+  // que ya soporta edición vía FormChoice.
+  const handleGraphConnect = useCallback(
+    (fromNodeId: string, toNodeId: string) => {
+      if (!capId) return;
+      const nuevoContenido = insertChoiceAtEndOfSection(
+        contenido,
+        fromNodeId,
+        capId,
+        "Continuar…",
+        toNodeId,
+      );
+      onChange(nuevoContenido);
+    },
+    [capId, contenido, onChange],
   );
 
   const _handleSnippetAction = useCallback(
@@ -974,6 +1018,33 @@ const PanelEditor = ({
                   <Eye size={11} />
                 </button>
                 <button
+                  className={`p-1.5 rounded transition-all disabled:opacity-30 relative ${
+                    vistaEditor === "grafo"
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-primary/8 text-primary/25 hover:text-primary"
+                  }`}
+                  title={
+                    vistaEditor === "grafo"
+                      ? "Volver a escribir"
+                      : "Ver problemas del capítulo (huérfanas / rotas)"
+                  }
+                  onClick={() =>
+                    setVistaEditor((v) =>
+                      v === "grafo" ? "escribir" : "grafo",
+                    )
+                  }
+                >
+                  <Waypoints size={11} />
+                  {chapterGraph.orphanNodes.length +
+                    chapterGraph.brokenEdges.length >
+                    0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center leading-none">
+                      {chapterGraph.orphanNodes.length +
+                        chapterGraph.brokenEdges.length}
+                    </span>
+                  )}
+                </button>
+                <button
                   className="p-1.5 rounded hover:bg-primary/8 text-primary/25 hover:text-primary transition-all"
                   title="Modo foco"
                   onClick={onToggleFocus}
@@ -1006,30 +1077,81 @@ const PanelEditor = ({
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <div className={focusMode ? "max-w-3xl mx-auto w-full" : ""}>
-              <RichEditor
-                key={capId}
-                autoFocus={focusMode}
-                // Bloquea la edición mientras `cap` todavía no cargó datos
-                // reales para este capId. Es la defensa física: sin esto,
-                // el usuario podía escribir en el editor durante el frame
-                // en que `contenido` seguía siendo el valor del capítulo
-                // anterior (o "") mientras Dexie/Supabase resolvían — y ese
-                // texto fantasma terminaba autoguardándose sobre el
-                // capítulo equivocado o vacío. Ver doSave/onChange guards
-                // más arriba para la segunda capa de esta protección.
-                closePaletteRef={closePaletteRef}
-                editable={!loading && initializedCapId === cap?.id}
-                insertRef={mdInsertRef}
-                minHeight={focusMode ? "30rem" : "20rem"}
-                mode={focusMode ? "split" : "edit"}
-                placeholder="Empieza a escribir…"
-                renderPreview={renderChapterPreview}
-                value={contenido}
-                onChange={onChange}
-                onClosePalette={handleClosePalette}
-                onOpenPalette={handleOpenPaletteFromSlash}
-                onSnippetEdit={handleSnippetEdit}
-              />
+              {vistaEditor === "grafo" ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-center">
+                    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-primary/5">
+                      <button
+                        className={`px-3 py-1 rounded-md text-micro font-black uppercase tracking-wide transition-all ${
+                          vistaGrafo === "canvas"
+                            ? "bg-primary/10 text-primary"
+                            : "text-primary/35 hover:text-primary/60"
+                        }`}
+                        onClick={() => setVistaGrafo("canvas")}
+                      >
+                        Canvas
+                      </button>
+                      <button
+                        className={`px-3 py-1 rounded-md text-micro font-black uppercase tracking-wide transition-all ${
+                          vistaGrafo === "problemas"
+                            ? "bg-primary/10 text-primary"
+                            : "text-primary/35 hover:text-primary/60"
+                        }`}
+                        onClick={() => setVistaGrafo("problemas")}
+                      >
+                        Problemas
+                        {chapterGraph.orphanNodes.length +
+                          chapterGraph.brokenEdges.length >
+                          0 && (
+                          <span className="ml-1.5 text-red-400">
+                            {chapterGraph.orphanNodes.length +
+                              chapterGraph.brokenEdges.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {vistaGrafo === "canvas" ? (
+                    <NodeGraphCanvas
+                      graph={chapterGraph}
+                      posicionesGuardadas={posiciones}
+                      onConnect={handleGraphConnect}
+                      onMoveNode={setPos}
+                    />
+                  ) : (
+                    <PanelProblemasCapitulo
+                      graph={chapterGraph}
+                      onVolverAEscribir={() => setVistaEditor("escribir")}
+                    />
+                  )}
+                </div>
+              ) : (
+                <RichEditor
+                  key={capId}
+                  autoFocus={focusMode}
+                  // Bloquea la edición mientras `cap` todavía no cargó datos
+                  // reales para este capId. Es la defensa física: sin esto,
+                  // el usuario podía escribir en el editor durante el frame
+                  // en que `contenido` seguía siendo el valor del capítulo
+                  // anterior (o "") mientras Dexie/Supabase resolvían — y ese
+                  // texto fantasma terminaba autoguardándose sobre el
+                  // capítulo equivocado o vacío. Ver doSave/onChange guards
+                  // más arriba para la segunda capa de esta protección.
+                  closePaletteRef={closePaletteRef}
+                  editable={!loading && initializedCapId === cap?.id}
+                  insertRef={mdInsertRef}
+                  minHeight={focusMode ? "30rem" : "20rem"}
+                  mode={focusMode ? "split" : "edit"}
+                  placeholder="Empieza a escribir…"
+                  renderPreview={renderChapterPreview}
+                  value={contenido}
+                  onChange={onChange}
+                  onClosePalette={handleClosePalette}
+                  onOpenPalette={handleOpenPaletteFromSlash}
+                  onSnippetEdit={handleSnippetEdit}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1162,6 +1284,122 @@ const ModalNuevoLibro = ({
     </ModalBase>
   );
 };
+
+// ─── PanelProblemasCapitulo ────────────────────────────────────────────────────
+// Fase 2 del rediseño Choice/Gate: reemplaza el RichEditor cuando el toggle
+// "Escribir / Grafo nodo" está en modo grafo. Lista las secciones huérfanas
+// (sin ninguna arista entrante) y las aristas rotas (choice/gate cuyo target
+// no corresponde a ninguna sección conocida) de `chapterGraph`. Ambas listas
+// ya vienen calculadas por storyGraph.ts — este componente solo las muestra.
+function PanelProblemasCapitulo({
+  graph,
+  onVolverAEscribir,
+}: {
+  graph: StoryGraph;
+  onVolverAEscribir: () => void;
+}) {
+  const sinProblemas =
+    graph.orphanNodes.length === 0 && graph.brokenEdges.length === 0;
+
+  return (
+    <div className="max-w-2xl mx-auto w-full py-2">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2 text-primary/70">
+          <Waypoints size={14} />
+          <span className="text-small font-black uppercase tracking-wide">
+            Problemas del capítulo
+          </span>
+        </div>
+        <button
+          className="text-micro font-bold text-primary/40 hover:text-primary transition-colors flex items-center gap-1"
+          onClick={onVolverAEscribir}
+        >
+          <Pencil size={11} />
+          Volver a escribir
+        </button>
+      </div>
+
+      {sinProblemas ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-primary/30">
+          <Check size={22} />
+          <p className="text-small font-bold">
+            No hay secciones huérfanas ni links rotos en este capítulo.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {graph.orphanNodes.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 text-red-400/80 mb-2">
+                <MapPin size={11} />
+                <span className="text-micro font-black uppercase tracking-wide">
+                  Secciones huérfanas ({graph.orphanNodes.length})
+                </span>
+              </div>
+              <p className="text-micro text-primary/35 mb-3">
+                Nada en el capítulo apunta a estas secciones — solo son
+                alcanzables si alguien las abre a mano o por link externo.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {graph.orphanNodes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/10 text-small"
+                  >
+                    <TriangleAlert
+                      className="shrink-0 text-red-400/70"
+                      size={12}
+                    />
+                    <span className="font-bold text-primary/80 truncate">
+                      {n.label}
+                    </span>
+                    <span className="text-micro text-primary/30 shrink-0">
+                      {n.id}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {graph.brokenEdges.length > 0 && (
+            <div>
+              <div className="flex items-center gap-1.5 text-red-400/80 mb-2">
+                <Ban size={11} />
+                <span className="text-micro font-black uppercase tracking-wide">
+                  Links rotos ({graph.brokenEdges.length})
+                </span>
+              </div>
+              <p className="text-micro text-primary/35 mb-3">
+                Choices o gates que apuntan a una sección que no existe (o
+                todavía no se creó).
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {graph.brokenEdges.map((e) => (
+                  <div
+                    key={e.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/10 text-small"
+                  >
+                    <TriangleAlert
+                      className="shrink-0 text-red-400/70"
+                      size={12}
+                    />
+                    <span className="font-bold text-primary/80 truncate">
+                      {e.label}
+                    </span>
+                    <span className="text-micro text-primary/30 shrink-0">
+                      {e.type === "choice" ? "🔀" : "🔒"} → {e.to}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Hook: cargar grupos de tipo "libros" para el ComboSelector ───────────────
 function useGruposLibros() {

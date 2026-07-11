@@ -795,6 +795,87 @@ export type Database = {
           },
         ]
       }
+      // ⚠️ Tabla nueva — todavía no existe en la base real. Falta correr la
+      // migración SQL en Supabase (ver también flags_narrativos más abajo):
+      //
+      //   create table nodo_posiciones (
+      //     id uuid primary key default gen_random_uuid(),
+      //     capitulo_id uuid references capitulos(id) on delete cascade,
+      //     node_id text not null,
+      //     x double precision not null,
+      //     y double precision not null,
+      //     updated_at timestamptz default now(),
+      //     unique (capitulo_id, node_id)
+      //   );
+      //
+      // Es data de autor (posiciones del editor visual), no de lector — sin
+      // RLS por perfil de lector; las mismas políticas que ya protegen el
+      // acceso a la tabla `capitulos` alcanzan acá.
+      nodo_posiciones: {
+        Row: {
+          id: string
+          capitulo_id: string | null
+          node_id: string
+          x: number
+          y: number
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          capitulo_id?: string | null
+          node_id: string
+          x: number
+          y: number
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          capitulo_id?: string | null
+          node_id?: string
+          x?: number
+          y?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      // ⚠️ Tabla nueva — todavía no existe en la base real. Falta correr la
+      // migración SQL en Supabase antes de que este tipo sea válido:
+      //
+      //   create table flags_narrativos (
+      //     id uuid primary key default gen_random_uuid(),
+      //     perfil_id uuid references perfiles(id),
+      //     flag_id text not null,
+      //     valor text not null,
+      //     updated_at timestamptz default now(),
+      //     unique (perfil_id, flag_id)
+      //   );
+      //
+      // (nombre de la tabla de perfiles asumido como "perfiles" — ajustar el
+      // FK si el proyecto usa otro nombre real).
+      flags_narrativos: {
+        Row: {
+          id: string
+          perfil_id: string | null
+          flag_id: string
+          valor: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          perfil_id?: string | null
+          flag_id: string
+          valor: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          perfil_id?: string | null
+          flag_id?: string
+          valor?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       descubrimientos_items: {
         Row: {
           fecha_descubrimiento: string | null

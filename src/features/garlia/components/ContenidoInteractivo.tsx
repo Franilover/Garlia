@@ -115,11 +115,15 @@ function GateBlock({
   itemId,
   tieneSegs,
   noTieneSegs,
+  tieneTarget,
+  noTieneTarget,
   onNavigate,
 }: {
   itemId: string;
   tieneSegs: Segment[];
   noTieneSegs: Segment[];
+  tieneTarget?: string;
+  noTieneTarget?: string;
   onNavigate: (id: string) => void;
 }) {
   const [tiene, setTiene] = useState<boolean | null>(null);
@@ -145,15 +149,115 @@ function GateBlock({
     };
   }, [itemId]);
 
-  if (tiene === null) return null;
+  const target = tiene === null ? undefined : tiene ? tieneTarget : noTieneTarget;
 
+  // Si la rama activa tiene un target -> salta de sección, igual que un
+  // [[choice]]. Se hace en un efecto (no durante el render) porque
+  // onNavigate normalmente actualiza estado del padre.
+  useEffect(() => {
+    if (target) onNavigate(target);
+  }, [target, onNavigate]);
+
+  if (tiene === null || target) return null;
+
+  // Sin target: se comporta como antes, renderiza el texto de la rama
+  // inline, sin salto de sección.
   const segs = tiene ? tieneSegs : noTieneSegs;
   return <RenderSegmentos segs={segs} onNavigate={onNavigate} />;
 }
 
 /* ─────────────────────────────────────────────
-   Separador visual entre secciones
+   FlagSetBlock — escribe flagId=valor al pasar por acá.
+   No navega, no renderiza nada visible.
    ───────────────────────────────────────────── */
+function FlagSetBlock({ flagId, valor }: { flagId: string; valor: string }) {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!flagId) return;
+      const { supabase } = await import("@/lib/api/client/supabase");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      // upsert por (perfil_id, flag_id) — pisa el valor anterior si ya
+      // existía. Ver nota de migración SQL en lib/types/supabase.ts: la
+      // tabla necesita un unique constraint (perfil_id, flag_id) para que
+      // este onConflict funcione.
+      await supabase
+        .from("flags_narrativos")
+        .upsert(
+          { perfil_id: user.id, flag_id: flagId, valor },
+          { onConflict: "perfil_id,flag_id" },
+        );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [flagId, valor]);
+
+  return null;
+}
+
+/* ─────────────────────────────────────────────
+   FlagIfBlock — compara el flag guardado contra valorEsperado.
+   Misma forma que GateBlock: dos ramas, cada una con target opcional.
+   ───────────────────────────────────────────── */
+function FlagIfBlock({
+  flagId,
+  valorEsperado,
+  siSegs,
+  noSegs,
+  siTarget,
+  noTarget,
+  onNavigate,
+}: {
+  flagId: string;
+  valorEsperado: string;
+  siSegs: Segment[];
+  noSegs: Segment[];
+  siTarget?: string;
+  noTarget?: string;
+  onNavigate: (id: string) => void;
+}) {
+  const [coincide, setCoincide] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { supabase } = await import("@/lib/api/client/supabase");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      const { data } = await supabase
+        .from("flags_narrativos")
+        .select("valor")
+        .eq("flag_id", flagId)
+        .eq("perfil_id", user.id)
+        .maybeSingle();
+      // Un flag que nunca se seteó cuenta como no-match, no como error.
+      if (!cancelled) setCoincide((data?.valor ?? null) === valorEsperado);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [flagId, valorEsperado]);
+
+  const target =
+    coincide === null ? undefined : coincide ? siTarget : noTarget;
+
+  useEffect(() => {
+    if (target) onNavigate(target);
+  }, [target, onNavigate]);
+
+  if (coincide === null || target) return null;
+
+  const segs = coincide ? siSegs : noSegs;
+  return <RenderSegmentos segs={segs} onNavigate={onNavigate} />;
+}
+
+
 function SectionDivider({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 my-8">
@@ -256,6 +360,25 @@ export function RenderSegmentos({
               itemId={seg.itemId}
               noTieneSegs={seg.noTieneSegs}
               tieneSegs={seg.tieneSegs}
+              tieneTarget={seg.tieneTarget}
+              noTieneTarget={seg.noTieneTarget}
+              onNavigate={onNavigate}
+            />
+          );
+        if (seg.type === "flag-set")
+          return (
+            <FlagSetBlock key={i} flagId={seg.flagId} valor={seg.valor} />
+          );
+        if (seg.type === "flag-if")
+          return (
+            <FlagIfBlock
+              key={i}
+              flagId={seg.flagId}
+              noSegs={seg.noSegs}
+              noTarget={seg.noTarget}
+              siSegs={seg.siSegs}
+              siTarget={seg.siTarget}
+              valorEsperado={seg.valorEsperado}
               onNavigate={onNavigate}
             />
           );

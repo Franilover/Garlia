@@ -22,6 +22,7 @@ export type SnippetKind =
   | "choice"
   | "use"
   | "gate"
+  | "flag"
   | "section";
 
 /** Editor handler global: cada nodo decorador llama a esto al hacer click

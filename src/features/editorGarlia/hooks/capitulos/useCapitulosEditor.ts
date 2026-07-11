@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useMemo } from "react";
+
+import {
+  buildChapterGraph,
+  buildBookGraph,
+  type StoryGraph,
+} from "./storyGraph";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import type {
   Capitulo,
@@ -372,4 +380,134 @@ export function useReinos() {
   }, []);
 
   return { reinos, loading, isOffline };
+}
+
+// ─── useChapterGraph / useBookGraph ─────────────────────────────────────────────
+//
+// Fase 1 del rediseño Choice/Gate: reemplazo directo de `listaSecciones`
+// (regex suelto en EditorCapitulos.tsx) por un grafo completo, memoizado por
+// contenido. `useChapterGraph` alcanza para lo que hoy usa el FormChoice;
+// `useBookGraph` es para cuando el editor visual (Fase 3) necesite ver saltos
+// entre capítulos.
+
+/** Grafo narrativo de un solo capítulo. Recalcula solo si cambia su contenido. */
+export function useChapterGraph(
+  capId: string | null,
+  titulo: string,
+  contenido: string,
+): StoryGraph {
+  return useMemo(() => {
+    if (!capId) return { nodes: [], edges: [], orphanNodes: [], brokenEdges: [] };
+    return buildChapterGraph(capId, titulo, contenido);
+  }, [capId, titulo, contenido]);
+}
+
+/**
+ * Grafo narrativo del libro completo, a partir de la lista de capítulos que
+ * ya devuelve `useCapitulos(libroId)`. Recalcula solo si cambia el contenido
+ * combinado (join barato, evita comparar arrays profundamente en cada render).
+ */
+/** Hash rápido no criptográfico (djb2), suficiente para detectar cambios de contenido en el memo. */
+function cheapHash(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (h * 33) ^ s.charCodeAt(i);
+  return h >>> 0;
+}
+
+export function useBookGraph(capitulos: CapituloLocal[]): StoryGraph {
+  const fingerprint = capitulos
+    .map((c) => `${c.id}:${cheapHash(c.contenido)}:${c.titulo_capitulo}`)
+    .join("|");
+  return useMemo(() => {
+    return buildBookGraph(
+      capitulos.map((c) => ({
+        id: c.id,
+        titulo_capitulo: c.titulo_capitulo,
+        contenido: c.contenido,
+      })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint ya captura los cambios relevantes
+  }, [fingerprint]);
+}
+
+// ─── usePosicionesNodos ─────────────────────────────────────────────────────────
+//
+// Posiciones x/y del editor visual de grafo (Fase 3), por capítulo. A
+// diferencia de useCapituloEditor, esto es data de bajo riesgo (perder un
+// drag no rompe nada narrativo), así que el patrón es deliberadamente más
+// simple: lee todo de Dexie al montar, escribe en Dexie de forma inmediata
+// en cada drag (UX instantánea, sin esperar red), y sincroniza a Supabase
+// en background con debounce corto. Si Supabase falla, el dato igual quedó
+// en Dexie — se reintenta en el próximo `setPos` o al recargar la página.
+
+const POS_SYNC_DEBOUNCE_MS = 800;
+
+export function usePosicionesNodos(capId: string | null) {
+  const [posiciones, setPosiciones] = useState<Record<string, { x: number; y: number }>>(
+    {},
+  );
+  const [loaded, setLoaded] = useState(false);
+  const syncTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    setLoaded(false);
+    if (!capId) {
+      setPosiciones({});
+      setLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await db.nodoPosiciones.where("capId").equals(capId).toArray();
+        if (cancelled) return;
+        const next: Record<string, { x: number; y: number }> = {};
+        for (const r of rows) next[r.nodeId] = { x: r.x, y: r.y };
+        setPosiciones(next);
+      } catch (e) {
+        console.warn("[Dexie] lectura de nodoPosiciones falló:", e);
+      }
+      if (!cancelled) setLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [capId]);
+
+  const setPos = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      if (!capId) return;
+      setPosiciones((prev) => ({ ...prev, [nodeId]: { x, y } }));
+
+      const localId = `${capId}_${nodeId}`;
+      void db.nodoPosiciones
+        .put({ id: localId, capId, nodeId, x, y, updated_at: Date.now() })
+        .catch((e) => console.warn("[Dexie] escritura de nodoPosiciones falló:", e));
+
+      // Debounce por nodo: si el usuario sigue arrastrando, no spameamos
+      // Supabase en cada frame — solo cuando se queda quieto un rato.
+      clearTimeout(syncTimers.current[nodeId]);
+      syncTimers.current[nodeId] = setTimeout(() => {
+        void supabase
+          .from("nodo_posiciones")
+          .upsert(
+            { capitulo_id: capId, node_id: nodeId, x, y },
+            { onConflict: "capitulo_id,node_id" },
+          )
+          .then(({ error }) => {
+            if (error) console.warn("[Supabase] sync de nodo_posiciones falló:", error);
+          });
+      }, POS_SYNC_DEBOUNCE_MS);
+    },
+    [capId],
+  );
+
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- limpieza de timers pendientes al desmontar
+      Object.values(syncTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  return { posiciones, setPos, loaded };
 }

@@ -481,6 +481,37 @@ export interface DescubrimientoLocal {
   cached_at?: number;
 }
 
+/**
+ * Flags narrativos — estado libre que el lector va escribiendo al pasar por
+ * bloques [[flag|set|...]] y que luego se consulta desde [[flag|if|...]].
+ * Un flag es simplemente `flagId: valor` por perfil — sin catálogo, sin
+ * validación de tipo (valor es siempre string; "true"/"false" para el caso
+ * booleano, o texto libre como "hostil"). Se crea la primera vez que el
+ * lector pasa por un [[flag|set]] con ese id.
+ */
+export interface FlagLocal {
+  id: string; // `${perfil_id}_${flag_id}`
+  perfil_id: string;
+  flag_id: string;
+  valor: string;
+  updated_at?: number;
+}
+
+/**
+ * Posiciones x/y de los nodos en el editor visual de grafo (Fase 3). Es
+ * data de autor (no de lector) — por eso se indexa por capId + nodeId, no
+ * por perfil de lector. Un nodo sin registro acá cae al auto-layout inicial
+ * del canvas hasta que el autor lo mueve por primera vez.
+ */
+export interface NodoPosicionLocal {
+  id: string; // `${capId}_${nodeId}`
+  capId: string;
+  nodeId: string;
+  x: number;
+  y: number;
+  updated_at?: number;
+}
+
 class AgendaFraniDB extends Dexie {
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
@@ -554,6 +585,8 @@ class AgendaFraniDB extends Dexie {
 
   // Descubrimientos personales (cache offline para GlobalCommandPalette)
   descubrimientos!: Table<DescubrimientoLocal, string>;
+  flagsNarrativos!: Table<FlagLocal, string>;
+  nodoPosiciones!: Table<NodoPosicionLocal, string>;
 
   constructor() {
     super("AgendaFranilover");
@@ -1268,6 +1301,16 @@ class AgendaFraniDB extends Dexie {
     // instante y revalidamos contra Supabase en segundo plano.
     this.version(24).stores({
       descubrimientos: "id, perfil_id, tipo, entidad_id",
+    });
+
+    // ─── v25: flags narrativos (sistema [[flag|set]]/[[flag|if]]) ────────────
+    this.version(25).stores({
+      flagsNarrativos: "id, perfil_id, flag_id",
+    });
+
+    // ─── v26: posiciones del editor visual de grafo (Fase 3) ──────────────────
+    this.version(26).stores({
+      nodoPosiciones: "id, capId, nodeId",
     });
   }
 }

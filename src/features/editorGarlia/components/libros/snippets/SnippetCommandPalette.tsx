@@ -12,6 +12,7 @@ import {
   User,
   PawPrint,
   Package,
+  Flag,
 } from "lucide-react";
 
 /**
@@ -37,6 +38,7 @@ type SnippetType =
   | "choice"
   | "use"
   | "gate"
+  | "flag"
   | "section"
   | "imagen"
   | "sound";
@@ -86,6 +88,13 @@ const CATS: {
     Icon: DoorOpen,
     group: "narrativa",
     keywords: ["gate", "puerta", "condicional"],
+  },
+  {
+    id: "flag",
+    label: "Flag",
+    Icon: Flag,
+    group: "narrativa",
+    keywords: ["flag", "bandera", "estado", "variable", "condicional"],
   },
   {
     id: "section",
@@ -1022,17 +1031,27 @@ function FormUse({
 // ── Form Gate ────────────────────────────────────────────────────────────────
 
 function FormGate({
-  initialRaw: _initialRaw,
+  initialRaw,
+  listaSecciones = [],
   onInsert,
   onBack,
 }: {
   initialRaw?: string;
+  listaSecciones?: { id: string; label: string }[];
   onInsert: (s: string) => void;
   onBack: () => void;
 }) {
-  const [item, setItem] = useState<{ id: string; nombre: string } | null>(null);
-  const [tieneTexto, setTiene] = useState("");
-  const [noTieneTexto, setNoTiene] = useState("");
+  const init = parseSnippetRaw(initialRaw);
+  const initGate = init?.kind === "gate" ? init : null;
+  const [item, setItem] = useState<{ id: string; nombre: string } | null>(
+    initGate?.itemId ? { id: initGate.itemId, nombre: initGate.itemId } : null,
+  );
+  const [tieneTexto, setTiene] = useState(initGate?.tieneTexto ?? "");
+  const [noTieneTexto, setNoTiene] = useState(initGate?.noTieneTexto ?? "");
+  const [tieneTarget, setTieneTarget] = useState(initGate?.tieneTarget ?? "");
+  const [noTieneTarget, setNoTieneTarget] = useState(
+    initGate?.noTieneTarget ?? "",
+  );
   const [items, setItems] = useState<{ id: string; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -1047,13 +1066,20 @@ function FormGate({
     void fetch("/api/entidades?tipo=item")
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok)
-          setItems(
-            (d.data?.items ?? []).map((x: any) => ({
-              id: x.id,
-              nombre: x.nombre,
-            })),
+        if (d.ok) {
+          const fetched = (d.data?.items ?? []).map((x: any) => ({
+            id: x.id,
+            nombre: x.nombre,
+          }));
+          setItems(fetched);
+          // Si veníamos con un item ya seleccionado por id (edición de un
+          // gate existente), completamos su nombre real apenas llega la lista.
+          setItem((prev) =>
+            prev
+              ? (fetched.find((f: any) => f.id === prev.id) ?? prev)
+              : prev,
           );
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -1062,10 +1088,49 @@ function FormGate({
     () => items.filter((i) => i.nombre.toLowerCase().includes(q.toLowerCase())),
     [items, q],
   );
+
+  const buildBranch = (texto: string, target: string) =>
+    target.trim() ? `${texto.trim()}\n-> ${target.trim()}` : texto.trim();
+
   const snippet =
     item && tieneTexto.trim()
-      ? `[[gate|${item.id}|${tieneTexto.trim()}${noTieneTexto.trim() ? `\n===\n${noTieneTexto.trim()}` : ""}]]`
+      ? `[[gate|${item.id}|${buildBranch(tieneTexto, tieneTarget)}${
+          noTieneTexto.trim() || noTieneTarget.trim()
+            ? `\n===\n${buildBranch(noTieneTexto, noTieneTarget)}`
+            : ""
+        }]]`
       : "";
+
+  const SeccionSelect = ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+  }) =>
+    listaSecciones.length > 0 ? (
+      <select
+        style={{ ...S.fieldInput, cursor: "pointer" }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {listaSecciones.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label || s.id}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        placeholder={placeholder}
+        style={S.fieldInput}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
 
   return (
     <>
@@ -1157,6 +1222,14 @@ function FormGate({
           />
         </div>
         <div>
+          <div style={S.fieldLabel}>Sección destino si TIENE (opcional)</div>
+          <SeccionSelect
+            placeholder="— continúa inline, sin salto —"
+            value={tieneTarget}
+            onChange={setTieneTarget}
+          />
+        </div>
+        <div>
           <div style={S.fieldLabel}>Texto si NO tiene (opcional)</div>
           <textarea
             placeholder="No tenés ese ítem…"
@@ -1170,12 +1243,249 @@ function FormGate({
             onChange={(e) => setNoTiene(e.target.value)}
           />
         </div>
+        <div>
+          <div style={S.fieldLabel}>Sección destino si NO tiene (opcional)</div>
+          <SeccionSelect
+            placeholder="— continúa inline, sin salto —"
+            value={noTieneTarget}
+            onChange={setNoTieneTarget}
+          />
+        </div>
         <button
           disabled={!snippet}
           style={S.insertBtn("#e09a2a")}
           onClick={() => snippet && onInsert(snippet)}
         >
           <DoorOpen size={12} /> Insertar Gate
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ── Form Flag ────────────────────────────────────────────────────────────────
+// Espejo de FormGate, pero sin fetch de ítems: acá el "id" es un flagId de
+// texto libre que el autor tipea (no hay catálogo de flags — a diferencia de
+// items/personajes, un flag nace la primera vez que se escribe su id).
+// Dos modos: "set" (escribe flagId=valor sin ramas ni navegación) e "if"
+// (compara flagId contra un valor esperado, con dos ramas opcionales, cada
+// una con su propio target — igual forma que gate).
+
+function FormFlag({
+  initialRaw,
+  listaSecciones = [],
+  onInsert,
+  onBack,
+}: {
+  initialRaw?: string;
+  listaSecciones?: { id: string; label: string }[];
+  onInsert: (s: string) => void;
+  onBack: () => void;
+}) {
+  const init = parseSnippetRaw(initialRaw);
+  const initSet = init?.kind === "flag-set" ? init : null;
+  const initIf = init?.kind === "flag-if" ? init : null;
+
+  const [op, setOp] = useState<"set" | "if">(initIf ? "if" : "set");
+  const [flagId, setFlagId] = useState(
+    initSet?.flagId ?? initIf?.flagId ?? "",
+  );
+
+  // Modo "set"
+  const [valor, setValor] = useState(initSet?.valor ?? "");
+
+  // Modo "if"
+  const [valorEsperado, setValorEsperado] = useState(
+    initIf?.valorEsperado ?? "",
+  );
+  const [siTexto, setSiTexto] = useState(initIf?.siTexto ?? "");
+  const [noTexto, setNoTexto] = useState(initIf?.noTexto ?? "");
+  const [siTarget, setSiTarget] = useState(initIf?.siTarget ?? "");
+  const [noTarget, setNoTarget] = useState(initIf?.noTarget ?? "");
+
+  const buildBranch = (texto: string, target: string) =>
+    target.trim() ? `${texto.trim()}\n-> ${target.trim()}` : texto.trim();
+
+  const snippet =
+    op === "set"
+      ? flagId.trim() && valor.trim()
+        ? `[[flag|set|${flagId.trim()}|${valor.trim()}]]`
+        : ""
+      : flagId.trim() && valorEsperado.trim() && siTexto.trim()
+        ? `[[flag|if|${flagId.trim()}|${valorEsperado.trim()}|\n${buildBranch(
+            siTexto,
+            siTarget,
+          )}${
+            noTexto.trim() || noTarget.trim()
+              ? `\n===\n${buildBranch(noTexto, noTarget)}`
+              : ""
+          }\n]]`
+        : "";
+
+  const SeccionSelect = ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    placeholder: string;
+  }) =>
+    listaSecciones.length > 0 ? (
+      <select
+        style={{ ...S.fieldInput, cursor: "pointer" }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {listaSecciones.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label || s.id}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        placeholder={placeholder}
+        style={S.fieldInput}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+
+  return (
+    <>
+      <FormHeader Icon={Flag} label="Flag" onBack={onBack} />
+      <div
+        style={{
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          maxHeight: 380,
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            style={{
+              ...S.insertBtn(op === "set" ? "#5b8def" : "transparent"),
+              flex: 1,
+              color:
+                op === "set"
+                  ? "#fff"
+                  : "color-mix(in srgb,var(--foreground) 55%,transparent)",
+              opacity: 1,
+            }}
+            onClick={() => setOp("set")}
+          >
+            Setear
+          </button>
+          <button
+            style={{
+              ...S.insertBtn(op === "if" ? "#5b8def" : "transparent"),
+              flex: 1,
+              color:
+                op === "if"
+                  ? "#fff"
+                  : "color-mix(in srgb,var(--foreground) 55%,transparent)",
+              opacity: 1,
+            }}
+            onClick={() => setOp("if")}
+          >
+            Consultar (if)
+          </button>
+        </div>
+
+        <div>
+          <div style={S.fieldLabel}>Id del flag</div>
+          <input
+            autoFocus
+            placeholder="ej: conoce-secreto, reputacion-reino"
+            style={S.fieldInput}
+            value={flagId}
+            onChange={(e) => setFlagId(e.target.value)}
+          />
+        </div>
+
+        {op === "set" ? (
+          <div>
+            <div style={S.fieldLabel}>Valor a guardar</div>
+            <input
+              placeholder='ej: true, false, "hostil"…'
+              style={S.fieldInput}
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <div>
+              <div style={S.fieldLabel}>Valor esperado</div>
+              <input
+                placeholder='ej: true, "hostil"…'
+                style={S.fieldInput}
+                value={valorEsperado}
+                onChange={(e) => setValorEsperado(e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={S.fieldLabel}>Texto si COINCIDE *</div>
+              <textarea
+                placeholder="El guardia te reconoce…"
+                rows={3}
+                style={{
+                  ...S.fieldInput,
+                  resize: "none" as const,
+                  fontFamily: "inherit",
+                }}
+                value={siTexto}
+                onChange={(e) => setSiTexto(e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={S.fieldLabel}>Sección destino si COINCIDE (opcional)</div>
+              <SeccionSelect
+                placeholder="— continúa inline, sin salto —"
+                value={siTarget}
+                onChange={setSiTarget}
+              />
+            </div>
+            <div>
+              <div style={S.fieldLabel}>
+                Texto si NO coincide (opcional, incluye "nunca se seteó")
+              </div>
+              <textarea
+                placeholder="El guardia no te reconoce…"
+                rows={2}
+                style={{
+                  ...S.fieldInput,
+                  resize: "none" as const,
+                  fontFamily: "inherit",
+                }}
+                value={noTexto}
+                onChange={(e) => setNoTexto(e.target.value)}
+              />
+            </div>
+            <div>
+              <div style={S.fieldLabel}>
+                Sección destino si NO coincide (opcional)
+              </div>
+              <SeccionSelect
+                placeholder="— continúa inline, sin salto —"
+                value={noTarget}
+                onChange={setNoTarget}
+              />
+            </div>
+          </>
+        )}
+
+        <button
+          disabled={!snippet}
+          style={S.insertBtn("#5b8def")}
+          onClick={() => snippet && onInsert(snippet)}
+        >
+          <Flag size={12} /> Insertar Flag
         </button>
       </div>
     </>
@@ -1636,6 +1946,7 @@ export function SnippetCommandPalette({
       choice: "choice",
       use: "use",
       gate: "gate",
+      flag: "flag",
       section: "section",
       sound: "sound",
     };
@@ -1920,6 +2231,15 @@ export function SnippetCommandPalette({
       {selectedType === "gate" && (
         <FormGate
           initialRaw={initialRaw}
+          listaSecciones={listaSecciones}
+          onBack={handleBack}
+          onInsert={handleInsert}
+        />
+      )}
+      {selectedType === "flag" && (
+        <FormFlag
+          initialRaw={initialRaw}
+          listaSecciones={listaSecciones}
           onBack={handleBack}
           onInsert={handleInsert}
         />

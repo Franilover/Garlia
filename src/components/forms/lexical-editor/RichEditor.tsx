@@ -61,6 +61,7 @@ import {
 } from "./MarkdownCommandPalette";
 import { ChoiceNode } from "./nodes/ChoiceNode";
 import { DropNode } from "./nodes/DropNode";
+import { FlagNode } from "./nodes/FlagNode";
 import { GateNode } from "./nodes/GateNode";
 import { ImgNode } from "./nodes/ImgNode";
 import { SectionNode } from "./nodes/SectionNode";
@@ -198,6 +199,7 @@ const RICH_EDITOR_NODES = [
   ChoiceNode,
   UseNode,
   GateNode,
+  FlagNode,
   SectionNode,
   WikilinkNode,
   ...TABLE_NODES,
