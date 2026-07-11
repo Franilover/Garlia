@@ -365,7 +365,7 @@ export function MagiaJerarquica({
     <div className="mb-8 last:mb-0">
       <div className="flex items-center gap-2 mb-4 px-1">
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
-          Magia por criatura
+          Magia
         </h2>
         <span className="text-micro text-primary/25 tabular-nums">{criaturas.length}</span>
         <div className="flex-1" />

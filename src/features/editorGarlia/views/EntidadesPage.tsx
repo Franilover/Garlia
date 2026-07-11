@@ -444,8 +444,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
       {/* ── Canciones ─────────────────────────────────────────────────── */}
       <div className="mt-10 pt-6 border-t border-primary/10">
-        <div className="flex items-center gap-2 mb-3 px-1">
-          <Music size={13} className="text-primary/50" />
+        <div className="flex items-center gap-2 mb-4 px-1">
           <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
             Canciones
           </h2>
@@ -478,7 +477,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
                       <div key={cantante} className="flex-none w-fit max-w-full">
                         <EntityCardGrid
                           title={cantante}
-                          Icon={Music}
                           variant="chips"
                           items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
                           onItemClick={(id) => openEntity("letras", id)}
@@ -495,7 +493,14 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
       {/* ── Organización (Grupos + Notas) ──────────────────────────────── */}
       <div className="mt-10 pt-6 border-t border-primary/10">
-        <TipoHeader label="Organización" />
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
+            Organización
+          </h2>
+          <span className="text-micro text-primary/25 tabular-nums">
+            {grupos.length + notas.length}
+          </span>
+        </div>
         {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
           ([tipo, cfg]) => {
             const bloques = subtiposPorTipo[tipo] ?? [];
@@ -530,7 +535,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
                   <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-none w-fit max-w-full">
                     <EntityCardGrid
                       title={bloque.subtipo ?? "Sin subtipo"}
-                      Icon={cfg.Icon}
                       variant="chips"
                       loading={!loadedGrupos}
                       items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
@@ -568,15 +572,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
   );
 }
 
-function TipoHeader({ label, Icon: _Icon }: { Icon?: React.ElementType; label: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-3 px-1">
-      <h1 className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">{label}</h1>
-      <div className="flex-1 h-px bg-primary/10" />
-    </div>
-  );
-}
-
 /**
  * MundoCard
  * ───────────────────────────────────────────────────────────────────────────
@@ -604,8 +599,8 @@ function MundoCard({
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2.5 bg-primary/10 border-b border-primary/10">
         <span />
         <div className="flex items-center gap-2 justify-self-center max-w-[280px]">
-          {Icon && <Icon size={13} className="text-primary shrink-0" />}
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary truncate">
+          {Icon && <Icon size={11} className="text-primary shrink-0" />}
+          <h3 className="text-xs font-black uppercase tracking-[0.15em] text-primary truncate">
             {title}
           </h3>
         </div>
@@ -618,7 +613,7 @@ function MundoCard({
               title="Añadir"
               className="p-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
-              <Plus size={12} className="text-primary/70" />
+              <Plus size={11} className="text-primary/70" />
             </button>
           )}
         </div>

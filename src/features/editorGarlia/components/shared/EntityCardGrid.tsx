@@ -24,7 +24,7 @@ interface Item {
 
 interface Props {
   title: string;
-  Icon: React.ElementType;
+  Icon?: React.ElementType;
   items: Item[];
   loading?: boolean;
   onItemClick: (id: string) => void;

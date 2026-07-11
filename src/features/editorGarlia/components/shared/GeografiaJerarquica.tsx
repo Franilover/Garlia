@@ -374,7 +374,7 @@ export function GeografiaJerarquica({
     <div className="mb-8 last:mb-0">
       <div className="flex items-center gap-2 mb-4 px-1">
         <h2 className="text-micro font-black uppercase tracking-[0.25em] text-primary/50">
-          Entidades
+          Geografía
         </h2>
         <span className="text-micro text-primary/25 tabular-nums">
           {reinos.length}
