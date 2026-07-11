@@ -533,13 +533,13 @@ export function EntidadesPage({ section, selectedId }: Props) {
                 <h3 className="text-micro font-bold uppercase tracking-[0.2em] text-primary/40 mb-2 px-1">
                   {idioma}
                 </h3>
-                <div className="flex flex-col gap-3 pl-3 border-l border-primary/10">
+                <div className="flex flex-col md:flex-row gap-6 flex-wrap">
                   {compositores.map(({ compositor, cantantes }) => (
-                    <div key={compositor}>
+                    <div key={compositor} className="flex-1 min-w-[220px]">
                       <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
                         {compositor}
                       </h4>
-                      <div className="flex flex-col gap-2 pl-3">
+                      <div className="flex flex-col gap-2">
                         {cantantes.map(({ cantante, canciones: cancionesGrupo }) => (
                           <EntityCardGrid
                             key={cantante}
