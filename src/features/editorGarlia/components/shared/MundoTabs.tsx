@@ -6,20 +6,20 @@
  * Navbar secundaria fija arriba del editor de mundo, siempre visible.
  * Reemplaza a <MundoMenu /> (sidebar, código muerto) y a <MundoHomeDashboard />
  * (pantalla de bienvenida cuando section === null): ahora no hay pantalla
- * intermedia, las 4 tabs llevan directo a cada página.
+ * intermedia, las tabs llevan directo a cada página.
  *
  * Tabs:
- *   - Inicio      → resumen, favoritos y recientes (antes vivía en el
- *                   dashboard de bienvenida; ver MundoHomeContent)
- *   - Entidades   → <EntidadesPage /> (personajes/criaturas/items/reinos/
- *                   ciudades/hechizos/dones/runas/grupos/notas/letras)
- *   - Mapa        → <MapaSection />
- *   - Historia    → agrupa Capítulos + Línea de Tiempo (2 sub-botones,
- *                   ninguno tiene contenido propio que amerite tab aparte)
+ *   - Inicio          → resumen, favoritos y recientes (antes vivía en el
+ *                       dashboard de bienvenida; ver MundoHomeContent)
+ *   - Entidades       → <EntidadesPage /> (personajes/criaturas/items/
+ *                       reinos/ciudades/hechizos/dones/runas/grupos/notas/
+ *                       letras)
+ *   - Mapa            → <MapaSection />
+ *   - Capítulos       → <CapitulosSection />
+ *   - Línea de Tiempo → <LineaTiempoSection />
  *
  * "activeTab" se deriva de section: cualquier SectionKey de Entidades marca
- * la tab "entidades" activa, etc. Clickear una tab llama a selectSection con
- * la entrada por defecto de ese grupo.
+ * la tab "entidades" activa; el resto son 1 a 1 con su SectionKey.
  */
 
 import { Clock, Home, Mountain, ScrollText, Users } from "lucide-react";
@@ -40,9 +40,8 @@ const ENTIDADES_SECTIONS: SectionKey[] = [
   "notas",
   "letras",
 ];
-const HISTORIA_SECTIONS: SectionKey[] = ["capitulos", "linea-tiempo"];
 
-type TabKey = "inicio" | "entidades" | "mapa" | "historia";
+type TabKey = "inicio" | "entidades" | "mapa" | "capitulos" | "linea-tiempo";
 
 interface Tab {
   key: TabKey;
@@ -54,13 +53,15 @@ const TABS: Tab[] = [
   { key: "inicio", label: "Inicio", Icon: Home },
   { key: "entidades", label: "Entidades", Icon: Users },
   { key: "mapa", label: "Mapa", Icon: Mountain },
-  { key: "historia", label: "Historia", Icon: ScrollText },
+  { key: "capitulos", label: "Capítulos", Icon: ScrollText },
+  { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
 ];
 
 function tabKeyOf(section: SectionKey | null): TabKey {
   if (section === null) return "inicio";
   if (section === "mapa") return "mapa";
-  if (HISTORIA_SECTIONS.includes(section)) return "historia";
+  if (section === "capitulos") return "capitulos";
+  if (section === "linea-tiempo") return "linea-tiempo";
   if (ENTIDADES_SECTIONS.includes(section)) return "entidades";
   return "inicio";
 }
@@ -74,12 +75,11 @@ export function MundoTabs() {
   const handleClick = (tab: TabKey) => {
     if (tab === "inicio") return goToMenu();
     if (tab === "entidades") return selectSection("personajes");
-    if (tab === "mapa") return selectSection("mapa");
-    if (tab === "historia") return selectSection("capitulos");
+    return selectSection(tab);
   };
 
   return (
-    <div className="shrink-0 relative border-b border-primary/10" style={{ background: "var(--bg-main)" }}>
+    <div className="shrink-0 border-b border-primary/10" style={{ background: "var(--bg-main)" }}>
       <nav className="flex items-center gap-1 px-4 py-2" aria-label="Secciones del editor de mundo">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
@@ -100,33 +100,6 @@ export function MundoTabs() {
           );
         })}
       </nav>
-
-      {activeTab === "historia" && (
-        <div className="flex items-center gap-1 px-4 pb-2 -mt-1">
-          <button
-            type="button"
-            onClick={() => selectSection("capitulos")}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-micro font-semibold transition-colors ${
-              section === "capitulos"
-                ? "bg-primary/10 text-primary"
-                : "text-primary/40 hover:bg-primary/5 hover:text-primary/70"
-            }`}
-          >
-            <ScrollText size={11} /> Capítulos
-          </button>
-          <button
-            type="button"
-            onClick={() => selectSection("linea-tiempo")}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-micro font-semibold transition-colors ${
-              section === "linea-tiempo"
-                ? "bg-primary/10 text-primary"
-                : "text-primary/40 hover:bg-primary/5 hover:text-primary/70"
-            }`}
-          >
-            <Clock size={11} /> Línea de Tiempo
-          </button>
-        </div>
-      )}
     </div>
   );
 }
