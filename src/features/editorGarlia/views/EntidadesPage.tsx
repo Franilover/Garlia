@@ -501,51 +501,55 @@ export function EntidadesPage({ section, selectedId }: Props) {
             {grupos.length + notas.length}
           </span>
         </div>
-        {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
-          ([tipo, cfg]) => {
-            const bloques = subtiposPorTipo[tipo] ?? [];
-            if (!loadedGrupos && bloques.length === 0) {
+        <div className="flex flex-row flex-wrap gap-6 items-start">
+          {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
+            ([tipo, cfg]) => {
+              const bloques = subtiposPorTipo[tipo] ?? [];
+              if (!loadedGrupos && bloques.length === 0) {
+                return (
+                  <MundoCard
+                    key={tipo}
+                    title={cfg.labelPlural}
+                    Icon={cfg.Icon}
+                    fill={false}
+                    onCreate={async () => {
+                      const nuevo = await crearGrupo(tipo);
+                      if (nuevo) openEntity("grupos", nuevo.id);
+                    }}
+                  >
+                    <div className="w-full py-6 text-xs text-primary/30 text-center">Cargando…</div>
+                  </MundoCard>
+                );
+              }
+              if (bloques.length === 0) return null;
+
               return (
                 <MundoCard
                   key={tipo}
                   title={cfg.labelPlural}
                   Icon={cfg.Icon}
+                  fill={false}
                   onCreate={async () => {
                     const nuevo = await crearGrupo(tipo);
                     if (nuevo) openEntity("grupos", nuevo.id);
                   }}
                 >
-                  <div className="w-full py-6 text-xs text-primary/30 text-center">Cargando…</div>
+                  {bloques.map((bloque, i) => (
+                    <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-none w-fit max-w-full">
+                      <EntityCardGrid
+                        title={bloque.subtipo ?? "Sin subtipo"}
+                        variant="chips"
+                        loading={!loadedGrupos}
+                        items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
+                        onItemClick={(id) => openEntity("grupos", id)}
+                      />
+                    </div>
+                  ))}
                 </MundoCard>
               );
-            }
-            if (bloques.length === 0) return null;
-
-            return (
-              <MundoCard
-                key={tipo}
-                title={cfg.labelPlural}
-                Icon={cfg.Icon}
-                onCreate={async () => {
-                  const nuevo = await crearGrupo(tipo);
-                  if (nuevo) openEntity("grupos", nuevo.id);
-                }}
-              >
-                {bloques.map((bloque, i) => (
-                  <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-none w-fit max-w-full">
-                    <EntityCardGrid
-                      title={bloque.subtipo ?? "Sin subtipo"}
-                      variant="chips"
-                      loading={!loadedGrupos}
-                      items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
-                      onItemClick={(id) => openEntity("grupos", id)}
-                    />
-                  </div>
-                ))}
-              </MundoCard>
-            );
-          },
-        )}
+            },
+          )}
+        </div>
         <MundoCard
           title="Notas"
           Icon={StickyNote}
@@ -601,16 +605,24 @@ function MundoCard({
   Icon,
   onCreate,
   creating,
+  fill = true,
   children,
 }: {
   title: string;
   Icon?: React.ElementType;
   onCreate?: () => void;
   creating?: boolean;
+  /** Si es false, la card mide según su contenido en vez de ocupar todo el
+   *  ancho — para usarla lado a lado con otras cards (como Reino/Criatura). */
+  fill?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 last:mb-0 w-full rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden">
+    <div
+      className={`rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden ${
+        fill ? "w-full mb-6 last:mb-0" : "flex-none w-fit max-w-full"
+      }`}
+    >
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2.5 bg-primary/10 border-b border-primary/10">
         <span />
         <div className="flex items-center gap-2 justify-self-center max-w-[280px]">
