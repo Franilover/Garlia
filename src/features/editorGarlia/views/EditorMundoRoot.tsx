@@ -45,14 +45,11 @@ import { useCreateEntity } from "../hooks/mundo/useCreateEntity";
 import { useWikilinkNavigate } from "../hooks/mundo/useWikilinkNavigate";
 
 // ─── Code-splitting por página combinada ──────────────────────────────────
-// Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas viven
-// TODOS juntos en EntidadesPage (una sola grilla grande de tarjetas).
-// Grupos/Notas siguen en OrganizacionPage aparte.
+// Personajes/Criaturas/Items/Reinos/Ciudades/Hechizos/Dones/Runas/Grupos/Notas
+// viven TODOS juntos en EntidadesPage (una sola grilla grande de tarjetas,
+// con el bloque de Organización — Grupos + Notas — al fondo).
 const EntidadesPage = lazy(() =>
   import("./EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
-);
-const OrganizacionPage = lazy(() =>
-  import("./OrganizacionPage").then((m) => ({ default: m.OrganizacionPage })),
 );
 const CapitulosSection = lazy(() =>
   import("./CapitulosSection").then((m) => ({ default: m.CapitulosSection })),
@@ -90,10 +87,9 @@ function ActiveSection() {
     case "hechizos":
     case "dones":
     case "runas":
-      return <EntidadesPage section={section} selectedId={selectedId} />;
     case "grupos":
     case "notas":
-      return <OrganizacionPage section={section} selectedId={selectedId} />;
+      return <EntidadesPage section={section} selectedId={selectedId} />;
     case "capitulos":
       return <CapitulosSection />;
     case "letras":

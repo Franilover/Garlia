@@ -16,12 +16,16 @@
  * muestra sin lógica extra acá.
  */
 
+import { StickyNote } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { FormularioMagico } from "@/features/editorGarlia/components/magia/FormularioMagico";
 import { CONFIG, type EntidadMagica } from "@/features/editorGarlia/components/magia/types";
 import { useGruposCriaturas } from "@/features/editorGarlia/hooks/grupos/useGruposCriaturas";
+import { useNotas } from "@/features/editorGarlia/hooks/notas/useNotas";
+import { type Nota } from "@/features/editorGarlia/hooks/types";
 import { useEntidadesMagicas } from "@/features/editorGarlia/hooks/misc/useEntidadesMagicas";
+import { EditorGrupo, GRUPO_TIPO_CONFIG, useGrupos, type GrupoTipo } from "@/features/editorGarlia/views/EditorGrupo";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -30,8 +34,10 @@ import { CriaturaEditor } from "../components/criaturas/CriaturaEditor";
 import { ItemEditor } from "../components/items/ItemEditor";
 import { PersonajeEditor } from "../components/personajes/PersonajeEditor";
 import { ReinoEditor } from "../components/reinos/ReinoEditor";
+import { EntityCardGrid } from "../components/shared/EntityCardGrid";
 import { GeografiaJerarquica } from "../components/shared/GeografiaJerarquica";
 import { MagiaJerarquica } from "../components/shared/MagiaJerarquica";
+import { TABLA_TO_SECTION } from "../hooks/mundo/useExternalCommandBridge";
 import { useMundoNavigation, type SectionKey } from "../hooks/mundo/useMundoNavigationStore";
 
 interface Personaje {
@@ -125,7 +131,47 @@ export function EntidadesPage({ section, selectedId }: Props) {
   const hechizos = useMagiaCategoria("hechizos");
   const dones = useMagiaCategoria("dones");
   const runas = useMagiaCategoria("runas");
-  const { grupos, loading: loadingGrupos } = useGruposCriaturas();
+  const { grupos: gruposCriaturas, loading: loadingGrupos } = useGruposCriaturas();
+
+  // ── Organización (Grupos + Notas) ────────────────────────────────────────
+  const { grupos, loaded: loadedGrupos, crearGrupo, actualizarGrupo, eliminarGrupo } = useGrupos();
+  const { notas, loading: loadingNotas, crear: crearNota, actualizar: actualizarNota, eliminar: eliminarNota } =
+    useNotas();
+
+  const gruposPorTipo = useMemo(() => {
+    const map: Partial<Record<GrupoTipo, typeof grupos>> = {};
+    for (const g of grupos) {
+      if (!map[g.tipo]) map[g.tipo] = [];
+      map[g.tipo]!.push(g);
+    }
+    return map;
+  }, [grupos]);
+
+  /** Dentro de cada tipo, agrupamos por subtipo (ej. "Familia", "Clan"…).
+   *  Los grupos sin subtipo caen en un balde aparte al final. */
+  const subtiposPorTipo = useMemo(() => {
+    const map: Partial<Record<GrupoTipo, { subtipo: string | null; items: typeof grupos }[]>> = {};
+    for (const [tipoStr, lista] of Object.entries(gruposPorTipo)) {
+      const tipo = tipoStr as GrupoTipo;
+      const porSubtipo = new Map<string, typeof grupos>();
+      const sinSubtipo: typeof grupos = [];
+      for (const g of lista ?? []) {
+        if (g.subtipo && g.subtipo.trim()) {
+          const key = g.subtipo.trim();
+          if (!porSubtipo.has(key)) porSubtipo.set(key, []);
+          porSubtipo.get(key)!.push(g);
+        } else {
+          sinSubtipo.push(g);
+        }
+      }
+      const bloques: { subtipo: string | null; items: typeof grupos }[] = Array.from(porSubtipo.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([subtipo, items]) => ({ subtipo, items }));
+      if (sinSubtipo.length) bloques.push({ subtipo: null, items: sinSubtipo });
+      map[tipo] = bloques;
+    }
+    return map;
+  }, [gruposPorTipo]);
 
   const openEntity = useMundoNavigation((s) => s.openEntity);
 
@@ -149,6 +195,14 @@ export function EntidadesPage({ section, selectedId }: Props) {
     () => (section === "ciudades" ? ciudades.find((c) => c.id === selectedId) : null),
     [section, ciudades, selectedId],
   );
+  const selectedGrupo = useMemo(
+    () => (section === "grupos" ? grupos.find((g) => g.id === selectedId) ?? null : null),
+    [section, grupos, selectedId],
+  );
+  const selectedNota = useMemo(
+    () => (section === "notas" ? notas.find((n) => n.id === selectedId) ?? null : null),
+    [section, notas, selectedId],
+  );
 
   const activeMagiaCategoria =
     section === "hechizos" ? hechizos : section === "dones" ? dones : section === "runas" ? runas : null;
@@ -165,7 +219,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         <FormularioMagico
           key={selectedMagia.id}
-          grupos={grupos}
+          grupos={gruposCriaturas}
           item={selectedMagia}
           loadingGrupos={loadingGrupos}
           modo={section as "hechizos" | "dones" | "runas"}
@@ -179,6 +233,53 @@ export function EntidadesPage({ section, selectedId }: Props) {
           }}
           onNavigateCriatura={(id) => openEntity("criaturas", id)}
         />
+      </div>
+    );
+  }
+
+  if (selectedGrupo) {
+    return (
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        <EditorGrupo
+          key={selectedGrupo.id}
+          grupo={selectedGrupo}
+          onClickMiembro={(id, tabla) => {
+            const destino = TABLA_TO_SECTION[tabla];
+            if (destino) openEntity(destino, id);
+          }}
+          onDeleted={async (id) => {
+            await eliminarGrupo(id);
+          }}
+          onSaved={async (updated) => {
+            await actualizarGrupo(updated);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (selectedNota) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 gap-3">
+        <input
+          className="w-full bg-transparent text-lg font-black text-primary outline-none placeholder:text-primary/25"
+          placeholder="Título de la nota…"
+          value={selectedNota.titulo}
+          onChange={(e) => actualizarNota({ ...selectedNota, titulo: e.target.value })}
+        />
+        <textarea
+          className="flex-1 w-full bg-primary/[0.03] border border-primary/10 rounded-lg p-3 text-sm text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25"
+          placeholder="Escribí acá…"
+          value={selectedNota.contenido ?? ""}
+          onChange={(e) => actualizarNota({ ...selectedNota, contenido: e.target.value })}
+        />
+        <button
+          type="button"
+          onClick={() => eliminarNota(selectedNota.id)}
+          className="self-start text-micro font-bold uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
+        >
+          Eliminar nota
+        </button>
       </div>
     );
   }
@@ -269,6 +370,80 @@ export function EntidadesPage({ section, selectedId }: Props) {
         }}
         onOpen={(section, id) => openEntity(section, id)}
       />
+
+      {/* ── Organización (Grupos + Notas) ──────────────────────────────── */}
+      <div className="mt-10 pt-6 border-t border-primary/10">
+        <TipoHeader label="Organización" />
+        {(Object.entries(GRUPO_TIPO_CONFIG) as [GrupoTipo, (typeof GRUPO_TIPO_CONFIG)[GrupoTipo]][]).map(
+          ([tipo, cfg]) => {
+            const bloques = subtiposPorTipo[tipo] ?? [];
+            if (!loadedGrupos && bloques.length === 0) {
+              return (
+                <div key={tipo} className="mb-10 last:mb-0">
+                  <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
+                  <EntityCardGrid
+                    title={cfg.labelPlural}
+                    Icon={cfg.Icon}
+                    variant="chips"
+                    loading
+                    items={[]}
+                    onItemClick={() => {}}
+                    onCreate={async () => {
+                      const nuevo = await crearGrupo(tipo);
+                      if (nuevo) openEntity("grupos", nuevo.id);
+                    }}
+                  />
+                </div>
+              );
+            }
+            if (bloques.length === 0) return null;
+
+            return (
+              <div key={tipo} className="mb-10 last:mb-0">
+                <TipoHeader Icon={cfg.Icon} label={cfg.labelPlural} />
+                <div className="flex flex-col md:flex-row gap-6 flex-wrap">
+                  {bloques.map((bloque, i) => (
+                    <div key={bloque.subtipo ?? `__sin-subtipo-${i}`} className="flex-1 min-w-[220px]">
+                      <EntityCardGrid
+                        title={bloque.subtipo ?? "Sin subtipo"}
+                        Icon={cfg.Icon}
+                        variant="chips"
+                        loading={!loadedGrupos}
+                        items={bloque.items.map((g) => ({ id: g.id, nombre: g.nombre }))}
+                        onItemClick={(id) => openEntity("grupos", id)}
+                        onCreate={async () => {
+                          const nuevo = await crearGrupo(tipo);
+                          if (nuevo) openEntity("grupos", nuevo.id);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          },
+        )}
+        <EntityCardGrid
+          title="Notas"
+          Icon={StickyNote}
+          loading={loadingNotas}
+          items={notas.map((n: Nota) => ({ id: n.id, nombre: n.titulo || "Sin título" }))}
+          onItemClick={(id) => openEntity("notas", id)}
+          onCreate={async () => {
+            const nota = await crearNota("Nueva nota");
+            if (nota) openEntity("notas", nota.id);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TipoHeader({ label, Icon: _Icon }: { Icon?: React.ElementType; label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3 px-1">
+      <h1 className="text-sm font-black uppercase tracking-[0.2em] text-primary/70">{label}</h1>
+      <div className="flex-1 h-px bg-primary/10" />
     </div>
   );
 }

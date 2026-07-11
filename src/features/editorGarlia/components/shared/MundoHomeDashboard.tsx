@@ -11,11 +11,12 @@
  * Las dos columnas usan todo el ancho disponible; en pantallas angostas
  * caen a una sola columna.
  *
- * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas
- * son 8 SectionKey distintas pero renderizan TODAS la misma página combinada
- * <EntidadesPage /> (ver switch en EditorMundoRoot). Lo mismo para
- * grupos/notas → <OrganizacionPage />. Por eso la navegación principal usa
- * una lista propia de "páginas reales" (ENTRIES), no MUNDO_MENU_GROUPS.
+ * IMPORTANTE: personajes/criaturas/items/reinos/ciudades/hechizos/dones/runas/
+ * grupos/notas son 10 SectionKey distintas pero renderizan TODAS la misma
+ * página combinada <EntidadesPage /> (ver switch en EditorMundoRoot), con el
+ * bloque de Organización (Grupos + Notas) al fondo del grid. Por eso la
+ * navegación principal usa una lista propia de "páginas reales" (ENTRIES),
+ * no MUNDO_MENU_GROUPS.
  *
  * "Editado recientemente" usa el campo updated_at de personajes/criaturas/
  * items/reinos/ciudades (agregado vía migración SQL — ver
