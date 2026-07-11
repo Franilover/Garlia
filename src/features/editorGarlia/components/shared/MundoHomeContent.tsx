@@ -29,6 +29,7 @@ import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 
 import { useFavoritos } from "../../hooks/mundo/useFavoritosStore";
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
+import { EnsayosGosWidget } from "./EnsayosGosWidget";
 
 /** Tablas/section de Entidades que tienen updated_at (ver migración SQL). */
 const ENTIDADES_ICONS: Record<string, React.ElementType> = {
@@ -217,6 +218,9 @@ export function MundoHomeContent() {
 
         <ResumenWidget />
         <FavoritosYRecientes />
+        <div className="mt-6">
+          <EnsayosGosWidget />
+        </div>
       </div>
     </div>
   );
