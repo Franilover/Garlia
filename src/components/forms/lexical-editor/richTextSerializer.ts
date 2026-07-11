@@ -504,7 +504,7 @@ export function serializeRootToRaw(): string {
     }
 
     if ($isTableNode(child)) {
-      // La tabla es su propio bloque — no se mezcla con el join("\n") de
+      // La tabla es su propio bloque — no se mezcla con el join("\n\n") de
       // párrafos porque ya contiene sus propios saltos de línea internos.
       return walkNode(child);
     }
@@ -521,7 +521,17 @@ export function serializeRootToRaw(): string {
     lines.push(serializeBlock(child));
   }
 
-  return lines.join("\n");
+  // "\n\n" — separador real de párrafo en Markdown. Con un solo "\n" acá,
+  // el siguiente re-parseo (rawTextToLexicalTree) trataba el bloque previo
+  // y el siguiente como si fueran la MISMA línea de texto (el paso de
+  // soft-breaks los fusiona), lo que hacía que gates/choices/sections
+  // quedaran "atrapados" dentro de un párrafo de texto plano tras un
+  // roundtrip serialize→parse (ej: salir y volver a entrar al modo
+  // preview) — se veían como texto crudo sin chip. Bug preexistente que
+  // rara vez se disparaba porque escribir con Enter en el editor ya deja
+  // línea en blanco real entre bloques; se volvió visible al agregar más
+  // nodos (gate con target, flag) que dependen de este roundtrip.
+  return lines.join("\n\n");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
