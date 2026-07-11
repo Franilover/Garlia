@@ -539,16 +539,17 @@ export function EntidadesPage({ section, selectedId }: Props) {
                       <h4 className="text-micro font-semibold text-primary/35 mb-1.5 px-1">
                         {compositor}
                       </h4>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-row flex-wrap gap-4 items-start">
                         {cantantes.map(({ cantante, canciones: cancionesGrupo }) => (
-                          <EntityCardGrid
-                            key={cantante}
-                            title={cantante}
-                            Icon={Music}
-                            variant="chips"
-                            items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
-                            onItemClick={(id) => openEntity("letras", id)}
-                          />
+                          <div key={cantante} className="flex-none w-fit max-w-full">
+                            <EntityCardGrid
+                              title={cantante}
+                              Icon={Music}
+                              variant="chips"
+                              items={cancionesGrupo.map((c: Cancion) => ({ id: c.id, nombre: c.titulo }))}
+                              onItemClick={(id) => openEntity("letras", id)}
+                            />
+                          </div>
                         ))}
                       </div>
                     </div>
