@@ -17,7 +17,6 @@ import React from "react";
 import { Bookmark } from "lucide-react";
 
 import { snippetEditHandler, useKnownSectionIdsVersion } from "./sharedTypes";
-import { SnippetChip } from "./SnippetChip";
 
 export interface SectionPayload {
   id: string;
@@ -40,10 +39,12 @@ function SectionChipView({
 }) {
   useKnownSectionIdsVersion();
   const [refCount, setRefCount] = React.useState<number | null>(null);
+  const [isFirstSection, setIsFirstSection] = React.useState(true);
 
   React.useEffect(() => {
     editor.getEditorState().read(() => {
       let count = 0;
+      let firstSectionKey: string | null = null;
       const rootNode = $getRoot();
       const visit = (node: any) => {
         const type = node.getType?.();
@@ -56,48 +57,130 @@ function SectionChipView({
         } else if (type === "condicion-snippet") {
           const p = node.getPayload?.();
           if (p?.siTarget === payload.id || p?.noTarget === payload.id) count++;
+        } else if (type === "section-snippet") {
+          if (firstSectionKey === null) firstSectionKey = node.getKey();
         }
         const children = node.getChildren?.();
         if (children) children.forEach(visit);
       };
       visit(rootNode);
       setRefCount(count);
+      setIsFirstSection(firstSectionKey === nodeKey);
     });
   });
 
+  const label = payload.label ?? payload.id;
+  const refsSuffix = refCount !== null ? ` · ${refCount} ref${refCount === 1 ? "" : "s"}` : "";
+
   return (
-    <SnippetChip
-      icon={<Bookmark size={10} />}
-      text={
-        refCount !== null
-          ? `${payload.label ?? payload.id} · ${refCount} ref${refCount === 1 ? "" : "s"}`
-          : (payload.label ?? payload.id)
-      }
-      title={`Sección — id: ${payload.id}`}
-      onClick={() =>
-        snippetEditHandler.current?.({
-          kind: "section",
-          nodeKey,
-          payload,
-          replace: (next) =>
-            editor.update(() => {
-              const node = $getNodeByKey(nodeKey);
-              if ($isSectionNode(node)) node.setPayload(next);
-            }),
-          remove: () =>
-            editor.update(() => {
-              const node = $getNodeByKey(nodeKey);
-              if ($isSectionNode(node)) node.remove();
-            }),
-        })
-      }
-      onDelete={() =>
-        editor.update(() => {
-          const node = $getNodeByKey(nodeKey);
-          if ($isSectionNode(node)) node.remove();
-        })
-      }
-    />
+    <span contentEditable={false} style={{ display: "block", userSelect: "none" }}>
+      {!isFirstSection && <SectionCloserView />}
+      <span
+        onClick={() =>
+          snippetEditHandler.current?.({
+            kind: "section",
+            nodeKey,
+            payload,
+            replace: (next) =>
+              editor.update(() => {
+                const node = $getNodeByKey(nodeKey);
+                if ($isSectionNode(node)) node.setPayload(next);
+              }),
+            remove: () =>
+              editor.update(() => {
+                const node = $getNodeByKey(nodeKey);
+                if ($isSectionNode(node)) node.remove();
+              }),
+          })
+        }
+        title={`Sección — id: ${payload.id}`}
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          margin: "18px 0 8px",
+          cursor: "pointer",
+          fontFamily: "var(--font-sans, system-ui)",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "50%",
+            height: 1,
+            background: "var(--border-strong, #B4B2A9)",
+          }}
+        />
+        <span
+          style={{
+            position: "relative",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "0 10px",
+            background: "var(--surface-1, var(--background, #fff))",
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--text-primary)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <Bookmark size={12} />
+          {label}
+          {refsSuffix && <span style={{ color: "var(--text-secondary)", fontWeight: 400 }}>{refsSuffix}</span>}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Separador "fin de sección" — puramente visual, se calcula en cada render
+ * a partir de la posición del SectionNode en el árbol (no es texto real
+ * guardado, así que nunca se desincroniza con ediciones del contenido).
+ * Se dibuja ANTES de cada SectionNode que no sea la primera, y — vía
+ * EndOfDocumentSectionCloser más abajo — al final del documento si la
+ * última sección quedó abierta.
+ */
+export function SectionCloserView() {
+  return (
+    <span
+      contentEditable={false}
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        margin: "18px 0 4px",
+        userSelect: "none",
+        fontFamily: "var(--font-sans, system-ui)",
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: "50%",
+          height: 1,
+          background: "var(--border, #D3D1C7)",
+        }}
+      />
+      <span
+        style={{
+          position: "relative",
+          padding: "0 10px",
+          background: "var(--surface-1, var(--background, #fff))",
+          fontSize: 11,
+          color: "var(--text-muted)",
+        }}
+      >
+        fin de sección
+      </span>
+    </span>
   );
 }
 

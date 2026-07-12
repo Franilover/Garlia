@@ -65,7 +65,7 @@ import { DropNode } from "./nodes/DropNode";
 import { FlagNode } from "./nodes/FlagNode";
 import { CondicionNode } from "./nodes/CondicionNode";
 import { ImgNode } from "./nodes/ImgNode";
-import { SectionNode, $createSectionNode } from "./nodes/SectionNode";
+import { SectionNode, $createSectionNode, SectionCloserView } from "./nodes/SectionNode";
 import {
   snippetEditHandler,
   setKnownSectionIds,
@@ -320,7 +320,11 @@ function InsertSnippetPlugin({
 // documento cuando el autor hace click en "Crear sección faltante".
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SectionGraphPlugin() {
+function SectionGraphPlugin({
+  onHasSectionsChange,
+}: {
+  onHasSectionsChange?: (has: boolean) => void;
+}) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
@@ -338,12 +342,13 @@ function SectionGraphPlugin() {
         };
         visit(root);
         setKnownSectionIds(ids);
+        onHasSectionsChange?.(ids.size > 0);
       });
     };
 
     syncSectionIds();
     return editor.registerUpdateListener(() => syncSectionIds());
-  }, [editor]);
+  }, [editor, onHasSectionsChange]);
 
   useEffect(() => {
     createMissingSectionHandler.current = (id: string) => {
@@ -538,6 +543,7 @@ export function RichEditor({
   const [internalMode, setInternalMode] = useState<ViewMode>("edit");
   const mode = modeProp ?? internalMode;
   const handleModeChange = onModeChange ?? setInternalMode;
+  const [hasSections, setHasSections] = useState(false);
 
   // Conecta el handler global de edición de snippets con la callback del padre
   useEffect(() => {
@@ -878,7 +884,7 @@ export function RichEditor({
                 slashRemoveRef={slashRemoveRef}
               />
               <MarkdownCommandInsertPlugin insertRef={mdInsertRef} />
-              <SectionGraphPlugin />
+              <SectionGraphPlugin onHasSectionsChange={setHasSections} />
               <EditablePlugin editable={editable} />
               <SlashCommandPlugin
                 isMenuOpen={mdPalette.open}
@@ -953,6 +959,12 @@ export function RichEditor({
                   }
                   onSelect={selectMdCommand}
                 />
+              )}
+
+              {hasSections && (
+                <div style={{ padding: "0 8px" }}>
+                  <SectionCloserView />
+                </div>
               )}
             </div>
           )}
