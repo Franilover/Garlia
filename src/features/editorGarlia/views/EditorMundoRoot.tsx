@@ -61,6 +61,9 @@ const MapaSection = lazy(() =>
 const LineaTiempoSection = lazy(() =>
   import("./LineaTiempoSection").then((m) => ({ default: m.LineaTiempoSection })),
 );
+const PublicacionSection = lazy(() =>
+  import("./PublicacionSection").then((m) => ({ default: m.PublicacionSection })),
+);
 
 function SectionFallback() {
   return (
@@ -95,6 +98,8 @@ function ActiveSection() {
       return <MapaSection />;
     case "linea-tiempo":
       return <LineaTiempoSection />;
+    case "publicacion":
+      return <PublicacionSection />;
     default:
       return null;
   }

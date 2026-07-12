@@ -38,7 +38,8 @@ export type SectionKey =
   | "letras"
   | "notas"
   | "mapa"
-  | "linea-tiempo";
+  | "linea-tiempo"
+  | "publicacion";
 
 /** @deprecated Magia ya no es una sub-navegación; "hechizos"/"dones"/"runas" son SectionKey propios. */
 export type MagiaTipo = "hechizos" | "dones" | "runas";

@@ -22,7 +22,7 @@
  * la tab "entidades" activa; el resto son 1 a 1 con su SectionKey.
  */
 
-import { Clock, Home, Mountain, ScrollText, Users } from "lucide-react";
+import { Clock, Home, Mountain, ScrollText, Sparkles, Users } from "lucide-react";
 import React from "react";
 
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -41,7 +41,7 @@ const ENTIDADES_SECTIONS: SectionKey[] = [
   "letras",
 ];
 
-type TabKey = "inicio" | "entidades" | "mapa" | "capitulos" | "linea-tiempo";
+type TabKey = "inicio" | "entidades" | "mapa" | "capitulos" | "linea-tiempo" | "publicacion";
 
 interface Tab {
   key: TabKey;
@@ -55,6 +55,7 @@ const TABS: Tab[] = [
   { key: "mapa", label: "Mapa", Icon: Mountain },
   { key: "capitulos", label: "Capítulos", Icon: ScrollText },
   { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
+  { key: "publicacion", label: "Publicación", Icon: Sparkles },
 ];
 
 function tabKeyOf(section: SectionKey | null): TabKey {
@@ -62,6 +63,7 @@ function tabKeyOf(section: SectionKey | null): TabKey {
   if (section === "mapa") return "mapa";
   if (section === "capitulos") return "capitulos";
   if (section === "linea-tiempo") return "linea-tiempo";
+  if (section === "publicacion") return "publicacion";
   if (ENTIDADES_SECTIONS.includes(section)) return "entidades";
   return "inicio";
 }
