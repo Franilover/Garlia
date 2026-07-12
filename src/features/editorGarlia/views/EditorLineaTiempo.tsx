@@ -1976,6 +1976,7 @@ function ListaEventosConMinimapa({
           style={{
             flex: "1",
             overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           {allEvents.length === 0 && (
@@ -2075,7 +2076,7 @@ function ListaEventosConMinimapa({
                 )}
 
                 {/* Carriles de año de esta era — envuelven al llegar al borde */}
-                <div className="flex flex-wrap items-start gap-3">
+                <div className="flex flex-wrap items-start gap-3 min-w-0">
                   {grupo.carriles.map((carril, i) => {
                     // Ancho de cada tarjeta de evento — el carril entero se
                     // estira según cuántos eventos tenga (en vez de un ancho
@@ -2093,8 +2094,8 @@ function ListaEventosConMinimapa({
                     return (
                       <div
                         key={`carril-${carril.anio ?? "sin-fecha"}-${gi}-${i}`}
-                        className="flex flex-col gap-1"
-                        style={{ width: anchoCarril }}
+                        className="flex flex-col gap-1 min-w-0 max-w-full"
+                        style={{ width: anchoCarril, maxWidth: "100%" }}
                       >
                         {/* Encabezado del año — se expande a todo el ancho del carril */}
                         <div className="flex items-center gap-1.5 w-full">
@@ -2121,8 +2122,8 @@ function ListaEventosConMinimapa({
                           />
                         </div>
 
-                        {/* Eventos del año — lado a lado (fila), no apilados hacia abajo */}
-                        <div className="flex flex-row gap-1.5">
+                        {/* Eventos del año — lado a lado (fila), envuelven si no caben */}
+                        <div className="flex flex-row flex-wrap gap-1.5">
                           {carril.eventos.map((evt) => {
                             const eraEvt = getEraEvt(evt.dia_absoluto);
                             const eraColor = eraEvt?.color ?? null;
@@ -3341,7 +3342,7 @@ export function PanelHistoriaMundo({
   // (Eliminados: selectedEvt, handleUpdateSelected — panel de edición de eventos "mundo"/"reino")
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* ── Cabecera ──────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 flex flex-col border-b"
@@ -3635,7 +3636,7 @@ export function PanelHistoriaMundo({
       )}
 
       {/* ── Pista única: acontecimientos + capítulos en un solo scroll ──────── */}
-      <div className="px-3 py-3">
+      <div className="px-3 py-3 flex-1 min-h-0 overflow-y-auto">
         {loadingReinos ? (
           <div className="flex justify-center py-4">
             <Loader2 className="animate-spin text-primary/20" size={14} />
