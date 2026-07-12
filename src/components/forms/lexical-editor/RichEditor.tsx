@@ -62,7 +62,7 @@ import {
 import { ChoiceNode } from "./nodes/ChoiceNode";
 import { DropNode } from "./nodes/DropNode";
 import { FlagNode } from "./nodes/FlagNode";
-import { GateNode } from "./nodes/GateNode";
+import { CondicionNode } from "./nodes/CondicionNode";
 import { ImgNode } from "./nodes/ImgNode";
 import { SectionNode } from "./nodes/SectionNode";
 import {
@@ -209,7 +209,7 @@ const RICH_EDITOR_NODES = [
   ImgNode,
   ChoiceNode,
   UseNode,
-  GateNode,
+  CondicionNode,
   FlagNode,
   SectionNode,
   WikilinkNode,

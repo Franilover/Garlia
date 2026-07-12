@@ -21,7 +21,7 @@ export type SnippetKind =
   | "sound"
   | "choice"
   | "use"
-  | "gate"
+  | "condicion"
   | "flag"
   | "section";
 
@@ -57,12 +57,11 @@ export function getSnippetKind(raw: string): string {
 }
 
 /** Regex que detecta cualquier snippet [[kind|...]] (no multilinea, los
- *  gate multilinea se manejan aparte con extractGateBlocks, igual que en
- *  tu type.ts actual). */
+ *  condicion multilinea se manejan aparte con extractCondicionBlocks). */
 export const SNIPPET_REGEX = /\[\[(\w+)\|[^\]]*\]\]/g;
 
-/** Regex específico para gate multilinea, igual al de tu type.ts actual. */
-export const GATE_REGEX = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
+/** Regex específico para condicion multilinea (y legacy gate/flag|if). */
+export const CONDICION_REGEX = /\[\[condicion\|(item|flag)\|([^\|]+)\|([^\|]*)\|([\s\S]+?)\]\]/g;
 
 export const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -32,24 +32,17 @@ export interface RawChoiceRef {
   charIndex: number;
 }
 
-export interface RawGateRef {
-  kind: "gate";
-  itemId: string;
-  tieneTarget: string | null;
-  noTieneTarget: string | null;
-  charIndex: number;
-}
-
-export interface RawFlagIfRef {
-  kind: "flag-if";
-  flagId: string;
-  valorEsperado: string;
+export interface RawCondicionRef {
+  kind: "condicion";
+  tipo: "item" | "flag";
+  clave: string;
+  valorEsperado?: string;
   siTarget: string | null;
   noTarget: string | null;
   charIndex: number;
 }
 
-export type RawConnectionRef = RawChoiceRef | RawGateRef | RawFlagIfRef;
+export type RawConnectionRef = RawChoiceRef | RawCondicionRef;
 
 /**
  * Extrae secciones ([[section|id|label]]) de un texto de capítulo.
@@ -188,6 +181,34 @@ export function insertChoiceAtEndOfSection(
  *   -> pasillo-oscuro
  *   ]]
  */
+/**
+ * Extrae condiciones. Formato nuevo unificado (fusión Gate + Flag-if):
+ *   [[condicion|item|itemId||
+ *   Texto si TIENE
+ *   ===
+ *   Texto si NO TIENE
+ *   ]]
+ *   [[condicion|flag|flagId|valorEsperado|
+ *   Texto si coincide
+ *   ===
+ *   Texto si no coincide
+ *   ]]
+ * También reconoce, por retrocompatibilidad, los formatos legacy
+ * [[gate|itemId|...]] y [[flag|if|flagId|valorEsperado|...]].
+ *
+ * Los targets van como sufijo opcional al final de cada rama, en su propia
+ * línea, con el prefijo "->": `-> id-de-seccion`. Si no está, la rama es
+ * puramente textual como hoy (no genera arista).
+ *
+ * Ejemplo con targets:
+ *   [[condicion|item|llave-oxidada||
+ *   Giras la llave y la puerta cede.
+ *   -> sala-del-trono
+ *   ===
+ *   La cerradura no cede sin la llave correcta.
+ *   -> pasillo-oscuro
+ *   ]]
+ */
 const TARGET_LINE = /(?:^|\n)\s*->\s*([a-z0-9-]+)\s*$/i;
 
 function extractTargetSuffix(branchText: string): {
@@ -202,41 +223,57 @@ function extractTargetSuffix(branchText: string): {
   };
 }
 
-export function extractGates(contenido: string): RawGateRef[] {
-  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
-  const gates: RawGateRef[] = [];
+export function extractCondiciones(contenido: string): RawCondicionRef[] {
+  const condiciones: RawCondicionRef[] = [];
+
+  const condicionRegex =
+    /\[\[condicion\|(item|flag)\|([^\|]+)\|([^\|]*)\|([\s\S]+?)\]\]/g;
   let match: RegExpExecArray | null;
+  while ((match = condicionRegex.exec(contenido)) !== null) {
+    const tipo = match[1] as "item" | "flag";
+    const clave = match[2].trim();
+    const valorEsperado = match[3].trim();
+    const body = match[4];
+    const sepIdx = body.indexOf("===");
+    const siRaw = sepIdx >= 0 ? body.slice(0, sepIdx) : body;
+    const noRaw = sepIdx >= 0 ? body.slice(sepIdx + 3) : "";
+    const si = extractTargetSuffix(siRaw);
+    const no = extractTargetSuffix(noRaw);
+    condiciones.push({
+      kind: "condicion",
+      tipo,
+      clave,
+      valorEsperado: tipo === "flag" ? valorEsperado : undefined,
+      siTarget: si.target,
+      noTarget: no.target,
+      charIndex: match.index,
+    });
+  }
+
+  // Legacy: [[gate|itemId|...===...]]
+  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
   while ((match = gateRegex.exec(contenido)) !== null) {
-    const itemId = match[1].trim();
+    const clave = match[1].trim();
     const body = match[2];
     const sepIdx = body.indexOf("===");
     const tieneRaw = sepIdx >= 0 ? body.slice(0, sepIdx) : body;
     const noTieneRaw = sepIdx >= 0 ? body.slice(sepIdx + 3) : "";
     const tiene = extractTargetSuffix(tieneRaw);
     const noTiene = extractTargetSuffix(noTieneRaw);
-    gates.push({
-      kind: "gate",
-      itemId,
-      tieneTarget: tiene.target,
-      noTieneTarget: noTiene.target,
+    condiciones.push({
+      kind: "condicion",
+      tipo: "item",
+      clave,
+      siTarget: tiene.target,
+      noTarget: noTiene.target,
       charIndex: match.index,
     });
   }
-  return gates;
-}
 
-/**
- * Extrae condicionales de flag [[flag|if|flagId|valorEsperado|...===...]].
- * Mismo formato retrocompatible que gate: targets opcionales por rama, vía
- * sufijo "-> id". [[flag|set|...]] no genera arista — solo escribe estado,
- * no navega, así que no se extrae acá.
- */
-export function extractFlagIfs(contenido: string): RawFlagIfRef[] {
+  // Legacy: [[flag|if|flagId|valorEsperado|...===...]]
   const flagIfRegex = /\[\[flag\|if\|([^\|]+)\|([^\|]*)\|([\s\S]+?)\]\]/g;
-  const flagIfs: RawFlagIfRef[] = [];
-  let match: RegExpExecArray | null;
   while ((match = flagIfRegex.exec(contenido)) !== null) {
-    const flagId = match[1].trim();
+    const clave = match[1].trim();
     const valorEsperado = match[2].trim();
     const body = match[3];
     const sepIdx = body.indexOf("===");
@@ -244,16 +281,18 @@ export function extractFlagIfs(contenido: string): RawFlagIfRef[] {
     const noRaw = sepIdx >= 0 ? body.slice(sepIdx + 3) : "";
     const si = extractTargetSuffix(siRaw);
     const no = extractTargetSuffix(noRaw);
-    flagIfs.push({
-      kind: "flag-if",
-      flagId,
+    condiciones.push({
+      kind: "condicion",
+      tipo: "flag",
+      clave,
       valorEsperado,
       siTarget: si.target,
       noTarget: no.target,
       charIndex: match.index,
     });
   }
-  return flagIfs;
+
+  return condiciones;
 }
 
 // ── Modelo de grafo ────────────────────────────────────────────────────────────
@@ -274,7 +313,7 @@ export interface StoryNode {
 
 export interface StoryEdge {
   id: string;
-  type: "choice" | "gate-tiene" | "gate-notiene" | "flag-si" | "flag-no";
+  type: "choice" | "condicion-si" | "condicion-no";
   from: string;
   to: string;
   label: string;
@@ -356,49 +395,29 @@ export function buildStoryGraph(chapters: ChapterInput[]): StoryGraph {
         isBroken: !nodeIds.has(c.target),
       });
     }
-    for (const g of extractGates(ch.contenido)) {
-      const from = locateSection(g.charIndex) ?? rootId;
-      if (g.tieneTarget) {
+    for (const c2 of extractCondiciones(ch.contenido)) {
+      const from = locateSection(c2.charIndex) ?? rootId;
+      const claveLabel = c2.tipo === "item" ? c2.clave : `${c2.clave}=${c2.valorEsperado}`;
+      const claveLabelNo =
+        c2.tipo === "item" ? c2.clave : `${c2.clave}≠${c2.valorEsperado}`;
+      if (c2.siTarget) {
         edges.push({
           id: `e${edgeCounter++}`,
-          type: "gate-tiene",
+          type: "condicion-si",
           from,
-          to: g.tieneTarget,
-          label: `tiene ${g.itemId}`,
-          isBroken: !nodeIds.has(g.tieneTarget),
+          to: c2.siTarget,
+          label: c2.tipo === "item" ? `tiene ${claveLabel}` : claveLabel,
+          isBroken: !nodeIds.has(c2.siTarget),
         });
       }
-      if (g.noTieneTarget) {
+      if (c2.noTarget) {
         edges.push({
           id: `e${edgeCounter++}`,
-          type: "gate-notiene",
+          type: "condicion-no",
           from,
-          to: g.noTieneTarget,
-          label: `no tiene ${g.itemId}`,
-          isBroken: !nodeIds.has(g.noTieneTarget),
-        });
-      }
-    }
-    for (const f of extractFlagIfs(ch.contenido)) {
-      const from = locateSection(f.charIndex) ?? rootId;
-      if (f.siTarget) {
-        edges.push({
-          id: `e${edgeCounter++}`,
-          type: "flag-si",
-          from,
-          to: f.siTarget,
-          label: `${f.flagId}=${f.valorEsperado}`,
-          isBroken: !nodeIds.has(f.siTarget),
-        });
-      }
-      if (f.noTarget) {
-        edges.push({
-          id: `e${edgeCounter++}`,
-          type: "flag-no",
-          from,
-          to: f.noTarget,
-          label: `${f.flagId}≠${f.valorEsperado}`,
-          isBroken: !nodeIds.has(f.noTarget),
+          to: c2.noTarget,
+          label: c2.tipo === "item" ? `no tiene ${claveLabelNo}` : claveLabelNo,
+          isBroken: !nodeIds.has(c2.noTarget),
         });
       }
     }

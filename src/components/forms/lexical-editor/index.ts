@@ -41,11 +41,11 @@ export {
   parseUseRawToPayload,
 } from "./nodes/UseNode";
 export {
-  $createGateNode,
-  $isGateNode,
-  gatePayloadToRaw,
-  gateRawToPayload,
-} from "./nodes/GateNode";
+  $createCondicionNode,
+  $isCondicionNode,
+  condicionPayloadToRaw,
+  condicionRawToPayload,
+} from "./nodes/CondicionNode";
 export {
   $createFlagNode,
   $isFlagNode,

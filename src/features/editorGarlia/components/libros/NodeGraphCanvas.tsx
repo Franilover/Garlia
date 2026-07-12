@@ -83,10 +83,8 @@ function autoLayout(
 
 const EDGE_COLOR: Record<StoryEdge["type"], string> = {
   choice: "#5b8def",
-  "gate-tiene": "#22c55e",
-  "gate-notiene": "#ef4444",
-  "flag-si": "#a855f7",
-  "flag-no": "#f97316",
+  "condicion-si": "#22c55e",
+  "condicion-no": "#ef4444",
 };
 
 export function NodeGraphCanvas({

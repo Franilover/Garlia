@@ -59,11 +59,11 @@ import {
   flagRawToPayload,
 } from "./nodes/FlagNode";
 import {
-  $createGateNode,
-  $isGateNode,
-  gatePayloadToRaw,
-  gateRawToPayload,
-} from "./nodes/GateNode";
+  $createCondicionNode,
+  $isCondicionNode,
+  condicionPayloadToRaw,
+  condicionRawToPayload,
+} from "./nodes/CondicionNode";
 import {
   $createImgNode,
   $isImgNode,
@@ -97,13 +97,18 @@ import {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Regex de detección de snippets
-// Los gate son multilinea, los demás son single-line
+// Los condicion (y sus formatos legacy gate/flag|if) son multilinea, los
+// demás son single-line
 // ─────────────────────────────────────────────────────────────────────────────
 
+const CONDICION_RE =
+  /\[\[condicion\|(?:item|flag)\|[^\|]+\|[^\|]*\|[\s\S]+?\]\]/g;
+// Legacy — contenido guardado antes de la fusión Gate+Flag-if. Se siguen
+// reconociendo al cargar para migrar automáticamente a CondicionNode.
 const GATE_RE = /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g;
-// [[flag|if|...]] es multilinea igual que gate (mismo motivo: el cuerpo
-// contiene "===" y texto libre). [[flag|set|...]] en cambio es single-line
-// y cae en SNIPPET_RE junto a los demás snippets simples.
+// [[flag|if|...]] es multilinea igual que gate/condicion (mismo motivo: el
+// cuerpo contiene "===" y texto libre). [[flag|set|...]] en cambio es
+// single-line y cae en SNIPPET_RE junto a los demás snippets simples.
 const FLAG_IF_RE = /\[\[flag\|if\|[^\|]+\|[^\|]*\|[\s\S]+?\]\]/g;
 const SNIPPET_RE =
   /\[\[(?:drop|img|float|sound|choice|use|section|cita|flag\|set)[^\]]*\]\]/g;
@@ -112,7 +117,7 @@ const SNIPPET_RE =
 // explícitamente los kind conocidos para no capturar snippets malformados
 // como si fueran wikilinks.
 const WIKILINK_RE =
-  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|gate|flag)\|)([^\[\]|]+)\]\]/g;
+  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|condicion|gate|flag)\|)([^\[\]|]+)\]\]/g;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convierte un raw [[kind|...]] string → LexicalNode
@@ -148,11 +153,22 @@ export function rawSnippetToNode(raw: string): LexicalNode | null {
       const p = parseUseRawToPayload(raw);
       return p ? $createUseNode(p) : null;
     }
+    case "condicion": {
+      const p = condicionRawToPayload(raw);
+      return p ? $createCondicionNode(p) : null;
+    }
     case "gate": {
-      const p = gateRawToPayload(raw);
-      return p ? $createGateNode(p) : null;
+      // Legacy — migra automáticamente a CondicionNode al leerlo.
+      const p = condicionRawToPayload(raw);
+      return p ? $createCondicionNode(p) : null;
     }
     case "flag": {
+      // "flag|if|..." es legacy y migra a CondicionNode; "flag|set|..."
+      // sigue siendo una Acción (FlagNode).
+      if (raw.startsWith("[[flag|if|")) {
+        const p = condicionRawToPayload(raw);
+        return p ? $createCondicionNode(p) : null;
+      }
       const p = flagRawToPayload(raw);
       return p ? $createFlagNode(p) : null;
     }
@@ -233,8 +249,14 @@ export function rawTextToLexicalTree(raw: string): void {
     },
   );
 
-  // 2) Gates y flag-if multilinea (mismo motivo: cuerpo con "===" y texto
-  // libre que no debe tocar el resto del pipeline de markdown).
+  // 2) Condicion (y sus formatos legacy gate/flag-if) multilinea (mismo
+  // motivo: cuerpo con "===" y texto libre que no debe tocar el resto del
+  // pipeline de markdown).
+  working = working.replace(CONDICION_RE, (match) => {
+    const token = nextToken();
+    registry.set(token, { kind: "snippet", raw: match });
+    return token;
+  });
   working = working.replace(GATE_RE, (match) => {
     const token = nextToken();
     registry.set(token, { kind: "snippet", raw: match });
@@ -432,7 +454,7 @@ export function serializeRootToRaw(): string {
     if ($isSoundNode(node)) return soundPayloadToRaw(node.getPayload());
     if ($isChoiceNode(node)) return choicePayloadToRaw(node.getPayload());
     if ($isUseNode(node)) return parseUsePayloadToRaw(node.getPayload());
-    if ($isGateNode(node)) return gatePayloadToRaw(node.getPayload());
+    if ($isCondicionNode(node)) return condicionPayloadToRaw(node.getPayload());
     if ($isFlagNode(node)) return flagPayloadToRaw(node.getPayload());
     if ($isSectionNode(node)) return sectionPayloadToRaw(node.getPayload());
     if ($isWikilinkNode(node)) return wikilinkPayloadToRaw(node.getPayload());

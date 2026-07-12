@@ -109,24 +109,32 @@ function AnimatedDropCap({ char, rest }: { char: string; rest: string }) {
 }
 
 /* ─────────────────────────────────────────────
-   GateBlock
+   CondicionBlock — fusión de GateBlock + FlagIfBlock.
+   Evalúa una condición automática del sistema (¿tiene este ítem? / ¿el
+   flag guardado === valorEsperado?) y ramifica en dos, con target
+   opcional por rama, igual mecanismo en ambos casos, solo cambia la
+   fuente de verdad que consulta.
    ───────────────────────────────────────────── */
-function GateBlock({
-  itemId,
-  tieneSegs,
-  noTieneSegs,
-  tieneTarget,
-  noTieneTarget,
+function CondicionBlock({
+  tipo,
+  clave,
+  valorEsperado,
+  siSegs,
+  noSegs,
+  siTarget,
+  noTarget,
   onNavigate,
 }: {
-  itemId: string;
-  tieneSegs: Segment[];
-  noTieneSegs: Segment[];
-  tieneTarget?: string;
-  noTieneTarget?: string;
+  tipo: "item" | "flag";
+  clave: string;
+  valorEsperado?: string;
+  siSegs: Segment[];
+  noSegs: Segment[];
+  siTarget?: string;
+  noTarget?: string;
   onNavigate: (id: string) => void;
 }) {
-  const [tiene, setTiene] = useState<boolean | null>(null);
+  const [cumple, setCumple] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,20 +144,31 @@ function GateBlock({
         data: { user },
       } = await supabase.auth.getUser();
       if (!user || cancelled) return;
-      const { data } = await supabase
-        .from("descubrimientos_items")
-        .select("id")
-        .eq("item_id", itemId)
-        .eq("perfil_id", user.id)
-        .maybeSingle();
-      if (!cancelled) setTiene(!!data);
+      if (tipo === "item") {
+        const { data } = await supabase
+          .from("descubrimientos_items")
+          .select("id")
+          .eq("item_id", clave)
+          .eq("perfil_id", user.id)
+          .maybeSingle();
+        if (!cancelled) setCumple(!!data);
+      } else {
+        const { data } = await supabase
+          .from("flags_narrativos")
+          .select("valor")
+          .eq("flag_id", clave)
+          .eq("perfil_id", user.id)
+          .maybeSingle();
+        // Un flag que nunca se seteó cuenta como no-match, no como error.
+        if (!cancelled) setCumple((data?.valor ?? null) === valorEsperado);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [itemId]);
+  }, [tipo, clave, valorEsperado]);
 
-  const target = tiene === null ? undefined : tiene ? tieneTarget : noTieneTarget;
+  const target = cumple === null ? undefined : cumple ? siTarget : noTarget;
 
   // Si la rama activa tiene un target -> salta de sección, igual que un
   // [[choice]]. Se hace en un efecto (no durante el render) porque
@@ -158,11 +177,11 @@ function GateBlock({
     if (target) onNavigate(target);
   }, [target, onNavigate]);
 
-  if (tiene === null || target) return null;
+  if (cumple === null || target) return null;
 
   // Sin target: se comporta como antes, renderiza el texto de la rama
   // inline, sin salto de sección.
-  const segs = tiene ? tieneSegs : noTieneSegs;
+  const segs = cumple ? siSegs : noSegs;
   return <RenderSegmentos segs={segs} onNavigate={onNavigate} />;
 }
 
@@ -197,64 +216,6 @@ function FlagSetBlock({ flagId, valor }: { flagId: string; valor: string }) {
   }, [flagId, valor]);
 
   return null;
-}
-
-/* ─────────────────────────────────────────────
-   FlagIfBlock — compara el flag guardado contra valorEsperado.
-   Misma forma que GateBlock: dos ramas, cada una con target opcional.
-   ───────────────────────────────────────────── */
-function FlagIfBlock({
-  flagId,
-  valorEsperado,
-  siSegs,
-  noSegs,
-  siTarget,
-  noTarget,
-  onNavigate,
-}: {
-  flagId: string;
-  valorEsperado: string;
-  siSegs: Segment[];
-  noSegs: Segment[];
-  siTarget?: string;
-  noTarget?: string;
-  onNavigate: (id: string) => void;
-}) {
-  const [coincide, setCoincide] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const { supabase } = await import("@/lib/api/client/supabase");
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-      const { data } = await supabase
-        .from("flags_narrativos")
-        .select("valor")
-        .eq("flag_id", flagId)
-        .eq("perfil_id", user.id)
-        .maybeSingle();
-      // Un flag que nunca se seteó cuenta como no-match, no como error.
-      if (!cancelled) setCoincide((data?.valor ?? null) === valorEsperado);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [flagId, valorEsperado]);
-
-  const target =
-    coincide === null ? undefined : coincide ? siTarget : noTarget;
-
-  useEffect(() => {
-    if (target) onNavigate(target);
-  }, [target, onNavigate]);
-
-  if (coincide === null || target) return null;
-
-  const segs = coincide ? siSegs : noSegs;
-  return <RenderSegmentos segs={segs} onNavigate={onNavigate} />;
 }
 
 
@@ -353,34 +314,23 @@ export function RenderSegmentos({
               onNavigate={onNavigate}
             />
           );
-        if (seg.type === "gate")
+        if (seg.type === "condicion")
           return (
-            <GateBlock
+            <CondicionBlock
               key={i}
-              itemId={seg.itemId}
-              noTieneSegs={seg.noTieneSegs}
-              tieneSegs={seg.tieneSegs}
-              tieneTarget={seg.tieneTarget}
-              noTieneTarget={seg.noTieneTarget}
+              clave={seg.clave}
+              noSegs={seg.noSegs}
+              noTarget={seg.noTarget}
+              siSegs={seg.siSegs}
+              siTarget={seg.siTarget}
+              tipo={seg.tipo}
+              valorEsperado={seg.valorEsperado}
               onNavigate={onNavigate}
             />
           );
         if (seg.type === "flag-set")
           return (
             <FlagSetBlock key={i} flagId={seg.flagId} valor={seg.valor} />
-          );
-        if (seg.type === "flag-if")
-          return (
-            <FlagIfBlock
-              key={i}
-              flagId={seg.flagId}
-              noSegs={seg.noSegs}
-              noTarget={seg.noTarget}
-              siSegs={seg.siSegs}
-              siTarget={seg.siTarget}
-              valorEsperado={seg.valorEsperado}
-              onNavigate={onNavigate}
-            />
           );
 
         return null;

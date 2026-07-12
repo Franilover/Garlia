@@ -69,35 +69,32 @@ export type Segment =
     }
   | { type: "section"; id: string; label?: string }
   | {
-      type: "gate";
-      itemId: string;
-      tieneSegs: Segment[];
-      noTieneSegs: Segment[];
-      /** id de sección destino si TIENE el ítem — opcional. Si está presente,
-       *  el lector navega a esa sección en vez de (o después de) renderizar
-       *  tieneSegs inline. Mismo formato de sufijo "-> id" que usa el editor. */
-      tieneTarget?: string;
-      /** id de sección destino si NO TIENE el ítem — opcional. */
-      noTieneTarget?: string;
+      type: "condicion";
+      /** "item" = ¿el lector tiene este ítem? (antes "gate").
+       *  "flag" = ¿el flag guardado === valorEsperado? (antes "flag-if"). */
+      tipo: "item" | "flag";
+      /** itemId (tipo "item") o flagId (tipo "flag"). */
+      clave: string;
+      /** Solo para tipo "flag": valor esperado contra el que se compara. */
+      valorEsperado?: string;
+      /** Segmentos de la rama "sí" (tiene el ítem / flag coincide). */
+      siSegs: Segment[];
+      /** id de sección destino si la rama "sí" — opcional. Si está
+       *  presente, el lector navega a esa sección en vez de (o después de)
+       *  renderizar siSegs inline. Mismo formato de sufijo "-> id" que usa
+       *  el editor. */
+      siTarget?: string;
+      /** Segmentos de la rama "no" (no tiene el ítem / flag no coincide,
+       *  incluye "nunca se seteó" para el caso flag). */
+      noSegs: Segment[];
+      /** id de sección destino si la rama "no" — opcional. */
+      noTarget?: string;
     }
   | {
       type: "flag-set";
       flagId: string;
       /** Valor a guardar. Booleano "true"/"false" o texto libre (ej: "hostil"). */
       valor: string;
-    }
-  | {
-      type: "flag-if";
-      flagId: string;
-      /** Valor esperado contra el que se compara el flag guardado. */
-      valorEsperado: string;
-      /** Segmentos/target si el flag guardado === valorEsperado. */
-      siSegs: Segment[];
-      siTarget?: string;
-      /** Segmentos/target si el flag guardado !== valorEsperado (incluye
-       *  "nunca se seteó" — se trata como no-match). */
-      noSegs: Segment[];
-      noTarget?: string;
     };
 
 export type SectionMap = Record<string, Segment[]>;
@@ -121,139 +118,121 @@ export function parseSections(segs: Segment[]): SectionMap {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// extractGateBlocks — pre-extrae bloques [[gate|...]] multilinea
+// extractCondicionBlocks — pre-extrae bloques [[condicion|...]] multilinea
+// (fusión de gate + flag-if). También reconoce, para retrocompatibilidad
+// con contenido guardado antes de la fusión, los formatos legacy
+// [[gate|itemId|...]] y [[flag|if|flagId|valorEsperado|...]].
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Formato:
-//   [[gate|itemId|
+// Formato nuevo:
+//   [[condicion|item|itemId||
 //   Texto si TIENE el ítem. Puede tener **markdown**, [[choice|...]] etc.
+//   -> seccion-si (opcional)
 //   ===
 //   Texto si NO tiene el ítem.
+//   -> seccion-no (opcional)
+//   ]]
+//
+//   [[condicion|flag|flagId|valorEsperado|
+//   Texto si el flag guardado === valorEsperado.
+//   ===
+//   Texto si NO coincide (incluye "nunca se seteó").
 //   ]]
 
-// Misma regex que TARGET_LINE (definida más abajo, usada por el parser del
-// editor) — debe mantenerse idéntica, porque acá parseamos el mismo formato
-// de sufijo "-> id" directamente desde el markdown crudo del capítulo.
-const GATE_TARGET_LINE = /(?:^|\n)\s*->\s*([a-z0-9-]+)\s*$/i;
+// Misma regex que TARGET_LINE (definida en CondicionNode.tsx, usada por el
+// parser del editor) — debe mantenerse idéntica, porque acá parseamos el
+// mismo formato de sufijo "-> id" directamente desde el markdown crudo.
+const CONDICION_TARGET_LINE = /(?:^|\n)\s*->\s*([a-z0-9-]+)\s*$/i;
 
-function splitGateTargetSuffix(branchText: string): {
+function splitCondicionTargetSuffix(branchText: string): {
   text: string;
   target?: string;
 } {
-  const m = GATE_TARGET_LINE.exec(branchText);
+  const m = CONDICION_TARGET_LINE.exec(branchText);
   if (!m) return { text: branchText.trim() };
   return { text: branchText.slice(0, m.index).trim(), target: m[1].trim() };
 }
 
-function extractGateBlocks(texto: string): {
-  resultado: string;
-  gates: Map<
-    string,
-    {
-      tieneTexto: string;
-      noTieneTexto: string;
-      itemId: string;
-      tieneTarget?: string;
-      noTieneTarget?: string;
-    }
-  >;
+interface CondicionBlock {
+  tipo: "item" | "flag";
+  clave: string;
+  valorEsperado?: string;
+  siTexto: string;
+  noTexto: string;
+  siTarget?: string;
+  noTarget?: string;
+}
+
+function splitCondicionBranches(contenido: string): {
+  si: { text: string; target?: string };
+  no: { text: string; target?: string };
 } {
-  const gates = new Map<
-    string,
-    {
-      tieneTexto: string;
-      noTieneTexto: string;
-      itemId: string;
-      tieneTarget?: string;
-      noTieneTarget?: string;
-    }
-  >();
-  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
+  const separatorIdx = contenido.indexOf("===");
+  const siRaw = separatorIdx >= 0 ? contenido.slice(0, separatorIdx) : contenido;
+  const noRaw = separatorIdx >= 0 ? contenido.slice(separatorIdx + 3) : "";
+  return {
+    si: splitCondicionTargetSuffix(siRaw),
+    no: splitCondicionTargetSuffix(noRaw),
+  };
+}
+
+function extractCondicionBlocks(texto: string): {
+  resultado: string;
+  condiciones: Map<string, CondicionBlock>;
+} {
+  const condiciones = new Map<string, CondicionBlock>();
   let counter = 0;
 
-  const resultado = texto.replace(gateRegex, (_, itemId, contenido) => {
-    const separatorIdx = contenido.indexOf("===");
-    const tieneRaw =
-      separatorIdx >= 0 ? contenido.slice(0, separatorIdx) : contenido;
-    const noTieneRaw =
-      separatorIdx >= 0 ? contenido.slice(separatorIdx + 3) : "";
-    const tiene = splitGateTargetSuffix(tieneRaw);
-    const noTiene = splitGateTargetSuffix(noTieneRaw);
-    const placeholder = `\x00GATE_${counter}\x00`;
-    gates.set(placeholder, {
-      itemId: itemId.trim(),
-      tieneTexto: tiene.text,
-      noTieneTexto: noTiene.text,
-      tieneTarget: tiene.target,
-      noTieneTarget: noTiene.target,
+  const condicionRegex =
+    /\[\[condicion\|(item|flag)\|([^\|]+)\|([^\|]*)\|([\s\S]+?)\]\]/g;
+  let resultado = texto.replace(
+    condicionRegex,
+    (_, tipo, clave, valorEsperado, contenido) => {
+      const { si, no } = splitCondicionBranches(contenido);
+      const placeholder = `\x00CONDICION_${counter}\x00`;
+      condiciones.set(placeholder, {
+        tipo: tipo as "item" | "flag",
+        clave: clave.trim(),
+        valorEsperado: tipo === "flag" ? valorEsperado.trim() : undefined,
+        siTexto: si.text,
+        noTexto: no.text,
+        siTarget: si.target,
+        noTarget: no.target,
+      });
+      counter++;
+      return placeholder;
+    },
+  );
+
+  // Legacy: [[gate|itemId|...===...]]
+  const gateRegex = /\[\[gate\|([^\|]+)\|([\s\S]+?)\]\]/g;
+  resultado = resultado.replace(gateRegex, (_, itemId, contenido) => {
+    const { si, no } = splitCondicionBranches(contenido);
+    const placeholder = `\x00CONDICION_${counter}\x00`;
+    condiciones.set(placeholder, {
+      tipo: "item",
+      clave: itemId.trim(),
+      siTexto: si.text,
+      noTexto: no.text,
+      siTarget: si.target,
+      noTarget: no.target,
     });
     counter++;
     return placeholder;
   });
 
-  return { resultado, gates };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// extractFlagIfBlocks — pre-extrae bloques [[flag|if|...]] multilinea
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Formato:
-//   [[flag|if|flagId|valorEsperado|
-//   Texto si el flag guardado === valorEsperado.
-//   -> seccion-si (opcional)
-//   ===
-//   Texto si NO coincide (incluye "nunca se seteó").
-//   -> seccion-no (opcional)
-//   ]]
-//
-// [[flag|set|flagId|valor]] es single-line y se resuelve más abajo en
-// parseContenido junto a los demás snippets de una línea — no necesita
-// pre-extracción porque no tiene cuerpo multilinea con "===".
-
-function extractFlagIfBlocks(texto: string): {
-  resultado: string;
-  flagIfs: Map<
-    string,
-    {
-      flagId: string;
-      valorEsperado: string;
-      siTexto: string;
-      noTexto: string;
-      siTarget?: string;
-      noTarget?: string;
-    }
-  >;
-} {
-  const flagIfs = new Map<
-    string,
-    {
-      flagId: string;
-      valorEsperado: string;
-      siTexto: string;
-      noTexto: string;
-      siTarget?: string;
-      noTarget?: string;
-    }
-  >();
+  // Legacy: [[flag|if|flagId|valorEsperado|...===...]]
   // "if" en el separador de kind|op distingue este bloque multilinea de
   // [[flag|set|...]], que es single-line y no debe caer en esta regex.
   const flagIfRegex = /\[\[flag\|if\|([^\|]+)\|([^\|]*)\|([\s\S]+?)\]\]/g;
-  let counter = 0;
-
-  const resultado = texto.replace(
+  resultado = resultado.replace(
     flagIfRegex,
     (_, flagId, valorEsperado, contenido) => {
-      const separatorIdx = contenido.indexOf("===");
-      const siRaw =
-        separatorIdx >= 0 ? contenido.slice(0, separatorIdx) : contenido;
-      const noRaw =
-        separatorIdx >= 0 ? contenido.slice(separatorIdx + 3) : "";
-      const si = splitGateTargetSuffix(siRaw);
-      const no = splitGateTargetSuffix(noRaw);
-      const placeholder = `\x00FLAGIF_${counter}\x00`;
-      flagIfs.set(placeholder, {
-        flagId: flagId.trim(),
+      const { si, no } = splitCondicionBranches(contenido);
+      const placeholder = `\x00CONDICION_${counter}\x00`;
+      condiciones.set(placeholder, {
+        tipo: "flag",
+        clave: flagId.trim(),
         valorEsperado: valorEsperado.trim(),
         siTexto: si.text,
         noTexto: no.text,
@@ -265,7 +244,7 @@ function extractFlagIfBlocks(texto: string): {
     },
   );
 
-  return { resultado, flagIfs };
+  return { resultado, condiciones };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -273,11 +252,9 @@ function extractFlagIfBlocks(texto: string): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function parseContenido(texto: string): Segment[] {
-  const { resultado: sinGates, gates } = extractGateBlocks(texto);
-  const { resultado, flagIfs } = extractFlagIfBlocks(sinGates);
+  const { resultado, condiciones } = extractCondicionBlocks(texto);
 
-  const regex =
-    /\[\[(\w+)\|([\s\S]+?)\]\]|\x00GATE_\d+\x00|\x00FLAGIF_\d+\x00/g;
+  const regex = /\[\[(\w+)\|([\s\S]+?)\]\]|\x00CONDICION_\d+\x00/g;
   const segs: Segment[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -292,33 +269,18 @@ export function parseContenido(texto: string): Segment[] {
 
     const raw = match[0];
 
-    if (raw.startsWith("\x00GATE_")) {
-      const gate = gates.get(raw);
-      if (gate) {
+    if (raw.startsWith("\x00CONDICION_")) {
+      const condicion = condiciones.get(raw);
+      if (condicion) {
         segs.push({
-          type: "gate",
-          itemId: gate.itemId,
-          tieneSegs: parseContenido(gate.tieneTexto),
-          noTieneSegs: parseContenido(gate.noTieneTexto),
-          tieneTarget: gate.tieneTarget,
-          noTieneTarget: gate.noTieneTarget,
-        });
-      }
-      lastIndex = match.index + raw.length;
-      continue;
-    }
-
-    if (raw.startsWith("\x00FLAGIF_")) {
-      const flagIf = flagIfs.get(raw);
-      if (flagIf) {
-        segs.push({
-          type: "flag-if",
-          flagId: flagIf.flagId,
-          valorEsperado: flagIf.valorEsperado,
-          siSegs: parseContenido(flagIf.siTexto),
-          noSegs: parseContenido(flagIf.noTexto),
-          siTarget: flagIf.siTarget,
-          noTarget: flagIf.noTarget,
+          type: "condicion",
+          tipo: condicion.tipo,
+          clave: condicion.clave,
+          valorEsperado: condicion.valorEsperado,
+          siSegs: parseContenido(condicion.siTexto),
+          noSegs: parseContenido(condicion.noTexto),
+          siTarget: condicion.siTarget,
+          noTarget: condicion.noTarget,
         });
       }
       lastIndex = match.index + raw.length;
@@ -404,25 +366,18 @@ export type ParsedSnippet =
       sectionFail: string;
     }
   | {
-      kind: "gate";
-      itemId: string;
-      tieneTexto: string;
-      noTieneTexto: string;
-      tieneTarget?: string;
-      noTieneTarget?: string;
-    }
-  | { kind: "section"; id: string; label: string }
-  | { kind: "sound"; src: string; label: string }
-  | { kind: "flag-set"; flagId: string; valor: string }
-  | {
-      kind: "flag-if";
-      flagId: string;
-      valorEsperado: string;
+      kind: "condicion";
+      tipo: "item" | "flag";
+      clave: string;
+      valorEsperado?: string;
       siTexto: string;
       noTexto: string;
       siTarget?: string;
       noTarget?: string;
     }
+  | { kind: "section"; id: string; label: string }
+  | { kind: "sound"; src: string; label: string }
+  | { kind: "flag-set"; flagId: string; valor: string }
   | { kind: "unknown"; parts: string[] };
 
 export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
@@ -469,13 +424,61 @@ export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
         sectionOk: parts[3] ?? "",
         sectionFail: parts[4] ?? "",
       };
+    case "condicion": {
+      // El split naive por "|" no sirve acá: el cuerpo usa "===" como
+      // separador entre ramas y puede contener texto libre. Re-derivamos
+      // del raw completo, igual que condicionRawToPayload en CondicionNode.tsx.
+      const cm =
+        /^\[\[condicion\|(item|flag)\|([^\|]+)\|([^\|]*)\|([\s\S]*)\]\]$/.exec(
+          raw,
+        );
+      if (!cm)
+        return {
+          kind: "condicion",
+          tipo: "item",
+          clave: "",
+          siTexto: "",
+          noTexto: "",
+        };
+      const tipo = cm[1] as "item" | "flag";
+      const clave = cm[2].trim();
+      const valorEsperado = cm[3].trim();
+      const contenido = cm[4];
+      const sepIdx = contenido.indexOf("===");
+      const siRaw = sepIdx >= 0 ? contenido.slice(0, sepIdx) : contenido;
+      const noRaw = sepIdx >= 0 ? contenido.slice(sepIdx + 3) : "";
+      const targetLine = /(?:^|\n)\s*->\s*([a-z0-9-]+)\s*$/i;
+      const splitTarget = (branch: string) => {
+        const tm = targetLine.exec(branch);
+        if (!tm) return { text: branch.trim(), target: undefined as string | undefined };
+        return { text: branch.slice(0, tm.index).trim(), target: tm[1].trim() };
+      };
+      const si = splitTarget(siRaw);
+      const no = splitTarget(noRaw);
+      return {
+        kind: "condicion",
+        tipo,
+        clave,
+        valorEsperado: tipo === "flag" ? valorEsperado : undefined,
+        siTexto: si.text,
+        noTexto: no.text,
+        siTarget: si.target,
+        noTarget: no.target,
+      };
+    }
+    // "gate" queda como retrocompatibilidad: contenido guardado antes de
+    // la fusión que todavía no se migró a "condicion" al guardar de nuevo.
     case "gate": {
-      // El split naive por "|" no sirve acá: el cuerpo del gate usa "===" como
-      // separador entre ramas y puede contener texto libre. Re-derivamos del
-      // raw completo, igual que gateRawToPayload en GateNode.tsx.
       const gm = /^\[\[gate\|([^\|]+)\|([\s\S]*)\]\]$/.exec(raw);
-      if (!gm) return { kind: "gate", itemId: "", tieneTexto: "", noTieneTexto: "" };
-      const itemId = gm[1].trim();
+      if (!gm)
+        return {
+          kind: "condicion",
+          tipo: "item",
+          clave: "",
+          siTexto: "",
+          noTexto: "",
+        };
+      const clave = gm[1].trim();
       const contenido = gm[2];
       const sepIdx = contenido.indexOf("===");
       const tieneRaw = sepIdx >= 0 ? contenido.slice(0, sepIdx) : contenido;
@@ -489,12 +492,13 @@ export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
       const tiene = splitTarget(tieneRaw);
       const noTiene = splitTarget(noTieneRaw);
       return {
-        kind: "gate",
-        itemId,
-        tieneTexto: tiene.text,
-        noTieneTexto: noTiene.text,
-        tieneTarget: tiene.target,
-        noTieneTarget: noTiene.target,
+        kind: "condicion",
+        tipo: "item",
+        clave,
+        siTexto: tiene.text,
+        noTexto: noTiene.text,
+        siTarget: tiene.target,
+        noTarget: noTiene.target,
       };
     }
     case "section":
@@ -510,20 +514,21 @@ export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
           valor: parts[3] ?? "",
         };
       }
-      // [[flag|if|flagId|valorEsperado|\nsiTexto\n===\nnoTexto\n]] — igual
-      // que gate, el cuerpo puede tener "|" y "===" libres, así que
-      // re-derivamos del raw completo en vez de confiar en el split naive.
+      // Legacy: [[flag|if|flagId|valorEsperado|\nsiTexto\n===\nnoTexto\n]]
+      // migra a "condicion" — el cuerpo puede tener "|" y "===" libres, así
+      // que re-derivamos del raw completo en vez de confiar en el split naive.
       const fm =
         /^\[\[flag\|if\|([^\|]+)\|([^\|]*)\|([\s\S]*)\]\]$/.exec(raw);
       if (!fm)
         return {
-          kind: "flag-if",
-          flagId: "",
+          kind: "condicion",
+          tipo: "flag",
+          clave: "",
           valorEsperado: "",
           siTexto: "",
           noTexto: "",
         };
-      const flagId = fm[1].trim();
+      const clave = fm[1].trim();
       const valorEsperado = fm[2].trim();
       const contenido = fm[3];
       const sepIdx = contenido.indexOf("===");
@@ -539,8 +544,9 @@ export function parseSnippetRaw(raw: string | undefined): ParsedSnippet | null {
       const si = splitTarget(siRaw);
       const no = splitTarget(noRaw);
       return {
-        kind: "flag-if",
-        flagId,
+        kind: "condicion",
+        tipo: "flag",
+        clave,
         valorEsperado,
         siTexto: si.text,
         noTexto: no.text,

@@ -42,7 +42,7 @@ import { RichEditor ,
   imgPayloadToRaw,
   choicePayloadToRaw,
   parseUsePayloadToRaw,
-  gatePayloadToRaw,
+  condicionPayloadToRaw,
   sectionPayloadToRaw,
 } from "@/components/forms/lexical-editor";
 import type {
@@ -583,8 +583,8 @@ const PanelEditor = ({
           return choicePayloadToRaw(payload);
         case "use":
           return parseUsePayloadToRaw(payload);
-        case "gate":
-          return gatePayloadToRaw(payload);
+        case "condicion":
+          return condicionPayloadToRaw(payload);
         case "section":
           return sectionPayloadToRaw(payload);
         default:
