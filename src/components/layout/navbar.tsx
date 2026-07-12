@@ -11,6 +11,7 @@ import {
   Palette,
   Compass,
   BookText,
+  BookOpen,
   Music,
   ChevronRight,
   Cat,
@@ -544,6 +545,12 @@ const Navbar = () => {
       label: "Mapa",
       icon: Compass,
       active: currentPath?.startsWith("/garlia/mapa") ?? false,
+    },
+    {
+      href: "/garlia/aventura",
+      label: "Aventura",
+      icon: BookOpen,
+      active: currentPath?.startsWith("/garlia/aventura") ?? false,
     },
     {
       href: "/garlia/libros",

@@ -10,7 +10,7 @@
  * en /garlia/aventura para los jugadores.
  */
 
-import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2, Search, Sparkles, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import {
@@ -36,17 +36,17 @@ type FiltroTipo = "todos" | TipoEntidadPublicable;
 export function PublicacionSection() {
   const { todas, loading, togglePublicado } = usePublicacionEntidades();
   const [filtro, setFiltro] = useState<FiltroTipo>("todos");
+  const [busqueda, setBusqueda] = useState("");
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
 
   const totalPublicadas = useMemo(() => todas.filter((e) => e.publicado).length, [todas]);
 
-  const visibles = useMemo(
-    () =>
-      (filtro === "todos" ? todas : todas.filter((e) => e.tabla === filtro)).sort((a, b) =>
-        a.nombre.localeCompare(b.nombre),
-      ),
-    [todas, filtro],
-  );
+  const visibles = useMemo(() => {
+    const base = filtro === "todos" ? todas : todas.filter((e) => e.tabla === filtro);
+    const q = busqueda.trim().toLowerCase();
+    const filtradas = q ? base.filter((e) => e.nombre.toLowerCase().includes(q)) : base;
+    return filtradas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [todas, filtro, busqueda]);
 
   const handleToggle = async (entidad: EntidadPublicable) => {
     const key = `${entidad.tabla}:${entidad.id}`;
@@ -76,6 +76,32 @@ export function PublicacionSection() {
         <div className="flex-1" />
       </div>
 
+      {/* ── Búsqueda ─────────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 py-2.5 border-b border-primary/10">
+        <div
+          className="flex items-center gap-2 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors"
+          style={{ height: "34px" }}
+        >
+          <Search size={13} className="text-primary/35 shrink-0" />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre…"
+            className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+          />
+          {busqueda && (
+            <button
+              type="button"
+              onClick={() => setBusqueda("")}
+              className="shrink-0 p-0.5 rounded-full hover:bg-primary/10 transition-colors"
+            >
+              <X size={12} className="text-primary/40" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ── Filtros por tipo ─────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-1.5 px-4 py-2 border-b border-primary/10 overflow-x-auto">
         <FiltroChip active={filtro === "todos"} label="Todos" onClick={() => setFiltro("todos")} />
@@ -87,6 +113,12 @@ export function PublicacionSection() {
             onClick={() => setFiltro(t)}
           />
         ))}
+        <div className="flex-1" />
+        {busqueda && (
+          <span className="shrink-0 text-micro font-bold text-primary/35 whitespace-nowrap">
+            {visibles.length} resultado{visibles.length === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
 
       {/* ── Grid ─────────────────────────────────────────────────────── */}
@@ -97,7 +129,7 @@ export function PublicacionSection() {
           </div>
         ) : visibles.length === 0 ? (
           <div className="py-16 text-center text-xs text-primary/30">
-            No hay entidades de este tipo todavía.
+            {busqueda ? `Sin resultados para "${busqueda}".` : "No hay entidades de este tipo todavía."}
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
