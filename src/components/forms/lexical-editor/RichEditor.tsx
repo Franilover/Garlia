@@ -95,6 +95,16 @@ export interface RichEditorProps {
   placeholder?: string;
   minHeight?: number | string;
   maxHeight?: number | string;
+  /**
+   * Si se pasa `mode` SIN `onModeChange`, el toggle interno de RichEditor
+   * (Editar/Split/Preview) NO se renderiza — el padre controla el modo
+   * por su cuenta (ej. EditorCapitulos usa el botón "Modo foco" para
+   * alternar edit/split) y sin esto el toggle quedaba montado pero sin
+   * efecto real: clickearlo solo actualizaba un estado interno invisible,
+   * porque `mode` (prop) siempre ganaba sobre el estado interno.
+   * Si además pasás `onModeChange`, el toggle sí se muestra y queda
+   * sincronizado con tu estado externo (ver EditorEnsayo.tsx).
+   */
   mode?: ViewMode;
   onModeChange?: (mode: ViewMode) => void;
   autoFocus?: boolean;
@@ -757,7 +767,7 @@ export function RichEditor({
             onClose={() => setTocOpen(false)}
             onToggle={() => setTocOpen((o) => !o)}
           />
-          {showSplitMode && (
+          {showSplitMode && (modeProp === undefined || onModeChange) && (
             <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} />
           )}
         </div>
