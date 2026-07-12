@@ -150,12 +150,13 @@ export interface RichEditorProps {
    */
   onWikilinkNavigate?: (target: string) => void;
   /**
-   * false oculta el modo "Split" del toggle — pensado para editores de
-   * notas/ensayos donde el markdown ya se ve formateado en modo edición
-   * (bold, listas, headers reales, no texto crudo con asteriscos), así
-   * que Split no aporta nada distinto de Edit. Default true porque
-   * EditorCapitulos (con ContenidoInteractivo) sí lo necesita: preview
-   * ahí resuelve drop/choice/gate, visualmente muy distinto del raw.
+   * false oculta TODO el toggle de modo (Editar/Split/Vista previa) —
+   * pensado para editores de notas/ensayos donde el markdown ya se ve
+   * formateado en modo edición (bold, listas, headers reales, no texto
+   * crudo con asteriscos), así que ni Split ni Preview aportan nada
+   * distinto de Edit. Default true porque EditorCapitulos (con
+   * ContenidoInteractivo) sí lo necesita: preview ahí resuelve
+   * drop/choice/gate, visualmente muy distinto del raw.
    */
   showSplitMode?: boolean;
   /**
@@ -334,27 +335,13 @@ function InsertTablePlugin({
 function ModeTogglePlugin({
   mode,
   onModeChange,
-  showSplitMode = true,
 }: {
   mode: ViewMode;
   onModeChange: (m: ViewMode) => void;
-  /**
-   * false oculta el botón "Split" — pensado para editores que NO usan
-   * ContenidoInteractivo en su renderPreview (notas/ensayos), donde el
-   * markdown ya se ve formateado directamente en modo edición (bold,
-   * listas, headers) gracias a $convertFromMarkdownString. Ahí Split
-   * no aporta nada distinto de Edit, así que solo confunde. El libro
-   * SÍ lo necesita: preview ahí resuelve drop/choice/gate interactivos,
-   * que son visualmente muy distintos del raw "[[drop|...]]" en modo
-   * edición.
-   */
-  showSplitMode?: boolean;
 }) {
   const items: { m: ViewMode; Icon: typeof Edit3; title: string }[] = [
     { m: "edit", Icon: Edit3, title: "Editar" },
-    ...(showSplitMode
-      ? [{ m: "split" as ViewMode, Icon: Columns2, title: "Split" }]
-      : []),
+    { m: "split", Icon: Columns2, title: "Split" },
     { m: "preview", Icon: Eye, title: "Vista previa" },
   ];
 
@@ -770,11 +757,9 @@ export function RichEditor({
             onClose={() => setTocOpen(false)}
             onToggle={() => setTocOpen((o) => !o)}
           />
-          <ModeTogglePlugin
-            mode={mode}
-            showSplitMode={showSplitMode}
-            onModeChange={handleModeChange}
-          />
+          {showSplitMode && (
+            <ModeTogglePlugin mode={mode} onModeChange={handleModeChange} />
+          )}
         </div>
 
         <div
