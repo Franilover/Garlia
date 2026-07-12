@@ -12,11 +12,11 @@ import type {
   SerializedLexicalNode,
   Spread,
 } from "lexical";
-import { $getNodeByKey, DecoratorNode } from "lexical";
+import { $getNodeByKey, $getRoot, DecoratorNode } from "lexical";
 import React from "react";
 import { Bookmark } from "lucide-react";
 
-import { snippetEditHandler } from "./sharedTypes";
+import { snippetEditHandler, useKnownSectionIdsVersion } from "./sharedTypes";
 import { SnippetChip } from "./SnippetChip";
 
 export interface SectionPayload {
@@ -38,10 +38,41 @@ function SectionChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
+  useKnownSectionIdsVersion();
+  const [refCount, setRefCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    editor.getEditorState().read(() => {
+      let count = 0;
+      const rootNode = $getRoot();
+      const visit = (node: any) => {
+        const type = node.getType?.();
+        if (type === "choice-snippet") {
+          const p = node.getPayload?.();
+          if (p?.target === payload.id) count++;
+        } else if (type === "use-snippet") {
+          const p = node.getPayload?.();
+          if (p?.sectionOk === payload.id || p?.sectionFail === payload.id) count++;
+        } else if (type === "condicion-snippet") {
+          const p = node.getPayload?.();
+          if (p?.siTarget === payload.id || p?.noTarget === payload.id) count++;
+        }
+        const children = node.getChildren?.();
+        if (children) children.forEach(visit);
+      };
+      visit(rootNode);
+      setRefCount(count);
+    });
+  });
+
   return (
     <SnippetChip
       icon={<Bookmark size={10} />}
-      text={payload.label ?? payload.id}
+      text={
+        refCount !== null
+          ? `${payload.label ?? payload.id} · ${refCount} ref${refCount === 1 ? "" : "s"}`
+          : (payload.label ?? payload.id)
+      }
       title={`Sección — id: ${payload.id}`}
       onClick={() =>
         snippetEditHandler.current?.({

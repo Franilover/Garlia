@@ -13,6 +13,7 @@
  * Esto permite que el editor principal (RichEditor.tsx) y el serializador
  * (richTextSerializer.ts) traten a todos los tipos de forma genérica.
  */
+import React from "react";
 
 export type SnippetKind =
   | "drop"
@@ -43,6 +44,48 @@ export type SnippetEditHandler = (req: SnippetEditRequest<any>) => void;
 export const snippetEditHandler: { current: SnippetEditHandler | null } = {
   current: null,
 };
+
+/**
+ * Registro global del set de ids de sección presentes en el documento.
+ * Se actualiza desde RichEditor.tsx en cada registerUpdateListener, y lo
+ * leen los chips de choice/condicion/use para pintar el punto de estado
+ * (destino válido / destino roto) sin tener que recorrer el árbol ellos
+ * mismos en cada render.
+ */
+export const knownSectionIds: { current: Set<string>; listeners: Set<() => void> } = {
+  current: new Set(),
+  listeners: new Set(),
+};
+
+export function setKnownSectionIds(ids: Set<string>): void {
+  knownSectionIds.current = ids;
+  knownSectionIds.listeners.forEach((fn) => fn());
+}
+
+/** true/false si hay info suficiente, undefined si aún no se conoce el grafo. */
+export function isSectionTargetValid(id: string | undefined): boolean | undefined {
+  if (!id) return undefined;
+  if (knownSectionIds.current.size === 0) return undefined;
+  return knownSectionIds.current.has(id);
+}
+
+/** Registro global: crea una sección faltante con el id dado, al final del documento. */
+export const createMissingSectionHandler: { current: ((id: string) => void) | null } = {
+  current: null,
+};
+
+/** Hook: suscribe un componente a cambios en knownSectionIds (fuerza re-render). */
+export function useKnownSectionIdsVersion(): number {
+  const [version, setVersion] = React.useState(0);
+  React.useEffect(() => {
+    const fn = () => setVersion((v) => v + 1);
+    knownSectionIds.listeners.add(fn);
+    return () => {
+      knownSectionIds.listeners.delete(fn);
+    };
+  }, []);
+  return version;
+}
 
 /** Parsea las partes de un raw "[[kind|a|b|c]]", sin el kind. */
 export function splitSnippetParts(raw: string): string[] {

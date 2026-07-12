@@ -36,6 +36,7 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { $getRoot } from "lexical";
 import type { EditorState, LexicalEditor } from "lexical";
 import { Edit3, Eye, Columns2 } from "lucide-react";
 import React, {
@@ -64,9 +65,11 @@ import { DropNode } from "./nodes/DropNode";
 import { FlagNode } from "./nodes/FlagNode";
 import { CondicionNode } from "./nodes/CondicionNode";
 import { ImgNode } from "./nodes/ImgNode";
-import { SectionNode } from "./nodes/SectionNode";
+import { SectionNode, $createSectionNode } from "./nodes/SectionNode";
 import {
   snippetEditHandler,
+  setKnownSectionIds,
+  createMissingSectionHandler,
   type SnippetEditRequest,
 } from "./nodes/sharedTypes";
 import { SoundNode } from "./nodes/SoundNode";
@@ -306,6 +309,53 @@ function InsertSnippetPlugin({
       editor.update(() => insertSnippetNode(raw));
     };
   }, [editor, insertRef, slashRemoveRef]);
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Plugin: mantiene knownSectionIds sincronizado con las SectionNode reales
+// del documento (para pintar destino válido/roto en choice/condicion/use),
+// y registra el handler que crea una SectionNode faltante al final del
+// documento cuando el autor hace click en "Crear sección faltante".
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SectionGraphPlugin() {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    const syncSectionIds = () => {
+      editor.getEditorState().read(() => {
+        const ids = new Set<string>();
+        const root = $getRoot();
+        const visit = (node: any) => {
+          if (node.getType?.() === "section-snippet") {
+            const p = node.getPayload?.();
+            if (p?.id) ids.add(p.id);
+          }
+          const children = node.getChildren?.();
+          if (children) children.forEach(visit);
+        };
+        visit(root);
+        setKnownSectionIds(ids);
+      });
+    };
+
+    syncSectionIds();
+    return editor.registerUpdateListener(() => syncSectionIds());
+  }, [editor]);
+
+  useEffect(() => {
+    createMissingSectionHandler.current = (id: string) => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.append($createSectionNode({ id, label: id }));
+      });
+    };
+    return () => {
+      createMissingSectionHandler.current = null;
+    };
+  }, [editor]);
 
   return null;
 }
@@ -828,6 +878,7 @@ export function RichEditor({
                 slashRemoveRef={slashRemoveRef}
               />
               <MarkdownCommandInsertPlugin insertRef={mdInsertRef} />
+              <SectionGraphPlugin />
               <EditablePlugin editable={editable} />
               <SlashCommandPlugin
                 isMenuOpen={mdPalette.open}

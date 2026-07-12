@@ -29,8 +29,13 @@ import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 import { GitBranch } from "lucide-react";
 
-import { snippetEditHandler } from "./sharedTypes";
-import { SnippetChip } from "./SnippetChip";
+import {
+  snippetEditHandler,
+  createMissingSectionHandler,
+  isSectionTargetValid,
+  useKnownSectionIdsVersion,
+} from "./sharedTypes";
+import { SnippetBlockChip } from "./SnippetBlockChip";
 
 export type CondicionTipo = "item" | "flag";
 
@@ -65,34 +70,33 @@ function CondicionChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
-  const condicionChipText = (() => {
-    const base =
-      payload.tipo === "item"
-        ? `Condición: ${payload.clave.slice(0, 8)}…`
-        : `Condición: ${payload.clave}=${payload.valorEsperado || "?"}`;
-    if (!payload.siTarget && !payload.noTarget) return base;
-    const partes = [
-      payload.siTarget ? `✓${payload.siTarget}` : null,
-      payload.noTarget ? `✗${payload.noTarget}` : null,
-    ].filter(Boolean);
-    return `${base} → ${partes.join(" ")}`;
-  })();
+  useKnownSectionIdsVersion();
 
-  const title =
+  const titulo =
     payload.tipo === "item"
-      ? payload.siTarget || payload.noTarget
-        ? `Condición — ítem: ${payload.clave} · tiene→${payload.siTarget || "—"} · no→${payload.noTarget || "—"}`
-        : `Condición — ítem: ${payload.clave} — sin destinos, ambas ramas quedan inline`
-      : payload.siTarget || payload.noTarget
-        ? `Condición — si ${payload.clave}=${payload.valorEsperado} → ${payload.siTarget || "—"} · si no → ${payload.noTarget || "—"}`
-        : `Condición — si ${payload.clave}=${payload.valorEsperado} — sin destinos, ambas ramas quedan inline`;
+      ? `condición — ítem: ${payload.clave.slice(0, 24)}`
+      : `condición — ${payload.clave} = ${payload.valorEsperado || "?"}`;
+
+  const branches = [
+    {
+      label: "si",
+      target: payload.siTarget || undefined,
+      targetValid: payload.siTarget ? isSectionTargetValid(payload.siTarget) : undefined,
+      detail: payload.siTexto || undefined,
+    },
+    {
+      label: "si no",
+      target: payload.noTarget || undefined,
+      targetValid: payload.noTarget ? isSectionTargetValid(payload.noTarget) : undefined,
+      detail: payload.noTexto || undefined,
+    },
+  ];
 
   return (
-    <SnippetChip
-      icon={<GitBranch size={10} />}
-      maxTextWidth={220}
-      text={condicionChipText}
-      title={title}
+    <SnippetBlockChip
+      icon={<GitBranch size={14} />}
+      title={titulo}
+      branches={branches}
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "condicion",
@@ -116,6 +120,9 @@ function CondicionChipView({
           if ($isCondicionNode(node)) node.remove();
         })
       }
+      onCreateMissingSection={(b) => {
+        if (b.target) createMissingSectionHandler.current?.(b.target);
+      }}
     />
   );
 }

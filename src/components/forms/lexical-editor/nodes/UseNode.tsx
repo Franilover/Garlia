@@ -15,8 +15,13 @@ import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 import { MousePointerClick } from "lucide-react";
 
-import { snippetEditHandler } from "./sharedTypes";
-import { SnippetChip } from "./SnippetChip";
+import {
+  snippetEditHandler,
+  createMissingSectionHandler,
+  isSectionTargetValid,
+  useKnownSectionIdsVersion,
+} from "./sharedTypes";
+import { SnippetBlockChip } from "./SnippetBlockChip";
 
 export interface UsePayload {
   word: string;
@@ -39,26 +44,26 @@ function UseChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
-  const useChipText = (() => {
-    const partes = [
-      payload.sectionOk ? `✓${payload.sectionOk}` : null,
-      payload.sectionFail ? `✗${payload.sectionFail}` : null,
-    ].filter(Boolean);
-    return partes.length > 0
-      ? `${payload.word} → ${partes.join(" ")}`
-      : `${payload.word} → (sin destino)`;
-  })();
+  useKnownSectionIdsVersion();
+
+  const branches = [
+    {
+      label: "ok",
+      target: payload.sectionOk || undefined,
+      targetValid: payload.sectionOk ? isSectionTargetValid(payload.sectionOk) : undefined,
+    },
+    {
+      label: "fail",
+      target: payload.sectionFail || undefined,
+      targetValid: payload.sectionFail ? isSectionTargetValid(payload.sectionFail) : undefined,
+    },
+  ];
 
   return (
-    <SnippetChip
-      icon={<MousePointerClick size={10} />}
-      maxTextWidth={220}
-      text={useChipText}
-      title={
-        payload.sectionOk
-          ? `Usar ítem → ok:${payload.sectionOk}${payload.sectionFail ? ` · fail:${payload.sectionFail}` : ""}`
-          : "Usar ítem sin sección destino — no genera salto"
-      }
+    <SnippetBlockChip
+      icon={<MousePointerClick size={14} />}
+      title={`usar objeto — ${payload.word || payload.itemId}`}
+      branches={branches}
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "use",
@@ -82,6 +87,9 @@ function UseChipView({
           if ($isUseNode(node)) node.remove();
         })
       }
+      onCreateMissingSection={(b) => {
+        if (b.target) createMissingSectionHandler.current?.(b.target);
+      }}
     />
   );
 }

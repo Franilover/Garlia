@@ -15,8 +15,13 @@ import { $getNodeByKey, DecoratorNode } from "lexical";
 import React from "react";
 import { GitBranch } from "lucide-react";
 
-import { snippetEditHandler } from "./sharedTypes";
-import { SnippetChip } from "./SnippetChip";
+import {
+  snippetEditHandler,
+  createMissingSectionHandler,
+  isSectionTargetValid,
+  useKnownSectionIdsVersion,
+} from "./sharedTypes";
+import { SnippetBlockChip } from "./SnippetBlockChip";
 
 export interface ChoicePayload {
   label: string;
@@ -37,19 +42,20 @@ function ChoiceChipView({
   nodeKey: NodeKey;
   editor: LexicalEditor;
 }) {
+  useKnownSectionIdsVersion();
+  const targetValid = isSectionTargetValid(payload.target);
+
   return (
-    <SnippetChip
-      icon={<GitBranch size={10} />}
-      text={
-        payload.target
-          ? `${payload.label} → ${payload.target}`
-          : `${payload.label} → (sin destino)`
-      }
-      title={
-        payload.target
-          ? `Choice → ${payload.target}`
-          : "Choice sin sección destino — no genera salto"
-      }
+    <SnippetBlockChip
+      icon={<GitBranch size={14} />}
+      title={payload.label || "decisión"}
+      branches={[
+        {
+          label: payload.label || "(sin texto)",
+          target: payload.target || undefined,
+          targetValid: payload.target ? targetValid : undefined,
+        },
+      ]}
       onClick={() =>
         snippetEditHandler.current?.({
           kind: "choice",
@@ -73,6 +79,9 @@ function ChoiceChipView({
           if ($isChoiceNode(node)) node.remove();
         })
       }
+      onCreateMissingSection={(b) => {
+        if (b.target) createMissingSectionHandler.current?.(b.target);
+      }}
     />
   );
 }
