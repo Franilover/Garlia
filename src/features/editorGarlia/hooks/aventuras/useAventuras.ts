@@ -129,6 +129,21 @@ export function useAventurasList() {
 
 const NOMBRE_COL = "nombre";
 
+// No todas las tablas usan `imagen_url` como nombre de columna: reinos usa
+// `logo_url` y personajes usa `img_url`. Sin este mapeo, el select fallaba
+// con 400 (columna inexistente) al buscar/resolver esas dos tablas.
+const IMAGEN_COL: Record<TablaEntidad, string> = {
+  personajes: "img_url",
+  criaturas: "imagen_url",
+  items: "imagen_url",
+  reinos: "logo_url",
+  ciudades: "imagen_url",
+  hechizos: "imagen_url",
+  dones: "imagen_url",
+  runas: "imagen_url",
+  fichas_dnd: "imagen_url",
+};
+
 async function resolverEntidades(
   rows: AventuraEntidadRow[],
 ): Promise<AventuraEntidad[]> {
@@ -157,6 +172,7 @@ async function resolverEntidades(
     Array.from(porTabla.entries()).map(async ([tabla, ids]) => {
       const { data } = await supabase.from(tabla).select("*").in("id", ids);
       const especies = tabla === "fichas_dnd" ? await getNombresEspecies() : null;
+      const imgCol = IMAGEN_COL[tabla];
       (data ?? []).forEach((row: any) => {
         const descripcionBase =
           tabla === "fichas_dnd"
@@ -170,7 +186,7 @@ async function resolverEntidades(
             : row.descripcion ?? row.explicacion ?? null;
         datosPorTablaId.set(`${tabla}:${row.id}`, {
           nombre: row[NOMBRE_COL] ?? "Sin nombre",
-          imagen_url: row.imagen_url ?? null,
+          imagen_url: row[imgCol] ?? null,
           descripcion: descripcionBase,
         });
       });
@@ -273,16 +289,21 @@ export async function buscarEntidades(query: string): Promise<ResultadoBusqueda[
 
   const resultados = await Promise.all(
     TABLAS_ENTIDAD.map(async (tabla) => {
-      const { data } = await supabase
+      const imgCol = IMAGEN_COL[tabla];
+      const { data, error } = await supabase
         .from(tabla)
-        .select("id, nombre, imagen_url")
+        .select(`id, nombre, ${imgCol}`)
         .ilike("nombre", `%${q}%`)
         .limit(8);
+      if (error) {
+        console.error(`buscarEntidades: error en tabla "${tabla}"`, error);
+        return [];
+      }
       return (data ?? []).map((row: any) => ({
         tabla,
         id: row.id,
         nombre: row.nombre,
-        imagen_url: row.imagen_url ?? null,
+        imagen_url: row[imgCol] ?? null,
       }));
     }),
   );
