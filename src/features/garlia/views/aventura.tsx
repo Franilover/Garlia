@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -26,6 +26,7 @@ import {
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 import { useFichasDnd } from "../hooks/useFichasDnd";
+import { FichaDetalle, ModalCrearFicha } from "./fichaComponents";
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -54,10 +55,66 @@ export default function Aventura() {
 
 function SelectorIdentidadFlotante() {
   const { perfil } = useAuth();
-  const { fichas, activa, loading, elegirActiva } = useFichasDnd(perfil?.id ?? null);
+  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva } = useFichasDnd(
+    perfil?.id ?? null,
+  );
   const [abierto, setAbierto] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [creando, setCreando] = useState(false);
 
-  if (!perfil || loading || fichas.length === 0) return null;
+  const fichaEditando = fichas.find((f) => f.id === editandoId) ?? null;
+
+  if (!perfil || loading) return null;
+  if (fichas.length === 0 && !creando) {
+    return (
+      <div className="absolute top-4 right-4 z-30">
+        <button
+          type="button"
+          onClick={() => setCreando(true)}
+          className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
+          style={{
+            background: "var(--white-custom)",
+            borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+          }}
+        >
+          <Plus size={12} className="text-primary/50" />
+          <span className="text-xs font-bold text-primary/70">Crear ficha</span>
+        </button>
+
+        <AnimatePresence>
+          {creando && (
+            <ModalCrearFicha
+              onClose={() => setCreando(false)}
+              onCrear={async (datos) => {
+                const nueva = await crear(datos);
+                setCreando(false);
+                setEditandoId(nueva.id);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {fichaEditando && (
+            <ModalFichaOverlay onClose={() => setEditandoId(null)}>
+              <FichaDetalle
+                variant="modal"
+                ficha={fichaEditando}
+                esActiva={fichaEditando.activa}
+                onVolver={() => setEditandoId(null)}
+                onActualizar={actualizar}
+                onEliminar={async (id) => {
+                  await eliminar(id);
+                  setEditandoId(null);
+                }}
+                onElegirActiva={elegirActiva}
+              />
+            </ModalFichaOverlay>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute top-4 right-4 z-30">
@@ -99,32 +156,129 @@ function SelectorIdentidadFlotante() {
               }}
             >
               {fichas.map((f) => (
-                <button
+                <div
                   key={f.id}
-                  type="button"
-                  onClick={() => {
-                    if (!f.activa) elegirActiva(f.id);
-                    setAbierto(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors"
                 >
-                  <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                    {f.imagen_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={f.imagen_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Swords size={11} className="text-primary/40" />
-                    )}
-                  </div>
-                  <span className="flex-1 text-xs text-primary/80 truncate">{f.nombre}</span>
-                  {f.activa && <Check size={13} className="text-primary shrink-0" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!f.activa) elegirActiva(f.id);
+                      setAbierto(false);
+                    }}
+                    className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
+                  >
+                    <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                      {f.imagen_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={f.imagen_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Swords size={11} className="text-primary/40" />
+                      )}
+                    </div>
+                    <span className="flex-1 min-w-0 text-xs text-primary/80 truncate">{f.nombre}</span>
+                    {f.activa && <Check size={13} className="text-primary shrink-0" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditandoId(f.id);
+                      setAbierto(false);
+                    }}
+                    className="shrink-0 p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
+                    title="Editar ficha"
+                  >
+                    <Pencil size={11} />
+                  </button>
+                </div>
               ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAbierto(false);
+                  setCreando(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                style={{
+                  borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <div className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-primary/5">
+                  <Plus size={12} className="text-primary/50" />
+                </div>
+                <span className="flex-1 text-xs font-bold text-primary/60">Nueva ficha</span>
+              </button>
             </MotionDiv>
           </>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {creando && (
+          <ModalCrearFicha
+            onClose={() => setCreando(false)}
+            onCrear={async (datos) => {
+              const nueva = await crear(datos);
+              setCreando(false);
+              setEditandoId(nueva.id);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {fichaEditando && (
+          <ModalFichaOverlay onClose={() => setEditandoId(null)}>
+            <FichaDetalle
+              variant="modal"
+              ficha={fichaEditando}
+              esActiva={fichaEditando.activa}
+              onVolver={() => setEditandoId(null)}
+              onActualizar={actualizar}
+              onEliminar={async (id) => {
+                await eliminar(id);
+                setEditandoId(null);
+              }}
+              onElegirActiva={elegirActiva}
+            />
+          </ModalFichaOverlay>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// ── Overlay genérico para la edición de una ficha (modal encima de /aventura) ──
+
+function ModalFichaOverlay({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <MotionDiv
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      exit={{ opacity: 0 }}
+      initial={{ opacity: 0 }}
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onClose}
+    >
+      <MotionDiv
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6"
+        exit={{ opacity: 0, scale: 0.96 }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        style={{ background: "var(--white-custom)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </MotionDiv>
+    </MotionDiv>
   );
 }
 

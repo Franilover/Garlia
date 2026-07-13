@@ -1,13 +1,11 @@
 "use client";
 
 /**
- * MisFichas
+ * fichaComponents
  * ───────────────────────────────────────────────────────────────────────────
- * /garlia/personal/identidades — cualquier usuario con cuenta puede crear varias
- * fichas de personaje jugable estilo D&D (raza, clase, nivel, stats, HP,
- * CA, inventario) y elegir cuál está usando activamente. Son
- * "sub-identidades": no reemplazan el perfil de usuario, son personajes
- * jugables que el DM puede luego buscar y agregar a sus Aventuras.
+ * Componentes compartidos para crear/editar fichas de personaje jugable
+ * (D&D-style). Extraídos de la antigua página /garlia/personal/identidades
+ * para poder reutilizarlos como modal desde el dropdown de /garlia/aventura.
  */
 
 import { AnimatePresence } from "framer-motion";
@@ -24,18 +22,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { Text } from "@/components/ui/Tipografia";
-import { useAuth } from "@/providers/AuthProvider";
 
 import {
   buscarCriaturas,
   buscarItems,
   statMod,
-  useFichasDnd,
   useInventarioFicha,
   type EspecieResumen,
   type FichaDnd,
@@ -43,7 +37,13 @@ import {
   type NuevaFicha,
 } from "../hooks/useFichasDnd";
 
-const STATS: { key: keyof Pick<FichaDnd, "fuerza" | "destreza" | "constitucion" | "inteligencia" | "sabiduria" | "carisma">; label: string }[] = [
+export const STATS: {
+  key: keyof Pick<
+    FichaDnd,
+    "fuerza" | "destreza" | "constitucion" | "inteligencia" | "sabiduria" | "carisma"
+  >;
+  label: string;
+}[] = [
   { key: "fuerza", label: "FUE" },
   { key: "destreza", label: "DES" },
   { key: "constitucion", label: "CON" },
@@ -52,174 +52,14 @@ const STATS: { key: keyof Pick<FichaDnd, "fuerza" | "destreza" | "constitucion" 
   { key: "carisma", label: "CAR" },
 ];
 
-function fmtMod(score: number): string {
+export function fmtMod(score: number): string {
   const m = statMod(score);
   return m >= 0 ? `+${m}` : `${m}`;
 }
 
-export default function MisFichas() {
-  const { perfil, loading: authLoading } = useAuth();
-  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva } = useFichasDnd(
-    perfil?.id ?? null,
-  );
-  const [seleccion, setSeleccion] = useState<string | null>(null);
-  const [creando, setCreando] = useState(false);
-
-  const fichaSeleccionada = fichas.find((f) => f.id === seleccion) ?? null;
-
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center" style={{ minHeight: "60svh" }}>
-        <Loader2 className="animate-spin text-primary/30" size={22} />
-      </div>
-    );
-  }
-
-  if (!perfil) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center p-8 gap-2" style={{ minHeight: "60svh" }}>
-        <Sparkles className="text-primary/20 mb-2" size={28} />
-        <Text as="p" variant="md" className="text-primary/50">
-          Inicia sesión para crear tus fichas de personaje.
-        </Text>
-      </div>
-    );
-  }
-
-  if (fichaSeleccionada) {
-    return (
-      <FichaDetalle
-        ficha={fichaSeleccionada}
-        esActiva={fichaSeleccionada.activa}
-        onVolver={() => setSeleccion(null)}
-        onActualizar={actualizar}
-        onEliminar={async (id) => {
-          await eliminar(id);
-          setSeleccion(null);
-        }}
-        onElegirActiva={elegirActiva}
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col p-4 md:p-8 gap-6" style={{ minHeight: "calc(100svh - 64px)" }}>
-      <MotionDiv
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center shrink-0 relative"
-        initial={{ opacity: 0, y: -20 }}
-      >
-        <Link
-          href="/garlia/personal"
-          className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-primary/40 hover:text-primary/70 transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Mi Cuenta
-        </Link>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Swords className="text-primary/50" size={18} />
-          <Text as="span" variant="cap">
-            Sub-identidades
-          </Text>
-        </div>
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-primary italic">
-          Mis Fichas
-        </h1>
-        {activa && (
-          <p className="mt-2 text-xs text-primary/40">
-            Ahora mismo estás jugando como <strong className="text-primary/70">{activa.nombre}</strong>
-          </p>
-        )}
-      </MotionDiv>
-
-      <div className="flex-1 max-w-3xl w-full mx-auto">
-        {loading && fichas.length === 0 ? (
-          <div className="py-24 flex items-center justify-center text-primary/30">
-            <Loader2 className="animate-spin" size={22} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-            {fichas.map((f, i) => (
-              <MotionDiv
-                key={f.id}
-                animate={{ opacity: 1, y: 0 }}
-                initial={{ opacity: 0, y: 12 }}
-                transition={{ delay: Math.min(i * 0.05, 0.3) }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSeleccion(f.id)}
-                  className="group relative w-full flex flex-col text-left overflow-hidden rounded-2xl border transition-all"
-                  style={{
-                    background: "var(--white-custom)",
-                    borderColor: f.activa
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 10%, transparent)",
-                  }}
-                >
-                  {f.activa && (
-                    <div className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-white text-micro font-black uppercase">
-                      <Check size={9} /> Activa
-                    </div>
-                  )}
-                  <div className="w-full h-28 shrink-0 relative bg-primary/5">
-                    {f.imagen_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={f.imagen_url} alt={f.nombre} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Swords size={22} className="text-primary/15" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-serif italic text-lg text-primary truncate">{f.nombre}</h3>
-                    <span className="text-micro font-bold uppercase tracking-wide text-primary/40">
-                      {[f.especie?.nombre, f.clase, `Nv. ${f.nivel}`].filter(Boolean).join(" · ")}
-                    </span>
-                  </div>
-                </button>
-              </MotionDiv>
-            ))}
-
-            <MotionDiv
-              animate={{ opacity: 1, y: 0 }}
-              initial={{ opacity: 0, y: 12 }}
-              transition={{ delay: Math.min(fichas.length * 0.05, 0.3) }}
-            >
-              <button
-                type="button"
-                onClick={() => setCreando(true)}
-                className="w-full h-full min-h-[168px] flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors"
-                style={{ borderColor: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
-              >
-                <Plus size={20} className="text-primary/30" />
-                <span className="text-xs font-bold text-primary/40">Nueva ficha</span>
-              </button>
-            </MotionDiv>
-          </div>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {creando && (
-          <ModalCrearFicha
-            onClose={() => setCreando(false)}
-            onCrear={async (datos) => {
-              const nueva = await crear(datos);
-              setCreando(false);
-              setSeleccion(nueva.id);
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 // ── Modal crear ficha ────────────────────────────────────────────────────
 
-function ModalCrearFicha({
+export function ModalCrearFicha({
   onClose,
   onCrear,
 }: {
@@ -271,7 +111,7 @@ function ModalCrearFicha({
   return (
     <MotionDiv
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
       style={{ background: "rgba(0,0,0,0.5)" }}
@@ -415,13 +255,14 @@ function ModalCrearFicha({
 
 // ── Detalle / edición de una ficha ───────────────────────────────────────
 
-function FichaDetalle({
+export function FichaDetalle({
   ficha,
   esActiva,
   onVolver,
   onActualizar,
   onEliminar,
   onElegirActiva,
+  variant = "page",
 }: {
   ficha: FichaDnd;
   esActiva: boolean;
@@ -429,6 +270,8 @@ function FichaDetalle({
   onActualizar: (id: string, cambios: Partial<FichaDnd>) => Promise<void>;
   onEliminar: (id: string) => Promise<void>;
   onElegirActiva: (id: string) => Promise<void>;
+  /** "page" = uso standalone en una página propia. "modal" = dentro de un overlay (sin min-height de pantalla completa, botón "Cerrar"). */
+  variant?: "page" | "modal";
 }) {
   const { items, agregar, quitar, toggleEquipado } = useInventarioFicha(ficha.id);
   const [editando, setEditando] = useState(false);
@@ -462,7 +305,14 @@ function FichaDetalle({
   );
 
   return (
-    <div className="flex flex-col p-4 md:p-8 gap-6 max-w-2xl mx-auto" style={{ minHeight: "calc(100svh - 64px)" }}>
+    <div
+      className={
+        variant === "modal"
+          ? "flex flex-col gap-6"
+          : "flex flex-col p-4 md:p-8 gap-6 max-w-2xl mx-auto"
+      }
+      style={variant === "page" ? { minHeight: "calc(100svh - 64px)" } : undefined}
+    >
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -470,7 +320,7 @@ function FichaDetalle({
           className="flex items-center gap-1.5 text-xs font-bold text-primary/40 hover:text-primary/70 transition-colors"
         >
           <ArrowLeft size={14} />
-          Mis fichas
+          {variant === "modal" ? "Cerrar" : "Mis fichas"}
         </button>
         <div className="flex-1" />
         {!esActiva && (
@@ -690,7 +540,7 @@ interface EntidadOpcion {
   imagen_url: string | null;
 }
 
-function SelectorEntidad<T extends EntidadOpcion>({
+export function SelectorEntidad<T extends EntidadOpcion>({
   placeholder,
   buscar,
   onSeleccionar,
