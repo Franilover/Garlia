@@ -31,7 +31,6 @@ import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
 import { SelectorEspecie } from "../components/SelectorEspecie";
-import { SelectorItemInventario } from "../components/SelectorItemInventario";
 import {
   statMod,
   useEspeciesCatalogo,
@@ -325,7 +324,7 @@ function FichaDetalle({
   onEliminar: (id: string) => Promise<void>;
   onElegirActiva: (id: string) => Promise<void>;
 }) {
-  const { items, agregar, quitar, toggleEquipado } = useInventarioFichaResuelto(ficha.id);
+  const { items, toggleEquipado } = useInventarioFichaResuelto(ficha.id);
   const { especies } = useEspeciesCatalogo();
   const nombreEspecieActual = ficha.especie_id
     ? especies.find((e) => e.id === ficha.especie_id)?.nombre ?? null
@@ -429,6 +428,8 @@ function FichaDetalle({
       </div>
 
       {/* ── Stats ────────────────────────────────────────────────────── */}
+      {/* Solo lectura: una vez creada la ficha, solo el DM puede cambiar
+          las stats (evita que los jugadores hagan trampa). */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {STATS.map(({ key, label }) => (
           <div
@@ -438,37 +439,23 @@ function FichaDetalle({
             <span className="text-micro font-black uppercase tracking-widest text-primary/35">
               {label}
             </span>
-            {editando ? (
-              <input
-                type="number"
-                value={(borrador[key] as number) ?? 10}
-                onChange={(e) =>
-                  setBorrador((prev) => ({ ...prev, [key]: Number(e.target.value) }))
-                }
-                className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
-              />
-            ) : (
-              <span className="text-lg font-black text-primary">{ficha[key]}</span>
-            )}
+            <span className="text-lg font-black text-primary">{ficha[key]}</span>
             <span className="text-micro text-primary/30">{fmtMod(ficha[key])}</span>
           </div>
         ))}
       </div>
+      <p className="-mt-4 text-micro text-primary/30 italic">
+        Las stats, HP, CA, velocidad, nivel y clase solo puede cambiarlos el DM.
+      </p>
 
-      {/* ── Edición de datos base ───────────────────────────────────── */}
+      {/* ── Edición de datos base (solo lo que el jugador puede tocar) ── */}
       {editando && (
         <div className="grid grid-cols-2 gap-2">
           <SelectorEspecie
             value={(borrador.especie_id as string | null) ?? null}
             onChange={(especieId) => setBorrador((prev) => ({ ...prev, especie_id: especieId }))}
           />
-          {campo("clase", "Clase")}
-          {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
-          {campo("hp_max", "HP máximo", "number")}
-          {campo("hp_actual", "HP actual", "number")}
-          {campo("ca", "Clase de armadura", "number")}
-          {campo("velocidad", "Velocidad", "number")}
           {campo("imagen_url", "URL de imagen")}
         </div>
       )}
@@ -507,9 +494,9 @@ function FichaDetalle({
         <h3 className="text-xs font-black uppercase tracking-widest text-primary/50 mb-2">
           Inventario
         </h3>
-        <div className="mb-3">
-          <SelectorItemInventario onAgregar={(item) => agregar(item)} />
-        </div>
+        <p className="text-micro text-primary/30 italic mb-3">
+          Solo el DM puede añadir o quitar objetos. Tú puedes equipar/desequipar lo que ya tienes.
+        </p>
 
         {items.length === 0 ? (
           <p className="text-xs text-primary/30 italic">Sin objetos todavía.</p>
@@ -544,13 +531,6 @@ function FichaDetalle({
                 {item.cantidad > 1 && (
                   <span className="text-micro text-primary/35">×{item.cantidad}</span>
                 )}
-                <button
-                  type="button"
-                  onClick={() => quitar(item.id)}
-                  className="shrink-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-all"
-                >
-                  <X size={11} />
-                </button>
               </div>
             ))}
           </div>
