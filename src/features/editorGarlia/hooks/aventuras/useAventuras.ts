@@ -252,13 +252,16 @@ export function useAventuraEntidades(aventuraId: string | null) {
   const agregar = useCallback(
     async (tabla: TablaEntidad, entidadId: string) => {
       if (!aventuraId) return;
+      // Evita el POST (y el 409 ruidoso en consola) si ya sabemos que existe.
+      const yaExiste = entidades.some((e) => e.tabla === tabla && e.entidad_id === entidadId);
+      if (yaExiste) return;
       const { error } = await supabase
         .from("aventura_entidades")
         .insert({ aventura_id: aventuraId, tabla, entidad_id: entidadId });
-      // Ignora conflicto de unicidad (ya estaba agregada)
+      // Conflicto de unicidad (carrera): la fila ya existe, no es un error real.
       if (error && error.code !== "23505") throw error;
     },
-    [aventuraId],
+    [aventuraId, entidades],
   );
 
   const quitar = useCallback(async (relacionId: string) => {

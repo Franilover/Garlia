@@ -82,7 +82,7 @@ export function MundoTabs() {
 
   return (
     <div className="shrink-0 border-b border-primary/10" style={{ background: "var(--bg-main)" }}>
-      <nav className="flex items-center gap-1 px-4 py-2 overflow-x-auto" aria-label="Secciones del editor de mundo">
+      <nav className="flex items-center gap-1 px-4 py-2" aria-label="Secciones del editor de mundo">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -90,7 +90,7 @@ export function MundoTabs() {
               key={tab.key}
               type="button"
               onClick={() => handleClick(tab.key)}
-              className={`shrink-0 flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+              className={`flex-1 flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
                 active
                   ? "bg-primary/10 text-primary"
                   : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"

@@ -65,7 +65,7 @@ export function AventuraSection() {
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* ── Sub-selector: Aventuras / Misiones / Relaciones ─────────────── */}
-      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-primary/10 overflow-x-auto">
+      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-primary/10">
         {SUB_PANELES.map(({ key, label, Icon }) => {
           const active = subPanel === key;
           return (
@@ -76,7 +76,7 @@ export function AventuraSection() {
                 setSubPanel(key);
                 if (key !== "aventuras") setAventuraActiva(null);
               }}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
                 active
                   ? "bg-primary/10 text-primary"
                   : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
@@ -272,6 +272,9 @@ function AventuraDetalle({
 
   const handleAgregar = async (r: ResultadoBusqueda) => {
     const key = `${r.tabla}:${r.id}`;
+    // Guard sincrónico: evita el doble-click/carrera antes de que el
+    // estado de React (pendientes/entidades) alcance a re-renderizar.
+    if (pendientes.has(key) || yaAgregada(r.tabla, r.id)) return;
     marcarPendiente(key, true);
     try {
       await agregar(r.tabla, r.id);
