@@ -13,11 +13,6 @@
  *      preselecciona, no las hace visibles a jugadores todavía.
  *   3. Cada entidad agregada tiene un toggle Publicar/Ocultar — así el DM
  *      va revelando una por una en vivo durante la sesión.
- *   4. Panel lateral "Jugadores": todas las fichas_dnd de esta aventura,
- *      con acceso directo para el DM a editar sus stats (FUE/DES/CON/INT/
- *      SAB/CAR, HP, CA, velocidad, nivel, clase — bloqueadas para el
- *      jugador desde la migración 005) y su inventario (agregar/quitar
- *      objetos, también solo DM; el jugador solo puede equipar/desequipar).
  */
 
 import {
@@ -25,28 +20,13 @@ import {
   Compass,
   Eye,
   EyeOff,
-  Info,
   Loader2,
   Plus,
-  Save,
   Search,
-  Shield,
-  Sparkles,
-  Swords,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-
-import { SelectorItemInventario } from "@/features/garlia/components/SelectorItemInventario";
-import {
-  statMod,
-  useInventarioFichaResuelto,
-  type FichaDnd,
-} from "@/features/garlia/hooks/useFichasDnd";
-import { supabase } from "@/lib/api/client/supabase";
-import type { ItemMin } from "@/lib/utils/criaturaItemsCache";
 
 import {
   buscarEntidades,
@@ -190,10 +170,7 @@ function AventuraDetalle({
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
-  const [fichaAbierta, setFichaAbierta] = useState<AventuraEntidad | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const jugadores = entidades.filter((e) => e.tabla === "fichas_dnd");
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -263,9 +240,6 @@ function AventuraDetalle({
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* ── Columna izquierda: buscador + entidades ─────────────────── */}
-        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
       {/* ── Buscador para agregar ───────────────────────────────────── */}
       <div className="shrink-0 px-4 py-2.5 border-b border-primary/10 relative">
         <div
@@ -399,343 +373,12 @@ function AventuraDetalle({
                   >
                     <X size={10} />
                   </button>
-                  {e.tabla === "fichas_dnd" && (
-                    <button
-                      type="button"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        setFichaAbierta(e);
-                      }}
-                      className="absolute bottom-1.5 right-1.5 p-1 rounded-full bg-black/30 hover:bg-primary text-white transition-all"
-                      title="Editar ficha de este jugador"
-                    >
-                      <Info size={11} />
-                    </button>
-                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
-        </div>
-
-        {/* ── Columna derecha: Jugadores ─────────────────────────────── */}
-        <div className="w-64 shrink-0 min-h-0 flex flex-col border-l border-primary/10 overflow-hidden">
-          <div className="shrink-0 flex items-center gap-2 px-3 py-3 border-b border-primary/10">
-            <Users size={13} className="text-primary/50" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-primary/70">
-              Jugadores
-            </h3>
-            <span className="ml-auto text-micro font-bold text-primary/35">{jugadores.length}</span>
-          </div>
-          <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
-            {jugadores.length === 0 ? (
-              <p className="text-micro text-primary/30 italic px-1 py-4">
-                Ningún jugador (ficha) añadido a esta aventura todavía. Búscalo arriba por su nombre.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {jugadores.map((j) => (
-                  <button
-                    key={j.id}
-                    type="button"
-                    onClick={() => setFichaAbierta(j)}
-                    className="w-full flex items-center gap-2 p-2 rounded-xl border border-primary/10 bg-primary/[0.02] hover:border-primary/25 text-left transition-all"
-                  >
-                    <div className="w-9 h-9 shrink-0 rounded-lg overflow-hidden bg-primary/5 relative">
-                      {j.imagen_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={j.imagen_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Swords size={13} className="text-primary/20" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-primary/80 truncate">{j.nombre}</div>
-                      <div className="text-micro text-primary/35 truncate">{j.descripcion || "Ver ficha"}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {fichaAbierta && (
-        <PanelFichaDM ficha={fichaAbierta} onCerrar={() => setFichaAbierta(null)} />
-      )}
-    </div>
-  );
-}
-
-// ── Panel DM: ficha de un jugador (stats + inventario, editable) ────────
-
-const STATS_KEYS: { key: keyof Pick<FichaDnd, "fuerza" | "destreza" | "constitucion" | "inteligencia" | "sabiduria" | "carisma">; label: string }[] = [
-  { key: "fuerza", label: "FUE" },
-  { key: "destreza", label: "DES" },
-  { key: "constitucion", label: "CON" },
-  { key: "inteligencia", label: "INT" },
-  { key: "sabiduria", label: "SAB" },
-  { key: "carisma", label: "CAR" },
-];
-
-function fmtMod(score: number): string {
-  const m = statMod(score);
-  return m >= 0 ? `+${m}` : `${m}`;
-}
-
-function PanelFichaDM({
-  ficha,
-  onCerrar,
-}: {
-  ficha: AventuraEntidad;
-  onCerrar: () => void;
-}) {
-  const [datos, setDatos] = useState<FichaDnd | null>(null);
-  const [borrador, setBorrador] = useState<Partial<FichaDnd>>({});
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  const { items, loading: itemsLoading, quitar } = useInventarioFichaResuelto(ficha.entidad_id);
-
-  useEffect(() => {
-    let vivo = true;
-    setCargando(true);
-    supabase
-      .from("fichas_dnd")
-      .select("*")
-      .eq("id", ficha.entidad_id)
-      .single()
-      .then(({ data }) => {
-        if (!vivo) return;
-        if (data) {
-          setDatos(data as FichaDnd);
-          setBorrador(data as FichaDnd);
-        }
-        setCargando(false);
-      });
-    return () => {
-      vivo = false;
-    };
-  }, [ficha.entidad_id]);
-
-  const cambio = (key: keyof FichaDnd, value: string) => {
-    setBorrador((prev) => ({ ...prev, [key]: value === "" ? 0 : Number(value) }));
-  };
-
-  const guardar = async () => {
-    setGuardando(true);
-    try {
-      const { fuerza, destreza, constitucion, inteligencia, sabiduria, carisma, hp_max, hp_actual, ca, velocidad, nivel, clase } =
-        borrador;
-      const { error } = await supabase
-        .from("fichas_dnd")
-        .update({ fuerza, destreza, constitucion, inteligencia, sabiduria, carisma, hp_max, hp_actual, ca, velocidad, nivel, clase })
-        .eq("id", ficha.entidad_id);
-      if (error) throw error;
-      setDatos((prev) => (prev ? { ...prev, ...borrador } : prev));
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  // Agrega un objeto directamente (el DM tiene permiso vía RLS/policy admin).
-  const agregarObjeto = async (item: ItemMin) => {
-    await supabase.from("fichas_dnd_inventario").insert({
-      ficha_id: ficha.entidad_id,
-      item_id: item.id,
-      nombre: item.nombre,
-      imagen_url: item.imagen_url ?? null,
-      cantidad: 1,
-    });
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.5)" }}
-      onClick={onCerrar}
-    >
-      <div
-        className="relative w-full max-w-md max-h-[85vh] flex flex-col rounded-2xl overflow-hidden"
-        style={{ background: "var(--white-custom)" }}
-        onClick={(ev) => ev.stopPropagation()}
-      >
-        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-serif italic text-primary truncate">{ficha.nombre}</h3>
-            <span className="text-micro font-bold uppercase tracking-wide text-primary/35">
-              Ficha del jugador — control del DM
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="p-1.5 rounded-full hover:bg-primary/10 transition-colors"
-          >
-            <X size={13} className="text-primary/50" />
-          </button>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-5">
-          {cargando || !datos ? (
-            <div className="py-10 flex items-center justify-center text-primary/30">
-              <Loader2 className="animate-spin" size={18} />
-            </div>
-          ) : (
-            <>
-              {/* ── Vitales ────────────────────────────────────────────── */}
-              <div>
-                <h4 className="text-micro font-black uppercase tracking-widest text-primary/40 mb-2 flex items-center gap-1.5">
-                  <Shield size={11} /> Vitales, nivel y clase
-                </h4>
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  <CampoNumero label="HP máx" value={borrador.hp_max} onChange={(v) => cambio("hp_max", v)} />
-                  <CampoNumero label="HP actual" value={borrador.hp_actual} onChange={(v) => cambio("hp_actual", v)} />
-                  <CampoNumero label="CA" value={borrador.ca} onChange={(v) => cambio("ca", v)} />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <CampoNumero label="Velocidad" value={borrador.velocidad} onChange={(v) => cambio("velocidad", v)} />
-                  <CampoNumero label="Nivel" value={borrador.nivel} onChange={(v) => cambio("nivel", v)} />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-micro font-black uppercase tracking-widest text-primary/35 px-0.5">
-                      Clase
-                    </span>
-                    <input
-                      type="text"
-                      value={(borrador.clase as string) ?? ""}
-                      onChange={(e) => setBorrador((prev) => ({ ...prev, clase: e.target.value }))}
-                      className="h-9 px-2 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 text-center"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Stats ──────────────────────────────────────────────── */}
-              <div>
-                <h4 className="text-micro font-black uppercase tracking-widest text-primary/40 mb-2 flex items-center gap-1.5">
-                  <Sparkles size={11} /> Stats
-                </h4>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATS_KEYS.map(({ key, label }) => (
-                    <div
-                      key={key}
-                      className="flex flex-col items-center gap-0.5 py-2.5 rounded-xl border border-primary/10 bg-primary/[0.02]"
-                    >
-                      <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                        {label}
-                      </span>
-                      <input
-                        type="number"
-                        value={(borrador[key] as number) ?? 10}
-                        onChange={(e) => cambio(key, e.target.value)}
-                        className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
-                      />
-                      <span className="text-micro text-primary/30">
-                        {fmtMod((borrador[key] as number) ?? 10)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={guardar}
-                disabled={guardando}
-                className="h-9 flex items-center justify-center gap-1.5 rounded-lg bg-primary text-white text-xs font-bold disabled:opacity-40 transition-opacity"
-              >
-                {guardando ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                Guardar cambios
-              </button>
-
-              {/* ── Inventario ─────────────────────────────────────────── */}
-              <div>
-                <h4 className="text-micro font-black uppercase tracking-widest text-primary/40 mb-2">
-                  Inventario
-                </h4>
-                <div className="mb-2.5">
-                  <SelectorItemInventario onAgregar={agregarObjeto} />
-                </div>
-                {itemsLoading ? (
-                  <div className="py-6 flex items-center justify-center text-primary/30">
-                    <Loader2 className="animate-spin" size={16} />
-                  </div>
-                ) : items.length === 0 ? (
-                  <p className="text-xs text-primary/30 italic text-center py-4">
-                    Este jugador no tiene objetos en su inventario.
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]"
-                      >
-                        {item.imagen_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.imagen_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
-                        ) : (
-                          <span className="w-8 h-8 rounded bg-primary/5 shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold text-primary/80 truncate">
-                            {item.nombre}
-                            {!item.vinculoVivo && item.item_id === null && (
-                              <span className="ml-1 text-micro text-primary/30 italic">(borrado)</span>
-                            )}
-                          </div>
-                        </div>
-                        {item.equipado && (
-                          <span className="text-micro font-black uppercase text-primary/50">Equipado</span>
-                        )}
-                        {item.cantidad > 1 && (
-                          <span className="text-micro text-primary/35">×{item.cantidad}</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => quitar(item.id)}
-                          className="shrink-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-all"
-                          title="Quitar objeto"
-                        >
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CampoNumero({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number | undefined;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-micro font-black uppercase tracking-widest text-primary/35 px-0.5">
-        {label}
-      </span>
-      <input
-        type="number"
-        value={value ?? 0}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 px-2 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 text-center"
-      />
     </div>
   );
 }

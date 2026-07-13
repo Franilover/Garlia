@@ -13,15 +13,17 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
-import { fetchAllItems, type ItemMin } from "@/lib/utils/criaturaItemsCache";
-import { fetchAllCriaturas, type CriaturaMin } from "@/lib/utils/criaturasCache";
+
+export interface EspecieResumen {
+  id: string;
+  nombre: string;
+  imagen_url: string | null;
+}
 
 export interface FichaDnd {
   id: string;
   perfil_id: string;
   nombre: string;
-  /** @deprecated texto libre histórico — usar especie_id */
-  raza: string | null;
   especie_id: string | null;
   clase: string | null;
   nivel: number;
@@ -42,23 +44,39 @@ export interface FichaDnd {
   activa: boolean;
   created_at: string;
   updated_at: string;
+  /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */
+  especie?: EspecieResumen | null;
+}
+
+export interface ItemResumen {
+  id: string;
+  nombre: string;
+  imagen_url: string | null;
+  descripcion: string | null;
 }
 
 export interface ItemInventarioFicha {
   id: string;
   ficha_id: string;
   item_id: string | null;
-  nombre: string;
   cantidad: number;
-  descripcion: string | null;
-  imagen_url: string | null;
   equipado: boolean;
+  /** Resuelto en cliente a partir de item_id. */
+  item?: ItemResumen | null;
 }
 
-export type NuevaFicha = Pick<FichaDnd, "nombre"> & Partial<Omit<FichaDnd, "id" | "perfil_id" | "created_at" | "updated_at" | "activa" | "nombre">>;
+export type NuevaFicha = Pick<FichaDnd, "nombre"> & Partial<Omit<FichaDnd, "id" | "perfil_id" | "created_at" | "updated_at" | "activa" | "nombre" | "especie">>;
 
 export function statMod(score: number): number {
   return Math.floor((score - 10) / 2);
+}
+
+async function resolverEspecies(fichas: FichaDnd[]): Promise<FichaDnd[]> {
+  const ids = Array.from(new Set(fichas.map((f) => f.especie_id).filter(Boolean))) as string[];
+  if (ids.length === 0) return fichas;
+  const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").in("id", ids);
+  const porId = new Map((data ?? []).map((c: any) => [c.id, c as EspecieResumen]));
+  return fichas.map((f) => ({ ...f, especie: f.especie_id ? porId.get(f.especie_id) ?? null : null }));
 }
 
 export function useFichasDnd(perfilId: string | null) {
@@ -76,7 +94,10 @@ export function useFichasDnd(perfilId: string | null) {
       .select("*")
       .eq("perfil_id", perfilId)
       .order("updated_at", { ascending: false });
-    if (!error && data) setFichas(data as FichaDnd[]);
+    if (!error && data) {
+      const resueltas = await resolverEspecies(data as FichaDnd[]);
+      setFichas(resueltas);
+    }
     setLoading(false);
   }, [perfilId]);
 
@@ -130,6 +151,17 @@ export function useFichasDnd(perfilId: string | null) {
   return { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch: fetchAll };
 }
 
+async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventarioFicha[]> {
+  const ids = Array.from(new Set(rows.map((r) => r.item_id).filter(Boolean))) as string[];
+  if (ids.length === 0) return rows;
+  const { data } = await supabase
+    .from("items")
+    .select("id, nombre, imagen_url, descripcion")
+    .in("id", ids);
+  const porId = new Map((data ?? []).map((i: any) => [i.id, i as ItemResumen]));
+  return rows.map((r) => ({ ...r, item: r.item_id ? porId.get(r.item_id) ?? null : null }));
+}
+
 export function useInventarioFicha(fichaId: string | null) {
   const [items, setItems] = useState<ItemInventarioFicha[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +177,10 @@ export function useInventarioFicha(fichaId: string | null) {
       .select("*")
       .eq("ficha_id", fichaId)
       .order("created_at", { ascending: true });
-    if (!error && data) setItems(data as ItemInventarioFicha[]);
+    if (!error && data) {
+      const resueltos = await resolverItems(data as ItemInventarioFicha[]);
+      setItems(resueltos);
+    }
     setLoading(false);
   }, [fichaId]);
 
@@ -153,23 +188,12 @@ export function useInventarioFicha(fichaId: string | null) {
     fetchAll();
   }, [fetchAll]);
 
-  /**
-   * Agrega un objeto al inventario vinculado a un item real del catálogo
-   * (item_id). nombre/descripcion/imagen_url se cachean en el momento
-   * para listados rápidos, pero mientras item_id exista la UI debe
-   * resolver contra `items` en vivo (ver useInventarioFichaResuelto).
-   */
   const agregar = useCallback(
-    async (item: ItemMin & { descripcion?: string | null }, cantidad = 1) => {
+    async (itemId: string, cantidad = 1) => {
       if (!fichaId) return;
-      const { error } = await supabase.from("fichas_dnd_inventario").insert({
-        ficha_id: fichaId,
-        item_id: item.id,
-        nombre: item.nombre,
-        imagen_url: item.imagen_url ?? null,
-        descripcion: item.descripcion ?? null,
-        cantidad,
-      });
+      const { error } = await supabase
+        .from("fichas_dnd_inventario")
+        .insert({ ficha_id: fichaId, item_id: itemId, cantidad });
       if (error) throw error;
       fetchAll();
     },
@@ -177,8 +201,8 @@ export function useInventarioFicha(fichaId: string | null) {
   );
 
   const quitar = useCallback(
-    async (itemId: string) => {
-      const { error } = await supabase.from("fichas_dnd_inventario").delete().eq("id", itemId);
+    async (filaId: string) => {
+      const { error } = await supabase.from("fichas_dnd_inventario").delete().eq("id", filaId);
       if (error) throw error;
       fetchAll();
     },
@@ -200,73 +224,24 @@ export function useInventarioFicha(fichaId: string | null) {
   return { items, loading, agregar, quitar, toggleEquipado, refetch: fetchAll };
 }
 
-// ── Catálogos para los selectores de la ficha ──────────────────────────
+// ── Búsqueda para los selectores (especie / item) ──────────────────────
 
-/** Catálogo de criaturas de Garlia, para el selector "Especie" de la ficha. */
-export function useEspeciesCatalogo() {
-  const [especies, setEspecies] = useState<CriaturaMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    void fetchAllCriaturas().then((data) => {
-      if (alive) {
-        setEspecies(data);
-        setLoading(false);
-      }
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  return { especies, loading };
+export async function buscarCriaturas(query: string): Promise<EspecieResumen[]> {
+  const q = query.trim();
+  let req = supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre").limit(40);
+  if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);
+  const { data } = await req;
+  return (data ?? []) as EspecieResumen[];
 }
 
-/** Catálogo de items de Garlia, para el selector de inventario de la ficha. */
-export function useItemsCatalogo() {
-  const [items, setItems] = useState<ItemMin[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    void fetchAllItems().then((data) => {
-      if (alive) {
-        setItems(data);
-        setLoading(false);
-      }
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  return { items, loading };
-}
-
-/**
- * Resuelve el inventario de una ficha contra el catálogo de items EN VIVO:
- * si el item vinculado (item_id) cambió de nombre/imagen en el editor de
- * Garlia, aquí se refleja al instante en vez de mostrar el dato cacheado
- * en fichas_dnd_inventario. Si el item fue borrado (item_id null), cae
- * de vuelta al nombre/imagen cacheados en el momento en que se agregó.
- */
-export function useInventarioFichaResuelto(fichaId: string | null) {
-  const inventario = useInventarioFicha(fichaId);
-  const { items: catalogo } = useItemsCatalogo();
-
-  const resuelto = inventario.items.map((row) => {
-    const itemActual = row.item_id ? catalogo.find((i) => i.id === row.item_id) : undefined;
-    return {
-      ...row,
-      nombre: itemActual?.nombre ?? row.nombre,
-      imagen_url: itemActual?.imagen_url ?? row.imagen_url,
-      /** true si el item original todavía existe en el catálogo */
-      vinculoVivo: Boolean(itemActual),
-    };
-  });
-
-  return { ...inventario, items: resuelto };
+export async function buscarItems(query: string): Promise<ItemResumen[]> {
+  const q = query.trim();
+  let req = supabase
+    .from("items")
+    .select("id, nombre, imagen_url, descripcion")
+    .order("nombre")
+    .limit(40);
+  if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);
+  const { data } = await req;
+  return (data ?? []) as ItemResumen[];
 }

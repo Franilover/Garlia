@@ -17,6 +17,7 @@ import {
   Heart,
   Loader2,
   Plus,
+  Search,
   Shield,
   Sparkles,
   Swords,
@@ -24,19 +25,21 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
-import { SelectorEspecie } from "../components/SelectorEspecie";
 import {
+  buscarCriaturas,
+  buscarItems,
   statMod,
-  useEspeciesCatalogo,
   useFichasDnd,
-  useInventarioFichaResuelto,
+  useInventarioFicha,
+  type EspecieResumen,
   type FichaDnd,
+  type ItemResumen,
   type NuevaFicha,
 } from "../hooks/useFichasDnd";
 
@@ -59,9 +62,6 @@ export default function MisFichas() {
   const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva } = useFichasDnd(
     perfil?.id ?? null,
   );
-  const { especies } = useEspeciesCatalogo();
-  const nombreEspecie = (especieId: string | null) =>
-    especieId ? especies.find((e) => e.id === especieId)?.nombre ?? null : null;
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
 
@@ -175,7 +175,7 @@ export default function MisFichas() {
                   <div className="p-3">
                     <h3 className="font-serif italic text-lg text-primary truncate">{f.nombre}</h3>
                     <span className="text-micro font-bold uppercase tracking-wide text-primary/40">
-                      {[nombreEspecie(f.especie_id), f.clase, `Nv. ${f.nivel}`].filter(Boolean).join(" · ")}
+                      {[f.especie?.nombre, f.clase, `Nv. ${f.nivel}`].filter(Boolean).join(" · ")}
                     </span>
                   </div>
                 </button>
@@ -227,7 +227,7 @@ function ModalCrearFicha({
   onCrear: (datos: NuevaFicha) => Promise<void>;
 }) {
   const [nombre, setNombre] = useState("");
-  const [especieId, setEspecieId] = useState<string | null>(null);
+  const [especie, setEspecie] = useState<EspecieResumen | null>(null);
   const [clase, setClase] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -235,7 +235,11 @@ function ModalCrearFicha({
     if (!nombre.trim()) return;
     setGuardando(true);
     try {
-      await onCrear({ nombre: nombre.trim(), especie_id: especieId, clase: clase.trim() || null });
+      await onCrear({
+        nombre: nombre.trim(),
+        especie_id: especie?.id ?? null,
+        clase: clase.trim() || null,
+      });
     } finally {
       setGuardando(false);
     }
@@ -277,16 +281,22 @@ function ModalCrearFicha({
             placeholder="Nombre del personaje"
             className="h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
           />
-          <div className="flex gap-2 items-start">
+          <div className="flex gap-2">
             <div className="flex-1">
-              <SelectorEspecie value={especieId} onChange={setEspecieId} label="Especie" placeholder="Elegir especie…" />
+              <SelectorEntidad
+                placeholder="Especie (buscar criatura)…"
+                buscar={buscarCriaturas}
+                seleccionActual={especie}
+                onSeleccionar={(c) => setEspecie(c)}
+                onQuitar={() => setEspecie(null)}
+              />
             </div>
             <input
               type="text"
               value={clase}
               onChange={(e) => setClase(e.target.value)}
               placeholder="Clase (ej. Pícaro)"
-              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors mt-[18px]"
+              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
             />
           </div>
           <button
@@ -299,7 +309,7 @@ function ModalCrearFicha({
             Crear ficha
           </button>
           <p className="text-micro text-primary/30 text-center">
-            Podrás completar especie, stats e inventario después.
+            Podrás completar raza, stats e inventario después.
           </p>
         </div>
       </MotionDiv>
@@ -324,11 +334,7 @@ function FichaDetalle({
   onEliminar: (id: string) => Promise<void>;
   onElegirActiva: (id: string) => Promise<void>;
 }) {
-  const { items, toggleEquipado } = useInventarioFichaResuelto(ficha.id);
-  const { especies } = useEspeciesCatalogo();
-  const nombreEspecieActual = ficha.especie_id
-    ? especies.find((e) => e.id === ficha.especie_id)?.nombre ?? null
-    : null;
+  const { items, agregar, quitar, toggleEquipado } = useInventarioFicha(ficha.id);
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<Partial<FichaDnd>>(ficha);
   const [guardando, setGuardando] = useState(false);
@@ -336,7 +342,8 @@ function FichaDetalle({
   const guardar = async () => {
     setGuardando(true);
     try {
-      await onActualizar(ficha.id, borrador);
+      const { especie, ...cambiosPersistibles } = borrador;
+      await onActualizar(ficha.id, cambiosPersistibles);
       setEditando(false);
     } finally {
       setGuardando(false);
@@ -410,7 +417,7 @@ function FichaDetalle({
             <h1 className="font-serif italic text-2xl text-primary">{ficha.nombre}</h1>
           )}
           <span className="text-xs font-bold uppercase tracking-wide text-primary/40">
-            {[nombreEspecieActual, ficha.clase, `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
+            {[ficha.especie?.nombre, ficha.clase, `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
           </span>
           {esActiva && (
             <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-white text-micro font-black uppercase">
@@ -428,8 +435,6 @@ function FichaDetalle({
       </div>
 
       {/* ── Stats ────────────────────────────────────────────────────── */}
-      {/* Solo lectura: una vez creada la ficha, solo el DM puede cambiar
-          las stats (evita que los jugadores hagan trampa). */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {STATS.map(({ key, label }) => (
           <div
@@ -439,23 +444,46 @@ function FichaDetalle({
             <span className="text-micro font-black uppercase tracking-widest text-primary/35">
               {label}
             </span>
-            <span className="text-lg font-black text-primary">{ficha[key]}</span>
+            {editando ? (
+              <input
+                type="number"
+                value={(borrador[key] as number) ?? 10}
+                onChange={(e) =>
+                  setBorrador((prev) => ({ ...prev, [key]: Number(e.target.value) }))
+                }
+                className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
+              />
+            ) : (
+              <span className="text-lg font-black text-primary">{ficha[key]}</span>
+            )}
             <span className="text-micro text-primary/30">{fmtMod(ficha[key])}</span>
           </div>
         ))}
       </div>
-      <p className="-mt-4 text-micro text-primary/30 italic">
-        Las stats, HP, CA, velocidad, nivel y clase solo puede cambiarlos el DM.
-      </p>
 
-      {/* ── Edición de datos base (solo lo que el jugador puede tocar) ── */}
+      {/* ── Edición de datos base ───────────────────────────────────── */}
       {editando && (
         <div className="grid grid-cols-2 gap-2">
-          <SelectorEspecie
-            value={(borrador.especie_id as string | null) ?? null}
-            onChange={(especieId) => setBorrador((prev) => ({ ...prev, especie_id: especieId }))}
+          <SelectorEntidad
+            placeholder="Especie (buscar criatura)…"
+            buscar={buscarCriaturas}
+            seleccionActual={
+              borrador.especie_id
+                ? borrador.especie ?? ficha.especie ?? null
+                : null
+            }
+            onSeleccionar={(c) =>
+              setBorrador((prev) => ({ ...prev, especie_id: c.id, especie: c }))
+            }
+            onQuitar={() => setBorrador((prev) => ({ ...prev, especie_id: null, especie: null }))}
           />
+          {campo("clase", "Clase")}
+          {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
+          {campo("hp_max", "HP máximo", "number")}
+          {campo("hp_actual", "HP actual", "number")}
+          {campo("ca", "Clase de armadura", "number")}
+          {campo("velocidad", "Velocidad", "number")}
           {campo("imagen_url", "URL de imagen")}
         </div>
       )}
@@ -494,9 +522,13 @@ function FichaDetalle({
         <h3 className="text-xs font-black uppercase tracking-widest text-primary/50 mb-2">
           Inventario
         </h3>
-        <p className="text-micro text-primary/30 italic mb-3">
-          Solo el DM puede añadir o quitar objetos. Tú puedes equipar/desequipar lo que ya tienes.
-        </p>
+        <div className="mb-3">
+          <SelectorEntidad
+            placeholder="Buscar objeto del mundo para añadir…"
+            buscar={buscarItems}
+            onSeleccionar={(item) => agregar(item.id)}
+          />
+        </div>
 
         {items.length === 0 ? (
           <p className="text-xs text-primary/30 italic">Sin objetos todavía.</p>
@@ -507,12 +539,12 @@ function FichaDetalle({
                 key={item.id}
                 className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]"
               >
-                {item.imagen_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.imagen_url} alt="" className="w-7 h-7 rounded object-cover shrink-0" />
-                ) : (
-                  <span className="w-7 h-7 rounded bg-primary/5 shrink-0" />
-                )}
+                <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-primary/5">
+                  {item.item?.imagen_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.item.imagen_url} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => toggleEquipado(item)}
@@ -523,14 +555,18 @@ function FichaDetalle({
                   {item.equipado ? "Equipado" : "Equipar"}
                 </button>
                 <span className="flex-1 text-xs text-primary/70 truncate">
-                  {item.nombre}
-                  {!item.vinculoVivo && item.item_id === null && (
-                    <span className="ml-1 text-micro text-primary/30 italic">(item original borrado)</span>
-                  )}
+                  {item.item?.nombre ?? "(objeto eliminado)"}
                 </span>
                 {item.cantidad > 1 && (
                   <span className="text-micro text-primary/35">×{item.cantidad}</span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => quitar(item.id)}
+                  className="shrink-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-all"
+                >
+                  <X size={11} />
+                </button>
               </div>
             ))}
           </div>
@@ -546,6 +582,129 @@ function VitalCard({ icon, label, value }: { icon: React.ReactNode; label: strin
       <div className="text-primary/40">{icon}</div>
       <span className="text-base font-black text-primary">{value}</span>
       <span className="text-micro font-bold uppercase tracking-widest text-primary/35">{label}</span>
+    </div>
+  );
+}
+
+// ── Selector genérico con búsqueda (especie / item) ──────────────────────
+
+interface EntidadOpcion {
+  id: string;
+  nombre: string;
+  imagen_url: string | null;
+}
+
+function SelectorEntidad<T extends EntidadOpcion>({
+  placeholder,
+  buscar,
+  onSeleccionar,
+  seleccionActual,
+  onQuitar,
+}: {
+  placeholder: string;
+  buscar: (q: string) => Promise<T[]>;
+  onSeleccionar: (item: T) => void;
+  seleccionActual?: EntidadOpcion | null;
+  onQuitar?: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [abierto, setAbierto] = useState(false);
+  const [resultados, setResultados] = useState<T[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setBuscando(true);
+    debounceRef.current = setTimeout(async () => {
+      const r = await buscar(query);
+      setResultados(r);
+      setBuscando(false);
+    }, 250);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, abierto]);
+
+  if (seleccionActual && !abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="w-full flex items-center gap-2.5 h-10 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] hover:border-primary/25 transition-colors text-left"
+      >
+        <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-primary/5">
+          {seleccionActual.imagen_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={seleccionActual.imagen_url} alt="" className="w-full h-full object-cover" />
+          )}
+        </div>
+        <span className="flex-1 text-xs text-primary/80 truncate">{seleccionActual.nombre}</span>
+        {onQuitar && (
+          <span
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuitar();
+            }}
+            className="shrink-0 p-1 rounded-full hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-colors"
+          >
+            <X size={11} />
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2 px-2.5 h-10 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors">
+        <Search size={12} className="text-primary/35 shrink-0" />
+        <input
+          autoFocus={abierto}
+          type="text"
+          value={query}
+          onFocus={() => setAbierto(true)}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+        />
+        {buscando && <Loader2 size={11} className="animate-spin text-primary/30" />}
+      </div>
+
+      {abierto && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg">
+            {resultados.length === 0 && !buscando ? (
+              <div className="px-3 py-3 text-micro text-primary/30 text-center">Sin resultados.</div>
+            ) : (
+              resultados.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => {
+                    onSeleccionar(r);
+                    setAbierto(false);
+                    setQuery("");
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                >
+                  <div className="w-7 h-7 shrink-0 rounded-md overflow-hidden bg-primary/5">
+                    {r.imagen_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.imagen_url} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <span className="text-xs text-primary/80 truncate">{r.nombre}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -129,21 +129,6 @@ export function useAventurasList() {
 
 const NOMBRE_COL = "nombre";
 
-// No todas las tablas usan `imagen_url` como nombre de columna: reinos usa
-// `logo_url` y personajes usa `img_url`. Sin este mapeo, el select fallaba
-// con 400 (columna inexistente) al buscar/resolver esas dos tablas.
-const IMAGEN_COL: Record<TablaEntidad, string> = {
-  personajes: "img_url",
-  criaturas: "imagen_url",
-  items: "imagen_url",
-  reinos: "logo_url",
-  ciudades: "imagen_url",
-  hechizos: "imagen_url",
-  dones: "imagen_url",
-  runas: "imagen_url",
-  fichas_dnd: "imagen_url",
-};
-
 async function resolverEntidades(
   rows: AventuraEntidadRow[],
 ): Promise<AventuraEntidad[]> {
@@ -158,40 +143,51 @@ async function resolverEntidades(
 
   const datosPorTablaId = new Map<string, { nombre: string; imagen_url: string | null; descripcion: string | null }>();
 
-  // Cache de nombres de criaturas, para resolver especie_id -> nombre
-  // cuando se resuelven fichas_dnd (evita otro round-trip por ficha).
-  let nombresEspecies: Map<string, string> | null = null;
-  const getNombresEspecies = async () => {
-    if (nombresEspecies) return nombresEspecies;
-    const { data } = await supabase.from("criaturas").select("id, nombre");
-    nombresEspecies = new Map((data ?? []).map((c: any) => [c.id, c.nombre as string]));
-    return nombresEspecies;
-  };
-
-  await Promise.all(
+  // Para fichas_dnd necesitamos resolver especie_id -> nombre de la criatura
+  const fichasRows = await Promise.all(
     Array.from(porTabla.entries()).map(async ([tabla, ids]) => {
       const { data } = await supabase.from(tabla).select("*").in("id", ids);
-      const especies = tabla === "fichas_dnd" ? await getNombresEspecies() : null;
-      const imgCol = IMAGEN_COL[tabla];
-      (data ?? []).forEach((row: any) => {
-        const descripcionBase =
-          tabla === "fichas_dnd"
-            ? [
-                row.especie_id ? especies?.get(row.especie_id) ?? null : null,
-                row.clase,
-                row.nivel ? `Nivel ${row.nivel}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")
-            : row.descripcion ?? row.explicacion ?? null;
-        datosPorTablaId.set(`${tabla}:${row.id}`, {
-          nombre: row[NOMBRE_COL] ?? "Sin nombre",
-          imagen_url: row[imgCol] ?? null,
-          descripcion: descripcionBase,
-        });
-      });
+      return { tabla, data: data ?? [] };
     }),
   );
+
+  const especieIds = Array.from(
+    new Set(
+      fichasRows
+        .filter((r) => r.tabla === "fichas_dnd")
+        .flatMap((r) => r.data.map((row: any) => row.especie_id))
+        .filter(Boolean),
+    ),
+  ) as string[];
+
+  const especiesPorId = new Map<string, string>();
+  if (especieIds.length > 0) {
+    const { data: especiesData } = await supabase
+      .from("criaturas")
+      .select("id, nombre")
+      .in("id", especieIds);
+    (especiesData ?? []).forEach((e: any) => especiesPorId.set(e.id, e.nombre));
+  }
+
+  fichasRows.forEach(({ tabla, data }) => {
+    data.forEach((row: any) => {
+      const descripcionBase =
+        tabla === "fichas_dnd"
+          ? [
+              row.especie_id ? especiesPorId.get(row.especie_id) : null,
+              row.clase,
+              row.nivel ? `Nivel ${row.nivel}` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          : row.descripcion ?? row.explicacion ?? null;
+      datosPorTablaId.set(`${tabla}:${row.id}`, {
+        nombre: row[NOMBRE_COL] ?? "Sin nombre",
+        imagen_url: row.imagen_url ?? null,
+        descripcion: descripcionBase,
+      });
+    });
+  });
 
   return rows.map((r) => {
     const info = datosPorTablaId.get(`${r.tabla}:${r.entidad_id}`);
@@ -289,21 +285,16 @@ export async function buscarEntidades(query: string): Promise<ResultadoBusqueda[
 
   const resultados = await Promise.all(
     TABLAS_ENTIDAD.map(async (tabla) => {
-      const imgCol = IMAGEN_COL[tabla];
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from(tabla)
-        .select(`id, nombre, ${imgCol}`)
+        .select("id, nombre, imagen_url")
         .ilike("nombre", `%${q}%`)
         .limit(8);
-      if (error) {
-        console.error(`buscarEntidades: error en tabla "${tabla}"`, error);
-        return [];
-      }
       return (data ?? []).map((row: any) => ({
         tabla,
         id: row.id,
         nombre: row.nombre,
-        imagen_url: row[imgCol] ?? null,
+        imagen_url: row.imagen_url ?? null,
       }));
     }),
   );
