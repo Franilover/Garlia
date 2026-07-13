@@ -7,9 +7,7 @@ import {
   Clock,
   Loader2,
   Scroll,
-  Sparkles,
   Star,
-  User,
   WifiOff,
   X,
 } from "lucide-react";
@@ -331,203 +329,96 @@ export default function Misiones({
       </AnimatePresence>
 
       <div className="w-full max-w-7xl mx-auto pb-20">
-        {/* ── HERO HEADER ── */}
-        <div className="animate-in fade-in duration-700">
-          <div
-            className="relative w-full overflow-hidden"
-            style={{
-              height: "96px",
-              background:
-                "color-mix(in srgb, var(--primary) 7%, var(--bg-main))",
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            }}
-          >
-            <div
-              className="absolute inset-0"
+        {/* ── HEADER ── */}
+        <div
+          className="flex items-center justify-between gap-3 px-4 md:px-8 py-4 animate-in fade-in duration-500"
+          style={{
+            borderBottom:
+              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <h1
+              className="font-serif italic leading-none shrink-0"
               style={{
-                backgroundImage: `repeating-linear-gradient(
-                  45deg,
-                  color-mix(in srgb, var(--primary) 4%, transparent) 0px,
-                  color-mix(in srgb, var(--primary) 4%, transparent) 1px,
-                  transparent 1px,
-                  transparent 24px
-                )`,
+                fontSize: "clamp(1.4rem, 3vw, 1.9rem)",
+                color: "var(--primary)",
+                letterSpacing: "0.01em",
               }}
-            />
-            <div className="absolute top-4 right-4 md:right-10 flex items-center gap-2">
-              {offline && (
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5"
-                  style={{
-                    border:
-                      "1px solid color-mix(in srgb, #d97706 30%, transparent)",
-                    borderRadius: "2px",
-                    background:
-                      "color-mix(in srgb, #d97706 10%, var(--white-custom))",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <WifiOff size={8} style={{ color: "#d97706" }} />
-                  <span
-                    className="text-micro font-black uppercase tracking-[0.18em]"
-                    style={{ color: "#d97706" }}
-                  >
-                    Sin conexión
-                  </span>
-                </div>
-              )}
+            >
+              Misiones
+            </h1>
+            <div
+              className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5 shrink-0"
+              style={{
+                border:
+                  "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                borderRadius: "2px",
+                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+              }}
+            >
+              <Star
+                size={7}
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 38%, transparent)",
+                }}
+              />
+              <span
+                className="text-micro font-black uppercase tracking-[0.22em]"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 48%, transparent)",
+                }}
+              >
+                Nivel {ficha.nivel ?? 1}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {offline && (
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5"
                 style={{
                   border:
-                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                    "1px solid color-mix(in srgb, #d97706 30%, transparent)",
                   borderRadius: "2px",
                   background:
-                    "color-mix(in srgb, var(--white-custom) 75%, transparent)",
-                  backdropFilter: "blur(6px)",
+                    "color-mix(in srgb, #d97706 10%, var(--white-custom))",
                 }}
               >
-                <Sparkles
-                  size={8}
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 38%, transparent)",
-                  }}
-                />
+                <WifiOff size={8} style={{ color: "#d97706" }} />
                 <span
-                  className="text-micro font-black uppercase tracking-[0.22em] tabular-nums"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 55%, transparent)",
-                  }}
+                  className="text-micro font-black uppercase tracking-[0.18em] hidden sm:inline"
+                  style={{ color: "#d97706" }}
                 >
-                  {xpTotal}
-                </span>
-                <span
-                  className="text-micro font-black uppercase tracking-[0.2em] hidden sm:inline"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 36%, transparent)",
-                  }}
-                >
-                  xp total
+                  Sin conexión
                 </span>
               </div>
-              {variant === "modal" && onClose && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex items-center justify-center transition-colors"
-                  title="Cerrar"
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: "2px",
-                    border:
-                      "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                    background:
-                      "color-mix(in srgb, var(--white-custom) 75%, transparent)",
-                    backdropFilter: "blur(6px)",
-                  }}
-                >
-                  <X
-                    size={12}
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 55%, transparent)",
-                    }}
-                  />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div
-            className="px-6 md:px-10 flex items-end gap-5 md:gap-7"
-            style={{ marginTop: "-52px", paddingBottom: "20px" }}
-          >
-            <div
-              className="relative shrink-0"
-              style={{
-                width: 104,
-                height: 104,
-                borderRadius: "50%",
-                overflow: "hidden",
-                background:
-                  "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
-                flexShrink: 0,
-              }}
-            >
-              {ficha.imagen_url ? (
-                <img
-                  alt={ficha.nombre}
-                  className="w-full h-full object-contain"
-                  src={ficha.imagen_url}
-                />
-              ) : (
-                <User
-                  className="absolute inset-0 m-auto"
-                  size={38}
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 22%, transparent)",
-                  }}
-                />
-              )}
-            </div>
-
-            <div
-              className="flex flex-col gap-1 pb-1"
-              style={{ paddingTop: "56px" }}
-            >
-              <div
-                className="inline-flex w-fit items-center gap-1.5 px-2 py-0.5"
+            )}
+            {variant === "modal" && onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex items-center justify-center transition-colors"
+                title="Cerrar"
                 style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: "2px",
                   border:
                     "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                  borderRadius: "2px",
                   background:
-                    "color-mix(in srgb, var(--primary) 4%, transparent)",
+                    "color-mix(in srgb, var(--white-custom) 75%, transparent)",
                 }}
               >
-                <Star
-                  size={7}
+                <X
+                  size={12}
                   style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 38%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
                   }}
                 />
-                <span
-                  className="text-micro font-black uppercase tracking-[0.22em]"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 48%, transparent)",
-                  }}
-                >
-                  Nivel {ficha.nivel ?? 1}
-                </span>
-              </div>
-              <h1
-                className="font-serif italic leading-none capitalize"
-                style={{
-                  fontSize: "clamp(1.7rem, 4vw, 2.6rem)",
-                  color: "var(--primary)",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                Misiones
-              </h1>
-              <p
-                className="font-serif italic"
-                style={{
-                  fontSize: "0.83rem",
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
-              >
-                Desafíos y recompensas de {ficha.nombre}
-              </p>
-            </div>
+              </button>
+            )}
           </div>
         </div>
 
