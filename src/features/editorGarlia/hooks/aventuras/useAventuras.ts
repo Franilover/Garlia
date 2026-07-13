@@ -129,6 +129,14 @@ export function useAventurasList() {
 
 const NOMBRE_COL = "nombre";
 
+// Algunas tablas no usan "imagen_url" como nombre de columna; se mapea aquí
+// para no romper el select ni perder la imagen (personajes usa img_url,
+// reinos usa logo_url).
+const COLUMNA_IMAGEN: Partial<Record<TablaEntidad, string>> = {
+  personajes: "img_url",
+  reinos: "logo_url",
+};
+
 async function resolverEntidades(
   rows: AventuraEntidadRow[],
 ): Promise<AventuraEntidad[]> {
@@ -183,7 +191,7 @@ async function resolverEntidades(
           : row.descripcion ?? row.explicacion ?? null;
       datosPorTablaId.set(`${tabla}:${row.id}`, {
         nombre: row[NOMBRE_COL] ?? "Sin nombre",
-        imagen_url: row.imagen_url ?? null,
+        imagen_url: row[COLUMNA_IMAGEN[tabla as TablaEntidad] ?? "imagen_url"] ?? null,
         descripcion: descripcionBase,
       });
     });
@@ -285,16 +293,22 @@ export async function buscarEntidades(query: string): Promise<ResultadoBusqueda[
 
   const resultados = await Promise.all(
     TABLAS_ENTIDAD.map(async (tabla) => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from(tabla)
-        .select("id, nombre, imagen_url")
+        .select("*")
         .ilike("nombre", `%${q}%`)
         .limit(8);
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error(`buscarEntidades: error en tabla "${tabla}"`, error);
+        return [];
+      }
+      const colImagen = COLUMNA_IMAGEN[tabla] ?? "imagen_url";
       return (data ?? []).map((row: any) => ({
         tabla,
         id: row.id,
         nombre: row.nombre,
-        imagen_url: row.imagen_url ?? null,
+        imagen_url: row[colImagen] ?? null,
       }));
     }),
   );
