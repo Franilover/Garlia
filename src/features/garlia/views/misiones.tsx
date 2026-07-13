@@ -5,9 +5,12 @@ import {
   Award,
   CheckCircle2,
   Clock,
+  Heart,
   Loader2,
   Scroll,
+  Shield,
   Star,
+  Sword,
   WifiOff,
   X,
 } from "lucide-react";
@@ -23,6 +26,7 @@ import {
 } from "@/lib/api/client/syncEngine";
 
 import type { FichaDnd } from "../hooks/useFichasDnd";
+import { statMod } from "../hooks/useFichasDnd";
 import {
   BarraProgreso,
   EmptyMisiones,
@@ -55,6 +59,235 @@ function EstrellasDificultad({ dificultad }: { dificultad: Dificultad }) {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+// ─── Panel de ficha (nombre, vida, daño y stats D&D) ───────────────────────
+// Reutiliza el mismo lenguaje visual que el panel "Registro" de misiones:
+// mismo card, mismo separador con label, mismas barras de 10 segmentos.
+
+const ABREVIATURA_STAT: Record<string, string> = {
+  fuerza: "FUE",
+  destreza: "DES",
+  constitucion: "CON",
+  inteligencia: "INT",
+  sabiduria: "SAB",
+  carisma: "CAR",
+};
+
+function SeparadorLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <div
+        className="flex-1 h-px"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      />
+      <p
+        className="text-micro font-black uppercase tracking-[0.3em]"
+        style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}
+      >
+        {label}
+      </p>
+      <div
+        className="flex-1 h-px"
+        style={{
+          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      />
+    </div>
+  );
+}
+
+function FichaStatsPanel({ ficha }: { ficha: FichaDnd }) {
+  const hpMax = ficha.hp_max ?? 0;
+  const hpActual = ficha.hp_actual ?? 0;
+  const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
+  const stats: Array<[string, number]> = [
+    ["fuerza", ficha.fuerza ?? 10],
+    ["destreza", ficha.destreza ?? 10],
+    ["constitucion", ficha.constitucion ?? 10],
+    ["inteligencia", ficha.inteligencia ?? 10],
+    ["sabiduria", ficha.sabiduria ?? 10],
+    ["carisma", ficha.carisma ?? 10],
+  ];
+
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        background: "var(--white-custom)",
+        borderRadius: "var(--radius-card)",
+        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+      }}
+    >
+      {/* ── Encabezado: retrato + nombre + clase/nivel ── */}
+      <div className="px-5 pt-5 pb-4 flex items-center gap-3">
+        <div
+          className="relative shrink-0 overflow-hidden flex items-center justify-center"
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
+          }}
+        >
+          {ficha.imagen_url ? (
+            <img
+              alt={ficha.nombre}
+              className="w-full h-full object-cover"
+              src={ficha.imagen_url}
+            />
+          ) : (
+            <Sword
+              size={18}
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+            />
+          )}
+        </div>
+        <div className="min-w-0">
+          <p
+            className="font-serif italic text-base leading-tight truncate capitalize"
+            style={{ color: "var(--primary)" }}
+          >
+            {ficha.nombre}
+          </p>
+          <p
+            className="text-micro font-black uppercase tracking-wider truncate"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            {ficha.clase ?? "Aventurero"} · Nivel {ficha.nivel ?? 1}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Vida y daño ── */}
+      <div
+        className="px-5 pt-4 pb-4"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Combate" />
+
+        <div className="mb-3.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <div
+              className="flex items-center gap-1.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Heart size={9} />
+              <span className="text-micro font-black uppercase tracking-wider">Vida</span>
+            </div>
+            <span
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            >
+              {hpActual}/{hpMax || "—"}
+            </span>
+          </div>
+          <div className="flex gap-0.5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex-1 h-1 transition-all duration-700"
+                style={{
+                  background:
+                    hpMax > 0 && i < Math.round((hpActual / hpMax) * 10)
+                      ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  borderRadius: "1px",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Shield size={9} />
+              Defensa
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {ficha.ca ?? "—"}
+            </span>
+          </div>
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Sword size={9} />
+              Daño
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Estadísticas D&D ── */}
+      <div
+        className="px-5 py-4"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Estadísticas" />
+        <div className="grid grid-cols-3 gap-2">
+          {stats.map(([key, valor]) => {
+            const mod = statMod(valor);
+            return (
+              <div
+                key={key}
+                className="flex flex-col items-center gap-0.5 py-2"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  {ABREVIATURA_STAT[key]}
+                </span>
+                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                  {valor}
+                </span>
+                <span
+                  className="text-micro font-black tabular-nums"
+                  style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                >
+                  {mod >= 0 ? `+${mod}` : mod}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -837,6 +1070,11 @@ export default function Misiones({
                 </MotionDiv>
               </AnimatePresence>
             </div>
+          </div>
+
+          {/* ── RIGHT SIDEBAR: ficha ── */}
+          <div className="w-full md:w-64 xl:w-72 shrink-0 md:sticky md:top-16 self-start animate-in fade-in duration-500">
+            <FichaStatsPanel ficha={ficha} />
           </div>
         </div>
       </div>
