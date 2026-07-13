@@ -141,13 +141,6 @@ function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
-        <Compass size={13} className="text-primary/50" />
-        <h2 className="text-xs font-black uppercase tracking-widest text-primary/70">
-          Aventuras
-        </h2>
-      </div>
-
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
         <input
           type="text"
           value={nombreNueva}

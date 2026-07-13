@@ -11,11 +11,12 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Compass, Loader2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
+import { useAuth } from "@/providers/AuthProvider";
 
 import {
   TABLA_LABEL,
@@ -24,6 +25,7 @@ import {
   type Aventura as AventuraType,
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
+import { useFichasDnd } from "../hooks/useFichasDnd";
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -34,12 +36,94 @@ export default function Aventura() {
   const [aventuraId, setAventuraId] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col p-4 md:p-8 gap-6" style={{ minHeight: "calc(100svh - 64px)" }}>
+    <div
+      className="relative flex flex-col p-4 md:p-8 gap-6"
+      style={{ minHeight: "calc(100svh - 64px)" }}
+    >
+      <SelectorIdentidadFlotante />
       {aventuraId ? (
         <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
       ) : (
         <SelectorAventuras onSeleccionar={setAventuraId} />
       )}
+    </div>
+  );
+}
+
+// ── Selector de identidad activa (esquina superior derecha) ─────────────
+
+function SelectorIdentidadFlotante() {
+  const { perfil } = useAuth();
+  const { fichas, activa, loading, elegirActiva } = useFichasDnd(perfil?.id ?? null);
+  const [abierto, setAbierto] = useState(false);
+
+  if (!perfil || loading || fichas.length === 0) return null;
+
+  return (
+    <div className="absolute top-4 right-4 z-30">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-full border transition-colors"
+        style={{
+          background: "var(--white-custom)",
+          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+        }}
+      >
+        <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+          {activa?.imagen_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={activa.imagen_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <Swords size={11} className="text-primary/40" />
+          )}
+        </div>
+        <span className="text-xs font-bold text-primary/70 max-w-[100px] truncate">
+          {activa?.nombre ?? "Elegir identidad"}
+        </span>
+        <ChevronDown size={12} className="text-primary/30 shrink-0" />
+      </button>
+
+      <AnimatePresence>
+        {abierto && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
+            <MotionDiv
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-xl border overflow-hidden shadow-lg"
+              exit={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -6 }}
+              style={{
+                background: "var(--white-custom)",
+                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            >
+              {fichas.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => {
+                    if (!f.activa) elegirActiva(f.id);
+                    setAbierto(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                >
+                  <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                    {f.imagen_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={f.imagen_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Swords size={11} className="text-primary/40" />
+                    )}
+                  </div>
+                  <span className="flex-1 text-xs text-primary/80 truncate">{f.nombre}</span>
+                  {f.activa && <Check size={13} className="text-primary shrink-0" />}
+                </button>
+              ))}
+            </MotionDiv>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -57,13 +141,12 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
         initial={{ opacity: 0, y: -20 }}
       >
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Compass className="text-primary/50" size={18} />
           <Text as="span" variant="cap">
-            Diario de la Campaña
+            Diario de
           </Text>
         </div>
         <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-primary italic">
-          Aventura
+          Aventuras
         </h1>
       </MotionDiv>
 
@@ -105,7 +188,6 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
                       "color-mix(in srgb, var(--primary) 10%, transparent)";
                   }}
                 >
-                  <BookOpen size={18} className="text-primary/30 mb-3" />
                   <h3 className="font-serif italic text-xl text-primary mb-1">{a.nombre}</h3>
                   {a.descripcion && (
                     <p className="text-xs text-primary/50 line-clamp-2">{a.descripcion}</p>
@@ -152,7 +234,6 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           Aventuras
         </button>
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Compass className="text-primary/50" size={18} />
           <Text as="span" variant="cap">
             Diario de la Campaña
           </Text>
