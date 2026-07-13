@@ -17,6 +17,7 @@ import React, { useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 
+import { SelectorIdentidadFlotante } from "@/features/garlia/components/SelectorIdentidadFlotante";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -35,6 +36,7 @@ export default function Aventura() {
 
   return (
     <div className="flex flex-col p-4 md:p-8 gap-6" style={{ minHeight: "calc(100svh - 64px)" }}>
+      <SelectorIdentidadFlotante />
       {aventuraId ? (
         <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
       ) : (
