@@ -46,6 +46,7 @@ import {
   type FichaDnd,
 } from "@/features/garlia/hooks/useFichasDnd";
 import { supabase } from "@/lib/api/client/supabase";
+import type { ItemMin } from "@/lib/utils/criaturaItemsCache";
 
 import {
   buscarEntidades,
@@ -542,7 +543,7 @@ function PanelFichaDM({
   };
 
   // Agrega un objeto directamente (el DM tiene permiso vía RLS/policy admin).
-  const agregarObjeto = async (item: { id: string; nombre: string; imagen_url: string | null }) => {
+  const agregarObjeto = async (item: ItemMin) => {
     await supabase.from("fichas_dnd_inventario").insert({
       ficha_id: ficha.entidad_id,
       item_id: item.id,
