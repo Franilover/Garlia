@@ -101,7 +101,7 @@ function SeparadorLabel({ label }: { label: string }) {
   );
 }
 
-function FichaStatsPanel({ ficha }: { ficha: FichaDnd }) {
+export function FichaStatsPanel({ ficha }: { ficha: FichaDnd }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
