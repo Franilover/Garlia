@@ -255,27 +255,69 @@ export function useAventuraEntidades(aventuraId: string | null) {
       // Evita el POST (y el 409 ruidoso en consola) si ya sabemos que existe.
       const yaExiste = entidades.some((e) => e.tabla === tabla && e.entidad_id === entidadId);
       if (yaExiste) return;
-      const { error } = await supabase
+
+      const { data, error } = await supabase
         .from("aventura_entidades")
-        .insert({ aventura_id: aventuraId, tabla, entidad_id: entidadId });
-      // Conflicto de unicidad (carrera): la fila ya existe, no es un error real.
-      if (error && error.code !== "23505") throw error;
+        .insert({ aventura_id: aventuraId, tabla, entidad_id: entidadId })
+        .select()
+        .single();
+
+      if (error) {
+        // Conflicto de unicidad (carrera): la fila ya existe, no es un error real.
+        if (error.code === "23505") return;
+        throw error;
+      }
+
+      // Optimista: inserta la fila resuelta al instante, sin esperar el
+      // realtime ni un refetch completo.
+      if (data) {
+        const [resuelta] = await resolverEntidades([data as AventuraEntidadRow]);
+        if (resuelta) {
+          setEntidades((prev) => [resuelta, ...prev]);
+        }
+      }
     },
     [aventuraId, entidades],
   );
 
   const quitar = useCallback(async (relacionId: string) => {
+    // Optimista: la quita de la lista al instante; si falla, se restaura.
+    const anterior = entidades;
+    setEntidades((prev) => prev.filter((e) => e.id !== relacionId));
     const { error } = await supabase.from("aventura_entidades").delete().eq("id", relacionId);
-    if (error) throw error;
-  }, []);
+    if (error) {
+      setEntidades(anterior);
+      throw error;
+    }
+  }, [entidades]);
 
   const togglePublicado = useCallback(async (relacion: AventuraEntidad) => {
     const nuevoValor = !relacion.publicado;
+    const nuevoPublicadoAt = nuevoValor ? new Date().toISOString() : null;
+
+    // Optimista: refleja el toggle al instante en la UI del DM.
+    setEntidades((prev) =>
+      prev.map((e) =>
+        e.id === relacion.id ? { ...e, publicado: nuevoValor, publicado_at: nuevoPublicadoAt } : e,
+      ),
+    );
+
     const { error } = await supabase
       .from("aventura_entidades")
-      .update({ publicado: nuevoValor, publicado_at: nuevoValor ? new Date().toISOString() : null })
+      .update({ publicado: nuevoValor, publicado_at: nuevoPublicadoAt })
       .eq("id", relacion.id);
-    if (error) throw error;
+
+    if (error) {
+      // Revierte si falló en el servidor
+      setEntidades((prev) =>
+        prev.map((e) =>
+          e.id === relacion.id
+            ? { ...e, publicado: relacion.publicado, publicado_at: relacion.publicado_at }
+            : e,
+        ),
+      );
+      throw error;
+    }
   }, []);
 
   return { entidades, loading, agregar, quitar, togglePublicado, refetch: fetchAll };

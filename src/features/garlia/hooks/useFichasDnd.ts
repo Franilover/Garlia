@@ -142,9 +142,17 @@ export function useFichasDnd(perfilId: string | null) {
   }, []);
 
   const elegirActiva = useCallback(async (id: string) => {
+    // Optimista: refleja el cambio al instante en este componente y en
+    // cualquier otro que use el mismo hook, sin esperar el roundtrip de
+    // red ni la latencia del canal realtime.
+    setFichas((prev) => prev.map((f) => ({ ...f, activa: f.id === id })));
     const { error } = await supabase.from("fichas_dnd").update({ activa: true }).eq("id", id);
-    if (error) throw error;
-  }, []);
+    if (error) {
+      // Revierte si falló en el servidor
+      await fetchAll();
+      throw error;
+    }
+  }, [fetchAll]);
 
   const activa = fichas.find((f) => f.activa) ?? null;
 
