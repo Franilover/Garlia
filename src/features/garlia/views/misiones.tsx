@@ -11,6 +11,7 @@ import {
   Star,
   User,
   WifiOff,
+  X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 
