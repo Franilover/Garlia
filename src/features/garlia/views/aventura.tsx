@@ -1,47 +1,56 @@
 "use client";
 
 /**
- * Aventura
+ * Aventura (público)
  * ───────────────────────────────────────────────────────────────────────────
- * Feed público único para /garlia/aventura: mezcla personajes, criaturas,
- * items, reinos, ciudades, hechizos, dones y runas que el DM haya marcado
- * como "publicado" desde myself/garlia → tab Publicación. Orden: más
- * reciente primero (publicado_at desc). Tarjeta compacta; click para ver
- * el detalle completo en un modal.
- *
- * Realtime gratis: usePublicacionEntidades usa useSupabaseData por tabla,
- * que ya está suscrito a postgres_changes — al publicar algo desde el
- * admin, este feed se actualiza solo, sin recargar.
+ * /garlia/aventura — el jugador primero ve una lista de aventuras
+ * existentes (ej "El Bosque Sombrío"), elige una, y entra a su feed: solo
+ * las entidades que el DM haya marcado como publicadas dentro de ESA
+ * aventura, más reciente primero. Realtime: al publicar algo en admin,
+ * este feed se actualiza solo.
  */
 
 import { AnimatePresence } from "framer-motion";
-import { BookOpen, Compass, Loader2, Sparkles, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Compass, Loader2, Sparkles, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 
 import {
-  TIPO_LABEL,
-  usePublicacionEntidades,
-  type EntidadPublicable,
-} from "@/features/editorGarlia/hooks/publicacion/usePublicacionEntidades";
+  TABLA_LABEL,
+  useAventuraEntidades,
+  useAventurasList,
+  type Aventura as AventuraType,
+  type AventuraEntidad,
+} from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" });
 }
 
 export default function Aventura() {
-  const { publicadas, loading } = usePublicacionEntidades();
-  const [seleccion, setSeleccion] = useState<EntidadPublicable | null>(null);
+  const [aventuraId, setAventuraId] = useState<string | null>(null);
 
   return (
-    <div
-      className="flex flex-col p-4 md:p-8 gap-6"
-      style={{ minHeight: "calc(100svh - 64px)" }}
-    >
+    <div className="flex flex-col p-4 md:p-8 gap-6" style={{ minHeight: "calc(100svh - 64px)" }}>
+      {aventuraId ? (
+        <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
+      ) : (
+        <SelectorAventuras onSeleccionar={setAventuraId} />
+      )}
+    </div>
+  );
+}
+
+// ── Selector de aventuras ────────────────────────────────────────────────
+
+function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => void }) {
+  const { aventuras, loading } = useAventurasList();
+
+  return (
+    <>
       <MotionDiv
         animate={{ opacity: 1, y: 0 }}
         className="text-center shrink-0"
@@ -59,7 +68,102 @@ export default function Aventura() {
       </MotionDiv>
 
       <div className="flex-1 max-w-3xl w-full mx-auto">
-        {loading && publicadas.length === 0 ? (
+        {loading && aventuras.length === 0 ? (
+          <div className="py-24 flex items-center justify-center text-primary/30">
+            <Loader2 className="animate-spin" size={22} />
+          </div>
+        ) : aventuras.length === 0 ? (
+          <div className="py-24 text-center">
+            <Sparkles className="mx-auto mb-3 text-primary/20" size={28} />
+            <Text as="p" variant="md" className="text-primary/40">
+              Todavía no hay ninguna aventura creada. Vuelve pronto.
+            </Text>
+          </div>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
+            {aventuras.map((a, i) => (
+              <MotionDiv
+                key={a.id}
+                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 12 }}
+                transition={{ delay: Math.min(i * 0.05, 0.3) }}
+              >
+                <button
+                  type="button"
+                  onClick={() => onSeleccionar(a.id)}
+                  className="group w-full flex flex-col text-left p-5 rounded-2xl border transition-all"
+                  style={{
+                    background: "var(--white-custom)",
+                    borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      "color-mix(in srgb, var(--primary) 28%, transparent)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      "color-mix(in srgb, var(--primary) 10%, transparent)";
+                  }}
+                >
+                  <BookOpen size={18} className="text-primary/30 mb-3" />
+                  <h3 className="font-serif italic text-xl text-primary mb-1">{a.nombre}</h3>
+                  {a.descripcion && (
+                    <p className="text-xs text-primary/50 line-clamp-2">{a.descripcion}</p>
+                  )}
+                </button>
+              </MotionDiv>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Feed de una aventura ─────────────────────────────────────────────────
+
+function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: () => void }) {
+  const { aventuras } = useAventurasList();
+  const { entidades, loading } = useAventuraEntidades(aventuraId);
+  const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
+  const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
+
+  const publicadas = entidades
+    .filter((e) => e.publicado)
+    .sort((a, b) => {
+      const ta = a.publicado_at ? new Date(a.publicado_at).getTime() : 0;
+      const tb = b.publicado_at ? new Date(b.publicado_at).getTime() : 0;
+      return tb - ta;
+    });
+
+  return (
+    <>
+      <MotionDiv
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center shrink-0 relative"
+        initial={{ opacity: 0, y: -20 }}
+      >
+        <button
+          type="button"
+          onClick={onVolver}
+          className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-primary/40 hover:text-primary/70 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          Aventuras
+        </button>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Compass className="text-primary/50" size={18} />
+          <Text as="span" variant="cap">
+            Diario de la Campaña
+          </Text>
+        </div>
+        <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-primary italic">
+          {aventura?.nombre ?? "Aventura"}
+        </h1>
+      </MotionDiv>
+
+      <div className="flex-1 max-w-3xl w-full mx-auto">
+        {loading && entidades.length === 0 ? (
           <div className="py-24 flex items-center justify-center text-primary/30">
             <Loader2 className="animate-spin" size={22} />
           </div>
@@ -67,8 +171,8 @@ export default function Aventura() {
           <div className="py-24 text-center">
             <Sparkles className="mx-auto mb-3 text-primary/20" size={28} />
             <Text as="p" variant="md" className="text-primary/40">
-              Todavía no hay nada publicado. Vuelve pronto — el DM irá
-              revelando el mundo a medida que lo descubráis.
+              Todavía no hay nada revelado en esta aventura. El DM irá
+              publicando cosas a medida que las descubráis.
             </Text>
           </div>
         ) : (
@@ -76,7 +180,7 @@ export default function Aventura() {
             <AnimatePresence initial={false}>
               {publicadas.map((entidad, i) => (
                 <MotionDiv
-                  key={`${entidad.tabla}:${entidad.id}`}
+                  key={entidad.id}
                   animate={{ opacity: 1, y: 0 }}
                   initial={{ opacity: 0, y: 12 }}
                   transition={{ delay: Math.min(i * 0.03, 0.3) }}
@@ -87,8 +191,7 @@ export default function Aventura() {
                     className="group w-full flex items-center gap-3 p-3 text-left rounded-xl border transition-all"
                     style={{
                       background: "var(--white-custom)",
-                      borderColor:
-                        "color-mix(in srgb, var(--primary) 10%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLElement).style.borderColor =
@@ -114,11 +217,9 @@ export default function Aventura() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                          {TIPO_LABEL[entidad.tabla].singular}
-                        </span>
-                      </div>
+                      <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                        {TABLA_LABEL[entidad.tabla].singular}
+                      </span>
                       <h3 className="font-serif italic text-base text-primary truncate">
                         {entidad.nombre}
                       </h3>
@@ -175,11 +276,9 @@ export default function Aventura() {
               )}
 
               <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                {TIPO_LABEL[seleccion.tabla].singular}
+                {TABLA_LABEL[seleccion.tabla].singular}
               </span>
-              <h2 className="font-serif italic text-2xl text-primary mb-3">
-                {seleccion.nombre}
-              </h2>
+              <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
 
               {seleccion.descripcion ? (
                 <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
@@ -198,6 +297,6 @@ export default function Aventura() {
           </MotionDiv>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
