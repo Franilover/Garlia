@@ -20,13 +20,15 @@ import {
   Compass,
   Eye,
   EyeOff,
+  Heart,
   Loader2,
   Plus,
+  Scroll,
   Search,
   Trash2,
   X,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import {
   buscarEntidades,
@@ -37,16 +39,83 @@ import {
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
 
+const EditorMisiones = lazy(() => import("./editorMisiones"));
+const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
+
+type SubPanel = "aventuras" | "misiones" | "relaciones";
+
+const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
+  { key: "aventuras", label: "Aventuras", Icon: Compass },
+  { key: "misiones", label: "Misiones", Icon: Scroll },
+  { key: "relaciones", label: "Relaciones", Icon: Heart },
+];
+
+function SubPanelFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center text-primary/30 py-16">
+      <Loader2 className="animate-spin" size={18} />
+    </div>
+  );
+}
+
 export function AventuraSection() {
+  const [subPanel, setSubPanel] = useState<SubPanel>("aventuras");
   const [aventuraActiva, setAventuraActiva] = useState<string | null>(null);
 
-  if (aventuraActiva) {
-    return (
-      <AventuraDetalle aventuraId={aventuraActiva} onVolver={() => setAventuraActiva(null)} />
-    );
-  }
+  return (
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* ── Sub-selector: Aventuras / Misiones / Relaciones ─────────────── */}
+      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-primary/10 overflow-x-auto">
+        {SUB_PANELES.map(({ key, label, Icon }) => {
+          const active = subPanel === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => {
+                setSubPanel(key);
+                if (key !== "aventuras") setAventuraActiva(null);
+              }}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                active
+                  ? "bg-primary/10 text-primary"
+                  : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
+              }`}
+            >
+              <Icon size={13} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
 
-  return <AventuraIndice onSeleccionar={setAventuraActiva} />;
+      {/* ── Contenido del sub-panel activo ──────────────────────────────── */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        {subPanel === "aventuras" &&
+          (aventuraActiva ? (
+            <AventuraDetalle aventuraId={aventuraActiva} onVolver={() => setAventuraActiva(null)} />
+          ) : (
+            <AventuraIndice onSeleccionar={setAventuraActiva} />
+          ))}
+
+        {subPanel === "misiones" && (
+          <Suspense fallback={<SubPanelFallback />}>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <EditorMisiones />
+            </div>
+          </Suspense>
+        )}
+
+        {subPanel === "relaciones" && (
+          <Suspense fallback={<SubPanelFallback />}>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <AdminDescubrimientos />
+            </div>
+          </Suspense>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── Índice de aventuras ─────────────────────────────────────────────────

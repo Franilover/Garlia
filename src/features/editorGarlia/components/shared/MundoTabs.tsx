@@ -22,7 +22,7 @@
  * la tab "entidades" activa; el resto son 1 a 1 con su SectionKey.
  */
 
-import { Clock, Compass, Heart, Home, Mountain, ScrollText, Users } from "lucide-react";
+import { Clock, Compass, Home, Mountain, ScrollText, Users } from "lucide-react";
 import React from "react";
 
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -41,15 +41,7 @@ const ENTIDADES_SECTIONS: SectionKey[] = [
   "letras",
 ];
 
-type TabKey =
-  | "inicio"
-  | "entidades"
-  | "mapa"
-  | "capitulos"
-  | "linea-tiempo"
-  | "aventura"
-  | "misiones"
-  | "relaciones";
+type TabKey = "inicio" | "entidades" | "mapa" | "capitulos" | "linea-tiempo" | "aventura";
 
 interface Tab {
   key: TabKey;
@@ -64,8 +56,6 @@ const TABS: Tab[] = [
   { key: "mapa", label: "Mapa", Icon: Mountain },
   { key: "capitulos", label: "Capítulos", Icon: ScrollText },
   { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
-  { key: "misiones", label: "Misiones", Icon: ScrollText },
-  { key: "relaciones", label: "Relaciones", Icon: Heart },
 ];
 
 function tabKeyOf(section: SectionKey | null): TabKey {
@@ -74,8 +64,6 @@ function tabKeyOf(section: SectionKey | null): TabKey {
   if (section === "capitulos") return "capitulos";
   if (section === "linea-tiempo") return "linea-tiempo";
   if (section === "aventura") return "aventura";
-  if (section === "misiones") return "misiones";
-  if (section === "relaciones") return "relaciones";
   if (ENTIDADES_SECTIONS.includes(section)) return "entidades";
   return "inicio";
 }
