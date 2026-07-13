@@ -30,10 +30,13 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
+import { SelectorEspecie } from "../components/SelectorEspecie";
+import { SelectorItemInventario } from "../components/SelectorItemInventario";
 import {
   statMod,
+  useEspeciesCatalogo,
   useFichasDnd,
-  useInventarioFicha,
+  useInventarioFichaResuelto,
   type FichaDnd,
   type NuevaFicha,
 } from "../hooks/useFichasDnd";
@@ -57,6 +60,9 @@ export default function MisFichas() {
   const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva } = useFichasDnd(
     perfil?.id ?? null,
   );
+  const { especies } = useEspeciesCatalogo();
+  const nombreEspecie = (especieId: string | null) =>
+    especieId ? especies.find((e) => e.id === especieId)?.nombre ?? null : null;
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
 
@@ -170,7 +176,7 @@ export default function MisFichas() {
                   <div className="p-3">
                     <h3 className="font-serif italic text-lg text-primary truncate">{f.nombre}</h3>
                     <span className="text-micro font-bold uppercase tracking-wide text-primary/40">
-                      {[f.raza, f.clase, `Nv. ${f.nivel}`].filter(Boolean).join(" · ")}
+                      {[nombreEspecie(f.especie_id), f.clase, `Nv. ${f.nivel}`].filter(Boolean).join(" · ")}
                     </span>
                   </div>
                 </button>
@@ -222,7 +228,7 @@ function ModalCrearFicha({
   onCrear: (datos: NuevaFicha) => Promise<void>;
 }) {
   const [nombre, setNombre] = useState("");
-  const [raza, setRaza] = useState("");
+  const [especieId, setEspecieId] = useState<string | null>(null);
   const [clase, setClase] = useState("");
   const [guardando, setGuardando] = useState(false);
 
@@ -230,7 +236,7 @@ function ModalCrearFicha({
     if (!nombre.trim()) return;
     setGuardando(true);
     try {
-      await onCrear({ nombre: nombre.trim(), raza: raza.trim() || null, clase: clase.trim() || null });
+      await onCrear({ nombre: nombre.trim(), especie_id: especieId, clase: clase.trim() || null });
     } finally {
       setGuardando(false);
     }
@@ -272,20 +278,16 @@ function ModalCrearFicha({
             placeholder="Nombre del personaje"
             className="h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
           />
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={raza}
-              onChange={(e) => setRaza(e.target.value)}
-              placeholder="Raza (ej. Elfo)"
-              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
-            />
+          <div className="flex gap-2 items-start">
+            <div className="flex-1">
+              <SelectorEspecie value={especieId} onChange={setEspecieId} label="Especie" placeholder="Elegir especie…" />
+            </div>
             <input
               type="text"
               value={clase}
               onChange={(e) => setClase(e.target.value)}
               placeholder="Clase (ej. Pícaro)"
-              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
+              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors mt-[18px]"
             />
           </div>
           <button
@@ -298,7 +300,7 @@ function ModalCrearFicha({
             Crear ficha
           </button>
           <p className="text-micro text-primary/30 text-center">
-            Podrás completar raza, stats e inventario después.
+            Podrás completar especie, stats e inventario después.
           </p>
         </div>
       </MotionDiv>
@@ -323,11 +325,14 @@ function FichaDetalle({
   onEliminar: (id: string) => Promise<void>;
   onElegirActiva: (id: string) => Promise<void>;
 }) {
-  const { items, agregar, quitar, toggleEquipado } = useInventarioFicha(ficha.id);
+  const { items, agregar, quitar, toggleEquipado } = useInventarioFichaResuelto(ficha.id);
+  const { especies } = useEspeciesCatalogo();
+  const nombreEspecieActual = ficha.especie_id
+    ? especies.find((e) => e.id === ficha.especie_id)?.nombre ?? null
+    : null;
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<Partial<FichaDnd>>(ficha);
   const [guardando, setGuardando] = useState(false);
-  const [nuevoItem, setNuevoItem] = useState("");
 
   const guardar = async () => {
     setGuardando(true);
@@ -406,7 +411,7 @@ function FichaDetalle({
             <h1 className="font-serif italic text-2xl text-primary">{ficha.nombre}</h1>
           )}
           <span className="text-xs font-bold uppercase tracking-wide text-primary/40">
-            {[ficha.raza, ficha.clase, `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
+            {[nombreEspecieActual, ficha.clase, `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
           </span>
           {esActiva && (
             <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-white text-micro font-black uppercase">
@@ -453,7 +458,10 @@ function FichaDetalle({
       {/* ── Edición de datos base ───────────────────────────────────── */}
       {editando && (
         <div className="grid grid-cols-2 gap-2">
-          {campo("raza", "Raza")}
+          <SelectorEspecie
+            value={(borrador.especie_id as string | null) ?? null}
+            onChange={(especieId) => setBorrador((prev) => ({ ...prev, especie_id: especieId }))}
+          />
           {campo("clase", "Clase")}
           {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
@@ -499,32 +507,8 @@ function FichaDetalle({
         <h3 className="text-xs font-black uppercase tracking-widest text-primary/50 mb-2">
           Inventario
         </h3>
-        <div className="flex gap-2 mb-3">
-          <input
-            type="text"
-            value={nuevoItem}
-            onChange={(e) => setNuevoItem(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && nuevoItem.trim()) {
-                agregar(nuevoItem.trim());
-                setNuevoItem("");
-              }
-            }}
-            placeholder="Añadir objeto…"
-            className="flex-1 h-9 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              if (nuevoItem.trim()) {
-                agregar(nuevoItem.trim());
-                setNuevoItem("");
-              }
-            }}
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/15 transition-colors"
-          >
-            <Plus size={14} />
-          </button>
+        <div className="mb-3">
+          <SelectorItemInventario onAgregar={(item) => agregar(item)} />
         </div>
 
         {items.length === 0 ? (
@@ -536,6 +520,12 @@ function FichaDetalle({
                 key={item.id}
                 className="group flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]"
               >
+                {item.imagen_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.imagen_url} alt="" className="w-7 h-7 rounded object-cover shrink-0" />
+                ) : (
+                  <span className="w-7 h-7 rounded bg-primary/5 shrink-0" />
+                )}
                 <button
                   type="button"
                   onClick={() => toggleEquipado(item)}
@@ -545,7 +535,12 @@ function FichaDetalle({
                 >
                   {item.equipado ? "Equipado" : "Equipar"}
                 </button>
-                <span className="flex-1 text-xs text-primary/70 truncate">{item.nombre}</span>
+                <span className="flex-1 text-xs text-primary/70 truncate">
+                  {item.nombre}
+                  {!item.vinculoVivo && item.item_id === null && (
+                    <span className="ml-1 text-micro text-primary/30 italic">(item original borrado)</span>
+                  )}
+                </span>
                 {item.cantidad > 1 && (
                   <span className="text-micro text-primary/35">×{item.cantidad}</span>
                 )}

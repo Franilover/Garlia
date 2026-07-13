@@ -143,13 +143,28 @@ async function resolverEntidades(
 
   const datosPorTablaId = new Map<string, { nombre: string; imagen_url: string | null; descripcion: string | null }>();
 
+  // Cache de nombres de criaturas, para resolver especie_id -> nombre
+  // cuando se resuelven fichas_dnd (evita otro round-trip por ficha).
+  let nombresEspecies: Map<string, string> | null = null;
+  const getNombresEspecies = async () => {
+    if (nombresEspecies) return nombresEspecies;
+    const { data } = await supabase.from("criaturas").select("id, nombre");
+    nombresEspecies = new Map((data ?? []).map((c: any) => [c.id, c.nombre as string]));
+    return nombresEspecies;
+  };
+
   await Promise.all(
     Array.from(porTabla.entries()).map(async ([tabla, ids]) => {
       const { data } = await supabase.from(tabla).select("*").in("id", ids);
+      const especies = tabla === "fichas_dnd" ? await getNombresEspecies() : null;
       (data ?? []).forEach((row: any) => {
         const descripcionBase =
           tabla === "fichas_dnd"
-            ? [row.raza, row.clase, row.nivel ? `Nivel ${row.nivel}` : null]
+            ? [
+                row.especie_id ? especies?.get(row.especie_id) ?? null : null,
+                row.clase,
+                row.nivel ? `Nivel ${row.nivel}` : null,
+              ]
                 .filter(Boolean)
                 .join(" · ")
             : row.descripcion ?? row.explicacion ?? null;

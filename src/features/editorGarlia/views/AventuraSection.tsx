@@ -20,6 +20,7 @@ import {
   Compass,
   Eye,
   EyeOff,
+  Info,
   Loader2,
   Plus,
   Search,
@@ -27,6 +28,8 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+
+import { useInventarioFichaResuelto } from "@/features/garlia/hooks/useFichasDnd";
 
 import {
   buscarEntidades,
@@ -170,6 +173,7 @@ function AventuraDetalle({
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
+  const [verInventarioDe, setVerInventarioDe] = useState<AventuraEntidad | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -373,11 +377,115 @@ function AventuraDetalle({
                   >
                     <X size={10} />
                   </button>
+                  {e.tabla === "fichas_dnd" && (
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setVerInventarioDe(e);
+                      }}
+                      className="absolute bottom-1.5 right-1.5 p-1 rounded-full bg-black/30 hover:bg-primary text-white transition-all"
+                      title="Ver inventario de esta ficha"
+                    >
+                      <Info size={11} />
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
+      </div>
+
+      {verInventarioDe && (
+        <PanelInventarioFichaDM ficha={verInventarioDe} onCerrar={() => setVerInventarioDe(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Panel DM: inventario vinculado de una ficha (solo lectura) ──────────
+
+function PanelInventarioFichaDM({
+  ficha,
+  onCerrar,
+}: {
+  ficha: AventuraEntidad;
+  onCerrar: () => void;
+}) {
+  const { items, loading } = useInventarioFichaResuelto(ficha.entidad_id);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onCerrar}
+    >
+      <div
+        className="relative w-full max-w-sm max-h-[80vh] flex flex-col rounded-2xl overflow-hidden"
+        style={{ background: "var(--white-custom)" }}
+        onClick={(ev) => ev.stopPropagation()}
+      >
+        <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-serif italic text-primary truncate">{ficha.nombre}</h3>
+            <span className="text-micro font-bold uppercase tracking-wide text-primary/35">
+              Inventario vinculado
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="p-1.5 rounded-full hover:bg-primary/10 transition-colors"
+          >
+            <X size={13} className="text-primary/50" />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-3">
+          {loading ? (
+            <div className="py-10 flex items-center justify-center text-primary/30">
+              <Loader2 className="animate-spin" size={18} />
+            </div>
+          ) : items.length === 0 ? (
+            <p className="text-xs text-primary/30 italic text-center py-10">
+              Este jugador no tiene objetos en su inventario.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]"
+                >
+                  {item.imagen_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.imagen_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
+                  ) : (
+                    <span className="w-8 h-8 rounded bg-primary/5 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-primary/80 truncate">
+                      {item.nombre}
+                      {!item.vinculoVivo && item.item_id === null && (
+                        <span className="ml-1 text-micro text-primary/30 italic">(borrado)</span>
+                      )}
+                    </div>
+                    {item.descripcion && (
+                      <div className="text-micro text-primary/40 truncate">{item.descripcion}</div>
+                    )}
+                  </div>
+                  {item.equipado && (
+                    <span className="text-micro font-black uppercase text-primary/50">Equipado</span>
+                  )}
+                  {item.cantidad > 1 && (
+                    <span className="text-micro text-primary/35">×{item.cantidad}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -13,12 +13,16 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
+import { fetchAllItems, type ItemMin } from "@/lib/utils/criaturaItemsCache";
+import { fetchAllCriaturas, type CriaturaMin } from "@/lib/utils/criaturasCache";
 
 export interface FichaDnd {
   id: string;
   perfil_id: string;
   nombre: string;
+  /** @deprecated texto libre histórico — usar especie_id */
   raza: string | null;
+  especie_id: string | null;
   clase: string | null;
   nivel: number;
   alineamiento: string | null;
@@ -43,9 +47,11 @@ export interface FichaDnd {
 export interface ItemInventarioFicha {
   id: string;
   ficha_id: string;
+  item_id: string | null;
   nombre: string;
   cantidad: number;
   descripcion: string | null;
+  imagen_url: string | null;
   equipado: boolean;
 }
 
@@ -147,12 +153,23 @@ export function useInventarioFicha(fichaId: string | null) {
     fetchAll();
   }, [fetchAll]);
 
+  /**
+   * Agrega un objeto al inventario vinculado a un item real del catálogo
+   * (item_id). nombre/descripcion/imagen_url se cachean en el momento
+   * para listados rápidos, pero mientras item_id exista la UI debe
+   * resolver contra `items` en vivo (ver useInventarioFichaResuelto).
+   */
   const agregar = useCallback(
-    async (nombre: string, cantidad = 1, descripcion?: string) => {
+    async (item: ItemMin & { descripcion?: string | null }, cantidad = 1) => {
       if (!fichaId) return;
-      const { error } = await supabase
-        .from("fichas_dnd_inventario")
-        .insert({ ficha_id: fichaId, nombre, cantidad, descripcion: descripcion || null });
+      const { error } = await supabase.from("fichas_dnd_inventario").insert({
+        ficha_id: fichaId,
+        item_id: item.id,
+        nombre: item.nombre,
+        imagen_url: item.imagen_url ?? null,
+        descripcion: item.descripcion ?? null,
+        cantidad,
+      });
       if (error) throw error;
       fetchAll();
     },
@@ -181,4 +198,75 @@ export function useInventarioFicha(fichaId: string | null) {
   );
 
   return { items, loading, agregar, quitar, toggleEquipado, refetch: fetchAll };
+}
+
+// ── Catálogos para los selectores de la ficha ──────────────────────────
+
+/** Catálogo de criaturas de Garlia, para el selector "Especie" de la ficha. */
+export function useEspeciesCatalogo() {
+  const [especies, setEspecies] = useState<CriaturaMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    void fetchAllCriaturas().then((data) => {
+      if (alive) {
+        setEspecies(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { especies, loading };
+}
+
+/** Catálogo de items de Garlia, para el selector de inventario de la ficha. */
+export function useItemsCatalogo() {
+  const [items, setItems] = useState<ItemMin[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    void fetchAllItems().then((data) => {
+      if (alive) {
+        setItems(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return { items, loading };
+}
+
+/**
+ * Resuelve el inventario de una ficha contra el catálogo de items EN VIVO:
+ * si el item vinculado (item_id) cambió de nombre/imagen en el editor de
+ * Garlia, aquí se refleja al instante en vez de mostrar el dato cacheado
+ * en fichas_dnd_inventario. Si el item fue borrado (item_id null), cae
+ * de vuelta al nombre/imagen cacheados en el momento en que se agregó.
+ */
+export function useInventarioFichaResuelto(fichaId: string | null) {
+  const inventario = useInventarioFicha(fichaId);
+  const { items: catalogo } = useItemsCatalogo();
+
+  const resuelto = inventario.items.map((row) => {
+    const itemActual = row.item_id ? catalogo.find((i) => i.id === row.item_id) : undefined;
+    return {
+      ...row,
+      nombre: itemActual?.nombre ?? row.nombre,
+      imagen_url: itemActual?.imagen_url ?? row.imagen_url,
+      /** true si el item original todavía existe en el catálogo */
+      vinculoVivo: Boolean(itemActual),
+    };
+  });
+
+  return { ...inventario, items: resuelto };
 }
