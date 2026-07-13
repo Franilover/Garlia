@@ -1204,10 +1204,10 @@ async function fetchMisionesAdmin(
 }
 
 export async function loadMisionesUsuario(
-  userId: string,
+  fichaId: string,
   onUpdate?: (data: any[]) => void,
 ): Promise<any[]> {
-  const cacheKey = `misiones_usuario:${userId}`;
+  const cacheKey = `misiones_usuario:${fichaId}`;
   const ttl = TTL["misiones_usuario"];
 
   const mem = memGet<any[]>(cacheKey, ttl);
@@ -1215,33 +1215,36 @@ export async function loadMisionesUsuario(
 
   // Dexie primero — permite ver el progreso offline incluso si el caché en
   // memoria expiró (a diferencia de session_cache, sobrevive recargas).
-  const local = await dexieWhere<any>(db?.misiones_usuario, "user_id", userId);
+  const local = await dexieWhere<any>(db?.misiones_usuario, "ficha_id", fichaId);
   if (local.length > 0) {
     memSet(cacheKey, local);
     void isReallyOnline().then((online) => {
-      if (online) void fetchMisionesUsuario(userId, cacheKey, onUpdate);
+      if (online) void fetchMisionesUsuario(fichaId, cacheKey, onUpdate);
     });
     return local;
   }
 
-  return (await fetchMisionesUsuario(userId, cacheKey, onUpdate)) ?? [];
+  return (await fetchMisionesUsuario(fichaId, cacheKey, onUpdate)) ?? [];
 }
 
 async function fetchMisionesUsuario(
-  userId: string,
+  fichaId: string,
   cacheKey: string,
   onUpdate?: (data: any[]) => void,
 ): Promise<any[]> {
   try {
     const { data, error } = await supabase
       .from("misiones_usuario")
-      .select("mision_id, estado, progreso, fecha_aceptada, fecha_completada")
-      .eq("user_id", userId);
+      .select(
+        "mision_id, estado, progreso, fecha_aceptada, fecha_completada, user_id",
+      )
+      .eq("ficha_id", fichaId);
     if (error || !data) return [];
 
     const rows = data.map((r: any) => ({
-      id: `${userId}_${r.mision_id}`,
-      user_id: userId,
+      id: `${fichaId}_${r.mision_id}`,
+      ficha_id: fichaId,
+      user_id: r.user_id,
       mision_id: r.mision_id,
       estado: r.estado,
       progreso: r.progreso,
@@ -1270,11 +1273,13 @@ async function fetchMisionesUsuario(
  * de inmediato (no esperar la respuesta de red).
  */
 export async function aceptarMisionOffline(
-  userId: string,
+  fichaId: string,
   misionId: string,
+  userId?: string,
 ): Promise<any> {
   const localRow = {
-    id: `${userId}_${misionId}`,
+    id: `${fichaId}_${misionId}`,
+    ficha_id: fichaId,
     user_id: userId,
     mision_id: misionId,
     estado: "en_curso" as const,
@@ -1287,11 +1292,12 @@ export async function aceptarMisionOffline(
 
   // 1. Escritura local inmediata (Dexie + memoria) — la UI no espera red.
   await persist("misiones_usuario", [localRow]);
-  invalidateCache(`misiones_usuario:${userId}`);
+  invalidateCache(`misiones_usuario:${fichaId}`);
 
   const online = await isReallyOnline();
   if (!online) {
     await enqueueOffline("misiones_usuario", "upsert", localRow.id, {
+      ficha_id: fichaId,
       user_id: userId,
       mision_id: misionId,
       estado: "en_curso",
@@ -1304,6 +1310,7 @@ export async function aceptarMisionOffline(
   // 2. Si hay conexión, intenta confirmar contra Supabase de inmediato.
   try {
     const { error } = await supabase.from("misiones_usuario").upsert({
+      ficha_id: fichaId,
       user_id: userId,
       mision_id: misionId,
       estado: "en_curso",
@@ -1313,6 +1320,7 @@ export async function aceptarMisionOffline(
     if (error) {
       // Falló pese a "estar online" (ej. red inestable) — encola para reintento.
       await enqueueOffline("misiones_usuario", "upsert", localRow.id, {
+        ficha_id: fichaId,
         user_id: userId,
         mision_id: misionId,
         estado: "en_curso",
@@ -1326,6 +1334,7 @@ export async function aceptarMisionOffline(
     return synced;
   } catch {
     await enqueueOffline("misiones_usuario", "upsert", localRow.id, {
+      ficha_id: fichaId,
       user_id: userId,
       mision_id: misionId,
       estado: "en_curso",
@@ -1347,6 +1356,7 @@ export async function aceptarMisionOffline(
  */
 export async function reclamarMisionOffline(
   misionId: string,
+  fichaId: string,
 ): Promise<
   | { ok: true; nuevoXpTotal: number; nuevasMonedas: number }
   | { ok: false; reason: "offline" | "error"; message: string }
@@ -1363,6 +1373,7 @@ export async function reclamarMisionOffline(
   try {
     const { data, error } = await supabase.rpc("reclamar_mision", {
       p_mision_id: misionId,
+      p_ficha_id: fichaId,
     });
     if (error) {
       return { ok: false, reason: "error", message: error.message };

@@ -42,6 +42,9 @@ export interface FichaDnd {
   velocidad: number;
   notas: string | null;
   activa: boolean;
+  /** XP y monedas viven por identidad desde la migración de misiones. */
+  xp_total: number;
+  monedas: number;
   created_at: string;
   updated_at: string;
   /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */

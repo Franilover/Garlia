@@ -450,8 +450,11 @@ export interface MisionLocal {
 
 /** Progreso de un usuario en una misión. Clave local: `${user_id}_${mision_id}`. */
 export interface MisionUsuarioLocal {
-  id: string; // `${user_id}_${mision_id}`
-  user_id: string;
+  id: string; // `${ficha_id}_${mision_id}`
+  /** Identidad (ficha D&D) dueña del progreso — reemplaza a user_id como filtro principal. */
+  ficha_id: string;
+  /** Se conserva para RLS/admin (a qué cuenta pertenece la ficha), no para filtrar progreso. */
+  user_id?: string;
   mision_id: string;
   estado: "en_curso" | "completada" | "reclamada";
   progreso: number;
@@ -1311,6 +1314,14 @@ class AgendaFraniDB extends Dexie {
     // ─── v26: posiciones del editor visual de grafo (Fase 3) ──────────────────
     this.version(26).stores({
       nodoPosiciones: "id, capId, nodeId",
+    });
+
+    // ─── v27: progreso de misiones pasa a filtrarse por identidad (ficha_id)
+    // en vez de por user_id — el XP/monedas ahora vive en cada ficha_dnd.
+    // Se agrega el índice ficha_id; user_id se conserva en los datos pero
+    // deja de ser el índice principal de consulta.
+    this.version(27).stores({
+      misiones_usuario: "id, ficha_id, user_id, mision_id, estado, status",
     });
   }
 }

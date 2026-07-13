@@ -15,7 +15,6 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import { supabase } from "@/lib/api/client/supabase";
 import {
   aceptarMisionOffline,
   invalidateSessionCache,
@@ -24,6 +23,7 @@ import {
   reclamarMisionOffline,
 } from "@/lib/api/client/syncEngine";
 
+import type { FichaDnd } from "../hooks/useFichasDnd";
 import {
   BarraProgreso,
   EmptyMisiones,
@@ -62,32 +62,35 @@ function EstrellasDificultad({ dificultad }: { dificultad: Dificultad }) {
 
 // ─── Tipos locales de carga ─────────────────────────────────────────────────
 
-interface PerfilMisiones {
-  username: string;
-  avatar_url?: string;
-  nivel?: number;
-  xp_total?: number;
-  monedas?: number;
-}
-
 interface MisionesProps {
-  datos?: {
-    username?: string;
-    avatar_url?: string;
-  };
+  /** Identidad activa (ficha D&D) para la que se cargan/actualizan misiones. */
+  ficha: FichaDnd;
+  /** Modo modal: header compacto con botón de cerrar en vez del hero grande. */
+  variant?: "page" | "modal";
+  onClose?: () => void;
+  /** Se dispara tras reclamar una recompensa, para refrescar la ficha en el padre. */
+  onFichaActualizada?: () => void;
 }
 
 type TabId = "tablon" | "en_curso" | "completadas";
 
 // ─── Componente principal ──────────────────────────────────────────────────
 
-export default function Misiones({ datos: datosProp }: MisionesProps) {
+export default function Misiones({
+  ficha,
+  variant = "page",
+  onClose,
+  onFichaActualizada,
+}: MisionesProps) {
   const [tab, setTab] = useState<TabId>("tablon");
   const [misionModal, setMisionModal] = useState<MisionConProgreso | null>(
     null,
   );
 
-  const [perfil, setPerfil] = useState<PerfilMisiones | null>(null);
+  // XP/monedas/nivel se leen directo de la ficha activa; solo xp/monedas se
+  // actualizan localmente de forma optimista tras reclamar una recompensa.
+  const [xpTotal, setXpTotal] = useState(ficha.xp_total ?? 0);
+  const [monedas, setMonedas] = useState(ficha.monedas ?? 0);
   const [misiones, setMisiones] = useState<MisionConProgreso[]>([]);
   const [cargando, setCargando] = useState(true);
   const [aceptandoId, setAceptandoId] = useState<string | null>(null);
@@ -100,7 +103,10 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
     setTimeout(() => setAviso(null), 3500);
   };
 
-  const userIdRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    setXpTotal(ficha.xp_total ?? 0);
+    setMonedas(ficha.monedas ?? 0);
+  }, [ficha.id, ficha.xp_total, ficha.monedas]);
 
   // Combina catálogo + progreso del usuario en una sola lista para la UI.
   // Se reutiliza tanto en la carga inicial como cuando llegan actualizaciones
@@ -141,82 +147,41 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
     async function cargarTodo() {
       setCargando(true);
       try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-        if (userError || !user) {
-          console.warn("[Misiones] Sin sesión activa:", userError?.message);
-          setCargando(false);
-          return;
-        }
-        userIdRef.current = user.id;
-
-        // El perfil sigue cargándose directo (su caché offline ya la maneja
-        // el resto de la app). Misiones y progreso usan el syncEngine:
-        // Dexie primero (funciona offline), Supabase en background si hay
-        // conexión, vía el callback onUpdate.
-        const [{ data: perfilData }, catalogo, progresoRows] =
-          await Promise.all([
-            supabase
-              .from("perfiles")
-              .select("username, avatar_url, nivel, xp_total, monedas")
-              .eq("id", user.id)
-              .single(),
-            loadMisiones((catalogoActualizado) => {
-              setMisiones((prev) => {
-                const progresoActual = prev.map((m) => ({
-                  mision_id: m.id,
-                  estado: m.user_estado,
-                  progreso: m.progreso,
-                }));
-                return combinarMisiones(catalogoActualizado, progresoActual);
-              });
-            }),
-            loadMisionesUsuario(user.id, (progresoActualizado) => {
-              setMisiones((prev) => {
-                const catalogoActual = prev.map((m) => ({
-                  id: m.id,
-                  titulo: m.titulo,
-                  descripcion: m.descripcion,
-                  dificultad: m.dificultad,
-                  categoria: m.categoria,
-                  imagen_url: m.imagen_url,
-                  requisitos: m.requisitos,
-                  vence_en: m.vence_en,
-                  recompensa_xp: m.recompensa.xp,
-                  recompensa_monedas: m.recompensa.monedas,
-                  recompensa_item_nombre: m.recompensa.item_nombre,
-                  recompensa_item_imagen_url: m.recompensa.item_imagen_url,
-                  recompensa_item_id: m.recompensa_item_id ?? null,
-                }));
-                return combinarMisiones(catalogoActual, progresoActualizado);
-              });
-            }),
-          ]);
-
-        setPerfil(
-          perfilData
-            ? {
-                username:
-                  perfilData.username ?? datosProp?.username ?? "Aventurero",
-                avatar_url: perfilData.avatar_url ?? datosProp?.avatar_url,
-                nivel: perfilData.nivel ?? 1,
-                xp_total: perfilData.xp_total ?? 0,
-                monedas: perfilData.monedas ?? 0,
-              }
-            : {
-                username: datosProp?.username ?? "Aventurero",
-                avatar_url: datosProp?.avatar_url,
-                nivel: 1,
-                xp_total: 0,
-                monedas: 0,
-              },
-        );
-
-        // Si no hubo respuesta de perfil (típico sin conexión y sin caché
-        // local de perfil todavía), lo marcamos visualmente como offline.
-        if (!perfilData) setOffline(true);
+        // Misiones y progreso usan el syncEngine: Dexie primero (funciona
+        // offline), Supabase en background si hay conexión, vía el callback
+        // onUpdate. Ya no se depende de supabase.auth ni de la tabla perfiles.
+        const [catalogo, progresoRows] = await Promise.all([
+          loadMisiones((catalogoActualizado) => {
+            setMisiones((prev) => {
+              const progresoActual = prev.map((m) => ({
+                mision_id: m.id,
+                estado: m.user_estado,
+                progreso: m.progreso,
+              }));
+              return combinarMisiones(catalogoActualizado, progresoActual);
+            });
+          }),
+          loadMisionesUsuario(ficha.id, (progresoActualizado) => {
+            setMisiones((prev) => {
+              const catalogoActual = prev.map((m) => ({
+                id: m.id,
+                titulo: m.titulo,
+                descripcion: m.descripcion,
+                dificultad: m.dificultad,
+                categoria: m.categoria,
+                imagen_url: m.imagen_url,
+                requisitos: m.requisitos,
+                vence_en: m.vence_en,
+                recompensa_xp: m.recompensa.xp,
+                recompensa_monedas: m.recompensa.monedas,
+                recompensa_item_nombre: m.recompensa.item_nombre,
+                recompensa_item_imagen_url: m.recompensa.item_imagen_url,
+                recompensa_item_id: m.recompensa_item_id ?? null,
+              }));
+              return combinarMisiones(catalogoActual, progresoActualizado);
+            });
+          }),
+        ]);
 
         setMisiones(combinarMisiones(catalogo, progresoRows));
       } catch (err) {
@@ -227,18 +192,16 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
     }
 
     void cargarTodo();
-  }, [combinarMisiones]);
+  }, [combinarMisiones, ficha.id]);
 
   // ── Aceptar misión ────────────────────────────────────────────────────
   const handleAceptarMision = async (mision: MisionConProgreso) => {
-    const userId = userIdRef.current;
-    if (!userId) return;
     setAceptandoId(mision.id);
     try {
       // aceptarMisionOffline escribe en Dexie de inmediato (la UI no
       // espera red) y, si hay conexión, confirma contra Supabase en el
       // mismo paso. Sin conexión, queda encolada para sincronizar después.
-      await aceptarMisionOffline(userId, mision.id);
+      await aceptarMisionOffline(ficha.id, mision.id, ficha.perfil_id);
 
       setMisiones((prev) =>
         prev.map((m) =>
@@ -260,38 +223,27 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
 
   // ── Reclamar recompensa ───────────────────────────────────────────────
   const handleReclamarMision = async (mision: MisionConProgreso) => {
-    const userId = userIdRef.current;
-    if (!userId) return;
     setReclamandoId(mision.id);
     try {
       // El reclamo NUNCA se aplica de forma optimista: la suma de XP/monedas
       // solo la valida y ejecuta la función reclamar_mision en Supabase.
       // Sin conexión, esto devuelve ok:false con reason "offline" en vez de
       // fingir éxito — evitamos que el cliente decida cuánto XP otorgarse.
-      const resultado = await reclamarMisionOffline(mision.id);
+      const resultado = await reclamarMisionOffline(mision.id, ficha.id);
 
       if (resultado.ok) {
-        setPerfil((prev) =>
-          prev
-            ? {
-                ...prev,
-                xp_total: resultado.nuevoXpTotal,
-                monedas: resultado.nuevasMonedas,
-              }
-            : prev,
-        );
+        setXpTotal(resultado.nuevoXpTotal);
+        setMonedas(resultado.nuevasMonedas);
         setMisiones((prev) =>
           prev.map((m) =>
             m.id === mision.id ? { ...m, user_estado: "reclamada" } : m,
           ),
         );
         setMisionModal(null);
-        await invalidateSessionCache(`misiones_usuario:${userId}`);
-        await invalidateSessionCache(`perfil_usuario:${userId}`);
-        // El item se entregó en el servidor — invalidar cachés de inventario
-        // para que aparezca en el perfil sin necesitar recargar la página.
-        await invalidateSessionCache(`inventario_usuario:${userId}`);
-        await invalidateSessionCache(`descubrimientos:${userId}`);
+        await invalidateSessionCache(`misiones_usuario:${ficha.id}`);
+        // El item se entregó en el servidor (fichas_dnd_inventario) —
+        // notificamos al padre para que refresque la ficha e inventario.
+        onFichaActualizada?.();
       } else if (resultado.reason === "offline") {
         setOffline(true);
         showAviso("Necesitas conexión a internet para reclamar la recompensa.");
@@ -449,7 +401,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                       "color-mix(in srgb, var(--primary) 55%, transparent)",
                   }}
                 >
-                  {perfil?.xp_total ?? 0}
+                  {xpTotal}
                 </span>
                 <span
                   className="text-micro font-black uppercase tracking-[0.2em] hidden sm:inline"
@@ -461,6 +413,32 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   xp total
                 </span>
               </div>
+              {variant === "modal" && onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex items-center justify-center transition-colors"
+                  title="Cerrar"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "2px",
+                    border:
+                      "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--white-custom) 75%, transparent)",
+                    backdropFilter: "blur(6px)",
+                  }}
+                >
+                  <X
+                    size={12}
+                    style={{
+                      color:
+                        "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    }}
+                  />
+                </button>
+              )}
             </div>
           </div>
 
@@ -480,11 +458,11 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                 flexShrink: 0,
               }}
             >
-              {perfil?.avatar_url ? (
+              {ficha.imagen_url ? (
                 <img
-                  alt={perfil?.username}
+                  alt={ficha.nombre}
                   className="w-full h-full object-contain"
-                  src={perfil.avatar_url}
+                  src={ficha.imagen_url}
                 />
               ) : (
                 <User
@@ -526,7 +504,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                       "color-mix(in srgb, var(--primary) 48%, transparent)",
                   }}
                 >
-                  Nivel {perfil?.nivel ?? 1}
+                  Nivel {ficha.nivel ?? 1}
                 </span>
               </div>
               <h1
@@ -546,7 +524,7 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 }}
               >
-                Desafíos y recompensas de {perfil?.username ?? "tu aventura"}
+                Desafíos y recompensas de {ficha.nombre}
               </p>
             </div>
           </div>
@@ -598,12 +576,12 @@ export default function Misiones({ datos: datosProp }: MisionesProps) {
                   {[
                     {
                       label: "Experiencia",
-                      count: perfil?.xp_total ?? 0,
+                      count: xpTotal,
                       max: 1000,
                     },
                     {
                       label: "Monedas",
-                      count: perfil?.monedas ?? 0,
+                      count: monedas,
                       max: 200,
                     },
                   ].map(({ label, count, max }) => (

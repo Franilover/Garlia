@@ -8,7 +8,6 @@ import {
   Loader2,
   MapPin,
   Music2,
-  Scroll,
   Star,
   Sword,
   User,
@@ -1558,23 +1557,6 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
               }}
             />
             <div className="absolute top-4 right-4 md:right-10 flex items-center gap-2">
-              <Link
-                className="flex items-center justify-center transition-all hover:opacity-80"
-                href="/garlia/personal/misiones"
-                title="Misiones"
-                style={{
-                  width: 30,
-                  height: 30,
-                  border:
-                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                  borderRadius: "2px",
-                  background: "var(--primary)",
-                  backdropFilter: "blur(6px)",
-                }}
-              >
-                <Scroll size={13} style={{ color: "var(--btn-text)" }} />
-              </Link>
-
               <div
                 className="flex items-center gap-1.5 px-3 py-1.5"
                 style={{

@@ -56,12 +56,13 @@ interface MisionRow {
 }
 
 interface ProgresoRow {
-  user_id: string;
+  ficha_id: string;
+  user_id?: string;
   estado: EstadoUsuario;
   progreso: number;
   fecha_aceptada: string | null;
   fecha_completada: string | null;
-  perfil?: { username: string; avatar_url: string | null } | null;
+  ficha?: { nombre: string; imagen_url: string | null } | null;
 }
 
 interface FormState {
@@ -249,7 +250,7 @@ export default function EditorMisiones() {
     if (esAdmin) void cargarMisiones();
   }, [esAdmin, cargarMisiones]);
 
-  // ── Cargar progreso de usuarios para la misión seleccionada ───────────────
+  // ── Cargar progreso de identidades para la misión seleccionada ────────────
   const cargarProgreso = useCallback(async () => {
     if (!misionSel) return;
     setCargandoProgreso(true);
@@ -258,29 +259,29 @@ export default function EditorMisiones() {
     const localProg = await dexieGetAll<any>("misiones_usuario");
     const localDeMision = localProg.filter((r) => r.mision_id === misionSel.id);
     if (localDeMision.length > 0) {
-      // Resolver nombres desde caché local de perfiles
-      const perfilesCached = await dexieGetAll<any>("perfiles");
-      const perfilesPorId = new Map(perfilesCached.map((p) => [p.id, p]));
+      // Resolver nombres desde caché local de fichas_dnd
+      const fichasCached = await dexieGetAll<any>("fichas_dnd");
+      const fichasPorId = new Map(fichasCached.map((f) => [f.id, f]));
       setProgreso(
         localDeMision.map((r) => ({
+          ficha_id: r.ficha_id,
           user_id: r.user_id,
           estado: r.estado,
           progreso: r.progreso,
           fecha_aceptada: r.fecha_aceptada,
           fecha_completada: r.fecha_completada,
-          perfil: perfilesPorId.get(r.user_id) ?? null,
+          ficha: fichasPorId.get(r.ficha_id) ?? null,
         })),
       );
       setCargandoProgreso(false); // UI disponible de inmediato
     }
 
     // 2️⃣ Fetch remoto en background (no usa el embed — ver comentario abajo)
-    // No usamos el embed "perfil:user_id(...)" porque misiones_usuario.user_id
-    // referencia auth.users, no public.perfiles — PostgREST no puede resolver
-    // esa FK y devuelve 400. Dos queries + merge en cliente es lo correcto.
+    // No usamos el embed "ficha:ficha_id(...)" para mantener el mismo patrón
+    // de dos queries + merge en cliente que ya usaba el resto del admin.
     const { data: progresoData, error: progresoError } = await supabase
       .from("misiones_usuario")
-      .select("user_id, estado, progreso, fecha_aceptada, fecha_completada")
+      .select("ficha_id, user_id, estado, progreso, fecha_aceptada, fecha_completada")
       .eq("mision_id", misionSel.id)
       .order("fecha_aceptada", { ascending: false });
 
@@ -289,35 +290,38 @@ export default function EditorMisiones() {
       return;
     }
 
-    const userIds = progresoData.map((r: any) => r.user_id);
-    let perfilesPorId = new Map<
+    const fichaIds = progresoData
+      .map((r: any) => r.ficha_id)
+      .filter((id: string | null): id is string => !!id);
+    let fichasPorId = new Map<
       string,
-      { username: string; avatar_url: string | null }
+      { nombre: string; imagen_url: string | null }
     >();
 
-    if (userIds.length > 0) {
-      const { data: perfilesData } = await supabase
-        .from("perfiles")
-        .select("id, username, avatar_url")
-        .in("id", userIds);
-      const perfilesRows = perfilesData ?? [];
-      perfilesPorId = new Map(
-        perfilesRows.map((p: any) => [
-          p.id,
-          { username: p.username, avatar_url: p.avatar_url },
+    if (fichaIds.length > 0) {
+      const { data: fichasData } = await supabase
+        .from("fichas_dnd")
+        .select("id, nombre, imagen_url")
+        .in("id", fichaIds);
+      const fichasRows = fichasData ?? [];
+      fichasPorId = new Map(
+        fichasRows.map((f: any) => [
+          f.id,
+          { nombre: f.nombre, imagen_url: f.imagen_url },
         ]),
       );
-      // Actualizar caché de perfiles con lo que llegó
-      await dexiePutAll("perfiles", perfilesRows);
+      // Actualizar caché de fichas con lo que llegó
+      await dexiePutAll("fichas_dnd", fichasRows);
     }
 
     const progresoFinal = progresoData.map((r: any) => ({
+      ficha_id: r.ficha_id,
       user_id: r.user_id,
       estado: r.estado,
       progreso: r.progreso,
       fecha_aceptada: r.fecha_aceptada,
       fecha_completada: r.fecha_completada,
-      perfil: perfilesPorId.get(r.user_id) ?? null,
+      ficha: r.ficha_id ? fichasPorId.get(r.ficha_id) ?? null : null,
     }));
 
     setProgreso(progresoFinal);
@@ -328,7 +332,7 @@ export default function EditorMisiones() {
       progresoData.map((r: any) => ({
         ...r,
         mision_id: misionSel.id,
-        id: `${misionSel.id}:${r.user_id}`,
+        id: `${misionSel.id}:${r.ficha_id}`,
       })),
     );
 
@@ -349,7 +353,7 @@ export default function EditorMisiones() {
       showToast("Sin conexión: no se puede actualizar el progreso", false);
       return;
     }
-    setActualizandoUserId(row.user_id);
+    setActualizandoUserId(row.ficha_id);
     const { error } = await supabase
       .from("misiones_usuario")
       .update({
@@ -358,31 +362,31 @@ export default function EditorMisiones() {
           nuevoEstado === "completada" ? new Date().toISOString() : null,
       })
       .eq("mision_id", misionSel.id)
-      .eq("user_id", row.user_id);
+      .eq("ficha_id", row.ficha_id);
 
     if (error) {
       showToast("Error al actualizar el estado", false);
     } else {
-      // Si se completa y hay item real (con id), entregarlo al usuario
+      // Si se completa y hay item real (con id), entregarlo a la ficha
       if (nuevoEstado === "completada" && misionSel.recompensa_item_id) {
-        await supabase.from("descubrimientos_items").upsert(
+        await supabase.from("fichas_dnd_inventario").upsert(
           {
-            perfil_id: row.user_id,
+            ficha_id: row.ficha_id,
             item_id: misionSel.recompensa_item_id,
-            fecha_descubrimiento: new Date().toISOString(),
+            cantidad: 1,
           },
-          { onConflict: "perfil_id,item_id", ignoreDuplicates: true },
+          { onConflict: "ficha_id,item_id", ignoreDuplicates: true },
         );
       }
       setProgreso((prev) =>
         prev.map((p) =>
-          p.user_id === row.user_id ? { ...p, estado: nuevoEstado } : p,
+          p.ficha_id === row.ficha_id ? { ...p, estado: nuevoEstado } : p,
         ),
       );
       showToast(
         nuevoEstado === "completada"
           ? misionSel.recompensa_item_id
-            ? "¡Completada! Item entregado al usuario"
+            ? "¡Completada! Item entregado a la ficha"
             : "Marcada como completada"
           : "Devuelta a en curso",
         true,
@@ -857,7 +861,7 @@ export default function EditorMisiones() {
               ) : (
                 progreso.map((row) => (
                   <div
-                    key={row.user_id}
+                    key={row.ficha_id}
                     className="flex items-center gap-2 px-3 sm:px-4 py-2 border-b"
                     style={{
                       borderColor:
@@ -872,11 +876,11 @@ export default function EditorMisiones() {
                           "color-mix(in srgb, var(--primary) 10%, transparent)",
                       }}
                     >
-                      {row.perfil?.avatar_url ? (
+                      {row.ficha?.imagen_url ? (
                         <Image
-                          alt={row.perfil.username}
+                          alt={row.ficha?.nombre}
                           className="w-full h-full object-contain"
-                          src={row.perfil.avatar_url}
+                          src={row.ficha?.imagen_url ?? ""}
                         />
                       ) : (
                         <User
@@ -894,7 +898,7 @@ export default function EditorMisiones() {
                         className="text-micro font-black uppercase tracking-tight capitalize truncate"
                         style={{ color: "var(--primary)" }}
                       >
-                        {row.perfil?.username ?? "Usuario"}
+                        {row.ficha?.nombre ?? "Identidad"}
                       </p>
                       <span
                         className="inline-flex items-center gap-1 text-micro font-black uppercase tracking-wider mt-0.5"
@@ -920,7 +924,7 @@ export default function EditorMisiones() {
                     {row.estado === "en_curso" && (
                       <button
                         className="flex items-center gap-1 px-2 py-1 transition-all shrink-0"
-                        disabled={actualizandoUserId === row.user_id}
+                        disabled={actualizandoUserId === row.ficha_id}
                         style={{
                           borderRadius: "var(--radius-btn)",
                           background: "var(--primary)",
@@ -933,7 +937,7 @@ export default function EditorMisiones() {
                         title="Marcar completada"
                         onClick={() => cambiarEstadoUsuario(row, "completada")}
                       >
-                        {actualizandoUserId === row.user_id ? (
+                        {actualizandoUserId === row.ficha_id ? (
                           <Loader2 className="animate-spin" size={9} />
                         ) : (
                           <CheckCircle2 size={9} />
@@ -945,7 +949,7 @@ export default function EditorMisiones() {
                     {row.estado === "completada" && (
                       <button
                         className="flex items-center gap-1 px-2 py-1 transition-all shrink-0"
-                        disabled={actualizandoUserId === row.user_id}
+                        disabled={actualizandoUserId === row.ficha_id}
                         style={{
                           borderRadius: "var(--radius-btn)",
                           border:
@@ -959,7 +963,7 @@ export default function EditorMisiones() {
                         title="Devolver a en curso"
                         onClick={() => cambiarEstadoUsuario(row, "en_curso")}
                       >
-                        {actualizandoUserId === row.user_id ? (
+                        {actualizandoUserId === row.ficha_id ? (
                           <Loader2 className="animate-spin" size={9} />
                         ) : (
                           <RotateCcw size={9} />

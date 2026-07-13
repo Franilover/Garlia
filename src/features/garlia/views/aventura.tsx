@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Pencil, Plus, Scroll, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -27,6 +27,7 @@ import {
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 import { useFichasDnd } from "../hooks/useFichasDnd";
 import { FichaDetalle, ModalCrearFicha } from "./fichaComponents";
+import Misiones from "./misiones";
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -42,11 +43,54 @@ export default function Aventura() {
       style={{ minHeight: "calc(100svh - 64px)" }}
     >
       <SelectorIdentidadFlotante />
+      <BotonMisionesFlotante />
       {aventuraId ? (
         <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
       ) : (
         <SelectorAventuras onSeleccionar={setAventuraId} />
       )}
+    </div>
+  );
+}
+
+// ── Botón de misiones (esquina superior izquierda) ───────────────────────
+// Usa la identidad activa (ficha) en vez del perfil: el progreso y las
+// recompensas de misiones ahora viven en fichas_dnd, no en perfiles.
+
+function BotonMisionesFlotante() {
+  const { perfil } = useAuth();
+  const { activa, loading, refetch } = useFichasDnd(perfil?.id ?? null);
+  const [abierto, setAbierto] = useState(false);
+
+  if (!perfil || loading || !activa) return null;
+
+  return (
+    <div className="absolute top-4 left-4 z-30">
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
+        style={{
+          background: "var(--white-custom)",
+          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
+        }}
+      >
+        <Scroll size={12} className="text-primary/50" />
+        <span className="text-xs font-bold text-primary/70">Misiones</span>
+      </button>
+
+      <AnimatePresence>
+        {abierto && (
+          <ModalFichaOverlay onClose={() => setAbierto(false)}>
+            <Misiones
+              ficha={activa}
+              variant="modal"
+              onClose={() => setAbierto(false)}
+              onFichaActualizada={refetch}
+            />
+          </ModalFichaOverlay>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
