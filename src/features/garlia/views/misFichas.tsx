@@ -229,6 +229,19 @@ function ModalCrearFicha({
   const [nombre, setNombre] = useState("");
   const [especie, setEspecie] = useState<EspecieResumen | null>(null);
   const [clase, setClase] = useState("");
+  const [alineamiento, setAlineamiento] = useState("");
+  const [nivel, setNivel] = useState(1);
+  const [stats, setStats] = useState({
+    fuerza: 10,
+    destreza: 10,
+    constitucion: 10,
+    inteligencia: 10,
+    sabiduria: 10,
+    carisma: 10,
+  });
+  const [hpMax, setHpMax] = useState(10);
+  const [ca, setCa] = useState(10);
+  const [velocidad, setVelocidad] = useState(30);
   const [guardando, setGuardando] = useState(false);
 
   const handleCrear = async () => {
@@ -239,11 +252,21 @@ function ModalCrearFicha({
         nombre: nombre.trim(),
         especie_id: especie?.id ?? null,
         clase: clase.trim() || null,
+        alineamiento: alineamiento.trim() || null,
+        nivel,
+        ...stats,
+        hp_max: hpMax,
+        hp_actual: hpMax,
+        ca,
+        velocidad,
       });
     } finally {
       setGuardando(false);
     }
   };
+
+  const inputClase =
+    "h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors w-full min-w-0";
 
   return (
     <MotionDiv
@@ -256,7 +279,7 @@ function ModalCrearFicha({
     >
       <MotionDiv
         animate={{ opacity: 1, scale: 1 }}
-        className="relative w-full max-w-sm rounded-2xl p-6"
+        className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl p-6"
         exit={{ opacity: 0, scale: 0.96 }}
         initial={{ opacity: 0, scale: 0.96 }}
         style={{ background: "var(--white-custom)" }}
@@ -279,12 +302,13 @@ function ModalCrearFicha({
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre del personaje"
-            className="h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
+            className={inputClase}
           />
+
           <div className="flex gap-2">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <SelectorEntidad
-                placeholder="Especie (buscar criatura)…"
+                placeholder="Especie…"
                 buscar={buscarCriaturas}
                 seleccionActual={especie}
                 onSeleccionar={(c) => setEspecie(c)}
@@ -296,20 +320,92 @@ function ModalCrearFicha({
               value={clase}
               onChange={(e) => setClase(e.target.value)}
               placeholder="Clase (ej. Pícaro)"
-              className="flex-1 h-10 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
+              className={`flex-1 min-w-0 ${inputClase}`}
             />
           </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={alineamiento}
+              onChange={(e) => setAlineamiento(e.target.value)}
+              placeholder="Alineamiento"
+              className={`flex-1 min-w-0 ${inputClase}`}
+            />
+            <input
+              type="number"
+              value={nivel}
+              onChange={(e) => setNivel(Number(e.target.value))}
+              placeholder="Nivel"
+              className={`w-20 shrink-0 text-center ${inputClase}`}
+            />
+          </div>
+
+          <h3 className="text-micro font-black uppercase tracking-widest text-primary/40 mt-1">
+            Estadísticas
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            {STATS.map(({ key, label }) => (
+              <div key={key} className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
+                <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                  {label}
+                </span>
+                <input
+                  type="number"
+                  value={stats[key]}
+                  onChange={(e) =>
+                    setStats((prev) => ({ ...prev, [key]: Number(e.target.value) }))
+                  }
+                  className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
+                />
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-micro font-black uppercase tracking-widest text-primary/40 mt-1">
+            Vitales
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">HP</span>
+              <input
+                type="number"
+                value={hpMax}
+                onChange={(e) => setHpMax(Number(e.target.value))}
+                className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
+              />
+            </div>
+            <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">CA</span>
+              <input
+                type="number"
+                value={ca}
+                onChange={(e) => setCa(Number(e.target.value))}
+                className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
+              />
+            </div>
+            <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">Vel.</span>
+              <input
+                type="number"
+                value={velocidad}
+                onChange={(e) => setVelocidad(Number(e.target.value))}
+                className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
+              />
+            </div>
+          </div>
+
           <button
             type="button"
             disabled={!nombre.trim() || guardando}
             onClick={handleCrear}
-            className="h-10 flex items-center justify-center gap-1.5 rounded-lg bg-primary text-white text-sm font-bold disabled:opacity-40 transition-opacity"
+            className="h-10 flex items-center justify-center gap-1.5 rounded-lg bg-primary text-white text-sm font-bold disabled:opacity-40 transition-opacity mt-1"
           >
             {guardando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             Crear ficha
           </button>
           <p className="text-micro text-primary/30 text-center">
-            Podrás completar raza, stats e inventario después.
+            Podrás editar todo esto y el inventario después.
           </p>
         </div>
       </MotionDiv>
@@ -633,7 +729,7 @@ function SelectorEntidad<T extends EntidadOpcion>({
       <button
         type="button"
         onClick={() => setAbierto(true)}
-        className="w-full flex items-center gap-2.5 h-10 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] hover:border-primary/25 transition-colors text-left"
+        className="w-full min-w-0 flex items-center gap-2.5 h-10 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] hover:border-primary/25 transition-colors text-left"
       >
         <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-primary/5">
           {seleccionActual.imagen_url && (
@@ -659,7 +755,7 @@ function SelectorEntidad<T extends EntidadOpcion>({
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full min-w-0">
       <div className="flex items-center gap-2 px-2.5 h-10 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors">
         <Search size={12} className="text-primary/35 shrink-0" />
         <input
