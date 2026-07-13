@@ -30,7 +30,8 @@ export type TablaEntidad =
   | "ciudades"
   | "hechizos"
   | "dones"
-  | "runas";
+  | "runas"
+  | "fichas_dnd";
 
 export const TABLA_LABEL: Record<TablaEntidad, { singular: string; plural: string }> = {
   personajes: { singular: "Personaje", plural: "Personajes" },
@@ -41,6 +42,7 @@ export const TABLA_LABEL: Record<TablaEntidad, { singular: string; plural: strin
   hechizos: { singular: "Hechizo", plural: "Hechizos" },
   dones: { singular: "Don", plural: "Dones" },
   runas: { singular: "Runa", plural: "Runas" },
+  fichas_dnd: { singular: "Ficha de Jugador", plural: "Fichas de Jugadores" },
 };
 
 export const TABLAS_ENTIDAD: TablaEntidad[] = [
@@ -52,6 +54,7 @@ export const TABLAS_ENTIDAD: TablaEntidad[] = [
   "hechizos",
   "dones",
   "runas",
+  "fichas_dnd",
 ];
 
 export interface AventuraEntidadRow {
@@ -142,15 +145,18 @@ async function resolverEntidades(
 
   await Promise.all(
     Array.from(porTabla.entries()).map(async ([tabla, ids]) => {
-      const { data } = await supabase
-        .from(tabla)
-        .select("id, nombre, imagen_url, descripcion, explicacion")
-        .in("id", ids);
+      const { data } = await supabase.from(tabla).select("*").in("id", ids);
       (data ?? []).forEach((row: any) => {
+        const descripcionBase =
+          tabla === "fichas_dnd"
+            ? [row.raza, row.clase, row.nivel ? `Nivel ${row.nivel}` : null]
+                .filter(Boolean)
+                .join(" · ")
+            : row.descripcion ?? row.explicacion ?? null;
         datosPorTablaId.set(`${tabla}:${row.id}`, {
           nombre: row[NOMBRE_COL] ?? "Sin nombre",
           imagen_url: row.imagen_url ?? null,
-          descripcion: row.descripcion ?? row.explicacion ?? null,
+          descripcion: descripcionBase,
         });
       });
     }),

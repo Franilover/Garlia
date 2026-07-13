@@ -5,6 +5,7 @@ import {
   Cat,
   ChevronRight,
   Crown,
+  Drama,
   Loader2,
   MapPin,
   Music2,
@@ -1559,9 +1560,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
             />
             <div className="absolute top-4 right-4 md:right-10 flex items-center gap-2">
               <Link
-                className="flex items-center gap-1.5 px-3 py-1.5 transition-all hover:opacity-80"
-                href="/garlia/personal/misiones"
+                className="flex items-center justify-center transition-all hover:opacity-80"
+                href="/garlia/personal/identidades"
+                title="Identidades"
                 style={{
+                  width: 30,
+                  height: 30,
                   border:
                     "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
                   borderRadius: "2px",
@@ -1569,13 +1573,24 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   backdropFilter: "blur(6px)",
                 }}
               >
-                <Scroll size={9} style={{ color: "var(--btn-text)" }} />
-                <span
-                  className="text-micro font-black uppercase tracking-[0.2em]"
-                  style={{ color: "var(--btn-text)" }}
-                >
-                  Misiones
-                </span>
+                <Drama size={13} style={{ color: "var(--btn-text)" }} />
+              </Link>
+
+              <Link
+                className="flex items-center justify-center transition-all hover:opacity-80"
+                href="/garlia/personal/misiones"
+                title="Misiones"
+                style={{
+                  width: 30,
+                  height: 30,
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                  borderRadius: "2px",
+                  background: "var(--primary)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <Scroll size={13} style={{ color: "var(--btn-text)" }} />
               </Link>
 
               <div
