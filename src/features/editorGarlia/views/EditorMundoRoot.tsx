@@ -64,6 +64,8 @@ const LineaTiempoSection = lazy(() =>
 const AventuraSection = lazy(() =>
   import("./AventuraSection").then((m) => ({ default: m.AventuraSection })),
 );
+const EditorMisiones = lazy(() => import("./editorMisiones"));
+const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
 
 function SectionFallback() {
   return (
@@ -100,6 +102,10 @@ function ActiveSection() {
       return <LineaTiempoSection />;
     case "aventura":
       return <AventuraSection />;
+    case "misiones":
+      return <EditorMisiones />;
+    case "relaciones":
+      return <AdminDescubrimientos />;
     default:
       return null;
   }

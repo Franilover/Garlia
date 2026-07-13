@@ -22,7 +22,7 @@
  * la tab "entidades" activa; el resto son 1 a 1 con su SectionKey.
  */
 
-import { Clock, Compass, Home, Mountain, ScrollText, Users } from "lucide-react";
+import { Clock, Compass, Heart, Home, Mountain, ScrollText, Users } from "lucide-react";
 import React from "react";
 
 import { useMundoNavigation, type SectionKey } from "../../hooks/mundo/useMundoNavigationStore";
@@ -41,7 +41,15 @@ const ENTIDADES_SECTIONS: SectionKey[] = [
   "letras",
 ];
 
-type TabKey = "inicio" | "entidades" | "mapa" | "capitulos" | "linea-tiempo" | "aventura";
+type TabKey =
+  | "inicio"
+  | "entidades"
+  | "mapa"
+  | "capitulos"
+  | "linea-tiempo"
+  | "aventura"
+  | "misiones"
+  | "relaciones";
 
 interface Tab {
   key: TabKey;
@@ -56,6 +64,8 @@ const TABS: Tab[] = [
   { key: "mapa", label: "Mapa", Icon: Mountain },
   { key: "capitulos", label: "Capítulos", Icon: ScrollText },
   { key: "linea-tiempo", label: "Línea de Tiempo", Icon: Clock },
+  { key: "misiones", label: "Misiones", Icon: ScrollText },
+  { key: "relaciones", label: "Relaciones", Icon: Heart },
 ];
 
 function tabKeyOf(section: SectionKey | null): TabKey {
@@ -64,6 +74,8 @@ function tabKeyOf(section: SectionKey | null): TabKey {
   if (section === "capitulos") return "capitulos";
   if (section === "linea-tiempo") return "linea-tiempo";
   if (section === "aventura") return "aventura";
+  if (section === "misiones") return "misiones";
+  if (section === "relaciones") return "relaciones";
   if (ENTIDADES_SECTIONS.includes(section)) return "entidades";
   return "inicio";
 }
@@ -82,7 +94,7 @@ export function MundoTabs() {
 
   return (
     <div className="shrink-0 border-b border-primary/10" style={{ background: "var(--bg-main)" }}>
-      <nav className="flex items-center gap-1 px-4 py-2" aria-label="Secciones del editor de mundo">
+      <nav className="flex items-center gap-1 px-4 py-2 overflow-x-auto" aria-label="Secciones del editor de mundo">
         {TABS.map((tab) => {
           const active = activeTab === tab.key;
           return (
@@ -90,7 +102,7 @@ export function MundoTabs() {
               key={tab.key}
               type="button"
               onClick={() => handleClick(tab.key)}
-              className={`flex-1 flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+              className={`shrink-0 flex items-center justify-center px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
                 active
                   ? "bg-primary/10 text-primary"
                   : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
