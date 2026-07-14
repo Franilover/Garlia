@@ -25,6 +25,7 @@ import {
   Plus,
   Scroll,
   Search,
+  Swords,
   Trash2,
   X,
 } from "lucide-react";
@@ -41,12 +42,14 @@ import {
 
 const EditorMisiones = lazy(() => import("./editorMisiones"));
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
+const EditorIdentidades = lazy(() => import("./editorIdentidades"));
 
-type SubPanel = "aventuras" | "misiones" | "relaciones";
+type SubPanel = "aventuras" | "misiones" | "identidades" | "relaciones";
 
 const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
   { key: "aventuras", label: "Aventuras", Icon: Compass },
   { key: "misiones", label: "Misiones", Icon: Scroll },
+  { key: "identidades", label: "Identidades", Icon: Swords },
   { key: "relaciones", label: "Relaciones", Icon: Heart },
 ];
 
@@ -103,6 +106,12 @@ export function AventuraSection() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <EditorMisiones />
             </div>
+          </Suspense>
+        )}
+
+        {subPanel === "identidades" && (
+          <Suspense fallback={<SubPanelFallback />}>
+            <EditorIdentidades />
           </Suspense>
         )}
 

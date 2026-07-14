@@ -96,12 +96,55 @@ function SeparadorLabel({ label }: { label: string }) {
   );
 }
 
+function CampoEditable({
+  valor,
+  editable,
+  onCommit,
+  tipo = "text",
+  className,
+  style,
+  align = "left",
+  width,
+}: {
+  valor: string | number;
+  editable: boolean;
+  onCommit: (valor: string) => void;
+  tipo?: "text" | "number";
+  className: string;
+  style: React.CSSProperties;
+  align?: "left" | "right" | "center";
+  width?: number;
+}) {
+  if (!editable) return <>{valor}</>;
+  return (
+    <input
+      type={tipo}
+      defaultValue={valor}
+      onBlur={(e) => onCommit(e.target.value)}
+      className={`${className} bg-transparent outline-none`}
+      style={{
+        ...style,
+        width: width ?? "100%",
+        textAlign: align,
+        border: "none",
+        borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+        padding: 0,
+      }}
+    />
+  );
+}
+
 export function FichaStatsPanel({
   ficha,
   headerAction,
+  editable = false,
+  onEditarCampo,
 }: {
   ficha: FichaDnd;
   headerAction?: React.ReactNode;
+  /** Modo admin: mismo diseño, pero los valores son inputs editables. */
+  editable?: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
@@ -154,13 +197,44 @@ export function FichaStatsPanel({
               className="font-serif italic text-base leading-tight truncate capitalize"
               style={{ color: "var(--primary)" }}
             >
-              {ficha.nombre}
+              <CampoEditable
+                valor={ficha.nombre}
+                editable={editable}
+                onCommit={(v) => onEditarCampo?.("nombre", v)}
+                className="font-serif italic text-base leading-tight capitalize"
+                style={{ color: "var(--primary)" }}
+              />
             </p>
             <p
               className="text-micro font-black uppercase tracking-wider truncate"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              {ficha.clase ?? "Aventurero"} · Nivel {ficha.nivel ?? 1}
+              {editable ? (
+                <span className="inline-flex items-center gap-1">
+                  <CampoEditable
+                    valor={ficha.clase ?? ""}
+                    editable
+                    onCommit={(v) => onEditarCampo?.("clase", v)}
+                    className="text-micro font-black uppercase tracking-wider"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                    width={70}
+                  />
+                  · Nivel
+                  <CampoEditable
+                    valor={ficha.nivel ?? 1}
+                    editable
+                    tipo="number"
+                    onCommit={(v) => onEditarCampo?.("nivel", Number(v) || 1)}
+                    className="text-micro font-black uppercase tracking-wider"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                    width={28}
+                  />
+                </span>
+              ) : (
+                <>
+                  {ficha.clase ?? "Aventurero"} · Nivel {ficha.nivel ?? 1}
+                </>
+              )}
             </p>
           </div>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
@@ -189,7 +263,34 @@ export function FichaStatsPanel({
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
-              {hpActual}/{hpMax || "—"}
+              {editable ? (
+                <span className="inline-flex items-center gap-1">
+                  <CampoEditable
+                    valor={hpActual}
+                    editable
+                    tipo="number"
+                    align="right"
+                    width={32}
+                    onCommit={(v) => onEditarCampo?.("hp_actual", Number(v) || 0)}
+                    className="text-sm font-black tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  />
+                  /
+                  <CampoEditable
+                    valor={hpMax}
+                    editable
+                    tipo="number"
+                    width={32}
+                    onCommit={(v) => onEditarCampo?.("hp_max", Number(v) || 0)}
+                    className="text-sm font-black tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  />
+                </span>
+              ) : (
+                <>
+                  {hpActual}/{hpMax || "—"}
+                </>
+              )}
             </span>
           </div>
           <div className="flex gap-0.5">
@@ -226,7 +327,16 @@ export function FichaStatsPanel({
               Defensa
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {ficha.ca ?? "—"}
+              <CampoEditable
+                valor={ficha.ca ?? 10}
+                editable={editable}
+                tipo="number"
+                align="right"
+                width={28}
+                onCommit={(v) => onEditarCampo?.("ca", Number(v) || 0)}
+                className="text-sm font-black tabular-nums"
+                style={{ color: "var(--primary)" }}
+              />
             </span>
           </div>
           <div
@@ -279,7 +389,18 @@ export function FichaStatsPanel({
                   {ABREVIATURA_STAT[key]}
                 </span>
                 <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                  {valor}
+                  <CampoEditable
+                    valor={valor}
+                    editable={editable}
+                    tipo="number"
+                    align="center"
+                    width={26}
+                    onCommit={(v) =>
+                      onEditarCampo?.(key as keyof FichaDnd, Number(v) || 10)
+                    }
+                    className="text-sm font-black tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  />
                 </span>
                 <span
                   className="text-micro font-black tabular-nums"
