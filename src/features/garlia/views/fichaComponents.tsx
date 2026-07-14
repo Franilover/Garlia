@@ -173,9 +173,13 @@ export function ModalCrearFicha({
               className={`flex-1 min-w-0 ${inputClase}`}
             />
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={nivel}
-              onChange={(e) => setNivel(Number(e.target.value))}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, "");
+                setNivel(v === "" ? 0 : Number(v));
+              }}
               placeholder="Nivel"
               className={`w-20 shrink-0 text-center ${inputClase}`}
             />
@@ -191,11 +195,13 @@ export function ModalCrearFicha({
                   {label}
                 </span>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={stats[key]}
-                  onChange={(e) =>
-                    setStats((prev) => ({ ...prev, [key]: Number(e.target.value) }))
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, "");
+                    setStats((prev) => ({ ...prev, [key]: v === "" ? 0 : Number(v) }));
+                  }}
                   className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
                 />
               </div>
@@ -209,27 +215,39 @@ export function ModalCrearFicha({
             <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
               <span className="text-micro font-black uppercase tracking-widest text-primary/35">HP</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={hpMax}
-                onChange={(e) => setHpMax(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "");
+                  setHpMax(v === "" ? 0 : Number(v));
+                }}
                 className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
               />
             </div>
             <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
               <span className="text-micro font-black uppercase tracking-widest text-primary/35">CA</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={ca}
-                onChange={(e) => setCa(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "");
+                  setCa(v === "" ? 0 : Number(v));
+                }}
                 className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
               />
             </div>
             <div className="flex flex-col items-center gap-1 py-2 rounded-lg border border-primary/10 bg-primary/[0.02]">
               <span className="text-micro font-black uppercase tracking-widest text-primary/35">Vel.</span>
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={velocidad}
-                onChange={(e) => setVelocidad(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "");
+                  setVelocidad(v === "" ? 0 : Number(v));
+                }}
                 className="w-12 text-center bg-transparent outline-none text-base font-black text-primary"
               />
             </div>
@@ -291,14 +309,17 @@ export function FichaDetalle({
 
   const campo = (key: keyof FichaDnd, placeholder: string, tipo: "text" | "number" = "text") => (
     <input
-      type={tipo}
+      type="text"
+      inputMode={tipo === "number" ? "numeric" : undefined}
       value={(borrador[key] as any) ?? ""}
-      onChange={(e) =>
-        setBorrador((prev) => ({
-          ...prev,
-          [key]: tipo === "number" ? Number(e.target.value) : e.target.value,
-        }))
-      }
+      onChange={(e) => {
+        if (tipo === "number") {
+          const v = e.target.value.replace(/[^0-9]/g, "");
+          setBorrador((prev) => ({ ...prev, [key]: v === "" ? 0 : Number(v) }));
+        } else {
+          setBorrador((prev) => ({ ...prev, [key]: e.target.value }));
+        }
+      }}
       placeholder={placeholder}
       className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors w-full"
     />
@@ -392,11 +413,13 @@ export function FichaDetalle({
             </span>
             {editando ? (
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={(borrador[key] as number) ?? 10}
-                onChange={(e) =>
-                  setBorrador((prev) => ({ ...prev, [key]: Number(e.target.value) }))
-                }
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9]/g, "");
+                  setBorrador((prev) => ({ ...prev, [key]: v === "" ? 0 : Number(v) }));
+                }}
                 className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
               />
             ) : (

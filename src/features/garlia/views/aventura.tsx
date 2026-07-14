@@ -423,9 +423,6 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
         ) : (
           <TableroAventura
             editable={false}
-            cardWidth={360}
-            cardHeight={140}
-            imageWidth={140}
             items={publicadas.map(
               (entidad): TableroItem => ({
                 id: entidad.id,

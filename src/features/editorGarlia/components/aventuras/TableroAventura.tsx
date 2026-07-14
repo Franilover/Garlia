@@ -24,6 +24,14 @@ import React, { useMemo, useRef, useState } from "react";
 const CANVAS_MIN_W = 1400;
 const CANVAS_MIN_H = 900;
 
+/**
+ * Tamaño estándar de tarjeta, compartido entre admin y público para que el
+ * tablero se vea (y se posicione) exactamente igual en los dos lados.
+ * Si necesitás otro tamaño en algún lugar, mejor ajustar esto que pasar
+ * valores sueltos — así no se vuelven a desincronizar.
+ */
+export const TABLERO_CARD_SIZE = { width: 360, height: 140, imageWidth: 140 };
+
 export interface TableroItem {
   id: string;
   nombre: string;
@@ -74,13 +82,13 @@ export function TableroAventura({
   onClickItem,
   renderBadge,
   emptyHint = "Todavía no hay nada aquí.",
-  cardWidth = 260,
-  cardHeight = 96,
+  cardWidth = TABLERO_CARD_SIZE.width,
+  cardHeight = TABLERO_CARD_SIZE.height,
   imageWidth,
 }: TableroAventuraProps) {
   const CARD_W = cardWidth;
   const CARD_H = cardHeight;
-  const IMG_W = imageWidth ?? CARD_H;
+  const IMG_W = imageWidth ?? TABLERO_CARD_SIZE.imageWidth;
   const resueltos = usePosicionesResueltas(items, CARD_W, CARD_H);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragId, setDragId] = useState<string | null>(null);
