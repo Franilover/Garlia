@@ -306,8 +306,7 @@ function EditorListaTags({
     </div>
   );
 }
-
-
+export function FichaStatsPanel({
   ficha,
   headerAction,
   editable = false,
