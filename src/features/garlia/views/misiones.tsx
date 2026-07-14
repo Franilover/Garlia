@@ -37,7 +37,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -353,6 +353,7 @@ function PanelExpandidoFicha({
   editable,
   onEditarCampo,
   onCerrar,
+  anclaRef,
 }: {
   ficha: FichaDnd;
   editable: boolean;
@@ -361,7 +362,47 @@ function PanelExpandidoFicha({
     valor: string | number | boolean | string[] | RasgoEspecial[] | null,
   ) => void;
   onCerrar: () => void;
+  /** Ref al contenedor del panel principal — el flotante se ancla a su
+      borde, como si el panel "se estirara" hacia el costado. */
+  anclaRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const ANCHO_PANEL = 560;
+  const MARGEN = 16;
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    height: number;
+    lado: "derecha" | "izquierda";
+  } | null>(null);
+
+  useEffect(() => {
+    const calcular = () => {
+      const el = anclaRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const cabeHaDerecha = rect.right + MARGEN + ANCHO_PANEL <= vw - MARGEN;
+      const lado: "derecha" | "izquierda" = cabeHaDerecha ? "derecha" : "izquierda";
+      const left = cabeHaDerecha
+        ? rect.right + MARGEN
+        : Math.max(MARGEN, rect.left - MARGEN - ANCHO_PANEL);
+      // Misma altura que el panel ancla, pero nunca se sale de la pantalla
+      // ni se corta: se clampea entre el margen superior/inferior de la
+      // ventana, conservando el top del ancla como referencia.
+      const top = Math.max(MARGEN, Math.min(rect.top, vh - MARGEN - 200));
+      const height = Math.min(rect.height, vh - top - MARGEN);
+      setPos({ left, top, height, lado });
+    };
+    calcular();
+    window.addEventListener("resize", calcular);
+    window.addEventListener("scroll", calcular, true);
+    return () => {
+      window.removeEventListener("resize", calcular);
+      window.removeEventListener("scroll", calcular, true);
+    };
+  }, [anclaRef]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -376,29 +417,62 @@ function PanelExpandidoFicha({
   // recorta o lo deja detrás de otros elementos con z-index propio, como
   // las tarjetas del tablero. Portal lo saca de ese árbol por completo.
   if (typeof document === "undefined") return null;
+  if (!pos) return null;
+
+  // En mobile (pantalla angosta) no hay lugar al costado: cae a un panel
+  // centrado clásico, más ancho, igual sin overlay oscuro pesado.
+  const esMobile = typeof window !== "undefined" && window.innerWidth < 860;
 
   return createPortal(
     <>
+      {/* Capa invisible solo para detectar el click-afuera; no oscurece,
+          para que el panel se sienta "conectado" y no como un modal aparte. */}
+      <div className="fixed inset-0 z-[60]" onClick={onCerrar} />
       <MotionDiv
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-[60]"
-        exit={{ opacity: 0 }}
-        initial={{ opacity: 0 }}
-        onClick={onCerrar}
-        style={{ background: "color-mix(in srgb, black 45%, transparent)" }}
-      />
-      <MotionDiv
-        animate={{ opacity: 1, scale: 1 }}
-        className="fixed z-[61] left-1/2 top-1/2 w-[min(94vw,900px)] max-h-[86vh] overflow-y-auto"
-        exit={{ opacity: 0, scale: 0.97 }}
-        initial={{ opacity: 0, scale: 0.97 }}
-        style={{
-          transform: "translate(-50%, -50%)",
-          background: "var(--white-custom)",
-          borderRadius: "var(--radius-card)",
-          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-          boxShadow: "0 20px 60px color-mix(in srgb, black 25%, transparent)",
-        }}
+        animate={{ opacity: 1, x: 0 }}
+        className="fixed z-[61] overflow-y-auto"
+        exit={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
+        initial={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        style={
+          esMobile
+            ? {
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "min(94vw, 560px)",
+                maxHeight: "86vh",
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                boxShadow: "0 20px 60px color-mix(in srgb, black 25%, transparent)",
+              }
+            : {
+                left: pos.left,
+                top: pos.top,
+                width: ANCHO_PANEL,
+                height: pos.height,
+                background: "var(--white-custom)",
+                // Esquinas rectas del lado que "conecta" con el panel
+                // principal, redondeadas del otro — da la sensación de
+                // que es una extensión de la misma tarjeta, no un panel
+                // separado flotando encima.
+                borderRadius:
+                  pos.lado === "derecha"
+                    ? "0 var(--radius-card) var(--radius-card) 0"
+                    : "var(--radius-card) 0 0 var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                borderLeft:
+                  pos.lado === "derecha"
+                    ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                    : undefined,
+                borderRight:
+                  pos.lado === "izquierda"
+                    ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
+                    : undefined,
+                boxShadow: "0 12px 32px color-mix(in srgb, black 16%, transparent)",
+              }
+        }
       >
         {/* ── Header con nombre + cerrar ── */}
         <div
@@ -438,42 +512,48 @@ function PanelExpandidoFicha({
           </button>
         </div>
 
-        {/* ── Cuerpo: 3 columnas en desktop (idiomas / herramientas /
-            trasfondo), apiladas en mobile. ── */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-[220px_220px_1fr] gap-6">
-          <div>
-            <span
-              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              <Languages size={11} />
-              Idiomas
-            </span>
-            <EditorListaTags
-              valores={ficha.idiomas ?? []}
-              editable={editable}
-              onCambiar={(siguientes) => onEditarCampo?.("idiomas", siguientes)}
-              placeholder="Agregar idioma…"
-            />
+        {/* ── Cuerpo: idiomas y herramientas lado a lado arriba, trasfondo
+            abajo — pensado para el ancho angosto del panel anexo (560px),
+            no para un modal ancho centrado. ── */}
+        <div className="p-6 flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                <Languages size={11} />
+                Idiomas
+              </span>
+              <EditorListaTags
+                valores={ficha.idiomas ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("idiomas", siguientes)}
+                placeholder="Agregar idioma…"
+              />
+            </div>
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                <Wrench size={11} />
+                Herramientas
+              </span>
+              <EditorListaTags
+                valores={ficha.herramientas ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("herramientas", siguientes)}
+                placeholder="Agregar herramienta…"
+              />
+            </div>
           </div>
-          <div>
+          <div
+            className="flex flex-col gap-4 pt-1"
+            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
             <span
-              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              <Wrench size={11} />
-              Herramientas
-            </span>
-            <EditorListaTags
-              valores={ficha.herramientas ?? []}
-              editable={editable}
-              onCambiar={(siguientes) => onEditarCampo?.("herramientas", siguientes)}
-              placeholder="Agregar herramienta…"
-            />
-          </div>
-          <div className="flex flex-col gap-4">
-            <span
-              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider"
+              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider pt-3"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Scroll size={11} />
@@ -573,6 +653,7 @@ export function FichaStatsPanel({
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const [expandido, setExpandido] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const stats: Array<[string, number]> = [
     ["fuerza", ficha.fuerza ?? 10],
     ["destreza", ficha.destreza ?? 10],
@@ -584,6 +665,7 @@ export function FichaStatsPanel({
 
   return (
     <div
+      ref={panelRef}
       className="overflow-hidden"
       style={{
         background: "var(--white-custom)",
@@ -591,10 +673,10 @@ export function FichaStatsPanel({
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
-      {/* ── Panel flotante: se expande horizontalmente por encima del
-          tablero mientras está abierto, con idiomas, herramientas y
-          trasfondo con más espacio para leer/editar. Cierra con la X,
-          clic afuera, o Escape. ── */}
+      {/* ── Panel anexo: se abre pegado al costado de esta tarjeta, como si
+          se estirara hacia el lado, con idiomas, herramientas y trasfondo
+          con más espacio para leer/editar. Cierra con la X, clic afuera,
+          o Escape. ── */}
       <AnimatePresence>
         {expandido && (
           <PanelExpandidoFicha
@@ -602,6 +684,7 @@ export function FichaStatsPanel({
             editable={editable}
             onEditarCampo={onEditarCampo}
             onCerrar={() => setExpandido(false)}
+            anclaRef={panelRef}
           />
         )}
       </AnimatePresence>
@@ -939,7 +1022,7 @@ export function FichaStatsPanel({
         }}
       >
         <SeparadorLabel label="Estadísticas" />
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 gap-2 items-start">
           {stats.map(([key, valor]) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
