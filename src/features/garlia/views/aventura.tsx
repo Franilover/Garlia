@@ -11,13 +11,14 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
+import { TableroAventura, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -420,64 +421,26 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
             </Text>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <AnimatePresence initial={false}>
-              {publicadas.map((entidad, i) => (
-                <MotionDiv
-                  key={entidad.id}
-                  animate={{ opacity: 1, y: 0 }}
-                  initial={{ opacity: 0, y: 12 }}
-                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSeleccion(entidad)}
-                    className="group w-full flex items-center gap-3 p-3 text-left rounded-xl border transition-all"
-                    style={{
-                      background: "var(--white-custom)",
-                      borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        "color-mix(in srgb, var(--primary) 28%, transparent)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        "color-mix(in srgb, var(--primary) 10%, transparent)";
-                    }}
-                  >
-                    <div className="w-14 h-14 shrink-0 rounded-lg overflow-hidden relative bg-primary/5">
-                      {entidad.imagen_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={entidad.imagen_url}
-                          alt={entidad.nombre}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <BookOpen size={16} className="text-primary/20" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                        {TABLA_LABEL[entidad.tabla].singular}
-                      </span>
-                      <h3 className="font-serif italic text-base text-primary truncate">
-                        {entidad.nombre}
-                      </h3>
-                      {entidad.publicado_at && (
-                        <span className="text-micro text-primary/30">
-                          {formatFecha(entidad.publicado_at)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                </MotionDiv>
-              ))}
-            </AnimatePresence>
-          </div>
+          <TableroAventura
+            editable={false}
+            cardWidth={360}
+            cardHeight={140}
+            imageWidth={140}
+            items={publicadas.map(
+              (entidad): TableroItem => ({
+                id: entidad.id,
+                nombre: entidad.nombre,
+                imagen_url: entidad.imagen_url,
+                subtitulo: TABLA_LABEL[entidad.tabla].singular,
+                pos_x: entidad.pos_x,
+                pos_y: entidad.pos_y,
+              }),
+            )}
+            onClickItem={(id) => {
+              const entidad = publicadas.find((e) => e.id === id);
+              if (entidad) setSeleccion(entidad);
+            }}
+          />
         )}
       </div>
 

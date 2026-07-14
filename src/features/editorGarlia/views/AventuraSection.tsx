@@ -39,6 +39,7 @@ import {
   type AventuraEntidad,
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
+import { TableroAventura, type TableroItem } from "../components/aventuras/TableroAventura";
 
 const EditorMisiones = lazy(() => import("./editorMisiones"));
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
@@ -233,7 +234,7 @@ function AventuraDetalle({
   onVolver: () => void;
 }) {
   const { aventuras } = useAventurasList();
-  const { entidades, loading, agregar, quitar, togglePublicado } =
+  const { entidades, loading, agregar, quitar, togglePublicado, moverPosicion } =
     useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId);
 
@@ -378,79 +379,75 @@ function AventuraDetalle({
         )}
       </div>
 
-      {/* ── Entidades de esta aventura ──────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
+      {/* ── Tablero libre: pizarrón con las entidades de esta aventura ── */}
+      <div className="flex-1 min-h-0 flex flex-col p-4 gap-2">
+        <p className="shrink-0 text-micro text-primary/35">
+          Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
+          El ojo publica/oculta para los jugadores; la X quita del todo.
+        </p>
         {loading && entidades.length === 0 ? (
           <div className="py-16 flex items-center justify-center text-primary/30">
             <Loader2 className="animate-spin" size={18} />
           </div>
-        ) : entidades.length === 0 ? (
-          <div className="py-16 text-center text-xs text-primary/30">
-            Busca arriba y añade lo que quieras tener a mano para esta aventura.
-          </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
-            {entidades.map((e) => {
+          <TableroAventura
+            editable
+            emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
+            items={entidades.map(
+              (e): TableroItem => ({
+                id: e.id,
+                nombre: e.nombre,
+                imagen_url: e.imagen_url,
+                subtitulo: TABLA_LABEL[e.tabla].singular,
+                pos_x: e.pos_x,
+                pos_y: e.pos_y,
+                destacado: e.publicado,
+              }),
+            )}
+            renderBadge={(item) => {
+              const e = entidades.find((x) => x.id === item.id);
+              if (!e) return null;
               const isPending = pendientes.has(e.id);
               return (
-                <div
-                  key={e.id}
-                  className={`group relative flex flex-col overflow-hidden rounded-xl border transition-all ${
-                    e.publicado
-                      ? "border-primary/40 bg-primary/[0.06]"
-                      : "border-primary/10 bg-primary/[0.02]"
-                  }`}
-                >
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     disabled={isPending}
-                    onClick={() => handleToggle(e)}
-                    className="text-left disabled:opacity-60"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      handleToggle(e);
+                    }}
+                    onPointerDown={(ev) => ev.stopPropagation()}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      e.publicado ? "bg-primary text-white" : "bg-black/30 text-white/70"
+                    }`}
+                    title={e.publicado ? "Publicado (click para ocultar)" : "Oculto (click para publicar)"}
                   >
-                    <div className="w-full h-20 shrink-0 overflow-hidden relative bg-primary/5">
-                      {e.imagen_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={e.imagen_url} alt={e.nombre} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-primary/15 text-micro font-black uppercase">
-                          {TABLA_LABEL[e.tabla].singular}
-                        </div>
-                      )}
-                      <div
-                        className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center ${
-                          e.publicado ? "bg-primary text-white" : "bg-black/30 text-white/70"
-                        }`}
-                      >
-                        {isPending ? (
-                          <Loader2 size={11} className="animate-spin" />
-                        ) : e.publicado ? (
-                          <Eye size={11} />
-                        ) : (
-                          <EyeOff size={11} />
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-2 flex flex-col gap-0.5">
-                      <span className="text-xs font-semibold text-primary/80 truncate">
-                        {e.nombre}
-                      </span>
-                      <span className="text-micro font-bold uppercase tracking-wide text-primary/35">
-                        {e.publicado ? "Publicado" : "Oculto"}
-                      </span>
-                    </div>
+                    {isPending ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : e.publicado ? (
+                      <Eye size={11} />
+                    ) : (
+                      <EyeOff size={11} />
+                    )}
                   </button>
                   <button
                     type="button"
-                    onClick={() => quitar(e.id)}
-                    className="absolute top-1.5 left-1.5 p-1 rounded-full opacity-0 group-hover:opacity-100 bg-black/30 hover:bg-red-500/70 text-white transition-all"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      quitar(e.id);
+                    }}
+                    onPointerDown={(ev) => ev.stopPropagation()}
+                    className="w-6 h-6 rounded-full flex items-center justify-center bg-black/30 hover:bg-red-500/70 text-white transition-colors"
                     title="Quitar de esta aventura"
                   >
-                    <X size={10} />
+                    <X size={11} />
                   </button>
                 </div>
               );
-            })}
-          </div>
+            }}
+            onMove={(id, x, y) => moverPosicion(id, x, y)}
+          />
         )}
       </div>
     </div>

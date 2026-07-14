@@ -65,6 +65,8 @@ export interface AventuraEntidadRow {
   publicado: boolean;
   publicado_at: string | null;
   created_at: string;
+  pos_x: number | null;
+  pos_y: number | null;
 }
 
 /** Fila resuelta: la relación + los datos legibles de la entidad original. */
@@ -291,6 +293,22 @@ export function useAventuraEntidades(aventuraId: string | null) {
     }
   }, [entidades]);
 
+  /** Mueve un item en el tablero libre (pizarrón). Optimista + persistido. */
+  const moverPosicion = useCallback(async (relacionId: string, posX: number, posY: number) => {
+    const anterior = entidades;
+    setEntidades((prev) =>
+      prev.map((e) => (e.id === relacionId ? { ...e, pos_x: posX, pos_y: posY } : e)),
+    );
+    const { error } = await supabase
+      .from("aventura_entidades")
+      .update({ pos_x: posX, pos_y: posY })
+      .eq("id", relacionId);
+    if (error) {
+      setEntidades(anterior);
+      throw error;
+    }
+  }, [entidades]);
+
   const togglePublicado = useCallback(async (relacion: AventuraEntidad) => {
     const nuevoValor = !relacion.publicado;
     const nuevoPublicadoAt = nuevoValor ? new Date().toISOString() : null;
@@ -320,7 +338,7 @@ export function useAventuraEntidades(aventuraId: string | null) {
     }
   }, []);
 
-  return { entidades, loading, agregar, quitar, togglePublicado, refetch: fetchAll };
+  return { entidades, loading, agregar, quitar, togglePublicado, moverPosicion, refetch: fetchAll };
 }
 
 // ── Búsqueda de entidades (todas las tablas) para agregar a una aventura ──
