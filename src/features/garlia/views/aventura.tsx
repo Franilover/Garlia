@@ -36,6 +36,8 @@ function formatFecha(iso: string | null): string {
 
 export default function Aventura() {
   const [aventuraId, setAventuraId] = useState<string | null>(null);
+  const { perfil } = useAuth();
+  const { activa } = useFichasDnd(perfil?.id ?? null);
 
   return (
     <div
@@ -44,11 +46,41 @@ export default function Aventura() {
     >
       <SelectorIdentidadFlotante />
       <BotonMisionesFlotante />
-      {aventuraId ? (
-        <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
-      ) : (
-        <SelectorAventuras onSeleccionar={setAventuraId} />
-      )}
+
+      {/* ── Dos columnas: 70% contenido (selector o feed, con scroll propio) /
+          30% ficha activa (fija) ── */}
+      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0">
+        <div
+          className="w-full md:w-[70%] flex flex-col gap-6 overflow-y-auto"
+          style={{ maxHeight: "calc(100svh - 140px)" }}
+        >
+          {aventuraId ? (
+            <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
+          ) : (
+            <SelectorAventuras onSeleccionar={setAventuraId} />
+          )}
+        </div>
+
+        <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4">
+          {activa ? (
+            <FichaStatsPanel ficha={activa} />
+          ) : (
+            <div
+              className="p-5 text-center"
+              style={{
+                background: "var(--white-custom)",
+                borderRadius: "var(--radius-card)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <Swords size={18} className="mx-auto mb-2 text-primary/20" />
+              <p className="text-micro font-black uppercase tracking-wider text-primary/40">
+                Elegí una identidad para ver su ficha
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -403,8 +435,6 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
 // ── Feed de una aventura ─────────────────────────────────────────────────
 
 function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: () => void }) {
-  const { perfil } = useAuth();
-  const { activa } = useFichasDnd(perfil?.id ?? null);
   const { aventuras } = useAventurasList();
   const { entidades, loading } = useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
@@ -443,47 +473,42 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
         </h1>
       </MotionDiv>
 
-      {/* ── Dos columnas: 70% feed publicado (scroll propio) / 30% ficha (fija) ── */}
-      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0">
-        <div
-          className="w-full md:w-[70%] overflow-y-auto"
-          style={{ maxHeight: "calc(100svh - 260px)" }}
-        >
-          {loading && entidades.length === 0 ? (
-            <div className="py-24 flex items-center justify-center text-primary/30">
-              <Loader2 className="animate-spin" size={22} />
-            </div>
-          ) : publicadas.length === 0 ? (
-            <div className="py-24 text-center">
-              <Sparkles className="mx-auto mb-3 text-primary/20" size={28} />
-              <Text as="p" variant="md" className="text-primary/40">
-                Todavía no hay nada revelado en esta aventura. El DM irá
-                publicando cosas a medida que las descubráis.
-              </Text>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <AnimatePresence initial={false}>
-                {publicadas.map((entidad, i) => (
-                  <MotionDiv
-                    key={entidad.id}
-                    animate={{ opacity: 1, y: 0 }}
-                    initial={{ opacity: 0, y: 12 }}
-                    transition={{ delay: Math.min(i * 0.03, 0.3) }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setSeleccion(entidad)}
-                      className="group w-full flex items-center gap-3 p-3 text-left rounded-xl border transition-all"
-                      style={{
-                        background: "var(--white-custom)",
-                        borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLElement).style.borderColor =
-                          "color-mix(in srgb, var(--primary) 28%, transparent)";
-                      }}
-                      onMouseLeave={(e) => {
+      <div className="flex-1 w-full">
+        {loading && entidades.length === 0 ? (
+          <div className="py-24 flex items-center justify-center text-primary/30">
+            <Loader2 className="animate-spin" size={22} />
+          </div>
+        ) : publicadas.length === 0 ? (
+          <div className="py-24 text-center">
+            <Sparkles className="mx-auto mb-3 text-primary/20" size={28} />
+            <Text as="p" variant="md" className="text-primary/40">
+              Todavía no hay nada revelado en esta aventura. El DM irá
+              publicando cosas a medida que las descubráis.
+            </Text>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <AnimatePresence initial={false}>
+              {publicadas.map((entidad, i) => (
+                <MotionDiv
+                  key={entidad.id}
+                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSeleccion(entidad)}
+                    className="group w-full flex items-center gap-3 p-3 text-left rounded-xl border transition-all"
+                    style={{
+                      background: "var(--white-custom)",
+                      borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor =
+                        "color-mix(in srgb, var(--primary) 28%, transparent)";
+                    }}
+                    onMouseLeave={(e) => {
                       (e.currentTarget as HTMLElement).style.borderColor =
                         "color-mix(in srgb, var(--primary) 10%, transparent)";
                     }}
@@ -521,28 +546,6 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
             </AnimatePresence>
           </div>
         )}
-      </div>
-
-      {/* Columna derecha: ficha activa, fija (no scrollea con el feed) */}
-      <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4">
-        {activa ? (
-          <FichaStatsPanel ficha={activa} />
-        ) : (
-          <div
-            className="p-5 text-center"
-            style={{
-              background: "var(--white-custom)",
-              borderRadius: "var(--radius-card)",
-              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            }}
-          >
-            <Swords size={18} className="mx-auto mb-2 text-primary/20" />
-            <p className="text-micro font-black uppercase tracking-wider text-primary/40">
-              Elegí una identidad para ver su ficha
-            </p>
-          </div>
-        )}
-      </div>
       </div>
 
       {/* ── Modal de detalle ─────────────────────────────────────────── */}
