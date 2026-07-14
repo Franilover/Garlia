@@ -175,17 +175,24 @@ export function TableroAventura({
           const x = live?.x ?? item.pos_x ?? 0;
           const y = live?.y ?? item.pos_y ?? 0;
           const isDraggingThis = dragId === item.id;
+          const tieneImagen = !!item.imagen_url;
+          // Con imagen: tarjeta cuadrada (imagen ocupa todo el cuadro),
+          // nombre y tipo abajo superpuestos con degradé, ej. "Personaje | Abel".
+          // Sin imagen: layout anterior, imagen placeholder a la izquierda + texto.
+          const cardStyleWidth = tieneImagen ? CARD_H : CARD_W;
           return (
             <div
               key={item.id}
               onPointerDown={(e) => handlePointerDown(e, item)}
               onPointerMove={handlePointerMove}
               onPointerUp={(e) => handlePointerUp(e, item)}
-              className="group absolute flex items-stretch gap-3 rounded-2xl border overflow-hidden shadow-sm select-none"
+              className={`group absolute rounded-2xl border overflow-hidden shadow-sm select-none ${
+                tieneImagen ? "" : "flex items-stretch gap-3"
+              }`}
               style={{
                 left: x,
                 top: y,
-                width: CARD_W,
+                width: cardStyleWidth,
                 height: CARD_H,
                 background: "var(--white-custom)",
                 borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
@@ -198,40 +205,63 @@ export function TableroAventura({
                 transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
               }}
             >
-              <div
-                className="relative h-full shrink-0 bg-primary/5 overflow-hidden"
-                style={{ width: IMG_W }}
-              >
-                {item.imagen_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+              {tieneImagen ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={item.imagen_url}
+                    src={item.imagen_url!}
                     alt={item.nombre}
                     draggable={false}
-                    className="w-full h-full object-cover pointer-events-none"
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                   />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen size={18} className="text-primary/20" />
+                  <div
+                    className="absolute inset-x-0 bottom-0 px-2.5 py-2"
+                    style={{
+                      background:
+                        "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.35) 60%, transparent)",
+                    }}
+                  >
+                    {item.subtitulo && (
+                      <span className="block text-micro font-black uppercase tracking-widest text-white/70 truncate">
+                        {item.subtitulo}
+                      </span>
+                    )}
+                    <h3 className="font-serif italic text-white truncate text-sm">
+                      {item.nombre}
+                    </h3>
                   </div>
-                )}
-                {renderBadge && (
-                  <div className="absolute top-1 right-1">{renderBadge(item)}</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-center py-2 pr-3 gap-0.5">
-                {item.subtitulo && (
-                  <span className="text-micro font-black uppercase tracking-widest text-primary/35 truncate">
-                    {item.subtitulo}
-                  </span>
-                )}
-                <h3
-                  className="font-serif italic text-primary truncate"
-                  style={{ fontSize: CARD_H >= 130 ? "1.1rem" : undefined }}
-                >
-                  {item.nombre}
-                </h3>
-              </div>
+                  {renderBadge && (
+                    <div className="absolute top-1 right-1">{renderBadge(item)}</div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div
+                    className="relative h-full shrink-0 bg-primary/5 overflow-hidden"
+                    style={{ width: IMG_W }}
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <BookOpen size={18} className="text-primary/20" />
+                    </div>
+                    {renderBadge && (
+                      <div className="absolute top-1 right-1">{renderBadge(item)}</div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center py-2 pr-3 gap-0.5">
+                    {item.subtitulo && (
+                      <span className="text-micro font-black uppercase tracking-widest text-primary/35 truncate">
+                        {item.subtitulo}
+                      </span>
+                    )}
+                    <h3
+                      className="font-serif italic text-primary truncate"
+                      style={{ fontSize: CARD_H >= 130 ? "1.1rem" : undefined }}
+                    >
+                      {item.nombre}
+                    </h3>
+                  </div>
+                </>
+              )}
             </div>
           );
         })}

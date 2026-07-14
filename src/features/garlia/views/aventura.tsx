@@ -297,11 +297,6 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
         className="text-center shrink-0"
         initial={{ opacity: 0, y: -20 }}
       >
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Text as="span" variant="cap">
-            Diario de
-          </Text>
-        </div>
         <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-primary italic">
           Aventuras
         </h1>
@@ -388,13 +383,8 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs font-bold text-primary/40 hover:text-primary/70 transition-colors"
         >
           <ArrowLeft size={14} />
-          Aventuras
+          <span className="hidden sm:inline">Aventuras</span>
         </button>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Text as="span" variant="cap">
-            Diario de la Campaña
-          </Text>
-        </div>
         <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-primary italic">
           {aventura?.nombre ?? "Aventura"}
         </h1>
