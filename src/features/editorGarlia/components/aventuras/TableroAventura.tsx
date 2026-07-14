@@ -106,7 +106,9 @@ export function TableroAventura({
   );
 
   const handlePointerDown = (e: React.PointerEvent, item: TableroItem) => {
-    if (!editable) return;
+    // En modo público (no editable) igual necesitamos trackear el
+    // pointer down→up para poder distinguir "click" de "arrastre" y
+    // abrir el modal de detalle — solo se salta la lógica de mover.
     e.preventDefault();
     e.stopPropagation();
     const target = e.currentTarget as HTMLElement;
@@ -118,7 +120,7 @@ export function TableroAventura({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragId || !containerRef.current) return;
+    if (!dragId || !containerRef.current || !editable) return;
     const canvasRect = containerRef.current.getBoundingClientRect();
     const scrollLeft = containerRef.current.scrollLeft;
     const scrollTop = containerRef.current.scrollTop;
@@ -161,7 +163,7 @@ export function TableroAventura({
       style={{
         background:
           "repeating-linear-gradient(0deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px)",
-        touchAction: editable ? "none" : "auto",
+        touchAction: editable ? "none" : "pan-y",
       }}
     >
       <div
@@ -188,6 +190,7 @@ export function TableroAventura({
                 background: "var(--white-custom)",
                 borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
                 cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
+                touchAction: "manipulation",
                 zIndex: isDraggingThis ? 30 : 1,
                 boxShadow: isDraggingThis
                   ? "0 10px 24px rgba(0,0,0,0.18)"
