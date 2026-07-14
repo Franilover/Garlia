@@ -38,6 +38,7 @@ import {
   Zap,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import {
@@ -369,7 +370,14 @@ function PanelExpandidoFicha({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onCerrar]);
 
-  return (
+  // Portal a document.body: el panel es "fixed", pero si se queda anidado
+  // dentro de la tarjeta de ficha (que tiene overflow-hidden y, por los
+  // motion.div con transform, su propio stacking context) el navegador lo
+  // recorta o lo deja detrás de otros elementos con z-index propio, como
+  // las tarjetas del tablero. Portal lo saca de ese árbol por completo.
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <>
       <MotionDiv
         animate={{ opacity: 1 }}
@@ -530,7 +538,8 @@ function PanelExpandidoFicha({
           </div>
         </div>
       </MotionDiv>
-    </>
+    </>,
+    document.body,
   );
 }
 
@@ -1292,114 +1301,6 @@ export function FichaStatsPanel({
             onCommit={(v) => onEditarCampo?.("monedas", Number(v) || 0)}
             className="text-sm font-black tabular-nums"
             style={{ color: "var(--primary)" }}
-          />
-        </div>
-      </div>
-
-      {/* ── Idiomas y herramientas: competencias no-combate, las puede tocar
-          el dueño de la ficha en cualquier momento (igual que alineamiento). ── */}
-      <div
-        className="px-5 py-4 flex flex-col gap-3"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <div>
-          <span
-            className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-1.5"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            <Languages size={10} />
-            Idiomas
-          </span>
-          <EditorListaTags
-            valores={ficha.idiomas ?? []}
-            editable={editable}
-            onCambiar={(siguientes) => onEditarCampo?.("idiomas", siguientes)}
-            placeholder="Agregar idioma…"
-          />
-        </div>
-        <div>
-          <span
-            className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-1.5"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            <Wrench size={10} />
-            Herramientas
-          </span>
-          <EditorListaTags
-            valores={ficha.herramientas ?? []}
-            editable={editable}
-            onCambiar={(siguientes) => onEditarCampo?.("herramientas", siguientes)}
-            placeholder="Agregar herramienta…"
-          />
-        </div>
-      </div>
-
-      {/* ── Trasfondo narrativo: los 4 campos de rol-play de la ficha 2024
-          (antes en la hoja física, ahora en la sección "About"). Siempre
-          los puede tocar el dueño, no son datos de combate. ── */}
-      <div
-        className="px-5 py-4 flex flex-col gap-3"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <SeparadorLabel label="Trasfondo" />
-        <div>
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Rasgos de personalidad
-          </span>
-          <CampoEditableTextarea
-            valor={ficha.rasgos_personalidad}
-            editable={editable}
-            onCommit={(v) => onEditarCampo?.("rasgos_personalidad", v || null)}
-            placeholder="¿Qué lo hace distinto a cualquier otro aventurero?"
-          />
-        </div>
-        <div>
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Ideales
-          </span>
-          <CampoEditableTextarea
-            valor={ficha.ideales}
-            editable={editable}
-            onCommit={(v) => onEditarCampo?.("ideales", v || null)}
-            placeholder="¿Qué principios lo guían?"
-          />
-        </div>
-        <div>
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Vínculos
-          </span>
-          <CampoEditableTextarea
-            valor={ficha.vinculos}
-            editable={editable}
-            onCommit={(v) => onEditarCampo?.("vinculos", v || null)}
-            placeholder="¿A quién o qué está atado?"
-          />
-        </div>
-        <div>
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Defectos
-          </span>
-          <CampoEditableTextarea
-            valor={ficha.defectos}
-            editable={editable}
-            onCommit={(v) => onEditarCampo?.("defectos", v || null)}
-            placeholder="¿Qué punto débil podrían explotar en su contra?"
           />
         </div>
       </div>
