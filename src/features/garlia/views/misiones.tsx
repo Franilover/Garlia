@@ -5,6 +5,7 @@ import {
   ArrowDown,
   Backpack,
   Ban,
+  BookOpen,
   CheckCircle2,
   CircleDashed,
   CircleOff,
@@ -45,7 +46,7 @@ import {
   reclamarMisionOffline,
 } from "@/lib/api/client/syncEngine";
 
-import type { FichaDnd, ItemInventarioFicha } from "../hooks/useFichasDnd";
+import type { FichaDnd, ItemInventarioFicha, RasgoEspecial } from "../hooks/useFichasDnd";
 import {
   bonusCompetencia,
   buscarCriaturas,
@@ -99,6 +100,39 @@ const ABREVIATURA_STAT: Record<string, string> = {
   inteligencia: "INT",
   sabiduria: "SAB",
   carisma: "CAR",
+};
+
+// Las 18 habilidades (skills) oficiales de D&D, agrupadas por la stat de la
+// que dependen. Constitución no tiene skills asociadas, por eso no aparece
+// ninguna fila para esa stat.
+const SKILLS_POR_STAT: Record<string, Array<{ id: string; nombre: string }>> = {
+  fuerza: [{ id: "atletismo", nombre: "Atletismo" }],
+  destreza: [
+    { id: "acrobacias", nombre: "Acrobacias" },
+    { id: "juego_de_manos", nombre: "Juego de manos" },
+    { id: "sigilo", nombre: "Sigilo" },
+  ],
+  constitucion: [],
+  inteligencia: [
+    { id: "arcanos", nombre: "Arcanos" },
+    { id: "historia", nombre: "Historia" },
+    { id: "investigacion", nombre: "Investigación" },
+    { id: "naturaleza", nombre: "Naturaleza" },
+    { id: "religion", nombre: "Religión" },
+  ],
+  sabiduria: [
+    { id: "trato_con_animales", nombre: "Trato con animales" },
+    { id: "perspicacia", nombre: "Perspicacia" },
+    { id: "medicina", nombre: "Medicina" },
+    { id: "percepcion", nombre: "Percepción" },
+    { id: "supervivencia", nombre: "Supervivencia" },
+  ],
+  carisma: [
+    { id: "engano", nombre: "Engaño" },
+    { id: "intimidacion", nombre: "Intimidación" },
+    { id: "interpretacion", nombre: "Interpretación" },
+    { id: "persuasion", nombre: "Persuasión" },
+  ],
 };
 
 // Las 14 condiciones oficiales de D&D 5e. Íconos Lucide en vez de emoji:
@@ -322,7 +356,10 @@ export function FichaStatsPanel({
   editableStats?: boolean;
   /** Solo admin/DM, siempre: controla condiciones activas y HP actual en vivo. */
   editableCondiciones?: boolean;
-  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number | boolean | string[] | null) => void;
+  onEditarCampo?: (
+    campo: keyof FichaDnd,
+    valor: string | number | boolean | string[] | RasgoEspecial[] | null,
+  ) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
@@ -655,45 +692,117 @@ export function FichaStatsPanel({
         }}
       >
         <SeparadorLabel label="Estadísticas" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="flex flex-col gap-2">
           {stats.map(([key, valor]) => {
             const mod = statMod(valor);
+            const skills = SKILLS_POR_STAT[key] ?? [];
             return (
               <div
                 key={key}
-                className="flex flex-col items-center gap-0.5 py-2"
                 style={{
                   border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderRadius: "2px",
                   background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                 }}
               >
-                <span
-                  className="text-micro font-black uppercase tracking-wider"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                >
-                  {ABREVIATURA_STAT[key]}
-                </span>
-                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                  <CampoEditable
-                    valor={valor}
-                    editable={editableStats}
-                    tipo="number"
-                    align="center"
-                    width={26}
-                    onCommit={(v) =>
-                      onEditarCampo?.(key as keyof FichaDnd, Number(v) || 10)
-                    }
-                    className="text-sm font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                </span>
-                <span
-                  className="text-micro font-black tabular-nums"
-                  style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-                >
-                  {mod >= 0 ? `+${mod}` : mod}
-                </span>
+                {/* Fila de la stat: abreviatura, valor editable y modificador. */}
+                <div className="flex items-center gap-2 px-2.5 py-1.5">
+                  <span
+                    className="w-8 shrink-0 text-micro font-black uppercase tracking-wider"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                  >
+                    {ABREVIATURA_STAT[key]}
+                  </span>
+                  <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                    <CampoEditable
+                      valor={valor}
+                      editable={editableStats}
+                      tipo="number"
+                      align="center"
+                      width={26}
+                      onCommit={(v) =>
+                        onEditarCampo?.(key as keyof FichaDnd, Number(v) || 10)
+                      }
+                      className="text-sm font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </span>
+                  <span
+                    className="text-micro font-black tabular-nums"
+                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                  >
+                    ({mod >= 0 ? `+${mod}` : mod})
+                  </span>
+                </div>
+
+                {/* Habilidades asociadas a esta stat, anidadas debajo. */}
+                {skills.length > 0 && (
+                  <div
+                    className="flex flex-col"
+                    style={{
+                      borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    }}
+                  >
+                    {skills.map((skill) => {
+                      const competente =
+                        ficha.habilidades_competentes?.includes(skill.id) ?? false;
+                      const bonus =
+                        mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+                      return (
+                        <button
+                          key={skill.id}
+                          type="button"
+                          disabled={!editableStats}
+                          onClick={() => {
+                            if (!editableStats) return;
+                            const actuales = ficha.habilidades_competentes ?? [];
+                            const siguientes = competente
+                              ? actuales.filter((s) => s !== skill.id)
+                              : [...actuales, skill.id];
+                            onEditarCampo?.("habilidades_competentes", siguientes);
+                          }}
+                          className="flex items-center justify-between pl-6 pr-2.5 py-1 transition-all disabled:cursor-default"
+                          style={{
+                            borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                          }}
+                        >
+                          <span
+                            className="flex items-center gap-1.5 text-micro"
+                            style={{
+                              color: competente
+                                ? "var(--primary)"
+                                : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                              fontWeight: competente ? 700 : 500,
+                            }}
+                          >
+                            <span
+                              className="shrink-0"
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: competente
+                                  ? "var(--primary)"
+                                  : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                              }}
+                            />
+                            {skill.nombre}
+                          </span>
+                          <span
+                            className="text-micro font-black tabular-nums"
+                            style={{
+                              color: competente
+                                ? "var(--primary)"
+                                : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                            }}
+                          >
+                            {bonus >= 0 ? `+${bonus}` : bonus}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1066,6 +1175,16 @@ export function FichaStatsPanel({
         </div>
       </div>
 
+      {/* ── Rasgos y habilidades especiales: features de clase/raza, texto
+          libre (ej. "Visión en la oscuridad", "Segundo aliento"). No son
+          numéricos, así que no afectan cálculos — el dueño los puede
+          editar siempre, no está protegido detrás de editableStats. ── */}
+      <PanelRasgosEspeciales
+        rasgos={ficha.rasgos_especiales ?? []}
+        editable={editable}
+        onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
+      />
+
       {/* ── Inventario + Ataques derivados. Ataques se calculan solos a
           partir de los ítems equipados marcados como arma: bono = mod de
           stat (Fuerza, o el mayor entre Fuerza/Destreza si es "sutileza")
@@ -1078,6 +1197,187 @@ export function FichaStatsPanel({
         fuerza={ficha.fuerza ?? 10}
         destreza={ficha.destreza ?? 10}
       />
+    </div>
+  );
+}
+
+// ─── Rasgos y habilidades especiales (features de clase/raza) ──────────────
+// Lista editable de {nombre, descripción}, sin ningún cálculo asociado —
+// es texto de rol-play/mecánica narrativa, tipo "Visión en la oscuridad" o
+// "Segundo aliento". Vive en su propio componente porque maneja su propio
+// estado de "agregando nuevo rasgo".
+
+function PanelRasgosEspeciales({
+  rasgos,
+  editable,
+  onCambiar,
+}: {
+  rasgos: RasgoEspecial[];
+  editable: boolean;
+  onCambiar: (siguientes: RasgoEspecial[]) => void;
+}) {
+  const [agregando, setAgregando] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [descNueva, setDescNueva] = useState("");
+
+  const agregar = useCallback(() => {
+    const nombre = nombreNuevo.trim();
+    if (!nombre) {
+      setAgregando(false);
+      return;
+    }
+    const rasgo: RasgoEspecial = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      nombre,
+      descripcion: descNueva.trim(),
+      origen: "otro",
+    };
+    onCambiar([...rasgos, rasgo]);
+    setNombreNuevo("");
+    setDescNueva("");
+    setAgregando(false);
+  }, [nombreNuevo, descNueva, rasgos, onCambiar]);
+
+  const quitar = useCallback(
+    (id: string) => {
+      onCambiar(rasgos.filter((r) => r.id !== id));
+    },
+    [rasgos, onCambiar],
+  );
+
+  if (!editable && rasgos.length === 0) return null;
+
+  return (
+    <div
+      className="px-5 py-4 flex flex-col gap-2"
+      style={{
+        borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}
+    >
+      <SeparadorLabel label="Rasgos y habilidades especiales" />
+
+      {rasgos.length === 0 && !agregando && (
+        <p
+          className="text-micro italic"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+        >
+          Sin rasgos de clase o raza registrados aún.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {rasgos.map((rasgo) => (
+          <div
+            key={rasgo.id}
+            className="flex items-start gap-2 px-2.5 py-2"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <BookOpen
+              size={13}
+              className="shrink-0 mt-0.5"
+              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+            />
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "var(--primary)" }}
+              >
+                {rasgo.nombre}
+              </p>
+              {rasgo.descripcion && (
+                <p
+                  className="text-micro mt-0.5"
+                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                >
+                  {rasgo.descripcion}
+                </p>
+              )}
+            </div>
+            {editable && (
+              <button
+                type="button"
+                onClick={() => quitar(rasgo.id)}
+                className="shrink-0 cursor-pointer hover:text-red-500 transition-colors"
+                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {editable && (
+        <>
+          {agregando ? (
+            <div
+              className="flex flex-col gap-1.5 px-2.5 py-2"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                borderRadius: "2px",
+              }}
+            >
+              <input
+                autoFocus
+                type="text"
+                value={nombreNuevo}
+                onChange={(e) => setNombreNuevo(e.target.value)}
+                placeholder="Nombre del rasgo (ej. Visión en la oscuridad)"
+                className="bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal"
+                style={{ color: "var(--primary)" }}
+              />
+              <textarea
+                value={descNueva}
+                onChange={(e) => setDescNueva(e.target.value)}
+                placeholder="Descripción (opcional)"
+                rows={2}
+                className="bg-transparent outline-none resize-none text-micro"
+                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+              />
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgregando(false);
+                    setNombreNuevo("");
+                    setDescNueva("");
+                  }}
+                  className="text-micro font-black uppercase tracking-wider px-2 py-1"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={agregar}
+                  className="text-micro font-black uppercase tracking-wider px-2 py-1"
+                  style={{ color: "var(--primary)" }}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAgregando(true)}
+              className="flex items-center gap-1.5 self-start text-micro font-black uppercase tracking-wider px-2.5 py-1.5"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+                borderRadius: "2px",
+              }}
+            >
+              <Plus size={11} />
+              Agregar rasgo
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }

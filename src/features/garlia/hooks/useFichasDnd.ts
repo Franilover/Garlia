@@ -14,6 +14,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
 
+export interface RasgoEspecial {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  /** Origen del rasgo: de la raza o de la clase. Solo informativo/visual. */
+  origen: "raza" | "clase" | "otro";
+}
+
 export interface EspecieResumen {
   id: string;
   nombre: string;
@@ -47,6 +55,10 @@ export interface FichaDnd {
   stats_confirmadas: boolean;
   /** Cuáles de las 6 salvaciones tienen competencia, ej. ["fuerza", "sabiduria"]. */
   salvaciones_competentes: string[];
+  /** Cuáles de las 18 habilidades tienen competencia, ej. ["sigilo", "percepcion"]. */
+  habilidades_competentes: string[];
+  /** Rasgos/habilidades especiales de clase y raza (texto libre, no numérico). */
+  rasgos_especiales: RasgoEspecial[];
   /** Estados/condiciones activas ahora mismo (envenenado, aturdido, etc). Las controla el DM. */
   condiciones: string[];
   /** XP y monedas viven por identidad desde la migración de misiones. */
