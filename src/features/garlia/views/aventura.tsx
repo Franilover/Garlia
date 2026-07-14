@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Check, ChevronDown, Loader2, Pencil, Plus, Scroll, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Loader2, MoreVertical, Pencil, Plus, Scroll, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -36,19 +36,14 @@ function formatFecha(iso: string | null): string {
 
 export default function Aventura() {
   const [aventuraId, setAventuraId] = useState<string | null>(null);
-  const { perfil } = useAuth();
-  const { activa } = useFichasDnd(perfil?.id ?? null);
 
   return (
     <div
       className="relative flex flex-col p-4 md:p-8 gap-6"
       style={{ minHeight: "calc(100svh - 64px)" }}
     >
-      <SelectorIdentidadFlotante />
-      <BotonMisionesFlotante />
-
       {/* ── Dos columnas: 70% contenido (selector o feed, con scroll propio) /
-          30% ficha activa (fija) ── */}
+          30% identidad activa + misiones (fija) ── */}
       <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0">
         <div
           className="w-full md:w-[70%] flex flex-col gap-6 overflow-y-auto"
@@ -61,100 +56,58 @@ export default function Aventura() {
           )}
         </div>
 
-        <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4">
-          {activa ? (
-            <FichaStatsPanel ficha={activa} />
-          ) : (
-            <div
-              className="p-5 text-center"
-              style={{
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
-            >
-              <Swords size={18} className="mx-auto mb-2 text-primary/20" />
-              <p className="text-micro font-black uppercase tracking-wider text-primary/40">
-                Elegí una identidad para ver su ficha
-              </p>
-            </div>
-          )}
+        <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3">
+          <PanelIdentidad />
         </div>
       </div>
     </div>
   );
 }
 
-// ── Botón de misiones (esquina superior izquierda) ───────────────────────
-// Usa la identidad activa (ficha) en vez del perfil: el progreso y las
-// recompensas de misiones ahora viven en fichas_dnd, no en perfiles.
+// ── Panel de identidad: ficha activa (con menú de tres puntos para
+// cambiar/crear/editar identidades) + botón de Misiones debajo ──────────────
 
-function BotonMisionesFlotante() {
+function PanelIdentidad() {
   const { perfil } = useAuth();
-  const { activa, loading, refetch } = useFichasDnd(perfil?.id ?? null);
-  const [abierto, setAbierto] = useState(false);
-
-  if (!perfil || loading || !activa) return null;
-
-  return (
-    <div className="absolute top-4 left-4 z-30">
-      <button
-        type="button"
-        onClick={() => setAbierto(true)}
-        className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
-        style={{
-          background: "var(--white-custom)",
-          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-        }}
-      >
-        <Scroll size={12} className="text-primary/50" />
-        <span className="text-xs font-bold text-primary/70">Misiones</span>
-      </button>
-
-      <AnimatePresence>
-        {abierto && (
-          <ModalFichaOverlay onClose={() => setAbierto(false)}>
-            <Misiones
-              ficha={activa}
-              variant="modal"
-              onClose={() => setAbierto(false)}
-              onFichaActualizada={refetch}
-            />
-          </ModalFichaOverlay>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ── Selector de identidad activa (esquina superior derecha) ─────────────
-
-function SelectorIdentidadFlotante() {
-  const { perfil } = useAuth();
-  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva } = useFichasDnd(
-    perfil?.id ?? null,
-  );
-  const [abierto, setAbierto] = useState(false);
+  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch } =
+    useFichasDnd(perfil?.id ?? null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
+  const [misionesAbierto, setMisionesAbierto] = useState(false);
 
   const fichaEditando = fichas.find((f) => f.id === editandoId) ?? null;
 
   if (!perfil || loading) return null;
+
+  // Sin identidades todavía: tarjeta simple invitando a crear una.
   if (fichas.length === 0 && !creando) {
     return (
-      <div className="absolute top-4 right-4 z-30">
+      <div
+        className="p-5 text-center"
+        style={{
+          background: "var(--white-custom)",
+          borderRadius: "var(--radius-card)",
+          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+        }}
+      >
+        <Swords size={18} className="mx-auto mb-2 text-primary/20" />
+        <p className="text-micro font-black uppercase tracking-wider text-primary/40 mb-3">
+          Todavía no tenés ninguna identidad
+        </p>
         <button
           type="button"
           onClick={() => setCreando(true)}
-          className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
+          className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
           style={{
-            background: "var(--white-custom)",
+            background: "var(--primary)",
             borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
           }}
         >
-          <Plus size={12} className="text-primary/50" />
-          <span className="text-xs font-bold text-primary/70">Crear ficha</span>
+          <Plus size={12} style={{ color: "var(--btn-text)" }} />
+          <span className="text-xs font-bold" style={{ color: "var(--btn-text)" }}>
+            Crear ficha
+          </span>
         </button>
 
         <AnimatePresence>
@@ -169,127 +122,122 @@ function SelectorIdentidadFlotante() {
             />
           )}
         </AnimatePresence>
-
-        <AnimatePresence>
-          {fichaEditando && (
-            <ModalFichaOverlay onClose={() => setEditandoId(null)}>
-              <FichaDetalle
-                variant="modal"
-                ficha={fichaEditando}
-                esActiva={fichaEditando.activa}
-                onVolver={() => setEditandoId(null)}
-                onActualizar={actualizar}
-                onEliminar={async (id) => {
-                  await eliminar(id);
-                  setEditandoId(null);
-                }}
-                onElegirActiva={elegirActiva}
-              />
-            </ModalFichaOverlay>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
 
   return (
-    <div className="absolute top-4 right-4 z-30">
-      <button
-        type="button"
-        onClick={() => setAbierto((v) => !v)}
-        className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-full border transition-colors"
-        style={{
-          background: "var(--white-custom)",
-          borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
-        }}
-      >
-        <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-          {activa?.imagen_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={activa.imagen_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <Swords size={11} className="text-primary/40" />
-          )}
-        </div>
-        <span className="text-xs font-bold text-primary/70 max-w-[100px] truncate">
-          {activa?.nombre ?? "Elegir identidad"}
-        </span>
-        <ChevronDown size={12} className="text-primary/30 shrink-0" />
-      </button>
-
-      <AnimatePresence>
-        {abierto && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
-            <MotionDiv
-              animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-xl border overflow-hidden shadow-lg"
-              exit={{ opacity: 0, y: -6 }}
-              initial={{ opacity: 0, y: -6 }}
-              style={{
-                background: "var(--white-custom)",
-                borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}
-            >
-              {fichas.map((f) => (
-                <div
-                  key={f.id}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!f.activa) elegirActiva(f.id);
-                      setAbierto(false);
-                    }}
-                    className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
-                  >
-                    <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                      {f.imagen_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={f.imagen_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <Swords size={11} className="text-primary/40" />
-                      )}
-                    </div>
-                    <span className="flex-1 min-w-0 text-xs text-primary/80 truncate">{f.nombre}</span>
-                    {f.activa && <Check size={13} className="text-primary shrink-0" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditandoId(f.id);
-                      setAbierto(false);
-                    }}
-                    className="shrink-0 p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
-                    title="Editar ficha"
-                  >
-                    <Pencil size={11} />
-                  </button>
-                </div>
-              ))}
-
+    <>
+      {activa && (
+        <FichaStatsPanel
+          ficha={activa}
+          headerAction={
+            <div className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setAbierto(false);
-                  setCreando(true);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
-                style={{
-                  borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
+                onClick={() => setMenuAbierto((v) => !v)}
+                className="p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
+                title="Cambiar o editar identidad"
               >
-                <div className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-primary/5">
-                  <Plus size={12} className="text-primary/50" />
-                </div>
-                <span className="flex-1 text-xs font-bold text-primary/60">Nueva ficha</span>
+                <MoreVertical size={16} />
               </button>
-            </MotionDiv>
-          </>
-        )}
-      </AnimatePresence>
+
+              <AnimatePresence>
+                {menuAbierto && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuAbierto(false)} />
+                    <MotionDiv
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute right-0 top-full mt-1.5 z-20 w-56 rounded-xl border overflow-hidden shadow-lg"
+                      exit={{ opacity: 0, y: -6 }}
+                      initial={{ opacity: 0, y: -6 }}
+                      style={{
+                        background: "var(--white-custom)",
+                        borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                      }}
+                    >
+                      {fichas.map((f) => (
+                        <div
+                          key={f.id}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-primary/5 transition-colors"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!f.activa) elegirActiva(f.id);
+                              setMenuAbierto(false);
+                            }}
+                            className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
+                          >
+                            <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                              {f.imagen_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={f.imagen_url} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <Swords size={11} className="text-primary/40" />
+                              )}
+                            </div>
+                            <span className="flex-1 min-w-0 text-xs text-primary/80 truncate">
+                              {f.nombre}
+                            </span>
+                            {f.activa && <Check size={13} className="text-primary shrink-0" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditandoId(f.id);
+                              setMenuAbierto(false);
+                            }}
+                            className="shrink-0 p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
+                            title="Editar ficha"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuAbierto(false);
+                          setCreando(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                        style={{
+                          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                        }}
+                      >
+                        <div className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-primary/5">
+                          <Plus size={12} className="text-primary/50" />
+                        </div>
+                        <span className="flex-1 text-xs font-bold text-primary/60">Nueva ficha</span>
+                      </button>
+                    </MotionDiv>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          }
+        />
+      )}
+
+      {/* ── Botón de Misiones: debajo del bloque de identidad ── */}
+      {activa && (
+        <button
+          type="button"
+          onClick={() => setMisionesAbierto(true)}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 transition-colors"
+          style={{
+            background: "var(--white-custom)",
+            borderRadius: "var(--radius-card)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        >
+          <Scroll size={13} className="text-primary/50" />
+          <span className="text-xs font-bold text-primary/70">Misiones</span>
+        </button>
+      )}
 
       <AnimatePresence>
         {creando && (
@@ -322,7 +270,20 @@ function SelectorIdentidadFlotante() {
           </ModalFichaOverlay>
         )}
       </AnimatePresence>
-    </div>
+
+      <AnimatePresence>
+        {misionesAbierto && activa && (
+          <ModalFichaOverlay onClose={() => setMisionesAbierto(false)}>
+            <Misiones
+              ficha={activa}
+              variant="modal"
+              onClose={() => setMisionesAbierto(false)}
+              onFichaActualizada={refetch}
+            />
+          </ModalFichaOverlay>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

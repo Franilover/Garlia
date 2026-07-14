@@ -101,7 +101,13 @@ function SeparadorLabel({ label }: { label: string }) {
   );
 }
 
-export function FichaStatsPanel({ ficha }: { ficha: FichaDnd }) {
+export function FichaStatsPanel({
+  ficha,
+  headerAction,
+}: {
+  ficha: FichaDnd;
+  headerAction?: React.ReactNode;
+}) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
@@ -147,19 +153,22 @@ export function FichaStatsPanel({ ficha }: { ficha: FichaDnd }) {
             />
           )}
         </div>
-        <div className="min-w-0">
-          <p
-            className="font-serif italic text-base leading-tight truncate capitalize"
-            style={{ color: "var(--primary)" }}
-          >
-            {ficha.nombre}
-          </p>
-          <p
-            className="text-micro font-black uppercase tracking-wider truncate"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            {ficha.clase ?? "Aventurero"} · Nivel {ficha.nivel ?? 1}
-          </p>
+        <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p
+              className="font-serif italic text-base leading-tight truncate capitalize"
+              style={{ color: "var(--primary)" }}
+            >
+              {ficha.nombre}
+            </p>
+            <p
+              className="text-micro font-black uppercase tracking-wider truncate"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              {ficha.clase ?? "Aventurero"} · Nivel {ficha.nivel ?? 1}
+            </p>
+          </div>
+          {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
       </div>
 
