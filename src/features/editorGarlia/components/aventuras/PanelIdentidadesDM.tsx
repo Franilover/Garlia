@@ -95,7 +95,7 @@ export function PanelIdentidadesDM() {
   const handleEditarCampo = async (
     fichaId: string,
     campo: keyof FichaDnd,
-    valor: string | number | null,
+    valor: string | number | string[] | null,
   ) => {
     setFichas((prev) => prev.map((f) => (f.id === fichaId ? { ...f, [campo]: valor } : f)));
     setGuardandoId(fichaId);
@@ -215,6 +215,7 @@ export function PanelIdentidadesDM() {
                             ficha={f}
                             editable
                             editableStats
+                            editableCondiciones
                             onEditarCampo={(campo, valor) =>
                               handleEditarCampo(f.id, campo, valor)
                             }

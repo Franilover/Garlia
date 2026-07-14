@@ -45,6 +45,10 @@ export interface FichaDnd {
   activa: boolean;
   /** Una vez true, nadie salvo admin puede tocar las stats de combate. */
   stats_confirmadas: boolean;
+  /** Cuáles de las 6 salvaciones tienen competencia, ej. ["fuerza", "sabiduria"]. */
+  salvaciones_competentes: string[];
+  /** Estados/condiciones activas ahora mismo (envenenado, aturdido, etc). Las controla el DM. */
+  condiciones: string[];
   /** XP y monedas viven por identidad desde la migración de misiones. */
   xp_total: number;
   monedas: number;
@@ -75,6 +79,11 @@ export type NuevaFicha = Pick<FichaDnd, "nombre"> & Partial<Omit<FichaDnd, "id" 
 
 export function statMod(score: number): number {
   return Math.floor((score - 10) / 2);
+}
+
+/** Bono de competencia estándar de D&D 5e según nivel: 1-4→+2, 5-8→+3, 9-12→+4, 13-16→+5, 17-20→+6. */
+export function bonusCompetencia(nivel: number): number {
+  return 2 + Math.floor((Math.max(1, Math.min(20, nivel)) - 1) / 4);
 }
 
 async function resolverEspecies(fichas: FichaDnd[]): Promise<FichaDnd[]> {

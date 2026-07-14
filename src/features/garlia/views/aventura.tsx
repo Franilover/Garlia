@@ -155,7 +155,7 @@ function PanelIdentidad() {
     );
   }
 
-  const handleEditarCampo = async (campo: keyof FichaDnd, valor: string | number | null) => {
+  const handleEditarCampo = async (campo: keyof FichaDnd, valor: string | number | string[] | null) => {
     if (!activa) return;
     setGuardando(true);
     try {
@@ -193,6 +193,7 @@ function PanelIdentidad() {
           ficha={activa}
           editable={editando}
           editableStats={puedeEditarStats}
+          editableCondiciones={isAdmin}
           onEditarCampo={handleEditarCampo}
           headerAction={
             <div className="relative flex items-center gap-1">

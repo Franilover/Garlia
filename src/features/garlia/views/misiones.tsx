@@ -24,7 +24,7 @@ import {
 } from "@/lib/api/client/syncEngine";
 
 import type { FichaDnd } from "../hooks/useFichasDnd";
-import { buscarCriaturas, statMod } from "../hooks/useFichasDnd";
+import { bonusCompetencia, buscarCriaturas, statMod } from "../hooks/useFichasDnd";
 import { SelectorEntidad } from "./fichaComponents";
 import {
   ModalMision,
@@ -72,6 +72,26 @@ const ABREVIATURA_STAT: Record<string, string> = {
   sabiduria: "SAB",
   carisma: "CAR",
 };
+
+// Las 14 condiciones oficiales de D&D 5e. Emoji en vez de íconos individuales:
+// más simple, evita sumar imports nuevos, y en chips tipo "avatar de estado"
+// se reconocen bien al toque.
+const CONDICIONES_DND: Array<{ id: string; nombre: string; emoji: string }> = [
+  { id: "cegado", nombre: "Cegado", emoji: "🙈" },
+  { id: "aturdido", nombre: "Aturdido", emoji: "💫" },
+  { id: "ensordecido", nombre: "Ensordecido", emoji: "🙉" },
+  { id: "asustado", nombre: "Asustado", emoji: "😱" },
+  { id: "agarrado", nombre: "Agarrado", emoji: "🤝" },
+  { id: "incapacitado", nombre: "Incapacitado", emoji: "😵" },
+  { id: "invisible", nombre: "Invisible", emoji: "👻" },
+  { id: "paralizado", nombre: "Paralizado", emoji: "⚡" },
+  { id: "petrificado", nombre: "Petrificado", emoji: "🗿" },
+  { id: "envenenado", nombre: "Envenenado", emoji: "🤢" },
+  { id: "derribado", nombre: "Derribado", emoji: "🤕" },
+  { id: "apresado", nombre: "Apresado", emoji: "🕸️" },
+  { id: "atontado", nombre: "Atontado (stunned)", emoji: "😵‍💫" },
+  { id: "inconsciente", nombre: "Inconsciente", emoji: "😴" },
+];
 
 function SeparadorLabel({ label }: { label: string }) {
   return (
@@ -153,6 +173,7 @@ export function FichaStatsPanel({
   headerAction,
   editable = false,
   editableStats = false,
+  editableCondiciones = false,
   onEditarCampo,
 }: {
   ficha: FichaDnd;
@@ -161,7 +182,9 @@ export function FichaStatsPanel({
   editable?: boolean;
   /** Solo admin/DM: además puede editar nivel, stats, HP, CA y velocidad. */
   editableStats?: boolean;
-  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number | null) => void;
+  /** Solo admin/DM, siempre: controla condiciones activas y HP actual en vivo. */
+  editableCondiciones?: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number | string[] | null) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
@@ -258,7 +281,53 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Vida y daño ── */}
+      {/* ── Avatar de estado: condiciones activas, siempre visibles como chips.
+          Solo admin/DM puede tildar/destildar (editableCondiciones), nunca el
+          dueño de la ficha — el estado de juego en vivo lo controla el DM. ── */}
+      {(ficha.condiciones?.length > 0 || editableCondiciones) && (
+        <div
+          className="px-5 pb-4 flex flex-wrap gap-1.5"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: 12 }}
+        >
+          {CONDICIONES_DND.filter(
+            (c) => editableCondiciones || ficha.condiciones?.includes(c.id),
+          ).map((c) => {
+            const condicionActiva = ficha.condiciones?.includes(c.id) ?? false;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                disabled={!editableCondiciones}
+                title={c.nombre}
+                onClick={() => {
+                  if (!editableCondiciones) return;
+                  const actuales = ficha.condiciones ?? [];
+                  const siguientes = condicionActiva
+                    ? actuales.filter((id) => id !== c.id)
+                    : [...actuales, c.id];
+                  onEditarCampo?.("condiciones", siguientes);
+                }}
+                className="flex items-center justify-center transition-all disabled:cursor-default"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  fontSize: 14,
+                  border: condicionActiva
+                    ? "1px solid color-mix(in srgb, var(--primary) 35%, transparent)"
+                    : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  background: condicionActiva
+                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  opacity: condicionActiva || editableCondiciones ? 1 : 0.3,
+                }}
+              >
+                {c.emoji}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div
         className="px-5 pt-4 pb-4"
         style={{
@@ -280,11 +349,11 @@ export function FichaStatsPanel({
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
-              {editableStats ? (
+              {(editableStats || editableCondiciones) ? (
                 <span className="inline-flex items-center gap-1">
                   <CampoEditable
                     valor={hpActual}
-                    editable
+                    editable={editableCondiciones}
                     tipo="number"
                     align="right"
                     width={32}
@@ -295,7 +364,7 @@ export function FichaStatsPanel({
                   /
                   <CampoEditable
                     valor={hpMax}
-                    editable
+                    editable={editableStats}
                     tipo="number"
                     width={32}
                     onCommit={(v) => onEditarCampo?.("hp_max", Number(v) || 0)}
@@ -426,6 +495,74 @@ export function FichaStatsPanel({
                   {mod >= 0 ? `+${mod}` : mod}
                 </span>
               </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Salvaciones: modificador base + bono de competencia si aplica.
+          Tildar cuáles son competentes está protegido igual que las demás
+          stats de combate (editableStats), porque afecta el cálculo. ── */}
+      <div
+        className="px-5 py-4"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Salvaciones" />
+        <div className="grid grid-cols-2 gap-2">
+          {stats.map(([key, valor]) => {
+            const competente = ficha.salvaciones_competentes?.includes(key) ?? false;
+            const bonus = statMod(valor) + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={!editableStats}
+                onClick={() => {
+                  if (!editableStats) return;
+                  const actuales = ficha.salvaciones_competentes ?? [];
+                  const siguientes = competente
+                    ? actuales.filter((k) => k !== key)
+                    : [...actuales, key];
+                  onEditarCampo?.("salvaciones_competentes", siguientes);
+                }}
+                className="flex items-center justify-between px-2.5 py-1.5 transition-all disabled:cursor-default"
+                style={{
+                  border: competente
+                    ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+                    : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: competente
+                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <span
+                  className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider"
+                  style={{
+                    color: competente
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}
+                >
+                  <span
+                    className="shrink-0"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: competente
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                    }}
+                  />
+                  {ABREVIATURA_STAT[key]}
+                </span>
+                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                  {bonus >= 0 ? `+${bonus}` : bonus}
+                </span>
+              </button>
             );
           })}
         </div>
