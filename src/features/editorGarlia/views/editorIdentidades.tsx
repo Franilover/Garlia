@@ -192,6 +192,7 @@ export default function EditorIdentidades() {
               key={seleccionada.id}
               ficha={seleccionada}
               editable
+              editableStats
               onEditarCampo={handleEditarCampo}
             />
           </div>

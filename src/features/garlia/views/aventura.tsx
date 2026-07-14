@@ -26,9 +26,27 @@ import {
   type Aventura as AventuraType,
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
-import { useFichasDnd, type FichaDnd } from "../hooks/useFichasDnd";
-import { ModalCrearFicha } from "./fichaComponents";
+import { useFichasDnd, type FichaDnd, type NuevaFicha } from "../hooks/useFichasDnd";
 import Misiones, { FichaStatsPanel } from "./misiones";
+
+// Valores por defecto para una ficha recién creada: se crea directo (sin
+// modal) y el jugador la termina de completar editando en el panel lateral.
+const FICHA_DEFAULT: NuevaFicha = {
+  nombre: "Nuevo aventurero",
+  clase: null,
+  alineamiento: null,
+  nivel: 1,
+  fuerza: 10,
+  destreza: 10,
+  constitucion: 10,
+  inteligencia: 10,
+  sabiduria: 10,
+  carisma: 10,
+  hp_max: 10,
+  hp_actual: 10,
+  ca: 10,
+  velocidad: 30,
+};
 
 function formatFecha(iso: string | null): string {
   if (!iso) return "";
@@ -69,7 +87,7 @@ export default function Aventura() {
 // cambiar/crear/editar identidades) + botón de Misiones debajo ──────────────
 
 function PanelIdentidad() {
-  const { perfil } = useAuth();
+  const { perfil, isAdmin } = useAuth();
   const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch } =
     useFichasDnd(perfil?.id ?? null);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -79,8 +97,20 @@ function PanelIdentidad() {
 
   if (!perfil || loading) return null;
 
+  // Crea la ficha directo con valores por defecto (sin modal) y deja al
+  // jugador terminándola de completar en modo edición en el panel lateral.
+  const handleCrearFicha = async () => {
+    setCreando(true);
+    try {
+      await crear(FICHA_DEFAULT);
+      setEditando(true);
+    } finally {
+      setCreando(false);
+    }
+  };
+
   // Sin identidades todavía: tarjeta simple invitando a crear una.
-  if (fichas.length === 0 && !creando) {
+  if (fichas.length === 0) {
     return (
       <div
         className="p-5 text-center"
@@ -96,30 +126,23 @@ function PanelIdentidad() {
         </p>
         <button
           type="button"
-          onClick={() => setCreando(true)}
-          className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors"
+          onClick={handleCrearFicha}
+          disabled={creando}
+          className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-full border transition-colors disabled:opacity-50"
           style={{
             background: "var(--primary)",
             borderColor: "color-mix(in srgb, var(--primary) 14%, transparent)",
           }}
         >
-          <Plus size={12} style={{ color: "var(--btn-text)" }} />
+          {creando ? (
+            <Loader2 size={12} className="animate-spin" style={{ color: "var(--btn-text)" }} />
+          ) : (
+            <Plus size={12} style={{ color: "var(--btn-text)" }} />
+          )}
           <span className="text-xs font-bold" style={{ color: "var(--btn-text)" }}>
             Crear ficha
           </span>
         </button>
-
-        <AnimatePresence>
-          {creando && (
-            <ModalCrearFicha
-              onClose={() => setCreando(false)}
-              onCrear={async (datos) => {
-                await crear(datos);
-                setCreando(false);
-              }}
-            />
-          )}
-        </AnimatePresence>
       </div>
     );
   }
@@ -140,6 +163,7 @@ function PanelIdentidad() {
         <FichaStatsPanel
           ficha={activa}
           editable={editando}
+          editableStats={editando && isAdmin}
           onEditarCampo={handleEditarCampo}
           headerAction={
             <div className="relative flex items-center gap-1">
@@ -227,17 +251,22 @@ function PanelIdentidad() {
 
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           setMenuAbierto(false);
-                          setCreando(true);
+                          await handleCrearFicha();
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                        disabled={creando}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors disabled:opacity-50"
                         style={{
                           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
                         }}
                       >
                         <div className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center bg-primary/5">
-                          <Plus size={12} className="text-primary/50" />
+                          {creando ? (
+                            <Loader2 size={12} className="animate-spin text-primary/50" />
+                          ) : (
+                            <Plus size={12} className="text-primary/50" />
+                          )}
                         </div>
                         <span className="flex-1 text-xs font-bold text-primary/60">Nueva ficha</span>
                       </button>
@@ -252,18 +281,6 @@ function PanelIdentidad() {
 
       {/* ── Misiones aceptadas: en fila, debajo del bloque de identidad ── */}
       {activa && <Misiones ficha={activa} onFichaActualizada={refetch} />}
-
-      <AnimatePresence>
-        {creando && (
-          <ModalCrearFicha
-            onClose={() => setCreando(false)}
-            onCrear={async (datos) => {
-              await crear(datos);
-              setCreando(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 }

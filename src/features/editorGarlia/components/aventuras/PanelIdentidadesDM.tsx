@@ -214,6 +214,7 @@ export function PanelIdentidadesDM() {
                             key={f.id}
                             ficha={f}
                             editable
+                            editableStats
                             onEditarCampo={(campo, valor) =>
                               handleEditarCampo(f.id, campo, valor)
                             }

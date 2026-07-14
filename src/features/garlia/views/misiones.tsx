@@ -150,12 +150,15 @@ export function FichaStatsPanel({
   ficha,
   headerAction,
   editable = false,
+  editableStats = false,
   onEditarCampo,
 }: {
   ficha: FichaDnd;
   headerAction?: React.ReactNode;
-  /** Modo admin: mismo diseño, pero los valores son inputs editables. */
+  /** El dueño de la ficha: puede editar nombre y clase. */
   editable?: boolean;
+  /** Solo admin/DM: además puede editar nivel, stats, HP, CA y velocidad. */
+  editableStats?: boolean;
   onEditarCampo?: (campo: keyof FichaDnd, valor: string | number) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
@@ -231,10 +234,10 @@ export function FichaStatsPanel({
                     style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                     width={70}
                   />
-                  · Nivel
+                  · Nivel{" "}
                   <CampoEditable
                     valor={ficha.nivel ?? 1}
-                    editable
+                    editable={editableStats}
                     tipo="number"
                     onCommit={(v) => onEditarCampo?.("nivel", Number(v) || 1)}
                     className="text-micro font-black uppercase tracking-wider"
@@ -275,7 +278,7 @@ export function FichaStatsPanel({
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
-              {editable ? (
+              {editableStats ? (
                 <span className="inline-flex items-center gap-1">
                   <CampoEditable
                     valor={hpActual}
@@ -341,7 +344,7 @@ export function FichaStatsPanel({
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
               <CampoEditable
                 valor={ficha.ca ?? 10}
-                editable={editable}
+                editable={editableStats}
                 tipo="number"
                 align="right"
                 width={28}
@@ -403,7 +406,7 @@ export function FichaStatsPanel({
                 <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
                   <CampoEditable
                     valor={valor}
-                    editable={editable}
+                    editable={editableStats}
                     tipo="number"
                     align="center"
                     width={26}
@@ -426,8 +429,10 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Datos extra: solo visibles al editar (velocidad, alineamiento) ── */}
-      {editable && (
+      {/* ── Datos extra: solo visibles al editar (velocidad, alineamiento) ──
+          Velocidad es una stat de combate: solo admin. Alineamiento es de
+          rol-play y lo puede tocar el dueño de la ficha. ── */}
+      {(editable || editableStats) && (
         <div
           className="px-5 py-4 grid grid-cols-2 gap-2"
           style={{
@@ -450,7 +455,7 @@ export function FichaStatsPanel({
             </span>
             <CampoEditable
               valor={ficha.velocidad ?? 30}
-              editable
+              editable={editableStats}
               tipo="number"
               onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
               className="text-sm font-black tabular-nums"
@@ -473,7 +478,7 @@ export function FichaStatsPanel({
             </span>
             <CampoEditable
               valor={ficha.alineamiento ?? ""}
-              editable
+              editable={editable || editableStats}
               onCommit={(v) => onEditarCampo?.("alineamiento", v)}
               className="text-sm font-semibold"
               style={{ color: "var(--primary)" }}
