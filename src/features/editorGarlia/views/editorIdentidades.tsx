@@ -82,7 +82,10 @@ export default function EditorIdentidades() {
   const seleccionada = fichas.find((f) => f.id === seleccionId) ?? null;
 
   // ── Edición de un campo: optimista + persistido en Supabase ──────────────
-  const handleEditarCampo = async (campo: keyof FichaDnd, valor: string | number | string[] | null) => {
+  const handleEditarCampo = async (
+    campo: keyof FichaDnd,
+    valor: string | number | boolean | string[] | null,
+  ) => {
     if (!seleccionada) return;
     const id = seleccionada.id;
     setFichas((prev) => prev.map((f) => (f.id === id ? { ...f, [campo]: valor } : f)));
