@@ -8,6 +8,7 @@ import {
   Loader2,
   Scroll,
   Shield,
+  Sparkles,
   Star,
   Sword,
   WifiOff,
@@ -513,6 +514,146 @@ export function FichaStatsPanel({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Tirada de dados ────────────────────────────────────────────────────────
+// Set clásico de D&D (D4/D6/D8/D10/D12/D20/D100). Cada tap tira y anima el
+// resultado; guarda las últimas tiradas en una lista corta. Sin persistencia
+// en base — es solo una herramienta de mesa, vive en el estado del cliente.
+
+const CARAS_DADO = [4, 6, 8, 10, 12, 20, 100] as const;
+type CaraDado = (typeof CARAS_DADO)[number];
+
+interface TiradaHistorial {
+  id: string;
+  caras: CaraDado;
+  resultado: number;
+}
+
+function DadoBoton({
+  caras,
+  onTirar,
+  activo,
+}: {
+  caras: CaraDado;
+  onTirar: (caras: CaraDado) => void;
+  activo: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onTirar(caras)}
+      disabled={activo}
+      className="flex-1 min-w-[44px] flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border transition-all disabled:opacity-60"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+        background: activo
+          ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+          : "color-mix(in srgb, var(--primary) 3%, transparent)",
+      }}
+    >
+      <Sparkles
+        size={13}
+        className={activo ? "animate-spin" : ""}
+        style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+      />
+      <span
+        className="text-micro font-black uppercase tracking-wider"
+        style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+      >
+        d{caras}
+      </span>
+    </button>
+  );
+}
+
+export function TiradaDados() {
+  const [tirando, setTirando] = useState<CaraDado | null>(null);
+  const [ultima, setUltima] = useState<TiradaHistorial | null>(null);
+  const [historial, setHistorial] = useState<TiradaHistorial[]>([]);
+
+  const tirar = useCallback((caras: CaraDado) => {
+    setTirando(caras);
+    // Pequeña animación antes de revelar el resultado — se siente más a
+    // "tirar el dado" que a que el número aparezca instantáneo.
+    window.setTimeout(() => {
+      const resultado = 1 + Math.floor(Math.random() * caras);
+      const nueva: TiradaHistorial = { id: `${Date.now()}-${caras}`, caras, resultado };
+      setUltima(nueva);
+      setHistorial((prev) => [nueva, ...prev].slice(0, 6));
+      setTirando(null);
+    }, 420);
+  }, []);
+
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        background: "var(--white-custom)",
+        borderRadius: "var(--radius-card)",
+        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+      }}
+    >
+      <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Sword size={12} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Tirar dados
+          </span>
+        </div>
+        <AnimatePresence mode="wait">
+          {ultima && !tirando && (
+            <MotionDiv
+              key={ultima.id}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              className="flex items-baseline gap-1"
+            >
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                d{ultima.caras}
+              </span>
+              <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                {ultima.resultado}
+              </span>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="px-5 pb-4 flex gap-1.5">
+        {CARAS_DADO.map((caras) => (
+          <DadoBoton key={caras} caras={caras} activo={tirando === caras} onTirar={tirar} />
+        ))}
+      </div>
+
+      {historial.length > 1 && (
+        <div
+          className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          {historial.slice(1).map((t) => (
+            <span
+              key={t.id}
+              className="text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-full"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              }}
+            >
+              d{t.caras}: {t.resultado}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

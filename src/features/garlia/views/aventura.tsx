@@ -27,7 +27,7 @@ import {
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 import { useFichasDnd, type FichaDnd, type NuevaFicha } from "../hooks/useFichasDnd";
-import Misiones, { FichaStatsPanel } from "./misiones";
+import Misiones, { FichaStatsPanel, TiradaDados } from "./misiones";
 
 // Valores por defecto para una ficha recién creada: se crea directo (sin
 // modal) y el jugador la termina de completar editando en el panel lateral.
@@ -313,6 +313,9 @@ function PanelIdentidad() {
           }
         />
       )}
+
+      {/* ── Tirada de dados: debajo de las stats, arriba de misiones ── */}
+      {activa && <TiradaDados />}
 
       {/* ── Misiones aceptadas: en fila, debajo del bloque de identidad ── */}
       {activa && <Misiones ficha={activa} onFichaActualizada={refetch} />}
