@@ -61,9 +61,15 @@ export interface FichaDnd {
   rasgos_especiales: RasgoEspecial[];
   /** Estados/condiciones activas ahora mismo (envenenado, aturdido, etc). Las controla el DM. */
   condiciones: string[];
-  /** XP y monedas viven por identidad desde la migración de misiones. */
+  /** XP vive por identidad desde la migración de misiones. */
   xp_total: number;
-  monedas: number;
+  /** Mapa { tipo_moneda_id: cantidad }. Los tipos disponibles son los que el
+   *  admin del reino haya definido en `tipos_moneda` (ver useTiposMoneda). */
+  monedas: Record<string, number>;
+  /** 0-3 cada una. Al llegar a 3 éxitos el personaje se estabiliza; al
+   *  llegar a 3 fracasos, muere. Las controla el DM (editableCondiciones). */
+  muerte_exitos: number;
+  muerte_fracasos: number;
   /** Idiomas y herramientas que el personaje sabe usar (texto libre). */
   idiomas: string[];
   herramientas: string[];
@@ -109,6 +115,15 @@ export type NuevaFicha = Pick<FichaDnd, "nombre"> & Partial<Omit<FichaDnd, "id" 
 export function statMod(score: number): number {
   return Math.floor((score - 10) / 2);
 }
+
+/** Percepción pasiva = 10 + mod(Sabiduría) + bono de competencia (si tiene
+ *  competencia en Percepción). Es puramente derivada, no vive en la tabla. */
+export function percepcionPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes">): number {
+  const mod = statMod(ficha.sabiduria ?? 10);
+  const competente = ficha.habilidades_competentes?.includes("percepcion") ?? false;
+  return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+}
+
 
 /** Bono de competencia estándar de D&D 5e según nivel: 1-4→+2, 5-8→+3, 9-12→+4, 13-16→+5, 17-20→+6. */
 export function bonusCompetencia(nivel: number): number {
@@ -336,3 +351,94 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   const { data } = await req;
   return (data ?? []) as ItemResumen[];
 }
+
+// ── Tipos de moneda personalizables por reino (panel de admin) ────────────
+
+export interface TipoMoneda {
+  id: string;
+  nombre: string;
+  simbolo: string | null;
+  orden: number;
+  valor_en_base: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NuevoTipoMoneda = Pick<TipoMoneda, "nombre"> &
+  Partial<Pick<TipoMoneda, "simbolo" | "orden" | "valor_en_base">>;
+
+/** CRUD de los tipos de moneda del mundo (global, no hay reino_id en
+ *  fichas_dnd). Solo el admin puede escribir (lo aplica la policy
+ *  `tipos_moneda_admin_write`), pero cualquiera puede leerlos para
+ *  mostrarlos en su ficha. */
+export function useTiposMoneda() {
+  const [tipos, setTipos] = useState<TipoMoneda[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAll = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("tipos_moneda")
+      .select("*")
+      .order("orden", { ascending: true });
+    if (!error && data) setTipos(data as TipoMoneda[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+    const channel = supabase
+      .channel("tipos-moneda")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tipos_moneda" }, () =>
+        fetchAll(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchAll]);
+
+  const crear = useCallback(
+    async (datos: NuevoTipoMoneda) => {
+      const orden = datos.orden ?? tipos.length;
+      const { data, error } = await supabase
+        .from("tipos_moneda")
+        .insert({ ...datos, orden })
+        .select()
+        .single();
+      if (error) throw error;
+      setTipos((prev) => [...prev, data as TipoMoneda].sort((a, b) => a.orden - b.orden));
+      return data as TipoMoneda;
+    },
+    [tipos.length],
+  );
+
+  const renombrar = useCallback(
+    async (id: string, cambios: Partial<Pick<TipoMoneda, "nombre" | "simbolo" | "orden" | "valor_en_base">>) => {
+      setTipos((prev) => prev.map((t) => (t.id === id ? { ...t, ...cambios } : t)));
+      const { error } = await supabase.from("tipos_moneda").update(cambios).eq("id", id);
+      if (error) {
+        await fetchAll();
+        throw error;
+      }
+    },
+    [fetchAll],
+  );
+
+  const eliminar = useCallback(
+    async (id: string) => {
+      // Ojo: no borra las cantidades ya guardadas en las fichas (quedan
+      // "huérfanas" bajo esa clave); el panel debería avisar antes de borrar
+      // un tipo que ya esté en uso.
+      setTipos((prev) => prev.filter((t) => t.id !== id));
+      const { error } = await supabase.from("tipos_moneda").delete().eq("id", id);
+      if (error) {
+        await fetchAll();
+        throw error;
+      }
+    },
+    [fetchAll],
+  );
+
+  return { tipos, loading, crear, renombrar, eliminar, refetch: fetchAll };
+}
+

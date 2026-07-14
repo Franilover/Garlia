@@ -48,13 +48,15 @@ import {
   reclamarMisionOffline,
 } from "@/lib/api/client/syncEngine";
 
-import type { FichaDnd, ItemInventarioFicha, RasgoEspecial } from "../hooks/useFichasDnd";
+import type { FichaDnd, ItemInventarioFicha, RasgoEspecial, TipoMoneda } from "../hooks/useFichasDnd";
 import {
   bonusCompetencia,
   buscarCriaturas,
   buscarItems,
+  percepcionPasiva,
   statMod,
   useInventarioFicha,
+  useTiposMoneda,
 } from "../hooks/useFichasDnd";
 import { SelectorEntidad } from "./fichaComponents";
 import {
@@ -645,13 +647,15 @@ export function FichaStatsPanel({
   mostrarCondiciones?: boolean;
   onEditarCampo?: (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | null,
+    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
   ) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
+  const percepcion = percepcionPasiva(ficha);
+  const { tipos: tiposMoneda } = useTiposMoneda();
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const stats: Array<[string, number]> = [
@@ -943,7 +947,68 @@ export function FichaStatsPanel({
           </div>
         </div>
 
+        {/* ── Salvaciones contra muerte: solo aparecen a 0 HP. 3 éxitos
+            estabilizan, 3 fracasos matan. Las marca el DM en vivo, igual
+            que HP actual (editableCondiciones), nunca el dueño. ── */}
+        {hpActual <= 0 && (
+          <div className="mb-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, #22c55e 60%, transparent)" }}
+              >
+                Éxitos
+              </span>
+              {[0, 1, 2].map((i) => {
+                const marcado = i < (ficha.muerte_exitos ?? 0);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!editableCondiciones}
+                    onClick={() => onEditarCampo?.("muerte_exitos", marcado ? i : i + 1)}
+                    className="rounded-full transition-colors disabled:cursor-default"
+                    style={{
+                      width: 12,
+                      height: 12,
+                      border: "1.5px solid #22c55e",
+                      background: marcado ? "#22c55e" : "transparent",
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, #ef4444 60%, transparent)" }}
+              >
+                Fracasos
+              </span>
+              {[0, 1, 2].map((i) => {
+                const marcado = i < (ficha.muerte_fracasos ?? 0);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!editableCondiciones}
+                    onClick={() => onEditarCampo?.("muerte_fracasos", marcado ? i : i + 1)}
+                    className="rounded-full transition-colors disabled:cursor-default"
+                    style={{
+                      width: 12,
+                      height: 12,
+                      border: "1.5px solid #ef4444",
+                      background: marcado ? "#ef4444" : "transparent",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2">
+
           <div
             className="flex-1 flex items-center justify-between px-2.5 py-1.5"
             style={{
@@ -1254,6 +1319,25 @@ export function FichaStatsPanel({
           />
         </div>
         <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+          title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Percepción pasiva
+          </span>
+          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            {percepcion}
+          </span>
+        </div>
+        <div
           className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
           style={{
             border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -1377,14 +1461,50 @@ export function FichaStatsPanel({
             <Coins size={9} />
             Monedas
           </span>
-          <CampoEditable
-            valor={ficha.monedas ?? 0}
-            editable={editableStats}
-            tipo="number"
-            onCommit={(v) => onEditarCampo?.("monedas", Number(v) || 0)}
-            className="text-sm font-black tabular-nums"
-            style={{ color: "var(--primary)" }}
-          />
+          {tiposMoneda.length === 0 ? (
+            // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
+            // se muestra el total genérico bajo la clave "legado" para no
+            // perder el dato, editable igual que antes.
+            <CampoEditable
+              valor={ficha.monedas?.legado ?? 0}
+              editable={editableStats}
+              tipo="number"
+              onCommit={(v) =>
+                onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
+              }
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+          ) : (
+            <div className="flex flex-col gap-1 mt-0.5">
+              {tiposMoneda.map((tipo) => (
+                <div key={tipo.id} className="flex items-center justify-between gap-1">
+                  <span
+                    className="text-micro font-semibold truncate"
+                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                    title={tipo.nombre}
+                  >
+                    {tipo.simbolo || tipo.nombre}
+                  </span>
+                  <CampoEditable
+                    valor={ficha.monedas?.[tipo.id] ?? 0}
+                    editable={editableStats}
+                    tipo="number"
+                    align="right"
+                    width={40}
+                    onCommit={(v) =>
+                      onEditarCampo?.("monedas", {
+                        ...ficha.monedas,
+                        [tipo.id]: Number(v) || 0,
+                      })
+                    }
+                    className="text-sm font-black tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
