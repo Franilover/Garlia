@@ -20,6 +20,7 @@ import {
   Languages,
   Link2,
   Loader2,
+  Maximize2,
   Minus,
   Moon,
   Mountain,
@@ -340,6 +341,199 @@ function EditorListaTags({
     </div>
   );
 }
+// ─── Panel flotante expandido: idiomas, herramientas y trasfondo ──────────
+// Se abre con el botón de expandir del header y cubre el tablero mientras
+// está abierta (overlay fixed a pantalla completa, panel horizontal ancho
+// centrado). Pensado para leer/editar esos campos con más aire que en la
+// columna lateral angosta de /aventura.
+
+function PanelExpandidoFicha({
+  ficha,
+  editable,
+  onEditarCampo,
+  onCerrar,
+}: {
+  ficha: FichaDnd;
+  editable: boolean;
+  onEditarCampo?: (
+    campo: keyof FichaDnd,
+    valor: string | number | boolean | string[] | RasgoEspecial[] | null,
+  ) => void;
+  onCerrar: () => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onCerrar]);
+
+  return (
+    <>
+      <MotionDiv
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-[60]"
+        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }}
+        onClick={onCerrar}
+        style={{ background: "color-mix(in srgb, black 45%, transparent)" }}
+      />
+      <MotionDiv
+        animate={{ opacity: 1, scale: 1 }}
+        className="fixed z-[61] left-1/2 top-1/2 w-[min(94vw,900px)] max-h-[86vh] overflow-y-auto"
+        exit={{ opacity: 0, scale: 0.97 }}
+        initial={{ opacity: 0, scale: 0.97 }}
+        style={{
+          transform: "translate(-50%, -50%)",
+          background: "var(--white-custom)",
+          borderRadius: "var(--radius-card)",
+          border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+          boxShadow: "0 20px 60px color-mix(in srgb, black 25%, transparent)",
+        }}
+      >
+        {/* ── Header con nombre + cerrar ── */}
+        <div
+          className="sticky top-0 px-6 py-4 flex items-center justify-between gap-3"
+          style={{
+            background: "var(--white-custom)",
+            borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          <div className="min-w-0">
+            <p
+              className="font-serif italic text-lg leading-tight truncate capitalize"
+              style={{ color: "var(--primary)" }}
+            >
+              {ficha.nombre}
+            </p>
+            <p
+              className="text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Idiomas · Herramientas · Trasfondo
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="shrink-0 flex items-center justify-center transition-colors"
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* ── Cuerpo: 3 columnas en desktop (idiomas / herramientas /
+            trasfondo), apiladas en mobile. ── */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-[220px_220px_1fr] gap-6">
+          <div>
+            <span
+              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Languages size={11} />
+              Idiomas
+            </span>
+            <EditorListaTags
+              valores={ficha.idiomas ?? []}
+              editable={editable}
+              onCambiar={(siguientes) => onEditarCampo?.("idiomas", siguientes)}
+              placeholder="Agregar idioma…"
+            />
+          </div>
+          <div>
+            <span
+              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Wrench size={11} />
+              Herramientas
+            </span>
+            <EditorListaTags
+              valores={ficha.herramientas ?? []}
+              editable={editable}
+              onCambiar={(siguientes) => onEditarCampo?.("herramientas", siguientes)}
+              placeholder="Agregar herramienta…"
+            />
+          </div>
+          <div className="flex flex-col gap-4">
+            <span
+              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Scroll size={11} />
+              Trasfondo
+            </span>
+            <div>
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Rasgos de personalidad
+              </span>
+              <CampoEditableTextarea
+                valor={ficha.rasgos_personalidad}
+                editable={editable}
+                onCommit={(v) => onEditarCampo?.("rasgos_personalidad", v || null)}
+                placeholder="¿Qué lo hace distinto a cualquier otro aventurero?"
+              />
+            </div>
+            <div>
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Ideales
+              </span>
+              <CampoEditableTextarea
+                valor={ficha.ideales}
+                editable={editable}
+                onCommit={(v) => onEditarCampo?.("ideales", v || null)}
+                placeholder="¿Qué principios lo guían?"
+              />
+            </div>
+            <div>
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Vínculos
+              </span>
+              <CampoEditableTextarea
+                valor={ficha.vinculos}
+                editable={editable}
+                onCommit={(v) => onEditarCampo?.("vinculos", v || null)}
+                placeholder="¿A quién o qué está atado?"
+              />
+            </div>
+            <div>
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Defectos
+              </span>
+              <CampoEditableTextarea
+                valor={ficha.defectos}
+                editable={editable}
+                onCommit={(v) => onEditarCampo?.("defectos", v || null)}
+                placeholder="¿Qué punto débil podrían explotar en su contra?"
+              />
+            </div>
+          </div>
+        </div>
+      </MotionDiv>
+    </>
+  );
+}
+
 export function FichaStatsPanel({
   ficha,
   headerAction,
@@ -369,6 +563,7 @@ export function FichaStatsPanel({
   const hpActual = ficha.hp_actual ?? 0;
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
+  const [expandido, setExpandido] = useState(false);
   const stats: Array<[string, number]> = [
     ["fuerza", ficha.fuerza ?? 10],
     ["destreza", ficha.destreza ?? 10],
@@ -387,6 +582,21 @@ export function FichaStatsPanel({
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
+      {/* ── Panel flotante: se expande horizontalmente por encima del
+          tablero mientras está abierto, con idiomas, herramientas y
+          trasfondo con más espacio para leer/editar. Cierra con la X,
+          clic afuera, o Escape. ── */}
+      <AnimatePresence>
+        {expandido && (
+          <PanelExpandidoFicha
+            ficha={ficha}
+            editable={editable}
+            onEditarCampo={onEditarCampo}
+            onCerrar={() => setExpandido(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* ── Encabezado: retrato + nombre + clase/nivel ── */}
       <div className="px-5 pt-5 pb-4 flex items-center gap-3">
         <div
@@ -491,6 +701,30 @@ export function FichaStatsPanel({
               />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setExpandido(true)}
+            title="Ver idiomas, herramientas y trasfondo en grande"
+            className="shrink-0 flex items-center justify-center transition-colors"
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background =
+                "color-mix(in srgb, var(--primary) 8%, transparent)";
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+              (e.currentTarget as HTMLElement).style.color =
+                "color-mix(in srgb, var(--primary) 30%, transparent)";
+            }}
+          >
+            <Maximize2 size={13} />
+          </button>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
       </div>
