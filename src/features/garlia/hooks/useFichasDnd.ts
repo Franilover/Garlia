@@ -129,20 +129,42 @@ export function useFichasDnd(perfilId: string | null) {
         .select()
         .single();
       if (error) throw error;
-      return data as FichaDnd;
+      const nueva = data as FichaDnd;
+      // Optimista: la agrega al instante, no espera al roundtrip de realtime.
+      setFichas((prev) => [nueva, ...prev]);
+      return nueva;
     },
     [perfilId],
   );
 
-  const actualizar = useCallback(async (id: string, cambios: Partial<FichaDnd>) => {
-    const { error } = await supabase.from("fichas_dnd").update(cambios).eq("id", id);
-    if (error) throw error;
-  }, []);
+  const actualizar = useCallback(
+    async (id: string, cambios: Partial<FichaDnd>) => {
+      // Optimista: refleja los cambios al instante en este componente y en
+      // cualquier otro que use el mismo hook, sin esperar el roundtrip de
+      // red ni la latencia (o ausencia) del canal realtime.
+      setFichas((prev) => prev.map((f) => (f.id === id ? { ...f, ...cambios } : f)));
+      const { error } = await supabase.from("fichas_dnd").update(cambios).eq("id", id);
+      if (error) {
+        // Revierte al estado real si falló en el servidor.
+        await fetchAll();
+        throw error;
+      }
+    },
+    [fetchAll],
+  );
 
-  const eliminar = useCallback(async (id: string) => {
-    const { error } = await supabase.from("fichas_dnd").delete().eq("id", id);
-    if (error) throw error;
-  }, []);
+  const eliminar = useCallback(
+    async (id: string) => {
+      // Optimista: la saca de la lista al instante.
+      setFichas((prev) => prev.filter((f) => f.id !== id));
+      const { error } = await supabase.from("fichas_dnd").delete().eq("id", id);
+      if (error) {
+        await fetchAll();
+        throw error;
+      }
+    },
+    [fetchAll],
+  );
 
   const elegirActiva = useCallback(async (id: string) => {
     // Optimista: refleja el cambio al instante en este componente y en

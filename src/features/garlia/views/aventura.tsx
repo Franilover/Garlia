@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Check, Loader2, MoreVertical, Pencil, Plus, Scroll, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -74,7 +74,6 @@ function PanelIdentidad() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
-  const [misionesAbierto, setMisionesAbierto] = useState(false);
 
   const fichaEditando = fichas.find((f) => f.id === editandoId) ?? null;
 
@@ -222,22 +221,8 @@ function PanelIdentidad() {
         />
       )}
 
-      {/* ── Botón de Misiones: debajo del bloque de identidad ── */}
-      {activa && (
-        <button
-          type="button"
-          onClick={() => setMisionesAbierto(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 transition-colors"
-          style={{
-            background: "var(--white-custom)",
-            borderRadius: "var(--radius-card)",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-          }}
-        >
-          <Scroll size={13} className="text-primary/50" />
-          <span className="text-xs font-bold text-primary/70">Misiones</span>
-        </button>
-      )}
+      {/* ── Misiones aceptadas: en fila, debajo del bloque de identidad ── */}
+      {activa && <Misiones ficha={activa} onFichaActualizada={refetch} />}
 
       <AnimatePresence>
         {creando && (
@@ -266,19 +251,6 @@ function PanelIdentidad() {
                 setEditandoId(null);
               }}
               onElegirActiva={elegirActiva}
-            />
-          </ModalFichaOverlay>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {misionesAbierto && activa && (
-          <ModalFichaOverlay onClose={() => setMisionesAbierto(false)}>
-            <Misiones
-              ficha={activa}
-              variant="modal"
-              onClose={() => setMisionesAbierto(false)}
-              onFichaActualizada={refetch}
             />
           </ModalFichaOverlay>
         )}
