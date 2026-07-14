@@ -23,12 +23,20 @@ import {
   EyeOff,
   Heart,
   Loader2,
+  Maximize2,
   Plus,
   Search,
   Trash2,
   X,
 } from "lucide-react";
-import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 
@@ -40,17 +48,61 @@ import {
   type AventuraEntidad,
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
-import { TableroAventura, type TableroItem } from "../components/aventuras/TableroAventura";
+import {
+  TableroAventura,
+  TABLERO_CARD_SIZE,
+  type TableroItem,
+} from "../components/aventuras/TableroAventura";
 import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
 
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
 
 type SubPanel = "aventuras" | "relaciones";
 
-const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
-  { key: "aventuras", label: "Aventuras", Icon: Compass },
-  { key: "relaciones", label: "Relaciones", Icon: Heart },
-];
+const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] =
+  [
+    { key: "aventuras", label: "Aventuras", Icon: Compass },
+    { key: "relaciones", label: "Relaciones", Icon: Heart },
+  ];
+
+// ── Tamaño de tarjeta del pizarrón: ajustable por el DM, persistido en el
+// navegador (por aventura). Es una preferencia visual del DM, no afecta lo
+// que ven los jugadores (el público siempre usa TABLERO_CARD_SIZE fijo). ──
+const CARD_SCALE_MIN = 0.6;
+const CARD_SCALE_MAX = 1.8;
+const CARD_SCALE_KEY_PREFIX = "aventura-tablero-escala:";
+
+function useTableroEscala(aventuraId: string) {
+  const storageKey = `${CARD_SCALE_KEY_PREFIX}${aventuraId}`;
+  const [escala, setEscala] = useState(1);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const guardada = window.localStorage.getItem(storageKey);
+    const valor = guardada ? Number(guardada) : 1;
+    setEscala(
+      Number.isFinite(valor)
+        ? Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, valor))
+        : 1,
+    );
+  }, [storageKey]);
+
+  const actualizar = useCallback(
+    (nuevaEscala: number) => {
+      const clamped = Math.min(
+        CARD_SCALE_MAX,
+        Math.max(CARD_SCALE_MIN, nuevaEscala),
+      );
+      setEscala(clamped);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(storageKey, String(clamped));
+      }
+    },
+    [storageKey],
+  );
+
+  return { escala, actualizar };
+}
 
 function SubPanelFallback() {
   return (
@@ -95,7 +147,10 @@ export function AventuraSection() {
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {subPanel === "aventuras" &&
           (aventuraActiva ? (
-            <AventuraDetalle aventuraId={aventuraActiva} onVolver={() => setAventuraActiva(null)} />
+            <AventuraDetalle
+              aventuraId={aventuraActiva}
+              onVolver={() => setAventuraActiva(null)}
+            />
           ) : (
             <AventuraIndice onSeleccionar={setAventuraActiva} />
           ))}
@@ -114,7 +169,11 @@ export function AventuraSection() {
 
 // ── Índice de aventuras ─────────────────────────────────────────────────
 
-function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void }) {
+function AventuraIndice({
+  onSeleccionar,
+}: {
+  onSeleccionar: (id: string) => void;
+}) {
   const { aventuras, loading, crear, eliminar } = useAventurasList();
   const [nombreNueva, setNombreNueva] = useState("");
   const [creando, setCreando] = useState(false);
@@ -149,7 +208,11 @@ function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void
           onClick={handleCrear}
           className="shrink-0 h-9 px-3 flex items-center gap-1.5 rounded-lg bg-primary text-white text-xs font-bold disabled:opacity-40 transition-opacity"
         >
-          {creando ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+          {creando ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : (
+            <Plus size={13} />
+          )}
           Crear
         </button>
       </div>
@@ -190,7 +253,11 @@ function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`¿Eliminar "${a.nombre}" y todo su contenido asociado?`)) {
+                    if (
+                      confirm(
+                        `¿Eliminar "${a.nombre}" y todo su contenido asociado?`,
+                      )
+                    ) {
                       eliminar(a.id);
                     }
                   }}
@@ -218,8 +285,14 @@ function AventuraDetalle({
   onVolver: () => void;
 }) {
   const { aventuras } = useAventurasList();
-  const { entidades, loading, agregar, quitar, togglePublicado, moverPosicion } =
-    useAventuraEntidades(aventuraId);
+  const {
+    entidades,
+    loading,
+    agregar,
+    quitar,
+    togglePublicado,
+    moverPosicion,
+  } = useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId);
 
   const [query, setQuery] = useState("");
@@ -228,6 +301,7 @@ function AventuraDetalle({
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -296,7 +370,8 @@ function AventuraDetalle({
         </h2>
         <span className="text-micro font-bold text-primary/35">
           {entidades.filter((e) => e.publicado).length} publicada
-          {entidades.filter((e) => e.publicado).length === 1 ? "" : "s"} de {entidades.length}
+          {entidades.filter((e) => e.publicado).length === 1 ? "" : "s"} de{" "}
+          {entidades.length}
         </span>
       </div>
 
@@ -314,7 +389,9 @@ function AventuraDetalle({
             placeholder="Buscar criaturas, items, PNJs… para añadir a esta aventura"
             className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
           />
-          {buscando && <Loader2 size={12} className="animate-spin text-primary/30" />}
+          {buscando && (
+            <Loader2 size={12} className="animate-spin text-primary/30" />
+          )}
           {query && !buscando && (
             <button type="button" onClick={() => setQuery("")}>
               <X size={12} className="text-primary/40" />
@@ -339,7 +416,11 @@ function AventuraDetalle({
                   <div className="w-8 h-8 shrink-0 rounded-md overflow-hidden bg-primary/5">
                     {r.imagen_url && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imagen_url} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={r.imagen_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -351,9 +432,14 @@ function AventuraDetalle({
                     </div>
                   </div>
                   {isPending ? (
-                    <Loader2 size={12} className="animate-spin text-primary/40" />
+                    <Loader2
+                      size={12}
+                      className="animate-spin text-primary/40"
+                    />
                   ) : yaEsta ? (
-                    <span className="text-micro font-bold text-primary/30">Añadida</span>
+                    <span className="text-micro font-bold text-primary/30">
+                      Añadida
+                    </span>
                   ) : (
                     <Plus size={13} className="text-primary/40" />
                   )}
@@ -367,10 +453,28 @@ function AventuraDetalle({
       {/* ── Tablero libre (izq) + Identidades en dropdowns (der) ──────── */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
         <div className="flex-1 min-h-0 min-w-0 flex flex-col p-4 gap-2 overflow-hidden">
-          <p className="shrink-0 text-micro text-primary/35">
-            Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
-            El ojo publica/oculta para los jugadores; la X quita del todo.
-          </p>
+          <div className="shrink-0 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-micro text-primary/35">
+              Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
+              El ojo publica/oculta para los jugadores; la X quita del todo.
+            </p>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Maximize2 size={11} className="text-primary/35" />
+              <input
+                type="range"
+                min={CARD_SCALE_MIN}
+                max={CARD_SCALE_MAX}
+                step={0.05}
+                value={escala}
+                onChange={(e) => actualizarEscala(Number(e.target.value))}
+                className="w-24 accent-[var(--primary)]"
+                title="Tamaño de las tarjetas (solo en tu vista de DM)"
+              />
+              <span className="text-micro font-bold tabular-nums text-primary/40 w-9">
+                {Math.round(escala * 100)}%
+              </span>
+            </div>
+          </div>
           {loading && entidades.length === 0 ? (
             <div className="py-16 flex items-center justify-center text-primary/30">
               <Loader2 className="animate-spin" size={18} />
@@ -379,59 +483,68 @@ function AventuraDetalle({
             <TableroAventura
               editable
               emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
+              cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
+              cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
+              imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
               items={entidades.map(
-              (e): TableroItem => ({
-                id: e.id,
-                nombre: e.nombre,
-                imagen_url: e.imagen_url,
-                subtitulo: TABLA_LABEL[e.tabla].singular,
-                pos_x: e.pos_x,
-                pos_y: e.pos_y,
-                destacado: e.publicado,
-              }),
-            )}
-            renderBadge={(item) => {
-              const e = entidades.find((x) => x.id === item.id);
-              if (!e) return null;
-              const isPending = pendientes.has(e.id);
-              return (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      handleToggle(e);
-                    }}
-                    onPointerDown={(ev) => ev.stopPropagation()}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                      e.publicado ? "bg-primary text-white" : "bg-black/30 text-white/70"
-                    }`}
-                    title={e.publicado ? "Publicado (click para ocultar)" : "Oculto (click para publicar)"}
-                  >
-                    {isPending ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : e.publicado ? (
-                      <Eye size={11} />
-                    ) : (
-                      <EyeOff size={11} />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      quitar(e.id);
-                    }}
-                    onPointerDown={(ev) => ev.stopPropagation()}
-                    className="w-6 h-6 rounded-full flex items-center justify-center bg-black/30 hover:bg-red-500/70 text-white transition-colors"
-                    title="Quitar de esta aventura"
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              );
-            }}
+                (e): TableroItem => ({
+                  id: e.id,
+                  nombre: e.nombre,
+                  imagen_url: e.imagen_url,
+                  subtitulo: TABLA_LABEL[e.tabla].singular,
+                  pos_x: e.pos_x,
+                  pos_y: e.pos_y,
+                  destacado: e.publicado,
+                }),
+              )}
+              renderBadge={(item) => {
+                const e = entidades.find((x) => x.id === item.id);
+                if (!e) return null;
+                const isPending = pendientes.has(e.id);
+                return (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        handleToggle(e);
+                      }}
+                      onPointerDown={(ev) => ev.stopPropagation()}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        e.publicado
+                          ? "bg-primary text-white"
+                          : "bg-black/30 text-white/70"
+                      }`}
+                      title={
+                        e.publicado
+                          ? "Publicado (click para ocultar)"
+                          : "Oculto (click para publicar)"
+                      }
+                    >
+                      {isPending ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : e.publicado ? (
+                        <Eye size={11} />
+                      ) : (
+                        <EyeOff size={11} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        quitar(e.id);
+                      }}
+                      onPointerDown={(ev) => ev.stopPropagation()}
+                      className="w-6 h-6 rounded-full flex items-center justify-center bg-black/30 hover:bg-red-500/70 text-white transition-colors"
+                      title="Quitar de esta aventura"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                );
+              }}
               onMove={(id, x, y) => moverPosicion(id, x, y)}
               onClickItem={(id) => {
                 const e = entidades.find((x) => x.id === id);
@@ -442,7 +555,10 @@ function AventuraDetalle({
         </div>
 
         {/* ── Columna lateral: identidades como dropdowns ───────────── */}
-        <div className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden" style={{ background: "var(--bg-main)" }}>
+        <div
+          className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden"
+          style={{ background: "var(--bg-main)" }}
+        >
           <PanelIdentidadesDM />
         </div>
       </div>
@@ -488,23 +604,33 @@ function AventuraDetalle({
               <span className="text-micro font-black uppercase tracking-widest text-primary/35">
                 {TABLA_LABEL[seleccion.tabla].singular}
               </span>
-              <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
+              <h2 className="font-serif italic text-2xl text-primary mb-3">
+                {seleccion.nombre}
+              </h2>
 
               {seleccion.descripcion ? (
                 <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
                   {seleccion.descripcion}
                 </p>
               ) : (
-                <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
+                <p className="text-sm text-primary/30 italic">
+                  Sin descripción todavía.
+                </p>
               )}
 
               <div className="mt-4 flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase ${
-                    seleccion.publicado ? "bg-primary text-white" : "bg-primary/10 text-primary/50"
+                    seleccion.publicado
+                      ? "bg-primary text-white"
+                      : "bg-primary/10 text-primary/50"
                   }`}
                 >
-                  {seleccion.publicado ? <Eye size={10} /> : <EyeOff size={10} />}
+                  {seleccion.publicado ? (
+                    <Eye size={10} />
+                  ) : (
+                    <EyeOff size={10} />
+                  )}
                   {seleccion.publicado ? "Publicado" : "Oculto"}
                 </span>
               </div>
