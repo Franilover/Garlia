@@ -125,7 +125,11 @@ export function useFichasDnd(perfilId: string | null) {
       if (!perfilId) throw new Error("Sin sesión");
       const { data, error } = await supabase
         .from("fichas_dnd")
-        .insert({ ...datos, perfil_id: perfilId })
+        // activa: true siempre — el trigger fichas_dnd_unica_activa se
+        // encarga de desactivar cualquier otra ficha del mismo perfil, así
+        // que la última creada queda como la que se usa. Evita fichas
+        // "huérfanas" que nunca se seleccionaron como activas.
+        .insert({ activa: true, ...datos, perfil_id: perfilId })
         .select()
         .single();
       if (error) throw error;

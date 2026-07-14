@@ -425,6 +425,62 @@ export function FichaStatsPanel({
           })}
         </div>
       </div>
+
+      {/* ── Datos extra: solo visibles al editar (velocidad, alineamiento) ── */}
+      {editable && (
+        <div
+          className="px-5 py-4 grid grid-cols-2 gap-2"
+          style={{
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          <div
+            className="flex flex-col gap-0.5 px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Velocidad
+            </span>
+            <CampoEditable
+              valor={ficha.velocidad ?? 30}
+              editable
+              tipo="number"
+              onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+          </div>
+          <div
+            className="flex flex-col gap-0.5 px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Alineamiento
+            </span>
+            <CampoEditable
+              valor={ficha.alineamiento ?? ""}
+              editable
+              onCommit={(v) => onEditarCampo?.("alineamiento", v)}
+              className="text-sm font-semibold"
+              style={{ color: "var(--primary)" }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

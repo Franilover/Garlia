@@ -24,9 +24,7 @@ import {
   Heart,
   Loader2,
   Plus,
-  Scroll,
   Search,
-  Swords,
   Trash2,
   X,
 } from "lucide-react";
@@ -45,16 +43,12 @@ import {
 import { TableroAventura, type TableroItem } from "../components/aventuras/TableroAventura";
 import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
 
-const EditorMisiones = lazy(() => import("./editorMisiones"));
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
-const EditorIdentidades = lazy(() => import("./editorIdentidades"));
 
-type SubPanel = "aventuras" | "misiones" | "identidades" | "relaciones";
+type SubPanel = "aventuras" | "relaciones";
 
 const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
   { key: "aventuras", label: "Aventuras", Icon: Compass },
-  { key: "misiones", label: "Misiones", Icon: Scroll },
-  { key: "identidades", label: "Identidades", Icon: Swords },
   { key: "relaciones", label: "Relaciones", Icon: Heart },
 ];
 
@@ -72,7 +66,7 @@ export function AventuraSection() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      {/* ── Sub-selector: Aventuras / Misiones / Relaciones ─────────────── */}
+      {/* ── Sub-selector: Aventuras / Relaciones ─────────────── */}
       <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-primary/10">
         {SUB_PANELES.map(({ key, label, Icon }) => {
           const active = subPanel === key;
@@ -105,20 +99,6 @@ export function AventuraSection() {
           ) : (
             <AventuraIndice onSeleccionar={setAventuraActiva} />
           ))}
-
-        {subPanel === "misiones" && (
-          <Suspense fallback={<SubPanelFallback />}>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <EditorMisiones />
-            </div>
-          </Suspense>
-        )}
-
-        {subPanel === "identidades" && (
-          <Suspense fallback={<SubPanelFallback />}>
-            <EditorIdentidades />
-          </Suspense>
-        )}
 
         {subPanel === "relaciones" && (
           <Suspense fallback={<SubPanelFallback />}>
@@ -386,7 +366,7 @@ function AventuraDetalle({
 
       {/* ── Tablero libre (izq) + Identidades en dropdowns (der) ──────── */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        <div className="flex-1 min-h-0 flex flex-col p-4 gap-2 overflow-hidden">
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col p-4 gap-2 overflow-hidden">
           <p className="shrink-0 text-micro text-primary/35">
             Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
             El ojo publica/oculta para los jugadores; la X quita del todo.
@@ -462,7 +442,7 @@ function AventuraDetalle({
         </div>
 
         {/* ── Columna lateral: identidades como dropdowns ───────────── */}
-        <div className="w-72 shrink-0 border-l border-primary/10 overflow-hidden">
+        <div className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden" style={{ background: "var(--bg-main)" }}>
           <PanelIdentidadesDM />
         </div>
       </div>

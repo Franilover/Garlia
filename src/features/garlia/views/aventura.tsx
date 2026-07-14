@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -26,8 +26,8 @@ import {
   type Aventura as AventuraType,
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
-import { useFichasDnd } from "../hooks/useFichasDnd";
-import { FichaDetalle, ModalCrearFicha } from "./fichaComponents";
+import { useFichasDnd, type FichaDnd } from "../hooks/useFichasDnd";
+import { ModalCrearFicha } from "./fichaComponents";
 import Misiones, { FichaStatsPanel } from "./misiones";
 
 function formatFecha(iso: string | null): string {
@@ -73,10 +73,9 @@ function PanelIdentidad() {
   const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch } =
     useFichasDnd(perfil?.id ?? null);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [editando, setEditando] = useState(false);
   const [creando, setCreando] = useState(false);
-
-  const fichaEditando = fichas.find((f) => f.id === editandoId) ?? null;
+  const [guardando, setGuardando] = useState(false);
 
   if (!perfil || loading) return null;
 
@@ -115,9 +114,8 @@ function PanelIdentidad() {
             <ModalCrearFicha
               onClose={() => setCreando(false)}
               onCrear={async (datos) => {
-                const nueva = await crear(datos);
+                await crear(datos);
                 setCreando(false);
-                setEditandoId(nueva.id);
               }}
             />
           )}
@@ -126,18 +124,45 @@ function PanelIdentidad() {
     );
   }
 
+  const handleEditarCampo = async (campo: keyof FichaDnd, valor: string | number) => {
+    if (!activa) return;
+    setGuardando(true);
+    try {
+      await actualizar(activa.id, { [campo]: valor } as Partial<FichaDnd>);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   return (
     <>
       {activa && (
         <FichaStatsPanel
           ficha={activa}
+          editable={editando}
+          onEditarCampo={handleEditarCampo}
           headerAction={
-            <div className="relative">
+            <div className="relative flex items-center gap-1">
+              {editando && guardando && (
+                <Loader2 size={12} className="animate-spin text-primary/30" />
+              )}
+              <button
+                type="button"
+                onClick={() => setEditando((v) => !v)}
+                className={`p-1 rounded-full transition-colors ${
+                  editando
+                    ? "bg-primary text-white"
+                    : "text-primary/30 hover:bg-primary/10 hover:text-primary/70"
+                }`}
+                title={editando ? "Listo" : "Editar esta ficha"}
+              >
+                {editando ? <Check size={16} /> : <Pencil size={14} />}
+              </button>
               <button
                 type="button"
                 onClick={() => setMenuAbierto((v) => !v)}
                 className="p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
-                title="Cambiar o editar identidad"
+                title="Cambiar o crear identidad"
               >
                 <MoreVertical size={16} />
               </button>
@@ -165,6 +190,7 @@ function PanelIdentidad() {
                             type="button"
                             onClick={() => {
                               if (!f.activa) elegirActiva(f.id);
+                              setEditando(false);
                               setMenuAbierto(false);
                             }}
                             className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
@@ -186,13 +212,15 @@ function PanelIdentidad() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditandoId(f.id);
+                              if (confirm(`¿Eliminar a ${f.nombre}? Esto no se puede deshacer.`)) {
+                                eliminar(f.id);
+                              }
                               setMenuAbierto(false);
                             }}
-                            className="shrink-0 p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors"
-                            title="Editar ficha"
+                            className="shrink-0 p-1 rounded-full text-primary/30 hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                            title="Eliminar ficha"
                           >
-                            <Pencil size={11} />
+                            <Trash2 size={11} />
                           </button>
                         </div>
                       ))}
@@ -230,65 +258,13 @@ function PanelIdentidad() {
           <ModalCrearFicha
             onClose={() => setCreando(false)}
             onCrear={async (datos) => {
-              const nueva = await crear(datos);
+              await crear(datos);
               setCreando(false);
-              setEditandoId(nueva.id);
             }}
           />
         )}
       </AnimatePresence>
-
-      <AnimatePresence>
-        {fichaEditando && (
-          <ModalFichaOverlay onClose={() => setEditandoId(null)}>
-            <FichaDetalle
-              variant="modal"
-              ficha={fichaEditando}
-              esActiva={fichaEditando.activa}
-              onVolver={() => setEditandoId(null)}
-              onActualizar={actualizar}
-              onEliminar={async (id) => {
-                await eliminar(id);
-                setEditandoId(null);
-              }}
-              onElegirActiva={elegirActiva}
-            />
-          </ModalFichaOverlay>
-        )}
-      </AnimatePresence>
     </>
-  );
-}
-
-// ── Overlay genérico para la edición de una ficha (modal encima de /aventura) ──
-
-function ModalFichaOverlay({
-  onClose,
-  children,
-}: {
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <MotionDiv
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      exit={{ opacity: 0 }}
-      initial={{ opacity: 0 }}
-      style={{ background: "rgba(0,0,0,0.5)" }}
-      onClick={onClose}
-    >
-      <MotionDiv
-        animate={{ opacity: 1, scale: 1 }}
-        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6"
-        exit={{ opacity: 0, scale: 0.96 }}
-        initial={{ opacity: 0, scale: 0.96 }}
-        style={{ background: "var(--white-custom)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </MotionDiv>
-    </MotionDiv>
   );
 }
 

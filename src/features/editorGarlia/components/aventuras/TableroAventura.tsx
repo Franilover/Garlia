@@ -157,7 +157,7 @@ export function TableroAventura({
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 min-h-0 overflow-auto rounded-xl"
+      className="relative flex-1 min-h-0 min-w-0 overflow-auto rounded-xl"
       style={{
         background:
           "repeating-linear-gradient(0deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px)",
