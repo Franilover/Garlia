@@ -52,6 +52,19 @@ export interface FichaDnd {
   /** XP y monedas viven por identidad desde la migración de misiones. */
   xp_total: number;
   monedas: number;
+  /** Idiomas y herramientas que el personaje sabe usar (texto libre). */
+  idiomas: string[];
+  herramientas: string[];
+  /** Dados de golpe para descansos cortos, ej. "3d8". */
+  dados_golpe: string | null;
+  dados_golpe_usados: number;
+  /** Los 4 campos narrativos de la ficha 2024 (antes "Rasgos" en la hoja física). */
+  rasgos_personalidad: string | null;
+  ideales: string | null;
+  vinculos: string | null;
+  defectos: string | null;
+  /** Mecánica de inspiración: el DM la otorga, el jugador la gasta. */
+  inspiracion: boolean;
   created_at: string;
   updated_at: string;
   /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */
@@ -63,6 +76,10 @@ export interface ItemResumen {
   nombre: string;
   imagen_url: string | null;
   descripcion: string | null;
+  /** Si es un arma: su dado de daño (ej "1d8") y si usa Destreza en vez de Fuerza. */
+  es_arma: boolean;
+  dado_dano: string | null;
+  sutileza: boolean;
 }
 
 export interface ItemInventarioFicha {
@@ -205,7 +222,7 @@ async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventari
   if (ids.length === 0) return rows;
   const { data } = await supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza")
     .in("id", ids);
   const porId = new Map((data ?? []).map((i: any) => [i.id, i as ItemResumen]));
   return rows.map((r) => ({ ...r, item: r.item_id ? porId.get(r.item_id) ?? null : null }));
@@ -270,7 +287,20 @@ export function useInventarioFicha(fichaId: string | null) {
     [fetchAll],
   );
 
-  return { items, loading, agregar, quitar, toggleEquipado, refetch: fetchAll };
+  const editarCantidad = useCallback(
+    async (filaId: string, cantidad: number) => {
+      const cantidadValida = Math.max(1, Math.floor(cantidad) || 1);
+      const { error } = await supabase
+        .from("fichas_dnd_inventario")
+        .update({ cantidad: cantidadValida })
+        .eq("id", filaId);
+      if (error) throw error;
+      fetchAll();
+    },
+    [fetchAll],
+  );
+
+  return { items, loading, agregar, quitar, toggleEquipado, editarCantidad, refetch: fetchAll };
 }
 
 // ── Búsqueda para los selectores (especie / item) ──────────────────────
@@ -287,7 +317,7 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   const q = query.trim();
   let req = supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza")
     .order("nombre")
     .limit(40);
   if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);

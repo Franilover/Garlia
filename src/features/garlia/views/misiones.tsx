@@ -3,28 +3,36 @@
 import { AnimatePresence } from "framer-motion";
 import {
   ArrowDown,
+  Backpack,
   Ban,
   CheckCircle2,
   CircleDashed,
   CircleOff,
   Clock,
+  Coins,
   Dice6,
   EarOff,
   EyeOff,
   Ghost,
   Hand,
   Heart,
+  Languages,
   Link2,
   Loader2,
+  Minus,
   Moon,
   Mountain,
+  Plus,
   Scroll,
   Shield,
   Skull,
   Sparkles,
   Star,
   Sword,
+  Trash2,
+  Wrench,
   WifiOff,
+  X,
   Zap,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
@@ -37,11 +45,13 @@ import {
   reclamarMisionOffline,
 } from "@/lib/api/client/syncEngine";
 
-import type { FichaDnd } from "../hooks/useFichasDnd";
+import type { FichaDnd, ItemInventarioFicha } from "../hooks/useFichasDnd";
 import {
   bonusCompetencia,
   buscarCriaturas,
+  buscarItems,
   statMod,
+  useInventarioFicha,
 } from "../hooks/useFichasDnd";
 import { SelectorEntidad } from "./fichaComponents";
 import {
@@ -94,11 +104,7 @@ const ABREVIATURA_STAT: Record<string, string> = {
 // Las 14 condiciones oficiales de D&D 5e. Íconos Lucide en vez de emoji:
 // consistentes con el resto de la estética de la app (los emoji desentonaban
 // con el lenguaje visual de la ficha).
-const CONDICIONES_DND: Array<{
-  id: string;
-  nombre: string;
-  Icon: React.ElementType;
-}> = [
+const CONDICIONES_DND: Array<{ id: string; nombre: string; Icon: React.ElementType }> = [
   { id: "cegado", nombre: "Cegado", Icon: EyeOff },
   { id: "aturdido", nombre: "Aturdido", Icon: CircleDashed },
   { id: "ensordecido", nombre: "Ensordecido", Icon: EarOff },
@@ -166,10 +172,7 @@ function CampoEditable({
       inputMode={tipo === "number" ? "numeric" : undefined}
       defaultValue={valor}
       onBlur={(e) => {
-        const v =
-          tipo === "number"
-            ? e.target.value.replace(/[^0-9]/g, "")
-            : e.target.value;
+        const v = tipo === "number" ? e.target.value.replace(/[^0-9]/g, "") : e.target.value;
         onCommit(v);
       }}
       onChange={
@@ -186,15 +189,125 @@ function CampoEditable({
         width: width ?? "100%",
         textAlign: align,
         border: "none",
-        borderBottom:
-          "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+        borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
         padding: 0,
       }}
     />
   );
 }
 
-export function FichaStatsPanel({
+// Variante textarea de CampoEditable, para textos largos de rol-play
+// (rasgos, ideales, vínculos, defectos). Mismo patrón: solo se ve como
+// input cuando `editable`, si no es texto plano.
+function CampoEditableTextarea({
+  valor,
+  editable,
+  onCommit,
+  placeholder,
+}: {
+  valor: string | null;
+  editable: boolean;
+  onCommit: (valor: string) => void;
+  placeholder?: string;
+}) {
+  if (!editable) {
+    return (
+      <p className="text-xs leading-relaxed text-primary/70 whitespace-pre-wrap">
+        {valor?.trim() ? valor : "—"}
+      </p>
+    );
+  }
+  return (
+    <textarea
+      defaultValue={valor ?? ""}
+      onBlur={(e) => onCommit(e.target.value)}
+      placeholder={placeholder}
+      rows={2}
+      className="w-full bg-transparent outline-none resize-none text-xs leading-relaxed text-primary/70 placeholder:text-primary/25"
+      style={{
+        border: "none",
+        borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+        padding: 0,
+      }}
+    />
+  );
+}
+
+// Editor de listas cortas de texto libre (idiomas, herramientas): se ven
+// como chips; en modo editable cada chip tiene una X para quitarlo y hay
+// un input al final para escribir uno nuevo y confirmarlo con Enter.
+function EditorListaTags({
+  valores,
+  editable,
+  onCambiar,
+  placeholder,
+}: {
+  valores: string[];
+  editable: boolean;
+  onCambiar: (siguientes: string[]) => void;
+  placeholder: string;
+}) {
+  const [nuevo, setNuevo] = useState("");
+
+  const agregar = () => {
+    const v = nuevo.trim();
+    if (!v) return;
+    if (valores.some((existente) => existente.toLowerCase() === v.toLowerCase())) {
+      setNuevo("");
+      return;
+    }
+    onCambiar([...valores, v]);
+    setNuevo("");
+  };
+
+  if (valores.length === 0 && !editable) {
+    return <p className="text-xs text-primary/30">—</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {valores.map((v) => (
+        <span
+          key={v}
+          className="flex items-center gap-1 px-2 py-1 text-micro font-semibold rounded-full"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+          }}
+        >
+          {v}
+          {editable && (
+            <span
+              role="button"
+              onClick={() => onCambiar(valores.filter((x) => x !== v))}
+              className="cursor-pointer hover:text-red-500 transition-colors"
+            >
+              <X size={9} />
+            </span>
+          )}
+        </span>
+      ))}
+      {editable && (
+        <input
+          type="text"
+          value={nuevo}
+          onChange={(e) => setNuevo(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              agregar();
+            }
+          }}
+          onBlur={agregar}
+          placeholder={placeholder}
+          className="min-w-[90px] flex-1 bg-transparent outline-none text-micro text-primary/60 placeholder:text-primary/25 px-1 py-1"
+        />
+      )}
+    </div>
+  );
+}
+
+
   ficha,
   headerAction,
   editable = false,
@@ -210,14 +323,12 @@ export function FichaStatsPanel({
   editableStats?: boolean;
   /** Solo admin/DM, siempre: controla condiciones activas y HP actual en vivo. */
   editableCondiciones?: boolean;
-  onEditarCampo?: (
-    campo: keyof FichaDnd,
-    valor: string | number | string[] | null,
-  ) => void;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number | boolean | string[] | null) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
+  const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const stats: Array<[string, number]> = [
     ["fuerza", ficha.fuerza ?? 10],
     ["destreza", ficha.destreza ?? 10],
@@ -256,9 +367,7 @@ export function FichaStatsPanel({
           ) : (
             <Sword
               size={18}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
             />
           )}
         </div>
@@ -278,9 +387,7 @@ export function FichaStatsPanel({
             </p>
             <p
               className="text-micro font-black uppercase tracking-wider truncate"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               {editable ? (
                 <span className="inline-flex items-center gap-1">
@@ -289,10 +396,7 @@ export function FichaStatsPanel({
                     editable
                     onCommit={(v) => onEditarCampo?.("clase", v)}
                     className="text-micro font-black uppercase tracking-wider"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                     width={70}
                   />
                   · Nivel{" "}
@@ -302,10 +406,7 @@ export function FichaStatsPanel({
                     tipo="number"
                     onCommit={(v) => onEditarCampo?.("nivel", Number(v) || 1)}
                     className="text-micro font-black uppercase tracking-wider"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    }}
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                     width={28}
                   />
                 </span>
@@ -316,6 +417,40 @@ export function FichaStatsPanel({
               )}
             </p>
           </div>
+          {(editable || ficha.inspiracion) && (
+            <button
+              type="button"
+              disabled={!editable}
+              title={
+                ficha.inspiracion
+                  ? "Tiene inspiración: puede gastarla para tener ventaja en una tirada."
+                  : "Sin inspiración."
+              }
+              onClick={() => editable && onEditarCampo?.("inspiracion", !ficha.inspiracion)}
+              className="shrink-0 flex items-center justify-center transition-all disabled:cursor-default"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                border: ficha.inspiracion
+                  ? "1px solid color-mix(in srgb, var(--primary) 40%, transparent)"
+                  : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                background: ficha.inspiracion
+                  ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+                  : "transparent",
+              }}
+            >
+              <Sparkles
+                size={13}
+                fill={ficha.inspiracion ? "var(--primary)" : "none"}
+                style={{
+                  color: ficha.inspiracion
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
+            </button>
+          )}
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
       </div>
@@ -326,11 +461,7 @@ export function FichaStatsPanel({
       {(ficha.condiciones?.length > 0 || editableCondiciones) && (
         <div
           className="px-5 pb-4 flex flex-wrap gap-1.5"
-          style={{
-            borderTop:
-              "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            paddingTop: 12,
-          }}
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: 12 }}
         >
           {CONDICIONES_DND.filter(
             (c) => editableCondiciones || ficha.condiciones?.includes(c.id),
@@ -381,8 +512,7 @@ export function FichaStatsPanel({
       <div
         className="px-5 pt-4 pb-4"
         style={{
-          borderTop:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
         <SeparadorLabel label="Combate" />
@@ -391,20 +521,16 @@ export function FichaStatsPanel({
           <div className="flex items-center justify-between mb-1.5">
             <div
               className="flex items-center gap-1.5"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Heart size={9} />
-              <span className="text-micro font-black uppercase tracking-wider">
-                Vida
-              </span>
+              <span className="text-micro font-black uppercase tracking-wider">Vida</span>
             </div>
             <span
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             >
-              {editableStats || editableCondiciones ? (
+              {(editableStats || editableCondiciones) ? (
                 <span className="inline-flex items-center gap-1">
                   <CampoEditable
                     valor={hpActual}
@@ -412,9 +538,7 @@ export function FichaStatsPanel({
                     tipo="number"
                     align="right"
                     width={32}
-                    onCommit={(v) =>
-                      onEditarCampo?.("hp_actual", Number(v) || 0)
-                    }
+                    onCommit={(v) => onEditarCampo?.("hp_actual", Number(v) || 0)}
                     className="text-sm font-black tabular-nums"
                     style={{ color: "var(--primary)" }}
                   />
@@ -457,25 +581,19 @@ export function FichaStatsPanel({
           <div
             className="flex-1 flex items-center justify-between px-2.5 py-1.5"
             style={{
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}
           >
             <span
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Shield size={9} />
               Defensa
             </span>
-            <span
-              className="text-sm font-black tabular-nums"
-              style={{ color: "var(--primary)" }}
-            >
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
               <CampoEditable
                 valor={ficha.ca ?? 10}
                 editable={editableStats}
@@ -491,28 +609,40 @@ export function FichaStatsPanel({
           <div
             className="flex-1 flex items-center justify-between px-2.5 py-1.5"
             style={{
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}
           >
             <span
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               <Sword size={9} />
               Daño
             </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
+            </span>
+          </div>
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="Se calcula solo según el nivel: base de habilidades, salvaciones y ataques."
+          >
             <span
-              className="text-sm font-black tabular-nums"
-              style={{ color: "var(--primary)" }}
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              {danioCuerpoACuerpo >= 0
-                ? `+${danioCuerpoACuerpo}`
-                : danioCuerpoACuerpo}
+              <Star size={9} />
+              Compet.
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              +{bonoCompetencia}
             </span>
           </div>
         </div>
@@ -522,8 +652,7 @@ export function FichaStatsPanel({
       <div
         className="px-5 py-4"
         style={{
-          borderTop:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
         <SeparadorLabel label="Estadísticas" />
@@ -535,26 +664,18 @@ export function FichaStatsPanel({
                 key={key}
                 className="flex flex-col items-center gap-0.5 py-2"
                 style={{
-                  border:
-                    "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderRadius: "2px",
-                  background:
-                    "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
                 }}
               >
                 <span
                   className="text-micro font-black uppercase tracking-wider"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                 >
                   {ABREVIATURA_STAT[key]}
                 </span>
-                <span
-                  className="text-sm font-black tabular-nums"
-                  style={{ color: "var(--primary)" }}
-                >
+                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
                   <CampoEditable
                     valor={valor}
                     editable={editableStats}
@@ -570,10 +691,7 @@ export function FichaStatsPanel({
                 </span>
                 <span
                   className="text-micro font-black tabular-nums"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  }}
+                  style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
                 >
                   {mod >= 0 ? `+${mod}` : mod}
                 </span>
@@ -589,18 +707,14 @@ export function FichaStatsPanel({
       <div
         className="px-5 py-4"
         style={{
-          borderTop:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
         <SeparadorLabel label="Salvaciones" />
         <div className="grid grid-cols-2 gap-2">
           {stats.map(([key, valor]) => {
-            const competente =
-              ficha.salvaciones_competentes?.includes(key) ?? false;
-            const bonus =
-              statMod(valor) +
-              (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+            const competente = ficha.salvaciones_competentes?.includes(key) ?? false;
+            const bonus = statMod(valor) + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
             return (
               <button
                 key={key}
@@ -646,10 +760,7 @@ export function FichaStatsPanel({
                   />
                   {ABREVIATURA_STAT[key]}
                 </span>
-                <span
-                  className="text-sm font-black tabular-nums"
-                  style={{ color: "var(--primary)" }}
-                >
+                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
                   {bonus >= 0 ? `+${bonus}` : bonus}
                 </span>
               </button>
@@ -665,24 +776,20 @@ export function FichaStatsPanel({
       <div
         className="px-5 py-4 grid grid-cols-2 gap-2"
         style={{
-          borderTop:
-            "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
         <div
           className="flex flex-col gap-0.5 px-2.5 py-1.5"
           style={{
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
           <span
             className="text-micro font-black uppercase tracking-wider"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             Velocidad
           </span>
@@ -698,17 +805,14 @@ export function FichaStatsPanel({
         <div
           className="flex flex-col gap-0.5 px-2.5 py-1.5"
           style={{
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
           <span
             className="text-micro font-black uppercase tracking-wider"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             Alineamiento
           </span>
@@ -723,17 +827,14 @@ export function FichaStatsPanel({
         <div
           className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
           style={{
-            border:
-              "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
           <span
             className="text-micro font-black uppercase tracking-wider"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             Especie / Raza
           </span>
@@ -746,16 +847,449 @@ export function FichaStatsPanel({
               onQuitar={() => onEditarCampo?.("especie_id", null)}
             />
           ) : (
-            <span
-              className="text-sm font-semibold"
-              style={{ color: "var(--primary)" }}
-            >
+            <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
               {ficha.especie?.nombre ?? ficha.raza ?? "—"}
             </span>
           )}
         </div>
       </div>
+
+      {/* ── Dados de golpe + Monedas. Los dados de golpe se gastan en
+          descansos cortos: cada tap suma un "usado" (hasta el máximo del
+          dado, ej. 3d8 → hasta 3), y un botón chico los resetea todos
+          (descanso largo). Solo admin/DM los toca, como el resto de combate. ── */}
+      <div
+        className="px-5 py-4 grid grid-cols-2 gap-2"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Dice6 size={9} />
+            Dados de golpe
+          </span>
+          <div className="flex items-center justify-between gap-1">
+            <CampoEditable
+              valor={ficha.dados_golpe ?? ""}
+              editable={editableStats}
+              onCommit={(v) => onEditarCampo?.("dados_golpe", v || null)}
+              className="text-sm font-black"
+              style={{ color: "var(--primary)" }}
+              width={54}
+            />
+            {ficha.dados_golpe && (
+              <span
+                className="text-micro font-bold tabular-nums shrink-0"
+                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+              >
+                {ficha.dados_golpe_usados ?? 0} usados
+              </span>
+            )}
+          </div>
+          {editableStats && ficha.dados_golpe && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <button
+                type="button"
+                onClick={() =>
+                  onEditarCampo?.(
+                    "dados_golpe_usados",
+                    Math.max(0, (ficha.dados_golpe_usados ?? 0) - 1),
+                  )
+                }
+                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                style={{ width: 18, height: 18 }}
+              >
+                <Minus size={10} className="text-primary/50" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onEditarCampo?.("dados_golpe_usados", (ficha.dados_golpe_usados ?? 0) + 1)
+                }
+                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                style={{ width: 18, height: 18 }}
+              >
+                <Plus size={10} className="text-primary/50" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
+                className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-1"
+                title="Descanso largo: restablece todos los dados de golpe"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Coins size={9} />
+            Monedas
+          </span>
+          <CampoEditable
+            valor={ficha.monedas ?? 0}
+            editable={editableStats}
+            tipo="number"
+            onCommit={(v) => onEditarCampo?.("monedas", Number(v) || 0)}
+            className="text-sm font-black tabular-nums"
+            style={{ color: "var(--primary)" }}
+          />
+        </div>
+      </div>
+
+      {/* ── Idiomas y herramientas: competencias no-combate, las puede tocar
+          el dueño de la ficha en cualquier momento (igual que alineamiento). ── */}
+      <div
+        className="px-5 py-4 flex flex-col gap-3"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <div>
+          <span
+            className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-1.5"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Languages size={10} />
+            Idiomas
+          </span>
+          <EditorListaTags
+            valores={ficha.idiomas ?? []}
+            editable={editable}
+            onCambiar={(siguientes) => onEditarCampo?.("idiomas", siguientes)}
+            placeholder="Agregar idioma…"
+          />
+        </div>
+        <div>
+          <span
+            className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-1.5"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Wrench size={10} />
+            Herramientas
+          </span>
+          <EditorListaTags
+            valores={ficha.herramientas ?? []}
+            editable={editable}
+            onCambiar={(siguientes) => onEditarCampo?.("herramientas", siguientes)}
+            placeholder="Agregar herramienta…"
+          />
+        </div>
+      </div>
+
+      {/* ── Trasfondo narrativo: los 4 campos de rol-play de la ficha 2024
+          (antes en la hoja física, ahora en la sección "About"). Siempre
+          los puede tocar el dueño, no son datos de combate. ── */}
+      <div
+        className="px-5 py-4 flex flex-col gap-3"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Trasfondo" />
+        <div>
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Rasgos de personalidad
+          </span>
+          <CampoEditableTextarea
+            valor={ficha.rasgos_personalidad}
+            editable={editable}
+            onCommit={(v) => onEditarCampo?.("rasgos_personalidad", v || null)}
+            placeholder="¿Qué lo hace distinto a cualquier otro aventurero?"
+          />
+        </div>
+        <div>
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Ideales
+          </span>
+          <CampoEditableTextarea
+            valor={ficha.ideales}
+            editable={editable}
+            onCommit={(v) => onEditarCampo?.("ideales", v || null)}
+            placeholder="¿Qué principios lo guían?"
+          />
+        </div>
+        <div>
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Vínculos
+          </span>
+          <CampoEditableTextarea
+            valor={ficha.vinculos}
+            editable={editable}
+            onCommit={(v) => onEditarCampo?.("vinculos", v || null)}
+            placeholder="¿A quién o qué está atado?"
+          />
+        </div>
+        <div>
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Defectos
+          </span>
+          <CampoEditableTextarea
+            valor={ficha.defectos}
+            editable={editable}
+            onCommit={(v) => onEditarCampo?.("defectos", v || null)}
+            placeholder="¿Qué punto débil podrían explotar en su contra?"
+          />
+        </div>
+      </div>
+
+      {/* ── Inventario + Ataques derivados. Ataques se calculan solos a
+          partir de los ítems equipados marcados como arma: bono = mod de
+          stat (Fuerza, o el mayor entre Fuerza/Destreza si es "sutileza")
+          + bono de competencia (se asume competencia con toda arma
+          equipada, que es el caso común salvo excepciones de rol-play). ── */}
+      <PanelInventarioFicha
+        fichaId={ficha.id}
+        editable={editable}
+        bonoCompetencia={bonoCompetencia}
+        fuerza={ficha.fuerza ?? 10}
+        destreza={ficha.destreza ?? 10}
+      />
     </div>
+  );
+}
+
+// ─── Inventario + ataques derivados ────────────────────────────────────────
+// Vive como componente aparte porque usa su propio hook de datos
+// (useInventarioFicha cargando por fichaId) — separarlo evita que
+// FichaStatsPanel dispare esa consulta cuando no hace falta mostrarla.
+
+function PanelInventarioFicha({
+  fichaId,
+  editable,
+  bonoCompetencia,
+  fuerza,
+  destreza,
+}: {
+  fichaId: string;
+  editable: boolean;
+  bonoCompetencia: number;
+  fuerza: number;
+  destreza: number;
+}) {
+  const { items, loading, agregar, quitar, toggleEquipado, editarCantidad } =
+    useInventarioFicha(fichaId);
+  const [buscando, setBuscando] = useState(false);
+
+  const armasEquipadas = items.filter((i) => i.equipado && i.item?.es_arma);
+
+  return (
+    <>
+      {/* ── Ataques: solo aparece si hay al menos un arma equipada. ── */}
+      {armasEquipadas.length > 0 && (
+        <div
+          className="px-5 py-4"
+          style={{
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          <SeparadorLabel label="Ataques" />
+          <div className="flex flex-col gap-1.5">
+            {armasEquipadas.map((fila) => {
+              const modStat = fila.item?.sutileza
+                ? Math.max(statMod(fuerza), statMod(destreza))
+                : statMod(fuerza);
+              const bonoAtaque = modStat + bonoCompetencia;
+              return (
+                <div
+                  key={fila.id}
+                  className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+                  style={{
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: "2px",
+                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  }}
+                >
+                  <span className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-primary/75 truncate">
+                    <Sword size={10} className="shrink-0 text-primary/35" />
+                    {fila.item?.nombre ?? "Arma"}
+                  </span>
+                  <span
+                    className="shrink-0 text-micro font-bold tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
+                    {fila.item?.dado_dano ? ` · ${fila.item.dado_dano}` : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Inventario completo. Cualquiera con `editable` puede agregar
+          ítems del catálogo del mundo, ajustar cantidad, marcar equipado
+          o quitarlos — mismo criterio que el resto de datos de rol-play. ── */}
+      <div
+        className="px-5 py-4"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Inventario" />
+
+        {editable && (
+          <div className="mb-2">
+            {buscando ? (
+              <SelectorEntidad
+                placeholder="Buscar ítem del mundo…"
+                buscar={buscarItems}
+                onSeleccionar={async (item) => {
+                  await agregar(item.id);
+                  setBuscando(false);
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setBuscando(true)}
+                className="flex items-center gap-1.5 text-micro font-bold uppercase tracking-wider transition-colors"
+                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+              >
+                <Plus size={11} />
+                Agregar ítem
+              </button>
+            )}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="py-4 flex items-center justify-center">
+            <Loader2 size={14} className="animate-spin text-primary/30" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-xs text-primary/30 flex items-center gap-1.5">
+            <Backpack size={12} />
+            Sin ítems todavía.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {items.map((fila) => (
+              <div
+                key={fila.id}
+                className="flex items-center gap-2 px-2.5 py-1.5"
+                style={{
+                  border: fila.equipado
+                    ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
+                    : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: fila.equipado
+                    ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <div className="w-6 h-6 shrink-0 rounded overflow-hidden bg-primary/5">
+                  {fila.item?.imagen_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={fila.item.imagen_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <span className="flex-1 min-w-0 text-xs font-semibold text-primary/75 truncate">
+                  {fila.item?.nombre ?? "Ítem"}
+                </span>
+
+                {editable ? (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => editarCantidad(fila.id, fila.cantidad - 1)}
+                      disabled={fila.cantidad <= 1}
+                      className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors disabled:opacity-30"
+                      style={{ width: 16, height: 16 }}
+                    >
+                      <Minus size={9} className="text-primary/50" />
+                    </button>
+                    <span className="text-micro font-bold tabular-nums w-4 text-center text-primary/60">
+                      {fila.cantidad}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => editarCantidad(fila.id, fila.cantidad + 1)}
+                      className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                      style={{ width: 16, height: 16 }}
+                    >
+                      <Plus size={9} className="text-primary/50" />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="shrink-0 text-micro font-bold tabular-nums text-primary/40">
+                    ×{fila.cantidad}
+                  </span>
+                )}
+
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => toggleEquipado(fila)}
+                    title={fila.equipado ? "Quitar equipamiento" : "Equipar"}
+                    className="shrink-0 flex items-center justify-center rounded-full transition-colors"
+                    style={{
+                      width: 22,
+                      height: 22,
+                      color: fila.equipado
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                    }}
+                  >
+                    <Shield size={12} fill={fila.equipado ? "var(--primary)" : "none"} />
+                  </button>
+                )}
+
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => quitar(fila.id)}
+                    className="shrink-0 flex items-center justify-center rounded-full hover:bg-red-500/10 hover:text-red-500 text-primary/25 transition-colors"
+                    style={{ width: 22, height: 22 }}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -821,11 +1355,7 @@ export function TiradaDados() {
     // "tirar el dado" que a que el número aparezca instantáneo.
     window.setTimeout(() => {
       const resultado = 1 + Math.floor(Math.random() * caras);
-      const nueva: TiradaHistorial = {
-        id: `${Date.now()}-${caras}`,
-        caras,
-        resultado,
-      };
+      const nueva: TiradaHistorial = { id: `${Date.now()}-${caras}`, caras, resultado };
       setUltima(nueva);
       setHistorial((prev) => [nueva, ...prev].slice(0, 6));
       setTirando(null);
@@ -853,16 +1383,11 @@ export function TiradaDados() {
             >
               <span
                 className="text-micro font-black uppercase tracking-wider"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                }}
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
               >
                 d{ultima.caras}
               </span>
-              <span
-                className="text-xl font-black tabular-nums"
-                style={{ color: "var(--primary)" }}
-              >
+              <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
                 {ultima.resultado}
               </span>
             </MotionDiv>
@@ -872,22 +1397,14 @@ export function TiradaDados() {
 
       <div className="px-5 pb-4 flex gap-1.5">
         {CARAS_DADO.map((caras) => (
-          <DadoBoton
-            key={caras}
-            caras={caras}
-            activo={tirando === caras}
-            onTirar={tirar}
-          />
+          <DadoBoton key={caras} caras={caras} activo={tirando === caras} onTirar={tirar} />
         ))}
       </div>
 
       {historial.length > 1 && (
         <div
           className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap"
-          style={{
-            borderTop:
-              "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
           {historial.slice(1).map((t) => (
             <span
@@ -895,8 +1412,7 @@ export function TiradaDados() {
               className="text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-full"
               style={{
                 color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                background:
-                  "color-mix(in srgb, var(--primary) 5%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               }}
             >
               d{t.caras}: {t.resultado}
@@ -931,9 +1447,7 @@ const LABEL_ESTADO: Record<string, string> = {
 };
 
 export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
-  const [misionModal, setMisionModal] = useState<MisionConProgreso | null>(
-    null,
-  );
+  const [misionModal, setMisionModal] = useState<MisionConProgreso | null>(null);
   const [misiones, setMisiones] = useState<MisionConProgreso[]>([]);
   const [cargando, setCargando] = useState(true);
   const [reclamandoId, setReclamandoId] = useState<string | null>(null);
@@ -948,9 +1462,7 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
   // Combina catálogo + progreso del usuario en una sola lista para la UI.
   const combinarMisiones = useCallback(
     (catalogo: any[], progresoRows: any[]): MisionConProgreso[] => {
-      const progresoPorMision = new Map(
-        progresoRows.map((p: any) => [p.mision_id, p]),
-      );
+      const progresoPorMision = new Map(progresoRows.map((p: any) => [p.mision_id, p]));
       return catalogo.map((m: any) => {
         const prog = progresoPorMision.get(m.id);
         return {
@@ -1038,9 +1550,7 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
 
       if (resultado.ok) {
         setMisiones((prev) =>
-          prev.map((m) =>
-            m.id === mision.id ? { ...m, user_estado: "reclamada" } : m,
-          ),
+          prev.map((m) => (m.id === mision.id ? { ...m, user_estado: "reclamada" } : m)),
         );
         setMisionModal(null);
         await invalidateSessionCache(`misiones_usuario:${ficha.id}`);
@@ -1071,15 +1581,11 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
         <Loader2
           className="animate-spin"
           size={14}
-          style={{
-            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-          }}
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
         />
         <span
           className="text-micro font-black uppercase tracking-[0.2em]"
-          style={{
-            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-          }}
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
         >
           Cargando misiones…
         </span>
@@ -1103,17 +1609,10 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <Scroll
-            size={11}
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-          />
+          <Scroll size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
           <span
             className="text-micro font-black uppercase tracking-[0.22em]"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             Misiones aceptadas
           </span>
@@ -1121,10 +1620,7 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
         {offline && (
           <div className="flex items-center gap-1 shrink-0">
             <WifiOff size={9} style={{ color: "#d97706" }} />
-            <span
-              className="text-micro font-black uppercase tracking-wider"
-              style={{ color: "#d97706" }}
-            >
+            <span className="text-micro font-black uppercase tracking-wider" style={{ color: "#d97706" }}>
               Sin conexión
             </span>
           </div>
@@ -1150,15 +1646,12 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
           className="px-3 py-3 text-center"
           style={{
             borderRadius: "2px",
-            border:
-              "1px dashed color-mix(in srgb, var(--primary) 14%, transparent)",
+            border: "1px dashed color-mix(in srgb, var(--primary) 14%, transparent)",
           }}
         >
           <p
             className="text-micro font-bold"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-            }}
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
           >
             Todavía no aceptaste ninguna misión.
           </p>
@@ -1166,8 +1659,7 @@ export default function Misiones({ ficha, onFichaActualizada }: MisionesProps) {
       ) : (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {misionesAceptadas.map((mision) => {
-            const IconoEstado =
-              ICONO_ESTADO[mision.user_estado ?? "en_curso"] ?? Clock;
+            const IconoEstado = ICONO_ESTADO[mision.user_estado ?? "en_curso"] ?? Clock;
             const lista = mision.user_estado === "completada";
             return (
               <button

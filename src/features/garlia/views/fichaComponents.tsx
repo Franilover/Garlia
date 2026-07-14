@@ -22,7 +22,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { MotionDiv } from "@/components/ui/Motion";
 
@@ -581,6 +582,10 @@ export function SelectorEntidad<T extends EntidadOpcion>({
   const [resultados, setResultados] = useState<T[]>([]);
   const [buscando, setBuscando] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const anclaRef = useRef<HTMLDivElement | null>(null);
+  const [posicion, setPosicion] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!abierto) return;
@@ -596,6 +601,28 @@ export function SelectorEntidad<T extends EntidadOpcion>({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, abierto]);
+
+  // ── Posicionamiento del dropdown ──────────────────────────────────────
+  // El selector suele vivir dentro de contenedores con overflow:hidden u
+  // overflow-y:auto (panel del DM, tarjetas del pizarrón, feed de aventura),
+  // que recortan cualquier <div absolute> que se salga de sus límites. Para
+  // que la lista de opciones siempre se vea completa, se renderiza en un
+  // portal a document.body y se posiciona "a mano" siguiendo al input.
+  useLayoutEffect(() => {
+    if (!abierto) return;
+    const calcular = () => {
+      const rect = anclaRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setPosicion({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+    calcular();
+    window.addEventListener("scroll", calcular, true);
+    window.addEventListener("resize", calcular);
+    return () => {
+      window.removeEventListener("scroll", calcular, true);
+      window.removeEventListener("resize", calcular);
+    };
+  }, [abierto]);
 
   if (seleccionActual && !abierto) {
     return (
@@ -628,7 +655,7 @@ export function SelectorEntidad<T extends EntidadOpcion>({
   }
 
   return (
-    <div className="relative w-full min-w-0">
+    <div ref={anclaRef} className="relative w-full min-w-0">
       <div className="flex items-center gap-2 px-2.5 h-10 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors">
         <Search size={12} className="text-primary/35 shrink-0" />
         <input
@@ -643,37 +670,46 @@ export function SelectorEntidad<T extends EntidadOpcion>({
         {buscando && <Loader2 size={11} className="animate-spin text-primary/30" />}
       </div>
 
-      {abierto && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setAbierto(false)} />
-          <div className="absolute left-0 right-0 top-full mt-1 z-20 max-h-56 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg">
-            {resultados.length === 0 && !buscando ? (
-              <div className="px-3 py-3 text-micro text-primary/30 text-center">Sin resultados.</div>
-            ) : (
-              resultados.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => {
-                    onSeleccionar(r);
-                    setAbierto(false);
-                    setQuery("");
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
-                >
-                  <div className="w-7 h-7 shrink-0 rounded-md overflow-hidden bg-primary/5">
-                    {r.imagen_url && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={r.imagen_url} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <span className="text-xs text-primary/80 truncate">{r.nombre}</span>
-                </button>
-              ))
-            )}
-          </div>
-        </>
-      )}
+      {abierto &&
+        posicion &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[70]" onClick={() => setAbierto(false)} />
+            <div
+              className="fixed z-[71] max-h-56 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg"
+              style={{ top: posicion.top, left: posicion.left, width: posicion.width }}
+            >
+              {resultados.length === 0 && !buscando ? (
+                <div className="px-3 py-3 text-micro text-primary/30 text-center">
+                  Sin resultados.
+                </div>
+              ) : (
+                resultados.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => {
+                      onSeleccionar(r);
+                      setAbierto(false);
+                      setQuery("");
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 transition-colors"
+                  >
+                    <div className="w-7 h-7 shrink-0 rounded-md overflow-hidden bg-primary/5">
+                      {r.imagen_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={r.imagen_url} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <span className="text-xs text-primary/80 truncate">{r.nombre}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }

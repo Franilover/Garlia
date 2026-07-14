@@ -1,15 +1,15 @@
 {
   "folders": [
-    { "name": "🌍 Editor Garlia",  "path": "src/features/editorGarlia" },
-    { "name": "📚 Garlia Público", "path": "src/features/garlia" },
-    { "name": "📝 Ensayos",        "path": "src/features/ensayos" },
-    { "name": "👤 Personal",       "path": "src/features/personal" },
-    { "name": "🎨 UI Global",      "path": "src/components" },
-    { "name": "🔧 Lib / API",      "path": "src/lib" },
-    { "name": "🪝 Hooks",          "path": "src/hooks" },
-    { "name": "🌐 Providers",      "path": "src/providers" },
-    { "name": "📄 App (rutas)",    "path": "src/app" },
-    { "name": "⚙️  Raíz",          "path": "." }
+    { "name": "Editor Garlia",  "path": "src/features/editorGarlia" },
+    { "name": "Garlia Público", "path": "src/features/garlia" },
+    { "name": "Ensayos",        "path": "src/features/ensayos" },
+    { "name": "Personal",       "path": "src/features/personal" },
+    { "name": "UI Global",      "path": "src/components" },
+    { "name": "Lib / API",      "path": "src/lib" },
+    { "name": "Hooks",          "path": "src/hooks" },
+    { "name": "Providers",      "path": "src/providers" },
+    { "name": "App (rutas)",    "path": "src/app" },
+    { "name": "Raíz",          "path": "." }
   ],
   "settings": {
     "editor.formatOnSave": true,

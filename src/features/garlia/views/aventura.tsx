@@ -155,7 +155,10 @@ function PanelIdentidad() {
     );
   }
 
-  const handleEditarCampo = async (campo: keyof FichaDnd, valor: string | number | string[] | null) => {
+  const handleEditarCampo = async (
+    campo: keyof FichaDnd,
+    valor: string | number | boolean | string[] | null,
+  ) => {
     if (!activa) return;
     setGuardando(true);
     try {

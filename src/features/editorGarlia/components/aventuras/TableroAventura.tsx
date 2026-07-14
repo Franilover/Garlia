@@ -163,7 +163,7 @@ export function TableroAventura({
       style={{
         background:
           "repeating-linear-gradient(0deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px)",
-        touchAction: editable ? "none" : "pan-y",
+        touchAction: editable ? "none" : "pan-x pan-y",
       }}
     >
       <div
