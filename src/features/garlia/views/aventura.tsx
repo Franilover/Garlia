@@ -196,7 +196,8 @@ function PanelIdentidad() {
           ficha={activa}
           editable={editando}
           editableStats={puedeEditarStats}
-          editableCondiciones={isAdmin}
+          editableCondiciones={false}
+          mostrarCondiciones={false}
           onEditarCampo={handleEditarCampo}
           headerAction={
             <div className="relative flex items-center gap-1">

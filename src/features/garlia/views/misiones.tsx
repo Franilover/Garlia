@@ -346,6 +346,7 @@ export function FichaStatsPanel({
   editable = false,
   editableStats = false,
   editableCondiciones = false,
+  mostrarCondiciones = true,
   onEditarCampo,
 }: {
   ficha: FichaDnd;
@@ -356,6 +357,9 @@ export function FichaStatsPanel({
   editableStats?: boolean;
   /** Solo admin/DM, siempre: controla condiciones activas y HP actual en vivo. */
   editableCondiciones?: boolean;
+  /** Si el bloque de condiciones/estado aparece en esta vista. En /aventura
+      se oculta por completo — el DM lo maneja desde su panel aparte. */
+  mostrarCondiciones?: boolean;
   onEditarCampo?: (
     campo: keyof FichaDnd,
     valor: string | number | boolean | string[] | RasgoEspecial[] | null,
@@ -494,7 +498,7 @@ export function FichaStatsPanel({
       {/* ── Avatar de estado: condiciones activas, siempre visibles como chips.
           Solo admin/DM puede tildar/destildar (editableCondiciones), nunca el
           dueño de la ficha — el estado de juego en vivo lo controla el DM. ── */}
-      {(ficha.condiciones?.length > 0 || editableCondiciones) && (
+      {mostrarCondiciones && (ficha.condiciones?.length > 0 || editableCondiciones) && (
         <div
           className="px-5 pb-4 flex flex-wrap gap-1.5"
           style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: 12 }}
@@ -696,6 +700,9 @@ export function FichaStatsPanel({
           {stats.map(([key, valor]) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
+            const salvacionCompetente = ficha.salvaciones_competentes?.includes(key) ?? false;
+            const salvacionBonus =
+              mod + (salvacionCompetente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
             return (
               <div
                 key={key}
@@ -733,6 +740,62 @@ export function FichaStatsPanel({
                   >
                     ({mod >= 0 ? `+${mod}` : mod})
                   </span>
+                </div>
+
+                {/* Salvación de esta stat, anidada justo debajo — mismo
+                    patrón visual que las skills, para que quede claro que
+                    es otra "sub-fila" de la característica. */}
+                <div
+                  style={{
+                    borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={!editableStats}
+                    onClick={() => {
+                      if (!editableStats) return;
+                      const actuales = ficha.salvaciones_competentes ?? [];
+                      const siguientes = salvacionCompetente
+                        ? actuales.filter((k) => k !== key)
+                        : [...actuales, key];
+                      onEditarCampo?.("salvaciones_competentes", siguientes);
+                    }}
+                    className="w-full flex items-center justify-between pl-6 pr-2.5 py-1 transition-all disabled:cursor-default"
+                  >
+                    <span
+                      className="flex items-center gap-1.5 text-micro"
+                      style={{
+                        color: salvacionCompetente
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        fontWeight: salvacionCompetente ? 700 : 500,
+                      }}
+                    >
+                      <span
+                        className="shrink-0"
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          background: salvacionCompetente
+                            ? "var(--primary)"
+                            : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                        }}
+                      />
+                      Salvación
+                    </span>
+                    <span
+                      className="text-micro font-black tabular-nums"
+                      style={{
+                        color: salvacionCompetente
+                          ? "var(--primary)"
+                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      }}
+                    >
+                      {salvacionBonus >= 0 ? `+${salvacionBonus}` : salvacionBonus}
+                    </span>
+                  </button>
                 </div>
 
                 {/* Habilidades asociadas a esta stat, anidadas debajo. */}
@@ -804,74 +867,6 @@ export function FichaStatsPanel({
                   </div>
                 )}
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Salvaciones: modificador base + bono de competencia si aplica.
-          Tildar cuáles son competentes está protegido igual que las demás
-          stats de combate (editableStats), porque afecta el cálculo. ── */}
-      <div
-        className="px-5 py-4"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <SeparadorLabel label="Salvaciones" />
-        <div className="grid grid-cols-2 gap-2">
-          {stats.map(([key, valor]) => {
-            const competente = ficha.salvaciones_competentes?.includes(key) ?? false;
-            const bonus = statMod(valor) + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
-            return (
-              <button
-                key={key}
-                type="button"
-                disabled={!editableStats}
-                onClick={() => {
-                  if (!editableStats) return;
-                  const actuales = ficha.salvaciones_competentes ?? [];
-                  const siguientes = competente
-                    ? actuales.filter((k) => k !== key)
-                    : [...actuales, key];
-                  onEditarCampo?.("salvaciones_competentes", siguientes);
-                }}
-                className="flex items-center justify-between px-2.5 py-1.5 transition-all disabled:cursor-default"
-                style={{
-                  border: competente
-                    ? "1px solid color-mix(in srgb, var(--primary) 30%, transparent)"
-                    : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "2px",
-                  background: competente
-                    ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                    : "color-mix(in srgb, var(--primary) 3%, transparent)",
-                }}
-              >
-                <span
-                  className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider"
-                  style={{
-                    color: competente
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                  }}
-                >
-                  <span
-                    className="shrink-0"
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: competente
-                        ? "var(--primary)"
-                        : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                    }}
-                  />
-                  {ABREVIATURA_STAT[key]}
-                </span>
-                <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                  {bonus >= 0 ? `+${bonus}` : bonus}
-                </span>
-              </button>
             );
           })}
         </div>
