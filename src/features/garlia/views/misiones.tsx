@@ -118,9 +118,21 @@ function CampoEditable({
   if (!editable) return <>{valor}</>;
   return (
     <input
-      type={tipo}
+      type="text"
+      inputMode={tipo === "number" ? "numeric" : undefined}
       defaultValue={valor}
-      onBlur={(e) => onCommit(e.target.value)}
+      onBlur={(e) => {
+        const v = tipo === "number" ? e.target.value.replace(/[^0-9]/g, "") : e.target.value;
+        onCommit(v);
+      }}
+      onChange={
+        tipo === "number"
+          ? (e) => {
+              const filtered = e.target.value.replace(/[^0-9]/g, "");
+              if (filtered !== e.target.value) e.target.value = filtered;
+            }
+          : undefined
+      }
       className={`${className} bg-transparent outline-none`}
       style={{
         ...style,

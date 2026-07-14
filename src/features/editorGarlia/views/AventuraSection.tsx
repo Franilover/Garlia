@@ -15,6 +15,7 @@
  *      va revelando una por una en vivo durante la sesión.
  */
 
+import { AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Compass,
@@ -31,6 +32,8 @@ import {
 } from "lucide-react";
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 
+import { MotionDiv } from "@/components/ui/Motion";
+
 import {
   buscarEntidades,
   TABLA_LABEL,
@@ -40,6 +43,7 @@ import {
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
 import { TableroAventura, type TableroItem } from "../components/aventuras/TableroAventura";
+import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
 
 const EditorMisiones = lazy(() => import("./editorMisiones"));
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
@@ -242,6 +246,7 @@ function AventuraDetalle({
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
+  const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -379,21 +384,22 @@ function AventuraDetalle({
         )}
       </div>
 
-      {/* ── Tablero libre: pizarrón con las entidades de esta aventura ── */}
-      <div className="flex-1 min-h-0 flex flex-col p-4 gap-2">
-        <p className="shrink-0 text-micro text-primary/35">
-          Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
-          El ojo publica/oculta para los jugadores; la X quita del todo.
-        </p>
-        {loading && entidades.length === 0 ? (
-          <div className="py-16 flex items-center justify-center text-primary/30">
-            <Loader2 className="animate-spin" size={18} />
-          </div>
-        ) : (
-          <TableroAventura
-            editable
-            emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
-            items={entidades.map(
+      {/* ── Tablero libre (izq) + Identidades en dropdowns (der) ──────── */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col p-4 gap-2 overflow-hidden">
+          <p className="shrink-0 text-micro text-primary/35">
+            Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
+            El ojo publica/oculta para los jugadores; la X quita del todo.
+          </p>
+          {loading && entidades.length === 0 ? (
+            <div className="py-16 flex items-center justify-center text-primary/30">
+              <Loader2 className="animate-spin" size={18} />
+            </div>
+          ) : (
+            <TableroAventura
+              editable
+              emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
+              items={entidades.map(
               (e): TableroItem => ({
                 id: e.id,
                 nombre: e.nombre,
@@ -446,10 +452,86 @@ function AventuraDetalle({
                 </div>
               );
             }}
-            onMove={(id, x, y) => moverPosicion(id, x, y)}
-          />
-        )}
+              onMove={(id, x, y) => moverPosicion(id, x, y)}
+              onClickItem={(id) => {
+                const e = entidades.find((x) => x.id === id);
+                if (e) setSeleccion(e);
+              }}
+            />
+          )}
+        </div>
+
+        {/* ── Columna lateral: identidades como dropdowns ───────────── */}
+        <div className="w-72 shrink-0 border-l border-primary/10 overflow-hidden">
+          <PanelIdentidadesDM />
+        </div>
       </div>
+
+      {/* ── Modal de detalle (misma vista que ve el jugador) ────────── */}
+      <AnimatePresence>
+        {seleccion && (
+          <MotionDiv
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            style={{ background: "rgba(0,0,0,0.5)" }}
+            onClick={() => setSeleccion(null)}
+          >
+            <MotionDiv
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6"
+              exit={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              style={{ background: "var(--white-custom)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setSeleccion(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+              >
+                <X size={14} className="text-primary/60" />
+              </button>
+
+              {seleccion.imagen_url && (
+                <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-primary/5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={seleccion.imagen_url}
+                    alt={seleccion.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                {TABLA_LABEL[seleccion.tabla].singular}
+              </span>
+              <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
+
+              {seleccion.descripcion ? (
+                <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
+                  {seleccion.descripcion}
+                </p>
+              ) : (
+                <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
+              )}
+
+              <div className="mt-4 flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase ${
+                    seleccion.publicado ? "bg-primary text-white" : "bg-primary/10 text-primary/50"
+                  }`}
+                >
+                  {seleccion.publicado ? <Eye size={10} /> : <EyeOff size={10} />}
+                  {seleccion.publicado ? "Publicado" : "Oculto"}
+                </span>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
