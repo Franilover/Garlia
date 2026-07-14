@@ -4,11 +4,11 @@ import { AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
   Clock,
+  Dice6,
   Heart,
   Loader2,
   Scroll,
   Shield,
-  Sparkles,
   Star,
   Sword,
   WifiOff,
@@ -24,7 +24,8 @@ import {
 } from "@/lib/api/client/syncEngine";
 
 import type { FichaDnd } from "../hooks/useFichasDnd";
-import { statMod } from "../hooks/useFichasDnd";
+import { buscarCriaturas, statMod } from "../hooks/useFichasDnd";
+import { SelectorEntidad } from "./fichaComponents";
 import {
   ModalMision,
   type Dificultad,
@@ -160,7 +161,7 @@ export function FichaStatsPanel({
   editable?: boolean;
   /** Solo admin/DM: además puede editar nivel, stats, HP, CA y velocidad. */
   editableStats?: boolean;
-  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number) => void;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: string | number | null) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
@@ -500,12 +501,12 @@ export function FichaStatsPanel({
             Especie / Raza
           </span>
           {editable ? (
-            <CampoEditable
-              valor={ficha.raza ?? ""}
-              editable
-              onCommit={(v) => onEditarCampo?.("raza", v)}
-              className="text-sm font-semibold"
-              style={{ color: "var(--primary)" }}
+            <SelectorEntidad
+              placeholder="Elegir especie del mundo…"
+              buscar={buscarCriaturas}
+              seleccionActual={ficha.especie ?? null}
+              onSeleccionar={(c) => onEditarCampo?.("especie_id", c.id)}
+              onQuitar={() => onEditarCampo?.("especie_id", null)}
             />
           ) : (
             <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
@@ -554,7 +555,7 @@ function DadoBoton({
           : "color-mix(in srgb, var(--primary) 3%, transparent)",
       }}
     >
-      <Sparkles
+      <Dice6
         size={13}
         className={activo ? "animate-spin" : ""}
         style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
@@ -596,16 +597,7 @@ export function TiradaDados() {
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
-      <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Sword size={12} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Tirar dados
-          </span>
-        </div>
+      <div className="px-5 pt-4 pb-3 min-h-[28px] flex items-center justify-center">
         <AnimatePresence mode="wait">
           {ultima && !tirando && (
             <MotionDiv
