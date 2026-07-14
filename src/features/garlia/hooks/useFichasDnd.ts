@@ -25,6 +25,7 @@ export interface FichaDnd {
   perfil_id: string;
   nombre: string;
   especie_id: string | null;
+  raza: string | null;
   clase: string | null;
   nivel: number;
   alineamiento: string | null;
@@ -42,6 +43,8 @@ export interface FichaDnd {
   velocidad: number;
   notas: string | null;
   activa: boolean;
+  /** Una vez true, nadie salvo admin puede tocar las stats de combate. */
+  stats_confirmadas: boolean;
   /** XP y monedas viven por identidad desde la migración de misiones. */
   xp_total: number;
   monedas: number;

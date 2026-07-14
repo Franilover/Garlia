@@ -34,6 +34,7 @@ import Misiones, { FichaStatsPanel } from "./misiones";
 const FICHA_DEFAULT: NuevaFicha = {
   nombre: "Nuevo aventurero",
   clase: null,
+  raza: null,
   alineamiento: null,
   nivel: 1,
   fuerza: 10,
@@ -62,10 +63,15 @@ export default function Aventura() {
       style={{ minHeight: "calc(100svh - 64px)" }}
     >
       {/* ── Dos columnas: 70% contenido (selector o feed, con scroll propio) /
-          30% identidad activa + misiones (fija) ── */}
+          30% identidad activa + misiones (fija) — el panel de identidad
+          solo aparece una vez adentro de una aventura, no en el selector.
+          En mobile (flex-col) va primero arriba del feed; en desktop vuelve
+          a la derecha con order-none. ── */}
       <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0">
         <div
-          className="w-full md:w-[70%] flex flex-col gap-6 overflow-y-auto"
+          className={`w-full flex flex-col gap-6 overflow-y-auto order-2 md:order-none ${
+            aventuraId ? "md:w-[70%]" : ""
+          }`}
           style={{ maxHeight: "calc(100svh - 140px)" }}
         >
           {aventuraId ? (
@@ -75,9 +81,11 @@ export default function Aventura() {
           )}
         </div>
 
-        <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3">
-          <PanelIdentidad />
-        </div>
+        {aventuraId && (
+          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none">
+            <PanelIdentidad />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -157,13 +165,34 @@ function PanelIdentidad() {
     }
   };
 
+  // El dueño puede tocar stats de combate SOLO mientras la ficha no esté
+  // confirmada (recién creada, todavía armándola). Admin siempre puede.
+  const puedeEditarStats = activa
+    ? isAdmin || (editando && !activa.stats_confirmadas)
+    : false;
+
+  // Al salir del modo edición, si la ficha era del dueño y no estaba
+  // confirmada todavía, se confirma acá: de ahora en más el trigger del
+  // servidor bloquea las stats para siempre (salvo que un admin las toque).
+  const handleToggleEditar = async () => {
+    if (editando && activa && !isAdmin && !activa.stats_confirmadas) {
+      setGuardando(true);
+      try {
+        await actualizar(activa.id, { stats_confirmadas: true });
+      } finally {
+        setGuardando(false);
+      }
+    }
+    setEditando((v) => !v);
+  };
+
   return (
     <>
       {activa && (
         <FichaStatsPanel
           ficha={activa}
           editable={editando}
-          editableStats={editando && isAdmin}
+          editableStats={puedeEditarStats}
           onEditarCampo={handleEditarCampo}
           headerAction={
             <div className="relative flex items-center gap-1">
@@ -172,13 +201,19 @@ function PanelIdentidad() {
               )}
               <button
                 type="button"
-                onClick={() => setEditando((v) => !v)}
+                onClick={handleToggleEditar}
                 className={`p-1 rounded-full transition-colors ${
                   editando
                     ? "bg-primary text-white"
                     : "text-primary/30 hover:bg-primary/10 hover:text-primary/70"
                 }`}
-                title={editando ? "Listo" : "Editar esta ficha"}
+                title={
+                  editando
+                    ? !isAdmin && !activa.stats_confirmadas
+                      ? "Listo — esto confirma tus stats, después no vas a poder cambiarlas"
+                      : "Listo"
+                    : "Editar esta ficha"
+                }
               >
                 {editando ? <Check size={16} /> : <Pencil size={14} />}
               </button>

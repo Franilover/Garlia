@@ -429,63 +429,90 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Datos extra: solo visibles al editar (velocidad, alineamiento) ──
-          Velocidad es una stat de combate: solo admin. Alineamiento es de
-          rol-play y lo puede tocar el dueño de la ficha. ── */}
-      {(editable || editableStats) && (
+      {/* ── Datos extra: siempre visibles (velocidad, alineamiento, raza).
+          Velocidad es una stat de combate: solo admin (o el dueño mientras
+          la ficha no esté confirmada). Alineamiento y raza son de rol-play
+          y las puede tocar el dueño de la ficha en cualquier momento. ── */}
+      <div
+        className="px-5 py-4 grid grid-cols-2 gap-2"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
         <div
-          className="px-5 py-4 grid grid-cols-2 gap-2"
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
           style={{
-            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <div
-            className="flex flex-col gap-0.5 px-2.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            <span
-              className="text-micro font-black uppercase tracking-wider"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Velocidad
-            </span>
-            <CampoEditable
-              valor={ficha.velocidad ?? 30}
-              editable={editableStats}
-              tipo="number"
-              onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
-              className="text-sm font-black tabular-nums"
-              style={{ color: "var(--primary)" }}
-            />
-          </div>
-          <div
-            className="flex flex-col gap-0.5 px-2.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+            Velocidad
+          </span>
+          <CampoEditable
+            valor={ficha.velocidad ?? 30}
+            editable={editableStats}
+            tipo="number"
+            onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
+            className="text-sm font-black tabular-nums"
+            style={{ color: "var(--primary)" }}
+          />
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            <span
-              className="text-micro font-black uppercase tracking-wider"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Alineamiento
-            </span>
+            Alineamiento
+          </span>
+          <CampoEditable
+            valor={ficha.alineamiento ?? "—"}
+            editable={editable}
+            onCommit={(v) => onEditarCampo?.("alineamiento", v)}
+            className="text-sm font-semibold"
+            style={{ color: "var(--primary)" }}
+          />
+        </div>
+        <div
+          className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Especie / Raza
+          </span>
+          {editable ? (
             <CampoEditable
-              valor={ficha.alineamiento ?? ""}
-              editable={editable || editableStats}
-              onCommit={(v) => onEditarCampo?.("alineamiento", v)}
+              valor={ficha.raza ?? ""}
+              editable
+              onCommit={(v) => onEditarCampo?.("raza", v)}
               className="text-sm font-semibold"
               style={{ color: "var(--primary)" }}
             />
-          </div>
+          ) : (
+            <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+              {ficha.especie?.nombre ?? ficha.raza ?? "—"}
+            </span>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
