@@ -382,9 +382,9 @@ function PanelExpandidoFicha({
    *  controla espacios de conjuro y otros números "de combate" dentro del
    *  panel expandido (conjuros). */
   editableStats: boolean;
-  clasesDisponibles: Array<{ id: string; nombre: string }>;
-  subclasesDisponibles: Array<{ id: string; nombre: string }>;
-  trasfondosDisponibles: Array<{ id: string; nombre: string }>;
+  clasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
+  subclasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
+  trasfondosDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
   onEditarCampo?: (
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
@@ -566,7 +566,12 @@ function PanelExpandidoFicha({
               {editable ? (
                 <select
                   value={ficha.clase ?? ""}
-                  onChange={(e) => onEditarCampo?.("clase", e.target.value)}
+                  onChange={(e) => {
+                    const nombreElegido = e.target.value;
+                    const elegido = clasesDisponibles.find((c) => c.nombre === nombreElegido);
+                    onEditarCampo?.("clase", nombreElegido);
+                    onEditarCampo?.("rasgo_clase", elegido?.descripcion?.trim() || null);
+                  }}
                   className="text-sm font-semibold bg-transparent outline-none"
                   style={{ color: "var(--primary)" }}
                 >
@@ -583,6 +588,29 @@ function PanelExpandidoFicha({
                 </span>
               )}
             </div>
+            {ficha.rasgo_clase && (
+              <div
+                className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Rasgo de clase
+                </span>
+                <span
+                  className="text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {ficha.rasgo_clase}
+                </span>
+              </div>
+            )}
             <div
               className="flex flex-col gap-0.5 px-2.5 py-1.5"
               style={{
@@ -600,7 +628,12 @@ function PanelExpandidoFicha({
               {editable ? (
                 <select
                   value={ficha.subclase ?? ""}
-                  onChange={(e) => onEditarCampo?.("subclase", e.target.value)}
+                  onChange={(e) => {
+                    const nombreElegido = e.target.value;
+                    const elegido = subclasesDisponibles.find((s) => s.nombre === nombreElegido);
+                    onEditarCampo?.("subclase", nombreElegido);
+                    onEditarCampo?.("rasgo_subclase", elegido?.descripcion?.trim() || null);
+                  }}
                   className="text-sm font-semibold bg-transparent outline-none"
                   style={{ color: "var(--primary)" }}
                 >
@@ -617,6 +650,29 @@ function PanelExpandidoFicha({
                 </span>
               )}
             </div>
+            {ficha.rasgo_subclase && (
+              <div
+                className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Rasgo de subclase
+                </span>
+                <span
+                  className="text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {ficha.rasgo_subclase}
+                </span>
+              </div>
+            )}
             <div
               className="flex flex-col gap-0.5 px-2.5 py-1.5"
               style={{
@@ -634,7 +690,12 @@ function PanelExpandidoFicha({
               {editable ? (
                 <select
                   value={ficha.trasfondo_mecanico ?? ""}
-                  onChange={(e) => onEditarCampo?.("trasfondo_mecanico", e.target.value)}
+                  onChange={(e) => {
+                    const nombreElegido = e.target.value;
+                    const elegido = trasfondosDisponibles.find((t) => t.nombre === nombreElegido);
+                    onEditarCampo?.("trasfondo_mecanico", nombreElegido);
+                    onEditarCampo?.("rasgo_trasfondo", elegido?.descripcion?.trim() || null);
+                  }}
                   className="text-sm font-semibold bg-transparent outline-none"
                   style={{ color: "var(--primary)" }}
                 >
@@ -651,35 +712,29 @@ function PanelExpandidoFicha({
                 </span>
               )}
             </div>
-            <div
-              className="flex flex-col gap-0.5 px-2.5 py-1.5"
-              style={{
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                borderRadius: "2px",
-                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-              }}
-            >
-              <span
-                className="text-micro font-black uppercase tracking-wider"
-                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            {ficha.rasgo_trasfondo && (
+              <div
+                className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
               >
-                Rasgo de trasfondo
-              </span>
-              {editable ? (
-                <input
-                  type="text"
-                  value={ficha.rasgo_trasfondo ?? ""}
-                  onChange={(e) => onEditarCampo?.("rasgo_trasfondo", e.target.value)}
-                  placeholder="Ej. Refugio de los fieles"
-                  className="text-sm font-semibold bg-transparent outline-none placeholder:font-normal placeholder:opacity-40"
-                  style={{ color: "var(--primary)" }}
-                />
-              ) : (
-                <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
-                  {ficha.rasgo_trasfondo ?? "—"}
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Rasgo de trasfondo
                 </span>
-              )}
-            </div>
+                <span
+                  className="text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {ficha.rasgo_trasfondo}
+                </span>
+              </div>
+            )}
             <div
               className="flex flex-col gap-0.5 px-2.5 py-1.5"
               style={{
@@ -730,6 +785,29 @@ function PanelExpandidoFicha({
                 </span>
               )}
             </div>
+            {ficha.especie?.descripcion_dnd && (
+              <div
+                className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                  borderRadius: "2px",
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Rasgos de {ficha.especie.nombre}
+                </span>
+                <span
+                  className="text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {ficha.especie.descripcion_dnd}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">

@@ -78,7 +78,6 @@ export function ModalCrearFicha({
   const [clase, setClase] = useState("");
   const [subclase, setSubclase] = useState("");
   const [trasfondoMecanico, setTrasfondoMecanico] = useState("");
-  const [rasgoTrasfondo, setRasgoTrasfondo] = useState("");
   const [alineamiento, setAlineamiento] = useState("");
   const [nivel, setNivel] = useState(1);
   const [stats, setStats] = useState({
@@ -98,13 +97,18 @@ export function ModalCrearFicha({
     if (!nombre.trim()) return;
     setGuardando(true);
     try {
+      const claseElegida = clases.find((c) => c.nombre === clase);
+      const subclaseElegida = subclases.find((s) => s.nombre === subclase);
+      const trasfondoElegido = trasfondos.find((t) => t.nombre === trasfondoMecanico);
       await onCrear({
         nombre: nombre.trim(),
         especie_id: especie?.id ?? null,
         clase: clase.trim() || null,
+        rasgo_clase: claseElegida?.descripcion?.trim() || null,
         subclase: subclase.trim() || null,
+        rasgo_subclase: subclaseElegida?.descripcion?.trim() || null,
         trasfondo_mecanico: trasfondoMecanico.trim() || null,
-        rasgo_trasfondo: rasgoTrasfondo.trim() || null,
+        rasgo_trasfondo: trasfondoElegido?.descripcion?.trim() || null,
         alineamiento: alineamiento.trim() || null,
         nivel,
         ...stats,
@@ -210,13 +214,6 @@ export function ModalCrearFicha({
                 </option>
               ))}
             </select>
-            <input
-              type="text"
-              value={rasgoTrasfondo}
-              onChange={(e) => setRasgoTrasfondo(e.target.value)}
-              placeholder="Rasgo del trasfondo…"
-              className={`flex-1 min-w-0 ${inputClase}`}
-            />
           </div>
 
           <div className="flex gap-2">
@@ -504,7 +501,15 @@ export function FichaDetalle({
         <div className="grid grid-cols-2 gap-2">
           <select
             value={(borrador.clase as string) ?? ""}
-            onChange={(e) => setBorrador((prev) => ({ ...prev, clase: e.target.value }))}
+            onChange={(e) => {
+              const nombreElegido = e.target.value;
+              const elegido = clases.find((c) => c.nombre === nombreElegido);
+              setBorrador((prev) => ({
+                ...prev,
+                clase: nombreElegido,
+                rasgo_clase: elegido?.descripcion?.trim() || null,
+              }));
+            }}
             className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
           >
             <option value="">Clase…</option>
@@ -516,7 +521,15 @@ export function FichaDetalle({
           </select>
           <select
             value={(borrador.subclase as string) ?? ""}
-            onChange={(e) => setBorrador((prev) => ({ ...prev, subclase: e.target.value }))}
+            onChange={(e) => {
+              const nombreElegido = e.target.value;
+              const elegido = subclases.find((s) => s.nombre === nombreElegido);
+              setBorrador((prev) => ({
+                ...prev,
+                subclase: nombreElegido,
+                rasgo_subclase: elegido?.descripcion?.trim() || null,
+              }));
+            }}
             className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
           >
             <option value="">Subclase…</option>
@@ -528,7 +541,15 @@ export function FichaDetalle({
           </select>
           <select
             value={(borrador.trasfondo_mecanico as string) ?? ""}
-            onChange={(e) => setBorrador((prev) => ({ ...prev, trasfondo_mecanico: e.target.value }))}
+            onChange={(e) => {
+              const nombreElegido = e.target.value;
+              const elegido = trasfondos.find((t) => t.nombre === nombreElegido);
+              setBorrador((prev) => ({
+                ...prev,
+                trasfondo_mecanico: nombreElegido,
+                rasgo_trasfondo: elegido?.descripcion?.trim() || null,
+              }));
+            }}
             className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
           >
             <option value="">Trasfondo…</option>
@@ -538,7 +559,6 @@ export function FichaDetalle({
               </option>
             ))}
           </select>
-          {campo("rasgo_trasfondo", "Rasgo del trasfondo")}
           {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
           {campo("hp_max", "HP máximo", "number")}
@@ -546,6 +566,44 @@ export function FichaDetalle({
           {campo("ca", "Clase de armadura", "number")}
           {campo("velocidad", "Velocidad", "number")}
           {campo("imagen_url", "URL de imagen")}
+        </div>
+      )}
+
+      {/* ── Características de especie ──────────────────────────────── */}
+      {ficha.especie?.descripcion_dnd && (
+        <div className="p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+          <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+            Rasgos de {ficha.especie.nombre}
+          </span>
+          <p className="mt-1 text-xs text-primary/60 whitespace-pre-wrap leading-relaxed">
+            {ficha.especie.descripcion_dnd}
+          </p>
+        </div>
+      )}
+
+      {/* ── Rasgos de clase / subclase ──────────────────────────────── */}
+      {(ficha.rasgo_clase || ficha.rasgo_subclase) && (
+        <div className="flex flex-col gap-2">
+          {ficha.rasgo_clase && (
+            <div className="p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                Rasgo de {ficha.clase ?? "clase"}
+              </span>
+              <p className="mt-1 text-xs text-primary/60 whitespace-pre-wrap leading-relaxed">
+                {ficha.rasgo_clase}
+              </p>
+            </div>
+          )}
+          {ficha.rasgo_subclase && (
+            <div className="p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                Rasgo de {ficha.subclase ?? "subclase"}
+              </span>
+              <p className="mt-1 text-xs text-primary/60 whitespace-pre-wrap leading-relaxed">
+                {ficha.rasgo_subclase}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -567,50 +625,17 @@ export function FichaDetalle({
             {ficha.trasfondo || <span className="text-primary/30 italic">Sin trasfondo todavía.</span>}
           </p>
         )}
-        {!editando && ficha.rasgo_trasfondo && (
-          <p className="mt-2 text-xs text-primary/50">
-            <span className="font-bold uppercase tracking-wide text-primary/40">Rasgo: </span>
-            {ficha.rasgo_trasfondo}
-          </p>
+        {ficha.rasgo_trasfondo && (
+          <div className="mt-3 p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+            <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+              Rasgo de {ficha.trasfondo_mecanico ?? "trasfondo"}
+            </span>
+            <p className="mt-1 text-xs text-primary/60 whitespace-pre-wrap leading-relaxed">
+              {ficha.rasgo_trasfondo}
+            </p>
+          </div>
         )}
       </div>
-
-      {/* ── Detalles físicos ─────────────────────────────────────────── */}
-      {(editando ||
-        ficha.genero ||
-        ficha.edad ||
-        ficha.altura ||
-        ficha.peso ||
-        ficha.ojos ||
-        ficha.pelo ||
-        ficha.piel) && (
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-widest text-primary/50 mb-2">
-            Detalles físicos
-          </h3>
-          {editando ? (
-            <div className="grid grid-cols-2 gap-2">
-              {campo("genero", "Género")}
-              {campo("edad", "Edad")}
-              {campo("altura", "Altura")}
-              {campo("peso", "Peso")}
-              {campo("ojos", "Ojos")}
-              {campo("pelo", "Pelo")}
-              {campo("piel", "Piel")}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-primary/60">
-              {ficha.genero && <span><span className="font-bold text-primary/40">Género:</span> {ficha.genero}</span>}
-              {ficha.edad && <span><span className="font-bold text-primary/40">Edad:</span> {ficha.edad}</span>}
-              {ficha.altura && <span><span className="font-bold text-primary/40">Altura:</span> {ficha.altura}</span>}
-              {ficha.peso && <span><span className="font-bold text-primary/40">Peso:</span> {ficha.peso}</span>}
-              {ficha.ojos && <span><span className="font-bold text-primary/40">Ojos:</span> {ficha.ojos}</span>}
-              {ficha.pelo && <span><span className="font-bold text-primary/40">Pelo:</span> {ficha.pelo}</span>}
-              {ficha.piel && <span><span className="font-bold text-primary/40">Piel:</span> {ficha.piel}</span>}
-            </div>
-          )}
-        </div>
-      )}
 
       <button
         type="button"

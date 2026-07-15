@@ -187,6 +187,7 @@ export function EditorCriatura({
           nombre: form.nombre,
           imagen_url: form.imagen_url || null,
           descripcion: form.descripcion,
+          descripcion_dnd: form.descripcion_dnd || null,
         })
         .eq("id", form.id);
       if (error) throw error;
@@ -351,6 +352,26 @@ export function EditorCriatura({
                 onWikilinkNavigate={onWikilink}
               />
             </div>
+          </div>
+
+          {/* Descripción D&D — texto plano, se copia a la ficha del
+              personaje que elija esta especie (rasgos raciales, etc). */}
+          <div className="flex flex-col gap-1">
+            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
+              Descripción D&D
+            </label>
+            <textarea
+              className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+              placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
+              rows={4}
+              value={form.descripcion_dnd ?? ""}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  descripcion_dnd: e.target.value || null,
+                }))
+              }
+            />
           </div>
 
           {/* Clasificación */}

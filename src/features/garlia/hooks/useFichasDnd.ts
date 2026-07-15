@@ -46,6 +46,9 @@ export interface EspecieResumen {
   id: string;
   nombre: string;
   imagen_url: string | null;
+  /** Características de especie estilo D&D (rasgos raciales, resistencias…)
+   *  copiadas de criaturas.descripcion_dnd — texto plano, solo lectura acá. */
+  descripcion_dnd?: string | null;
 }
 
 export interface FichaDnd {
@@ -55,8 +58,15 @@ export interface FichaDnd {
   especie_id: string | null;
   raza: string | null;
   clase: string | null;
+  /** Beneficio mecánico + detalles de la clase. Se autocompleta en el
+   *  cliente con `descripcion` del grupo Clase elegido — no es texto libre
+   *  que el jugador escriba. */
+  rasgo_clase: string | null;
   /** Nombre del grupo (grupos_mundo, subtipo="Subclase"), texto libre igual que clase. */
   subclase: string | null;
+  /** Beneficio mecánico + detalles de la subclase. Se autocompleta en el
+   *  cliente con `descripcion` del grupo Subclase elegido. */
+  rasgo_subclase: string | null;
   nivel: number;
   alineamiento: string | null;
   /** Historia narrativa libre del personaje (motivaciones, pasado…). Distinto
@@ -65,10 +75,9 @@ export interface FichaDnd {
   /** Nombre del grupo (grupos_mundo, subtipo="Trasfondo") — el trasfondo
    *  mecánico del personaje (ej. "Acólito", "Criminal"), no la historia. */
   trasfondo_mecanico: string | null;
-  /** Beneficio mecánico concreto que otorga el trasfondo (ej. "Refugio de
-   *  los fieles" para Acólito). Texto libre, distinto del nombre del
-   *  trasfondo (trasfondo_mecanico) — el manual asigna un rasgo fijo por
-   *  trasfondo, no algo que el DM defina por reino. */
+  /** Beneficio mecánico + detalles que otorga el trasfondo. Se autocompleta
+   *  en el cliente con `descripcion` del grupo Trasfondo elegido (ver
+   *  useTrasfondosDisponibles) — no es texto libre que el jugador escriba. */
   rasgo_trasfondo: string | null;
   imagen_url: string | null;
   fuerza: number;
@@ -130,14 +139,6 @@ export interface FichaDnd {
   espacios_conjuro: Record<string, EspaciosConjuroNivel>;
   /** Conjuros conocidos/preparados de la ficha. */
   conjuros: ConjuroFicha[];
-  /** Detalles físicos: cosméticos/opcionales, todos texto libre. */
-  genero: string | null;
-  edad: string | null;
-  altura: string | null;
-  peso: string | null;
-  ojos: string | null;
-  pelo: string | null;
-  piel: string | null;
   created_at: string;
   updated_at: string;
   /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */
@@ -227,7 +228,7 @@ export function bonoAtaqueConjuros(
 async function resolverEspecies(fichas: FichaDnd[]): Promise<FichaDnd[]> {
   const ids = Array.from(new Set(fichas.map((f) => f.especie_id).filter(Boolean))) as string[];
   if (ids.length === 0) return fichas;
-  const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url").in("id", ids);
+  const { data } = await supabase.from("criaturas").select("id, nombre, imagen_url, descripcion_dnd").in("id", ids);
   const porId = new Map((data ?? []).map((c: any) => [c.id, c as EspecieResumen]));
   return fichas.map((f) => ({ ...f, especie: f.especie_id ? porId.get(f.especie_id) ?? null : null }));
 }
@@ -428,7 +429,7 @@ export function useInventarioFicha(fichaId: string | null) {
 
 export async function buscarCriaturas(query: string): Promise<EspecieResumen[]> {
   const q = query.trim();
-  let req = supabase.from("criaturas").select("id, nombre, imagen_url").order("nombre").limit(40);
+  let req = supabase.from("criaturas").select("id, nombre, imagen_url, descripcion_dnd").order("nombre").limit(40);
   if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);
   const { data } = await req;
   return (data ?? []) as EspecieResumen[];
@@ -455,12 +456,15 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
 export interface GrupoPersonajeOpcion {
   id: string;
   nombre: string;
+  /** Bloque de texto libre del grupo (grupos_mundo.descripcion). Solo se
+   *  usa para Trasfondo por ahora — es de donde sale rasgo_trasfondo. */
+  descripcion?: string | null;
 }
 
 async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
   const { data } = await supabase
     .from("grupos_mundo")
-    .select("id, nombre")
+    .select("id, nombre, descripcion")
     .eq("tipo", "personajes")
     .eq("subtipo", subtipo)
     .order("nombre");

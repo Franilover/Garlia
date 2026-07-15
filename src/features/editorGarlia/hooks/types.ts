@@ -31,6 +31,11 @@ export type Criatura = {
   nombre: string;
   imagen_url?: string;
   descripcion?: string;
+  /** Características de especie estilo D&D (rasgos raciales, resistencias,
+   *  velocidad especial…), texto plano — distinto de `descripcion`, que es
+   *  rich text de lore/aspecto físico. Se copia a la ficha del personaje
+   *  que elige esta especie (ver EspecieResumen en useFichasDnd). */
+  descripcion_dnd?: string | null;
   habitat?: string;
   pensamiento?: string;
   alma?: string;
