@@ -31,7 +31,10 @@ import {
   buscarCriaturas,
   buscarItems,
   statMod,
+  useClasesDisponibles,
   useInventarioFicha,
+  useSubclasesDisponibles,
+  useTrasfondosDisponibles,
   type EspecieResumen,
   type FichaDnd,
   type ItemResumen,
@@ -67,9 +70,14 @@ export function ModalCrearFicha({
   onClose: () => void;
   onCrear: (datos: NuevaFicha) => Promise<void>;
 }) {
+  const { clases, loading: cargandoClases } = useClasesDisponibles();
+  const { subclases, loading: cargandoSubclases } = useSubclasesDisponibles();
+  const { trasfondos, loading: cargandoTrasfondos } = useTrasfondosDisponibles();
   const [nombre, setNombre] = useState("");
   const [especie, setEspecie] = useState<EspecieResumen | null>(null);
   const [clase, setClase] = useState("");
+  const [subclase, setSubclase] = useState("");
+  const [trasfondoMecanico, setTrasfondoMecanico] = useState("");
   const [alineamiento, setAlineamiento] = useState("");
   const [nivel, setNivel] = useState(1);
   const [stats, setStats] = useState({
@@ -93,6 +101,8 @@ export function ModalCrearFicha({
         nombre: nombre.trim(),
         especie_id: especie?.id ?? null,
         clase: clase.trim() || null,
+        subclase: subclase.trim() || null,
+        trasfondo_mecanico: trasfondoMecanico.trim() || null,
         alineamiento: alineamiento.trim() || null,
         nivel,
         ...stats,
@@ -137,16 +147,15 @@ export function ModalCrearFicha({
         <h2 className="font-serif italic text-xl text-primary mb-4">Nueva ficha</h2>
 
         <div className="flex flex-col gap-3">
-          <input
-            autoFocus
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre del personaje"
-            className={inputClase}
-          />
-
           <div className="flex gap-2">
+            <input
+              autoFocus
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Nombre del personaje"
+              className={`flex-[1.4] min-w-0 ${inputClase}`}
+            />
             <div className="flex-1 min-w-0">
               <SelectorEntidad
                 placeholder="Especie…"
@@ -156,13 +165,49 @@ export function ModalCrearFicha({
                 onQuitar={() => setEspecie(null)}
               />
             </div>
-            <input
-              type="text"
-              value={clase}
-              onChange={(e) => setClase(e.target.value)}
-              placeholder="Clase (ej. Pícaro)"
-              className={`flex-1 min-w-0 ${inputClase}`}
-            />
+          </div>
+
+          <select
+            value={clase}
+            onChange={(e) => setClase(e.target.value)}
+            disabled={cargandoClases}
+            className={`w-full ${inputClase} ${!clase ? "text-primary/30" : ""}`}
+          >
+            <option value="">{cargandoClases ? "Cargando clases…" : "Clase…"}</option>
+            {clases.map((c) => (
+              <option key={c.id} value={c.nombre}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex gap-2">
+            <select
+              value={subclase}
+              onChange={(e) => setSubclase(e.target.value)}
+              disabled={cargandoSubclases}
+              className={`flex-1 min-w-0 ${inputClase} ${!subclase ? "text-primary/30" : ""}`}
+            >
+              <option value="">{cargandoSubclases ? "Cargando subclases…" : "Subclase…"}</option>
+              {subclases.map((s) => (
+                <option key={s.id} value={s.nombre}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+            <select
+              value={trasfondoMecanico}
+              onChange={(e) => setTrasfondoMecanico(e.target.value)}
+              disabled={cargandoTrasfondos}
+              className={`flex-1 min-w-0 ${inputClase} ${!trasfondoMecanico ? "text-primary/30" : ""}`}
+            >
+              <option value="">{cargandoTrasfondos ? "Cargando trasfondos…" : "Trasfondo…"}</option>
+              {trasfondos.map((t) => (
+                <option key={t.id} value={t.nombre}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-2">
@@ -293,6 +338,9 @@ export function FichaDetalle({
   variant?: "page" | "modal";
 }) {
   const { items, agregar, quitar, toggleEquipado } = useInventarioFicha(ficha.id);
+  const { clases } = useClasesDisponibles();
+  const { subclases } = useSubclasesDisponibles();
+  const { trasfondos } = useTrasfondosDisponibles();
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<Partial<FichaDnd>>(ficha);
   const [guardando, setGuardando] = useState(false);
@@ -380,12 +428,23 @@ export function FichaDetalle({
         </div>
         <div className="flex-1 min-w-0">
           {editando ? (
-            campo("nombre", "Nombre")
+            <div className="flex gap-2">
+              <div className="flex-[1.4] min-w-0">{campo("nombre", "Nombre")}</div>
+              <div className="flex-1 min-w-0">
+                <SelectorEntidad
+                  placeholder="Especie…"
+                  buscar={buscarCriaturas}
+                  seleccionActual={borrador.especie_id ? borrador.especie ?? ficha.especie ?? null : null}
+                  onSeleccionar={(c) => setBorrador((prev) => ({ ...prev, especie_id: c.id, especie: c }))}
+                  onQuitar={() => setBorrador((prev) => ({ ...prev, especie_id: null, especie: null }))}
+                />
+              </div>
+            </div>
           ) : (
             <h1 className="font-serif italic text-2xl text-primary">{ficha.nombre}</h1>
           )}
           <span className="text-xs font-bold uppercase tracking-wide text-primary/40">
-            {[ficha.especie?.nombre, ficha.clase, `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
+            {[ficha.especie?.nombre, [ficha.clase, ficha.subclase].filter(Boolean).join(" — "), `Nivel ${ficha.nivel}`].filter(Boolean).join(" · ")}
           </span>
           {esActiva && (
             <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-white text-micro font-black uppercase">
@@ -434,20 +493,42 @@ export function FichaDetalle({
       {/* ── Edición de datos base ───────────────────────────────────── */}
       {editando && (
         <div className="grid grid-cols-2 gap-2">
-          <SelectorEntidad
-            placeholder="Especie (buscar criatura)…"
-            buscar={buscarCriaturas}
-            seleccionActual={
-              borrador.especie_id
-                ? borrador.especie ?? ficha.especie ?? null
-                : null
-            }
-            onSeleccionar={(c) =>
-              setBorrador((prev) => ({ ...prev, especie_id: c.id, especie: c }))
-            }
-            onQuitar={() => setBorrador((prev) => ({ ...prev, especie_id: null, especie: null }))}
-          />
-          {campo("clase", "Clase")}
+          <select
+            value={(borrador.clase as string) ?? ""}
+            onChange={(e) => setBorrador((prev) => ({ ...prev, clase: e.target.value }))}
+            className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
+          >
+            <option value="">Clase…</option>
+            {clases.map((c) => (
+              <option key={c.id} value={c.nombre}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+          <select
+            value={(borrador.subclase as string) ?? ""}
+            onChange={(e) => setBorrador((prev) => ({ ...prev, subclase: e.target.value }))}
+            className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
+          >
+            <option value="">Subclase…</option>
+            {subclases.map((s) => (
+              <option key={s.id} value={s.nombre}>
+                {s.nombre}
+              </option>
+            ))}
+          </select>
+          <select
+            value={(borrador.trasfondo_mecanico as string) ?? ""}
+            onChange={(e) => setBorrador((prev) => ({ ...prev, trasfondo_mecanico: e.target.value }))}
+            className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
+          >
+            <option value="">Trasfondo…</option>
+            {trasfondos.map((t) => (
+              <option key={t.id} value={t.nombre}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
           {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
           {campo("hp_max", "HP máximo", "number")}

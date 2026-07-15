@@ -35,9 +35,16 @@ export interface FichaDnd {
   especie_id: string | null;
   raza: string | null;
   clase: string | null;
+  /** Nombre del grupo (grupos_mundo, subtipo="Subclase"), texto libre igual que clase. */
+  subclase: string | null;
   nivel: number;
   alineamiento: string | null;
+  /** Historia narrativa libre del personaje (motivaciones, pasado…). Distinto
+   *  de `trasfondo_mecanico`, que es la elección de trasfondo del manual. */
   trasfondo: string | null;
+  /** Nombre del grupo (grupos_mundo, subtipo="Trasfondo") — el trasfondo
+   *  mecánico del personaje (ej. "Acólito", "Criminal"), no la historia. */
+  trasfondo_mecanico: string | null;
   imagen_url: string | null;
   fuerza: number;
   destreza: number;
@@ -352,7 +359,71 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   return (data ?? []) as ItemResumen[];
 }
 
-// ── Tipos de moneda personalizables por reino (panel de admin) ────────────
+// ── Clases / subclases / trasfondos disponibles ────────────────────────────
+// El mundo define clases, subclases y trasfondos como grupos en
+// grupos_mundo (tipo="personajes", subtipo="Clase" | "Subclase" | "Trasfondo")
+// en vez de dejarlos como texto libre — los selectores de la ficha salen de
+// esas listas.
+
+export interface GrupoPersonajeOpcion {
+  id: string;
+  nombre: string;
+}
+
+async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
+  const { data } = await supabase
+    .from("grupos_mundo")
+    .select("id, nombre")
+    .eq("tipo", "personajes")
+    .eq("subtipo", subtipo)
+    .order("nombre");
+  return (data ?? []) as GrupoPersonajeOpcion[];
+}
+
+function useGruposPersonajePorSubtipo(subtipo: string) {
+  const [opciones, setOpciones] = useState<GrupoPersonajeOpcion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+    buscarGruposPersonajePorSubtipo(subtipo).then((data) => {
+      if (!cancelado) {
+        setOpciones(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [subtipo]);
+
+  return { opciones, loading };
+}
+
+/** @deprecated usá GrupoPersonajeOpcion */
+export type ClaseDisponible = GrupoPersonajeOpcion;
+
+export async function buscarClasesDisponibles(): Promise<GrupoPersonajeOpcion[]> {
+  return buscarGruposPersonajePorSubtipo("Clase");
+}
+
+export function useClasesDisponibles() {
+  const { opciones, loading } = useGruposPersonajePorSubtipo("Clase");
+  return { clases: opciones, loading };
+}
+
+export function useSubclasesDisponibles() {
+  const { opciones, loading } = useGruposPersonajePorSubtipo("Subclase");
+  return { subclases: opciones, loading };
+}
+
+export function useTrasfondosDisponibles() {
+  const { opciones, loading } = useGruposPersonajePorSubtipo("Trasfondo");
+  return { trasfondos: opciones, loading };
+}
+
+
 
 export interface TipoMoneda {
   id: string;

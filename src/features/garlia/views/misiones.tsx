@@ -55,8 +55,11 @@ import {
   buscarItems,
   percepcionPasiva,
   statMod,
+  useClasesDisponibles,
   useInventarioFicha,
+  useSubclasesDisponibles,
   useTiposMoneda,
+  useTrasfondosDisponibles,
 } from "../hooks/useFichasDnd";
 import { SelectorEntidad } from "./fichaComponents";
 import {
@@ -656,6 +659,9 @@ export function FichaStatsPanel({
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
   const { tipos: tiposMoneda } = useTiposMoneda();
+  const { clases: clasesDisponibles } = useClasesDisponibles();
+  const { subclases: subclasesDisponibles } = useSubclasesDisponibles();
+  const { trasfondos: trasfondosDisponibles } = useTrasfondosDisponibles();
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const stats: Array<[string, number]> = [
@@ -737,14 +743,23 @@ export function FichaStatsPanel({
             >
               {editable ? (
                 <span className="inline-flex items-center gap-1">
-                  <CampoEditable
-                    valor={ficha.clase ?? ""}
-                    editable
-                    onCommit={(v) => onEditarCampo?.("clase", v)}
-                    className="text-micro font-black uppercase tracking-wider"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                    width={70}
-                  />
+                  <select
+                    value={ficha.clase ?? ""}
+                    onChange={(e) => onEditarCampo?.("clase", e.target.value)}
+                    className="text-micro font-black uppercase tracking-wider bg-transparent outline-none"
+                    style={{
+                      color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                      borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+                      maxWidth: 90,
+                    }}
+                  >
+                    <option value="">Clase…</option>
+                    {clasesDisponibles.map((c) => (
+                      <option key={c.id} value={c.nombre}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
                   · Nivel{" "}
                   <CampoEditable
                     valor={ficha.nivel ?? 1}
@@ -1336,6 +1351,74 @@ export function FichaStatsPanel({
           <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
             {percepcion}
           </span>
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Subclase
+          </span>
+          {editable ? (
+            <select
+              value={ficha.subclase ?? ""}
+              onChange={(e) => onEditarCampo?.("subclase", e.target.value)}
+              className="text-sm font-semibold bg-transparent outline-none"
+              style={{ color: "var(--primary)" }}
+            >
+              <option value="">—</option>
+              {subclasesDisponibles.map((s) => (
+                <option key={s.id} value={s.nombre}>
+                  {s.nombre}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+              {ficha.subclase ?? "—"}
+            </span>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Trasfondo
+          </span>
+          {editable ? (
+            <select
+              value={ficha.trasfondo_mecanico ?? ""}
+              onChange={(e) => onEditarCampo?.("trasfondo_mecanico", e.target.value)}
+              className="text-sm font-semibold bg-transparent outline-none"
+              style={{ color: "var(--primary)" }}
+            >
+              <option value="">—</option>
+              {trasfondosDisponibles.map((t) => (
+                <option key={t.id} value={t.nombre}>
+                  {t.nombre}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+              {ficha.trasfondo_mecanico ?? "—"}
+            </span>
+          )}
         </div>
         <div
           className="col-span-2 flex flex-col gap-0.5 px-2.5 py-1.5"
