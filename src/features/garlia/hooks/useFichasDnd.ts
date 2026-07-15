@@ -74,6 +74,10 @@ export interface FichaDnd {
   carisma: number;
   hp_max: number;
   hp_actual: number;
+  /** Puntos de golpe temporales: absorben daño antes que los reales. No se
+   *  acumulan con descansos ni entre sí (regla 2024: el mayor de los dos
+   *  valores reemplaza al otro, no se suman). */
+  hp_temporal: number;
   ca: number;
   velocidad: number;
   notas: string | null;

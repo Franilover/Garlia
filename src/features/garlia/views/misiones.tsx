@@ -832,6 +832,8 @@ export function FichaStatsPanel({
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
+  const hpTemporal = ficha.hp_temporal ?? 0;
+  const iniciativa = statMod(ficha.destreza ?? 10);
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
@@ -1072,7 +1074,7 @@ export function FichaStatsPanel({
               <span className="text-micro font-black uppercase tracking-wider">Vida</span>
             </div>
             <span
-              className="text-sm font-black tabular-nums"
+              className="text-sm font-black tabular-nums flex items-center gap-1.5"
               style={{ color: "var(--primary)" }}
             >
               {(editableStats || editableCondiciones) ? (
@@ -1102,6 +1104,32 @@ export function FichaStatsPanel({
                 <>
                   {hpActual}/{hpMax || "—"}
                 </>
+              )}
+              {/* ── PG temporales: absorben daño antes que los reales.
+                  Se muestran como un chip "+N" aparte de la barra normal
+                  porque NO se suman al máximo (regla 2024: no se acumulan,
+                  el mayor de los dos reemplaza al otro). ── */}
+              {(editableCondiciones || hpTemporal > 0) && (
+                <span
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black tabular-nums"
+                  style={{
+                    background: "color-mix(in srgb, #60a5fa 15%, transparent)",
+                    color: "#3b82f6",
+                  }}
+                  title="Puntos de golpe temporales: absorben daño antes que los reales."
+                >
+                  +
+                  <CampoEditable
+                    valor={hpTemporal}
+                    editable={editableCondiciones}
+                    tipo="number"
+                    align="right"
+                    width={18}
+                    onCommit={(v) => onEditarCampo?.("hp_temporal", Number(v) || 0)}
+                    className="text-micro font-black tabular-nums"
+                    style={{ color: "#3b82f6" }}
+                  />
+                </span>
               )}
             </span>
           </div>
@@ -1182,8 +1210,28 @@ export function FichaStatsPanel({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2">
 
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="Iniciativa = modificador de Destreza."
+          >
+            <span
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              <Zap size={9} />
+              Iniciativa
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
+            </span>
+          </div>
           <div
             className="flex-1 flex items-center justify-between px-2.5 py-1.5"
             style={{
