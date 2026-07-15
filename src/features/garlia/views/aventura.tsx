@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Loader2, Maximize2, MoreVertical, Pencil, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Maximize2, MoreVertical, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -100,19 +100,19 @@ function PanelIdentidad() {
   const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch } =
     useFichasDnd(perfil?.id ?? null);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [editando, setEditando] = useState(false);
+  // En /aventura la ficha siempre es editable por defecto (sin botón lápiz/check).
+  const editando = true;
   const [creando, setCreando] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   if (!perfil || loading) return null;
 
-  // Crea la ficha directo con valores por defecto (sin modal) y deja al
-  // jugador terminándola de completar en modo edición en el panel lateral.
+  // Crea la ficha directo con valores por defecto (sin modal); queda
+  // editable de inmediato en el panel lateral.
   const handleCrearFicha = async () => {
     setCreando(true);
     try {
       await crear(FICHA_DEFAULT);
-      setEditando(true);
     } finally {
       setCreando(false);
     }
@@ -172,23 +172,8 @@ function PanelIdentidad() {
   // El dueño puede tocar stats de combate SOLO mientras la ficha no esté
   // confirmada (recién creada, todavía armándola). Admin siempre puede.
   const puedeEditarStats = activa
-    ? isAdmin || (editando && !activa.stats_confirmadas)
+    ? isAdmin || !activa.stats_confirmadas
     : false;
-
-  // Al salir del modo edición, si la ficha era del dueño y no estaba
-  // confirmada todavía, se confirma acá: de ahora en más el trigger del
-  // servidor bloquea las stats para siempre (salvo que un admin las toque).
-  const handleToggleEditar = async () => {
-    if (editando && activa && !isAdmin && !activa.stats_confirmadas) {
-      setGuardando(true);
-      try {
-        await actualizar(activa.id, { stats_confirmadas: true });
-      } finally {
-        setGuardando(false);
-      }
-    }
-    setEditando((v) => !v);
-  };
 
   return (
     <>
@@ -202,27 +187,9 @@ function PanelIdentidad() {
           onEditarCampo={handleEditarCampo}
           headerAction={
             <div className="relative flex items-center gap-1">
-              {editando && guardando && (
+              {guardando && (
                 <Loader2 size={12} className="animate-spin text-primary/30" />
               )}
-              <button
-                type="button"
-                onClick={handleToggleEditar}
-                className={`p-1 rounded-full transition-colors ${
-                  editando
-                    ? "bg-primary text-white"
-                    : "text-primary/30 hover:bg-primary/10 hover:text-primary/70"
-                }`}
-                title={
-                  editando
-                    ? !isAdmin && !activa.stats_confirmadas
-                      ? "Listo — esto confirma tus stats, después no vas a poder cambiarlas"
-                      : "Listo"
-                    : "Editar esta ficha"
-                }
-              >
-                {editando ? <Check size={16} /> : <Pencil size={14} />}
-              </button>
               <button
                 type="button"
                 onClick={() => setMenuAbierto((v) => !v)}
@@ -255,7 +222,6 @@ function PanelIdentidad() {
                             type="button"
                             onClick={() => {
                               if (!f.activa) elegirActiva(f.id);
-                              setEditando(false);
                               setMenuAbierto(false);
                             }}
                             className="flex-1 min-w-0 flex items-center gap-2.5 text-left"
