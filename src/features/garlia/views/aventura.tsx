@@ -11,14 +11,14 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Loader2, MoreVertical, Pencil, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Maximize2, MoreVertical, Pencil, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
-import { TableroAventura, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
+import { TableroAventura, TABLERO_CARD_SIZE, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -27,6 +27,7 @@ import {
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 import { useFichasDnd, type FichaDnd, type NuevaFicha, type RasgoEspecial } from "../hooks/useFichasDnd";
+import { CARD_SCALE_MAX, CARD_SCALE_MIN, useTableroEscala } from "../hooks/useTableroEscala";
 import Misiones, { FichaStatsPanel, TiradaDados } from "./misiones";
 
 // Valores por defecto para una ficha recién creada: se crea directo (sin
@@ -404,6 +405,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const { entidades, loading } = useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
+  const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
 
   const publicadas = entidades
     .filter((e) => e.publicado)
@@ -434,6 +436,26 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
       </MotionDiv>
 
       <div className="flex-1 w-full">
+        {!loading && publicadas.length > 0 && (
+          <div className="flex justify-end mb-2">
+            <div className="flex items-center gap-1.5">
+              <Maximize2 size={11} className="text-primary/35" />
+              <input
+                type="range"
+                min={CARD_SCALE_MIN}
+                max={CARD_SCALE_MAX}
+                step={0.05}
+                value={escala}
+                onChange={(e) => actualizarEscala(Number(e.target.value))}
+                className="w-24 accent-[var(--primary)]"
+                title="Tamaño de las tarjetas (solo en tu vista)"
+              />
+              <span className="text-micro font-bold tabular-nums text-primary/40 w-9">
+                {Math.round(escala * 100)}%
+              </span>
+            </div>
+          </div>
+        )}
         {loading && entidades.length === 0 ? (
           <div className="py-24 flex items-center justify-center text-primary/30">
             <Loader2 className="animate-spin" size={22} />
@@ -459,6 +481,9 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                 pos_y: entidad.pos_y,
               }),
             )}
+            cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
+            cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
+            imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
             onClickItem={(id) => {
               const entidad = publicadas.find((e) => e.id === id);
               if (entidad) setSeleccion(entidad);

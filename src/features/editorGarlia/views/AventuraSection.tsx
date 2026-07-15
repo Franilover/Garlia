@@ -49,6 +49,7 @@ import {
 } from "../components/aventuras/TableroAventura";
 import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
 import { PanelTiposMoneda } from "@/features/garlia/views/PanelTiposMoneda";
+import { useTableroEscala } from "@/features/garlia/hooks/useTableroEscala";
 
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
 
@@ -65,32 +66,6 @@ const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] =
 // que ven los jugadores (el público siempre usa TABLERO_CARD_SIZE fijo). ──
 const CARD_SCALE_MIN = 0.6;
 const CARD_SCALE_MAX = 1.8;
-const CARD_SCALE_KEY_PREFIX = "aventura-tablero-escala:";
-
-function useTableroEscala(aventuraId: string) {
-  const storageKey = `${CARD_SCALE_KEY_PREFIX}${aventuraId}`;
-  const [escala, setEscala] = useState(1);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const guardada = window.localStorage.getItem(storageKey);
-    const valor = guardada ? Number(guardada) : 1;
-    setEscala(Number.isFinite(valor) ? Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, valor)) : 1);
-  }, [storageKey]);
-
-  const actualizar = useCallback(
-    (nuevaEscala: number) => {
-      const clamped = Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, nuevaEscala));
-      setEscala(clamped);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(storageKey, String(clamped));
-      }
-    },
-    [storageKey],
-  );
-
-  return { escala, actualizar };
-}
 
 function SubPanelFallback() {
   return (
