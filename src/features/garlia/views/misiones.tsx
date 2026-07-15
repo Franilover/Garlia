@@ -435,6 +435,7 @@ function PanelExpandidoFicha({
     height: number;
     lado: "derecha" | "izquierda";
   } | null>(null);
+  const [tab, setTab] = useState<"identidad" | "trasfondo" | "conjuros" | "inventario">("identidad");
 
   useEffect(() => {
     const calcular = () => {
@@ -535,56 +536,79 @@ function PanelExpandidoFicha({
               }
         }
       >
-        {/* ── Header con nombre + cerrar ── */}
+        {/* ── Header: solo nombre + cerrar. Sin subtítulo descriptivo — las
+            tabs de abajo ya comunican qué hay adentro. ── */}
         <div
-          className="sticky top-0 px-6 py-4 flex items-center justify-between gap-3"
-          style={{
-            background: "var(--white-custom)",
-            borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
+          className="sticky top-0 z-10 px-6 pt-4 flex items-center justify-between gap-3"
+          style={{ background: "var(--white-custom)" }}
         >
-          <div className="min-w-0">
-            <p
-              className="font-serif italic text-lg leading-tight truncate capitalize"
-              style={{ color: "var(--primary)" }}
-            >
-              {ficha.nombre}
-            </p>
-            <p
-              className="text-micro font-black uppercase tracking-wider"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Clase · Trasfondo · Rasgos · Conjuros · Inventario
-            </p>
-          </div>
+          <p
+            className="font-serif italic text-lg leading-tight truncate capitalize"
+            style={{ color: "var(--primary)" }}
+          >
+            {ficha.nombre}
+          </p>
           <button
             type="button"
             onClick={onCerrar}
             className="shrink-0 flex items-center justify-center transition-colors"
             style={{
-              width: 30,
-              height: 30,
+              width: 28,
+              height: 28,
               borderRadius: "50%",
               color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
             }}
           >
             <X size={14} />
           </button>
         </div>
 
-        {/* ── Cuerpo: idiomas y herramientas lado a lado arriba, trasfondo
-            abajo — pensado para el ancho angosto del panel anexo (560px),
-            no para un modal ancho centrado. ── */}
+        {/* ── Tabs: fila de texto plano, sin botones con caja. El tab
+            activo se marca solo con color/peso + una línea inferior. ── */}
+        <div
+          className="sticky top-[52px] z-10 px-6 flex items-center gap-5"
+          style={{
+            background: "var(--white-custom)",
+            borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          {(
+            [
+              ["identidad", "Identidad"],
+              ["trasfondo", "Trasfondo"],
+              ["conjuros", "Conjuros"],
+              ["inventario", "Inventario"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className="pb-2.5 pt-3 text-xs font-bold uppercase tracking-wide transition-colors"
+              style={{
+                color:
+                  tab === id
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                borderBottom: tab === id ? "2px solid var(--primary)" : "2px solid transparent",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Cuerpo: una sola tab visible a la vez — minimalista, solo lo
+            que corresponde a la sección elegida, pensado para el ancho
+            angosto del panel anexo (560px). ── */}
         <div className="p-6 flex flex-col gap-6">
+          {tab === "identidad" && (
+            <>
           {/* ── Identidad: Clase/Subclase y Trasfondo/Especie en 2 columnas,
               Alineamiento debajo ocupando todo el ancho. Los rasgos largos de
               cada elección van colapsados en "Ver rasgos" para no inflar el
               panel — minimalista, solo lo esencial a la vista. ── */}
-          <div
-            className="flex flex-col gap-3 pb-4"
-            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
+          <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-x-4 gap-y-3">
               <CampoIdentidad label="Clase">
                 {editable ? (
@@ -759,17 +783,11 @@ function PanelExpandidoFicha({
               />
             </div>
           </div>
-          <div
-            className="flex flex-col gap-4 pt-1"
-            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            <span
-              className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider pt-3"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              <Scroll size={11} />
-              Trasfondo
-            </span>
+            </>
+          )}
+
+          {tab === "trasfondo" && (
+            <div className="flex flex-col gap-4">
             <div>
               <span
                 className="text-micro font-black uppercase tracking-wider"
@@ -826,32 +844,38 @@ function PanelExpandidoFicha({
                 placeholder="¿Qué punto débil podrían explotar en su contra?"
               />
             </div>
-          </div>
+            </div>
+          )}
 
-          {/* ── Rasgos y habilidades especiales (+ dotes), conjuros e
-              inventario/ataques: viven acá, en el panel expandido, para
-              dejar el panel lateral por defecto compacto con solo lo que se
-              consulta todo el tiempo en mesa (combate, stats, habilidades). ── */}
-          <div className="flex flex-col gap-1 -mx-6">
-            <PanelRasgosEspeciales
-              rasgos={ficha.rasgos_especiales ?? []}
-              editable={editable}
-              onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
-            />
-            <PanelConjuros
-              ficha={ficha}
-              editable={editable}
-              editableStats={editableStats}
-              onEditarCampo={onEditarCampo}
-            />
-            <PanelInventarioFicha
-              fichaId={ficha.id}
-              editable={editable}
-              bonoCompetencia={bonusCompetencia(ficha.nivel ?? 1)}
-              fuerza={ficha.fuerza ?? 10}
-              destreza={ficha.destreza ?? 10}
-            />
-          </div>
+          {/* ── Conjuros: rasgos y habilidades especiales (+ dotes) viven acá
+              también, junto a lo mágico, para no sumar una quinta tab. ── */}
+          {tab === "conjuros" && (
+            <div className="flex flex-col gap-1 -mx-6">
+              <PanelRasgosEspeciales
+                rasgos={ficha.rasgos_especiales ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
+              />
+              <PanelConjuros
+                ficha={ficha}
+                editable={editable}
+                editableStats={editableStats}
+                onEditarCampo={onEditarCampo}
+              />
+            </div>
+          )}
+
+          {tab === "inventario" && (
+            <div className="flex flex-col gap-1 -mx-6">
+              <PanelInventarioFicha
+                fichaId={ficha.id}
+                editable={editable}
+                bonoCompetencia={bonusCompetencia(ficha.nivel ?? 1)}
+                fuerza={ficha.fuerza ?? 10}
+                destreza={ficha.destreza ?? 10}
+              />
+            </div>
+          )}
         </div>
       </MotionDiv>
     </>,
