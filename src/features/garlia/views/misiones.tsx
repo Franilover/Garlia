@@ -3,6 +3,7 @@
 import { AnimatePresence } from "framer-motion";
 import {
   ArrowDown,
+  Award,
   Backpack,
   Ban,
   BookOpen,
@@ -31,7 +32,9 @@ import {
   Sparkles,
   Star,
   Sword,
+  Target,
   Trash2,
+  Wand2,
   Wrench,
   WifiOff,
   X,
@@ -48,11 +51,20 @@ import {
   reclamarMisionOffline,
 } from "@/lib/api/client/syncEngine";
 
-import type { FichaDnd, ItemInventarioFicha, RasgoEspecial, TipoMoneda } from "../hooks/useFichasDnd";
+import type {
+  CampoFichaValor,
+  ConjuroFicha,
+  FichaDnd,
+  ItemInventarioFicha,
+  RasgoEspecial,
+  TipoMoneda,
+} from "../hooks/useFichasDnd";
 import {
+  bonoAtaqueConjuros,
   bonusCompetencia,
   buscarCriaturas,
   buscarItems,
+  cdSalvacionConjuros,
   percepcionPasiva,
   statMod,
   useClasesDisponibles,
@@ -370,7 +382,7 @@ function PanelExpandidoFicha({
   trasfondosDisponibles: Array<{ id: string; nombre: string }>;
   onEditarCampo?: (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
+    valor: CampoFichaValor,
   ) => void;
   onCerrar: () => void;
   /** Ref al contenedor del panel principal — el flotante se ancla a su
@@ -815,7 +827,7 @@ export function FichaStatsPanel({
   mostrarCondiciones?: boolean;
   onEditarCampo?: (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
+    valor: CampoFichaValor,
   ) => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
@@ -1631,6 +1643,16 @@ export function FichaStatsPanel({
         onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
       />
 
+      {/* ── Lanzamiento de conjuros: característica, CD, bono de ataque,
+          espacios de conjuro por nivel y lista de conjuros conocidos. Solo
+          se muestra si la ficha es lanzadora (o si el dueño puede activarla). ── */}
+      <PanelConjuros
+        ficha={ficha}
+        editable={editable}
+        editableStats={editableStats}
+        onEditarCampo={onEditarCampo}
+      />
+
       {/* ── Inventario + Ataques derivados. Ataques se calculan solos a
           partir de los ítems equipados marcados como arma: bono = mod de
           stat (Fuerza, o el mayor entre Fuerza/Destreza si es "sutileza")
@@ -1665,6 +1687,7 @@ function PanelRasgosEspeciales({
   const [agregando, setAgregando] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [descNueva, setDescNueva] = useState("");
+  const [origenNuevo, setOrigenNuevo] = useState<RasgoEspecial["origen"]>("otro");
 
   const agregar = useCallback(() => {
     const nombre = nombreNuevo.trim();
@@ -1676,13 +1699,14 @@ function PanelRasgosEspeciales({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       nombre,
       descripcion: descNueva.trim(),
-      origen: "otro",
+      origen: origenNuevo,
     };
     onCambiar([...rasgos, rasgo]);
     setNombreNuevo("");
     setDescNueva("");
+    setOrigenNuevo("otro");
     setAgregando(false);
-  }, [nombreNuevo, descNueva, rasgos, onCambiar]);
+  }, [nombreNuevo, descNueva, origenNuevo, rasgos, onCambiar]);
 
   const quitar = useCallback(
     (id: string) => {
@@ -1691,7 +1715,62 @@ function PanelRasgosEspeciales({
     [rasgos, onCambiar],
   );
 
+  const dotes = rasgos.filter((r) => r.origen === "dote");
+  const otrosRasgos = rasgos.filter((r) => r.origen !== "dote");
+
   if (!editable && rasgos.length === 0) return null;
+
+  const listaRasgo = (r: RasgoEspecial) => (
+    <div
+      key={r.id}
+      className="flex items-start gap-2 px-2.5 py-2"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        borderRadius: "2px",
+        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+      }}
+    >
+      {r.origen === "dote" ? (
+        <Award
+          size={13}
+          className="shrink-0 mt-0.5"
+          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+        />
+      ) : (
+        <BookOpen
+          size={13}
+          className="shrink-0 mt-0.5"
+          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-micro font-black uppercase tracking-wider"
+          style={{ color: "var(--primary)" }}
+        >
+          {r.nombre}
+        </p>
+        {r.descripcion && (
+          <p
+            className="text-micro mt-0.5"
+            style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+          >
+            {r.descripcion}
+          </p>
+        )}
+      </div>
+      {editable && (
+        <button
+          type="button"
+          onClick={() => quitar(r.id)}
+          className="shrink-0 cursor-pointer hover:text-red-500 transition-colors"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -1702,7 +1781,7 @@ function PanelRasgosEspeciales({
     >
       <SeparadorLabel label="Rasgos y habilidades especiales" />
 
-      {rasgos.length === 0 && !agregando && (
+      {otrosRasgos.length === 0 && !agregando && (
         <p
           className="text-micro italic"
           style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
@@ -1711,51 +1790,26 @@ function PanelRasgosEspeciales({
         </p>
       )}
 
-      <div className="flex flex-col gap-2">
-        {rasgos.map((rasgo) => (
-          <div
-            key={rasgo.id}
-            className="flex items-start gap-2 px-2.5 py-2"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-          >
-            <BookOpen
-              size={13}
-              className="shrink-0 mt-0.5"
-              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-            />
-            <div className="min-w-0 flex-1">
-              <p
-                className="text-micro font-black uppercase tracking-wider"
-                style={{ color: "var(--primary)" }}
-              >
-                {rasgo.nombre}
-              </p>
-              {rasgo.descripcion && (
-                <p
-                  className="text-micro mt-0.5"
-                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                >
-                  {rasgo.descripcion}
-                </p>
-              )}
-            </div>
-            {editable && (
-              <button
-                type="button"
-                onClick={() => quitar(rasgo.id)}
-                className="shrink-0 cursor-pointer hover:text-red-500 transition-colors"
-                style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
+      <div className="flex flex-col gap-2">{otrosRasgos.map(listaRasgo)}</div>
+
+      {/* ── Dotes (feats): sección aparte, ej. la dote de origen del
+          trasfondo o las que se ganan al subir de nivel. ── */}
+      {(dotes.length > 0 || editable) && (
+        <>
+          <div className="mt-2">
+            <SeparadorLabel label="Dotes" />
           </div>
-        ))}
-      </div>
+          {dotes.length === 0 && !agregando && (
+            <p
+              className="text-micro italic"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            >
+              Sin dotes registradas aún.
+            </p>
+          )}
+          <div className="flex flex-col gap-2">{dotes.map(listaRasgo)}</div>
+        </>
+      )}
 
       {editable && (
         <>
@@ -1767,15 +1821,31 @@ function PanelRasgosEspeciales({
                 borderRadius: "2px",
               }}
             >
-              <input
-                autoFocus
-                type="text"
-                value={nombreNuevo}
-                onChange={(e) => setNombreNuevo(e.target.value)}
-                placeholder="Nombre del rasgo (ej. Visión en la oscuridad)"
-                className="bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal"
-                style={{ color: "var(--primary)" }}
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={nombreNuevo}
+                  onChange={(e) => setNombreNuevo(e.target.value)}
+                  placeholder="Nombre (ej. Visión en la oscuridad, Alerta…)"
+                  className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal"
+                  style={{ color: "var(--primary)" }}
+                />
+                <select
+                  value={origenNuevo}
+                  onChange={(e) => setOrigenNuevo(e.target.value as RasgoEspecial["origen"])}
+                  className="shrink-0 bg-transparent outline-none text-micro font-bold"
+                  style={{
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+                  }}
+                >
+                  <option value="raza">Raza</option>
+                  <option value="clase">Clase</option>
+                  <option value="dote">Dote</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
               <textarea
                 value={descNueva}
                 onChange={(e) => setDescNueva(e.target.value)}
@@ -1791,6 +1861,7 @@ function PanelRasgosEspeciales({
                     setAgregando(false);
                     setNombreNuevo("");
                     setDescNueva("");
+                    setOrigenNuevo("otro");
                   }}
                   className="text-micro font-black uppercase tracking-wider px-2 py-1"
                   style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
@@ -1819,11 +1890,368 @@ function PanelRasgosEspeciales({
               }}
             >
               <Plus size={11} />
-              Agregar rasgo
+              Agregar rasgo o dote
             </button>
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Lanzamiento de conjuros ────────────────────────────────────────────────
+// Solo aparece si la ficha tiene lanzador_conjuros=true, o si es editable (el
+// dueño puede activarlo). Muestra característica de conjuros, CD/bono de
+// ataque derivados, espacios de conjuro por nivel y la lista de conjuros
+// conocidos/preparados.
+
+const NIVELES_CONJURO = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+
+function PanelConjuros({
+  ficha,
+  editable,
+  editableStats,
+  onEditarCampo,
+}: {
+  ficha: FichaDnd;
+  editable: boolean;
+  editableStats: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: CampoFichaValor) => void;
+}) {
+  const [agregando, setAgregando] = useState(false);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [nivelNuevo, setNivelNuevo] = useState(0);
+
+  if (!ficha.lanzador_conjuros && !editable) return null;
+
+  // ── Sin activar todavía: solo el dueño ve un botón chico para activarlo. ──
+  if (!ficha.lanzador_conjuros) {
+    return (
+      <div
+        className="px-5 py-4"
+        style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        <button
+          type="button"
+          onClick={() => onEditarCampo?.("lanzador_conjuros", true)}
+          className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider px-2.5 py-1.5"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+            border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+            borderRadius: "2px",
+          }}
+        >
+          <Wand2 size={11} />
+          Es lanzador de conjuros
+        </button>
+      </div>
+    );
+  }
+
+  const cd = cdSalvacionConjuros(ficha as unknown as Parameters<typeof cdSalvacionConjuros>[0]);
+  const bonoAtaque = bonoAtaqueConjuros(ficha as unknown as Parameters<typeof bonoAtaqueConjuros>[0]);
+  const espacios = ficha.espacios_conjuro ?? {};
+  const conjuros = ficha.conjuros ?? [];
+  const trucos = conjuros.filter((c) => c.nivel === 0);
+  const conNivel = conjuros.filter((c) => c.nivel > 0).sort((a, b) => a.nivel - b.nivel);
+
+  const actualizarEspacio = (nivel: number, cambios: Partial<{ max: number; usados: number }>) => {
+    const key = String(nivel);
+    const actual = espacios[key] ?? { max: 0, usados: 0 };
+    onEditarCampo?.("espacios_conjuro", { ...espacios, [key]: { ...actual, ...cambios } });
+  };
+
+  const agregarConjuro = () => {
+    const nombre = nombreNuevo.trim();
+    if (!nombre) {
+      setAgregando(false);
+      return;
+    }
+    const nuevo: ConjuroFicha = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      nombre,
+      nivel: nivelNuevo,
+      preparado: true,
+    };
+    onEditarCampo?.("conjuros", [...conjuros, nuevo]);
+    setNombreNuevo("");
+    setNivelNuevo(0);
+    setAgregando(false);
+  };
+
+  const quitarConjuro = (id: string) => {
+    onEditarCampo?.("conjuros", conjuros.filter((c) => c.id !== id));
+  };
+
+  const togglePreparado = (id: string) => {
+    onEditarCampo?.(
+      "conjuros",
+      conjuros.map((c) => (c.id === id ? { ...c, preparado: !c.preparado } : c)),
+    );
+  };
+
+  const filaConjuro = (c: ConjuroFicha) => (
+    <div
+      key={c.id}
+      className="flex items-center gap-2 px-2.5 py-1.5"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        borderRadius: "2px",
+        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+      }}
+    >
+      <button
+        type="button"
+        disabled={!editable}
+        onClick={() => togglePreparado(c.id)}
+        title={c.preparado ? "Preparado" : "No preparado"}
+        className="shrink-0 rounded-full transition-colors disabled:cursor-default"
+        style={{
+          width: 10,
+          height: 10,
+          border: "1.5px solid var(--primary)",
+          background: c.preparado ? "var(--primary)" : "transparent",
+        }}
+      />
+      <span className="flex-1 min-w-0 text-xs font-semibold text-primary/75 truncate">
+        {c.nombre}
+      </span>
+      <span className="shrink-0 text-micro font-bold tabular-nums text-primary/40">
+        {c.nivel === 0 ? "Truco" : `Nv. ${c.nivel}`}
+      </span>
+      {editable && (
+        <button
+          type="button"
+          onClick={() => quitarConjuro(c.id)}
+          className="shrink-0 cursor-pointer hover:text-red-500 transition-colors"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
+          <Trash2 size={11} />
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className="px-5 py-4 flex flex-col gap-3"
+      style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+    >
+      <SeparadorLabel label="Conjuros" />
+
+      {/* ── Característica + CD + bono de ataque ── */}
+      <div className="grid grid-cols-3 gap-2">
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Característica
+          </span>
+          {editable ? (
+            <select
+              value={ficha.caracteristica_conjuros ?? ""}
+              onChange={(e) => onEditarCampo?.("caracteristica_conjuros", e.target.value || null)}
+              className="bg-transparent outline-none text-xs font-black"
+              style={{
+                color: "var(--primary)",
+                borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+              }}
+            >
+              <option value="">Elegir…</option>
+              <option value="inteligencia">Inteligencia</option>
+              <option value="sabiduria">Sabiduría</option>
+              <option value="carisma">Carisma</option>
+            </select>
+          ) : (
+            <span className="text-xs font-black capitalize" style={{ color: "var(--primary)" }}>
+              {ficha.caracteristica_conjuros ?? "—"}
+            </span>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+          title="CD = 8 + bono de competencia + mod. de la característica de conjuros"
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            CD salvación
+          </span>
+          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            {cd ?? "—"}
+          </span>
+        </div>
+        <div
+          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+          title="Bono de ataque con conjuros = bono de competencia + mod. de la característica de conjuros"
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Ataque
+          </span>
+          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            {bonoAtaque === null ? "—" : bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Espacios de conjuro por nivel: solo se muestran los niveles con
+          max > 0 (o todos si editableStats, para poder configurarlos). ── */}
+      <div className="flex flex-col gap-1">
+        <span
+          className="text-micro font-black uppercase tracking-wider"
+          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+        >
+          Espacios de conjuro
+        </span>
+        <div className="grid grid-cols-3 gap-1.5">
+          {NIVELES_CONJURO.filter((n) => editableStats || (espacios[String(n)]?.max ?? 0) > 0).map(
+            (nivel) => {
+              const datos = espacios[String(nivel)] ?? { max: 0, usados: 0 };
+              return (
+                <div
+                  key={nivel}
+                  className="flex flex-col items-center gap-0.5 px-1.5 py-1.5"
+                  style={{
+                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    borderRadius: "2px",
+                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  }}
+                >
+                  <span
+                    className="text-micro font-black"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                  >
+                    Nv. {nivel}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-xs font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                    <CampoEditable
+                      valor={datos.usados}
+                      editable={editableStats}
+                      tipo="number"
+                      align="center"
+                      width={16}
+                      onCommit={(v) => actualizarEspacio(nivel, { usados: Number(v) || 0 })}
+                      className="text-xs font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                    /
+                    <CampoEditable
+                      valor={datos.max}
+                      editable={editableStats}
+                      tipo="number"
+                      align="center"
+                      width={16}
+                      onCommit={(v) => actualizarEspacio(nivel, { max: Number(v) || 0 })}
+                      className="text-xs font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </span>
+                </div>
+              );
+            },
+          )}
+        </div>
+      </div>
+
+      {/* ── Trucos + conjuros conocidos/preparados ── */}
+      <div className="flex flex-col gap-1.5">
+        {trucos.length > 0 && (
+          <div className="flex flex-col gap-1.5">{trucos.map(filaConjuro)}</div>
+        )}
+        {conNivel.length > 0 && (
+          <div className="flex flex-col gap-1.5">{conNivel.map(filaConjuro)}</div>
+        )}
+        {conjuros.length === 0 && !agregando && (
+          <p
+            className="text-micro italic"
+            style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+          >
+            Sin conjuros anotados aún.
+          </p>
+        )}
+
+        {editable && (
+          <>
+            {agregando ? (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1.5"
+                style={{
+                  border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                  borderRadius: "2px",
+                }}
+              >
+                <input
+                  autoFocus
+                  type="text"
+                  value={nombreNuevo}
+                  onChange={(e) => setNombreNuevo(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && agregarConjuro()}
+                  placeholder="Nombre del conjuro"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-xs"
+                  style={{ color: "var(--primary)" }}
+                />
+                <select
+                  value={nivelNuevo}
+                  onChange={(e) => setNivelNuevo(Number(e.target.value))}
+                  className="shrink-0 bg-transparent outline-none text-micro font-bold"
+                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                >
+                  <option value={0}>Truco</option>
+                  {NIVELES_CONJURO.map((n) => (
+                    <option key={n} value={n}>
+                      Nv. {n}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={agregarConjuro}
+                  className="shrink-0 text-micro font-black uppercase tracking-wider px-1.5"
+                  style={{ color: "var(--primary)" }}
+                >
+                  Ok
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAgregando(true)}
+                className="flex items-center gap-1.5 self-start text-micro font-black uppercase tracking-wider px-2.5 py-1.5"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+                  borderRadius: "2px",
+                }}
+              >
+                <Plus size={11} />
+                Agregar conjuro
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -1865,9 +2293,14 @@ function PanelInventarioFicha({
           <SeparadorLabel label="Ataques" />
           <div className="flex flex-col gap-1.5">
             {armasEquipadas.map((fila) => {
-              const modStat = fila.item?.sutileza
-                ? Math.max(statMod(fuerza), statMod(destreza))
-                : statMod(fuerza);
+              // Distancia (arco, ballesta…) y sutileza (arma liviana cuerpo
+              // a cuerpo) usan Destreza; el resto de armas cuerpo a cuerpo
+              // usan Fuerza. La sutileza además toma el mayor de los dos.
+              const modStat = fila.item?.distancia
+                ? statMod(destreza)
+                : fila.item?.sutileza
+                  ? Math.max(statMod(fuerza), statMod(destreza))
+                  : statMod(fuerza);
               const bonoAtaque = modStat + bonoCompetencia;
               return (
                 <div
@@ -1880,7 +2313,11 @@ function PanelInventarioFicha({
                   }}
                 >
                   <span className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-primary/75 truncate">
-                    <Sword size={10} className="shrink-0 text-primary/35" />
+                    {fila.item?.distancia ? (
+                      <Target size={10} className="shrink-0 text-primary/35" />
+                    ) : (
+                      <Sword size={10} className="shrink-0 text-primary/35" />
+                    )}
                     {fila.item?.nombre ?? "Arma"}
                   </span>
                   <span
@@ -1888,7 +2325,9 @@ function PanelInventarioFicha({
                     style={{ color: "var(--primary)" }}
                   >
                     {bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
-                    {fila.item?.dado_dano ? ` · ${fila.item.dado_dano}` : ""}
+                    {fila.item?.dado_dano
+                      ? ` · ${fila.item.dado_dano}${modStat >= 0 ? `+${modStat}` : modStat}`
+                      : ""}
                   </span>
                 </div>
               );

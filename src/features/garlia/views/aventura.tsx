@@ -26,7 +26,7 @@ import {
   type Aventura as AventuraType,
   type AventuraEntidad,
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
-import { useFichasDnd, type FichaDnd, type NuevaFicha, type RasgoEspecial } from "../hooks/useFichasDnd";
+import { useFichasDnd, type CampoFichaValor, type FichaDnd, type NuevaFicha } from "../hooks/useFichasDnd";
 import { CARD_SCALE_MAX, CARD_SCALE_MIN, useTableroEscala } from "../hooks/useTableroEscala";
 import Misiones, { FichaStatsPanel, TiradaDados } from "./misiones";
 
@@ -158,7 +158,7 @@ function PanelIdentidad() {
 
   const handleEditarCampo = async (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
+    valor: CampoFichaValor,
   ) => {
     if (!activa) return;
     setGuardando(true);

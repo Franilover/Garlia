@@ -18,8 +18,28 @@ export interface RasgoEspecial {
   id: string;
   nombre: string;
   descripcion: string;
-  /** Origen del rasgo: de la raza o de la clase. Solo informativo/visual. */
-  origen: "raza" | "clase" | "otro";
+  /** Origen del rasgo: de la raza, de la clase, una dote, u otro. Además de
+   *  informativo/visual, "dote" hace que el rasgo se liste en su propia
+   *  sección "Dotes" en vez de mezclarse con rasgos de clase/raza. */
+  origen: "raza" | "clase" | "dote" | "otro";
+}
+
+/** Un conjuro conocido/preparado por la ficha. Lista libre — no depende del
+ *  catálogo de magia del mundo (ese es para las entidades del DM). */
+export interface ConjuroFicha {
+  id: string;
+  nombre: string;
+  /** 0 = truco (cantrip). 1-9 = nivel del conjuro. */
+  nivel: number;
+  /** Si está preparado hoy (irrelevante para clases que no preparan, ej. brujo/hechicero con conjuros conocidos fijos — se puede dejar siempre true). */
+  preparado: boolean;
+}
+
+/** Espacios de conjuro de un nivel dado: cuántos tiene en total y cuántos
+ *  ya gastó desde el último descanso largo. Clave del Record = nivel ("1".."9"). */
+export interface EspaciosConjuroNivel {
+  max: number;
+  usados: number;
 }
 
 export interface EspecieResumen {
@@ -90,6 +110,17 @@ export interface FichaDnd {
   defectos: string | null;
   /** Mecánica de inspiración: el DM la otorga, el jugador la gasta. */
   inspiracion: boolean;
+  /** Si el personaje es lanzador de conjuros (bardo, clérigo, druida, hechicero,
+   *  mago, brujo, paladín, explorador…). Si es false, toda la sección de
+   *  conjuros queda oculta en el panel. */
+  lanzador_conjuros: boolean;
+  /** Característica de conjuros (ej. "inteligencia" para mago, "sabiduria"
+   *  para clérigo/druida, "carisma" para bardo/brujo/hechicero/paladín). */
+  caracteristica_conjuros: string | null;
+  /** Espacios de conjuro por nivel, ej. { "1": { max: 4, usados: 1 }, "2": {...} }. */
+  espacios_conjuro: Record<string, EspaciosConjuroNivel>;
+  /** Conjuros conocidos/preparados de la ficha. */
+  conjuros: ConjuroFicha[];
   created_at: string;
   updated_at: string;
   /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */
@@ -105,6 +136,9 @@ export interface ItemResumen {
   es_arma: boolean;
   dado_dano: string | null;
   sutileza: boolean;
+  /** Arma a distancia (arco, ballesta, jabalina arrojada…): usa Destreza para
+   *  el ataque, sin importar "sutileza" (que es para armas cuerpo a cuerpo livianas). */
+  distancia: boolean;
 }
 
 export interface ItemInventarioFicha {
@@ -118,6 +152,19 @@ export interface ItemInventarioFicha {
 }
 
 export type NuevaFicha = Pick<FichaDnd, "nombre"> & Partial<Omit<FichaDnd, "id" | "perfil_id" | "created_at" | "updated_at" | "activa" | "nombre" | "especie">>;
+
+/** Unión de todos los tipos de valor que puede tomar un campo editable de la
+ *  ficha — usado por el callback onEditarCampo en los distintos paneles. */
+export type CampoFichaValor =
+  | string
+  | number
+  | boolean
+  | string[]
+  | RasgoEspecial[]
+  | ConjuroFicha[]
+  | Record<string, number>
+  | Record<string, EspaciosConjuroNivel>
+  | null;
 
 export function statMod(score: number): number {
   return Math.floor((score - 10) / 2);
@@ -135,6 +182,29 @@ export function percepcionPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "
 /** Bono de competencia estándar de D&D 5e según nivel: 1-4→+2, 5-8→+3, 9-12→+4, 13-16→+5, 17-20→+6. */
 export function bonusCompetencia(nivel: number): number {
   return 2 + Math.floor((Math.max(1, Math.min(20, nivel)) - 1) / 4);
+}
+
+/** CD de salvación de conjuros = 8 + bono de competencia + mod de la
+ *  característica de conjuros. Devuelve null si la ficha no tiene
+ *  característica de conjuros configurada. */
+export function cdSalvacionConjuros(
+  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel"> & Record<string, number | string | null>,
+): number | null {
+  const car = ficha.caracteristica_conjuros;
+  if (!car) return null;
+  const valor = typeof ficha[car] === "number" ? (ficha[car] as number) : 10;
+  return 8 + bonusCompetencia(ficha.nivel ?? 1) + statMod(valor);
+}
+
+/** Bono de ataque con conjuros = bono de competencia + mod de la
+ *  característica de conjuros. Devuelve null si no hay característica configurada. */
+export function bonoAtaqueConjuros(
+  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel"> & Record<string, number | string | null>,
+): number | null {
+  const car = ficha.caracteristica_conjuros;
+  if (!car) return null;
+  const valor = typeof ficha[car] === "number" ? (ficha[car] as number) : 10;
+  return bonusCompetencia(ficha.nivel ?? 1) + statMod(valor);
 }
 
 async function resolverEspecies(fichas: FichaDnd[]): Promise<FichaDnd[]> {
@@ -256,7 +326,7 @@ async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventari
   if (ids.length === 0) return rows;
   const { data } = await supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia")
     .in("id", ids);
   const porId = new Map((data ?? []).map((i: any) => [i.id, i as ItemResumen]));
   return rows.map((r) => ({ ...r, item: r.item_id ? porId.get(r.item_id) ?? null : null }));
@@ -351,7 +421,7 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   const q = query.trim();
   let req = supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia")
     .order("nombre")
     .limit(40);
   if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);
