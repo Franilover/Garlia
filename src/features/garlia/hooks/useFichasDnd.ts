@@ -65,6 +65,11 @@ export interface FichaDnd {
   /** Nombre del grupo (grupos_mundo, subtipo="Trasfondo") — el trasfondo
    *  mecánico del personaje (ej. "Acólito", "Criminal"), no la historia. */
   trasfondo_mecanico: string | null;
+  /** Beneficio mecánico concreto que otorga el trasfondo (ej. "Refugio de
+   *  los fieles" para Acólito). Texto libre, distinto del nombre del
+   *  trasfondo (trasfondo_mecanico) — el manual asigna un rasgo fijo por
+   *  trasfondo, no algo que el DM defina por reino. */
+  rasgo_trasfondo: string | null;
   imagen_url: string | null;
   fuerza: number;
   destreza: number;
@@ -125,6 +130,14 @@ export interface FichaDnd {
   espacios_conjuro: Record<string, EspaciosConjuroNivel>;
   /** Conjuros conocidos/preparados de la ficha. */
   conjuros: ConjuroFicha[];
+  /** Detalles físicos: cosméticos/opcionales, todos texto libre. */
+  genero: string | null;
+  edad: string | null;
+  altura: string | null;
+  peso: string | null;
+  ojos: string | null;
+  pelo: string | null;
+  piel: string | null;
   created_at: string;
   updated_at: string;
   /** Resuelto en cliente a partir de especie_id, no viene de la tabla. */

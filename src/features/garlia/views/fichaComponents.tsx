@@ -78,6 +78,7 @@ export function ModalCrearFicha({
   const [clase, setClase] = useState("");
   const [subclase, setSubclase] = useState("");
   const [trasfondoMecanico, setTrasfondoMecanico] = useState("");
+  const [rasgoTrasfondo, setRasgoTrasfondo] = useState("");
   const [alineamiento, setAlineamiento] = useState("");
   const [nivel, setNivel] = useState(1);
   const [stats, setStats] = useState({
@@ -103,6 +104,7 @@ export function ModalCrearFicha({
         clase: clase.trim() || null,
         subclase: subclase.trim() || null,
         trasfondo_mecanico: trasfondoMecanico.trim() || null,
+        rasgo_trasfondo: rasgoTrasfondo.trim() || null,
         alineamiento: alineamiento.trim() || null,
         nivel,
         ...stats,
@@ -208,6 +210,13 @@ export function ModalCrearFicha({
                 </option>
               ))}
             </select>
+            <input
+              type="text"
+              value={rasgoTrasfondo}
+              onChange={(e) => setRasgoTrasfondo(e.target.value)}
+              placeholder="Rasgo del trasfondo…"
+              className={`flex-1 min-w-0 ${inputClase}`}
+            />
           </div>
 
           <div className="flex gap-2">
@@ -529,6 +538,7 @@ export function FichaDetalle({
               </option>
             ))}
           </select>
+          {campo("rasgo_trasfondo", "Rasgo del trasfondo")}
           {campo("nivel", "Nivel", "number")}
           {campo("alineamiento", "Alineamiento")}
           {campo("hp_max", "HP máximo", "number")}
@@ -557,7 +567,50 @@ export function FichaDetalle({
             {ficha.trasfondo || <span className="text-primary/30 italic">Sin trasfondo todavía.</span>}
           </p>
         )}
+        {!editando && ficha.rasgo_trasfondo && (
+          <p className="mt-2 text-xs text-primary/50">
+            <span className="font-bold uppercase tracking-wide text-primary/40">Rasgo: </span>
+            {ficha.rasgo_trasfondo}
+          </p>
+        )}
       </div>
+
+      {/* ── Detalles físicos ─────────────────────────────────────────── */}
+      {(editando ||
+        ficha.genero ||
+        ficha.edad ||
+        ficha.altura ||
+        ficha.peso ||
+        ficha.ojos ||
+        ficha.pelo ||
+        ficha.piel) && (
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-widest text-primary/50 mb-2">
+            Detalles físicos
+          </h3>
+          {editando ? (
+            <div className="grid grid-cols-2 gap-2">
+              {campo("genero", "Género")}
+              {campo("edad", "Edad")}
+              {campo("altura", "Altura")}
+              {campo("peso", "Peso")}
+              {campo("ojos", "Ojos")}
+              {campo("pelo", "Pelo")}
+              {campo("piel", "Piel")}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-primary/60">
+              {ficha.genero && <span><span className="font-bold text-primary/40">Género:</span> {ficha.genero}</span>}
+              {ficha.edad && <span><span className="font-bold text-primary/40">Edad:</span> {ficha.edad}</span>}
+              {ficha.altura && <span><span className="font-bold text-primary/40">Altura:</span> {ficha.altura}</span>}
+              {ficha.peso && <span><span className="font-bold text-primary/40">Peso:</span> {ficha.peso}</span>}
+              {ficha.ojos && <span><span className="font-bold text-primary/40">Ojos:</span> {ficha.ojos}</span>}
+              {ficha.pelo && <span><span className="font-bold text-primary/40">Pelo:</span> {ficha.pelo}</span>}
+              {ficha.piel && <span><span className="font-bold text-primary/40">Piel:</span> {ficha.piel}</span>}
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         type="button"

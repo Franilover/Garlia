@@ -663,6 +663,35 @@ function PanelExpandidoFicha({
                 className="text-micro font-black uppercase tracking-wider"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
+                Rasgo de trasfondo
+              </span>
+              {editable ? (
+                <input
+                  type="text"
+                  value={ficha.rasgo_trasfondo ?? ""}
+                  onChange={(e) => onEditarCampo?.("rasgo_trasfondo", e.target.value)}
+                  placeholder="Ej. Refugio de los fieles"
+                  className="text-sm font-semibold bg-transparent outline-none placeholder:font-normal placeholder:opacity-40"
+                  style={{ color: "var(--primary)" }}
+                />
+              ) : (
+                <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+                  {ficha.rasgo_trasfondo ?? "—"}
+                </span>
+              )}
+            </div>
+            <div
+              className="flex flex-col gap-0.5 px-2.5 py-1.5"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderRadius: "2px",
+                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              }}
+            >
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
                 Alineamiento
               </span>
               <CampoEditable
