@@ -1140,8 +1140,6 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <SeparadorLabel label="Combate" />
-
         <div className="mb-3.5">
           <div className="flex items-center justify-between mb-1.5">
             <div
@@ -1497,7 +1495,6 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <SeparadorLabel label="Estadísticas" />
         <div className="grid grid-cols-2 gap-x-4 items-start">
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
