@@ -368,6 +368,7 @@ function EditorListaTags({
 function PanelExpandidoFicha({
   ficha,
   editable,
+  editableStats,
   clasesDisponibles,
   subclasesDisponibles,
   trasfondosDisponibles,
@@ -377,6 +378,10 @@ function PanelExpandidoFicha({
 }: {
   ficha: FichaDnd;
   editable: boolean;
+  /** Solo admin/DM (o el dueño mientras la ficha no esté confirmada):
+   *  controla espacios de conjuro y otros números "de combate" dentro del
+   *  panel expandido (conjuros). */
+  editableStats: boolean;
   clasesDisponibles: Array<{ id: string; nombre: string }>;
   subclasesDisponibles: Array<{ id: string; nombre: string }>;
   trasfondosDisponibles: Array<{ id: string; nombre: string }>;
@@ -516,7 +521,7 @@ function PanelExpandidoFicha({
               className="text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              Clase · Trasfondo · Idiomas · Herramientas
+              Clase · Trasfondo · Rasgos · Conjuros · Inventario
             </p>
           </div>
           <button
@@ -798,6 +803,31 @@ function PanelExpandidoFicha({
               />
             </div>
           </div>
+
+          {/* ── Rasgos y habilidades especiales (+ dotes), conjuros e
+              inventario/ataques: viven acá, en el panel expandido, para
+              dejar el panel lateral por defecto compacto con solo lo que se
+              consulta todo el tiempo en mesa (combate, stats, habilidades). ── */}
+          <div className="flex flex-col gap-1 -mx-6">
+            <PanelRasgosEspeciales
+              rasgos={ficha.rasgos_especiales ?? []}
+              editable={editable}
+              onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
+            />
+            <PanelConjuros
+              ficha={ficha}
+              editable={editable}
+              editableStats={editableStats}
+              onEditarCampo={onEditarCampo}
+            />
+            <PanelInventarioFicha
+              fichaId={ficha.id}
+              editable={editable}
+              bonoCompetencia={bonusCompetencia(ficha.nivel ?? 1)}
+              fuerza={ficha.fuerza ?? 10}
+              destreza={ficha.destreza ?? 10}
+            />
+          </div>
         </div>
       </MotionDiv>
     </>,
@@ -871,6 +901,7 @@ export function FichaStatsPanel({
           <PanelExpandidoFicha
             ficha={ficha}
             editable={editable}
+            editableStats={editableStats}
             clasesDisponibles={clasesDisponibles}
             subclasesDisponibles={subclasesDisponibles}
             trasfondosDisponibles={trasfondosDisponibles}
@@ -1680,39 +1711,6 @@ export function FichaStatsPanel({
           )}
         </div>
       </div>
-
-      {/* ── Rasgos y habilidades especiales: features de clase/raza, texto
-          libre (ej. "Visión en la oscuridad", "Segundo aliento"). No son
-          numéricos, así que no afectan cálculos — el dueño los puede
-          editar siempre, no está protegido detrás de editableStats. ── */}
-      <PanelRasgosEspeciales
-        rasgos={ficha.rasgos_especiales ?? []}
-        editable={editable}
-        onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
-      />
-
-      {/* ── Lanzamiento de conjuros: característica, CD, bono de ataque,
-          espacios de conjuro por nivel y lista de conjuros conocidos. Solo
-          se muestra si la ficha es lanzadora (o si el dueño puede activarla). ── */}
-      <PanelConjuros
-        ficha={ficha}
-        editable={editable}
-        editableStats={editableStats}
-        onEditarCampo={onEditarCampo}
-      />
-
-      {/* ── Inventario + Ataques derivados. Ataques se calculan solos a
-          partir de los ítems equipados marcados como arma: bono = mod de
-          stat (Fuerza, o el mayor entre Fuerza/Destreza si es "sutileza")
-          + bono de competencia (se asume competencia con toda arma
-          equipada, que es el caso común salvo excepciones de rol-play). ── */}
-      <PanelInventarioFicha
-        fichaId={ficha.id}
-        editable={editable}
-        bonoCompetencia={bonoCompetencia}
-        fuerza={ficha.fuerza ?? 10}
-        destreza={ficha.destreza ?? 10}
-      />
     </div>
   );
 }
