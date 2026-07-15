@@ -1381,7 +1381,9 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Estadísticas D&D ── */}
+      {/* ── Estadísticas D&D: lista con separadores finos en vez de cajas
+          anidadas — cada stat es una fila, salvación y skills debajo con
+          la misma indentación, sin tarjetas dentro de tarjetas. ── */}
       <div
         className="px-5 py-4"
         style={{
@@ -1389,8 +1391,8 @@ export function FichaStatsPanel({
         }}
       >
         <SeparadorLabel label="Estadísticas" />
-        <div className="grid grid-cols-2 gap-2 items-start">
-          {stats.map(([key, valor]) => {
+        <div className="flex flex-col">
+          {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
             const salvacionCompetente = ficha.salvaciones_competentes?.includes(key) ?? false;
@@ -1400,13 +1402,12 @@ export function FichaStatsPanel({
               <div
                 key={key}
                 style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  borderRadius: "2px",
-                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  borderTop:
+                    i === 0 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
                 {/* Fila de la stat: abreviatura, valor editable y modificador. */}
-                <div className="flex items-center gap-2 px-2.5 py-1.5">
+                <div className="flex items-center gap-2 py-2">
                   <span
                     className="w-8 shrink-0 text-micro font-black uppercase tracking-wider"
                     style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
@@ -1435,154 +1436,126 @@ export function FichaStatsPanel({
                   </span>
                 </div>
 
-                {/* Salvación de esta stat, anidada justo debajo — mismo
-                    patrón visual que las skills, para que quede claro que
-                    es otra "sub-fila" de la característica. */}
-                <div
-                  style={{
-                    borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                {/* Salvación de esta stat, misma indentación que las skills. */}
+                <button
+                  type="button"
+                  disabled={!editableStats}
+                  onClick={() => {
+                    if (!editableStats) return;
+                    const actuales = ficha.salvaciones_competentes ?? [];
+                    const siguientes = salvacionCompetente
+                      ? actuales.filter((k) => k !== key)
+                      : [...actuales, key];
+                    onEditarCampo?.("salvaciones_competentes", siguientes);
                   }}
+                  className="w-full flex items-center justify-between pl-6 pr-1 py-1 transition-all disabled:cursor-default"
                 >
-                  <button
-                    type="button"
-                    disabled={!editableStats}
-                    onClick={() => {
-                      if (!editableStats) return;
-                      const actuales = ficha.salvaciones_competentes ?? [];
-                      const siguientes = salvacionCompetente
-                        ? actuales.filter((k) => k !== key)
-                        : [...actuales, key];
-                      onEditarCampo?.("salvaciones_competentes", siguientes);
+                  <span
+                    className="flex items-center gap-1.5 text-micro"
+                    style={{
+                      color: salvacionCompetente
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                      fontWeight: salvacionCompetente ? 700 : 500,
                     }}
-                    className="w-full flex items-center justify-between pl-6 pr-2.5 py-1 transition-all disabled:cursor-default"
                   >
                     <span
-                      className="flex items-center gap-1.5 text-micro"
+                      className="shrink-0"
                       style={{
-                        color: salvacionCompetente
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: salvacionCompetente
                           ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                        fontWeight: salvacionCompetente ? 700 : 500,
+                          : "color-mix(in srgb, var(--primary) 15%, transparent)",
                       }}
+                    />
+                    Salvación
+                  </span>
+                  <span
+                    className="text-micro font-black tabular-nums"
+                    style={{
+                      color: salvacionCompetente
+                        ? "var(--primary)"
+                        : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    }}
+                  >
+                    {salvacionBonus >= 0 ? `+${salvacionBonus}` : salvacionBonus}
+                  </span>
+                </button>
+
+                {/* Habilidades asociadas a esta stat, misma indentación. */}
+                {skills.map((skill) => {
+                  const competente =
+                    ficha.habilidades_competentes?.includes(skill.id) ?? false;
+                  const bonus =
+                    mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+                  return (
+                    <button
+                      key={skill.id}
+                      type="button"
+                      disabled={!editableStats}
+                      onClick={() => {
+                        if (!editableStats) return;
+                        const actuales = ficha.habilidades_competentes ?? [];
+                        const siguientes = competente
+                          ? actuales.filter((s) => s !== skill.id)
+                          : [...actuales, skill.id];
+                        onEditarCampo?.("habilidades_competentes", siguientes);
+                      }}
+                      className="w-full flex items-center justify-between pl-6 pr-1 py-1 transition-all disabled:cursor-default"
                     >
                       <span
-                        className="shrink-0"
+                        className="flex items-center gap-1.5 text-micro"
                         style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: salvacionCompetente
+                          color: competente
                             ? "var(--primary)"
-                            : "color-mix(in srgb, var(--primary) 15%, transparent)",
+                            : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                          fontWeight: competente ? 700 : 500,
                         }}
-                      />
-                      Salvación
-                    </span>
-                    <span
-                      className="text-micro font-black tabular-nums"
-                      style={{
-                        color: salvacionCompetente
-                          ? "var(--primary)"
-                          : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                      }}
-                    >
-                      {salvacionBonus >= 0 ? `+${salvacionBonus}` : salvacionBonus}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Habilidades asociadas a esta stat, anidadas debajo. */}
-                {skills.length > 0 && (
-                  <div
-                    className="flex flex-col"
-                    style={{
-                      borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    }}
-                  >
-                    {skills.map((skill) => {
-                      const competente =
-                        ficha.habilidades_competentes?.includes(skill.id) ?? false;
-                      const bonus =
-                        mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
-                      return (
-                        <button
-                          key={skill.id}
-                          type="button"
-                          disabled={!editableStats}
-                          onClick={() => {
-                            if (!editableStats) return;
-                            const actuales = ficha.habilidades_competentes ?? [];
-                            const siguientes = competente
-                              ? actuales.filter((s) => s !== skill.id)
-                              : [...actuales, skill.id];
-                            onEditarCampo?.("habilidades_competentes", siguientes);
-                          }}
-                          className="flex items-center justify-between pl-6 pr-2.5 py-1 transition-all disabled:cursor-default"
+                      >
+                        <span
+                          className="shrink-0"
                           style={{
-                            borderTop: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                            width: 5,
+                            height: 5,
+                            borderRadius: "50%",
+                            background: competente
+                              ? "var(--primary)"
+                              : "color-mix(in srgb, var(--primary) 15%, transparent)",
                           }}
-                        >
-                          <span
-                            className="flex items-center gap-1.5 text-micro"
-                            style={{
-                              color: competente
-                                ? "var(--primary)"
-                                : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                              fontWeight: competente ? 700 : 500,
-                            }}
-                          >
-                            <span
-                              className="shrink-0"
-                              style={{
-                                width: 5,
-                                height: 5,
-                                borderRadius: "50%",
-                                background: competente
-                                  ? "var(--primary)"
-                                  : "color-mix(in srgb, var(--primary) 15%, transparent)",
-                              }}
-                            />
-                            {skill.nombre}
-                          </span>
-                          <span
-                            className="text-micro font-black tabular-nums"
-                            style={{
-                              color: competente
-                                ? "var(--primary)"
-                                : "color-mix(in srgb, var(--primary) 45%, transparent)",
-                            }}
-                          >
-                            {bonus >= 0 ? `+${bonus}` : bonus}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                        />
+                        {skill.nombre}
+                      </span>
+                      <span
+                        className="text-micro font-black tabular-nums"
+                        style={{
+                          color: competente
+                            ? "var(--primary)"
+                            : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        }}
+                      >
+                        {bonus >= 0 ? `+${bonus}` : bonus}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* ── Datos extra: siempre visibles (velocidad, alineamiento, raza).
-          Velocidad es una stat de combate: solo admin (o el dueño mientras
-          la ficha no esté confirmada). Alineamiento y raza son de rol-play
-          y las puede tocar el dueño de la ficha en cualquier momento. ── */}
+      {/* ── Datos extra: velocidad y percepción pasiva, siempre visibles.
+          Filas simples con separador — sin caja, ya no compiten visualmente
+          con HP/Combate que sí la tienen arriba. ── */}
       <div
-        className="px-5 py-4 grid grid-cols-2 gap-2"
+        className="px-5 py-3 flex flex-col"
         style={{
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
-          style={{
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "2px",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
+        <div className="flex items-center justify-between py-1">
           <span
             className="text-micro font-black uppercase tracking-wider"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
@@ -1593,18 +1566,16 @@ export function FichaStatsPanel({
             valor={ficha.velocidad ?? 30}
             editable={editableStats}
             tipo="number"
+            align="right"
+            width={40}
             onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
             className="text-sm font-black tabular-nums"
             style={{ color: "var(--primary)" }}
           />
         </div>
         <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
-          style={{
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "2px",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
+          className="flex items-center justify-between py-1"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
           title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
         >
           <span
@@ -1619,32 +1590,24 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Dados de golpe + Monedas. Los dados de golpe se gastan en
-          descansos cortos: cada tap suma un "usado" (hasta el máximo del
-          dado, ej. 3d8 → hasta 3), y un botón chico los resetea todos
-          (descanso largo). Solo admin/DM los toca, como el resto de combate. ── */}
+      {/* ── Dados de golpe + Monedas: se usan seguido en mesa, se quedan
+          siempre visibles, pero como filas simples en vez de cajas — mismo
+          tratamiento que Velocidad/Percepción arriba. ── */}
       <div
-        className="px-5 py-4 grid grid-cols-2 gap-2"
+        className="px-5 py-3 flex flex-col"
         style={{
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
-          style={{
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "2px",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
+        <div className="flex items-center justify-between py-1 gap-2">
           <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider shrink-0"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
             <Dice6 size={9} />
             Dados de golpe
           </span>
-          <div className="flex items-center justify-between gap-1">
+          <div className="flex items-center justify-end gap-1.5">
             <CampoEditable
               valor={ficha.dados_golpe ?? ""}
               editable={editableStats}
@@ -1652,6 +1615,7 @@ export function FichaStatsPanel({
               className="text-sm font-black"
               style={{ color: "var(--primary)" }}
               width={54}
+              align="right"
             />
             {ficha.dados_golpe && (
               <span
@@ -1661,50 +1625,46 @@ export function FichaStatsPanel({
                 {ficha.dados_golpe_usados ?? 0} usados
               </span>
             )}
+            {editableStats && ficha.dados_golpe && (
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onEditarCampo?.(
+                      "dados_golpe_usados",
+                      Math.max(0, (ficha.dados_golpe_usados ?? 0) - 1),
+                    )
+                  }
+                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                  style={{ width: 18, height: 18 }}
+                >
+                  <Minus size={10} className="text-primary/50" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onEditarCampo?.("dados_golpe_usados", (ficha.dados_golpe_usados ?? 0) + 1)
+                  }
+                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                  style={{ width: 18, height: 18 }}
+                >
+                  <Plus size={10} className="text-primary/50" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
+                  className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-0.5"
+                  title="Descanso largo: restablece todos los dados de golpe"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
           </div>
-          {editableStats && ficha.dados_golpe && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <button
-                type="button"
-                onClick={() =>
-                  onEditarCampo?.(
-                    "dados_golpe_usados",
-                    Math.max(0, (ficha.dados_golpe_usados ?? 0) - 1),
-                  )
-                }
-                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                style={{ width: 18, height: 18 }}
-              >
-                <Minus size={10} className="text-primary/50" />
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onEditarCampo?.("dados_golpe_usados", (ficha.dados_golpe_usados ?? 0) + 1)
-                }
-                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                style={{ width: 18, height: 18 }}
-              >
-                <Plus size={10} className="text-primary/50" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
-                className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-1"
-                title="Descanso largo: restablece todos los dados de golpe"
-              >
-                Reset
-              </button>
-            </div>
-          )}
         </div>
         <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
-          style={{
-            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            borderRadius: "2px",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
+          className="flex flex-col gap-1 py-1"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
         >
           <span
             className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
@@ -1717,20 +1677,32 @@ export function FichaStatsPanel({
             // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
             // se muestra el total genérico bajo la clave "legado" para no
             // perder el dato, editable igual que antes.
-            <CampoEditable
-              valor={ficha.monedas?.legado ?? 0}
-              editable={editableStats}
-              tipo="number"
-              onCommit={(v) =>
-                onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
-              }
-              className="text-sm font-black tabular-nums"
-              style={{ color: "var(--primary)" }}
-            />
+            <div className="flex items-center justify-end">
+              <CampoEditable
+                valor={ficha.monedas?.legado ?? 0}
+                editable={editableStats}
+                tipo="number"
+                align="right"
+                onCommit={(v) =>
+                  onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
+                }
+                className="text-sm font-black tabular-nums"
+                style={{ color: "var(--primary)" }}
+              />
+            </div>
           ) : (
-            <div className="flex flex-col gap-1 mt-0.5">
-              {tiposMoneda.map((tipo) => (
-                <div key={tipo.id} className="flex items-center justify-between gap-1">
+            <div className="flex flex-col">
+              {tiposMoneda.map((tipo, i) => (
+                <div
+                  key={tipo.id}
+                  className="flex items-center justify-between gap-1 py-1"
+                  style={{
+                    borderTop:
+                      i === 0
+                        ? undefined
+                        : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                  }}
+                >
                   <span
                     className="text-micro font-semibold truncate"
                     style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
