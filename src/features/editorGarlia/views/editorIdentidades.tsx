@@ -13,7 +13,7 @@
 import { Loader2, Search, Swords, User } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { FichaDnd, RasgoEspecial } from "@/features/garlia/hooks/useFichasDnd";
+import type { CampoFichaValor, FichaDnd } from "@/features/garlia/hooks/useFichasDnd";
 import { FichaStatsPanel } from "@/features/garlia/views/misiones";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -84,7 +84,7 @@ export default function EditorIdentidades() {
   // ── Edición de un campo: optimista + persistido en Supabase ──────────────
   const handleEditarCampo = async (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
+    valor: CampoFichaValor,
   ) => {
     if (!seleccionada) return;
     const id = seleccionada.id;

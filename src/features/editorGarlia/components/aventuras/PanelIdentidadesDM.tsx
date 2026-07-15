@@ -18,7 +18,7 @@ import { ChevronDown, Loader2, Search, Swords } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
-import type { FichaDnd, RasgoEspecial } from "@/features/garlia/hooks/useFichasDnd";
+import type { CampoFichaValor, FichaDnd } from "@/features/garlia/hooks/useFichasDnd";
 import { FichaStatsPanel } from "@/features/garlia/views/misiones";
 import { supabase } from "@/lib/api/client/supabase";
 
@@ -95,7 +95,7 @@ export function PanelIdentidadesDM() {
   const handleEditarCampo = async (
     fichaId: string,
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
+    valor: CampoFichaValor,
   ) => {
     setFichas((prev) => prev.map((f) => (f.id === fichaId ? { ...f, [campo]: valor } : f)));
     setGuardandoId(fichaId);
