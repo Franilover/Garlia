@@ -933,11 +933,12 @@ export function FichaStatsPanel({
   return (
     <div
       ref={panelRef}
-      className="overflow-hidden"
+      className="overflow-y-auto"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+        maxHeight: "calc(100svh - 140px)",
       }}
     >
       {/* ── Panel anexo: se abre pegado al costado de esta tarjeta, como si
@@ -1381,9 +1382,123 @@ export function FichaStatsPanel({
         </div>
       </div>
 
+      {/* ── Datos extra: velocidad, percepción pasiva y monedas, siempre
+          visibles, ARRIBA de Estadísticas por ser lo que más se consulta.
+          Filas simples con separador — sin caja. Dados de golpe vive
+          aparte, flotando fijo en la esquina inferior (ver más abajo). ── */}
+      <div
+        className="px-5 py-3 flex flex-col"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <div className="flex items-center justify-between py-1">
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Velocidad
+          </span>
+          <CampoEditable
+            valor={ficha.velocidad ?? 30}
+            editable={editableStats}
+            tipo="number"
+            align="right"
+            width={40}
+            onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
+            className="text-sm font-black tabular-nums"
+            style={{ color: "var(--primary)" }}
+          />
+        </div>
+        <div
+          className="flex items-center justify-between py-1"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+          title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
+        >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Percepción pasiva
+          </span>
+          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            {percepcion}
+          </span>
+        </div>
+        <div
+          className="flex flex-col gap-1 py-1"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
+        >
+          <span
+            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            <Coins size={9} />
+            Monedas
+          </span>
+          {tiposMoneda.length === 0 ? (
+            // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
+            // se muestra el total genérico bajo la clave "legado" para no
+            // perder el dato, editable igual que antes.
+            <div className="flex items-center justify-end">
+              <CampoEditable
+                valor={ficha.monedas?.legado ?? 0}
+                editable={editableStats}
+                tipo="number"
+                align="right"
+                onCommit={(v) =>
+                  onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
+                }
+                className="text-sm font-black tabular-nums"
+                style={{ color: "var(--primary)" }}
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {tiposMoneda.map((tipo, i) => (
+                <div
+                  key={tipo.id}
+                  className="flex items-center justify-between gap-1 py-1"
+                  style={{
+                    borderTop:
+                      i === 0
+                        ? undefined
+                        : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                  }}
+                >
+                  <span
+                    className="text-micro font-semibold truncate"
+                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                    title={tipo.nombre}
+                  >
+                    {tipo.simbolo || tipo.nombre}
+                  </span>
+                  <CampoEditable
+                    valor={ficha.monedas?.[tipo.id] ?? 0}
+                    editable={editableStats}
+                    tipo="number"
+                    align="right"
+                    width={40}
+                    onCommit={(v) =>
+                      onEditarCampo?.("monedas", {
+                        ...ficha.monedas,
+                        [tipo.id]: Number(v) || 0,
+                      })
+                    }
+                    className="text-sm font-black tabular-nums"
+                    style={{ color: "var(--primary)" }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ── Estadísticas D&D: lista con separadores finos en vez de cajas
           anidadas — cada stat es una fila, salvación y skills debajo con
-          la misma indentación, sin tarjetas dentro de tarjetas. ── */}
+          la misma indentación, sin tarjetas dentro de tarjetas. En 2
+          columnas para aprovechar el ancho del panel. ── */}
       <div
         className="px-5 py-4"
         style={{
@@ -1391,7 +1506,7 @@ export function FichaStatsPanel({
         }}
       >
         <SeparadorLabel label="Estadísticas" />
-        <div className="flex flex-col">
+        <div className="grid grid-cols-2 gap-x-4 items-start">
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
@@ -1401,9 +1516,10 @@ export function FichaStatsPanel({
             return (
               <div
                 key={key}
+                className="min-w-0"
                 style={{
                   borderTop:
-                    i === 0 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                    i < 2 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
                 {/* Fila de la stat: abreviatura, valor editable y modificador. */}
@@ -1546,191 +1662,95 @@ export function FichaStatsPanel({
         </div>
       </div>
 
-      {/* ── Datos extra: velocidad y percepción pasiva, siempre visibles.
-          Filas simples con separador — sin caja, ya no compiten visualmente
-          con HP/Combate que sí la tienen arriba. ── */}
-      <div
-        className="px-5 py-3 flex flex-col"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <div className="flex items-center justify-between py-1">
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Velocidad
-          </span>
-          <CampoEditable
-            valor={ficha.velocidad ?? 30}
-            editable={editableStats}
-            tipo="number"
-            align="right"
-            width={40}
-            onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
-            className="text-sm font-black tabular-nums"
-            style={{ color: "var(--primary)" }}
-          />
-        </div>
+      {/* ── Dados de golpe: chip flotante fijo en la esquina inferior
+          izquierda del panel — se usan seguido en mesa (descansos cortos),
+          así quedan siempre a mano sin ocupar una fila fija en el scroll. ── */}
+      {ficha.dados_golpe && (
         <div
-          className="flex items-center justify-between py-1"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-          title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
+          className="sticky bottom-0 left-0 px-5 py-2.5 flex items-center gap-1.5"
+          style={{
+            background: "var(--white-custom)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
         >
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Percepción pasiva
-          </span>
-          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-            {percepcion}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Dados de golpe + Monedas: se usan seguido en mesa, se quedan
-          siempre visibles, pero como filas simples en vez de cajas — mismo
-          tratamiento que Velocidad/Percepción arriba. ── */}
-      <div
-        className="px-5 py-3 flex flex-col"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <div className="flex items-center justify-between py-1 gap-2">
           <span
             className="flex items-center gap-1 text-micro font-black uppercase tracking-wider shrink-0"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            <Dice6 size={9} />
-            Dados de golpe
+            <Dice6 size={11} />
           </span>
-          <div className="flex items-center justify-end gap-1.5">
-            <CampoEditable
-              valor={ficha.dados_golpe ?? ""}
-              editable={editableStats}
-              onCommit={(v) => onEditarCampo?.("dados_golpe", v || null)}
-              className="text-sm font-black"
-              style={{ color: "var(--primary)" }}
-              width={54}
-              align="right"
-            />
-            {ficha.dados_golpe && (
-              <span
-                className="text-micro font-bold tabular-nums shrink-0"
-                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-              >
-                {ficha.dados_golpe_usados ?? 0} usados
-              </span>
-            )}
-            {editableStats && ficha.dados_golpe && (
-              <div className="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    onEditarCampo?.(
-                      "dados_golpe_usados",
-                      Math.max(0, (ficha.dados_golpe_usados ?? 0) - 1),
-                    )
-                  }
-                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 18, height: 18 }}
-                >
-                  <Minus size={10} className="text-primary/50" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onEditarCampo?.("dados_golpe_usados", (ficha.dados_golpe_usados ?? 0) + 1)
-                  }
-                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 18, height: 18 }}
-                >
-                  <Plus size={10} className="text-primary/50" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
-                  className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-0.5"
-                  title="Descanso largo: restablece todos los dados de golpe"
-                >
-                  Reset
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        <div
-          className="flex flex-col gap-1 py-1"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
+          <CampoEditable
+            valor={ficha.dados_golpe ?? ""}
+            editable={editableStats}
+            onCommit={(v) => onEditarCampo?.("dados_golpe", v || null)}
+            className="text-sm font-black"
+            style={{ color: "var(--primary)" }}
+            width={54}
+          />
           <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            className="text-micro font-bold tabular-nums shrink-0"
+            style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
           >
-            <Coins size={9} />
-            Monedas
+            {ficha.dados_golpe_usados ?? 0} usados
           </span>
-          {tiposMoneda.length === 0 ? (
-            // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
-            // se muestra el total genérico bajo la clave "legado" para no
-            // perder el dato, editable igual que antes.
-            <div className="flex items-center justify-end">
-              <CampoEditable
-                valor={ficha.monedas?.legado ?? 0}
-                editable={editableStats}
-                tipo="number"
-                align="right"
-                onCommit={(v) =>
-                  onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
+          {editableStats && (
+            <div className="flex items-center gap-0.5 ml-1">
+              <button
+                type="button"
+                onClick={() =>
+                  onEditarCampo?.(
+                    "dados_golpe_usados",
+                    Math.max(0, (ficha.dados_golpe_usados ?? 0) - 1),
+                  )
                 }
-                className="text-sm font-black tabular-nums"
-                style={{ color: "var(--primary)" }}
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {tiposMoneda.map((tipo, i) => (
-                <div
-                  key={tipo.id}
-                  className="flex items-center justify-between gap-1 py-1"
-                  style={{
-                    borderTop:
-                      i === 0
-                        ? undefined
-                        : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
-                  }}
-                >
-                  <span
-                    className="text-micro font-semibold truncate"
-                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                    title={tipo.nombre}
-                  >
-                    {tipo.simbolo || tipo.nombre}
-                  </span>
-                  <CampoEditable
-                    valor={ficha.monedas?.[tipo.id] ?? 0}
-                    editable={editableStats}
-                    tipo="number"
-                    align="right"
-                    width={40}
-                    onCommit={(v) =>
-                      onEditarCampo?.("monedas", {
-                        ...ficha.monedas,
-                        [tipo.id]: Number(v) || 0,
-                      })
-                    }
-                    className="text-sm font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                </div>
-              ))}
+                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                style={{ width: 18, height: 18 }}
+              >
+                <Minus size={10} className="text-primary/50" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onEditarCampo?.("dados_golpe_usados", (ficha.dados_golpe_usados ?? 0) + 1)
+                }
+                className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                style={{ width: 18, height: 18 }}
+              >
+                <Plus size={10} className="text-primary/50" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
+                className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-0.5"
+                title="Descanso largo: restablece todos los dados de golpe"
+              >
+                Reset
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
+      {/* Si no hay dados de golpe cargados y es editable, chip mínimo para
+          poder cargarlos por primera vez sin tener que buscar dónde. */}
+      {!ficha.dados_golpe && editableStats && (
+        <div
+          className="sticky bottom-0 left-0 px-5 py-2.5 flex items-center gap-1.5"
+          style={{
+            background: "var(--white-custom)",
+            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+          }}
+        >
+          <Dice6 size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+          <CampoEditable
+            valor=""
+            editable
+            onCommit={(v) => onEditarCampo?.("dados_golpe", v || null)}
+            className="text-sm font-black"
+            style={{ color: "var(--primary)" }}
+            width={90}
+          />
+        </div>
+      )}
     </div>
   );
 }
