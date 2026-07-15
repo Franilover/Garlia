@@ -11,13 +11,11 @@ import {
   CircleDashed,
   CircleOff,
   Clock,
-  Coins,
   Dice6,
   EarOff,
   EyeOff,
   Ghost,
   Hand,
-  Heart,
   Languages,
   Link2,
   Loader2,
@@ -1150,7 +1148,6 @@ export function FichaStatsPanel({
               className="flex items-center gap-1.5"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              <Heart size={9} />
               <span className="text-micro font-black uppercase tracking-wider">Vida</span>
             </div>
             <span
@@ -1305,7 +1302,6 @@ export function FichaStatsPanel({
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              <Zap size={9} />
               Iniciativa
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
@@ -1324,7 +1320,6 @@ export function FichaStatsPanel({
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              <Shield size={9} />
               Defensa
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
@@ -1352,7 +1347,6 @@ export function FichaStatsPanel({
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              <Sword size={9} />
               Daño
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
@@ -1372,7 +1366,6 @@ export function FichaStatsPanel({
               className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              <Star size={9} />
               Compet.
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
@@ -1433,7 +1426,6 @@ export function FichaStatsPanel({
             className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            <Coins size={9} />
             Monedas
           </span>
           {tiposMoneda.length === 0 ? (
