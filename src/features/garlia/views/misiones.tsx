@@ -364,7 +364,7 @@ function PanelExpandidoFicha({
   editable: boolean;
   onEditarCampo?: (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | null,
+    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
   ) => void;
   onCerrar: () => void;
   /** Ref al contenedor del panel principal — el flotante se ancla a su

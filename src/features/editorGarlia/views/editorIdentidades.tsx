@@ -84,7 +84,7 @@ export default function EditorIdentidades() {
   // ── Edición de un campo: optimista + persistido en Supabase ──────────────
   const handleEditarCampo = async (
     campo: keyof FichaDnd,
-    valor: string | number | boolean | string[] | RasgoEspecial[] | null,
+    valor: string | number | boolean | string[] | RasgoEspecial[] | Record<string, number> | null,
   ) => {
     if (!seleccionada) return;
     const id = seleccionada.id;
