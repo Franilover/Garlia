@@ -923,7 +923,7 @@ export function FichaStatsPanel({
   return (
     <div
       ref={panelRef}
-      className="overflow-y-auto flex-1 min-h-0"
+      className="overflow-y-auto flex-1 min-h-0 flex flex-col"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
@@ -1415,12 +1415,12 @@ export function FichaStatsPanel({
           la misma indentación, sin tarjetas dentro de tarjetas. En 2
           columnas para aprovechar el ancho del panel. ── */}
       <div
-        className="px-5 py-4"
+        className="px-5 py-4 flex-1 flex flex-col"
         style={{
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="grid grid-cols-2 gap-x-4 items-start">
+        <div className="flex-1 grid grid-cols-2 gap-x-4 items-stretch">
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
@@ -1430,7 +1430,7 @@ export function FichaStatsPanel({
             return (
               <div
                 key={key}
-                className="min-w-0"
+                className="min-w-0 flex flex-col justify-between"
                 style={{
                   borderTop:
                     i < 2 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
