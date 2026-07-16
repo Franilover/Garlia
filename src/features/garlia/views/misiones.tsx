@@ -2037,10 +2037,11 @@ function PanelConjuros({
     >
       <SeparadorLabel label="Conjuros" />
 
-      {/* ── Característica + CD + bono de ataque ── */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* ── Característica + CD + Ataque + Espacios, todo en una fila
+          de 4 columnas, cajas un poco más chicas para que entren bien. ── */}
+      <div className="grid grid-cols-4 gap-1.5">
         <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          className="flex flex-col gap-0.5 px-1.5 py-1.5"
           style={{
             border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
@@ -2051,7 +2052,7 @@ function PanelConjuros({
             className="text-micro font-black uppercase tracking-wider"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            Característica
+            Caracts.
           </span>
           {editable ? (
             <select
@@ -2075,7 +2076,7 @@ function PanelConjuros({
           )}
         </div>
         <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          className="flex flex-col gap-0.5 px-1.5 py-1.5"
           style={{
             border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
@@ -2087,14 +2088,14 @@ function PanelConjuros({
             className="text-micro font-black uppercase tracking-wider"
             style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
           >
-            CD salvación
+            CD
           </span>
           <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
             {cd ?? "—"}
           </span>
         </div>
         <div
-          className="flex flex-col gap-0.5 px-2.5 py-1.5"
+          className="flex flex-col gap-0.5 px-1.5 py-1.5"
           style={{
             border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
@@ -2112,33 +2113,27 @@ function PanelConjuros({
             {bonoAtaque === null ? "—" : bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
           </span>
         </div>
-      </div>
-
-      {/* ── Espacios de conjuro: un solo contador usados/max, que el DM
-          o el jugador ajusta a mano cada vez que sube de nivel — sin
-          desglose por nivel de conjuro, para mantenerlo simple. ── */}
-      <div className="flex flex-col gap-1">
-        <span
-          className="text-micro font-black uppercase tracking-wider"
-          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-        >
-          Espacios de conjuro
-        </span>
         <div
-          className="flex items-center gap-2 px-2.5 py-1.5 self-start"
+          className="flex flex-col gap-0.5 px-1.5 py-1.5"
           style={{
             border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
             borderRadius: "2px",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
+          <span
+            className="text-micro font-black uppercase tracking-wider"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Espacios
+          </span>
           <span className="flex items-center gap-0.5 text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
             <CampoEditable
               valor={espacioUnico.usados}
               editable={editableStats}
               tipo="number"
               align="center"
-              width={20}
+              width={16}
               onCommit={(v) => actualizarEspacio(1, { usados: Number(v) || 0 })}
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
@@ -2149,7 +2144,7 @@ function PanelConjuros({
               editable={editableStats}
               tipo="number"
               align="center"
-              width={20}
+              width={16}
               onCommit={(v) => actualizarEspacio(1, { max: Number(v) || 0 })}
               className="text-sm font-black tabular-nums"
               style={{ color: "var(--primary)" }}
