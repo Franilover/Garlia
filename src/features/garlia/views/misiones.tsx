@@ -576,7 +576,7 @@ function PanelExpandidoFicha({
           {(
             [
               ["identidad", "Identidad"],
-              ["trasfondo", "Trasfondo"],
+              ["trasfondo", "Historia"],
               ["conjuros", "Conjuros"],
               ["inventario", "Inventario"],
               ["misiones", "Misiones"],
@@ -759,6 +759,14 @@ function PanelExpandidoFicha({
               />
             </div>
           </div>
+
+          <div className="-mx-6">
+            <PanelRasgosEspeciales
+              rasgos={ficha.rasgos_especiales ?? []}
+              editable={editable}
+              onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
+            />
+          </div>
             </>
           )}
 
@@ -823,15 +831,9 @@ function PanelExpandidoFicha({
             </div>
           )}
 
-          {/* ── Conjuros: rasgos y habilidades especiales (+ dotes) viven acá
-              también, junto a lo mágico, para no sumar una quinta tab. ── */}
+          {/* ── Conjuros: lo mágico solo. Rasgos/dotes se movieron a Identidad. ── */}
           {tab === "conjuros" && (
             <div className="flex flex-col gap-1 -mx-6">
-              <PanelRasgosEspeciales
-                rasgos={ficha.rasgos_especiales ?? []}
-                editable={editable}
-                onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
-              />
               <PanelConjuros
                 ficha={ficha}
                 editable={editable}
