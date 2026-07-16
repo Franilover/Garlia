@@ -2616,75 +2616,75 @@ export function TiradaDados() {
       const resultado = 1 + Math.floor(Math.random() * caras);
       const nueva: TiradaHistorial = { id: `${Date.now()}-${caras}`, caras, resultado };
       setUltima(nueva);
-      setHistorial((prev) => [nueva, ...prev].slice(0, 6));
+      setHistorial((prev) => [nueva, ...prev].slice(0, 4));
       setTirando(null);
     }, 420);
   }, []);
 
   return (
     <div
-      className="overflow-hidden flex"
+      className="overflow-hidden flex flex-col"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
-      {/* ── Columna angosta a la izquierda: un dado por fila, solo la
-          letra (sin ícono) — pensada para tocar rápido sin ocupar ancho. ── */}
+      {/* ── Resultado de la última tirada: arriba, ocupando todo el ancho. ── */}
       <div
-        className="w-14 shrink-0 flex flex-col gap-1 p-2"
-        style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        className="px-5 pt-4 pb-3 min-h-[28px] flex items-center justify-center"
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
-        {CARAS_DADO.map((caras) => (
-          <DadoBoton key={caras} caras={caras} activo={tirando === caras} onTirar={tirar} />
-        ))}
+        <AnimatePresence mode="wait">
+          {ultima && !tirando && (
+            <MotionDiv
+              key={ultima.id}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              className="flex items-baseline gap-1"
+            >
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                d{ultima.caras}
+              </span>
+              <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                {ultima.resultado}
+              </span>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <div className="px-5 pt-4 pb-3 min-h-[28px] flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            {ultima && !tirando && (
-              <MotionDiv
-                key={ultima.id}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                className="flex items-baseline gap-1"
-              >
-                <span
-                  className="text-micro font-black uppercase tracking-wider"
-                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-                >
-                  d{ultima.caras}
-                </span>
-                <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                  {ultima.resultado}
-                </span>
-              </MotionDiv>
-            )}
-          </AnimatePresence>
+      {/* ── Debajo: dados y recientes en columnas verticales paralelas. ── */}
+      <div className="flex">
+        <div
+          className="w-14 shrink-0 flex flex-col gap-1 p-2"
+          style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          {CARAS_DADO.map((caras) => (
+            <DadoBoton key={caras} caras={caras} activo={tirando === caras} onTirar={tirar} />
+          ))}
         </div>
 
-        {historial.length > 1 && (
-          <div
-            className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap"
-            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-          >
-            {historial.slice(1).map((t) => (
-              <span
-                key={t.id}
-                className="text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-                }}
-              >
-                d{t.caras}: {t.resultado}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* ── Recientes: última tirada aparte no cuenta, se listan hasta 3
+            previas, en columna, en paralelo a la columna de dados. ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1 p-2">
+          {historial.slice(1, 4).map((t) => (
+            <span
+              key={t.id}
+              className="text-micro font-bold tabular-nums px-2 py-1.5 rounded-lg text-center"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+              }}
+            >
+              d{t.caras}: {t.resultado}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
