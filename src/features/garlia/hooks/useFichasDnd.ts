@@ -448,10 +448,12 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
 }
 
 // ── Clases / subclases / trasfondos disponibles ────────────────────────────
-// El mundo define clases, subclases y trasfondos como grupos en
-// grupos_mundo (tipo="personajes", subtipo="Clase" | "Subclase" | "Trasfondo")
-// en vez de dejarlos como texto libre — los selectores de la ficha salen de
-// esas listas.
+// El mundo define clases y trasfondos como grupos en grupos_mundo
+// (tipo="personajes", subtipo="Clase" | "Trasfondo") en vez de dejarlos como
+// texto libre — los selectores de la ficha salen de esas listas.
+// Las subclases viven aparte, en subclases_dnd, relacionadas a su clase por
+// clase_id (FK a grupos_mundo.id) — así el selector de subclase solo muestra
+// las que pertenecen a la clase ya elegida.
 
 export interface GrupoPersonajeOpcion {
   id: string;
@@ -504,9 +506,49 @@ export function useClasesDisponibles() {
   return { clases: opciones, loading };
 }
 
-export function useSubclasesDisponibles() {
-  const { opciones, loading } = useGruposPersonajePorSubtipo("Subclase");
-  return { subclases: opciones, loading };
+/** Subclase disponible, siempre asociada a una clase (clase_id). */
+export interface SubclaseOpcion extends GrupoPersonajeOpcion {
+  clase_id: string;
+}
+
+async function buscarSubclasesPorClase(claseId: string | null): Promise<SubclaseOpcion[]> {
+  if (!claseId) return [];
+  const { data } = await supabase
+    .from("subclases_dnd")
+    .select("id, nombre, descripcion, clase_id")
+    .eq("clase_id", claseId)
+    .order("nombre");
+  return (data ?? []) as SubclaseOpcion[];
+}
+
+/**
+ * Subclases disponibles para la clase elegida (claseId = grupos_mundo.id de
+ * la clase). Si no hay clase elegida todavía, devuelve lista vacía.
+ */
+export function useSubclasesDisponibles(claseId: string | null) {
+  const [subclases, setSubclases] = useState<SubclaseOpcion[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!claseId) {
+      setSubclases([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    buscarSubclasesPorClase(claseId).then((data) => {
+      if (!cancelado) {
+        setSubclases(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [claseId]);
+
+  return { subclases, loading };
 }
 
 export function useTrasfondosDisponibles() {

@@ -617,6 +617,8 @@ function PanelExpandidoFicha({
                       const elegido = clasesDisponibles.find((c) => c.nombre === nombreElegido);
                       onEditarCampo?.("clase", nombreElegido);
                       onEditarCampo?.("rasgo_clase", elegido?.descripcion?.trim() || null);
+                      onEditarCampo?.("subclase", "");
+                      onEditarCampo?.("rasgo_subclase", null);
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
@@ -972,7 +974,8 @@ export function FichaStatsPanel({
   const armasEquipadas = itemsInventario.filter((i) => i.equipado && i.item?.es_arma);
   const { tipos: tiposMoneda } = useTiposMoneda();
   const { clases: clasesDisponibles } = useClasesDisponibles();
-  const { subclases: subclasesDisponibles } = useSubclasesDisponibles();
+  const claseFichaId = clasesDisponibles.find((c) => c.nombre === ficha.clase)?.id ?? null;
+  const { subclases: subclasesDisponibles } = useSubclasesDisponibles(claseFichaId);
   const { trasfondos: trasfondosDisponibles } = useTrasfondosDisponibles();
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);

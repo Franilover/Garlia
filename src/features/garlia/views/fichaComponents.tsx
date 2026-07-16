@@ -71,12 +71,13 @@ export function ModalCrearFicha({
   onCrear: (datos: NuevaFicha) => Promise<void>;
 }) {
   const { clases, loading: cargandoClases } = useClasesDisponibles();
-  const { subclases, loading: cargandoSubclases } = useSubclasesDisponibles();
-  const { trasfondos, loading: cargandoTrasfondos } = useTrasfondosDisponibles();
   const [nombre, setNombre] = useState("");
   const [especie, setEspecie] = useState<EspecieResumen | null>(null);
   const [clase, setClase] = useState("");
   const [subclase, setSubclase] = useState("");
+  const claseElegidaId = clases.find((c) => c.nombre === clase)?.id ?? null;
+  const { subclases, loading: cargandoSubclases } = useSubclasesDisponibles(claseElegidaId);
+  const { trasfondos, loading: cargandoTrasfondos } = useTrasfondosDisponibles();
   const [trasfondoMecanico, setTrasfondoMecanico] = useState("");
   const [alineamiento, setAlineamiento] = useState("");
   const [nivel, setNivel] = useState(1);
@@ -175,7 +176,10 @@ export function ModalCrearFicha({
 
           <select
             value={clase}
-            onChange={(e) => setClase(e.target.value)}
+            onChange={(e) => {
+              setClase(e.target.value);
+              setSubclase("");
+            }}
             disabled={cargandoClases}
             className={`w-full ${inputClase} ${!clase ? "text-primary/30" : ""}`}
           >
@@ -191,10 +195,16 @@ export function ModalCrearFicha({
             <select
               value={subclase}
               onChange={(e) => setSubclase(e.target.value)}
-              disabled={cargandoSubclases}
+              disabled={!clase || cargandoSubclases}
               className={`flex-1 min-w-0 ${inputClase} ${!subclase ? "text-primary/30" : ""}`}
             >
-              <option value="">{cargandoSubclases ? "Cargando subclases…" : "Subclase…"}</option>
+              <option value="">
+                {!clase
+                  ? "Elegí una clase primero…"
+                  : cargandoSubclases
+                    ? "Cargando subclases…"
+                    : "Subclase…"}
+              </option>
               {subclases.map((s) => (
                 <option key={s.id} value={s.nombre}>
                   {s.nombre}
@@ -345,11 +355,12 @@ export function FichaDetalle({
 }) {
   const { items, agregar, quitar, toggleEquipado } = useInventarioFicha(ficha.id);
   const { clases } = useClasesDisponibles();
-  const { subclases } = useSubclasesDisponibles();
   const { trasfondos } = useTrasfondosDisponibles();
   const [editando, setEditando] = useState(false);
   const [borrador, setBorrador] = useState<Partial<FichaDnd>>(ficha);
   const [guardando, setGuardando] = useState(false);
+  const claseBorradorId = clases.find((c) => c.nombre === (borrador.clase as string))?.id ?? null;
+  const { subclases } = useSubclasesDisponibles(claseBorradorId);
 
   const guardar = async () => {
     setGuardando(true);
@@ -508,6 +519,8 @@ export function FichaDetalle({
                 ...prev,
                 clase: nombreElegido,
                 rasgo_clase: elegido?.descripcion?.trim() || null,
+                subclase: null,
+                rasgo_subclase: null,
               }));
             }}
             className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
@@ -530,9 +543,10 @@ export function FichaDetalle({
                 rasgo_subclase: elegido?.descripcion?.trim() || null,
               }));
             }}
-            className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full"
+            disabled={!borrador.clase}
+            className="h-9 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 focus:border-primary/30 transition-colors w-full disabled:opacity-50"
           >
-            <option value="">Subclase…</option>
+            <option value="">{!borrador.clase ? "Elegí una clase primero…" : "Subclase…"}</option>
             {subclases.map((s) => (
               <option key={s.id} value={s.nombre}>
                 {s.nombre}
