@@ -3,10 +3,8 @@
 import { AnimatePresence } from "framer-motion";
 import {
   ArrowDown,
-  Award,
   Backpack,
   Ban,
-  BookOpen,
   CheckCircle2,
   CircleDashed,
   CircleOff,
@@ -837,9 +835,6 @@ function PanelExpandidoFicha({
               <PanelInventarioFicha
                 fichaId={ficha.id}
                 editable={editable}
-                bonoCompetencia={bonusCompetencia(ficha.nivel ?? 1)}
-                fuerza={ficha.fuerza ?? 10}
-                destreza={ficha.destreza ?? 10}
                 monedas={ficha.monedas}
                 tiposMoneda={tiposMoneda}
                 editableMonedas={editableStats}
@@ -863,6 +858,77 @@ function PanelExpandidoFicha({
       </MotionDiv>
     </>,
     document.body,
+  );
+}
+
+// ─── Bloque de ataques ──────────────────────────────────────────────────────
+// Deriva la lista de ataques de las armas equipadas del inventario. Vive como
+// componente aparte porque se usa tanto en el panel de Estadísticas (debajo
+// del grid principal) como potencialmente en otros lugares — mismo criterio
+// de sutileza/distancia de siempre: a distancia usa Destreza, cuerpo a
+// cuerpo usa Fuerza (o el mayor de los dos si el arma tiene sutileza).
+
+function BloqueAtaques({
+  armasEquipadas,
+  fuerza,
+  destreza,
+  bonoCompetencia,
+}: {
+  armasEquipadas: ItemInventarioFicha[];
+  fuerza: number;
+  destreza: number;
+  bonoCompetencia: number;
+}) {
+  if (armasEquipadas.length === 0) return null;
+
+  return (
+    <div
+      className="px-5 py-4"
+      style={{
+        borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}
+    >
+      <SeparadorLabel label="Ataques" />
+      <div className="flex flex-col gap-1.5">
+        {armasEquipadas.map((fila) => {
+          const modStat = fila.item?.distancia
+            ? statMod(destreza)
+            : fila.item?.sutileza
+              ? Math.max(statMod(fuerza), statMod(destreza))
+              : statMod(fuerza);
+          const bonoAtaque = modStat + bonoCompetencia;
+          return (
+            <div
+              key={fila.id}
+              className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+              style={{
+                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                borderRadius: "2px",
+                background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              }}
+            >
+              <span className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-primary/75 truncate">
+                {fila.item?.distancia ? (
+                  <Target size={10} className="shrink-0 text-primary/35" />
+                ) : (
+                  <Sword size={10} className="shrink-0 text-primary/35" />
+                )}
+                {fila.item?.nombre ?? "Arma"}
+              </span>
+              <span
+                className="shrink-0 text-micro font-bold tabular-nums"
+                style={{ color: "var(--primary)" }}
+              >
+                {bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
+                {fila.item?.dado_dano
+                  ? ` · ${fila.item.dado_dano}${modStat >= 0 ? `+${modStat}` : modStat}`
+                  : ""}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -902,6 +968,8 @@ export function FichaStatsPanel({
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
+  const { items: itemsInventario } = useInventarioFicha(ficha.id);
+  const armasEquipadas = itemsInventario.filter((i) => i.equipado && i.item?.es_arma);
   const { tipos: tiposMoneda } = useTiposMoneda();
   const { clases: clasesDisponibles } = useClasesDisponibles();
   const { subclases: subclasesDisponibles } = useSubclasesDisponibles();
@@ -1572,6 +1640,13 @@ export function FichaStatsPanel({
         </div>
       </div>
 
+      <BloqueAtaques
+        armasEquipadas={armasEquipadas}
+        fuerza={ficha.fuerza ?? 10}
+        destreza={ficha.destreza ?? 10}
+        bonoCompetencia={bonoCompetencia}
+      />
+
       {/* ── Dados de golpe: chip flotante fijo en la esquina inferior
           izquierda del panel — se usan seguido en mesa (descansos cortos),
           así quedan siempre a mano sin ocupar una fila fija en el scroll. ── */}
@@ -1726,19 +1801,6 @@ function PanelRasgosEspeciales({
         background: "color-mix(in srgb, var(--primary) 3%, transparent)",
       }}
     >
-      {r.origen === "dote" ? (
-        <Award
-          size={13}
-          className="shrink-0 mt-0.5"
-          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-        />
-      ) : (
-        <BookOpen
-          size={13}
-          className="shrink-0 mt-0.5"
-          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-        />
-      )}
       <div className="min-w-0 flex-1">
         <p
           className="text-micro font-black uppercase tracking-wider"
@@ -1777,7 +1839,7 @@ function PanelRasgosEspeciales({
     >
       <div className="grid grid-cols-2 gap-6">
         <div className="flex flex-col gap-2 min-w-0">
-          <SeparadorLabel label="Rasgos y habilidades especiales" />
+          <SeparadorLabel label="Rasgos" />
 
           {otrosRasgos.length === 0 && !agregando && (
             <p
@@ -1795,7 +1857,7 @@ function PanelRasgosEspeciales({
             trasfondo o las que se ganan al subir de nivel. ── */}
         {(dotes.length > 0 || editable) && (
           <div className="flex flex-col gap-2 min-w-0">
-            <SeparadorLabel label="Dotes" />
+            <SeparadorLabel label="Rasgos" />
             {dotes.length === 0 && !agregando && (
               <p
                 className="text-micro italic"
@@ -2235,17 +2297,16 @@ function PanelConjuros({
   );
 }
 
-// ─── Inventario + ataques derivados ────────────────────────────────────────
+// ─── Inventario ─────────────────────────────────────────────────────────────
 // Vive como componente aparte porque usa su propio hook de datos
 // (useInventarioFicha cargando por fichaId) — separarlo evita que
 // FichaStatsPanel dispare esa consulta cuando no hace falta mostrarla.
+// (Los ataques derivados de armas equipadas se muestran en BloqueAtaques,
+// debajo de Estadísticas — FichaStatsPanel ya carga el inventario aparte.)
 
 function PanelInventarioFicha({
   fichaId,
   editable,
-  bonoCompetencia,
-  fuerza,
-  destreza,
   monedas,
   tiposMoneda,
   editableMonedas,
@@ -2253,9 +2314,6 @@ function PanelInventarioFicha({
 }: {
   fichaId: string;
   editable: boolean;
-  bonoCompetencia: number;
-  fuerza: number;
-  destreza: number;
   monedas?: Record<string, number>;
   tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
   editableMonedas: boolean;
@@ -2264,8 +2322,6 @@ function PanelInventarioFicha({
   const { items, loading, agregar, quitar, toggleEquipado, editarCantidad } =
     useInventarioFicha(fichaId);
   const [buscando, setBuscando] = useState(false);
-
-  const armasEquipadas = items.filter((i) => i.equipado && i.item?.es_arma);
 
   return (
     <>
@@ -2340,60 +2396,6 @@ function PanelInventarioFicha({
           </div>
         )}
       </div>
-
-      {/* ── Ataques: solo aparece si hay al menos un arma equipada. ── */}
-      {armasEquipadas.length > 0 && (
-        <div
-          className="px-5 py-4"
-          style={{
-            borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
-        >
-          <SeparadorLabel label="Ataques" />
-          <div className="flex flex-col gap-1.5">
-            {armasEquipadas.map((fila) => {
-              // Distancia (arco, ballesta…) y sutileza (arma liviana cuerpo
-              // a cuerpo) usan Destreza; el resto de armas cuerpo a cuerpo
-              // usan Fuerza. La sutileza además toma el mayor de los dos.
-              const modStat = fila.item?.distancia
-                ? statMod(destreza)
-                : fila.item?.sutileza
-                  ? Math.max(statMod(fuerza), statMod(destreza))
-                  : statMod(fuerza);
-              const bonoAtaque = modStat + bonoCompetencia;
-              return (
-                <div
-                  key={fila.id}
-                  className="flex items-center justify-between gap-2 px-2.5 py-1.5"
-                  style={{
-                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderRadius: "2px",
-                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  }}
-                >
-                  <span className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-primary/75 truncate">
-                    {fila.item?.distancia ? (
-                      <Target size={10} className="shrink-0 text-primary/35" />
-                    ) : (
-                      <Sword size={10} className="shrink-0 text-primary/35" />
-                    )}
-                    {fila.item?.nombre ?? "Arma"}
-                  </span>
-                  <span
-                    className="shrink-0 text-micro font-bold tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    {bonoAtaque >= 0 ? `+${bonoAtaque}` : bonoAtaque}
-                    {fila.item?.dado_dano
-                      ? ` · ${fila.item.dado_dano}${modStat >= 0 ? `+${modStat}` : modStat}`
-                      : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Inventario completo. Cualquiera con `editable` puede agregar
           ítems del catálogo del mundo, ajustar cantidad, marcar equipado
