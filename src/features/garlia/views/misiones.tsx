@@ -1948,6 +1948,7 @@ function PanelConjuros({
   const cd = cdSalvacionConjuros(ficha as unknown as Parameters<typeof cdSalvacionConjuros>[0]);
   const bonoAtaque = bonoAtaqueConjuros(ficha as unknown as Parameters<typeof bonoAtaqueConjuros>[0]);
   const espacios = ficha.espacios_conjuro ?? {};
+  const espacioUnico = espacios["1"] ?? { max: 0, usados: 0 };
   const conjuros = ficha.conjuros ?? [];
   const trucos = conjuros.filter((c) => c.nivel === 0);
   const conNivel = conjuros.filter((c) => c.nivel > 0).sort((a, b) => a.nivel - b.nivel);
@@ -2113,8 +2114,9 @@ function PanelConjuros({
         </div>
       </div>
 
-      {/* ── Espacios de conjuro por nivel: solo se muestran los niveles con
-          max > 0 (o todos si editableStats, para poder configurarlos). ── */}
+      {/* ── Espacios de conjuro: un solo contador usados/max, que el DM
+          o el jugador ajusta a mano cada vez que sube de nivel — sin
+          desglose por nivel de conjuro, para mantenerlo simple. ── */}
       <div className="flex flex-col gap-1">
         <span
           className="text-micro font-black uppercase tracking-wider"
@@ -2122,53 +2124,37 @@ function PanelConjuros({
         >
           Espacios de conjuro
         </span>
-        <div className="grid grid-cols-4 gap-1.5">
-          {NIVELES_CONJURO.filter((n) => editableStats || (espacios[String(n)]?.max ?? 0) > 0).map(
-            (nivel) => {
-              const datos = espacios[String(nivel)] ?? { max: 0, usados: 0 };
-              return (
-                <div
-                  key={nivel}
-                  className="flex flex-col items-center gap-0.5 px-1.5 py-1.5"
-                  style={{
-                    border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderRadius: "2px",
-                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  }}
-                >
-                  <span
-                    className="text-micro font-black"
-                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                  >
-                    Nv. {nivel}
-                  </span>
-                  <span className="flex items-center gap-0.5 text-xs font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                    <CampoEditable
-                      valor={datos.usados}
-                      editable={editableStats}
-                      tipo="number"
-                      align="center"
-                      width={16}
-                      onCommit={(v) => actualizarEspacio(nivel, { usados: Number(v) || 0 })}
-                      className="text-xs font-black tabular-nums"
-                      style={{ color: "var(--primary)" }}
-                    />
-                    /
-                    <CampoEditable
-                      valor={datos.max}
-                      editable={editableStats}
-                      tipo="number"
-                      align="center"
-                      width={16}
-                      onCommit={(v) => actualizarEspacio(nivel, { max: Number(v) || 0 })}
-                      className="text-xs font-black tabular-nums"
-                      style={{ color: "var(--primary)" }}
-                    />
-                  </span>
-                </div>
-              );
-            },
-          )}
+        <div
+          className="flex items-center gap-2 px-2.5 py-1.5 self-start"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <span className="flex items-center gap-0.5 text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            <CampoEditable
+              valor={espacioUnico.usados}
+              editable={editableStats}
+              tipo="number"
+              align="center"
+              width={20}
+              onCommit={(v) => actualizarEspacio(1, { usados: Number(v) || 0 })}
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+            /
+            <CampoEditable
+              valor={espacioUnico.max}
+              editable={editableStats}
+              tipo="number"
+              align="center"
+              width={20}
+              onCommit={(v) => actualizarEspacio(1, { max: Number(v) || 0 })}
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+          </span>
         </div>
       </div>
 
