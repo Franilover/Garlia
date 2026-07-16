@@ -577,8 +577,8 @@ function PanelExpandidoFicha({
             [
               ["identidad", "Identidad"],
               ["trasfondo", "Historia"],
-              ["conjuros", "Conjuros"],
               ["inventario", "Inventario"],
+              ["conjuros", "Conjuros"],
               ["misiones", "Misiones"],
             ] as const
           ).map(([id, label]) => (
@@ -1780,37 +1780,39 @@ function PanelRasgosEspeciales({
         borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
     >
-      <SeparadorLabel label="Rasgos y habilidades especiales" />
+      <div className="grid grid-cols-2 gap-6">
+        <div className="flex flex-col gap-2 min-w-0">
+          <SeparadorLabel label="Rasgos y habilidades especiales" />
 
-      {otrosRasgos.length === 0 && !agregando && (
-        <p
-          className="text-micro italic"
-          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-        >
-          Sin rasgos de clase o raza registrados aún.
-        </p>
-      )}
-
-      <div className="flex flex-col gap-2">{otrosRasgos.map(listaRasgo)}</div>
-
-      {/* ── Dotes (feats): sección aparte, ej. la dote de origen del
-          trasfondo o las que se ganan al subir de nivel. ── */}
-      {(dotes.length > 0 || editable) && (
-        <>
-          <div className="mt-2">
-            <SeparadorLabel label="Dotes" />
-          </div>
-          {dotes.length === 0 && !agregando && (
+          {otrosRasgos.length === 0 && !agregando && (
             <p
               className="text-micro italic"
               style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
             >
-              Sin dotes registradas aún.
+              Sin rasgos de clase o raza registrados aún.
             </p>
           )}
-          <div className="flex flex-col gap-2">{dotes.map(listaRasgo)}</div>
-        </>
-      )}
+
+          <div className="flex flex-col gap-2">{otrosRasgos.map(listaRasgo)}</div>
+        </div>
+
+        {/* ── Dotes (feats): columna aparte, ej. la dote de origen del
+            trasfondo o las que se ganan al subir de nivel. ── */}
+        {(dotes.length > 0 || editable) && (
+          <div className="flex flex-col gap-2 min-w-0">
+            <SeparadorLabel label="Dotes" />
+            {dotes.length === 0 && !agregando && (
+              <p
+                className="text-micro italic"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                Sin dotes registradas aún.
+              </p>
+            )}
+            <div className="flex flex-col gap-2">{dotes.map(listaRasgo)}</div>
+          </div>
+        )}
+      </div>
 
       {editable && (
         <>
