@@ -2122,7 +2122,7 @@ function PanelConjuros({
         >
           Espacios de conjuro
         </span>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {NIVELES_CONJURO.filter((n) => editableStats || (espacios[String(n)]?.max ?? 0) > 0).map(
             (nivel) => {
               const datos = espacios[String(nivel)] ?? { max: 0, usados: 0 };
