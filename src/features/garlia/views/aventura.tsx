@@ -286,9 +286,6 @@ function PanelIdentidad() {
         />
       )}
 
-      {/* ── Tirada de dados: debajo de las stats, arriba de misiones ── */}
-      {activa && <TiradaDados />}
-
       {/* ── Misiones aceptadas: en fila, debajo del bloque de identidad ── */}
       {activa && <Misiones ficha={activa} onFichaActualizada={refetch} />}
     </>
@@ -401,7 +398,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
         </h1>
       </MotionDiv>
 
-      <div className="flex-1 w-full">
+      <div className="flex-1 w-full relative">
         {!loading && publicadas.length > 0 && (
           <div className="flex justify-end mb-2">
             <div className="flex items-center gap-1.5">
@@ -435,28 +432,38 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
             </Text>
           </div>
         ) : (
-          <TableroAventura
-            editable={false}
-            items={publicadas.map(
-              (entidad): TableroItem => ({
-                id: entidad.id,
-                nombre: entidad.nombre,
-                imagen_url: entidad.imagen_url,
-                subtitulo: TABLA_LABEL[entidad.tabla].singular,
-                pos_x: entidad.pos_x,
-                pos_y: entidad.pos_y,
-              }),
-            )}
-            cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
-            cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
-            imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
-            onClickItem={(id) => {
-              const entidad = publicadas.find((e) => e.id === id);
-              if (entidad) setSeleccion(entidad);
-            }}
-          />
+          <>
+            <TableroAventura
+              editable={false}
+              items={publicadas.map(
+                (entidad): TableroItem => ({
+                  id: entidad.id,
+                  nombre: entidad.nombre,
+                  imagen_url: entidad.imagen_url,
+                  subtitulo: TABLA_LABEL[entidad.tabla].singular,
+                  pos_x: entidad.pos_x,
+                  pos_y: entidad.pos_y,
+                }),
+              )}
+              cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
+              cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
+              imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
+              onClickItem={(id) => {
+                const entidad = publicadas.find((e) => e.id === id);
+                if (entidad) setSeleccion(entidad);
+              }}
+            />
+
+            {/* ── Dados: flotan fijos sobre el pizarrón, esquina inferior
+                derecha del viewport, siempre a mano sin ocupar espacio en
+                el flujo ni tapar el panel de identidad. ── */}
+            <div className="fixed bottom-6 left-6 z-40 shadow-lg">
+              <TiradaDados />
+            </div>
+          </>
         )}
       </div>
+
 
       {/* ── Modal de detalle ─────────────────────────────────────────── */}
       <AnimatePresence>
