@@ -2616,7 +2616,7 @@ export function TiradaDados() {
       const resultado = 1 + Math.floor(Math.random() * caras);
       const nueva: TiradaHistorial = { id: `${Date.now()}-${caras}`, caras, resultado };
       setUltima(nueva);
-      setHistorial((prev) => [nueva, ...prev].slice(0, 4));
+      setHistorial((prev) => [nueva, ...prev].slice(0, 20));
       setTirando(null);
     }, 420);
   }, []);
@@ -2669,13 +2669,15 @@ export function TiradaDados() {
           ))}
         </div>
 
-        {/* ── Recientes: última tirada aparte no cuenta, se listan hasta 3
-            previas, en columna, en paralelo a la columna de dados. ── */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1 p-2">
-          {historial.slice(1, 4).map((t) => (
+        {/* ── Recientes: última tirada aparte no cuenta. Se apilan en
+            columna, en paralelo a los dados, y se cortan solas por altura
+            del contenedor (overflow-hidden) — no hay un tope fijo de
+            cantidad, entran las que alcancen sin generar scroll. ── */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1 p-2 overflow-hidden">
+          {historial.slice(1).map((t) => (
             <span
               key={t.id}
-              className="text-micro font-bold tabular-nums px-2 py-1.5 rounded-lg text-center"
+              className="shrink-0 text-micro font-bold tabular-nums px-2 py-1.5 rounded-lg text-center"
               style={{
                 color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 background: "color-mix(in srgb, var(--primary) 5%, transparent)",
