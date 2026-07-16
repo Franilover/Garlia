@@ -402,6 +402,7 @@ function PanelExpandidoFicha({
   trasfondosDisponibles,
   tiposMoneda,
   onEditarCampo,
+  onFichaActualizada,
   onCerrar,
   anclaRef,
 }: {
