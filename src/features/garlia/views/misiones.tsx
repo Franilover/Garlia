@@ -923,12 +923,11 @@ export function FichaStatsPanel({
   return (
     <div
       ref={panelRef}
-      className="overflow-y-auto"
+      className="overflow-y-auto flex-1 min-h-0"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-        maxHeight: "calc(100svh - 140px)",
       }}
     >
       {/* ── Panel anexo: se abre pegado al costado de esta tarjeta, como si
