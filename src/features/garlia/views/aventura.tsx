@@ -83,7 +83,7 @@ export default function Aventura() {
         </div>
 
         {aventuraId && (
-          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none md:h-[calc(100svh-140px)]">
+          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none md:h-[calc(100svh_-_140px)]">
             <PanelIdentidad />
           </div>
         )}
