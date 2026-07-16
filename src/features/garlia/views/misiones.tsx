@@ -1426,7 +1426,7 @@ export function FichaStatsPanel({
             return (
               <div
                 key={key}
-                className="min-w-0 flex flex-col justify-between"
+                className="min-w-0 flex flex-col justify-start"
                 style={{
                   borderTop:
                     i < 3 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
