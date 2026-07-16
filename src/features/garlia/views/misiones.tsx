@@ -1416,7 +1416,10 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="flex-1 grid grid-cols-3 gap-x-2.5 items-stretch">
+        <div
+          className="flex-1 grid gap-x-2.5 items-stretch"
+          style={{ gridTemplateColumns: "1fr 1.3fr 1fr" }}
+        >
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
@@ -1532,7 +1535,7 @@ export function FichaStatsPanel({
                       className="w-full flex items-center justify-between pl-1.5 pr-1 py-0.5 transition-all disabled:cursor-default"
                     >
                       <span
-                        className="flex items-center gap-1.5 text-micro"
+                        className="flex items-center gap-1.5 text-micro whitespace-nowrap"
                         style={{
                           color: competente
                             ? "var(--primary)"
