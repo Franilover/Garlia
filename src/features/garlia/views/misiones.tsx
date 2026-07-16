@@ -1474,7 +1474,7 @@ export function FichaStatsPanel({
                       : [...actuales, key];
                     onEditarCampo?.("salvaciones_competentes", siguientes);
                   }}
-                  className="w-full flex items-center justify-between pl-5 pr-1 py-0.5 transition-all disabled:cursor-default"
+                  className="w-full flex items-center justify-between pl-1.5 pr-1 py-0.5 transition-all disabled:cursor-default"
                 >
                   <span
                     className="flex items-center gap-1.5 text-micro"
@@ -1529,7 +1529,7 @@ export function FichaStatsPanel({
                           : [...actuales, skill.id];
                         onEditarCampo?.("habilidades_competentes", siguientes);
                       }}
-                      className="w-full flex items-center justify-between pl-5 pr-1 py-0.5 transition-all disabled:cursor-default"
+                      className="w-full flex items-center justify-between pl-1.5 pr-1 py-0.5 transition-all disabled:cursor-default"
                     >
                       <span
                         className="flex items-center gap-1.5 text-micro"
