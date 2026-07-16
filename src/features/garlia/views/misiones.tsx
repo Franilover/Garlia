@@ -419,6 +419,9 @@ function PanelExpandidoFicha({
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
   ) => void;
+  /** Se dispara tras reclamar una recompensa de misión, para refrescar la
+      ficha en el padre — solo se usa dentro de la tab "Misiones". */
+  onFichaActualizada?: () => void;
   onCerrar: () => void;
   /** Ref al contenedor del panel principal — el flotante se ancla a su
       borde, como si el panel "se estirara" hacia el costado. */
@@ -432,7 +435,7 @@ function PanelExpandidoFicha({
     height: number;
     lado: "derecha" | "izquierda";
   } | null>(null);
-  const [tab, setTab] = useState<"identidad" | "trasfondo" | "conjuros" | "inventario">("identidad");
+  const [tab, setTab] = useState<"identidad" | "trasfondo" | "conjuros" | "inventario" | "misiones">("identidad");
 
   useEffect(() => {
     const calcular = () => {
@@ -575,6 +578,7 @@ function PanelExpandidoFicha({
               ["trasfondo", "Trasfondo"],
               ["conjuros", "Conjuros"],
               ["inventario", "Inventario"],
+              ["misiones", "Misiones"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -851,6 +855,12 @@ function PanelExpandidoFicha({
               />
             </div>
           )}
+
+          {tab === "misiones" && (
+            <div className="-mx-6">
+              <Misiones ficha={ficha} onFichaActualizada={onFichaActualizada} />
+            </div>
+          )}
         </div>
       </MotionDiv>
     </>,
@@ -866,6 +876,7 @@ export function FichaStatsPanel({
   editableCondiciones = false,
   mostrarCondiciones = true,
   onEditarCampo,
+  onFichaActualizada,
 }: {
   ficha: FichaDnd;
   headerAction?: React.ReactNode;
@@ -882,6 +893,9 @@ export function FichaStatsPanel({
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
   ) => void;
+  /** Se dispara tras reclamar una recompensa de misión, para refrescar la
+      ficha en el padre — solo se usa dentro de la tab "Misiones". */
+  onFichaActualizada?: () => void;
 }) {
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
@@ -931,6 +945,7 @@ export function FichaStatsPanel({
             trasfondosDisponibles={trasfondosDisponibles}
             tiposMoneda={tiposMoneda}
             onEditarCampo={onEditarCampo}
+            onFichaActualizada={onFichaActualizada}
             onCerrar={() => setExpandido(false)}
             anclaRef={panelRef}
           />

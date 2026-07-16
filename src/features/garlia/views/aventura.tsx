@@ -28,7 +28,7 @@ import {
 } from "@/features/editorGarlia/hooks/aventuras/useAventuras";
 import { useFichasDnd, type CampoFichaValor, type FichaDnd, type NuevaFicha } from "../hooks/useFichasDnd";
 import { CARD_SCALE_MAX, CARD_SCALE_MIN, useTableroEscala } from "../hooks/useTableroEscala";
-import Misiones, { FichaStatsPanel, TiradaDados } from "./misiones";
+import { FichaStatsPanel, TiradaDados } from "./misiones";
 
 // Valores por defecto para una ficha recién creada: se crea directo (sin
 // modal) y el jugador la termina de completar editando en el panel lateral.
@@ -185,6 +185,7 @@ function PanelIdentidad() {
           editableCondiciones={false}
           mostrarCondiciones={false}
           onEditarCampo={handleEditarCampo}
+          onFichaActualizada={refetch}
           headerAction={
             <div className="relative flex items-center gap-1">
               {guardando && (
@@ -286,8 +287,6 @@ function PanelIdentidad() {
         />
       )}
 
-      {/* ── Misiones aceptadas: en fila, debajo del bloque de identidad ── */}
-      {activa && <Misiones ficha={activa} onFichaActualizada={refetch} />}
     </>
   );
 }
@@ -457,7 +456,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
             {/* ── Dados: flotan fijos sobre el pizarrón, esquina inferior
                 derecha del viewport, siempre a mano sin ocupar espacio en
                 el flujo ni tapar el panel de identidad. ── */}
-            <div className="fixed bottom-6 left-6 z-40 shadow-lg">
+            <div className="fixed z-40 shadow-lg bottom-20 left-4 md:bottom-6 md:left-[64px]">
               <TiradaDados />
             </div>
           </>
