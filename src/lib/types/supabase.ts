@@ -1387,9 +1387,12 @@ export type Database = {
           descripcion: string | null
           dote_origen: string | null
           dote_origen_id: string | null
+          habilidades_a_elegir: number | null
+          habilidades_disponibles: string[] | null
           id: string
           miembro_ids: string[]
           nombre: string
+          salvaciones_clase: string[] | null
           subtipo: string | null
           tipo: string
           updated_at: string
@@ -1399,9 +1402,12 @@ export type Database = {
           descripcion?: string | null
           dote_origen?: string | null
           dote_origen_id?: string | null
+          habilidades_a_elegir?: number | null
+          habilidades_disponibles?: string[] | null
           id?: string
           miembro_ids?: string[]
           nombre?: string
+          salvaciones_clase?: string[] | null
           subtipo?: string | null
           tipo: string
           updated_at?: string
@@ -1411,9 +1417,12 @@ export type Database = {
           descripcion?: string | null
           dote_origen?: string | null
           dote_origen_id?: string | null
+          habilidades_a_elegir?: number | null
+          habilidades_disponibles?: string[] | null
           id?: string
           miembro_ids?: string[]
           nombre?: string
+          salvaciones_clase?: string[] | null
           subtipo?: string | null
           tipo?: string
           updated_at?: string

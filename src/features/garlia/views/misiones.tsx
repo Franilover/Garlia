@@ -410,7 +410,14 @@ function PanelExpandidoFicha({
    *  controla espacios de conjuro y otros números "de combate" dentro del
    *  panel expandido (conjuros). */
   editableStats: boolean;
-  clasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
+  clasesDisponibles: Array<{
+    id: string;
+    nombre: string;
+    descripcion?: string | null;
+    salvaciones_clase?: string[] | null;
+    habilidades_disponibles?: string[] | null;
+    habilidades_a_elegir?: number | null;
+  }>;
   subclasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
   trasfondosDisponibles: Array<{
     id: string;
@@ -622,6 +629,25 @@ function PanelExpandidoFicha({
                       const elegido = clasesDisponibles.find((c) => c.nombre === nombreElegido);
                       onEditarCampo?.("clase", nombreElegido);
                       onEditarCampo?.("rasgo_clase", elegido?.descripcion?.trim() || null);
+
+                      // Regla 2024: las salvaciones de clase son fijas, no
+                      // una elección del jugador — se autocompletan solas.
+                      if (elegido?.salvaciones_clase && elegido.salvaciones_clase.length > 0) {
+                        onEditarCampo?.("salvaciones_competentes", elegido.salvaciones_clase);
+                      }
+
+                      // Si la nueva clase restringe las habilidades elegibles,
+                      // descartamos las que ya no calzan con esa lista (ej.
+                      // cambiar de Pícaro a Mago no debería dejar "Sigilo"
+                      // marcado si Mago no lo ofrece).
+                      if (elegido?.habilidades_disponibles) {
+                        const permitidas = elegido.habilidades_disponibles;
+                        const actuales = ficha.habilidades_competentes ?? [];
+                        const filtradas = actuales.filter((h) => permitidas.includes(h));
+                        if (filtradas.length !== actuales.length) {
+                          onEditarCampo?.("habilidades_competentes", filtradas);
+                        }
+                      }
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
@@ -992,6 +1018,17 @@ export function FichaStatsPanel({
     ["sabiduria", ficha.sabiduria ?? 10],
     ["carisma", ficha.carisma ?? 10],
   ];
+
+  // Reglas de la clase elegida (si tiene el catálogo cargado con reglas
+  // PHB 2024). Si la clase es homebrew sin reglas configuradas, todo se
+  // comporta como antes: libre, sin restricciones.
+  const claseElegida = clasesDisponibles.find((c) => c.nombre === ficha.clase);
+  const claseSalvaciones = claseElegida?.salvaciones_clase ?? null;
+  const claseHabilidades = claseElegida?.habilidades_disponibles ?? null;
+  const cupoHabilidades = claseElegida?.habilidades_a_elegir ?? null;
+  const habilidadesElegidasCount = (ficha.habilidades_competentes ?? []).filter(
+    (h) => !claseHabilidades || claseHabilidades.includes(h),
+  ).length;
 
   return (
     <div
@@ -1489,6 +1526,19 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
+        {cupoHabilidades != null && (
+          <p
+            className="mb-1.5 text-micro font-black uppercase tracking-wider"
+            style={{
+              color:
+                habilidadesElegidasCount >= cupoHabilidades
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 45%, transparent)",
+            }}
+          >
+            Habilidades de clase: {habilidadesElegidasCount}/{cupoHabilidades} elegidas
+          </p>
+        )}
         <div
           className="flex-1 grid gap-x-2.5 items-stretch"
           style={{ gridTemplateColumns: "1fr 1.3fr 1fr" }}
@@ -1541,9 +1591,10 @@ export function FichaStatsPanel({
                 {/* Salvación de esta stat, misma indentación que las skills. */}
                 <button
                   type="button"
-                  disabled={!editableStats}
+                  disabled={!editableStats || !!claseSalvaciones}
+                  title={claseSalvaciones ? "Fija por clase — no se puede cambiar a mano" : undefined}
                   onClick={() => {
-                    if (!editableStats) return;
+                    if (!editableStats || claseSalvaciones) return;
                     const actuales = ficha.salvaciones_competentes ?? [];
                     const siguientes = salvacionCompetente
                       ? actuales.filter((k) => k !== key)
@@ -1592,20 +1643,35 @@ export function FichaStatsPanel({
                     ficha.habilidades_competentes?.includes(skill.id) ?? false;
                   const bonus =
                     mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+                  // Si la clase tiene reglas cargadas: solo se puede tildar
+                  // una habilidad si está en su lista permitida, y solo hasta
+                  // llenar el cupo (habilidades_a_elegir). Sin reglas
+                  // (homebrew sin configurar) queda libre, como antes.
+                  const permitidaPorClase = !claseHabilidades || claseHabilidades.includes(skill.id);
+                  const cupoLleno =
+                    cupoHabilidades != null && habilidadesElegidasCount >= cupoHabilidades;
+                  const bloqueada = !competente && (!permitidaPorClase || cupoLleno);
                   return (
                     <button
                       key={skill.id}
                       type="button"
-                      disabled={!editableStats}
+                      disabled={!editableStats || bloqueada}
+                      title={
+                        !permitidaPorClase
+                          ? "Esta clase no ofrece esta habilidad"
+                          : cupoLleno && !competente
+                            ? "Ya elegiste el cupo de habilidades de tu clase"
+                            : undefined
+                      }
                       onClick={() => {
-                        if (!editableStats) return;
+                        if (!editableStats || bloqueada) return;
                         const actuales = ficha.habilidades_competentes ?? [];
                         const siguientes = competente
                           ? actuales.filter((s) => s !== skill.id)
                           : [...actuales, skill.id];
                         onEditarCampo?.("habilidades_competentes", siguientes);
                       }}
-                      className="w-full flex items-center justify-between pl-1.5 pr-1 py-0.5 transition-all disabled:cursor-default"
+                      className="w-full flex items-center justify-between pl-1.5 pr-1 py-0.5 transition-all disabled:cursor-default disabled:opacity-40"
                     >
                       <span
                         className="flex items-center gap-1.5 text-micro whitespace-nowrap"

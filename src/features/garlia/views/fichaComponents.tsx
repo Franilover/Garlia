@@ -105,6 +105,7 @@ export function ModalCrearFicha({
         especie_id: especie?.id ?? null,
         clase: clase.trim() || null,
         rasgo_clase: claseElegida?.descripcion?.trim() || null,
+        salvaciones_competentes: claseElegida?.salvaciones_clase ?? [],
         subclase: subclase.trim() || null,
         rasgo_subclase: subclaseElegida?.descripcion?.trim() || null,
         trasfondo_mecanico: trasfondoMecanico.trim() || null,

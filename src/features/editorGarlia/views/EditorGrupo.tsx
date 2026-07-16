@@ -33,7 +33,11 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SelectorMiembros } from "@/features/editorGarlia/components/grupos/SelectorMiembros";
 import { SelectorTipoGrupo } from "@/features/editorGarlia/components/grupos/SelectorTipoGrupo";
 import { SubtipoInput } from "@/features/editorGarlia/components/grupos/SubtipoInput";
-import { useDotesDisponibles } from "@/features/garlia/hooks/useFichasDnd";
+import {
+  SKILLS_POR_STAT_DND,
+  STATS_DND,
+  useDotesDisponibles,
+} from "@/features/garlia/hooks/useFichasDnd";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 
@@ -85,6 +89,9 @@ export function EditorGrupo({
           subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
           dote_origen_id: form.dote_origen_id ?? null,
+          salvaciones_clase: form.salvaciones_clase ?? null,
+          habilidades_disponibles: form.habilidades_disponibles ?? null,
+          habilidades_a_elegir: form.habilidades_a_elegir ?? null,
           miembro_ids: form.miembro_ids,
         })
         .eq("id", form.id);
@@ -173,8 +180,14 @@ export function EditorGrupo({
       {/* Body — dos columnas: info · miembros */}
       <div className="flex-1 overflow-y-auto min-h-0 p-3">
         <div className="flex flex-col sm:flex-row gap-3 h-full">
-          {/* Columna izquierda: subtipo + descripción */}
-          <div className="flex flex-col gap-2 sm:w-56 sm:shrink-0">
+          {/* Columna izquierda: subtipo + descripción. Se ensancha cuando es
+              una Clase, porque el bloque de reglas de competencias (18 chips
+              de habilidad) necesita más espacio para no verse apretado. */}
+          <div
+            className={`flex flex-col gap-2 sm:shrink-0 ${
+              form.tipo === "personajes" && form.subtipo === "Clase" ? "sm:w-80" : "sm:w-56"
+            }`}
+          >
             <div className="space-y-1">
               <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
                 Tipo / subtipo
@@ -224,6 +237,119 @@ export function EditorGrupo({
                     }))
                   }
                 />
+              </div>
+            )}
+
+            {/* Reglas de competencias: solo para grupos de personajes con
+                subtipo="Clase" (regla 2024) — 2 salvaciones fijas + una
+                lista de habilidades entre las que el jugador elige N. Esto
+                es lo que la ficha del jugador usa para autocompletar
+                salvaciones y restringir el tildado de habilidades. */}
+            {form.tipo === "personajes" && form.subtipo === "Clase" && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
+                    Salvaciones competentes (2 fijas)
+                  </label>
+                  <div className="flex flex-wrap gap-1">
+                    {STATS_DND.map((stat) => {
+                      const activa = (form.salvaciones_clase ?? []).includes(stat);
+                      return (
+                        <button
+                          key={stat}
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => {
+                              const actuales = f.salvaciones_clase ?? [];
+                              if (activa) {
+                                return { ...f, salvaciones_clase: actuales.filter((s) => s !== stat) };
+                              }
+                              if (actuales.length >= 2) return f; // solo 2 fijas
+                              return { ...f, salvaciones_clase: [...actuales, stat] };
+                            })
+                          }
+                          className="px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border transition-all"
+                          style={{
+                            background: activa
+                              ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                              : "transparent",
+                            borderColor: activa
+                              ? "color-mix(in srgb, var(--primary) 35%, transparent)"
+                              : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                            color: activa
+                              ? "var(--primary)"
+                              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                          }}
+                        >
+                          {stat.slice(0, 3)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
+                    Habilidades disponibles
+                  </label>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.values(SKILLS_POR_STAT_DND)
+                      .flat()
+                      .map((skill) => {
+                        const activa = (form.habilidades_disponibles ?? []).includes(skill.id);
+                        return (
+                          <button
+                            key={skill.id}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => {
+                                const actuales = f.habilidades_disponibles ?? [];
+                                return {
+                                  ...f,
+                                  habilidades_disponibles: activa
+                                    ? actuales.filter((s) => s !== skill.id)
+                                    : [...actuales, skill.id],
+                                };
+                              })
+                            }
+                            className="px-2 py-1 rounded-md text-micro font-semibold border transition-all"
+                            style={{
+                              background: activa
+                                ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                                : "transparent",
+                              borderColor: activa
+                                ? "color-mix(in srgb, var(--primary) 35%, transparent)"
+                                : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                              color: activa
+                                ? "var(--primary)"
+                                : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                            }}
+                          >
+                            {skill.nombre}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
+                    Cuántas elige el jugador
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={(form.habilidades_disponibles ?? []).length}
+                    className="h-8 w-20 px-2 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 focus:border-primary/30 transition-colors"
+                    value={form.habilidades_a_elegir ?? 0}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        habilidades_a_elegir: Number(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
               </div>
             )}
           </div>

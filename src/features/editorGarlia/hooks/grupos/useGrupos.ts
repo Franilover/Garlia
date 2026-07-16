@@ -67,6 +67,14 @@ export type Grupo = {
    *  (select ...  dote:dotes_dnd(id, nombre, descripcion)). Opcional porque
    *  no todos los fetchers de Grupo hacen ese join. */
   dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
+  /** Reglas fijas de competencias — solo aplican cuando subtipo="Clase"
+   *  (PHB 2024). salvaciones_clase: exactamente 2 salvaciones fijas que la
+   *  clase otorga (ej. ['fuerza','constitucion']). habilidades_disponibles:
+   *  lista corta de habilidades entre las que el jugador puede elegir.
+   *  habilidades_a_elegir: cuántas de esa lista elige (2, 3 o 4). */
+  salvaciones_clase?: string[] | null;
+  habilidades_disponibles?: string[] | null;
+  habilidades_a_elegir?: number | null;
   miembro_ids: string[];
   created_at?: string;
 };
@@ -409,6 +417,9 @@ export function useGrupos() {
         descripcion: null,
         dote_origen_id: null,
         dote_origen: null,
+        salvaciones_clase: null,
+        habilidades_disponibles: null,
+        habilidades_a_elegir: null,
         miembro_ids: [],
         created_at: new Date().toISOString(),
       };
@@ -426,10 +437,15 @@ export function useGrupos() {
             subtipo: null,
             descripcion: null,
             dote_origen_id: null,
+            salvaciones_clase: null,
+            habilidades_disponibles: null,
+            habilidades_a_elegir: null,
             miembro_ids: [],
           },
         ])
-        .select("*, dote_origen:dotes_dnd(id, nombre, descripcion)")
+        .select(
+          "*, dote_origen:dotes_dnd(id, nombre, descripcion), salvaciones_clase, habilidades_disponibles, habilidades_a_elegir",
+        )
         .single();
 
       if (error || !data) return optimista;
@@ -453,6 +469,9 @@ export function useGrupos() {
         subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
         dote_origen_id: updated.dote_origen_id ?? null,
+        salvaciones_clase: updated.salvaciones_clase ?? null,
+        habilidades_disponibles: updated.habilidades_disponibles ?? null,
+        habilidades_a_elegir: updated.habilidades_a_elegir ?? null,
         miembro_ids: updated.miembro_ids,
       })
       .eq("id", updated.id);

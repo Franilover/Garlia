@@ -14,6 +14,51 @@ import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
 
+// ── Constantes compartidas de reglas D&D (stats/skills) ────────────────────
+// Fuente de verdad única para las 6 características y las 18 habilidades
+// oficiales agrupadas por la stat de la que dependen. misiones.tsx tiene su
+// propia copia local (ABREVIATURA_STAT / SKILLS_POR_STAT) para no romper esa
+// vista grande; estas versiones "_DND" se exponen acá para que otras partes
+// del dominio (ej. Editor de Grupos) no dupliquen los datos.
+export const STATS_DND = [
+  "fuerza",
+  "destreza",
+  "constitucion",
+  "inteligencia",
+  "sabiduria",
+  "carisma",
+] as const;
+
+export const SKILLS_POR_STAT_DND: Record<string, Array<{ id: string; nombre: string }>> = {
+  fuerza: [{ id: "atletismo", nombre: "Atletismo" }],
+  destreza: [
+    { id: "acrobacias", nombre: "Acrobacias" },
+    { id: "juego_de_manos", nombre: "Juego de manos" },
+    { id: "sigilo", nombre: "Sigilo" },
+  ],
+  constitucion: [],
+  inteligencia: [
+    { id: "arcanos", nombre: "Arcanos" },
+    { id: "historia", nombre: "Historia" },
+    { id: "investigacion", nombre: "Investigación" },
+    { id: "naturaleza", nombre: "Naturaleza" },
+    { id: "religion", nombre: "Religión" },
+  ],
+  sabiduria: [
+    { id: "trato_con_animales", nombre: "Trato con animales" },
+    { id: "perspicacia", nombre: "Perspicacia" },
+    { id: "medicina", nombre: "Medicina" },
+    { id: "percepcion", nombre: "Percepción" },
+    { id: "supervivencia", nombre: "Supervivencia" },
+  ],
+  carisma: [
+    { id: "engano", nombre: "Engaño" },
+    { id: "intimidacion", nombre: "Intimidación" },
+    { id: "interpretacion", nombre: "Interpretación" },
+    { id: "persuasion", nombre: "Persuasión" },
+  ],
+};
+
 export interface RasgoEspecial {
   id: string;
   nombre: string;
@@ -469,12 +514,20 @@ export interface GrupoPersonajeOpcion {
    *  dotes_dnd) — solo tiene sentido para subtipo="Trasfondo". Viene
    *  resuelta por join, no como texto libre. */
   dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
+  /** Reglas fijas de competencias — solo tienen sentido para subtipo="Clase"
+   *  (PHB 2024): 2 salvaciones fijas + una lista corta de habilidades entre
+   *  las que el jugador elige una cantidad fija. */
+  salvaciones_clase?: string[] | null;
+  habilidades_disponibles?: string[] | null;
+  habilidades_a_elegir?: number | null;
 }
 
 async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
   const { data } = await supabase
     .from("grupos_mundo")
-    .select("id, nombre, descripcion, dote_origen:dotes_dnd(id, nombre, descripcion)")
+    .select(
+      "id, nombre, descripcion, dote_origen:dotes_dnd(id, nombre, descripcion), salvaciones_clase, habilidades_disponibles, habilidades_a_elegir",
+    )
     .eq("tipo", "personajes")
     .eq("subtipo", subtipo)
     .order("nombre");

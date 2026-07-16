@@ -231,6 +231,18 @@ function ListaClases({ busqueda }: { busqueda: string }) {
           ) : (
             <p className="mt-1 text-micro text-primary/25 italic">Sin descripción aún.</p>
           )}
+          {c.salvaciones_clase && c.salvaciones_clase.length > 0 && (
+            <p className="mt-1.5 text-micro text-primary/50">
+              <span className="font-black uppercase tracking-wide text-primary/35">Salvaciones: </span>
+              {c.salvaciones_clase.join(", ")}
+            </p>
+          )}
+          {c.habilidades_a_elegir != null && (c.habilidades_disponibles?.length ?? 0) > 0 && (
+            <p className="mt-0.5 text-micro text-primary/50">
+              <span className="font-black uppercase tracking-wide text-primary/35">Habilidades: </span>
+              elegí {c.habilidades_a_elegir} de {c.habilidades_disponibles!.length}
+            </p>
+          )}
         </div>
       ))}
     </div>
