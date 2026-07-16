@@ -280,7 +280,7 @@ function ListaTrasfondos({ busqueda }: { busqueda: string }) {
               }}
             >
               <Sparkles size={9} />
-              Dote de origen: {t.dote_origen}
+              Dote de origen: {t.dote_origen.nombre}
             </div>
           )}
         </div>

@@ -58,11 +58,15 @@ export type Grupo = {
   tipo: GrupoTipo;
   subtipo?: string | null;
   descripcion?: string | null;
-  /** Dote de Origen (Origin Feat) — solo aplica cuando subtipo="Trasfondo"
-   *  (personajes de D&D, regla 2024): todo trasfondo otorga una dote fija
-   *  al elegirlo, no es una decisión del jugador. Se completa acá por el DM
-   *  y se copia a la ficha del jugador al elegir este trasfondo. */
-  dote_origen?: string | null;
+  /** FK a dotes_dnd — solo aplica cuando subtipo="Trasfondo" (personajes de
+   *  D&D, regla 2024): todo trasfondo otorga una dote de origen fija al
+   *  elegirlo, no es una decisión del jugador. Antes era texto libre
+   *  (dote_origen); ahora es una relación real contra el catálogo de dotes. */
+  dote_origen_id?: string | null;
+  /** Objeto de la dote ya resuelto por join, cuando la query lo trae
+   *  (select ...  dote:dotes_dnd(id, nombre, descripcion)). Opcional porque
+   *  no todos los fetchers de Grupo hacen ese join. */
+  dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
   miembro_ids: string[];
   created_at?: string;
 };
@@ -373,7 +377,7 @@ export function useGrupos() {
 
     const { data, error } = await supabase
       .from("grupos_mundo")
-      .select("*")
+      .select("*, dote_origen:dotes_dnd(id, nombre, descripcion)")
       .order("created_at", { ascending: false });
     if (error) {
       if (!local.length) setLoaded(true);
@@ -403,6 +407,7 @@ export function useGrupos() {
         tipo,
         subtipo: null,
         descripcion: null,
+        dote_origen_id: null,
         dote_origen: null,
         miembro_ids: [],
         created_at: new Date().toISOString(),
@@ -420,11 +425,11 @@ export function useGrupos() {
             tipo,
             subtipo: null,
             descripcion: null,
-            dote_origen: null,
+            dote_origen_id: null,
             miembro_ids: [],
           },
         ])
-        .select()
+        .select("*, dote_origen:dotes_dnd(id, nombre, descripcion)")
         .single();
 
       if (error || !data) return optimista;
@@ -447,7 +452,7 @@ export function useGrupos() {
         tipo: updated.tipo,
         subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
-        dote_origen: updated.dote_origen ?? null,
+        dote_origen_id: updated.dote_origen_id ?? null,
         miembro_ids: updated.miembro_ids,
       })
       .eq("id", updated.id);

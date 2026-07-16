@@ -1386,6 +1386,7 @@ export type Database = {
           created_at: string
           descripcion: string | null
           dote_origen: string | null
+          dote_origen_id: string | null
           id: string
           miembro_ids: string[]
           nombre: string
@@ -1397,6 +1398,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           dote_origen?: string | null
+          dote_origen_id?: string | null
           id?: string
           miembro_ids?: string[]
           nombre?: string
@@ -1408,6 +1410,7 @@ export type Database = {
           created_at?: string
           descripcion?: string | null
           dote_origen?: string | null
+          dote_origen_id?: string | null
           id?: string
           miembro_ids?: string[]
           nombre?: string
@@ -1415,7 +1418,15 @@ export type Database = {
           tipo?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "grupos_mundo_dote_origen_id_fkey"
+            columns: ["dote_origen_id"]
+            isOneToOne: false
+            referencedRelation: "dotes_dnd"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hechizo_criaturas: {
         Row: {

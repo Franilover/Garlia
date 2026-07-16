@@ -465,19 +465,20 @@ export interface GrupoPersonajeOpcion {
   /** Bloque de texto libre del grupo (grupos_mundo.descripcion). Solo se
    *  usa para Trasfondo por ahora — es de donde sale rasgo_trasfondo. */
   descripcion?: string | null;
-  /** Dote de Origen del grupo (grupos_mundo.dote_origen) — solo tiene
-   *  sentido para subtipo="Trasfondo"; de ahí sale dote_origen de la ficha. */
-  dote_origen?: string | null;
+  /** Dote de Origen vinculada por FK (grupos_mundo.dote_origen_id →
+   *  dotes_dnd) — solo tiene sentido para subtipo="Trasfondo". Viene
+   *  resuelta por join, no como texto libre. */
+  dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
 }
 
 async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
   const { data } = await supabase
     .from("grupos_mundo")
-    .select("id, nombre, descripcion, dote_origen")
+    .select("id, nombre, descripcion, dote_origen:dotes_dnd(id, nombre, descripcion)")
     .eq("tipo", "personajes")
     .eq("subtipo", subtipo)
     .order("nombre");
-  return (data ?? []) as GrupoPersonajeOpcion[];
+  return (data ?? []) as unknown as GrupoPersonajeOpcion[];
 }
 
 function useGruposPersonajePorSubtipo(subtipo: string) {

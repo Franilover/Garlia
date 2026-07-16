@@ -33,6 +33,7 @@ import { useConfirm } from "@/components/ui/ConfirmModal";
 import { SelectorMiembros } from "@/features/editorGarlia/components/grupos/SelectorMiembros";
 import { SelectorTipoGrupo } from "@/features/editorGarlia/components/grupos/SelectorTipoGrupo";
 import { SubtipoInput } from "@/features/editorGarlia/components/grupos/SubtipoInput";
+import { useDotesDisponibles } from "@/features/garlia/hooks/useFichasDnd";
 import { supabase } from "@/lib/api/client/supabase";
 import { dexiePut, dexieDelete as dexieDel } from "@/lib/utils/dexieHelpers";
 
@@ -83,7 +84,7 @@ export function EditorGrupo({
           tipo: form.tipo,
           subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
-          dote_origen: form.dote_origen ?? null,
+          dote_origen_id: form.dote_origen_id ?? null,
           miembro_ids: form.miembro_ids,
         })
         .eq("id", form.id);
@@ -206,20 +207,20 @@ export function EditorGrupo({
 
             {/* Dote de Origen: solo para grupos de personajes con
                 subtipo="Trasfondo" — regla 2024, cada trasfondo otorga una
-                dote fija automáticamente al elegirlo. */}
+                dote fija automáticamente al elegirlo. Selector real contra
+                el catálogo dotes_dnd (categoría "origen"), no texto libre. */}
             {form.tipo === "personajes" && form.subtipo === "Trasfondo" && (
               <div className="space-y-1">
                 <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
                   Dote de origen
                 </label>
-                <input
-                  className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 placeholder:text-primary/25"
-                  placeholder="ej. Iniciado en la Magia"
-                  value={form.dote_origen ?? ""}
-                  onChange={(e) =>
+                <SelectorDoteOrigen
+                  value={form.dote_origen_id ?? null}
+                  onChange={(id, dote) =>
                     setForm((f) => ({
                       ...f,
-                      dote_origen: e.target.value || null,
+                      dote_origen_id: id,
+                      dote_origen: dote,
                     }))
                   }
                 />
@@ -523,5 +524,50 @@ export function EditorGrupoStandalone({
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Selector de Dote de Origen (para Trasfondo) ──────────────────────────
+// Alimentado por dotes_dnd, filtrado a categoría "origen" — las Generales
+// y Épicas no aplican acá, esas las elige el jugador al subir de nivel.
+function SelectorDoteOrigen({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (id: string | null, dote: Grupo["dote_origen"]) => void;
+}) {
+  const { dotes, loading } = useDotesDisponibles();
+  const dotesOrigen = dotes.filter((d) => d.categoria === "origen");
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-micro text-primary/30">
+        <Loader2 size={11} className="animate-spin" />
+        Cargando dotes…
+      </div>
+    );
+  }
+
+  return (
+    <select
+      className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25"
+      value={value ?? ""}
+      onChange={(e) => {
+        const id = e.target.value || null;
+        const dote = dotesOrigen.find((d) => d.id === id) ?? null;
+        onChange(
+          id,
+          dote ? { id: dote.id, nombre: dote.nombre, descripcion: dote.descripcion } : null,
+        );
+      }}
+    >
+      <option value="">—</option>
+      {dotesOrigen.map((d) => (
+        <option key={d.id} value={d.id}>
+          {d.nombre}
+        </option>
+      ))}
+    </select>
   );
 }

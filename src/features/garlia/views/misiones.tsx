@@ -416,7 +416,7 @@ function PanelExpandidoFicha({
     id: string;
     nombre: string;
     descripcion?: string | null;
-    dote_origen?: string | null;
+    dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
   }>;
   tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
   onEditarCampo?: (
@@ -678,7 +678,7 @@ function PanelExpandidoFicha({
                       const elegido = trasfondosDisponibles.find((t) => t.nombre === nombreElegido);
                       onEditarCampo?.("trasfondo_mecanico", nombreElegido);
                       onEditarCampo?.("rasgo_trasfondo", elegido?.descripcion?.trim() || null);
-                      onEditarCampo?.("dote_origen", elegido?.dote_origen?.trim() || null);
+                      onEditarCampo?.("dote_origen", elegido?.dote_origen?.nombre ?? null);
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
