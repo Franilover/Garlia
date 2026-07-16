@@ -379,20 +379,17 @@ function CampoIdentidad({ label, children }: { label: string; children: React.Re
   );
 }
 
-// ── Bloque de texto de rasgo (dentro de "Ver rasgos"), sin caja propia. ──
-function RasgoTexto({ titulo, texto }: { titulo: string; texto: string }) {
+// ── Rasgo asociado a un selector (Clase/Subclase/Trasfondo/Especie): se
+//    muestra siempre, justo debajo de su propio campo, no separado en un
+//    bloque aparte — así cada elección "trae" su descripción con ella. ──
+function RasgoDelCampo({ texto }: { texto: string }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span
-        className="text-micro font-black uppercase tracking-wider"
-        style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-      >
-        {titulo}
-      </span>
-      <span className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: "var(--primary)" }}>
-        {texto}
-      </span>
-    </div>
+    <p
+      className="mt-1 text-xs leading-relaxed whitespace-pre-wrap"
+      style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+    >
+      {texto}
+    </p>
   );
 }
 
@@ -403,6 +400,7 @@ function PanelExpandidoFicha({
   clasesDisponibles,
   subclasesDisponibles,
   trasfondosDisponibles,
+  tiposMoneda,
   onEditarCampo,
   onCerrar,
   anclaRef,
@@ -416,6 +414,7 @@ function PanelExpandidoFicha({
   clasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
   subclasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
   trasfondosDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
+  tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
   onEditarCampo?: (
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
@@ -633,6 +632,7 @@ function PanelExpandidoFicha({
                     {ficha.clase ?? "—"}
                   </span>
                 )}
+                {ficha.rasgo_clase && <RasgoDelCampo texto={ficha.rasgo_clase} />}
               </CampoIdentidad>
 
               <CampoIdentidad label="Subclase">
@@ -660,6 +660,7 @@ function PanelExpandidoFicha({
                     {ficha.subclase ?? "—"}
                   </span>
                 )}
+                {ficha.rasgo_subclase && <RasgoDelCampo texto={ficha.rasgo_subclase} />}
               </CampoIdentidad>
 
               <CampoIdentidad label="Trasfondo">
@@ -687,6 +688,7 @@ function PanelExpandidoFicha({
                     {ficha.trasfondo_mecanico ?? "—"}
                   </span>
                 )}
+                {ficha.rasgo_trasfondo && <RasgoDelCampo texto={ficha.rasgo_trasfondo} />}
               </CampoIdentidad>
 
               <CampoIdentidad label="Especie">
@@ -703,6 +705,9 @@ function PanelExpandidoFicha({
                     {ficha.especie?.nombre ?? ficha.raza ?? "—"}
                   </span>
                 )}
+                {ficha.especie?.descripcion_dnd && (
+                  <RasgoDelCampo texto={ficha.especie.descripcion_dnd} />
+                )}
               </CampoIdentidad>
             </div>
 
@@ -715,38 +720,6 @@ function PanelExpandidoFicha({
                 style={{ color: "var(--primary)" }}
               />
             </CampoIdentidad>
-
-            {(ficha.rasgo_clase ||
-              ficha.rasgo_subclase ||
-              ficha.rasgo_trasfondo ||
-              ficha.especie?.descripcion_dnd) && (
-              <details className="group mt-0.5">
-                <summary
-                  className="cursor-pointer list-none flex items-center gap-1 text-micro font-black uppercase tracking-wider select-none"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                >
-                  <span className="inline-block transition-transform group-open:rotate-90">›</span>
-                  Ver rasgos
-                </summary>
-                <div className="flex flex-col gap-2.5 mt-2.5">
-                  {ficha.rasgo_clase && (
-                    <RasgoTexto titulo={`Rasgo de ${ficha.clase ?? "clase"}`} texto={ficha.rasgo_clase} />
-                  )}
-                  {ficha.rasgo_subclase && (
-                    <RasgoTexto titulo={`Rasgo de ${ficha.subclase ?? "subclase"}`} texto={ficha.rasgo_subclase} />
-                  )}
-                  {ficha.rasgo_trasfondo && (
-                    <RasgoTexto
-                      titulo={`Rasgo de ${ficha.trasfondo_mecanico ?? "trasfondo"}`}
-                      texto={ficha.rasgo_trasfondo}
-                    />
-                  )}
-                  {ficha.especie?.descripcion_dnd && (
-                    <RasgoTexto titulo={`Rasgos de ${ficha.especie.nombre}`} texto={ficha.especie.descripcion_dnd} />
-                  )}
-                </div>
-              </details>
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -871,6 +844,10 @@ function PanelExpandidoFicha({
                 bonoCompetencia={bonusCompetencia(ficha.nivel ?? 1)}
                 fuerza={ficha.fuerza ?? 10}
                 destreza={ficha.destreza ?? 10}
+                monedas={ficha.monedas}
+                tiposMoneda={tiposMoneda}
+                editableMonedas={editableStats}
+                onEditarMonedas={(m) => onEditarCampo?.("monedas", m)}
               />
             </div>
           )}
@@ -952,6 +929,7 @@ export function FichaStatsPanel({
             clasesDisponibles={clasesDisponibles}
             subclasesDisponibles={subclasesDisponibles}
             trasfondosDisponibles={trasfondosDisponibles}
+            tiposMoneda={tiposMoneda}
             onEditarCampo={onEditarCampo}
             onCerrar={() => setExpandido(false)}
             anclaRef={panelRef}
@@ -1370,118 +1348,50 @@ export function FichaStatsPanel({
               +{bonoCompetencia}
             </span>
           </div>
-        </div>
-      </div>
-
-      {/* ── Datos extra: velocidad, percepción pasiva y monedas, siempre
-          visibles, ARRIBA de Estadísticas por ser lo que más se consulta.
-          Filas simples con separador — sin caja. Dados de golpe vive
-          aparte, flotando fijo en la esquina inferior (ver más abajo). ── */}
-      <div
-        className="px-5 py-3 flex flex-col"
-        style={{
-          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        <div className="flex items-center justify-between py-1">
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
           >
-            Velocidad
-          </span>
-          <CampoEditable
-            valor={ficha.velocidad ?? 30}
-            editable={editableStats}
-            tipo="number"
-            align="right"
-            width={40}
-            onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
-            className="text-sm font-black tabular-nums"
-            style={{ color: "var(--primary)" }}
-          />
-        </div>
-        <div
-          className="flex items-center justify-between py-1"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-          title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
-        >
-          <span
-            className="text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            <span
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Velocidad
+            </span>
+            <CampoEditable
+              valor={ficha.velocidad ?? 30}
+              editable={editableStats}
+              tipo="number"
+              align="right"
+              width={40}
+              onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+          </div>
+          <div
+            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
           >
-            Percepción pasiva
-          </span>
-          <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-            {percepcion}
-          </span>
-        </div>
-        <div
-          className="flex flex-col gap-1 py-1"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          <span
-            className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            Monedas
-          </span>
-          {tiposMoneda.length === 0 ? (
-            // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
-            // se muestra el total genérico bajo la clave "legado" para no
-            // perder el dato, editable igual que antes.
-            <div className="flex items-center justify-end">
-              <CampoEditable
-                valor={ficha.monedas?.legado ?? 0}
-                editable={editableStats}
-                tipo="number"
-                align="right"
-                onCommit={(v) =>
-                  onEditarCampo?.("monedas", { ...ficha.monedas, legado: Number(v) || 0 })
-                }
-                className="text-sm font-black tabular-nums"
-                style={{ color: "var(--primary)" }}
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {tiposMoneda.map((tipo, i) => (
-                <div
-                  key={tipo.id}
-                  className="flex items-center justify-between gap-1 py-1"
-                  style={{
-                    borderTop:
-                      i === 0
-                        ? undefined
-                        : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
-                  }}
-                >
-                  <span
-                    className="text-micro font-semibold truncate"
-                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                    title={tipo.nombre}
-                  >
-                    {tipo.simbolo || tipo.nombre}
-                  </span>
-                  <CampoEditable
-                    valor={ficha.monedas?.[tipo.id] ?? 0}
-                    editable={editableStats}
-                    tipo="number"
-                    align="right"
-                    width={40}
-                    onCommit={(v) =>
-                      onEditarCampo?.("monedas", {
-                        ...ficha.monedas,
-                        [tipo.id]: Number(v) || 0,
-                      })
-                    }
-                    className="text-sm font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+            <span
+              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Percep. pasiva
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {percepcion}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -2342,12 +2252,20 @@ function PanelInventarioFicha({
   bonoCompetencia,
   fuerza,
   destreza,
+  monedas,
+  tiposMoneda,
+  editableMonedas,
+  onEditarMonedas,
 }: {
   fichaId: string;
   editable: boolean;
   bonoCompetencia: number;
   fuerza: number;
   destreza: number;
+  monedas?: Record<string, number>;
+  tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
+  editableMonedas: boolean;
+  onEditarMonedas: (monedas: Record<string, number>) => void;
 }) {
   const { items, loading, agregar, quitar, toggleEquipado, editarCantidad } =
     useInventarioFicha(fichaId);
@@ -2357,6 +2275,78 @@ function PanelInventarioFicha({
 
   return (
     <>
+      {/* ── Monedas: vivía junto a Velocidad/Percepción en el panel
+          principal — se movió acá porque es un dato de inventario, no de
+          combate. Mismo estilo simple de filas con separador. ── */}
+      <div
+        className="px-5 py-4"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        }}
+      >
+        <SeparadorLabel label="Monedas" />
+        {tiposMoneda.length === 0 ? (
+          // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
+          // se muestra el total genérico bajo la clave "legado" para no
+          // perder el dato, editable igual que antes.
+          <div className="flex items-center justify-between py-1">
+            <span
+              className="text-micro font-semibold"
+              style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+            >
+              Total
+            </span>
+            <CampoEditable
+              valor={monedas?.legado ?? 0}
+              editable={editableMonedas}
+              tipo="number"
+              align="right"
+              onCommit={(v) => onEditarMonedas({ ...monedas, legado: Number(v) || 0 })}
+              className="text-sm font-black tabular-nums"
+              style={{ color: "var(--primary)" }}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {tiposMoneda.map((tipo, i) => (
+              <div
+                key={tipo.id}
+                className="flex items-center justify-between gap-1 py-1"
+                style={{
+                  borderTop:
+                    i === 0
+                      ? undefined
+                      : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-semibold truncate"
+                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                  title={tipo.nombre}
+                >
+                  {tipo.simbolo || tipo.nombre}
+                </span>
+                <CampoEditable
+                  valor={monedas?.[tipo.id] ?? 0}
+                  editable={editableMonedas}
+                  tipo="number"
+                  align="right"
+                  width={40}
+                  onCommit={(v) =>
+                    onEditarMonedas({
+                      ...monedas,
+                      [tipo.id]: Number(v) || 0,
+                    })
+                  }
+                  className="text-sm font-black tabular-nums"
+                  style={{ color: "var(--primary)" }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ── Ataques: solo aparece si hay al menos un arma equipada. ── */}
       {armasEquipadas.length > 0 && (
         <div
@@ -2580,7 +2570,7 @@ function DadoBoton({
       type="button"
       onClick={() => onTirar(caras)}
       disabled={activo}
-      className="flex-1 min-w-[44px] flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border transition-all disabled:opacity-60"
+      className="w-full flex items-center justify-center py-1.5 rounded-lg border transition-all disabled:opacity-60"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
         background: activo
@@ -2588,13 +2578,8 @@ function DadoBoton({
           : "color-mix(in srgb, var(--primary) 3%, transparent)",
       }}
     >
-      <Dice6
-        size={13}
-        className={activo ? "animate-spin" : ""}
-        style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-      />
       <span
-        className="text-micro font-black uppercase tracking-wider"
+        className={`text-micro font-black uppercase tracking-wider ${activo ? "animate-pulse" : ""}`}
         style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
       >
         d{caras}
@@ -2623,62 +2608,69 @@ export function TiradaDados() {
 
   return (
     <div
-      className="overflow-hidden"
+      className="overflow-hidden flex"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
-      <div className="px-5 pt-4 pb-3 min-h-[28px] flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          {ultima && !tirando && (
-            <MotionDiv
-              key={ultima.id}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              className="flex items-baseline gap-1"
-            >
-              <span
-                className="text-micro font-black uppercase tracking-wider"
-                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                d{ultima.caras}
-              </span>
-              <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
-                {ultima.resultado}
-              </span>
-            </MotionDiv>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="px-5 pb-4 flex gap-1.5">
+      {/* ── Columna angosta a la izquierda: un dado por fila, solo la
+          letra (sin ícono) — pensada para tocar rápido sin ocupar ancho. ── */}
+      <div
+        className="w-14 shrink-0 flex flex-col gap-1 p-2"
+        style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
         {CARAS_DADO.map((caras) => (
           <DadoBoton key={caras} caras={caras} activo={tirando === caras} onTirar={tirar} />
         ))}
       </div>
 
-      {historial.length > 1 && (
-        <div
-          className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-        >
-          {historial.slice(1).map((t) => (
-            <span
-              key={t.id}
-              className="text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-full"
-              style={{
-                color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-              }}
-            >
-              d{t.caras}: {t.resultado}
-            </span>
-          ))}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="px-5 pt-4 pb-3 min-h-[28px] flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {ultima && !tirando && (
+              <MotionDiv
+                key={ultima.id}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                className="flex items-baseline gap-1"
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider"
+                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                >
+                  d{ultima.caras}
+                </span>
+                <span className="text-xl font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                  {ultima.resultado}
+                </span>
+              </MotionDiv>
+            )}
+          </AnimatePresence>
         </div>
-      )}
+
+        {historial.length > 1 && (
+          <div
+            className="px-5 py-2.5 flex items-center gap-1.5 flex-wrap"
+            style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            {historial.slice(1).map((t) => (
+              <span
+                key={t.id}
+                className="text-micro font-bold tabular-nums px-1.5 py-0.5 rounded-full"
+                style={{
+                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+                }}
+              >
+                d{t.caras}: {t.resultado}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
