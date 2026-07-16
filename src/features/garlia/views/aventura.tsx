@@ -68,12 +68,11 @@ export default function Aventura() {
           solo aparece una vez adentro de una aventura, no en el selector.
           En mobile (flex-col) va primero arriba del feed; en desktop vuelve
           a la derecha con order-none. ── */}
-      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0">
+      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-stretch min-h-0 md:h-[calc(100svh-140px)]">
         <div
-          className={`w-full flex flex-col gap-6 overflow-y-auto order-2 md:order-none ${
+          className={`w-full flex flex-col gap-6 overflow-y-auto order-2 md:order-none md:h-full ${
             aventuraId ? "md:w-[70%]" : ""
           }`}
-          style={{ maxHeight: "calc(100svh - 140px)" }}
         >
           {aventuraId ? (
             <AventuraFeed aventuraId={aventuraId} onVolver={() => setAventuraId(null)} />
@@ -83,7 +82,7 @@ export default function Aventura() {
         </div>
 
         {aventuraId && (
-          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none md:h-[calc(100svh_-_140px)] min-h-0">
+          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none min-h-0 md:h-full">
             <PanelIdentidad />
           </div>
         )}
