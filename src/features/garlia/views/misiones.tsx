@@ -567,7 +567,7 @@ function PanelExpandidoFicha({
         {/* ── Tabs: fila de texto plano, sin botones con caja. El tab
             activo se marca solo con color/peso + una línea inferior. ── */}
         <div
-          className="sticky top-[52px] z-10 px-6 flex items-center gap-5"
+          className="sticky top-[52px] z-10 px-6 flex items-center"
           style={{
             background: "var(--white-custom)",
             borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -584,7 +584,7 @@ function PanelExpandidoFicha({
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className="pb-2.5 pt-3 text-xs font-bold uppercase tracking-wide transition-colors"
+              className="flex-1 pb-2.5 pt-3 text-xs font-bold uppercase tracking-wide text-center transition-colors"
               style={{
                 color:
                   tab === id
