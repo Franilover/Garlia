@@ -567,9 +567,44 @@ export function useClasesDisponibles() {
   return { clases: opciones, loading };
 }
 
-export function useSubclasesDisponibles() {
-  const { opciones, loading } = useGruposPersonajePorSubtipo("Subclase");
-  return { subclases: opciones, loading };
+// Las subclases viven en su propia tabla (subclases_dnd), relacionada a la
+// clase por clase_id (FK a grupos_mundo.id, subtipo="Clase"). Antes se
+// buscaban en grupos_mundo con subtipo="Subclase", pero esa combinación ya
+// no existe — las 48 subclases oficiales 2024 se migraron a subclases_dnd.
+async function buscarSubclasesPorClaseId(claseId: string | null): Promise<GrupoPersonajeOpcion[]> {
+  if (!claseId) return [];
+  const { data } = await supabase
+    .from("subclases_dnd")
+    .select("id, nombre, descripcion")
+    .eq("clase_id", claseId)
+    .order("nombre");
+  return (data ?? []) as unknown as GrupoPersonajeOpcion[];
+}
+
+export function useSubclasesDisponibles(claseId: string | null) {
+  const [subclases, setSubclases] = useState<GrupoPersonajeOpcion[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    if (!claseId) {
+      setSubclases([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    buscarSubclasesPorClaseId(claseId).then((data) => {
+      if (!cancelado) {
+        setSubclases(data);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [claseId]);
+
+  return { subclases, loading };
 }
 
 export function useTrasfondosDisponibles() {

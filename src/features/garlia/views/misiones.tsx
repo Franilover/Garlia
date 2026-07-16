@@ -629,6 +629,8 @@ function PanelExpandidoFicha({
                       const elegido = clasesDisponibles.find((c) => c.nombre === nombreElegido);
                       onEditarCampo?.("clase", nombreElegido);
                       onEditarCampo?.("rasgo_clase", elegido?.descripcion?.trim() || null);
+                      onEditarCampo?.("subclase", null);
+                      onEditarCampo?.("rasgo_subclase", null);
 
                       // Regla 2024: las salvaciones de clase son fijas, no
                       // una elección del jugador — se autocompletan solas.
@@ -1006,7 +1008,8 @@ export function FichaStatsPanel({
   const percepcion = percepcionPasiva(ficha);
   const { tipos: tiposMoneda } = useTiposMoneda();
   const { clases: clasesDisponibles } = useClasesDisponibles();
-  const { subclases: subclasesDisponibles } = useSubclasesDisponibles();
+  const claseFichaId = clasesDisponibles.find((c) => c.nombre === ficha.clase)?.id ?? null;
+  const { subclases: subclasesDisponibles } = useSubclasesDisponibles(claseFichaId);
   const { trasfondos: trasfondosDisponibles } = useTrasfondosDisponibles();
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
