@@ -952,36 +952,11 @@ export function FichaStatsPanel({
         )}
       </AnimatePresence>
 
-      {/* ── Encabezado: botón expandir + nombre + clase/nivel ── */}
-      <div className="px-5 pt-5 pb-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setExpandido(true)}
-          title="Ver idiomas, herramientas y trasfondo en grande"
-          className="relative shrink-0 flex items-center justify-center transition-colors"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            background: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
-            color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background =
-              "color-mix(in srgb, var(--primary) 14%, transparent)";
-            (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background =
-              "color-mix(in srgb, var(--primary) 8%, var(--bg-main))";
-            (e.currentTarget as HTMLElement).style.color =
-              "color-mix(in srgb, var(--primary) 40%, transparent)";
-          }}
-        >
-          <Maximize2 size={18} />
-        </button>
-        <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
-          <div className="min-w-0">
+      {/* ── Encabezado: nombre + clase/nivel, con ícono de expandir lineal
+          y chico integrado a la fila de la derecha (sin el círculo de
+          44px de antes, para un header más compacto). ── */}
+      <div className="px-3.5 pt-3.5 pb-3 flex items-start gap-2">
+        <div className="min-w-0 flex-1">
             <p
               className="font-serif italic text-base leading-tight truncate capitalize"
               style={{ color: "var(--primary)" }}
@@ -1035,6 +1010,7 @@ export function FichaStatsPanel({
               )}
             </p>
           </div>
+        <div className="shrink-0 flex items-center gap-1.5">
           {(editable || ficha.inspiracion) && (
             <button
               type="button"
@@ -1047,8 +1023,8 @@ export function FichaStatsPanel({
               onClick={() => editable && onEditarCampo?.("inspiracion", !ficha.inspiracion)}
               className="shrink-0 flex items-center justify-center transition-all disabled:cursor-default"
               style={{
-                width: 28,
-                height: 28,
+                width: 22,
+                height: 22,
                 borderRadius: "50%",
                 border: ficha.inspiracion
                   ? "1px solid color-mix(in srgb, var(--primary) 40%, transparent)"
@@ -1059,7 +1035,7 @@ export function FichaStatsPanel({
               }}
             >
               <Sparkles
-                size={13}
+                size={11}
                 fill={ficha.inspiracion ? "var(--primary)" : "none"}
                 style={{
                   color: ficha.inspiracion
@@ -1069,6 +1045,26 @@ export function FichaStatsPanel({
               />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setExpandido(true)}
+            title="Ver idiomas, herramientas y trasfondo en grande"
+            className="shrink-0 flex items-center justify-center transition-colors"
+            style={{
+              width: 22,
+              height: 22,
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color =
+                "color-mix(in srgb, var(--primary) 40%, transparent)";
+            }}
+          >
+            <Maximize2 size={14} />
+          </button>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
       </div>
@@ -1078,8 +1074,8 @@ export function FichaStatsPanel({
           dueño de la ficha — el estado de juego en vivo lo controla el DM. ── */}
       {mostrarCondiciones && (ficha.condiciones?.length > 0 || editableCondiciones) && (
         <div
-          className="px-5 pb-4 flex flex-wrap gap-1.5"
-          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: 12 }}
+          className="px-3.5 pb-3 flex flex-wrap gap-1.5"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", paddingTop: 10 }}
         >
           {CONDICIONES_DND.filter(
             (c) => editableCondiciones || ficha.condiciones?.includes(c.id),
@@ -1128,12 +1124,12 @@ export function FichaStatsPanel({
         </div>
       )}
       <div
-        className="px-5 pt-4 pb-4"
+        className="px-3.5 pt-3 pb-3"
         style={{
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="mb-3.5">
+        <div className="mb-3">
           <div className="flex items-center justify-between mb-1.5">
             <div
               className="flex items-center gap-1.5"
@@ -1278,10 +1274,10 @@ export function FichaStatsPanel({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-1.5">
 
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1290,17 +1286,17 @@ export function FichaStatsPanel({
             title="Iniciativa = modificador de Destreza."
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              Iniciativa
+              Iniciat.
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
             </span>
           </div>
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1308,7 +1304,7 @@ export function FichaStatsPanel({
             }}
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               Defensa
@@ -1318,7 +1314,7 @@ export function FichaStatsPanel({
                 valor={ficha.ca ?? 10}
                 editable={editableStats}
                 tipo="number"
-                align="right"
+                align="center"
                 width={28}
                 onCommit={(v) => onEditarCampo?.("ca", Number(v) || 0)}
                 className="text-sm font-black tabular-nums"
@@ -1327,7 +1323,7 @@ export function FichaStatsPanel({
             </span>
           </div>
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1335,7 +1331,7 @@ export function FichaStatsPanel({
             }}
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               Daño
@@ -1345,7 +1341,7 @@ export function FichaStatsPanel({
             </span>
           </div>
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1354,7 +1350,7 @@ export function FichaStatsPanel({
             title="Se calcula solo según el nivel: base de habilidades, salvaciones y ataques."
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
               Compet.
@@ -1364,7 +1360,7 @@ export function FichaStatsPanel({
             </span>
           </div>
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1372,16 +1368,16 @@ export function FichaStatsPanel({
             }}
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              Velocidad
+              Veloc.
             </span>
             <CampoEditable
               valor={ficha.velocidad ?? 30}
               editable={editableStats}
               tipo="number"
-              align="right"
+              align="center"
               width={40}
               onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
               className="text-sm font-black tabular-nums"
@@ -1389,7 +1385,7 @@ export function FichaStatsPanel({
             />
           </div>
           <div
-            className="flex-1 flex items-center justify-between px-2.5 py-1.5"
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
             style={{
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
               borderRadius: "2px",
@@ -1398,10 +1394,10 @@ export function FichaStatsPanel({
             title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
           >
             <span
-              className="flex items-center gap-1 text-micro font-black uppercase tracking-wider"
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              Percep. pasiva
+              Percep.
             </span>
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {percepcion}
@@ -1415,12 +1411,12 @@ export function FichaStatsPanel({
           la misma indentación, sin tarjetas dentro de tarjetas. En 2
           columnas para aprovechar el ancho del panel. ── */}
       <div
-        className="px-5 py-4 flex-1 flex flex-col"
+        className="px-3.5 py-3 flex-1 flex flex-col"
         style={{
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="flex-1 grid grid-cols-2 gap-x-4 items-stretch">
+        <div className="flex-1 grid grid-cols-2 gap-x-3 items-stretch">
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
@@ -1437,7 +1433,7 @@ export function FichaStatsPanel({
                 }}
               >
                 {/* Fila de la stat: abreviatura, valor editable y modificador. */}
-                <div className="flex items-center gap-2 py-2">
+                <div className="flex items-center gap-2 py-1.5">
                   <span
                     className="w-8 shrink-0 text-micro font-black uppercase tracking-wider"
                     style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
@@ -1478,7 +1474,7 @@ export function FichaStatsPanel({
                       : [...actuales, key];
                     onEditarCampo?.("salvaciones_competentes", siguientes);
                   }}
-                  className="w-full flex items-center justify-between pl-6 pr-1 py-1 transition-all disabled:cursor-default"
+                  className="w-full flex items-center justify-between pl-5 pr-1 py-0.5 transition-all disabled:cursor-default"
                 >
                   <span
                     className="flex items-center gap-1.5 text-micro"
@@ -1533,7 +1529,7 @@ export function FichaStatsPanel({
                           : [...actuales, skill.id];
                         onEditarCampo?.("habilidades_competentes", siguientes);
                       }}
-                      className="w-full flex items-center justify-between pl-6 pr-1 py-1 transition-all disabled:cursor-default"
+                      className="w-full flex items-center justify-between pl-5 pr-1 py-0.5 transition-all disabled:cursor-default"
                     >
                       <span
                         className="flex items-center gap-1.5 text-micro"
@@ -1581,7 +1577,7 @@ export function FichaStatsPanel({
           así quedan siempre a mano sin ocupar una fila fija en el scroll. ── */}
       {ficha.dados_golpe && (
         <div
-          className="sticky bottom-0 left-0 px-5 py-2.5 flex items-center gap-1.5"
+          className="sticky bottom-0 left-0 px-3.5 py-2 flex items-center gap-1.5"
           style={{
             background: "var(--white-custom)",
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -1648,7 +1644,7 @@ export function FichaStatsPanel({
           poder cargarlos por primera vez sin tener que buscar dónde. */}
       {!ficha.dados_golpe && editableStats && (
         <div
-          className="sticky bottom-0 left-0 px-5 py-2.5 flex items-center gap-1.5"
+          className="sticky bottom-0 left-0 px-3.5 py-2 flex items-center gap-1.5"
           style={{
             background: "var(--white-custom)",
             borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
