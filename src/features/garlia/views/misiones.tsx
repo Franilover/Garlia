@@ -412,7 +412,12 @@ function PanelExpandidoFicha({
   editableStats: boolean;
   clasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
   subclasesDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
-  trasfondosDisponibles: Array<{ id: string; nombre: string; descripcion?: string | null }>;
+  trasfondosDisponibles: Array<{
+    id: string;
+    nombre: string;
+    descripcion?: string | null;
+    dote_origen?: string | null;
+  }>;
   tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
   onEditarCampo?: (
     campo: keyof FichaDnd,
@@ -617,8 +622,6 @@ function PanelExpandidoFicha({
                       const elegido = clasesDisponibles.find((c) => c.nombre === nombreElegido);
                       onEditarCampo?.("clase", nombreElegido);
                       onEditarCampo?.("rasgo_clase", elegido?.descripcion?.trim() || null);
-                      onEditarCampo?.("subclase", "");
-                      onEditarCampo?.("rasgo_subclase", null);
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
@@ -675,6 +678,7 @@ function PanelExpandidoFicha({
                       const elegido = trasfondosDisponibles.find((t) => t.nombre === nombreElegido);
                       onEditarCampo?.("trasfondo_mecanico", nombreElegido);
                       onEditarCampo?.("rasgo_trasfondo", elegido?.descripcion?.trim() || null);
+                      onEditarCampo?.("dote_origen", elegido?.dote_origen?.trim() || null);
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
@@ -692,6 +696,9 @@ function PanelExpandidoFicha({
                   </span>
                 )}
                 {ficha.rasgo_trasfondo && <RasgoDelCampo texto={ficha.rasgo_trasfondo} />}
+                {ficha.dote_origen && (
+                  <RasgoDelCampo texto={`Dote de origen: ${ficha.dote_origen}`} />
+                )}
               </CampoIdentidad>
 
               <CampoIdentidad label="Especie">
@@ -863,29 +870,30 @@ function PanelExpandidoFicha({
   );
 }
 
-// ─── Bloque de ataques ──────────────────────────────────────────────────────
-// Deriva la lista de ataques de las armas equipadas del inventario. Vive como
-// componente aparte porque se usa tanto en el panel de Estadísticas (debajo
-// del grid principal) como potencialmente en otros lugares — mismo criterio
-// de sutileza/distancia de siempre: a distancia usa Destreza, cuerpo a
-// cuerpo usa Fuerza (o el mayor de los dos si el arma tiene sutileza).
+// ─── Ataques / lista de acciones ────────────────────────────────────────────
+// Deriva de las armas equipadas en el inventario: bono de ataque (mod de
+// característica + competencia) y daño (dado del arma + mismo mod). Sutileza
+// toma el mayor entre Fuerza/Destreza; distancia siempre usa Destreza.
 
 function BloqueAtaques({
-  armasEquipadas,
+  fichaId,
   fuerza,
   destreza,
   bonoCompetencia,
 }: {
-  armasEquipadas: ItemInventarioFicha[];
+  fichaId: string;
   fuerza: number;
   destreza: number;
   bonoCompetencia: number;
 }) {
-  if (armasEquipadas.length === 0) return null;
+  const { items, loading } = useInventarioFicha(fichaId);
+  const armasEquipadas = items.filter((i) => i.equipado && i.item?.es_arma);
+
+  if (loading || armasEquipadas.length === 0) return null;
 
   return (
     <div
-      className="px-5 py-4"
+      className="px-3.5 py-3"
       style={{
         borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
@@ -970,12 +978,9 @@ export function FichaStatsPanel({
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
-  const { items: itemsInventario } = useInventarioFicha(ficha.id);
-  const armasEquipadas = itemsInventario.filter((i) => i.equipado && i.item?.es_arma);
   const { tipos: tiposMoneda } = useTiposMoneda();
   const { clases: clasesDisponibles } = useClasesDisponibles();
-  const claseFichaId = clasesDisponibles.find((c) => c.nombre === ficha.clase)?.id ?? null;
-  const { subclases: subclasesDisponibles } = useSubclasesDisponibles(claseFichaId);
+  const { subclases: subclasesDisponibles } = useSubclasesDisponibles();
   const { trasfondos: trasfondosDisponibles } = useTrasfondosDisponibles();
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -1644,7 +1649,7 @@ export function FichaStatsPanel({
       </div>
 
       <BloqueAtaques
-        armasEquipadas={armasEquipadas}
+        fichaId={ficha.id}
         fuerza={ficha.fuerza ?? 10}
         destreza={ficha.destreza ?? 10}
         bonoCompetencia={bonoCompetencia}
@@ -2300,12 +2305,10 @@ function PanelConjuros({
   );
 }
 
-// ─── Inventario ─────────────────────────────────────────────────────────────
+// ─── Inventario + ataques derivados ────────────────────────────────────────
 // Vive como componente aparte porque usa su propio hook de datos
 // (useInventarioFicha cargando por fichaId) — separarlo evita que
 // FichaStatsPanel dispare esa consulta cuando no hace falta mostrarla.
-// (Los ataques derivados de armas equipadas se muestran en BloqueAtaques,
-// debajo de Estadísticas — FichaStatsPanel ya carga el inventario aparte.)
 
 function PanelInventarioFicha({
   fichaId,

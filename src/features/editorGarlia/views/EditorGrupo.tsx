@@ -83,6 +83,7 @@ export function EditorGrupo({
           tipo: form.tipo,
           subtipo: form.subtipo ?? null,
           descripcion: form.descripcion ?? null,
+          dote_origen: form.dote_origen ?? null,
           miembro_ids: form.miembro_ids,
         })
         .eq("id", form.id);
@@ -202,6 +203,28 @@ export function EditorGrupo({
                 }
               />
             </div>
+
+            {/* Dote de Origen: solo para grupos de personajes con
+                subtipo="Trasfondo" — regla 2024, cada trasfondo otorga una
+                dote fija automáticamente al elegirlo. */}
+            {form.tipo === "personajes" && form.subtipo === "Trasfondo" && (
+              <div className="space-y-1">
+                <label className="text-micro font-black uppercase tracking-[0.3em] text-primary/30">
+                  Dote de origen
+                </label>
+                <input
+                  className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 placeholder:text-primary/25"
+                  placeholder="ej. Iniciado en la Magia"
+                  value={form.dote_origen ?? ""}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      dote_origen: e.target.value || null,
+                    }))
+                  }
+                />
+              </div>
+            )}
           </div>
 
           {/* Columna derecha: miembros */}

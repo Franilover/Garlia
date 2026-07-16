@@ -79,6 +79,12 @@ export interface FichaDnd {
    *  en el cliente con `descripcion` del grupo Trasfondo elegido (ver
    *  useTrasfondosDisponibles) — no es texto libre que el jugador escriba. */
   rasgo_trasfondo: string | null;
+  /** Dote de Origen (Origin Feat) que otorga el trasfondo elegido — regla
+   *  2024: todo trasfondo da una dote fija de forma automática (ej. Acólito
+   *  → Iniciado en la Magia). Se autocompleta en el cliente a partir de
+   *  MAPA_DOTE_ORIGEN al elegir trasfondo_mecanico, pero queda editable
+   *  para trasfondos homebrew que no estén en el mapa oficial. */
+  dote_origen: string | null;
   imagen_url: string | null;
   fuerza: number;
   destreza: number;
@@ -448,12 +454,10 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
 }
 
 // ── Clases / subclases / trasfondos disponibles ────────────────────────────
-// El mundo define clases y trasfondos como grupos en grupos_mundo
-// (tipo="personajes", subtipo="Clase" | "Trasfondo") en vez de dejarlos como
-// texto libre — los selectores de la ficha salen de esas listas.
-// Las subclases viven aparte, en subclases_dnd, relacionadas a su clase por
-// clase_id (FK a grupos_mundo.id) — así el selector de subclase solo muestra
-// las que pertenecen a la clase ya elegida.
+// El mundo define clases, subclases y trasfondos como grupos en
+// grupos_mundo (tipo="personajes", subtipo="Clase" | "Subclase" | "Trasfondo")
+// en vez de dejarlos como texto libre — los selectores de la ficha salen de
+// esas listas.
 
 export interface GrupoPersonajeOpcion {
   id: string;
@@ -461,12 +465,15 @@ export interface GrupoPersonajeOpcion {
   /** Bloque de texto libre del grupo (grupos_mundo.descripcion). Solo se
    *  usa para Trasfondo por ahora — es de donde sale rasgo_trasfondo. */
   descripcion?: string | null;
+  /** Dote de Origen del grupo (grupos_mundo.dote_origen) — solo tiene
+   *  sentido para subtipo="Trasfondo"; de ahí sale dote_origen de la ficha. */
+  dote_origen?: string | null;
 }
 
 async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
   const { data } = await supabase
     .from("grupos_mundo")
-    .select("id, nombre, descripcion")
+    .select("id, nombre, descripcion, dote_origen")
     .eq("tipo", "personajes")
     .eq("subtipo", subtipo)
     .order("nombre");
@@ -506,49 +513,9 @@ export function useClasesDisponibles() {
   return { clases: opciones, loading };
 }
 
-/** Subclase disponible, siempre asociada a una clase (clase_id). */
-export interface SubclaseOpcion extends GrupoPersonajeOpcion {
-  clase_id: string;
-}
-
-async function buscarSubclasesPorClase(claseId: string | null): Promise<SubclaseOpcion[]> {
-  if (!claseId) return [];
-  const { data } = await supabase
-    .from("subclases_dnd")
-    .select("id, nombre, descripcion, clase_id")
-    .eq("clase_id", claseId)
-    .order("nombre");
-  return (data ?? []) as SubclaseOpcion[];
-}
-
-/**
- * Subclases disponibles para la clase elegida (claseId = grupos_mundo.id de
- * la clase). Si no hay clase elegida todavía, devuelve lista vacía.
- */
-export function useSubclasesDisponibles(claseId: string | null) {
-  const [subclases, setSubclases] = useState<SubclaseOpcion[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelado = false;
-    if (!claseId) {
-      setSubclases([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    buscarSubclasesPorClase(claseId).then((data) => {
-      if (!cancelado) {
-        setSubclases(data);
-        setLoading(false);
-      }
-    });
-    return () => {
-      cancelado = true;
-    };
-  }, [claseId]);
-
-  return { subclases, loading };
+export function useSubclasesDisponibles() {
+  const { opciones, loading } = useGruposPersonajePorSubtipo("Subclase");
+  return { subclases: opciones, loading };
 }
 
 export function useTrasfondosDisponibles() {

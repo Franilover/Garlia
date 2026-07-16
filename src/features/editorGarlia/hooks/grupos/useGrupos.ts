@@ -58,6 +58,11 @@ export type Grupo = {
   tipo: GrupoTipo;
   subtipo?: string | null;
   descripcion?: string | null;
+  /** Dote de Origen (Origin Feat) — solo aplica cuando subtipo="Trasfondo"
+   *  (personajes de D&D, regla 2024): todo trasfondo otorga una dote fija
+   *  al elegirlo, no es una decisión del jugador. Se completa acá por el DM
+   *  y se copia a la ficha del jugador al elegir este trasfondo. */
+  dote_origen?: string | null;
   miembro_ids: string[];
   created_at?: string;
 };
@@ -398,6 +403,7 @@ export function useGrupos() {
         tipo,
         subtipo: null,
         descripcion: null,
+        dote_origen: null,
         miembro_ids: [],
         created_at: new Date().toISOString(),
       };
@@ -414,6 +420,7 @@ export function useGrupos() {
             tipo,
             subtipo: null,
             descripcion: null,
+            dote_origen: null,
             miembro_ids: [],
           },
         ])
@@ -440,6 +447,7 @@ export function useGrupos() {
         tipo: updated.tipo,
         subtipo: updated.subtipo ?? null,
         descripcion: updated.descripcion ?? null,
+        dote_origen: updated.dote_origen ?? null,
         miembro_ids: updated.miembro_ids,
       })
       .eq("id", updated.id);
