@@ -1416,7 +1416,7 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="flex-1 grid grid-cols-3 gap-x-2.5 items-stretch">
+        <div className="flex-1 grid grid-cols-2 gap-x-3 items-stretch">
           {stats.map(([key, valor], i) => {
             const mod = statMod(valor);
             const skills = SKILLS_POR_STAT[key] ?? [];
@@ -1429,13 +1429,13 @@ export function FichaStatsPanel({
                 className="min-w-0 flex flex-col justify-between"
                 style={{
                   borderTop:
-                    i < 3 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
+                    i < 2 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
                 {/* Fila de la stat: abreviatura, valor editable y modificador. */}
-                <div className="flex items-center gap-1.5 py-1.5">
+                <div className="flex items-center gap-2 py-1.5">
                   <span
-                    className="w-6 shrink-0 text-micro font-black uppercase tracking-wider"
+                    className="w-8 shrink-0 text-micro font-black uppercase tracking-wider"
                     style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
                   >
                     {ABREVIATURA_STAT[key]}
