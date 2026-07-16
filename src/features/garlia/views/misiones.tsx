@@ -578,8 +578,6 @@ function PanelExpandidoFicha({
               ["identidad", "Identidad"],
               ["trasfondo", "Historia"],
               ["inventario", "Inventario"],
-              ["conjuros", "Conjuros"],
-              ["misiones", "Misiones"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -831,18 +829,8 @@ function PanelExpandidoFicha({
             </div>
           )}
 
-          {/* ── Conjuros: lo mágico solo. Rasgos/dotes se movieron a Identidad. ── */}
-          {tab === "conjuros" && (
-            <div className="flex flex-col gap-1 -mx-6">
-              <PanelConjuros
-                ficha={ficha}
-                editable={editable}
-                editableStats={editableStats}
-                onEditarCampo={onEditarCampo}
-              />
-            </div>
-          )}
-
+          {/* ── Inventario: objetos y monedas, + lo mágico (Conjuros se
+              fusionó acá, ya no es una tab aparte). ── */}
           {tab === "inventario" && (
             <div className="flex flex-col gap-1 -mx-6">
               <PanelInventarioFicha
@@ -855,6 +843,12 @@ function PanelExpandidoFicha({
                 tiposMoneda={tiposMoneda}
                 editableMonedas={editableStats}
                 onEditarMonedas={(m) => onEditarCampo?.("monedas", m)}
+              />
+              <PanelConjuros
+                ficha={ficha}
+                editable={editable}
+                editableStats={editableStats}
+                onEditarCampo={onEditarCampo}
               />
             </div>
           )}
