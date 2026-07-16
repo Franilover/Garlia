@@ -702,6 +702,7 @@ function PanelExpandidoFicha({
                     seleccionActual={ficha.especie ?? null}
                     onSeleccionar={(c) => onEditarCampo?.("especie_id", c.id)}
                     onQuitar={() => onEditarCampo?.("especie_id", null)}
+                    variante="plano"
                   />
                 ) : (
                   <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
@@ -723,6 +724,14 @@ function PanelExpandidoFicha({
                 style={{ color: "var(--primary)" }}
               />
             </CampoIdentidad>
+          </div>
+
+          <div className="-mx-6">
+            <PanelRasgosEspeciales
+              rasgos={ficha.rasgos_especiales ?? []}
+              editable={editable}
+              onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -756,14 +765,6 @@ function PanelExpandidoFicha({
                 placeholder="Agregar herramienta…"
               />
             </div>
-          </div>
-
-          <div className="-mx-6">
-            <PanelRasgosEspeciales
-              rasgos={ficha.rasgos_especiales ?? []}
-              editable={editable}
-              onCambiar={(siguientes) => onEditarCampo?.("rasgos_especiales", siguientes)}
-            />
           </div>
             </>
           )}

@@ -729,12 +729,17 @@ export function SelectorEntidad<T extends EntidadOpcion>({
   onSeleccionar,
   seleccionActual,
   onQuitar,
+  variante = "caja",
 }: {
   placeholder: string;
   buscar: (q: string) => Promise<T[]>;
   onSeleccionar: (item: T) => void;
   seleccionActual?: EntidadOpcion | null;
   onQuitar?: () => void;
+  /** "caja": look por defecto (borde, fondo, h-10). "plano": mismo look que
+   *  los <select> de texto de Clase/Subclase/Trasfondo — sin borde ni fondo,
+   *  solo se activa el buscador real al hacer click. */
+  variante?: "caja" | "plano";
 }) {
   const [query, setQuery] = useState("");
   const [abierto, setAbierto] = useState(false);
@@ -784,6 +789,31 @@ export function SelectorEntidad<T extends EntidadOpcion>({
   }, [abierto]);
 
   if (seleccionActual && !abierto) {
+    if (variante === "plano") {
+      return (
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="w-full min-w-0 flex items-center justify-between gap-1.5 text-left group"
+        >
+          <span className="text-sm font-semibold truncate" style={{ color: "var(--primary)" }}>
+            {seleccionActual.nombre}
+          </span>
+          {onQuitar && (
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuitar();
+              }}
+              className="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-opacity"
+            >
+              <X size={11} />
+            </span>
+          )}
+        </button>
+      );
+    }
     return (
       <button
         type="button"
@@ -815,8 +845,14 @@ export function SelectorEntidad<T extends EntidadOpcion>({
 
   return (
     <div ref={anclaRef} className="relative w-full min-w-0">
-      <div className="flex items-center gap-2 px-2.5 h-10 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors">
-        <Search size={12} className="text-primary/35 shrink-0" />
+      <div
+        className={
+          variante === "plano"
+            ? "flex items-center gap-1.5 w-full"
+            : "flex items-center gap-2 px-2.5 h-10 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors"
+        }
+      >
+        {variante !== "plano" && <Search size={12} className="text-primary/35 shrink-0" />}
         <input
           autoFocus={abierto}
           type="text"
@@ -824,7 +860,12 @@ export function SelectorEntidad<T extends EntidadOpcion>({
           onFocus={() => setAbierto(true)}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+          className={
+            variante === "plano"
+              ? "flex-1 bg-transparent outline-none text-sm font-semibold placeholder:text-primary/30"
+              : "flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+          }
+          style={variante === "plano" ? { color: "var(--primary)" } : undefined}
         />
         {buscando && <Loader2 size={11} className="animate-spin text-primary/30" />}
       </div>
