@@ -1061,6 +1061,36 @@ export type Database = {
           },
         ]
       }
+      dotes_dnd: {
+        Row: {
+          id: string
+          nombre: string
+          descripcion: string | null
+          categoria: string
+          prerequisito: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          descripcion?: string | null
+          categoria?: string
+          prerequisito?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          descripcion?: string | null
+          categoria?: string
+          prerequisito?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dones: {
         Row: {
           created_at: string | null

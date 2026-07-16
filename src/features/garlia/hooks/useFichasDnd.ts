@@ -523,6 +523,46 @@ export function useTrasfondosDisponibles() {
   return { trasfondos: opciones, loading };
 }
 
+// ── Catálogo de Dotes (tabla dotes_dnd, no grupos_mundo) ───────────────────
+// A diferencia de clase/subclase/trasfondo, las dotes viven en su propia
+// tabla porque no son "grupos" del mundo del DM: son un catálogo de reglas
+// (PHB 2024) compartido entre mundos, con categoría fija (origen/general/
+// épica) y prerrequisito propio.
+
+export interface DoteDnd {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  categoria: "origen" | "general" | "epica";
+  prerequisito: string | null;
+}
+
+export function useDotesDisponibles() {
+  const [dotes, setDotes] = useState<DoteDnd[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+    supabase
+      .from("dotes_dnd")
+      .select("id, nombre, descripcion, categoria, prerequisito")
+      .order("categoria")
+      .order("nombre")
+      .then(({ data }) => {
+        if (!cancelado) {
+          setDotes((data ?? []) as DoteDnd[]);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  return { dotes, loading };
+}
+
 
 
 export interface TipoMoneda {

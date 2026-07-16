@@ -18,6 +18,7 @@
 import { AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
+  BookOpen,
   Compass,
   Coins,
   Eye,
@@ -48,17 +49,19 @@ import {
   type TableroItem,
 } from "../components/aventuras/TableroAventura";
 import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
+import { PanelManualDnd } from "../components/aventuras/PanelManualDnd";
 import { PanelTiposMoneda } from "@/features/garlia/views/PanelTiposMoneda";
 import { useTableroEscala } from "@/features/garlia/hooks/useTableroEscala";
 
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
 
-type SubPanel = "aventuras" | "relaciones" | "monedas";
+type SubPanel = "aventuras" | "relaciones" | "monedas" | "manual";
 
 const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
   { key: "aventuras", label: "Aventuras", Icon: Compass },
   { key: "relaciones", label: "Relaciones", Icon: Heart },
   { key: "monedas", label: "Monedas", Icon: Coins },
+  { key: "manual", label: "Manual", Icon: BookOpen },
 ];
 
 // ── Tamaño de tarjeta del pizarrón: ajustable por el DM, persistido en el
@@ -128,6 +131,8 @@ export function AventuraSection() {
             <PanelTiposMoneda />
           </div>
         )}
+
+        {subPanel === "manual" && <PanelManualDnd />}
       </div>
     </div>
   );
