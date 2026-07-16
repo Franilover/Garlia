@@ -1173,8 +1173,8 @@ export function FichaStatsPanel({
                 <span
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black tabular-nums"
                   style={{
-                    background: "color-mix(in srgb, #60a5fa 15%, transparent)",
-                    color: "#3b82f6",
+                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "var(--primary)",
                   }}
                   title="Puntos de golpe temporales: absorben daño antes que los reales."
                 >
@@ -1187,7 +1187,7 @@ export function FichaStatsPanel({
                     width={18}
                     onCommit={(v) => onEditarCampo?.("hp_temporal", Number(v) || 0)}
                     className="text-micro font-black tabular-nums"
-                    style={{ color: "#3b82f6" }}
+                    style={{ color: "var(--primary)" }}
                   />
                 </span>
               )}
@@ -1218,7 +1218,7 @@ export function FichaStatsPanel({
             <div className="flex items-center gap-1.5">
               <span
                 className="text-micro font-black uppercase tracking-wider"
-                style={{ color: "color-mix(in srgb, #22c55e 60%, transparent)" }}
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 Éxitos
               </span>
@@ -1234,8 +1234,8 @@ export function FichaStatsPanel({
                     style={{
                       width: 12,
                       height: 12,
-                      border: "1.5px solid #22c55e",
-                      background: marcado ? "#22c55e" : "transparent",
+                      border: "1.5px solid var(--primary)",
+                      background: marcado ? "var(--primary)" : "transparent",
                     }}
                   />
                 );
@@ -1244,7 +1244,7 @@ export function FichaStatsPanel({
             <div className="flex items-center gap-1.5">
               <span
                 className="text-micro font-black uppercase tracking-wider"
-                style={{ color: "color-mix(in srgb, #ef4444 60%, transparent)" }}
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 Fracasos
               </span>
@@ -1260,8 +1260,8 @@ export function FichaStatsPanel({
                     style={{
                       width: 12,
                       height: 12,
-                      border: "1.5px solid #ef4444",
-                      background: marcado ? "#ef4444" : "transparent",
+                      border: "1.5px solid var(--primary)",
+                      background: marcado ? "var(--primary)" : "transparent",
                     }}
                   />
                 );
