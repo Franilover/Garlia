@@ -190,6 +190,21 @@ export interface FichaDnd {
   agotamiento: number;
   /** Categoría de tamaño, se muestra junto a velocidad/CA en la hoja. */
   tamano: "Diminuto" | "Pequeño" | "Mediano" | "Grande" | "Enorme" | "Gigantesco";
+  /** Bonos de característica elegidos por trasfondo (PHB 2024): +2/+1 a dos
+   *  stats distintas, o +1/+1/+1 a las tres que el trasfondo habilita
+   *  (ver GrupoPersonajeOpcion.caracteristicas_trasfondo). Se suma al score
+   *  base al calcular el valor efectivo — el score guardado en
+   *  fuerza/destreza/etc queda "limpio" (el que el jugador repartió al
+   *  crear el personaje), no se pisa. */
+  mejora_trasfondo: Partial<Record<(typeof STATS_DND)[number], number>>;
+  /** Maestría de arma activa por fila de inventario equipada (PHB 2024):
+   *  { "<fichas_dnd_inventario.id>": "Vex" }. Solo tiene sentido en armas
+   *  con las que el personaje tiene competencia. */
+  maestrias_armas: Record<string, MaestriaArma>;
+  /** IDs (dotes_dnd) de dotes generales ya elegidas en los niveles que
+   *  otorgan dote (PHB 2024: 4, 8, 12, 16, 19). No incluye la dote de
+   *  Origen del trasfondo, esa vive aparte. */
+  dotes_generales_elegidas: string[];
   /** Ataques/conjuros de la tabla "Ataques y conjuros" que NO vienen del
    *  inventario (conjuros de ataque, garras/mordiscos, ataques de clase).
    *  Ya existía la columna en la BD, esto la expone en el tipo. */
@@ -233,6 +248,14 @@ export interface ItemResumen {
   /** Arma a distancia (arco, ballesta, jabalina arrojada…): usa Destreza para
    *  el ataque, sin importar "sutileza" (que es para armas cuerpo a cuerpo livianas). */
   distancia: boolean;
+  /** Si es armadura corporal (no escudo): aporta CA base al equiparse. */
+  es_armadura: boolean;
+  /** Si es escudo: +2 fijo a la CA, no reemplaza la armadura base. */
+  es_escudo: boolean;
+  /** CA base de la armadura antes de sumar mod. Destreza. Null si no es armadura. */
+  ca_base_armadura: number | null;
+  /** Tope al mod. Destreza que suma a la CA: null=sin tope, 2=media, 0=pesada. */
+  max_bono_dex_armadura: number | null;
 }
 
 export interface ItemInventarioFicha {
@@ -265,10 +288,25 @@ export function statMod(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
+/** Valor efectivo de una característica: score base guardado en la ficha +
+ *  el bono de mejora de trasfondo (PHB 2024) que le corresponda a esa stat.
+ *  Todo lo que derive de una característica (mod, pasivas, CD/ataque de
+ *  conjuros, tiradas de salvación) debe leer esto y no el score crudo. */
+export function statEfectivo(
+  ficha: Pick<FichaDnd, "mejora_trasfondo"> & Record<string, number | unknown>,
+  stat: (typeof STATS_DND)[number],
+): number {
+  const base = typeof ficha[stat] === "number" ? (ficha[stat] as number) : 10;
+  const bono = ficha.mejora_trasfondo?.[stat] ?? 0;
+  return base + bono;
+}
+
 /** Percepción pasiva = 10 + mod(Sabiduría) + bono de competencia (si tiene
  *  competencia en Percepción). Es puramente derivada, no vive en la tabla. */
-export function percepcionPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes">): number {
-  const mod = statMod(ficha.sabiduria ?? 10);
+export function percepcionPasiva(
+  ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes" | "mejora_trasfondo">,
+): number {
+  const mod = statMod(statEfectivo(ficha, "sabiduria"));
   const competente = ficha.habilidades_competentes?.includes("percepcion") ?? false;
   return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
 }
@@ -281,16 +319,20 @@ export function bonusCompetencia(nivel: number): number {
 
 /** Investigación pasiva = 10 + mod(Inteligencia) + bono de competencia (si
  *  tiene competencia en Investigación). Misma fórmula que percepción pasiva. */
-export function investigacionPasiva(ficha: Pick<FichaDnd, "inteligencia" | "nivel" | "habilidades_competentes">): number {
-  const mod = statMod(ficha.inteligencia ?? 10);
+export function investigacionPasiva(
+  ficha: Pick<FichaDnd, "inteligencia" | "nivel" | "habilidades_competentes" | "mejora_trasfondo">,
+): number {
+  const mod = statMod(statEfectivo(ficha, "inteligencia"));
   const competente = ficha.habilidades_competentes?.includes("investigacion") ?? false;
   return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
 }
 
 /** Perspicacia pasiva = 10 + mod(Sabiduría) + bono de competencia (si tiene
  *  competencia en Perspicacia). Misma fórmula que percepción pasiva. */
-export function perspicaciaPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes">): number {
-  const mod = statMod(ficha.sabiduria ?? 10);
+export function perspicaciaPasiva(
+  ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes" | "mejora_trasfondo">,
+): number {
+  const mod = statMod(statEfectivo(ficha, "sabiduria"));
   const competente = ficha.habilidades_competentes?.includes("perspicacia") ?? false;
   return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
 }
@@ -345,26 +387,109 @@ export const TIPOS_DANO_DND = [
   "necrótico", "perforante", "psíquico", "radiante", "relámpago", "trueno", "veneno",
 ] as const;
 
+/** Las 7 propiedades de Maestría de Arma del PHB 2024. Cada arma con
+ *  competencia trae fija una de estas (dato del catálogo, no de la ficha);
+ *  lo que la ficha guarda en maestrias_armas es cuál de las que el
+ *  personaje "desbloqueó" está usando esa arma en particular — la mayoría
+ *  de las armas del mundo homebrew no van a tener esta propiedad precargada
+ *  en `items`, así que se deja como elección libre por fila de inventario. */
+export const MAESTRIAS_ARMA_DND = [
+  "Sap",
+  "Slow",
+  "Push",
+  "Topple",
+  "Vex",
+  "Cleave",
+  "Graze",
+  "Nick",
+] as const;
+
+export type MaestriaArma = (typeof MAESTRIAS_ARMA_DND)[number];
+
+/** Descripción corta de cada maestría, para tooltip/badge en la UI. */
+export const DESCRIPCION_MAESTRIA_ARMA: Record<MaestriaArma, string> = {
+  Sap: "El objetivo impactado tiene desventaja en su próximo ataque antes de tu siguiente turno.",
+  Slow: "El objetivo impactado reduce su velocidad en 10 ft hasta el inicio de tu próximo turno.",
+  Push: "El objetivo impactado es empujado hasta 10 ft en línea recta lejos de vos.",
+  Topple: "El objetivo impactado debe salvar Constitución o cae derribado (prone).",
+  Vex: "Si impactás, tenés ventaja en el próximo ataque contra ese mismo objetivo antes de tu siguiente turno.",
+  Cleave: "Si impactás, podés atacar a otra criatura al alcance dentro de 5 ft del objetivo original, sin usar tu acción de nuevo.",
+  Graze: "Si fallás el ataque, igual causás daño de mod. de característica a la criatura.",
+  Nick: "Al hacer ataque extra con arma liviana en la misma acción, no gasta tu acción adicional (solo un arma por turno).",
+};
+
+/** CA calculada a partir de la armadura equipada + escudo, como referencia
+ *  cuando el DM/jugador no la sobreescribe a mano en `ficha.ca`.
+ *  base: CA base del tipo de armadura (10 si va sin armadura).
+ *  sumaDex: si suma mod. Destreza completo (armadura ligera / sin armadura),
+ *    solo hasta +2 (media) o nada (pesada) — se pasa ya resuelto por quien
+ *    llama, ya que depende del ítem equipado y no vive en este helper.
+ *  bonoEscudo: +2 fijo si tiene escudo equipado (regla estándar). */
+export function calcularCaArmadura(params: {
+  caBaseArmadura: number;
+  modDestreza: number;
+  maxBonoDex: number | null; // null = sin tope (armadura ligera o sin armadura)
+  tieneEscudo: boolean;
+}): number {
+  const { caBaseArmadura, modDestreza, maxBonoDex, tieneEscudo } = params;
+  const bonoDex = maxBonoDex === null ? modDestreza : Math.max(0, Math.min(modDestreza, maxBonoDex));
+  return caBaseArmadura + bonoDex + (tieneEscudo ? 2 : 0);
+}
+
+/** CA calculada a partir del inventario equipado real: busca la armadura
+ *  equipada (es_armadura) y el escudo equipado (es_escudo) entre los ítems
+ *  del personaje y aplica calcularCaArmadura. Si no hay armadura equipada,
+ *  usa CA base 10 sin tope de Destreza (la regla "sin armadura" del PHB). */
+export function caCalculadaDesdeInventario(
+  itemsEquipados: ItemInventarioFicha[],
+  modDestreza: number,
+): number {
+  const armadura = itemsEquipados.find((i) => i.equipado && i.item?.es_armadura);
+  const escudo = itemsEquipados.find((i) => i.equipado && i.item?.es_escudo);
+  return calcularCaArmadura({
+    caBaseArmadura: armadura?.item?.ca_base_armadura ?? 10,
+    modDestreza,
+    maxBonoDex: armadura ? armadura.item?.max_bono_dex_armadura ?? null : null,
+    tieneEscudo: Boolean(escudo),
+  });
+}
+
+/** Niveles del PHB 2024 en los que el personaje elige una dote general
+ *  (además de la dote de Origen del trasfondo en nivel 1). */
+export const NIVELES_DOTE_GENERAL = [4, 8, 12, 16, 19] as const;
+
+/** Cuántas dotes generales le corresponden a la ficha según su nivel actual,
+ *  y cuántas le faltan elegir respecto de dotes_generales_elegidas. */
+export function dotesGeneralesDisponibles(
+  ficha: Pick<FichaDnd, "nivel" | "dotes_generales_elegidas">,
+): { total: number; elegidas: number; pendientes: number } {
+  const total = NIVELES_DOTE_GENERAL.filter((n) => (ficha.nivel ?? 1) >= n).length;
+  const elegidas = ficha.dotes_generales_elegidas?.length ?? 0;
+  return { total, elegidas, pendientes: Math.max(0, total - elegidas) };
+}
+
 /** CD de salvación de conjuros = 8 + bono de competencia + mod de la
  *  característica de conjuros. Devuelve null si la ficha no tiene
  *  característica de conjuros configurada. */
 export function cdSalvacionConjuros(
-  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel"> & Record<string, number | string | null>,
+  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo"> &
+    Record<string, number | string | null>,
 ): number | null {
-  const car = ficha.caracteristica_conjuros;
+  const car = ficha.caracteristica_conjuros as (typeof STATS_DND)[number] | null;
   if (!car) return null;
-  const valor = typeof ficha[car] === "number" ? (ficha[car] as number) : 10;
+  const valor = statEfectivo(ficha, car);
   return 8 + bonusCompetencia(ficha.nivel ?? 1) + statMod(valor);
 }
 
 /** Bono de ataque con conjuros = bono de competencia + mod de la
  *  característica de conjuros. Devuelve null si no hay característica configurada. */
 export function bonoAtaqueConjuros(
-  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel"> & Record<string, number | string | null>,
+  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo"> &
+    Record<string, number | string | null>,
 ): number | null {
-  const car = ficha.caracteristica_conjuros;
+  const car = ficha.caracteristica_conjuros as (typeof STATS_DND)[number] | null;
   if (!car) return null;
-  const valor = typeof ficha[car] === "number" ? (ficha[car] as number) : 10;
+  const valor = statEfectivo(ficha, car);
   return bonusCompetencia(ficha.nivel ?? 1) + statMod(valor);
 }
 
@@ -487,7 +612,7 @@ async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventari
   if (ids.length === 0) return rows;
   const { data } = await supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura")
     .in("id", ids);
   const porId = new Map((data ?? []).map((i: any) => [i.id, i as ItemResumen]));
   return rows.map((r) => ({ ...r, item: r.item_id ? porId.get(r.item_id) ?? null : null }));
@@ -582,7 +707,7 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   const q = query.trim();
   let req = supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura")
     .order("nombre")
     .limit(40);
   if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);
@@ -612,13 +737,16 @@ export interface GrupoPersonajeOpcion {
   salvaciones_clase?: string[] | null;
   habilidades_disponibles?: string[] | null;
   habilidades_a_elegir?: number | null;
+  /** Las 3 características entre las que se reparte la mejora de trasfondo
+   *  (+2/+1 o +1/+1/+1, PHB 2024) — solo tiene sentido para subtipo="Trasfondo". */
+  caracteristicas_trasfondo?: string[] | null;
 }
 
 async function buscarGruposPersonajePorSubtipo(subtipo: string): Promise<GrupoPersonajeOpcion[]> {
   const { data } = await supabase
     .from("grupos_mundo")
     .select(
-      "id, nombre, descripcion, dote_origen:dotes_dnd(id, nombre, descripcion), salvaciones_clase, habilidades_disponibles, habilidades_a_elegir",
+      "id, nombre, descripcion, dote_origen:dotes_dnd(id, nombre, descripcion), salvaciones_clase, habilidades_disponibles, habilidades_a_elegir, caracteristicas_trasfondo",
     )
     .eq("tipo", "personajes")
     .eq("subtipo", subtipo)

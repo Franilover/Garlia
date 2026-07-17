@@ -30,7 +30,12 @@ import { MotionDiv } from "@/components/ui/Motion";
 import {
   buscarCriaturas,
   buscarItems,
+  caCalculadaDesdeInventario,
+  DESCRIPCION_MAESTRIA_ARMA,
+  MAESTRIAS_ARMA_DND,
+  statEfectivo,
   statMod,
+  STATS_DND,
   useClasesDisponibles,
   useInventarioFicha,
   useSubclasesDisponibles,
@@ -38,6 +43,7 @@ import {
   type EspecieResumen,
   type FichaDnd,
   type ItemResumen,
+  type MaestriaArma,
   type NuevaFicha,
 } from "../hooks/useFichasDnd";
 
@@ -358,6 +364,7 @@ export function FichaDetalle({
   const [guardando, setGuardando] = useState(false);
   const claseElegidaId = clases.find((c) => c.nombre === (borrador.clase as string))?.id ?? null;
   const { subclases } = useSubclasesDisponibles(claseElegidaId);
+  const caCalculada = caCalculadaDesdeInventario(items, statMod(statEfectivo(ficha, "destreza")));
 
   const guardar = async () => {
     setGuardando(true);
@@ -471,37 +478,51 @@ export function FichaDetalle({
       {/* ── Vitales ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
         <VitalCard icon={<Heart size={14} />} label="HP" value={`${ficha.hp_actual}/${ficha.hp_max}`} />
-        <VitalCard icon={<Shield size={14} />} label="CA" value={String(ficha.ca)} />
+        <VitalCard
+          icon={<Shield size={14} />}
+          label="CA"
+          value={String(ficha.ca)}
+          referencia={
+            caCalculada !== ficha.ca ? `Calculada: ${caCalculada}` : undefined
+          }
+        />
         <VitalCard icon={<Sparkles size={14} />} label="Velocidad" value={`${ficha.velocidad} ft`} />
       </div>
 
       {/* ── Stats ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-        {STATS.map(({ key, label }) => (
-          <div
-            key={key}
-            className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border border-primary/10 bg-primary/[0.02]"
-          >
-            <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-              {label}
-            </span>
-            {editando ? (
-              <input
-                type="text"
-                inputMode="numeric"
-                value={(borrador[key] as number) ?? 10}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/[^0-9]/g, "");
-                  setBorrador((prev) => ({ ...prev, [key]: v === "" ? 0 : Number(v) }));
-                }}
-                className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
-              />
-            ) : (
-              <span className="text-lg font-black text-primary">{ficha[key]}</span>
-            )}
-            <span className="text-micro text-primary/30">{fmtMod(ficha[key])}</span>
-          </div>
-        ))}
+        {STATS.map(({ key, label }) => {
+          const bono = ficha.mejora_trasfondo?.[key] ?? 0;
+          const efectivo = statEfectivo(ficha, key);
+          return (
+            <div
+              key={key}
+              className="flex flex-col items-center justify-center gap-0.5 py-3 rounded-xl border border-primary/10 bg-primary/[0.02]"
+            >
+              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                {label}
+              </span>
+              {editando ? (
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={(borrador[key] as number) ?? 10}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^0-9]/g, "");
+                    setBorrador((prev) => ({ ...prev, [key]: v === "" ? 0 : Number(v) }));
+                  }}
+                  className="w-12 text-center bg-transparent outline-none text-lg font-black text-primary"
+                />
+              ) : (
+                <span className="text-lg font-black text-primary">
+                  {efectivo}
+                  {bono > 0 && <span className="text-micro text-emerald-500 font-bold"> +{bono}</span>}
+                </span>
+              )}
+              <span className="text-micro text-primary/30">{fmtMod(efectivo)}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Edición de datos base ───────────────────────────────────── */}
@@ -578,6 +599,18 @@ export function FichaDetalle({
           {campo("velocidad", "Velocidad", "number")}
           {campo("imagen_url", "URL de imagen")}
         </div>
+      )}
+
+      {/* ── Mejora de característica del trasfondo (PHB 2024) ──────────── */}
+      {editando && (
+        <MejoraTrasfondoSelector
+          caracteristicas={
+            trasfondos.find((t) => t.nombre === (borrador.trasfondo_mecanico as string))
+              ?.caracteristicas_trasfondo ?? null
+          }
+          valor={(borrador.mejora_trasfondo as FichaDnd["mejora_trasfondo"]) ?? {}}
+          onCambiar={(mejora) => setBorrador((prev) => ({ ...prev, mejora_trasfondo: mejora }))}
+        />
       )}
 
       {/* ── Características de especie ──────────────────────────────── */}
@@ -697,6 +730,22 @@ export function FichaDetalle({
                 <span className="flex-1 text-xs text-primary/70 truncate">
                   {item.item?.nombre ?? "(objeto eliminado)"}
                 </span>
+                {item.item?.es_arma && item.equipado && (
+                  <MaestriaArmaSelector
+                    valor={(ficha.maestrias_armas?.[item.id] as MaestriaArma | undefined) ?? null}
+                    editable={editando}
+                    onCambiar={(maestria) => {
+                      const actualizado = { ...(borrador.maestrias_armas ?? ficha.maestrias_armas ?? {}) };
+                      if (maestria) actualizado[item.id] = maestria;
+                      else delete actualizado[item.id];
+                      setBorrador((prev) => ({ ...prev, maestrias_armas: actualizado }));
+                      // Persiste directo: la maestría no depende del resto del
+                      // formulario de edición, así el jugador la puede cambiar
+                      // aunque no esté en modo "Editar ficha".
+                      if (!editando) onActualizar(ficha.id, { maestrias_armas: actualizado });
+                    }}
+                  />
+                )}
                 {item.cantidad > 1 && (
                   <span className="text-micro text-primary/35">×{item.cantidad}</span>
                 )}
@@ -716,12 +765,144 @@ export function FichaDetalle({
   );
 }
 
-function VitalCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+/** Badge/selector de la Maestría de Arma (PHB 2024) activa en un arma
+ *  equipada. Fuera de edición muestra un badge con tooltip nativo (title);
+ *  en edición se convierte en un <select> chico para elegir/cambiar. */
+function MaestriaArmaSelector({
+  valor,
+  editable,
+  onCambiar,
+}: {
+  valor: MaestriaArma | null;
+  editable: boolean;
+  onCambiar: (maestria: MaestriaArma | null) => void;
+}) {
+  if (editable) {
+    return (
+      <select
+        value={valor ?? ""}
+        onChange={(e) => onCambiar((e.target.value || null) as MaestriaArma | null)}
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0 h-6 px-1 rounded border border-primary/10 bg-primary/[0.03] outline-none text-micro text-primary/70"
+      >
+        <option value="">Maestría…</option>
+        {MAESTRIAS_ARMA_DND.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (!valor) return null;
+  return (
+    <span
+      title={DESCRIPCION_MAESTRIA_ARMA[valor]}
+      className="shrink-0 text-micro font-black uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600"
+    >
+      {valor}
+    </span>
+  );
+}
+
+/** Selector de la mejora de característica del trasfondo (PHB 2024): el
+ *  jugador reparte +2/+1 entre dos de las 3 stats que el trasfondo habilita,
+ *  o +1/+1/+1 a las tres. Si el trasfondo elegido no tiene
+ *  caracteristicas_trasfondo cargado (mundo homebrew sin ese dato todavía),
+ *  no se muestra nada — no hay entre qué elegir. */
+function MejoraTrasfondoSelector({
+  caracteristicas,
+  valor,
+  onCambiar,
+}: {
+  caracteristicas: string[] | null;
+  valor: Partial<Record<(typeof STATS_DND)[number], number>>;
+  onCambiar: (mejora: Partial<Record<(typeof STATS_DND)[number], number>>) => void;
+}) {
+  if (!caracteristicas || caracteristicas.length === 0) return null;
+
+  const puntosUsados = Object.values(valor).reduce((acc, v) => acc + (v ?? 0), 0);
+  const puntosMax = 3; // +2/+1 o +1/+1/+1: siempre 3 puntos en total (PHB 2024).
+
+  const setPunto = (stat: string, delta: number) => {
+    const actual = valor[stat as (typeof STATS_DND)[number]] ?? 0;
+    const nuevo = actual + delta;
+    // Tope por stat: máximo 2 (el patrón +2/+1 no permite +3 en una sola).
+    if (nuevo < 0 || nuevo > 2) return;
+    if (delta > 0 && puntosUsados >= puntosMax) return;
+    const actualizado = { ...valor, [stat]: nuevo };
+    if (nuevo === 0) delete actualizado[stat as (typeof STATS_DND)[number]];
+    onCambiar(actualizado);
+  };
+
+  return (
+    <div className="p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+          Mejora de característica (trasfondo)
+        </span>
+        <span className="text-micro text-primary/30">
+          {puntosUsados}/{puntosMax} puntos
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {caracteristicas.map((stat) => {
+          const bono = valor[stat as (typeof STATS_DND)[number]] ?? 0;
+          const label = STATS.find((s) => s.key === stat)?.label ?? stat.slice(0, 3).toUpperCase();
+          return (
+            <div
+              key={stat}
+              className="flex items-center gap-1.5 h-8 px-2 rounded-lg border border-primary/10 bg-primary/[0.03]"
+            >
+              <span className="text-micro font-bold uppercase tracking-wide text-primary/50">
+                {label}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPunto(stat, -1)}
+                disabled={bono <= 0}
+                className="w-5 h-5 rounded-full text-primary/40 hover:bg-primary/10 disabled:opacity-20 transition-colors"
+              >
+                −
+              </button>
+              <span className="w-4 text-center text-xs font-black text-primary">+{bono}</span>
+              <button
+                type="button"
+                onClick={() => setPunto(stat, 1)}
+                disabled={bono >= 2 || puntosUsados >= puntosMax}
+                className="w-5 h-5 rounded-full text-primary/40 hover:bg-primary/10 disabled:opacity-20 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function VitalCard({
+  icon,
+  label,
+  value,
+  referencia,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  /** Texto chico opcional debajo del valor, ej. la CA calculada por armadura
+   *  cuando difiere de la CA guardada a mano en la ficha. */
+  referencia?: string;
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl border border-primary/10 bg-primary/[0.02]">
       <div className="text-primary/40">{icon}</div>
       <span className="text-base font-black text-primary">{value}</span>
       <span className="text-micro font-bold uppercase tracking-widest text-primary/35">{label}</span>
+      {referencia && (
+        <span className="text-micro text-primary/30">{referencia}</span>
+      )}
     </div>
   );
 }
