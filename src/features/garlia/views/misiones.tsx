@@ -70,6 +70,7 @@ import {
   investigacionPasiva,
   MAESTRIAS_ARMA_DND,
   NIVELES_DOTE_GENERAL,
+  penalizacionAgotamiento,
   percepcionPasiva,
   perspicaciaPasiva,
   progresoXp,
@@ -1387,7 +1388,11 @@ export function FichaStatsPanel({
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const hpTemporal = ficha.hp_temporal ?? 0;
-  const iniciativa = statMod(statEfectivo(ficha, "destreza"));
+  // Regla 2024: el agotamiento resta 2 por nivel a TODA tirada d20, así que
+  // se aplica acá una sola vez y se reutiliza en iniciativa/salvaciones/
+  // habilidades. No toca los valores pasivos (no son una tirada).
+  const penAgotamiento = penalizacionAgotamiento(ficha.agotamiento);
+  const iniciativa = statMod(statEfectivo(ficha, "destreza")) + penAgotamiento;
   const danioCuerpoACuerpo = statMod(statEfectivo(ficha, "fuerza"));
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
@@ -1823,7 +1828,11 @@ export function FichaStatsPanel({
               borderRadius: "2px",
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}
-            title="Iniciativa = modificador de Destreza."
+            title={
+              penAgotamiento < 0
+                ? `Iniciativa = modificador de Destreza ${penAgotamiento} por agotamiento.`
+                : "Iniciativa = modificador de Destreza."
+            }
           >
             <span
               className="text-micro font-black uppercase tracking-wider text-center leading-tight"
@@ -2133,7 +2142,7 @@ export function FichaStatsPanel({
             const skills = SKILLS_POR_STAT[key] ?? [];
             const salvacionCompetente = ficha.salvaciones_competentes?.includes(key) ?? false;
             const salvacionBonus =
-              mod + (salvacionCompetente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+              mod + (salvacionCompetente ? bonusCompetencia(ficha.nivel ?? 1) : 0) + penAgotamiento;
             return (
               <div
                 key={key}
@@ -2239,7 +2248,7 @@ export function FichaStatsPanel({
                   const competente =
                     ficha.habilidades_competentes?.includes(skill.id) ?? false;
                   const bonus =
-                    mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+                    mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0) + penAgotamiento;
                   // Si la clase tiene reglas cargadas: solo se puede tildar
                   // una habilidad si está en su lista permitida, y solo hasta
                   // llenar el cupo (habilidades_a_elegir). Sin reglas
@@ -2381,7 +2390,7 @@ export function FichaStatsPanel({
                 type="button"
                 onClick={() => onEditarCampo?.("dados_golpe_usados", 0)}
                 className="text-micro font-semibold text-primary/35 hover:text-primary/60 transition-colors ml-0.5"
-                title="Descanso largo: restablece todos los dados de golpe"
+                title="Ajuste manual: pone los dados de golpe usados en 0 (el botón de descanso largo, arriba del panel, ya hace esto solo)"
               >
                 Reset
               </button>

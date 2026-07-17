@@ -11,7 +11,7 @@
  */
 
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Loader2, Maximize2, MoreVertical, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
+import { ArrowLeft, BedDouble, Check, Loader2, Maximize2, MoreVertical, Plus, Sparkles, Swords, Trash2, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
@@ -96,9 +96,10 @@ export default function Aventura() {
 
 function PanelIdentidad() {
   const { perfil, isAdmin } = useAuth();
-  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch } =
+  const { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, descansarLargo, refetch } =
     useFichasDnd(perfil?.id ?? null);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [descansando, setDescansando] = useState(false);
   // En /aventura la ficha siempre es editable por defecto (sin botón lápiz/check).
   const editando = true;
   const [creando, setCreando] = useState(false);
@@ -190,6 +191,34 @@ function PanelIdentidad() {
               {guardando && (
                 <Loader2 size={12} className="animate-spin text-primary/30" />
               )}
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!activa || descansando) return;
+                  if (
+                    !confirm(
+                      `¿Descanso largo de ${activa.nombre}? Recupera HP, dados de golpe y espacios de conjuro al máximo, y baja el agotamiento en 1.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  setDescansando(true);
+                  try {
+                    await descansarLargo(activa.id);
+                  } finally {
+                    setDescansando(false);
+                  }
+                }}
+                disabled={!activa || descansando}
+                className="p-1 rounded-full text-primary/30 hover:bg-primary/10 hover:text-primary/70 transition-colors disabled:opacity-50"
+                title="Descanso largo: recupera HP, dados de golpe, espacios de conjuro y -1 agotamiento"
+              >
+                {descansando ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <BedDouble size={16} />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => setMenuAbierto((v) => !v)}

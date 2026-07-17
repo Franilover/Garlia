@@ -325,6 +325,48 @@ export function bonusCompetencia(nivel: number): number {
   return 2 + Math.floor((Math.max(1, Math.min(20, nivel)) - 1) / 4);
 }
 
+/** Penalizador por agotamiento (regla 2024): -2 acumulativo por nivel a
+ *  TODA tirada d20 (ataques, salvaciones, pruebas de característica,
+ *  iniciativa). No se aplica a valores pasivos (percepción/investigación/
+ *  perspicacia pasivas), que no son una tirada. */
+export function penalizacionAgotamiento(agotamiento: number | null | undefined): number {
+  return -2 * Math.max(0, agotamiento ?? 0);
+}
+
+/** Cambios que produce un descanso LARGO (regla 2024, PHB p.184):
+ *  - HP vuelve al máximo.
+ *  - Todos los dados de golpe gastados se recuperan (2024 ya no es la
+ *    mitad como en 2014: "regains... all spent Hit Point Dice").
+ *  - Todos los espacios de conjuro gastados se recuperan.
+ *  - El agotamiento baja 1 nivel (no llega a 0 de golpe salvo que ya
+ *    estuviera en 1).
+ *  - Los HP temporales no sobreviven a un descanso largo (son transitorios,
+ *    se pierden si no se gastaron antes). */
+export function cambiosDescansoLargo(
+  ficha: Pick<FichaDnd, "hp_max" | "agotamiento" | "espacios_conjuro">,
+): Partial<FichaDnd> {
+  const espaciosRecuperados = Object.fromEntries(
+    Object.entries(ficha.espacios_conjuro ?? {}).map(([nivel, e]) => [nivel, { ...e, usados: 0 }]),
+  );
+  return {
+    hp_actual: ficha.hp_max ?? 0,
+    hp_temporal: 0,
+    dados_golpe_usados: 0,
+    agotamiento: Math.max(0, (ficha.agotamiento ?? 0) - 1),
+    espacios_conjuro: espaciosRecuperados,
+  };
+}
+
+/** Un descanso CORTO no tiene ningún reseteo automático en la regla 2024:
+ *  el jugador decide a mano cuántos dados de golpe gasta (tirándolos) y
+ *  algunas clases recargan rasgos puntuales por descanso corto (eso vive
+ *  en rasgos_especiales, texto libre, y lo controla el jugador/DM a mano).
+ *  Esta función solo existe para dejar registrado en un solo lugar que "no
+ *  hay nada que resetear automático", en vez de que cada UI lo asuma. */
+export function cambiosDescansoCorto(): Partial<FichaDnd> {
+  return {};
+}
+
 /** Investigación pasiva = 10 + mod(Inteligencia) + bono de competencia (si
  *  tiene competencia en Investigación). Misma fórmula que percepción pasiva. */
 export function investigacionPasiva(
@@ -490,15 +532,16 @@ export function cdSalvacionConjuros(
 }
 
 /** Bono de ataque con conjuros = bono de competencia + mod de la
- *  característica de conjuros. Devuelve null si no hay característica configurada. */
+ *  característica de conjuros + penalización por agotamiento (es una
+ *  tirada d20, regla 2024). Devuelve null si no hay característica configurada. */
 export function bonoAtaqueConjuros(
-  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo"> &
+  ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo" | "agotamiento"> &
     Partial<Record<(typeof STATS_DND)[number], number>>,
 ): number | null {
   const car = ficha.caracteristica_conjuros as (typeof STATS_DND)[number] | null;
   if (!car) return null;
   const valor = statEfectivo(ficha, car);
-  return bonusCompetencia(ficha.nivel ?? 1) + statMod(valor);
+  return bonusCompetencia(ficha.nivel ?? 1) + statMod(valor) + penalizacionAgotamiento(ficha.agotamiento);
 }
 
 async function resolverEspecies(fichas: FichaDnd[]): Promise<FichaDnd[]> {
@@ -584,6 +627,19 @@ export function useFichasDnd(perfilId: string | null) {
     [fetchAll],
   );
 
+  /** Aplica un descanso largo (regla 2024): HP al máximo, dados de golpe y
+   *  espacios de conjuro recuperados por completo, agotamiento -1, HP
+   *  temporal a 0. Un solo update optimista, no una serie de onEditarCampo
+   *  sueltos, para que no quede a mitad de camino si falla la red. */
+  const descansarLargo = useCallback(
+    async (id: string) => {
+      const ficha = fichas.find((f) => f.id === id);
+      if (!ficha) return;
+      await actualizar(id, cambiosDescansoLargo(ficha));
+    },
+    [fichas, actualizar],
+  );
+
   const eliminar = useCallback(
     async (id: string) => {
       // Optimista: la saca de la lista al instante.
@@ -612,7 +668,7 @@ export function useFichasDnd(perfilId: string | null) {
 
   const activa = fichas.find((f) => f.activa) ?? null;
 
-  return { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, refetch: fetchAll };
+  return { fichas, activa, loading, crear, actualizar, eliminar, elegirActiva, descansarLargo, refetch: fetchAll };
 }
 
 async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventarioFicha[]> {
