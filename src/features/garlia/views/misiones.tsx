@@ -564,15 +564,21 @@ function PanelExpandidoFicha({
       borde, como si el panel "se estirara" hacia el costado. */
   anclaRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const ANCHO_PANEL = 560;
+  // ── Ancho del panel: ya no es fijo. Usa todo el espacio horizontal
+  // disponible entre el ancla y el borde de la ventana (con un máximo
+  // generoso), así Identidad e Inventario pueden mostrarse lado a lado
+  // en vez de competir por 560px angostos. ──
+  const ANCHO_PANEL_MIN = 560;
+  const ANCHO_PANEL_MAX = 1100;
   const MARGEN = 16;
   const [pos, setPos] = useState<{
     left: number;
     top: number;
     height: number;
+    width: number;
     lado: "derecha" | "izquierda";
   } | null>(null);
-  const [tab, setTab] = useState<"identidad" | "trasfondo" | "conjuros" | "inventario" | "misiones">("identidad");
+  const [tab, setTab] = useState<"identidad" | "trasfondo" | "misiones">("identidad");
 
   useEffect(() => {
     const calcular = () => {
@@ -581,17 +587,34 @@ function PanelExpandidoFicha({
       const rect = el.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const cabeHaDerecha = rect.right + MARGEN + ANCHO_PANEL <= vw - MARGEN;
-      const lado: "derecha" | "izquierda" = cabeHaDerecha ? "derecha" : "izquierda";
-      const left = cabeHaDerecha
-        ? rect.right + MARGEN
-        : Math.max(MARGEN, rect.left - MARGEN - ANCHO_PANEL);
+      // Espacio libre a cada lado del ancla, descontando márgenes.
+      const espacioDerecha = vw - MARGEN - (rect.right + MARGEN);
+      const espacioIzquierda = rect.left - MARGEN - MARGEN;
+      const cabeHaDerecha = espacioDerecha >= ANCHO_PANEL_MIN;
+      const lado: "derecha" | "izquierda" = cabeHaDerecha
+        ? "derecha"
+        : espacioIzquierda >= ANCHO_PANEL_MIN
+          ? "izquierda"
+          : espacioDerecha >= espacioIzquierda
+            ? "derecha"
+            : "izquierda";
+
+      const espacioDisponible = lado === "derecha" ? espacioDerecha : espacioIzquierda;
+      const width = Math.max(
+        ANCHO_PANEL_MIN,
+        Math.min(ANCHO_PANEL_MAX, espacioDisponible),
+      );
+
+      const left =
+        lado === "derecha"
+          ? rect.right + MARGEN
+          : Math.max(MARGEN, rect.left - MARGEN - width);
       // Misma altura que el panel ancla, pero nunca se sale de la pantalla
       // ni se corta: se clampea entre el margen superior/inferior de la
       // ventana, conservando el top del ancla como referencia.
       const top = Math.max(MARGEN, Math.min(rect.top, vh - MARGEN - 200));
       const height = Math.min(rect.height, vh - top - MARGEN);
-      setPos({ left, top, height, lado });
+      setPos({ left, top, height, width, lado });
     };
     calcular();
     window.addEventListener("resize", calcular);
@@ -649,7 +672,7 @@ function PanelExpandidoFicha({
             : {
                 left: pos.left,
                 top: pos.top,
-                width: ANCHO_PANEL,
+                width: pos.width,
                 height: pos.height,
                 background: "var(--white-custom)",
                 // Esquinas rectas del lado que "conecta" con el panel
@@ -711,9 +734,8 @@ function PanelExpandidoFicha({
         >
           {(
             [
-              ["identidad", "Identidad"],
+              ["identidad", "Identidad e Inventario"],
               ["trasfondo", "Historia"],
-              ["inventario", "Inventario"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -739,6 +761,15 @@ function PanelExpandidoFicha({
             angosto del panel anexo (560px). ── */}
         <div className="p-6 flex flex-col gap-6">
           {tab === "identidad" && (
+            // ── Panel ancho (≥ ~900px): Identidad e Inventario lado a lado,
+            // cada uno con su propio scroll — aprovecha todo el ancho que
+            // ahora tiene este panel en vez de forzar tabs separadas.
+            // Panel angosto (mobile / poco espacio a los costados): vuelve
+            // a apilarse en una sola columna, como antes. ──
+            <div
+              className="flex flex-col xl:flex-row gap-6 xl:gap-8 items-start"
+            >
+              <div className="flex-1 min-w-0 w-full flex flex-col gap-6">
             <>
           {/* ── Identidad: Clase/Subclase y Trasfondo/Especie en 2 columnas,
               Alineamiento debajo ocupando todo el ancho. Los rasgos largos de
@@ -1068,6 +1099,42 @@ function PanelExpandidoFicha({
             </div>
           </div>
             </>
+              </div>
+
+              {/* ── Columna Inventario: separada por un divisor vertical
+                  sutil cuando están lado a lado; en mobile queda debajo. ── */}
+              <div
+                className="w-full xl:w-[380px] shrink-0 flex flex-col gap-1 pt-0 xl:pt-0 xl:pl-8 xl:border-l"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                }}
+              >
+                <span
+                  className="text-micro font-black uppercase tracking-wider mb-1 hidden xl:block"
+                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                >
+                  Inventario
+                </span>
+                <div className="-mx-6 xl:mx-0">
+                  <PanelInventarioFicha
+                    fichaId={ficha.id}
+                    editable={editable}
+                    monedas={ficha.monedas}
+                    tiposMoneda={tiposMoneda}
+                    editableMonedas={editableStats}
+                    onEditarMonedas={(m) => onEditarCampo?.("monedas", m)}
+                    maestriasArmas={ficha.maestrias_armas}
+                    onEditarMaestrias={(m) => onEditarCampo?.("maestrias_armas", m)}
+                  />
+                  <PanelConjuros
+                    ficha={ficha}
+                    editable={editable}
+                    editableStats={editableStats}
+                    onEditarCampo={onEditarCampo}
+                  />
+                </div>
+              </div>
+            </div>
           )}
 
           {tab === "trasfondo" && (
@@ -1128,29 +1195,6 @@ function PanelExpandidoFicha({
                 placeholder="¿Qué punto débil podrían explotar en su contra?"
               />
             </div>
-            </div>
-          )}
-
-          {/* ── Inventario: objetos y monedas, + lo mágico (Conjuros se
-              fusionó acá, ya no es una tab aparte). ── */}
-          {tab === "inventario" && (
-            <div className="flex flex-col gap-1 -mx-6">
-              <PanelInventarioFicha
-                fichaId={ficha.id}
-                editable={editable}
-                monedas={ficha.monedas}
-                tiposMoneda={tiposMoneda}
-                editableMonedas={editableStats}
-                onEditarMonedas={(m) => onEditarCampo?.("monedas", m)}
-                maestriasArmas={ficha.maestrias_armas}
-                onEditarMaestrias={(m) => onEditarCampo?.("maestrias_armas", m)}
-              />
-              <PanelConjuros
-                ficha={ficha}
-                editable={editable}
-                editableStats={editableStats}
-                onEditarCampo={onEditarCampo}
-              />
             </div>
           )}
 
