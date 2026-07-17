@@ -17,7 +17,6 @@ import {
   Languages,
   Link2,
   Loader2,
-  Maximize2,
   Minus,
   Moon,
   Mountain,
@@ -37,7 +36,6 @@ import {
   Zap,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { MotionDiv } from "@/components/ui/Motion";
 import {
@@ -371,11 +369,10 @@ function EditorListaTags({
     </div>
   );
 }
-// ─── Panel flotante expandido: idiomas, herramientas y trasfondo ──────────
-// Se abre con el botón de expandir del header y cubre el tablero mientras
-// está abierta (overlay fixed a pantalla completa, panel horizontal ancho
-// centrado). Pensado para leer/editar esos campos con más aire que en la
-// columna lateral angosta de /aventura.
+// ─── Contenido de identidad/trasfondo: campos que antes vivían en el panel
+// flotante anexo. Ahora se usan como contenido de las tabs Identidad/
+// Inventario/Historia dentro del panel fijo (ver ContenidoIdentidadFicha,
+// ContenidoInventarioFicha y ContenidoHistoriaFicha, definidas más abajo).
 
 // ── Campo simple de identidad (label + valor/select), sin caja ni borde —
 // el look minimalista se apoya en el grid y el espaciado, no en tarjetas. ──
@@ -512,26 +509,23 @@ function RasgoDelCampo({ texto }: { texto: string }) {
   );
 }
 
-function PanelExpandidoFicha({
+// ─── Contenido de cada tab del panel de ficha (Identidad / Inventario /
+// Historia). Antes vivían dentro de un panel flotante anexo (PanelExpandidoFicha);
+// ahora se renderizan directo dentro de FichaStatsPanel como contenido de tab,
+// sin overlay ni posicionamiento propio. ──────────────────────────────────
+
+function ContenidoIdentidadFicha({
   ficha,
   editable,
-  editableStats,
+  onEditarCampo,
   clasesDisponibles,
   subclasesDisponibles,
   trasfondosDisponibles,
-  tiposMoneda,
   dotesGenerales,
-  onEditarCampo,
-  onFichaActualizada,
-  onCerrar,
-  anclaRef,
 }: {
   ficha: FichaDnd;
   editable: boolean;
-  /** Solo admin/DM (o el dueño mientras la ficha no esté confirmada):
-   *  controla espacios de conjuro y otros números "de combate" dentro del
-   *  panel expandido (conjuros). */
-  editableStats: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: CampoFichaValor) => void;
   clasesDisponibles: Array<{
     id: string;
     nombre: string;
@@ -548,246 +542,10 @@ function PanelExpandidoFicha({
     dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
     caracteristicas_trasfondo?: string[] | null;
   }>;
-  tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
-  /** Ya calculado en el padre (FichaStatsPanel), se pasa para no repetir el
-   *  cálculo acá y mantener un solo lugar con la fuente de verdad. */
   dotesGenerales: { total: number; elegidas: number; pendientes: number };
-  onEditarCampo?: (
-    campo: keyof FichaDnd,
-    valor: CampoFichaValor,
-  ) => void;
-  /** Se dispara tras reclamar una recompensa de misión, para refrescar la
-      ficha en el padre — solo se usa dentro de la tab "Misiones". */
-  onFichaActualizada?: () => void;
-  onCerrar: () => void;
-  /** Ref al contenedor del panel principal — el flotante se ancla a su
-      borde, como si el panel "se estirara" hacia el costado. */
-  anclaRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  // ── Ancho del panel: ya no es fijo. Usa todo el espacio horizontal
-  // disponible entre el ancla y el borde de la ventana (con un máximo
-  // generoso), así Identidad e Inventario pueden mostrarse lado a lado
-  // en vez de competir por 560px angostos.
-  // Sin separación con el panel ancla (se "conectan") ni con el borde
-  // derecho de la ventana — solo se respeta el sidebar fijo izquierdo
-  // (52px en desktop) para no quedar tapado detrás de él. ──
-  const ANCHO_PANEL_MIN = 560;
-  const ANCHO_PANEL_MAX = 1100;
-  const SIDEBAR_DESKTOP_ANCHO = 68;
-  const MARGEN_SUPERIOR = 16;
-  const [pos, setPos] = useState<{
-    left: number;
-    top: number;
-    height: number;
-    width: number;
-    lado: "derecha" | "izquierda";
-  } | null>(null);
-  const [tab, setTab] = useState<"identidad" | "trasfondo" | "misiones">("identidad");
-
-  useEffect(() => {
-    const calcular = () => {
-      const el = anclaRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      // El sidebar fijo desktop (aside md:flex, 52px) vive por debajo de
-      // este panel en el DOM pero con mayor z-index — así que tratamos su
-      // ancho como el borde real izquierdo disponible, no 0.
-      const esDesktop = vw >= 768; // breakpoint md de Tailwind, igual que el navbar
-      const limiteIzquierdo = esDesktop ? SIDEBAR_DESKTOP_ANCHO : 0;
-
-      // Espacio libre a cada lado del ancla — sin margen: el panel se
-      // conecta directo con el borde del ancla y con el borde de la
-      // ventana (o el sidebar, del lado izquierdo).
-      const espacioDerecha = vw - rect.right;
-      const espacioIzquierda = rect.left - limiteIzquierdo;
-      const cabeHaDerecha = espacioDerecha >= ANCHO_PANEL_MIN;
-      const lado: "derecha" | "izquierda" = cabeHaDerecha
-        ? "derecha"
-        : espacioIzquierda >= ANCHO_PANEL_MIN
-          ? "izquierda"
-          : espacioDerecha >= espacioIzquierda
-            ? "derecha"
-            : "izquierda";
-
-      const espacioDisponible = lado === "derecha" ? espacioDerecha : espacioIzquierda;
-      const width = Math.max(
-        ANCHO_PANEL_MIN,
-        Math.min(ANCHO_PANEL_MAX, espacioDisponible),
-      );
-
-      const left =
-        lado === "derecha"
-          ? rect.right
-          : Math.max(limiteIzquierdo, rect.left - width);
-      // Misma altura que el panel ancla, pero nunca queda tapado por el
-      // navbar: en desktop respeta el margen superior normal; en mobile
-      // se detiene antes de la barra inferior fija (56px + margen).
-      const NAVBAR_MOBILE_ALTO = 56;
-      const margenInferior = esDesktop ? MARGEN_SUPERIOR : NAVBAR_MOBILE_ALTO + MARGEN_SUPERIOR;
-      const top = Math.max(MARGEN_SUPERIOR, Math.min(rect.top, vh - margenInferior - 200));
-      const height = Math.min(rect.height, vh - top - margenInferior);
-      setPos({ left, top, height, width, lado });
-    };
-    calcular();
-    window.addEventListener("resize", calcular);
-    window.addEventListener("scroll", calcular, true);
-    return () => {
-      window.removeEventListener("resize", calcular);
-      window.removeEventListener("scroll", calcular, true);
-    };
-  }, [anclaRef]);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onCerrar]);
-
-  // Portal a document.body: el panel es "fixed", pero si se queda anidado
-  // dentro de la tarjeta de ficha (que tiene overflow-hidden y, por los
-  // motion.div con transform, su propio stacking context) el navegador lo
-  // recorta o lo deja detrás de otros elementos con z-index propio, como
-  // las tarjetas del tablero. Portal lo saca de ese árbol por completo.
-  if (typeof document === "undefined") return null;
-  if (!pos) return null;
-
-  // En mobile (pantalla angosta, breakpoint md de Tailwind — el mismo que
-  // usa el navbar) no hay lugar al costado: cae a un panel centrado
-  // clásico, más ancho, igual sin overlay oscuro pesado.
-  const esMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-  return createPortal(
-    <>
-      {/* Capa invisible solo para detectar el click-afuera; no oscurece,
-          para que el panel se sienta "conectado" y no como un modal aparte.
-          Por encima del sidebar/navbar (z-[100] / z-[1000]) para que el
-          click-afuera funcione incluso sobre esas zonas. ── */}
-      <div className="fixed inset-0 z-[1001]" onClick={onCerrar} />
-      <MotionDiv
-        animate={{ opacity: 1, x: 0 }}
-        className="fixed z-[1002] overflow-y-auto"
-        exit={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
-        initial={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-        style={
-          esMobile
-            ? {
-                left: "50%",
-                top: "calc(50% - 28px)",
-                transform: "translate(-50%, -50%)",
-                width: "min(94vw, 560px)",
-                maxHeight: "calc(86vh - 56px)",
-                background: "var(--white-custom)",
-                borderRadius: "var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                boxShadow: "0 20px 60px color-mix(in srgb, black 25%, transparent)",
-              }
-            : {
-                left: pos.left,
-                top: pos.top,
-                width: pos.width,
-                height: pos.height,
-                background: "var(--white-custom)",
-                // Esquinas rectas del lado que "conecta" con el panel
-                // principal, redondeadas del otro — da la sensación de
-                // que es una extensión de la misma tarjeta, no un panel
-                // separado flotando encima.
-                borderRadius:
-                  pos.lado === "derecha"
-                    ? "0 var(--radius-card) var(--radius-card) 0"
-                    : "var(--radius-card) 0 0 var(--radius-card)",
-                border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-                borderLeft:
-                  pos.lado === "derecha"
-                    ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                    : undefined,
-                borderRight:
-                  pos.lado === "izquierda"
-                    ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)"
-                    : undefined,
-                boxShadow: "0 12px 32px color-mix(in srgb, black 16%, transparent)",
-              }
-        }
-      >
-        {/* ── Header: solo nombre + cerrar. Sin subtítulo descriptivo — las
-            tabs de abajo ya comunican qué hay adentro. ── */}
-        <div
-          className="sticky top-0 z-10 px-6 pt-4 flex items-center justify-between gap-3"
-          style={{ background: "var(--white-custom)" }}
-        >
-          <p
-            className="font-serif italic text-lg leading-tight truncate capitalize"
-            style={{ color: "var(--primary)" }}
-          >
-            {ficha.nombre}
-          </p>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="shrink-0 flex items-center justify-center transition-colors"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        {/* ── Tabs: fila de texto plano, sin botones con caja. El tab
-            activo se marca solo con color/peso + una línea inferior. ── */}
-        <div
-          className="sticky top-[52px] z-10 px-6 flex items-center"
-          style={{
-            background: "var(--white-custom)",
-            borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-          }}
-        >
-          {(
-            [
-              ["identidad", "Identidad e Inventario"],
-              ["trasfondo", "Historia"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className="flex-1 pb-2.5 pt-3 text-xs font-bold uppercase tracking-wide text-center transition-colors"
-              style={{
-                color:
-                  tab === id
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                borderBottom: tab === id ? "2px solid var(--primary)" : "2px solid transparent",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Cuerpo: una sola tab visible a la vez — minimalista, solo lo
-            que corresponde a la sección elegida, pensado para el ancho
-            angosto del panel anexo (560px). ── */}
-        <div className="p-6 flex flex-col gap-6">
-          {tab === "identidad" && (
-            // ── Panel ancho (≥ ~900px): Identidad e Inventario lado a lado,
-            // cada uno con su propio scroll — aprovecha todo el ancho que
-            // ahora tiene este panel en vez de forzar tabs separadas.
-            // Panel angosto (mobile / poco espacio a los costados): vuelve
-            // a apilarse en una sola columna, como antes. ──
-            <div
-              className="flex flex-col xl:flex-row gap-6 xl:gap-8 items-start"
-            >
-              <div className="flex-1 min-w-0 w-full flex flex-col gap-6">
-            <>
+  return (
+    <div className="flex flex-col gap-6">
           {/* ── Identidad: Clase/Subclase y Trasfondo/Especie en 2 columnas,
               Alineamiento debajo ocupando todo el ancho. Los rasgos largos de
               cada elección van colapsados en "Ver rasgos" para no inflar el
@@ -1115,24 +873,25 @@ function PanelExpandidoFicha({
               />
             </div>
           </div>
-            </>
-              </div>
+    </div>
+  );
+}
 
-              {/* ── Columna Inventario: separada por un divisor vertical
-                  sutil cuando están lado a lado; en mobile queda debajo. ── */}
-              <div
-                className="w-full xl:w-[380px] shrink-0 flex flex-col gap-1 pt-0 xl:pt-0 xl:pl-8 xl:border-l"
-                style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-              >
-                <span
-                  className="text-micro font-black uppercase tracking-wider mb-1 hidden xl:block"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                >
-                  Inventario
-                </span>
-                <div className="-mx-6 xl:mx-0">
+function ContenidoInventarioFicha({
+  ficha,
+  editable,
+  editableStats,
+  onEditarCampo,
+  tiposMoneda,
+}: {
+  ficha: FichaDnd;
+  editable: boolean;
+  editableStats: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: CampoFichaValor) => void;
+  tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
                   <PanelInventarioFicha
                     fichaId={ficha.id}
                     editable={editable}
@@ -1149,12 +908,20 @@ function PanelExpandidoFicha({
                     editableStats={editableStats}
                     onEditarCampo={onEditarCampo}
                   />
-                </div>
-              </div>
-            </div>
-          )}
+    </div>
+  );
+}
 
-          {tab === "trasfondo" && (
+function ContenidoHistoriaFicha({
+  ficha,
+  editable,
+  onEditarCampo,
+}: {
+  ficha: FichaDnd;
+  editable: boolean;
+  onEditarCampo?: (campo: keyof FichaDnd, valor: CampoFichaValor) => void;
+}) {
+  return (
             <div className="flex flex-col gap-4">
             <div>
               <span
@@ -1213,17 +980,6 @@ function PanelExpandidoFicha({
               />
             </div>
             </div>
-          )}
-
-          {tab === "misiones" && (
-            <div className="-mx-6">
-              <Misiones ficha={ficha} onFichaActualizada={onFichaActualizada} />
-            </div>
-          )}
-        </div>
-      </MotionDiv>
-    </>,
-    document.body,
   );
 }
 
@@ -1466,7 +1222,7 @@ export function FichaStatsPanel({
   const { items: itemsInventario } = useInventarioFicha(ficha.id);
   const caCalculada = caCalculadaDesdeInventario(itemsInventario, statMod(statEfectivo(ficha, "destreza")));
   const dotesGenerales = dotesGeneralesDisponibles(ficha);
-  const [expandido, setExpandido] = useState(false);
+  const [tab, setTab] = useState<"stats" | "identidad" | "inventario" | "historia">("stats");
   const panelRef = useRef<HTMLDivElement>(null);
   const stats: Array<[string, number]> = STATS_DND.map((key) => [key, statEfectivo(ficha, key)]);
 
@@ -1491,32 +1247,11 @@ export function FichaStatsPanel({
         border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
       }}
     >
-      {/* ── Panel anexo: se abre pegado al costado de esta tarjeta, como si
-          se estirara hacia el lado, con idiomas, herramientas y trasfondo
-          con más espacio para leer/editar. Cierra con la X, clic afuera,
-          o Escape. ── */}
-      <AnimatePresence>
-        {expandido && (
-          <PanelExpandidoFicha
-            ficha={ficha}
-            editable={editable}
-            editableStats={editableStats}
-            clasesDisponibles={clasesDisponibles}
-            subclasesDisponibles={subclasesDisponibles}
-            trasfondosDisponibles={trasfondosDisponibles}
-            tiposMoneda={tiposMoneda}
-            dotesGenerales={dotesGenerales}
-            onEditarCampo={onEditarCampo}
-            onFichaActualizada={onFichaActualizada}
-            onCerrar={() => setExpandido(false)}
-            anclaRef={panelRef}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* ── Encabezado: nombre + clase/nivel, con ícono de expandir lineal
-          y chico integrado a la fila de la derecha (sin el círculo de
-          44px de antes, para un header más compacto). ── */}
+      {/* ── Encabezado: nombre + clase/nivel. Antes tenía un botón "Ver
+          ficha completa" que abría un panel flotante anexo; ahora el
+          panel completo vive acá mismo, organizado en tabs (ver más
+          abajo), así que el header queda solo con nombre/clase/nivel
+          e inspiración. ── */}
       <div className="px-3.5 pt-3.5 pb-3 flex items-start gap-2">
         <div className="min-w-0 flex-1">
             <p
@@ -1607,37 +1342,65 @@ export function FichaStatsPanel({
               />
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setExpandido(true)}
-            title="Ver ficha completa: idiomas, herramientas, trasfondo e inventario"
-            className="shrink-0 flex items-center gap-1 transition-colors"
-            style={{
-              height: 22,
-              padding: "0 6px",
-              borderRadius: 11,
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-              (e.currentTarget as HTMLElement).style.background =
-                "color-mix(in srgb, var(--primary) 8%, transparent)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color =
-                "color-mix(in srgb, var(--primary) 40%, transparent)";
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
-          >
-            <Maximize2 size={12} />
-            <span className="text-micro font-bold whitespace-nowrap hidden sm:inline">
-              Ver ficha completa
-            </span>
-          </button>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
       </div>
 
+      {/* ── Tabs: Stats / Identidad / Inventario / Historia. En desktop,
+          fila de texto plano (tab activa marcada con color + línea
+          inferior, mismo criterio visual que tenía el panel flotante
+          viejo). En mobile, un <select> nativo en su lugar — 4 tabs no
+          entran cómodas en el ancho angosto que tiene este panel arriba
+          del feed. ── */}
+      <div className="sm:hidden px-3.5 pb-2">
+        <select
+          value={tab}
+          onChange={(e) => setTab(e.target.value as typeof tab)}
+          className="w-full h-8 px-2 rounded-lg text-xs font-bold uppercase tracking-wide outline-none"
+          style={{
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "var(--primary)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <option value="stats">Stats</option>
+          <option value="identidad">Identidad</option>
+          <option value="inventario">Inventario</option>
+          <option value="historia">Historia</option>
+        </select>
+      </div>
+      <div
+        className="hidden sm:flex items-center px-3.5"
+        style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        {(
+          [
+            ["stats", "Stats"],
+            ["identidad", "Identidad"],
+            ["inventario", "Inventario"],
+            ["historia", "Historia"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className="flex-1 pb-2 pt-1 text-micro font-bold uppercase tracking-wide text-center transition-colors"
+            style={{
+              color:
+                tab === id
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 35%, transparent)",
+              borderBottom: tab === id ? "2px solid var(--primary)" : "2px solid transparent",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "stats" && (
+        <>
       {/* ── Avatar de estado: condiciones activas, siempre visibles como chips.
           Solo admin/DM puede tildar/destildar (editableCondiciones), nunca el
           dueño de la ficha — el estado de juego en vivo lo controla el DM. ── */}
@@ -2485,6 +2248,40 @@ export function FichaStatsPanel({
             style={{ color: "var(--primary)" }}
             width={90}
           />
+        </div>
+      )}
+        </>
+      )}
+
+      {tab === "identidad" && (
+        <div className="p-3.5">
+          <ContenidoIdentidadFicha
+            ficha={ficha}
+            editable={editable}
+            onEditarCampo={onEditarCampo}
+            clasesDisponibles={clasesDisponibles}
+            subclasesDisponibles={subclasesDisponibles}
+            trasfondosDisponibles={trasfondosDisponibles}
+            dotesGenerales={dotesGenerales}
+          />
+        </div>
+      )}
+
+      {tab === "inventario" && (
+        <div className="p-3.5">
+          <ContenidoInventarioFicha
+            ficha={ficha}
+            editable={editable}
+            editableStats={editableStats}
+            onEditarCampo={onEditarCampo}
+            tiposMoneda={tiposMoneda}
+          />
+        </div>
+      )}
+
+      {tab === "historia" && (
+        <div className="p-3.5">
+          <ContenidoHistoriaFicha ficha={ficha} editable={editable} onEditarCampo={onEditarCampo} />
         </div>
       )}
     </div>
