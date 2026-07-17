@@ -259,6 +259,51 @@ function CampoEditable({
   );
 }
 
+// Celda mínima para la fila de stats de combate (iniciativa, CA, daño,
+// competencia, velocidad, percepción): mismo look que las cajas anteriores
+// pero compacta, pensada para ir 6 en una sola fila sin sofocar la ficha.
+function StatMini({
+  label,
+  valor,
+  sub,
+  title,
+}: {
+  label: string;
+  valor: React.ReactNode;
+  sub?: string;
+  title?: string;
+}) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center gap-0 px-0.5 py-1"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+        borderRadius: "2px",
+        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+      }}
+      title={title}
+    >
+      <span
+        className="text-micro font-black uppercase tracking-wider text-center leading-none"
+        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", fontSize: 9 }}
+      >
+        {label}
+      </span>
+      <span className="text-xs font-black tabular-nums leading-tight" style={{ color: "var(--primary)" }}>
+        {valor}
+      </span>
+      {sub && (
+        <span
+          className="font-bold tabular-nums leading-none"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", fontSize: 8 }}
+        >
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // Variante textarea de CampoEditable, para textos largos de rol-play
 // (rasgos, ideales, vínculos, defectos). Mismo patrón: solo se ve como
 // input cuando `editable`, si no es texto plano.
@@ -1647,176 +1692,86 @@ export function FichaStatsPanel({
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-1.5">
-
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+        {/* ── Una sola fila compacta con los 6 datos que el PHB 2024 trata
+            como "consulta constante" en combate (iniciativa, CA, velocidad,
+            percepción pasiva agrupadas arriba de la ficha; daño y bono de
+            competencia son el núcleo de cada ataque). Celdas angostas, un
+            solo grid — nada de dos filas de cajas grandes. ── */}
+        <div className="grid grid-cols-6 gap-1">
+          <StatMini
+            label="Iniciat."
+            valor={iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
             title={
               penAgotamiento < 0
                 ? `Iniciativa = modificador de Destreza ${penAgotamiento} por agotamiento.`
                 : "Iniciativa = modificador de Destreza."
             }
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Iniciat.
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
-            </span>
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          />
+          <StatMini
+            label="Defensa"
             title={
               caCalculada !== (ficha.ca ?? 10)
                 ? `CA calculada por armadura equipada: ${caCalculada}`
                 : undefined
             }
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Defensa
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            valor={
               <CampoEditable
                 valor={ficha.ca ?? 10}
                 editable={editableStats}
                 tipo="number"
                 align="center"
-                width={28}
+                width={22}
                 onCommit={(v) => onEditarCampo?.("ca", Number(v) || 0)}
-                className="text-sm font-black tabular-nums"
+                className="text-xs font-black tabular-nums"
                 style={{ color: "var(--primary)" }}
               />
-            </span>
-            {caCalculada !== (ficha.ca ?? 10) && (
-              <span
-                className="text-micro font-bold tabular-nums"
-                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                calc. {caCalculada}
-              </span>
-            )}
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Daño
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
-            </span>
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+            }
+            sub={caCalculada !== (ficha.ca ?? 10) ? `calc. ${caCalculada}` : undefined}
+          />
+          <StatMini
+            label="Daño"
+            valor={danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
+          />
+          <StatMini
+            label="Compet."
+            valor={`+${bonoCompetencia}`}
             title="Se calcula solo según el nivel: base de habilidades, salvaciones y ataques."
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Compet.
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              +{bonoCompetencia}
-            </span>
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Veloc.
-            </span>
-            <CampoEditable
-              valor={ficha.velocidad ?? 30}
-              editable={editableStats}
-              tipo="number"
-              align="center"
-              width={40}
-              onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
-              className="text-sm font-black tabular-nums"
-              style={{ color: "var(--primary)" }}
-            />
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          />
+          <StatMini
+            label="Veloc."
+            valor={
+              <CampoEditable
+                valor={ficha.velocidad ?? 30}
+                editable={editableStats}
+                tipo="number"
+                align="center"
+                width={30}
+                onCommit={(v) => onEditarCampo?.("velocidad", Number(v) || 0)}
+                className="text-xs font-black tabular-nums"
+                style={{ color: "var(--primary)" }}
+              />
+            }
+          />
+          <StatMini
+            label="Percep."
+            valor={percepcion}
             title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Percep.
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {percepcion}
-            </span>
-          </div>
+          />
         </div>
 
-        {/* ── Segunda fila: tamaño, las otras dos pasivas (2024 muestra las
-            tres) y agotamiento — mismo look que la fila de arriba. ── */}
-        <div className="grid grid-cols-4 gap-1.5 mt-1.5">
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
-          >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Tamaño
-            </span>
+        {/* ── Datos de referencia ocasional (tamaño, las otras dos pasivas,
+            agotamiento): una sola línea de texto chico, sin tarjetas. ── */}
+        <div
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 px-0.5 text-micro"
+          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+        >
+          <span className="inline-flex items-center gap-1">
+            <span className="font-bold uppercase tracking-wide">Tam.</span>
             {editableStats ? (
               <select
                 value={ficha.tamano ?? "Mediano"}
                 onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
-                className="text-micro font-black bg-transparent outline-none text-center"
+                className="font-black bg-transparent outline-none"
                 style={{ color: "var(--primary)" }}
               >
                 {TAMANOS_DND.map((t) => (
@@ -1826,89 +1781,54 @@ export function FichaStatsPanel({
                 ))}
               </select>
             ) : (
-              <span className="text-micro font-black" style={{ color: "var(--primary)" }}>
+              <span className="font-black" style={{ color: "var(--primary)" }}>
                 {ficha.tamano ?? "Mediano"}
               </span>
             )}
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          </span>
+
+          <span
+            className="inline-flex items-center gap-1"
             title="10 + modificador de Inteligencia + competencia (si la tiene en Investigación)."
           >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Investig.
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            <span className="font-bold uppercase tracking-wide">Investig.</span>
+            <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {investigacionPasiva(ficha)}
             </span>
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          </span>
+
+          <span
+            className="inline-flex items-center gap-1"
             title="10 + modificador de Sabiduría + competencia (si la tiene en Perspicacia)."
           >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              Perspic.
-            </span>
-            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+            <span className="font-bold uppercase tracking-wide">Perspic.</span>
+            <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {perspicaciaPasiva(ficha)}
             </span>
-          </div>
-          <div
-            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
-            style={{
-              border:
-                (ficha.agotamiento ?? 0) > 0
-                  ? "1px solid color-mix(in srgb, #dc2626 35%, transparent)"
-                  : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              borderRadius: "2px",
-              background:
-                (ficha.agotamiento ?? 0) > 0
-                  ? "color-mix(in srgb, #dc2626 6%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 3%, transparent)",
-            }}
+          </span>
+
+          <span
+            className="inline-flex items-center gap-1"
             title="Nivel de agotamiento 0-6 (regla 2024: -2 acumulativo por nivel a todas las tiradas)."
+            style={
+              (ficha.agotamiento ?? 0) > 0 ? { color: "#dc2626" } : undefined
+            }
           >
-            <span
-              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
-              style={{
-                color:
-                  (ficha.agotamiento ?? 0) > 0
-                    ? "#dc2626"
-                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-            >
-              Agotam.
-            </span>
+            <span className="font-bold uppercase tracking-wide">Agotam.</span>
             {editableCondiciones ? (
-              <span className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-0.5">
                 <button
                   type="button"
                   onClick={() =>
                     onEditarCampo?.("agotamiento", Math.max(0, (ficha.agotamiento ?? 0) - 1))
                   }
                   className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 14, height: 14 }}
+                  style={{ width: 13, height: 13 }}
                 >
-                  <Minus size={9} className="text-primary/50" />
+                  <Minus size={8} className="text-primary/50" />
                 </button>
                 <span
-                  className="text-sm font-black tabular-nums"
+                  className="font-black tabular-nums"
                   style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
                 >
                   {ficha.agotamiento ?? 0}
@@ -1919,20 +1839,20 @@ export function FichaStatsPanel({
                     onEditarCampo?.("agotamiento", Math.min(6, (ficha.agotamiento ?? 0) + 1))
                   }
                   className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 14, height: 14 }}
+                  style={{ width: 13, height: 13 }}
                 >
-                  <Plus size={9} className="text-primary/50" />
+                  <Plus size={8} className="text-primary/50" />
                 </button>
               </span>
             ) : (
               <span
-                className="text-sm font-black tabular-nums"
+                className="font-black tabular-nums"
                 style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
               >
                 {ficha.agotamiento ?? 0}
               </span>
             )}
-          </div>
+          </span>
         </div>
       </div>
 
