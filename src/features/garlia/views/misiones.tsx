@@ -64,6 +64,7 @@ import {
   percepcionPasiva,
   statMod,
   useClasesDisponibles,
+  useDotesDisponibles,
   useInventarioFicha,
   useSubclasesDisponibles,
   useTiposMoneda,
@@ -1836,6 +1837,8 @@ function PanelRasgosEspeciales({
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [descNueva, setDescNueva] = useState("");
   const [origenNuevo, setOrigenNuevo] = useState<RasgoEspecial["origen"]>("otro");
+  const { dotes: catalogoDotes, loading: cargandoDotes } = useDotesDisponibles();
+  const [doteCatalogoId, setDoteCatalogoId] = useState("");
 
   const agregar = useCallback(() => {
     const nombre = nombreNuevo.trim();
@@ -1853,6 +1856,7 @@ function PanelRasgosEspeciales({
     setNombreNuevo("");
     setDescNueva("");
     setOrigenNuevo("otro");
+    setDoteCatalogoId("");
     setAgregando(false);
   }, [nombreNuevo, descNueva, origenNuevo, rasgos, onCambiar]);
 
@@ -1934,7 +1938,7 @@ function PanelRasgosEspeciales({
             trasfondo o las que se ganan al subir de nivel. ── */}
         {(dotes.length > 0 || editable) && (
           <div className="flex flex-col gap-2 min-w-0">
-            <SeparadorLabel label="Rasgos" />
+            <SeparadorLabel label="Dotes" />
             {dotes.length === 0 && !agregando && (
               <p
                 className="text-micro italic"
@@ -1965,12 +1969,22 @@ function PanelRasgosEspeciales({
                   value={nombreNuevo}
                   onChange={(e) => setNombreNuevo(e.target.value)}
                   placeholder="Nombre (ej. Visión en la oscuridad, Alerta…)"
-                  className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal"
+                  disabled={origenNuevo === "dote"}
+                  className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal disabled:opacity-50"
                   style={{ color: "var(--primary)" }}
                 />
                 <select
                   value={origenNuevo}
-                  onChange={(e) => setOrigenNuevo(e.target.value as RasgoEspecial["origen"])}
+                  onChange={(e) => {
+                    const siguiente = e.target.value as RasgoEspecial["origen"];
+                    setOrigenNuevo(siguiente);
+                    if (siguiente !== "dote") {
+                      setDoteCatalogoId("");
+                    } else {
+                      setNombreNuevo("");
+                      setDescNueva("");
+                    }
+                  }}
                   className="shrink-0 bg-transparent outline-none text-micro font-bold"
                   style={{
                     color: "color-mix(in srgb, var(--primary) 55%, transparent)",
@@ -1983,14 +1997,71 @@ function PanelRasgosEspeciales({
                   <option value="otro">Otro</option>
                 </select>
               </div>
-              <textarea
-                value={descNueva}
-                onChange={(e) => setDescNueva(e.target.value)}
-                placeholder="Descripción (opcional)"
-                rows={2}
-                className="bg-transparent outline-none resize-none text-micro"
-                style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-              />
+
+              {/* Cuando el origen es "dote" el jugador elige del catálogo
+                  oficial (dotes_dnd) en vez de escribir texto libre — así
+                  las dotes efectivamente aparecen, en vez de depender de
+                  que alguien tipee el nombre exacto a mano. */}
+              {origenNuevo === "dote" ? (
+                <select
+                  value={doteCatalogoId}
+                  disabled={cargandoDotes}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setDoteCatalogoId(id);
+                    const elegida = catalogoDotes.find((d) => d.id === id);
+                    setNombreNuevo(elegida?.nombre ?? "");
+                    setDescNueva(elegida?.descripcion?.trim() ?? "");
+                  }}
+                  className="bg-transparent outline-none text-micro"
+                  style={{
+                    color: "var(--primary)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                    borderRadius: "2px",
+                    padding: "4px 6px",
+                  }}
+                >
+                  <option value="">{cargandoDotes ? "Cargando dotes…" : "Elegí una dote del catálogo…"}</option>
+                  <optgroup label="Origen">
+                    {catalogoDotes
+                      .filter((d) => d.categoria === "origen")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="General">
+                    {catalogoDotes
+                      .filter((d) => d.categoria === "general")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                          {d.prerequisito ? ` (req. ${d.prerequisito})` : ""}
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Épica">
+                    {catalogoDotes
+                      .filter((d) => d.categoria === "epica")
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                          {d.prerequisito ? ` (req. ${d.prerequisito})` : ""}
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+              ) : (
+                <textarea
+                  value={descNueva}
+                  onChange={(e) => setDescNueva(e.target.value)}
+                  placeholder="Descripción (opcional)"
+                  rows={2}
+                  className="bg-transparent outline-none resize-none text-micro"
+                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                />
+              )}
               <div className="flex items-center gap-2 justify-end">
                 <button
                   type="button"
@@ -1999,6 +2070,7 @@ function PanelRasgosEspeciales({
                     setNombreNuevo("");
                     setDescNueva("");
                     setOrigenNuevo("otro");
+                    setDoteCatalogoId("");
                   }}
                   className="text-micro font-black uppercase tracking-wider px-2 py-1"
                   style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
