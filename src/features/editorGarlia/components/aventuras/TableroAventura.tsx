@@ -55,6 +55,12 @@ interface TableroAventuraProps {
   cardHeight?: number;
   /** Ancho de la imagen dentro de la tarjeta en px. Default = cardHeight. */
   imageWidth?: number;
+  /** Zoom del pizarrón completo (1 = 100%). A diferencia de cardWidth/
+   *  cardHeight (que cambian el tamaño real de cada tarjeta y su layout
+   *  interno), esto escala el lienzo entero con CSS transform: todas las
+   *  tarjetas y sus posiciones relativas quedan intactas, solo cambia
+   *  cuánto ocupan en pantalla — como el zoom de un mapa. */
+  zoom?: number;
 }
 
 /** Asigna una posición en cascada a los items que todavía no tienen pos_x/pos_y. */
@@ -85,6 +91,7 @@ export function TableroAventura({
   cardWidth = TABLERO_CARD_SIZE.width,
   cardHeight = TABLERO_CARD_SIZE.height,
   imageWidth,
+  zoom = 1,
 }: TableroAventuraProps) {
   const CARD_W = cardWidth;
   const CARD_H = cardHeight;
@@ -124,8 +131,13 @@ export function TableroAventura({
     const canvasRect = containerRef.current.getBoundingClientRect();
     const scrollLeft = containerRef.current.scrollLeft;
     const scrollTop = containerRef.current.scrollTop;
-    const x = e.clientX - canvasRect.left + scrollLeft - dragOffset.current.dx;
-    const y = e.clientY - canvasRect.top + scrollTop - dragOffset.current.dy;
+    // clientX/Y, canvasRect y scroll están todos en píxeles de pantalla
+    // (ya escalados por el zoom, porque el lienzo interno tiene
+    // transform: scale). Se resta todo en ese mismo espacio y recién al
+    // final se divide por zoom para volver a las coordenadas lógicas
+    // (sin escalar) en las que se guardan pos_x/pos_y.
+    const x = (e.clientX - canvasRect.left + scrollLeft - dragOffset.current.dx) / zoom;
+    const y = (e.clientY - canvasRect.top + scrollTop - dragOffset.current.dy) / zoom;
     const clampedX = Math.max(0, x);
     const clampedY = Math.max(0, y);
     setLivePos((prev) => ({ ...prev, [dragId]: { x: clampedX, y: clampedY } }));
@@ -166,10 +178,21 @@ export function TableroAventura({
         touchAction: editable ? "none" : "pan-x pan-y",
       }}
     >
-      <div
-        className="relative"
-        style={{ width: canvasW, height: canvasH }}
-      >
+      {/* ── Wrapper de tamaño real: mismo ancho/alto que ocupa el lienzo
+          escalado en pantalla, para que el scroll del contenedor sepa
+          cuánto hay que scrollear. El lienzo interno (tamaño lógico, sin
+          escalar) se encoge/agranda visualmente con transform: scale —
+          las tarjetas y sus posiciones no cambian, solo el zoom. ── */}
+      <div style={{ width: canvasW * zoom, height: canvasH * zoom }}>
+        <div
+          className="relative"
+          style={{
+            width: canvasW,
+            height: canvasH,
+            transform: `scale(${zoom})`,
+            transformOrigin: "top left",
+          }}
+        >
         {resueltos.map((item) => {
           const live = livePos[item.id];
           const x = live?.x ?? item.pos_x ?? 0;
@@ -265,6 +288,7 @@ export function TableroAventura({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

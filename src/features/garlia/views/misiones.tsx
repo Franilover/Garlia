@@ -1240,7 +1240,11 @@ export function FichaStatsPanel({
   return (
     <div
       ref={panelRef}
-      className="overflow-y-auto flex-1 min-h-0 flex flex-col"
+      // ── Panel fijo con scroll propio: se queda pegado al hacer scroll de
+      // la página (sticky, con offset del navbar) y su contenido interno
+      // scrollea aparte cuando no entra en el alto disponible — nunca
+      // "empuja" ni se va con el resto de la página. ──
+      className="md:sticky md:top-4 md:max-h-[calc(100svh-96px)] overflow-y-auto flex flex-col"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
@@ -1546,16 +1550,17 @@ export function FichaStatsPanel({
           </div>
         </div>
 
-        {/* ── Progreso de XP: nivel derivado de la tabla oficial (puede no
-            coincidir con ficha.nivel si el DM lo pisó a mano), barra hasta
-            el próximo umbral y XP que falta. En nivel 20 queda llena. ── */}
+        {/* ── Progreso de XP: barra hasta el próximo umbral. El nivel ya
+            se muestra y edita arriba en el header, así que acá no se
+            repite — solo el total actual y lo que falta para el próximo
+            umbral, en una sola línea con la barra. ── */}
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <span
               className="text-micro font-black uppercase tracking-wider"
               style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
             >
-              XP · Nivel {xp.nivel}
+              XP
             </span>
             <span
               className="text-micro font-bold tabular-nums"
@@ -1580,14 +1585,6 @@ export function FichaStatsPanel({
               />
             ))}
           </div>
-          {xp.faltante != null && (
-            <p
-              className="mt-1 text-micro font-semibold"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              Faltan {xp.faltante} XP para nivel {xp.nivel + 1}
-            </p>
-          )}
         </div>
 
         {/* ── Salvaciones contra muerte: solo aparecen a 0 HP. 3 éxitos
@@ -2291,29 +2288,30 @@ export function FichaStatsPanel({
 // ─── Rasgos y dotes (Features & Traits) ────────────────────────────────────
 // Rediseñado siguiendo la hoja oficial de personaje D&D 2024: una sola
 // lista continua de entradas (no separada en columnas), cada una con un
-// pequeño tag de color según su origen (Raza/Clase/Trasfondo/Dote) — igual
-// que "Species"/"Class"/"Background"/"Feat" en la hoja oficial — y el
-// buscador de dotes visible como su propio buscador con resultados, en vez
-// de escondido dentro de un <select> de un mini-formulario genérico.
+// pequeño tag de texto según su origen (Especie/Clase/Dote/Otro) — igual
+// que "Species"/"Class"/"Background"/"Feat" en la hoja oficial, pero sin
+// color por categoría: solo texto, con el color del tema (primary) como
+// todo lo demás en la ficha — y el buscador de dotes visible como su
+// propio buscador con resultados, en vez de escondido dentro de un
+// <select> de un mini-formulario genérico.
 
-const ORIGEN_CONFIG: Record<
-  RasgoEspecial["origen"],
-  { label: string; color: string; Icono: typeof Star }
-> = {
-  raza: { label: "Especie", color: "#3b82f6", Icono: Shield },
-  clase: { label: "Clase", color: "#a855f7", Icono: Sword },
-  dote: { label: "Dote", color: "#f59e0b", Icono: Sparkles },
-  otro: { label: "Otro", color: "#6b7280", Icono: Star },
+const ORIGEN_CONFIG: Record<RasgoEspecial["origen"], { label: string }> = {
+  raza: { label: "Especie" },
+  clase: { label: "Clase" },
+  dote: { label: "Dote" },
+  otro: { label: "Otro" },
 };
 
 function TagOrigen({ origen }: { origen: RasgoEspecial["origen"] }) {
-  const { label, color, Icono } = ORIGEN_CONFIG[origen];
+  const { label } = ORIGEN_CONFIG[origen];
   return (
     <span
-      className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
-      style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+      className="inline-flex items-center shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
+      style={{
+        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}
     >
-      <Icono size={9} />
       {label}
     </span>
   );
@@ -2328,13 +2326,11 @@ function TarjetaRasgo({
   editable: boolean;
   onQuitar: () => void;
 }) {
-  const color = ORIGEN_CONFIG[rasgo.origen].color;
   return (
     <div
       className="group flex items-start gap-2.5 px-3 py-2.5 rounded-lg"
       style={{
         border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        borderLeft: `3px solid color-mix(in srgb, ${color} 55%, transparent)`,
         background: "color-mix(in srgb, var(--primary) 2%, transparent)",
       }}
     >
@@ -2487,7 +2483,11 @@ function PanelRasgosEspeciales({
                   )}
                 </div>
                 {yaElegida ? (
-                  <CheckCircle2 size={14} className="shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+                  <CheckCircle2
+                    size={14}
+                    className="shrink-0 mt-0.5"
+                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                  />
                 ) : (
                   <Plus
                     size={14}
@@ -2542,27 +2542,25 @@ function PanelRasgosEspeciales({
                 <button
                   type="button"
                   onClick={() => setModo("dote")}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
                   style={
                     modo === "dote"
-                      ? { color: "#f59e0b", background: "color-mix(in srgb, #f59e0b 14%, transparent)" }
+                      ? { color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }
                       : { color: "color-mix(in srgb, var(--primary) 45%, transparent)" }
                   }
                 >
-                  <Sparkles size={12} />
                   Elegir dote
                 </button>
                 <button
                   type="button"
                   onClick={() => setModo("rasgo")}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
+                  className="flex-1 flex items-center justify-center px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
                   style={
                     modo === "rasgo"
                       ? { color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }
                       : { color: "color-mix(in srgb, var(--primary) 45%, transparent)" }
                   }
                 >
-                  <Star size={12} />
                   Rasgo libre
                 </button>
               </div>
@@ -3101,7 +3099,9 @@ function PanelInventarioFicha({
     <>
       {/* ── Monedas: vivía junto a Velocidad/Percepción en el panel
           principal — se movió acá porque es un dato de inventario, no de
-          combate. Mismo estilo simple de filas con separador. ── */}
+          combate. En bloques (grilla), no en filas verticales — mismo
+          criterio visual que las estadísticas de la tab Stats, para
+          escanear los montos de un vistazo en vez de leer fila por fila. ── */}
       <div
         className="px-5 py-4"
         style={{
@@ -3113,10 +3113,13 @@ function PanelInventarioFicha({
           // Sin tipos definidos en el reino todavía (o ficha vieja migrada):
           // se muestra el total genérico bajo la clave "legado" para no
           // perder el dato, editable igual que antes.
-          <div className="flex items-center justify-between py-1">
+          <div
+            className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl"
+            style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+          >
             <span
-              className="text-micro font-semibold"
-              style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+              className="text-micro font-black uppercase tracking-widest"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
             >
               Total
             </span>
@@ -3124,28 +3127,23 @@ function PanelInventarioFicha({
               valor={monedas?.legado ?? 0}
               editable={editableMonedas}
               tipo="number"
-              align="right"
+              align="center"
               onCommit={(v) => onEditarMonedas({ ...monedas, legado: Number(v) || 0 })}
-              className="text-sm font-black tabular-nums"
+              className="text-base font-black tabular-nums"
               style={{ color: "var(--primary)" }}
             />
           </div>
         ) : (
-          <div className="flex flex-col">
-            {tiposMoneda.map((tipo, i) => (
+          <div className="grid grid-cols-3 gap-2">
+            {tiposMoneda.map((tipo) => (
               <div
                 key={tipo.id}
-                className="flex items-center justify-between gap-1 py-1"
-                style={{
-                  borderTop:
-                    i === 0
-                      ? undefined
-                      : "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
-                }}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl"
+                style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
               >
                 <span
-                  className="text-micro font-semibold truncate"
-                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                  className="text-micro font-black uppercase tracking-widest truncate max-w-full px-1"
+                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
                   title={tipo.nombre}
                 >
                   {tipo.simbolo || tipo.nombre}
@@ -3154,15 +3152,14 @@ function PanelInventarioFicha({
                   valor={monedas?.[tipo.id] ?? 0}
                   editable={editableMonedas}
                   tipo="number"
-                  align="right"
-                  width={40}
+                  align="center"
                   onCommit={(v) =>
                     onEditarMonedas({
                       ...monedas,
                       [tipo.id]: Number(v) || 0,
                     })
                   }
-                  className="text-sm font-black tabular-nums"
+                  className="text-base font-black tabular-nums"
                   style={{ color: "var(--primary)" }}
                 />
               </div>

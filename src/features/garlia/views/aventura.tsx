@@ -18,7 +18,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 
-import { TableroAventura, TABLERO_CARD_SIZE, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
+import { TableroAventura, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -64,11 +64,15 @@ export default function Aventura() {
       style={{ minHeight: "calc(100svh - 64px)" }}
     >
       {/* ── Dos columnas: 70% contenido (selector o feed, con scroll propio) /
-          30% identidad activa + misiones (fija) — el panel de identidad
-          solo aparece una vez adentro de una aventura, no en el selector.
-          En mobile (flex-col) va primero arriba del feed; en desktop vuelve
-          a la derecha con order-none. ── */}
-      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-stretch min-h-0 md:h-[calc(100svh-140px)]">
+          30% identidad activa (fija, con su propio scroll interno) — el
+          panel de identidad solo aparece una vez adentro de una aventura,
+          no en el selector. En mobile (flex-col) va primero arriba del
+          feed; en desktop vuelve a la derecha con order-none.
+          items-start (no stretch): así la columna de identidad no se
+          fuerza a la altura de la fila — FichaStatsPanel maneja su propio
+          sticky + scroll interno (ver misiones.tsx), independiente de la
+          página y del feed. ── */}
+      <div className="flex-1 w-full flex flex-col md:flex-row gap-6 items-start min-h-0 md:h-[calc(100svh-140px)]">
         <div
           className={`w-full flex flex-col gap-6 overflow-y-auto order-2 md:order-none md:h-full ${
             aventuraId ? "md:w-[70%]" : ""
@@ -82,7 +86,7 @@ export default function Aventura() {
         </div>
 
         {aventuraId && (
-          <div className="w-full md:w-[30%] shrink-0 md:sticky md:top-4 flex flex-col gap-3 order-1 md:order-none min-h-0 md:h-full">
+          <div className="w-full md:w-[30%] shrink-0 flex flex-col gap-3 order-1 md:order-none">
             <PanelIdentidad />
           </div>
         )}
@@ -438,7 +442,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                 value={escala}
                 onChange={(e) => actualizarEscala(Number(e.target.value))}
                 className="w-24 accent-[var(--primary)]"
-                title="Tamaño de las tarjetas (solo en tu vista)"
+                title="Zoom del pizarrón (solo en tu vista)"
               />
               <span className="text-micro font-bold tabular-nums text-primary/40 w-9">
                 {Math.round(escala * 100)}%
@@ -472,9 +476,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                   pos_y: entidad.pos_y,
                 }),
               )}
-              cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
-              cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
-              imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
+              zoom={escala}
               onClickItem={(id) => {
                 const entidad = publicadas.find((e) => e.id === id);
                 if (entidad) setSeleccion(entidad);
