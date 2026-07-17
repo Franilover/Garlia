@@ -54,6 +54,7 @@ import type {
   DoteDnd,
   FichaDnd,
   ItemInventarioFicha,
+  MaestriaArma,
   RasgoEspecial,
   TipoMoneda,
 } from "../hooks/useFichasDnd";
@@ -62,12 +63,19 @@ import {
   bonusCompetencia,
   buscarCriaturas,
   buscarItems,
+  caCalculadaDesdeInventario,
   cdSalvacionConjuros,
+  DESCRIPCION_MAESTRIA_ARMA,
+  dotesGeneralesDisponibles,
   investigacionPasiva,
+  MAESTRIAS_ARMA_DND,
+  NIVELES_DOTE_GENERAL,
   percepcionPasiva,
   perspicaciaPasiva,
   progresoXp,
+  statEfectivo,
   statMod,
+  STATS_DND,
   TAMANOS_DND,
   useClasesDisponibles,
   useDotesDisponibles,
@@ -384,6 +392,111 @@ function CampoIdentidad({ label, children }: { label: string; children: React.Re
   );
 }
 
+// ── Mejora de característica del trasfondo (PHB 2024): el jugador reparte
+//    +2/+1 entre dos de las 3 stats que el trasfondo habilita, o +1/+1/+1 a
+//    las tres. Si el trasfondo elegido no tiene caracteristicas_trasfondo
+//    cargado (mundo homebrew sin ese dato todavía), no se muestra nada. ──
+function MejoraTrasfondoBloque({
+  caracteristicas,
+  valor,
+  editable,
+  onCambiar,
+}: {
+  caracteristicas: string[] | null;
+  valor: Partial<Record<(typeof STATS_DND)[number], number>>;
+  editable: boolean;
+  onCambiar: (mejora: Partial<Record<(typeof STATS_DND)[number], number>>) => void;
+}) {
+  if (!caracteristicas || caracteristicas.length === 0) return null;
+
+  const puntosUsados = Object.values(valor).reduce((acc, v) => acc + (v ?? 0), 0);
+  const puntosMax = 3; // +2/+1 o +1/+1/+1: siempre 3 puntos en total (PHB 2024).
+
+  const setPunto = (stat: string, delta: number) => {
+    const actual = valor[stat as (typeof STATS_DND)[number]] ?? 0;
+    const nuevo = actual + delta;
+    if (nuevo < 0 || nuevo > 2) return; // tope por stat: +2 máx (patrón +2/+1)
+    if (delta > 0 && puntosUsados >= puntosMax) return;
+    const actualizado = { ...valor, [stat]: nuevo };
+    if (nuevo === 0) delete actualizado[stat as (typeof STATS_DND)[number]];
+    onCambiar(actualizado);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span
+          className="text-micro font-black uppercase tracking-wider"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+        >
+          Mejora de característica (trasfondo)
+        </span>
+        <span
+          className="text-micro"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
+          {puntosUsados}/{puntosMax} puntos
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {caracteristicas.map((stat) => {
+          const bono = valor[stat as (typeof STATS_DND)[number]] ?? 0;
+          const label = stat.slice(0, 3).toUpperCase();
+          if (!editable) {
+            return bono > 0 ? (
+              <span
+                key={stat}
+                className="text-micro font-bold px-2 py-1 rounded-lg"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                  color: "var(--primary)",
+                }}
+              >
+                {label} +{bono}
+              </span>
+            ) : null;
+          }
+          return (
+            <div
+              key={stat}
+              className="flex items-center gap-1.5 h-8 px-2 rounded-lg"
+              style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span
+                className="text-micro font-bold uppercase tracking-wide"
+                style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+              >
+                {label}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPunto(stat, -1)}
+                disabled={bono <= 0}
+                className="w-5 h-5 rounded-full transition-colors disabled:opacity-20"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                −
+              </button>
+              <span className="w-4 text-center text-xs font-black" style={{ color: "var(--primary)" }}>
+                +{bono}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPunto(stat, 1)}
+                disabled={bono >= 2 || puntosUsados >= puntosMax}
+                className="w-5 h-5 rounded-full transition-colors disabled:opacity-20"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                +
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Rasgo asociado a un selector (Clase/Subclase/Trasfondo/Especie): se
 //    muestra siempre, justo debajo de su propio campo, no separado en un
 //    bloque aparte — así cada elección "trae" su descripción con ella. ──
@@ -406,6 +519,7 @@ function PanelExpandidoFicha({
   subclasesDisponibles,
   trasfondosDisponibles,
   tiposMoneda,
+  dotesGenerales,
   onEditarCampo,
   onFichaActualizada,
   onCerrar,
@@ -431,8 +545,12 @@ function PanelExpandidoFicha({
     nombre: string;
     descripcion?: string | null;
     dote_origen?: { id: string; nombre: string; descripcion: string | null } | null;
+    caracteristicas_trasfondo?: string[] | null;
   }>;
   tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
+  /** Ya calculado en el padre (FichaStatsPanel), se pasa para no repetir el
+   *  cálculo acá y mantener un solo lugar con la fuente de verdad. */
+  dotesGenerales: { total: number; elegidas: number; pendientes: number };
   onEditarCampo?: (
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
@@ -787,6 +905,50 @@ function PanelExpandidoFicha({
             </CampoIdentidad>
           </div>
 
+          {/* ── Mejora de característica del trasfondo (PHB 2024): +2/+1 o
+              +1/+1/+1 repartidos entre las 3 stats que habilita el
+              trasfondo elegido. Solo aparece si ese trasfondo tiene el
+              catálogo cargado (caracteristicas_trasfondo). ── */}
+          <MejoraTrasfondoBloque
+            caracteristicas={
+              trasfondosDisponibles.find((t) => t.nombre === ficha.trasfondo_mecanico)
+                ?.caracteristicas_trasfondo ?? null
+            }
+            valor={ficha.mejora_trasfondo ?? {}}
+            editable={editable}
+            onCambiar={(mejora) => onEditarCampo?.("mejora_trasfondo", mejora)}
+          />
+
+          {/* ── Dotes generales por nivel (PHB 2024: 4, 8, 12, 16, 19).
+              Solo informativo por ahora — cuántas le corresponden vs.
+              cuántas ya eligió (las dotes en sí se administran en el
+              bloque de Rasgos, con origen="dote"). ── */}
+          {dotesGenerales.total > 0 && (
+            <div
+              className="flex items-center justify-between px-3 py-2 rounded-lg"
+              style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}
+            >
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                Dotes generales (nivel {NIVELES_DOTE_GENERAL.join(", ")})
+              </span>
+              <span
+                className="text-xs font-bold tabular-nums"
+                style={{
+                  color:
+                    dotesGenerales.pendientes > 0
+                      ? "#f59e0b"
+                      : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                }}
+              >
+                {dotesGenerales.elegidas}/{dotesGenerales.total}
+                {dotesGenerales.pendientes > 0 ? ` · faltan ${dotesGenerales.pendientes}` : ""}
+              </span>
+            </div>
+          )}
+
           <div className="-mx-6">
             <PanelRasgosEspeciales
               rasgos={ficha.rasgos_especiales ?? []}
@@ -979,6 +1141,8 @@ function PanelExpandidoFicha({
                 tiposMoneda={tiposMoneda}
                 editableMonedas={editableStats}
                 onEditarMonedas={(m) => onEditarCampo?.("monedas", m)}
+                maestriasArmas={ficha.maestrias_armas}
+                onEditarMaestrias={(m) => onEditarCampo?.("maestrias_armas", m)}
               />
               <PanelConjuros
                 ficha={ficha}
@@ -1078,6 +1242,18 @@ function BloqueAtaques({
                   <Sword size={10} className="shrink-0 text-primary/35" />
                 )}
                 {fila.item?.nombre ?? "Arma"}
+                {fila.item?.maestria && (
+                  <span
+                    title={DESCRIPCION_MAESTRIA_ARMA[fila.item.maestria]}
+                    className="shrink-0 text-micro font-black uppercase tracking-wide px-1 py-0.5 rounded"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+                      color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                    }}
+                  >
+                    {fila.item.maestria}
+                  </span>
+                )}
               </span>
               <span
                 className="shrink-0 text-micro font-bold tabular-nums"
@@ -1211,8 +1387,8 @@ export function FichaStatsPanel({
   const hpMax = ficha.hp_max ?? 0;
   const hpActual = ficha.hp_actual ?? 0;
   const hpTemporal = ficha.hp_temporal ?? 0;
-  const iniciativa = statMod(ficha.destreza ?? 10);
-  const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
+  const iniciativa = statMod(statEfectivo(ficha, "destreza"));
+  const danioCuerpoACuerpo = statMod(statEfectivo(ficha, "fuerza"));
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
   const xp = progresoXp(ficha.xp_total ?? 0);
@@ -1221,16 +1397,12 @@ export function FichaStatsPanel({
   const claseFichaId = clasesDisponibles.find((c) => c.nombre === ficha.clase)?.id ?? null;
   const { subclases: subclasesDisponibles } = useSubclasesDisponibles(claseFichaId);
   const { trasfondos: trasfondosDisponibles } = useTrasfondosDisponibles();
+  const { items: itemsInventario } = useInventarioFicha(ficha.id);
+  const caCalculada = caCalculadaDesdeInventario(itemsInventario, statMod(statEfectivo(ficha, "destreza")));
+  const dotesGenerales = dotesGeneralesDisponibles(ficha);
   const [expandido, setExpandido] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const stats: Array<[string, number]> = [
-    ["fuerza", ficha.fuerza ?? 10],
-    ["destreza", ficha.destreza ?? 10],
-    ["constitucion", ficha.constitucion ?? 10],
-    ["inteligencia", ficha.inteligencia ?? 10],
-    ["sabiduria", ficha.sabiduria ?? 10],
-    ["carisma", ficha.carisma ?? 10],
-  ];
+  const stats: Array<[string, number]> = STATS_DND.map((key) => [key, statEfectivo(ficha, key)]);
 
   // Reglas de la clase elegida (si tiene el catálogo cargado con reglas
   // PHB 2024). Si la clase es homebrew sin reglas configuradas, todo se
@@ -1267,6 +1439,7 @@ export function FichaStatsPanel({
             subclasesDisponibles={subclasesDisponibles}
             trasfondosDisponibles={trasfondosDisponibles}
             tiposMoneda={tiposMoneda}
+            dotesGenerales={dotesGenerales}
             onEditarCampo={onEditarCampo}
             onFichaActualizada={onFichaActualizada}
             onCerrar={() => setExpandido(false)}
@@ -1669,6 +1842,11 @@ export function FichaStatsPanel({
               borderRadius: "2px",
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
             }}
+            title={
+              caCalculada !== (ficha.ca ?? 10)
+                ? `CA calculada por armadura equipada: ${caCalculada}`
+                : undefined
+            }
           >
             <span
               className="text-micro font-black uppercase tracking-wider text-center leading-tight"
@@ -1688,6 +1866,14 @@ export function FichaStatsPanel({
                 style={{ color: "var(--primary)" }}
               />
             </span>
+            {caCalculada !== (ficha.ca ?? 10) && (
+              <span
+                className="text-micro font-bold tabular-nums"
+                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+              >
+                calc. {caCalculada}
+              </span>
+            )}
           </div>
           <div
             className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
@@ -1940,8 +2126,10 @@ export function FichaStatsPanel({
           className="flex-1 grid gap-x-2.5 items-stretch"
           style={{ gridTemplateColumns: "1fr 1.3fr 1fr" }}
         >
-          {stats.map(([key, valor], i) => {
-            const mod = statMod(valor);
+          {stats.map(([key, valorEfectivo], i) => {
+            const valorBase = (ficha[key as keyof FichaDnd] as number) ?? 10;
+            const bono = ficha.mejora_trasfondo?.[key as (typeof STATS_DND)[number]] ?? 0;
+            const mod = statMod(valorEfectivo);
             const skills = SKILLS_POR_STAT[key] ?? [];
             const salvacionCompetente = ficha.salvaciones_competentes?.includes(key) ?? false;
             const salvacionBonus =
@@ -1955,7 +2143,10 @@ export function FichaStatsPanel({
                     i < 3 ? undefined : "1px solid color-mix(in srgb, var(--primary) 6%, transparent)",
                 }}
               >
-                {/* Fila de la stat: abreviatura, valor editable y modificador. */}
+                {/* Fila de la stat: abreviatura, valor editable y modificador.
+                    El input edita el score BASE (lo que el jugador repartió);
+                    si el trasfondo aporta un bono, se muestra aparte en verde
+                    para no confundir "lo que tengo" con "lo que se guarda". */}
                 <div className="flex items-center gap-1.5 py-1.5">
                   <span
                     className="w-6 shrink-0 text-micro font-black uppercase tracking-wider"
@@ -1965,7 +2156,7 @@ export function FichaStatsPanel({
                   </span>
                   <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
                     <CampoEditable
-                      valor={valor}
+                      valor={valorBase}
                       editable={editableStats}
                       tipo="number"
                       align="center"
@@ -1977,6 +2168,15 @@ export function FichaStatsPanel({
                       style={{ color: "var(--primary)" }}
                     />
                   </span>
+                  {bono > 0 && (
+                    <span
+                      className="text-micro font-black tabular-nums"
+                      title="Bono de mejora de trasfondo (PHB 2024)"
+                      style={{ color: "#10b981" }}
+                    >
+                      +{bono}
+                    </span>
+                  )}
                   <span
                     className="text-micro font-black tabular-nums"
                     style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
@@ -2113,8 +2313,8 @@ export function FichaStatsPanel({
 
       <BloqueAtaques
         fichaId={ficha.id}
-        fuerza={ficha.fuerza ?? 10}
-        destreza={ficha.destreza ?? 10}
+        fuerza={statEfectivo(ficha, "fuerza")}
+        destreza={statEfectivo(ficha, "destreza")}
         bonoCompetencia={bonoCompetencia}
         ataquesManuales={ficha.ataques_manuales ?? []}
         editable={editable}
@@ -2950,6 +3150,55 @@ function PanelConjuros({
 // (useInventarioFicha cargando por fichaId) — separarlo evita que
 // FichaStatsPanel dispare esa consulta cuando no hace falta mostrarla.
 
+// ── Badge/selector de la Maestría de Arma (PHB 2024) activa en una fila de
+//    inventario equipada. Fuera de edición muestra un badge con tooltip
+//    (title) con la descripción; en edición es un <select> chico. ──
+function MaestriaArmaFilaInventario({
+  valor,
+  editable,
+  onCambiar,
+}: {
+  valor: MaestriaArma | null;
+  editable: boolean;
+  onCambiar: (maestria: MaestriaArma | null) => void;
+}) {
+  if (editable) {
+    return (
+      <select
+        value={valor ?? ""}
+        onChange={(e) => onCambiar((e.target.value || null) as MaestriaArma | null)}
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0 h-6 px-1 rounded text-micro font-semibold outline-none"
+        style={{
+          border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          color: "color-mix(in srgb, var(--primary) 65%, transparent)",
+        }}
+      >
+        <option value="">Maestría…</option>
+        {MAESTRIAS_ARMA_DND.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (!valor) return null;
+  return (
+    <span
+      title={DESCRIPCION_MAESTRIA_ARMA[valor]}
+      className="shrink-0 text-micro font-black uppercase tracking-wide px-1.5 py-0.5 rounded"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+        color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+      }}
+    >
+      {valor}
+    </span>
+  );
+}
+
 function PanelInventarioFicha({
   fichaId,
   editable,
@@ -2957,6 +3206,8 @@ function PanelInventarioFicha({
   tiposMoneda,
   editableMonedas,
   onEditarMonedas,
+  maestriasArmas,
+  onEditarMaestrias,
 }: {
   fichaId: string;
   editable: boolean;
@@ -2964,6 +3215,9 @@ function PanelInventarioFicha({
   tiposMoneda: Array<{ id: string; nombre: string; simbolo?: string | null }>;
   editableMonedas: boolean;
   onEditarMonedas: (monedas: Record<string, number>) => void;
+  /** Maestría activa por fila de inventario (PHB 2024): { inventario_id: "Vex" }. */
+  maestriasArmas?: Record<string, string>;
+  onEditarMaestrias?: (maestrias: Record<string, string>) => void;
 }) {
   const { items, loading, agregar, quitar, toggleEquipado, editarCantidad } =
     useInventarioFicha(fichaId);
@@ -3117,6 +3371,19 @@ function PanelInventarioFicha({
                 <span className="flex-1 min-w-0 text-xs font-semibold text-primary/75 truncate">
                   {fila.item?.nombre ?? "Ítem"}
                 </span>
+
+                {fila.item?.es_arma && fila.equipado && (
+                  <MaestriaArmaFilaInventario
+                    valor={(maestriasArmas?.[fila.id] as MaestriaArma | undefined) ?? null}
+                    editable={editable}
+                    onCambiar={(m) => {
+                      const actualizado = { ...(maestriasArmas ?? {}) };
+                      if (m) actualizado[fila.id] = m;
+                      else delete actualizado[fila.id];
+                      onEditarMaestrias?.(actualizado);
+                    }}
+                  />
+                )}
 
                 {editable ? (
                   <div className="flex items-center gap-0.5 shrink-0">

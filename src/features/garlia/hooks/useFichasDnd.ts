@@ -248,6 +248,12 @@ export interface ItemResumen {
   /** Arma a distancia (arco, ballesta, jabalina arrojada…): usa Destreza para
    *  el ataque, sin importar "sutileza" (que es para armas cuerpo a cuerpo livianas). */
   distancia: boolean;
+  /** Maestría de arma fija del catálogo (PHB 2024): la que "trae de fábrica"
+   *  el arma. Distinta de fichas_dnd.maestrias_armas, que es cuál de las
+   *  maestrías desbloqueadas por el personaje está usando esa arma en
+   *  particular — normalmente coinciden, pero se guardan separado porque el
+   *  personaje puede tener más de una maestría disponible según su clase. */
+  maestria: MaestriaArma | null;
   /** Si es armadura corporal (no escudo): aporta CA base al equiparse. */
   es_armadura: boolean;
   /** Si es escudo: +2 fijo a la CA, no reemplaza la armadura base. */
@@ -281,6 +287,7 @@ export type CampoFichaValor =
   | ConjuroFicha[]
   | AtaqueManual[]
   | Record<string, number>
+  | Record<string, string>
   | Record<string, EspaciosConjuroNivel>
   | null;
 
@@ -612,7 +619,7 @@ async function resolverItems(rows: ItemInventarioFicha[]): Promise<ItemInventari
   if (ids.length === 0) return rows;
   const { data } = await supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura, maestria")
     .in("id", ids);
   const porId = new Map((data ?? []).map((i: any) => [i.id, i as ItemResumen]));
   return rows.map((r) => ({ ...r, item: r.item_id ? porId.get(r.item_id) ?? null : null }));
@@ -707,7 +714,7 @@ export async function buscarItems(query: string): Promise<ItemResumen[]> {
   const q = query.trim();
   let req = supabase
     .from("items")
-    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura")
+    .select("id, nombre, imagen_url, descripcion, es_arma, dado_dano, sutileza, distancia, es_armadura, es_escudo, ca_base_armadura, max_bono_dex_armadura, maestria")
     .order("nombre")
     .limit(40);
   if (q.length >= 1) req = req.ilike("nombre", `%${q}%`);

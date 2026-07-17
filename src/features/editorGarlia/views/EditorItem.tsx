@@ -34,6 +34,7 @@ import { RichEditor } from "@/components/forms/lexical-editor";
 import { ComboSelector } from "@/components/ui/ComboSelector";
 import { useConfirm } from "@/components/ui/ConfirmModal";
 import { PanelCiudades } from "@/features/editorGarlia/components/items/PanelCiudades";
+import { PanelReglasDnd } from "@/features/editorGarlia/components/items/PanelReglasDnd";
 import { PanelTerritorio } from "@/features/editorGarlia/components/items/PanelTerritorio";
 import { PickerImagenItemBtn } from "@/features/editorGarlia/components/items/PickerImagenItemBtn";
 import { SelectorGrupoUnico } from "@/features/editorGarlia/components/items/SelectorGrupoUnico";
@@ -102,6 +103,15 @@ export function EditorItem({
         categoria: form.categoria,
         reino_ids: form.reino_ids ?? [],
         criatura_id: form.criatura_id ?? null,
+        es_arma: form.es_arma ?? false,
+        dado_dano: form.dado_dano || null,
+        sutileza: form.sutileza ?? false,
+        distancia: form.distancia ?? false,
+        maestria: form.maestria || null,
+        es_armadura: form.es_armadura ?? false,
+        es_escudo: form.es_escudo ?? false,
+        ca_base_armadura: form.ca_base_armadura ?? null,
+        max_bono_dex_armadura: form.max_bono_dex_armadura ?? null,
       };
       const { error } = await supabase
         .from(tabla)
@@ -330,6 +340,8 @@ export function EditorItem({
                   onWikilinkNavigate={onWikilink}
                 />
               </div>
+
+              <PanelReglasDnd form={form} onChange={(cambios) => setForm((f) => ({ ...f, ...cambios }))} />
             </div>
           </div>
         </div>
