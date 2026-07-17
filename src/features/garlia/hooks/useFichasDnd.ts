@@ -300,7 +300,8 @@ export function statMod(score: number): number {
  *  Todo lo que derive de una característica (mod, pasivas, CD/ataque de
  *  conjuros, tiradas de salvación) debe leer esto y no el score crudo. */
 export function statEfectivo(
-  ficha: Pick<FichaDnd, "mejora_trasfondo"> & Record<string, number | unknown>,
+  ficha: Pick<FichaDnd, "mejora_trasfondo"> &
+    Partial<Record<(typeof STATS_DND)[number], number>>,
   stat: (typeof STATS_DND)[number],
 ): number {
   const base = typeof ficha[stat] === "number" ? (ficha[stat] as number) : 10;
@@ -480,7 +481,7 @@ export function dotesGeneralesDisponibles(
  *  característica de conjuros configurada. */
 export function cdSalvacionConjuros(
   ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo"> &
-    Record<string, number | string | null>,
+    Partial<Record<(typeof STATS_DND)[number], number>>,
 ): number | null {
   const car = ficha.caracteristica_conjuros as (typeof STATS_DND)[number] | null;
   if (!car) return null;
@@ -492,7 +493,7 @@ export function cdSalvacionConjuros(
  *  característica de conjuros. Devuelve null si no hay característica configurada. */
 export function bonoAtaqueConjuros(
   ficha: Pick<FichaDnd, "caracteristica_conjuros" | "nivel" | "mejora_trasfondo"> &
-    Record<string, number | string | null>,
+    Partial<Record<(typeof STATS_DND)[number], number>>,
 ): number | null {
   const car = ficha.caracteristica_conjuros as (typeof STATS_DND)[number] | null;
   if (!car) return null;
