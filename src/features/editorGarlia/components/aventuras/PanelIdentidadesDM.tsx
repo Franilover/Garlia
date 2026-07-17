@@ -216,6 +216,7 @@ export function PanelIdentidadesDM() {
                             editable
                             editableStats
                             editableCondiciones
+                            mostrarSecundarias
                             onEditarCampo={(campo, valor) =>
                               handleEditarCampo(f.id, campo, valor)
                             }

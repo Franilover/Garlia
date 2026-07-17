@@ -1225,6 +1225,7 @@ export function FichaStatsPanel({
   editableStats = false,
   editableCondiciones = false,
   mostrarCondiciones = true,
+  mostrarSecundarias = false,
   onEditarCampo,
   onFichaActualizada,
 }: {
@@ -1239,6 +1240,12 @@ export function FichaStatsPanel({
   /** Si el bloque de condiciones/estado aparece en esta vista. En /aventura
       se oculta por completo — el DM lo maneja desde su panel aparte. */
   mostrarCondiciones?: boolean;
+  /** Datos que NO están en la franja de combate de la hoja oficial 2024
+      (Daño por arma, Bono de competencia, Investigación/Perspicacia
+      pasivas, Agotamiento): el jugador no los ve en /aventura para no
+      saturar la ficha; el DM sí los ve y edita desde su panel en
+      /myself/garlia (PanelIdentidadesDM), donde se pasa en true. */
+  mostrarSecundarias?: boolean;
   onEditarCampo?: (
     campo: keyof FichaDnd,
     valor: CampoFichaValor,
@@ -1697,7 +1704,7 @@ export function FichaStatsPanel({
             percepción pasiva agrupadas arriba de la ficha; daño y bono de
             competencia son el núcleo de cada ataque). Celdas angostas, un
             solo grid — nada de dos filas de cajas grandes. ── */}
-        <div className="grid grid-cols-6 gap-1">
+        <div className="grid grid-cols-5 gap-1">
           <StatMini
             label="Iniciat."
             valor={iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
@@ -1729,15 +1736,6 @@ export function FichaStatsPanel({
             sub={caCalculada !== (ficha.ca ?? 10) ? `calc. ${caCalculada}` : undefined}
           />
           <StatMini
-            label="Daño"
-            valor={danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
-          />
-          <StatMini
-            label="Compet."
-            valor={`+${bonoCompetencia}`}
-            title="Se calcula solo según el nivel: base de habilidades, salvaciones y ataques."
-          />
-          <StatMini
             label="Veloc."
             valor={
               <CampoEditable
@@ -1753,107 +1751,128 @@ export function FichaStatsPanel({
             }
           />
           <StatMini
+            label="Tamaño"
+            valor={
+              editableStats ? (
+                <select
+                  value={ficha.tamano ?? "Mediano"}
+                  onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
+                  className="text-micro font-black bg-transparent outline-none text-center"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {TAMANOS_DND.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                ficha.tamano ?? "Mediano"
+              )
+            }
+          />
+          <StatMini
             label="Percep."
             valor={percepcion}
             title="10 + modificador de Sabiduría + competencia (si la tiene en Percepción)."
           />
         </div>
 
-        {/* ── Datos de referencia ocasional (tamaño, las otras dos pasivas,
-            agotamiento): una sola línea de texto chico, sin tarjetas. ── */}
-        <div
-          className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 px-0.5 text-micro"
-          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-        >
-          <span className="inline-flex items-center gap-1">
-            <span className="font-bold uppercase tracking-wide">Tam.</span>
-            {editableStats ? (
-              <select
-                value={ficha.tamano ?? "Mediano"}
-                onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
-                className="font-black bg-transparent outline-none"
-                style={{ color: "var(--primary)" }}
-              >
-                {TAMANOS_DND.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="font-black" style={{ color: "var(--primary)" }}>
-                {ficha.tamano ?? "Mediano"}
+        {/* ── Datos que no están en la franja de combate de la hoja oficial
+            2024 (Daño por arma, Competencia, pasivas de Investigación/
+            Perspicacia, Agotamiento): ocultos para el jugador en /aventura,
+            visibles solo para el DM (PanelIdentidadesDM en /myself/garlia,
+            que pasa mostrarSecundarias). ── */}
+        {mostrarSecundarias && (
+          <div
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 px-0.5 text-micro"
+            style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+          >
+            <span className="inline-flex items-center gap-1">
+              <span className="font-bold uppercase tracking-wide">Daño</span>
+              <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                {danioCuerpoACuerpo >= 0 ? `+${danioCuerpoACuerpo}` : danioCuerpoACuerpo}
               </span>
-            )}
-          </span>
-
-          <span
-            className="inline-flex items-center gap-1"
-            title="10 + modificador de Inteligencia + competencia (si la tiene en Investigación)."
-          >
-            <span className="font-bold uppercase tracking-wide">Investig.</span>
-            <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {investigacionPasiva(ficha)}
             </span>
-          </span>
 
-          <span
-            className="inline-flex items-center gap-1"
-            title="10 + modificador de Sabiduría + competencia (si la tiene en Perspicacia)."
-          >
-            <span className="font-bold uppercase tracking-wide">Perspic.</span>
-            <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
-              {perspicaciaPasiva(ficha)}
+            <span
+              className="inline-flex items-center gap-1"
+              title="Se calcula solo según el nivel: base de habilidades, salvaciones y ataques."
+            >
+              <span className="font-bold uppercase tracking-wide">Compet.</span>
+              <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                +{bonoCompetencia}
+              </span>
             </span>
-          </span>
 
-          <span
-            className="inline-flex items-center gap-1"
-            title="Nivel de agotamiento 0-6 (regla 2024: -2 acumulativo por nivel a todas las tiradas)."
-            style={
-              (ficha.agotamiento ?? 0) > 0 ? { color: "#dc2626" } : undefined
-            }
-          >
-            <span className="font-bold uppercase tracking-wide">Agotam.</span>
-            {editableCondiciones ? (
-              <span className="inline-flex items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    onEditarCampo?.("agotamiento", Math.max(0, (ficha.agotamiento ?? 0) - 1))
-                  }
-                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 13, height: 13 }}
-                >
-                  <Minus size={8} className="text-primary/50" />
-                </button>
+            <span
+              className="inline-flex items-center gap-1"
+              title="10 + modificador de Inteligencia + competencia (si la tiene en Investigación)."
+            >
+              <span className="font-bold uppercase tracking-wide">Investig.</span>
+              <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                {investigacionPasiva(ficha)}
+              </span>
+            </span>
+
+            <span
+              className="inline-flex items-center gap-1"
+              title="10 + modificador de Sabiduría + competencia (si la tiene en Perspicacia)."
+            >
+              <span className="font-bold uppercase tracking-wide">Perspic.</span>
+              <span className="font-black tabular-nums" style={{ color: "var(--primary)" }}>
+                {perspicaciaPasiva(ficha)}
+              </span>
+            </span>
+
+            <span
+              className="inline-flex items-center gap-1"
+              title="Nivel de agotamiento 0-6 (regla 2024: -2 acumulativo por nivel a todas las tiradas)."
+              style={
+                (ficha.agotamiento ?? 0) > 0 ? { color: "#dc2626" } : undefined
+              }
+            >
+              <span className="font-bold uppercase tracking-wide">Agotam.</span>
+              {editableCondiciones ? (
+                <span className="inline-flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onEditarCampo?.("agotamiento", Math.max(0, (ficha.agotamiento ?? 0) - 1))
+                    }
+                    className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                    style={{ width: 13, height: 13 }}
+                  >
+                    <Minus size={8} className="text-primary/50" />
+                  </button>
+                  <span
+                    className="font-black tabular-nums"
+                    style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
+                  >
+                    {ficha.agotamiento ?? 0}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onEditarCampo?.("agotamiento", Math.min(6, (ficha.agotamiento ?? 0) + 1))
+                    }
+                    className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                    style={{ width: 13, height: 13 }}
+                  >
+                    <Plus size={8} className="text-primary/50" />
+                  </button>
+                </span>
+              ) : (
                 <span
                   className="font-black tabular-nums"
                   style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
                 >
                   {ficha.agotamiento ?? 0}
                 </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onEditarCampo?.("agotamiento", Math.min(6, (ficha.agotamiento ?? 0) + 1))
-                  }
-                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
-                  style={{ width: 13, height: 13 }}
-                >
-                  <Plus size={8} className="text-primary/50" />
-                </button>
-              </span>
-            ) : (
-              <span
-                className="font-black tabular-nums"
-                style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
-              >
-                {ficha.agotamiento ?? 0}
-              </span>
-            )}
-          </span>
-        </div>
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Estadísticas D&D: lista con separadores finos en vez de cajas
