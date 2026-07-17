@@ -48,6 +48,7 @@ import {
 } from "@/lib/api/client/syncEngine";
 
 import type {
+  AtaqueManual,
   CampoFichaValor,
   ConjuroFicha,
   DoteDnd,
@@ -62,8 +63,12 @@ import {
   buscarCriaturas,
   buscarItems,
   cdSalvacionConjuros,
+  investigacionPasiva,
   percepcionPasiva,
+  perspicaciaPasiva,
+  progresoXp,
   statMod,
+  TAMANOS_DND,
   useClasesDisponibles,
   useDotesDisponibles,
   useInventarioFicha,
@@ -822,6 +827,83 @@ function PanelExpandidoFicha({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                <Shield size={11} />
+                Armaduras
+              </span>
+              <EditorListaTags
+                valores={ficha.competencias_armadura ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("competencias_armadura", siguientes)}
+                placeholder="Ej. ligera, escudos…"
+              />
+            </div>
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                <Sword size={11} />
+                Armas
+              </span>
+              <EditorListaTags
+                valores={ficha.competencias_armas ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("competencias_armas", siguientes)}
+                placeholder="Ej. sencillas, espada larga…"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                Resistencias
+              </span>
+              <EditorListaTags
+                valores={ficha.resistencias ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("resistencias", siguientes)}
+                placeholder="Ej. fuego…"
+              />
+            </div>
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                Inmunidades
+              </span>
+              <EditorListaTags
+                valores={ficha.inmunidades ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("inmunidades", siguientes)}
+                placeholder="Ej. veneno…"
+              />
+            </div>
+            <div>
+              <span
+                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                Vulnerabil.
+              </span>
+              <EditorListaTags
+                valores={ficha.vulnerabilidades ?? []}
+                editable={editable}
+                onCambiar={(siguientes) => onEditarCampo?.("vulnerabilidades", siguientes)}
+                placeholder="Ej. radiante…"
+              />
+            </div>
+          </div>
             </>
           )}
 
@@ -929,16 +1011,39 @@ function BloqueAtaques({
   fuerza,
   destreza,
   bonoCompetencia,
+  ataquesManuales,
+  editable,
+  onCambiarAtaquesManuales,
 }: {
   fichaId: string;
   fuerza: number;
   destreza: number;
   bonoCompetencia: number;
+  /** Ataques que NO vienen del inventario: conjuros de ataque,
+   *  garras/mordiscos naturales, ataques especiales de clase. */
+  ataquesManuales: AtaqueManual[];
+  /** El dueño de la ficha puede agregar/quitar filas manuales. */
+  editable: boolean;
+  onCambiarAtaquesManuales?: (siguientes: AtaqueManual[]) => void;
 }) {
   const { items, loading } = useInventarioFicha(fichaId);
   const armasEquipadas = items.filter((i) => i.equipado && i.item?.es_arma);
+  const [nuevo, setNuevo] = useState({ nombre: "", bono_ataque: "", dano_tipo: "" });
 
-  if (loading || armasEquipadas.length === 0) return null;
+  const agregar = () => {
+    const nombre = nuevo.nombre.trim();
+    if (!nombre) return;
+    const fila: AtaqueManual = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      nombre,
+      bono_ataque: nuevo.bono_ataque.trim(),
+      dano_tipo: nuevo.dano_tipo.trim(),
+    };
+    onCambiarAtaquesManuales?.([...ataquesManuales, fila]);
+    setNuevo({ nombre: "", bono_ataque: "", dano_tipo: "" });
+  };
+
+  if (loading || (armasEquipadas.length === 0 && ataquesManuales.length === 0 && !editable)) return null;
 
   return (
     <div
@@ -986,6 +1091,89 @@ function BloqueAtaques({
             </div>
           );
         })}
+
+        {/* ── Ataques agregados a mano: conjuros de ataque, garras/mordiscos
+            naturales, ataques especiales de clase — no derivan del
+            inventario, así que el bono/daño se escriben libremente. ── */}
+        {ataquesManuales.map((fila) => (
+          <div
+            key={fila.id}
+            className="flex items-center justify-between gap-2 px-2.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-primary/75 truncate">
+              <Wand2 size={10} className="shrink-0 text-primary/35" />
+              {fila.nombre}
+            </span>
+            <span className="flex items-center gap-1.5 shrink-0">
+              <span className="text-micro font-bold tabular-nums" style={{ color: "var(--primary)" }}>
+                {fila.bono_ataque}
+                {fila.dano_tipo ? ` · ${fila.dano_tipo}` : ""}
+              </span>
+              {editable && (
+                <span
+                  role="button"
+                  onClick={() =>
+                    onCambiarAtaquesManuales?.(ataquesManuales.filter((a) => a.id !== fila.id))
+                  }
+                  className="cursor-pointer text-primary/30 hover:text-red-500 transition-colors"
+                >
+                  <X size={10} />
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+
+        {editable && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <input
+              type="text"
+              value={nuevo.nombre}
+              onChange={(e) => setNuevo((s) => ({ ...s, nombre: e.target.value }))}
+              placeholder="Nombre (ej. Rayo de escarcha)"
+              className="min-w-0 flex-1 bg-transparent outline-none text-micro text-primary/60 placeholder:text-primary/25 px-1.5 py-1"
+              style={{
+                border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+                borderRadius: "2px",
+              }}
+            />
+            <input
+              type="text"
+              value={nuevo.bono_ataque}
+              onChange={(e) => setNuevo((s) => ({ ...s, bono_ataque: e.target.value }))}
+              placeholder="+5"
+              className="w-12 bg-transparent outline-none text-micro text-primary/60 placeholder:text-primary/25 px-1.5 py-1"
+              style={{
+                border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+                borderRadius: "2px",
+              }}
+            />
+            <input
+              type="text"
+              value={nuevo.dano_tipo}
+              onChange={(e) => setNuevo((s) => ({ ...s, dano_tipo: e.target.value }))}
+              placeholder="1d10 frío"
+              className="w-20 bg-transparent outline-none text-micro text-primary/60 placeholder:text-primary/25 px-1.5 py-1"
+              style={{
+                border: "1px dashed color-mix(in srgb, var(--primary) 15%, transparent)",
+                borderRadius: "2px",
+              }}
+            />
+            <button
+              type="button"
+              onClick={agregar}
+              className="shrink-0 flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+              style={{ width: 22, height: 22 }}
+            >
+              <Plus size={12} className="text-primary/50" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1027,6 +1215,7 @@ export function FichaStatsPanel({
   const danioCuerpoACuerpo = statMod(ficha.fuerza ?? 10);
   const bonoCompetencia = bonusCompetencia(ficha.nivel ?? 1);
   const percepcion = percepcionPasiva(ficha);
+  const xp = progresoXp(ficha.xp_total ?? 0);
   const { tipos: tiposMoneda } = useTiposMoneda();
   const { clases: clasesDisponibles } = useClasesDisponibles();
   const claseFichaId = clasesDisponibles.find((c) => c.nombre === ficha.clase)?.id ?? null;
@@ -1348,6 +1537,50 @@ export function FichaStatsPanel({
           </div>
         </div>
 
+        {/* ── Progreso de XP: nivel derivado de la tabla oficial (puede no
+            coincidir con ficha.nivel si el DM lo pisó a mano), barra hasta
+            el próximo umbral y XP que falta. En nivel 20 queda llena. ── */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span
+              className="text-micro font-black uppercase tracking-wider"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              XP · Nivel {xp.nivel}
+            </span>
+            <span
+              className="text-micro font-bold tabular-nums"
+              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+            >
+              {ficha.xp_total ?? 0}
+              {xp.xpProximoNivel != null ? ` / ${xp.xpProximoNivel}` : " (máx.)"}
+            </span>
+          </div>
+          <div className="flex gap-0.5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex-1 h-1 transition-all duration-700"
+                style={{
+                  background:
+                    i < Math.round((xp.porcentaje / 100) * 10)
+                      ? "color-mix(in srgb, var(--primary) 40%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  borderRadius: "1px",
+                }}
+              />
+            ))}
+          </div>
+          {xp.faltante != null && (
+            <p
+              className="mt-1 text-micro font-semibold"
+              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+            >
+              Faltan {xp.faltante} XP para nivel {xp.nivel + 1}
+            </p>
+          )}
+        </div>
+
         {/* ── Salvaciones contra muerte: solo aparecen a 0 HP. 3 éxitos
             estabilizan, 3 fracasos matan. Las marca el DM en vivo, igual
             que HP actual (editableCondiciones), nunca el dueño. ── */}
@@ -1536,6 +1769,146 @@ export function FichaStatsPanel({
             <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
               {percepcion}
             </span>
+          </div>
+        </div>
+
+        {/* ── Segunda fila: tamaño, las otras dos pasivas (2024 muestra las
+            tres) y agotamiento — mismo look que la fila de arriba. ── */}
+        <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+          <div
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Tamaño
+            </span>
+            {editableStats ? (
+              <select
+                value={ficha.tamano ?? "Mediano"}
+                onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
+                className="text-micro font-black bg-transparent outline-none text-center"
+                style={{ color: "var(--primary)" }}
+              >
+                {TAMANOS_DND.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-micro font-black" style={{ color: "var(--primary)" }}>
+                {ficha.tamano ?? "Mediano"}
+              </span>
+            )}
+          </div>
+          <div
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="10 + modificador de Inteligencia + competencia (si la tiene en Investigación)."
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Investig.
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {investigacionPasiva(ficha)}
+            </span>
+          </div>
+          <div
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
+            style={{
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="10 + modificador de Sabiduría + competencia (si la tiene en Perspicacia)."
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              Perspic.
+            </span>
+            <span className="text-sm font-black tabular-nums" style={{ color: "var(--primary)" }}>
+              {perspicaciaPasiva(ficha)}
+            </span>
+          </div>
+          <div
+            className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5"
+            style={{
+              border:
+                (ficha.agotamiento ?? 0) > 0
+                  ? "1px solid color-mix(in srgb, #dc2626 35%, transparent)"
+                  : "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              borderRadius: "2px",
+              background:
+                (ficha.agotamiento ?? 0) > 0
+                  ? "color-mix(in srgb, #dc2626 6%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 3%, transparent)",
+            }}
+            title="Nivel de agotamiento 0-6 (regla 2024: -2 acumulativo por nivel a todas las tiradas)."
+          >
+            <span
+              className="text-micro font-black uppercase tracking-wider text-center leading-tight"
+              style={{
+                color:
+                  (ficha.agotamiento ?? 0) > 0
+                    ? "#dc2626"
+                    : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+            >
+              Agotam.
+            </span>
+            {editableCondiciones ? (
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onEditarCampo?.("agotamiento", Math.max(0, (ficha.agotamiento ?? 0) - 1))
+                  }
+                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                  style={{ width: 14, height: 14 }}
+                >
+                  <Minus size={9} className="text-primary/50" />
+                </button>
+                <span
+                  className="text-sm font-black tabular-nums"
+                  style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
+                >
+                  {ficha.agotamiento ?? 0}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onEditarCampo?.("agotamiento", Math.min(6, (ficha.agotamiento ?? 0) + 1))
+                  }
+                  className="flex items-center justify-center rounded hover:bg-primary/10 transition-colors"
+                  style={{ width: 14, height: 14 }}
+                >
+                  <Plus size={9} className="text-primary/50" />
+                </button>
+              </span>
+            ) : (
+              <span
+                className="text-sm font-black tabular-nums"
+                style={{ color: (ficha.agotamiento ?? 0) > 0 ? "#dc2626" : "var(--primary)" }}
+              >
+                {ficha.agotamiento ?? 0}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1743,6 +2116,9 @@ export function FichaStatsPanel({
         fuerza={ficha.fuerza ?? 10}
         destreza={ficha.destreza ?? 10}
         bonoCompetencia={bonoCompetencia}
+        ataquesManuales={ficha.ataques_manuales ?? []}
+        editable={editable}
+        onCambiarAtaquesManuales={(siguientes) => onEditarCampo?.("ataques_manuales", siguientes)}
       />
 
       {/* ── Dados de golpe: chip flotante fijo en la esquina inferior

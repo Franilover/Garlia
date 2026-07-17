@@ -87,6 +87,19 @@ export interface EspaciosConjuroNivel {
   usados: number;
 }
 
+/** Fila de la tabla "Ataques y conjuros" de la ficha 2024 que NO viene de
+ *  un arma en el inventario: conjuros de ataque, garras/mordiscos
+ *  naturales, ataques especiales de clase. Se agregan a mano. */
+export interface AtaqueManual {
+  id: string;
+  nombre: string;
+  /** Bono de ataque ya calculado (ej. "+5"), texto libre porque puede
+   *  incluir ventaja/notas cortas. */
+  bono_ataque: string;
+  /** Daño y tipo, ej. "1d6+3 cortante" o "2d10 fuego (CD 15 Destreza)". */
+  dano_tipo: string;
+}
+
 export interface EspecieResumen {
   id: string;
   nombre: string;
@@ -163,6 +176,24 @@ export interface FichaDnd {
   /** Idiomas y herramientas que el personaje sabe usar (texto libre). */
   idiomas: string[];
   herramientas: string[];
+  /** Armaduras/armas con las que el personaje tiene competencia (texto libre,
+   *  no es lista cerrada porque hay equipo homebrew en el mundo). */
+  competencias_armadura: string[];
+  competencias_armas: string[];
+  /** Tipos de daño con resistencia (mitad), inmunidad (nulo) o vulnerabilidad
+   *  (doble). Texto libre, ej. "fuego", "veneno", "cortante no mágico". */
+  resistencias: string[];
+  inmunidades: string[];
+  vulnerabilidades: string[];
+  /** Nivel de agotamiento 0-6 (regla 2024: penalización única acumulativa
+   *  de -2 por nivel a todas las tiradas, sin tabla de efectos por nivel). */
+  agotamiento: number;
+  /** Categoría de tamaño, se muestra junto a velocidad/CA en la hoja. */
+  tamano: "Diminuto" | "Pequeño" | "Mediano" | "Grande" | "Enorme" | "Gigantesco";
+  /** Ataques/conjuros de la tabla "Ataques y conjuros" que NO vienen del
+   *  inventario (conjuros de ataque, garras/mordiscos, ataques de clase).
+   *  Ya existía la columna en la BD, esto la expone en el tipo. */
+  ataques_manuales: AtaqueManual[];
   /** Dados de golpe para descansos cortos, ej. "3d8". */
   dados_golpe: string | null;
   dados_golpe_usados: number;
@@ -225,6 +256,7 @@ export type CampoFichaValor =
   | string[]
   | RasgoEspecial[]
   | ConjuroFicha[]
+  | AtaqueManual[]
   | Record<string, number>
   | Record<string, EspaciosConjuroNivel>
   | null;
@@ -246,6 +278,72 @@ export function percepcionPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "
 export function bonusCompetencia(nivel: number): number {
   return 2 + Math.floor((Math.max(1, Math.min(20, nivel)) - 1) / 4);
 }
+
+/** Investigación pasiva = 10 + mod(Inteligencia) + bono de competencia (si
+ *  tiene competencia en Investigación). Misma fórmula que percepción pasiva. */
+export function investigacionPasiva(ficha: Pick<FichaDnd, "inteligencia" | "nivel" | "habilidades_competentes">): number {
+  const mod = statMod(ficha.inteligencia ?? 10);
+  const competente = ficha.habilidades_competentes?.includes("investigacion") ?? false;
+  return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+}
+
+/** Perspicacia pasiva = 10 + mod(Sabiduría) + bono de competencia (si tiene
+ *  competencia en Perspicacia). Misma fórmula que percepción pasiva. */
+export function perspicaciaPasiva(ficha: Pick<FichaDnd, "sabiduria" | "nivel" | "habilidades_competentes">): number {
+  const mod = statMod(ficha.sabiduria ?? 10);
+  const competente = ficha.habilidades_competentes?.includes("perspicacia") ?? false;
+  return 10 + mod + (competente ? bonusCompetencia(ficha.nivel ?? 1) : 0);
+}
+
+/** XP acumulativa mínima para alcanzar cada nivel 1-20 (tabla oficial PHB). */
+export const UMBRALES_XP: number[] = [
+  0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000,
+  120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000,
+];
+
+/** Progreso de XP dentro del nivel actual: nivel derivado de la tabla (no de
+ *  ficha.nivel, que puede haber sido seteado a mano por el DM), XP restante
+ *  para subir y el % de la barra. En nivel 20 la barra queda llena y sin
+ *  "próximo umbral" porque es el máximo. */
+export function progresoXp(xpTotal: number): {
+  nivel: number;
+  xpNivelActual: number;
+  xpProximoNivel: number | null;
+  faltante: number | null;
+  porcentaje: number;
+} {
+  const xp = Math.max(0, xpTotal ?? 0);
+  let nivel = 1;
+  for (let i = UMBRALES_XP.length - 1; i >= 0; i--) {
+    if (xp >= UMBRALES_XP[i]) {
+      nivel = i + 1;
+      break;
+    }
+  }
+  const umbralActual = UMBRALES_XP[nivel - 1];
+  const umbralSiguiente = nivel < 20 ? UMBRALES_XP[nivel] : null;
+  if (umbralSiguiente === null) {
+    return { nivel, xpNivelActual: xp - umbralActual, xpProximoNivel: null, faltante: null, porcentaje: 100 };
+  }
+  const rango = umbralSiguiente - umbralActual;
+  const avance = xp - umbralActual;
+  return {
+    nivel,
+    xpNivelActual: avance,
+    xpProximoNivel: umbralSiguiente,
+    faltante: umbralSiguiente - xp,
+    porcentaje: rango > 0 ? Math.min(100, Math.max(0, (avance / rango) * 100)) : 100,
+  };
+}
+
+/** Tamaños disponibles (PHB 2024), en el orden en que se muestran en selects. */
+export const TAMANOS_DND = ["Diminuto", "Pequeño", "Mediano", "Grande", "Enorme", "Gigantesco"] as const;
+
+/** Tipos de daño oficiales de D&D 5e, para resistencias/inmunidades/vulnerabilidades. */
+export const TIPOS_DANO_DND = [
+  "ácido", "contundente", "cortante", "frío", "fuego", "fuerza",
+  "necrótico", "perforante", "psíquico", "radiante", "relámpago", "trueno", "veneno",
+] as const;
 
 /** CD de salvación de conjuros = 8 + bono de competencia + mod de la
  *  característica de conjuros. Devuelve null si la ficha no tiene
