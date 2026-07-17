@@ -50,6 +50,7 @@ import {
 import type {
   CampoFichaValor,
   ConjuroFicha,
+  DoteDnd,
   FichaDnd,
   ItemInventarioFicha,
   RasgoEspecial,
@@ -707,7 +708,29 @@ function PanelExpandidoFicha({
                       const elegido = trasfondosDisponibles.find((t) => t.nombre === nombreElegido);
                       onEditarCampo?.("trasfondo_mecanico", nombreElegido);
                       onEditarCampo?.("rasgo_trasfondo", elegido?.descripcion?.trim() || null);
-                      onEditarCampo?.("dote_origen", elegido?.dote_origen?.nombre ?? null);
+
+                      // La Dote de Origen del trasfondo se autoasigna como
+                      // rasgo con origen="dote" (dentro de rasgos_especiales,
+                      // que sí existe en fichas_dnd — no hay columna
+                      // dote_origen separada) para que aparezca en la
+                      // sección Dotes sin que el jugador tenga que agregarla
+                      // a mano. Se identifica con un id fijo (no random) para
+                      // poder reemplazarla sola si el trasfondo cambia, sin
+                      // tocar otras dotes que el jugador haya sumado él mismo.
+                      const rasgosActuales = ficha.rasgos_especiales ?? [];
+                      const sinDoteOrigenVieja = rasgosActuales.filter((r) => r.id !== "dote-origen-trasfondo");
+                      const nuevosRasgos = elegido?.dote_origen
+                        ? [
+                            ...sinDoteOrigenVieja,
+                            {
+                              id: "dote-origen-trasfondo",
+                              nombre: elegido.dote_origen.nombre,
+                              descripcion: elegido.dote_origen.descripcion?.trim() ?? "",
+                              origen: "dote" as const,
+                            },
+                          ]
+                        : sinDoteOrigenVieja;
+                      onEditarCampo?.("rasgos_especiales", nuevosRasgos);
                     }}
                     className="text-sm font-semibold bg-transparent outline-none w-full"
                     style={{ color: "var(--primary)" }}
@@ -725,9 +748,6 @@ function PanelExpandidoFicha({
                   </span>
                 )}
                 {ficha.rasgo_trasfondo && <RasgoDelCampo texto={ficha.rasgo_trasfondo} />}
-                {ficha.dote_origen && (
-                  <RasgoDelCampo texto={`Dote de origen: ${ficha.dote_origen}`} />
-                )}
               </CampoIdentidad>
 
               <CampoIdentidad label="Especie">
@@ -1818,11 +1838,85 @@ export function FichaStatsPanel({
   );
 }
 
-// ─── Rasgos y habilidades especiales (features de clase/raza) ──────────────
-// Lista editable de {nombre, descripción}, sin ningún cálculo asociado —
-// es texto de rol-play/mecánica narrativa, tipo "Visión en la oscuridad" o
-// "Segundo aliento". Vive en su propio componente porque maneja su propio
-// estado de "agregando nuevo rasgo".
+// ─── Rasgos y dotes (Features & Traits) ────────────────────────────────────
+// Rediseñado siguiendo la hoja oficial de personaje D&D 2024: una sola
+// lista continua de entradas (no separada en columnas), cada una con un
+// pequeño tag de color según su origen (Raza/Clase/Trasfondo/Dote) — igual
+// que "Species"/"Class"/"Background"/"Feat" en la hoja oficial — y el
+// buscador de dotes visible como su propio buscador con resultados, en vez
+// de escondido dentro de un <select> de un mini-formulario genérico.
+
+const ORIGEN_CONFIG: Record<
+  RasgoEspecial["origen"],
+  { label: string; color: string; Icono: typeof Star }
+> = {
+  raza: { label: "Especie", color: "#3b82f6", Icono: Shield },
+  clase: { label: "Clase", color: "#a855f7", Icono: Sword },
+  dote: { label: "Dote", color: "#f59e0b", Icono: Sparkles },
+  otro: { label: "Otro", color: "#6b7280", Icono: Star },
+};
+
+function TagOrigen({ origen }: { origen: RasgoEspecial["origen"] }) {
+  const { label, color, Icono } = ORIGEN_CONFIG[origen];
+  return (
+    <span
+      className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider"
+      style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+    >
+      <Icono size={9} />
+      {label}
+    </span>
+  );
+}
+
+function TarjetaRasgo({
+  rasgo,
+  editable,
+  onQuitar,
+}: {
+  rasgo: RasgoEspecial;
+  editable: boolean;
+  onQuitar: () => void;
+}) {
+  const color = ORIGEN_CONFIG[rasgo.origen].color;
+  return (
+    <div
+      className="group flex items-start gap-2.5 px-3 py-2.5 rounded-lg"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        borderLeft: `3px solid color-mix(in srgb, ${color} 55%, transparent)`,
+        background: "color-mix(in srgb, var(--primary) 2%, transparent)",
+      }}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm font-black" style={{ color: "var(--primary)" }}>
+            {rasgo.nombre}
+          </p>
+          <TagOrigen origen={rasgo.origen} />
+        </div>
+        {rasgo.descripcion && (
+          <p
+            className="text-xs mt-1 leading-relaxed"
+            style={{ color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}
+          >
+            {rasgo.descripcion}
+          </p>
+        )}
+      </div>
+      {editable && (
+        <button
+          type="button"
+          onClick={onQuitar}
+          className="shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 cursor-pointer hover:text-red-500 transition-all"
+          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        >
+          <Trash2 size={13} />
+        </button>
+      )}
+    </div>
+  );
+}
 
 function PanelRasgosEspeciales({
   rasgos,
@@ -1834,16 +1928,35 @@ function PanelRasgosEspeciales({
   onCambiar: (siguientes: RasgoEspecial[]) => void;
 }) {
   const [agregando, setAgregando] = useState(false);
+  const [modo, setModo] = useState<"dote" | "rasgo">("rasgo");
   const [nombreNuevo, setNombreNuevo] = useState("");
   const [descNueva, setDescNueva] = useState("");
   const [origenNuevo, setOrigenNuevo] = useState<RasgoEspecial["origen"]>("otro");
   const { dotes: catalogoDotes, loading: cargandoDotes } = useDotesDisponibles();
-  const [doteCatalogoId, setDoteCatalogoId] = useState("");
+  const [busquedaDote, setBusquedaDote] = useState("");
 
-  const agregar = useCallback(() => {
+  const dotesFiltradas = catalogoDotes.filter((d) =>
+    d.nombre.toLowerCase().includes(busquedaDote.trim().toLowerCase()),
+  );
+  const dotesPorCategoria = {
+    origen: dotesFiltradas.filter((d) => d.categoria === "origen"),
+    general: dotesFiltradas.filter((d) => d.categoria === "general"),
+    epica: dotesFiltradas.filter((d) => d.categoria === "epica"),
+  };
+
+  const resetFormulario = useCallback(() => {
+    setAgregando(false);
+    setModo("rasgo");
+    setNombreNuevo("");
+    setDescNueva("");
+    setOrigenNuevo("otro");
+    setBusquedaDote("");
+  }, []);
+
+  const agregarRasgo = useCallback(() => {
     const nombre = nombreNuevo.trim();
     if (!nombre) {
-      setAgregando(false);
+      resetFormulario();
       return;
     }
     const rasgo: RasgoEspecial = {
@@ -1853,12 +1966,24 @@ function PanelRasgosEspeciales({
       origen: origenNuevo,
     };
     onCambiar([...rasgos, rasgo]);
-    setNombreNuevo("");
-    setDescNueva("");
-    setOrigenNuevo("otro");
-    setDoteCatalogoId("");
-    setAgregando(false);
-  }, [nombreNuevo, descNueva, origenNuevo, rasgos, onCambiar]);
+    resetFormulario();
+  }, [nombreNuevo, descNueva, origenNuevo, rasgos, onCambiar, resetFormulario]);
+
+  const agregarDote = useCallback(
+    (dote: DoteDnd) => {
+      const yaLaTiene = rasgos.some((r) => r.origen === "dote" && r.nombre === dote.nombre);
+      if (yaLaTiene) return;
+      const rasgo: RasgoEspecial = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        nombre: dote.nombre,
+        descripcion: dote.descripcion?.trim() ?? "",
+        origen: "dote",
+      };
+      onCambiar([...rasgos, rasgo]);
+      resetFormulario();
+    },
+    [rasgos, onCambiar, resetFormulario],
+  );
 
   const quitar = useCallback(
     (id: string) => {
@@ -1867,231 +1992,229 @@ function PanelRasgosEspeciales({
     [rasgos, onCambiar],
   );
 
-  const dotes = rasgos.filter((r) => r.origen === "dote");
-  const otrosRasgos = rasgos.filter((r) => r.origen !== "dote");
-
   if (!editable && rasgos.length === 0) return null;
 
-  const listaRasgo = (r: RasgoEspecial) => (
-    <div
-      key={r.id}
-      className="flex items-start gap-2 px-2.5 py-2"
-      style={{
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        borderRadius: "2px",
-        background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-      }}
-    >
-      <div className="min-w-0 flex-1">
+  const bloqueDotes = (titulo: string, lista: DoteDnd[]) =>
+    lista.length === 0 ? null : (
+      <div key={titulo}>
         <p
-          className="text-micro font-black uppercase tracking-wider"
-          style={{ color: "var(--primary)" }}
+          className="text-[10px] font-black uppercase tracking-[0.2em] px-1 mb-1"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
         >
-          {r.nombre}
+          {titulo}
         </p>
-        {r.descripcion && (
-          <p
-            className="text-micro mt-0.5"
-            style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-          >
-            {r.descripcion}
-          </p>
-        )}
+        <div className="flex flex-col gap-1">
+          {lista.map((d) => {
+            const yaElegida = rasgos.some((r) => r.origen === "dote" && r.nombre === d.nombre);
+            return (
+              <button
+                key={d.id}
+                type="button"
+                disabled={yaElegida}
+                onClick={() => agregarDote(d)}
+                className="flex items-start gap-2 px-2.5 py-2 rounded-lg text-left transition-colors disabled:opacity-40 disabled:cursor-default disabled:pointer-events-none hover:bg-primary/[0.05] cursor-pointer"
+                style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black" style={{ color: "var(--primary)" }}>
+                    {d.nombre}
+                    {d.prerequisito && (
+                      <span
+                        className="ml-1.5 text-[10px] font-normal normal-case"
+                        style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                      >
+                        (req. {d.prerequisito})
+                      </span>
+                    )}
+                  </p>
+                  {d.descripcion && (
+                    <p
+                      className="text-[11px] mt-0.5 leading-snug"
+                      style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                    >
+                      {d.descripcion}
+                    </p>
+                  )}
+                </div>
+                {yaElegida ? (
+                  <CheckCircle2 size={14} className="shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+                ) : (
+                  <Plus
+                    size={14}
+                    className="shrink-0 mt-0.5"
+                    style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      {editable && (
-        <button
-          type="button"
-          onClick={() => quitar(r.id)}
-          className="shrink-0 cursor-pointer hover:text-red-500 transition-colors"
-          style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-        >
-          <Trash2 size={12} />
-        </button>
-      )}
-    </div>
-  );
+    );
 
   return (
     <div
-      className="px-5 py-4 flex flex-col gap-2"
+      className="px-5 py-4 flex flex-col gap-3"
       style={{
         borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
     >
-      <div className="grid grid-cols-2 gap-6">
-        <div className="flex flex-col gap-2 min-w-0">
-          <SeparadorLabel label="Rasgos" />
+      <SeparadorLabel label="Rasgos y dotes" />
 
-          {otrosRasgos.length === 0 && !agregando && (
-            <p
-              className="text-micro italic"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              Sin rasgos de clase o raza registrados aún.
-            </p>
-          )}
+      {rasgos.length === 0 && !agregando && (
+        <p
+          className="text-micro italic"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+        >
+          Sin rasgos ni dotes registrados aún.
+        </p>
+      )}
 
-          <div className="flex flex-col gap-2">{otrosRasgos.map(listaRasgo)}</div>
-        </div>
-
-        {/* ── Dotes (feats): columna aparte, ej. la dote de origen del
-            trasfondo o las que se ganan al subir de nivel. ── */}
-        {(dotes.length > 0 || editable) && (
-          <div className="flex flex-col gap-2 min-w-0">
-            <SeparadorLabel label="Dotes" />
-            {dotes.length === 0 && !agregando && (
-              <p
-                className="text-micro italic"
-                style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-              >
-                Sin dotes registradas aún.
-              </p>
-            )}
-            <div className="flex flex-col gap-2">{dotes.map(listaRasgo)}</div>
-          </div>
-        )}
+      <div className="flex flex-col gap-2">
+        {rasgos.map((r) => (
+          <TarjetaRasgo key={r.id} rasgo={r} editable={editable} onQuitar={() => quitar(r.id)} />
+        ))}
       </div>
 
       {editable && (
         <>
           {agregando ? (
             <div
-              className="flex flex-col gap-1.5 px-2.5 py-2"
+              className="flex flex-col gap-2.5 px-3 py-3 rounded-lg"
               style={{
                 border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-                borderRadius: "2px",
               }}
             >
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  type="text"
-                  value={nombreNuevo}
-                  onChange={(e) => setNombreNuevo(e.target.value)}
-                  placeholder="Nombre (ej. Visión en la oscuridad, Alerta…)"
-                  disabled={origenNuevo === "dote"}
-                  className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal disabled:opacity-50"
-                  style={{ color: "var(--primary)" }}
-                />
-                <select
-                  value={origenNuevo}
-                  onChange={(e) => {
-                    const siguiente = e.target.value as RasgoEspecial["origen"];
-                    setOrigenNuevo(siguiente);
-                    if (siguiente !== "dote") {
-                      setDoteCatalogoId("");
-                    } else {
-                      setNombreNuevo("");
-                      setDescNueva("");
-                    }
-                  }}
-                  className="shrink-0 bg-transparent outline-none text-micro font-bold"
-                  style={{
-                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-                    borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
-                  }}
+              {/* Selector de modo: catálogo de dotes vs. rasgo de texto libre
+                  (raza/clase/otro) — dos flujos distintos porque las dotes
+                  tienen un catálogo real (dotes_dnd) y el resto no. */}
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setModo("dote")}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
+                  style={
+                    modo === "dote"
+                      ? { color: "#f59e0b", background: "color-mix(in srgb, #f59e0b 14%, transparent)" }
+                      : { color: "color-mix(in srgb, var(--primary) 45%, transparent)" }
+                  }
                 >
-                  <option value="raza">Raza</option>
-                  <option value="clase">Clase</option>
-                  <option value="dote">Dote</option>
-                  <option value="otro">Otro</option>
-                </select>
+                  <Sparkles size={12} />
+                  Elegir dote
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModo("rasgo")}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-micro font-black uppercase tracking-wider transition-colors cursor-pointer"
+                  style={
+                    modo === "rasgo"
+                      ? { color: "var(--primary)", background: "color-mix(in srgb, var(--primary) 8%, transparent)" }
+                      : { color: "color-mix(in srgb, var(--primary) 45%, transparent)" }
+                  }
+                >
+                  <Star size={12} />
+                  Rasgo libre
+                </button>
               </div>
 
-              {/* Cuando el origen es "dote" el jugador elige del catálogo
-                  oficial (dotes_dnd) en vez de escribir texto libre — así
-                  las dotes efectivamente aparecen, en vez de depender de
-                  que alguien tipee el nombre exacto a mano. */}
-              {origenNuevo === "dote" ? (
-                <select
-                  value={doteCatalogoId}
-                  disabled={cargandoDotes}
-                  onChange={(e) => {
-                    const id = e.target.value;
-                    setDoteCatalogoId(id);
-                    const elegida = catalogoDotes.find((d) => d.id === id);
-                    setNombreNuevo(elegida?.nombre ?? "");
-                    setDescNueva(elegida?.descripcion?.trim() ?? "");
-                  }}
-                  className="bg-transparent outline-none text-micro"
-                  style={{
-                    color: "var(--primary)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-                    borderRadius: "2px",
-                    padding: "4px 6px",
-                  }}
-                >
-                  <option value="">{cargandoDotes ? "Cargando dotes…" : "Elegí una dote del catálogo…"}</option>
-                  <optgroup label="Origen">
-                    {catalogoDotes
-                      .filter((d) => d.categoria === "origen")
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nombre}
-                        </option>
-                      ))}
-                  </optgroup>
-                  <optgroup label="General">
-                    {catalogoDotes
-                      .filter((d) => d.categoria === "general")
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nombre}
-                          {d.prerequisito ? ` (req. ${d.prerequisito})` : ""}
-                        </option>
-                      ))}
-                  </optgroup>
-                  <optgroup label="Épica">
-                    {catalogoDotes
-                      .filter((d) => d.categoria === "epica")
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.nombre}
-                          {d.prerequisito ? ` (req. ${d.prerequisito})` : ""}
-                        </option>
-                      ))}
-                  </optgroup>
-                </select>
+              {modo === "dote" ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={busquedaDote}
+                    onChange={(e) => setBusquedaDote(e.target.value)}
+                    placeholder="Buscar dote…"
+                    className="px-2.5 py-1.5 rounded-md outline-none text-xs"
+                    style={{
+                      border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  />
+                  {cargandoDotes ? (
+                    <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      Cargando catálogo de dotes…
+                    </p>
+                  ) : dotesFiltradas.length === 0 ? (
+                    <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                      Sin resultados.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
+                      {bloqueDotes("Origen", dotesPorCategoria.origen)}
+                      {bloqueDotes("General", dotesPorCategoria.general)}
+                      {bloqueDotes("Épica", dotesPorCategoria.epica)}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetFormulario}
+                    className="self-end text-micro font-black uppercase tracking-wider px-2 py-1"
+                    style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
               ) : (
-                <textarea
-                  value={descNueva}
-                  onChange={(e) => setDescNueva(e.target.value)}
-                  placeholder="Descripción (opcional)"
-                  rows={2}
-                  className="bg-transparent outline-none resize-none text-micro"
-                  style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                />
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={nombreNuevo}
+                      onChange={(e) => setNombreNuevo(e.target.value)}
+                      placeholder="Nombre (ej. Visión en la oscuridad, Segundo aliento…)"
+                      className="flex-1 bg-transparent outline-none text-micro font-black uppercase tracking-wider placeholder:normal-case placeholder:font-normal"
+                      style={{ color: "var(--primary)" }}
+                    />
+                    <select
+                      value={origenNuevo}
+                      onChange={(e) => setOrigenNuevo(e.target.value as RasgoEspecial["origen"])}
+                      className="shrink-0 bg-transparent outline-none text-micro font-bold"
+                      style={{
+                        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                        borderBottom: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)",
+                      }}
+                    >
+                      <option value="raza">Especie</option>
+                      <option value="clase">Clase</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <textarea
+                    value={descNueva}
+                    onChange={(e) => setDescNueva(e.target.value)}
+                    placeholder="Descripción (opcional)"
+                    rows={2}
+                    className="bg-transparent outline-none resize-none text-micro"
+                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                  />
+                  <div className="flex items-center gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={resetFormulario}
+                      className="text-micro font-black uppercase tracking-wider px-2 py-1"
+                      style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={agregarRasgo}
+                      className="text-micro font-black uppercase tracking-wider px-2 py-1"
+                      style={{ color: "var(--primary)" }}
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
               )}
-              <div className="flex items-center gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAgregando(false);
-                    setNombreNuevo("");
-                    setDescNueva("");
-                    setOrigenNuevo("otro");
-                    setDoteCatalogoId("");
-                  }}
-                  className="text-micro font-black uppercase tracking-wider px-2 py-1"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={agregar}
-                  className="text-micro font-black uppercase tracking-wider px-2 py-1"
-                  style={{ color: "var(--primary)" }}
-                >
-                  Guardar
-                </button>
-              </div>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setAgregando(true)}
-              className="flex items-center gap-1.5 self-start text-micro font-black uppercase tracking-wider px-2.5 py-1.5"
+              className="flex items-center gap-1.5 self-start text-micro font-black uppercase tracking-wider px-2.5 py-1.5 cursor-pointer"
               style={{
                 color: "color-mix(in srgb, var(--primary) 45%, transparent)",
                 border: "1px dashed color-mix(in srgb, var(--primary) 20%, transparent)",

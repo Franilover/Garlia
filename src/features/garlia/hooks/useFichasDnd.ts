@@ -124,12 +124,6 @@ export interface FichaDnd {
    *  en el cliente con `descripcion` del grupo Trasfondo elegido (ver
    *  useTrasfondosDisponibles) — no es texto libre que el jugador escriba. */
   rasgo_trasfondo: string | null;
-  /** Dote de Origen (Origin Feat) que otorga el trasfondo elegido — regla
-   *  2024: todo trasfondo da una dote fija de forma automática (ej. Acólito
-   *  → Iniciado en la Magia). Se autocompleta en el cliente a partir de
-   *  MAPA_DOTE_ORIGEN al elegir trasfondo_mecanico, pero queda editable
-   *  para trasfondos homebrew que no estén en el mapa oficial. */
-  dote_origen: string | null;
   imagen_url: string | null;
   fuerza: number;
   destreza: number;
