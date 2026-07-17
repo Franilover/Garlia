@@ -567,10 +567,14 @@ function PanelExpandidoFicha({
   // ── Ancho del panel: ya no es fijo. Usa todo el espacio horizontal
   // disponible entre el ancla y el borde de la ventana (con un máximo
   // generoso), así Identidad e Inventario pueden mostrarse lado a lado
-  // en vez de competir por 560px angostos. ──
+  // en vez de competir por 560px angostos.
+  // Sin separación con el panel ancla (se "conectan") ni con el borde
+  // derecho de la ventana — solo se respeta el sidebar fijo izquierdo
+  // (52px en desktop) para no quedar tapado detrás de él. ──
   const ANCHO_PANEL_MIN = 560;
   const ANCHO_PANEL_MAX = 1100;
-  const MARGEN = 16;
+  const SIDEBAR_DESKTOP_ANCHO = 68;
+  const MARGEN_SUPERIOR = 16;
   const [pos, setPos] = useState<{
     left: number;
     top: number;
@@ -587,9 +591,17 @@ function PanelExpandidoFicha({
       const rect = el.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      // Espacio libre a cada lado del ancla, descontando márgenes.
-      const espacioDerecha = vw - MARGEN - (rect.right + MARGEN);
-      const espacioIzquierda = rect.left - MARGEN - MARGEN;
+      // El sidebar fijo desktop (aside md:flex, 52px) vive por debajo de
+      // este panel en el DOM pero con mayor z-index — así que tratamos su
+      // ancho como el borde real izquierdo disponible, no 0.
+      const esDesktop = vw >= 768; // breakpoint md de Tailwind, igual que el navbar
+      const limiteIzquierdo = esDesktop ? SIDEBAR_DESKTOP_ANCHO : 0;
+
+      // Espacio libre a cada lado del ancla — sin margen: el panel se
+      // conecta directo con el borde del ancla y con el borde de la
+      // ventana (o el sidebar, del lado izquierdo).
+      const espacioDerecha = vw - rect.right;
+      const espacioIzquierda = rect.left - limiteIzquierdo;
       const cabeHaDerecha = espacioDerecha >= ANCHO_PANEL_MIN;
       const lado: "derecha" | "izquierda" = cabeHaDerecha
         ? "derecha"
@@ -607,13 +619,15 @@ function PanelExpandidoFicha({
 
       const left =
         lado === "derecha"
-          ? rect.right + MARGEN
-          : Math.max(MARGEN, rect.left - MARGEN - width);
-      // Misma altura que el panel ancla, pero nunca se sale de la pantalla
-      // ni se corta: se clampea entre el margen superior/inferior de la
-      // ventana, conservando el top del ancla como referencia.
-      const top = Math.max(MARGEN, Math.min(rect.top, vh - MARGEN - 200));
-      const height = Math.min(rect.height, vh - top - MARGEN);
+          ? rect.right
+          : Math.max(limiteIzquierdo, rect.left - width);
+      // Misma altura que el panel ancla, pero nunca queda tapado por el
+      // navbar: en desktop respeta el margen superior normal; en mobile
+      // se detiene antes de la barra inferior fija (56px + margen).
+      const NAVBAR_MOBILE_ALTO = 56;
+      const margenInferior = esDesktop ? MARGEN_SUPERIOR : NAVBAR_MOBILE_ALTO + MARGEN_SUPERIOR;
+      const top = Math.max(MARGEN_SUPERIOR, Math.min(rect.top, vh - margenInferior - 200));
+      const height = Math.min(rect.height, vh - top - margenInferior);
       setPos({ left, top, height, width, lado });
     };
     calcular();
@@ -641,18 +655,21 @@ function PanelExpandidoFicha({
   if (typeof document === "undefined") return null;
   if (!pos) return null;
 
-  // En mobile (pantalla angosta) no hay lugar al costado: cae a un panel
-  // centrado clásico, más ancho, igual sin overlay oscuro pesado.
-  const esMobile = typeof window !== "undefined" && window.innerWidth < 860;
+  // En mobile (pantalla angosta, breakpoint md de Tailwind — el mismo que
+  // usa el navbar) no hay lugar al costado: cae a un panel centrado
+  // clásico, más ancho, igual sin overlay oscuro pesado.
+  const esMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   return createPortal(
     <>
       {/* Capa invisible solo para detectar el click-afuera; no oscurece,
-          para que el panel se sienta "conectado" y no como un modal aparte. */}
-      <div className="fixed inset-0 z-[60]" onClick={onCerrar} />
+          para que el panel se sienta "conectado" y no como un modal aparte.
+          Por encima del sidebar/navbar (z-[100] / z-[1000]) para que el
+          click-afuera funcione incluso sobre esas zonas. ── */}
+      <div className="fixed inset-0 z-[1001]" onClick={onCerrar} />
       <MotionDiv
         animate={{ opacity: 1, x: 0 }}
-        className="fixed z-[61] overflow-y-auto"
+        className="fixed z-[1002] overflow-y-auto"
         exit={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
         initial={{ opacity: 0, x: pos.lado === "derecha" ? -8 : 8 }}
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
@@ -660,10 +677,10 @@ function PanelExpandidoFicha({
           esMobile
             ? {
                 left: "50%",
-                top: "50%",
+                top: "calc(50% - 28px)",
                 transform: "translate(-50%, -50%)",
                 width: "min(94vw, 560px)",
-                maxHeight: "86vh",
+                maxHeight: "calc(86vh - 56px)",
                 background: "var(--white-custom)",
                 borderRadius: "var(--radius-card)",
                 border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",

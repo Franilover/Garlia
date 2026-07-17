@@ -489,8 +489,12 @@ function AventuraDetalle({
           )}
         </div>
 
-        {/* ── Columna lateral: identidades como dropdowns ───────────── */}
-        <div className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden" style={{ background: "var(--bg-main)" }}>
+        {/* ── Columna lateral: identidades como dropdowns. Sin margen contra
+            el borde derecho de la ventana — llega justo hasta el borde. ── */}
+        <div
+          className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden mr-0"
+          style={{ background: "var(--bg-main)" }}
+        >
           <PanelIdentidadesDM />
         </div>
       </div>
