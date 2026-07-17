@@ -1009,7 +1009,7 @@ function PanelExpandidoFicha({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <Languages size={11} />
@@ -1024,7 +1024,7 @@ function PanelExpandidoFicha({
             </div>
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <Wrench size={11} />
@@ -1041,7 +1041,7 @@ function PanelExpandidoFicha({
           <div className="grid grid-cols-2 gap-6">
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <Shield size={11} />
@@ -1056,7 +1056,7 @@ function PanelExpandidoFicha({
             </div>
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 <Sword size={11} />
@@ -1074,7 +1074,7 @@ function PanelExpandidoFicha({
           <div className="grid grid-cols-3 gap-4">
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 Resistencias
@@ -1088,7 +1088,7 @@ function PanelExpandidoFicha({
             </div>
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 Inmunidades
@@ -1102,7 +1102,7 @@ function PanelExpandidoFicha({
             </div>
             <div>
               <span
-                className="flex items-center gap-1.5 text-micro font-black uppercase tracking-wider mb-2"
+                className="flex items-center gap-1.5 text-micro font-semibold mb-2"
                 style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
               >
                 Vulnerabil.
@@ -1610,22 +1610,29 @@ export function FichaStatsPanel({
           <button
             type="button"
             onClick={() => setExpandido(true)}
-            title="Ver idiomas, herramientas y trasfondo en grande"
-            className="shrink-0 flex items-center justify-center transition-colors"
+            title="Ver ficha completa: idiomas, herramientas, trasfondo e inventario"
+            className="shrink-0 flex items-center gap-1 transition-colors"
             style={{
-              width: 22,
               height: 22,
+              padding: "0 6px",
+              borderRadius: 11,
               color: "color-mix(in srgb, var(--primary) 40%, transparent)",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              (e.currentTarget as HTMLElement).style.background =
+                "color-mix(in srgb, var(--primary) 8%, transparent)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.color =
                 "color-mix(in srgb, var(--primary) 40%, transparent)";
+              (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
-            <Maximize2 size={14} />
+            <Maximize2 size={12} />
+            <span className="text-micro font-bold whitespace-nowrap hidden sm:inline">
+              Ver ficha completa
+            </span>
           </button>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
