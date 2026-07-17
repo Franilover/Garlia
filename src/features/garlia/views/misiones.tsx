@@ -746,15 +746,38 @@ function ContenidoIdentidadFicha({
               </CampoIdentidad>
             </div>
 
-            <CampoIdentidad label="Alineamiento">
-              <CampoEditable
-                valor={ficha.alineamiento ?? "—"}
-                editable={editable}
-                onCommit={(v) => onEditarCampo?.("alineamiento", v)}
-                className="text-sm font-semibold"
-                style={{ color: "var(--primary)" }}
-              />
-            </CampoIdentidad>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <CampoIdentidad label="Alineamiento">
+                <CampoEditable
+                  valor={ficha.alineamiento ?? "—"}
+                  editable={editable}
+                  onCommit={(v) => onEditarCampo?.("alineamiento", v)}
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--primary)" }}
+                />
+              </CampoIdentidad>
+
+              <CampoIdentidad label="Tamaño">
+                {editable ? (
+                  <select
+                    value={ficha.tamano ?? "Mediano"}
+                    onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
+                    className="text-sm font-semibold bg-transparent outline-none w-full"
+                    style={{ color: "var(--primary)" }}
+                  >
+                    {TAMANOS_DND.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-sm font-semibold" style={{ color: "var(--primary)" }}>
+                    {ficha.tamano ?? "Mediano"}
+                  </span>
+                )}
+              </CampoIdentidad>
+            </div>
           </div>
 
           {/* ── Mejora de característica del trasfondo (PHB 2024): +2/+1 o
@@ -1296,7 +1319,7 @@ export function FichaStatsPanel({
       // la página (sticky, con offset del navbar) y su contenido interno
       // scrollea aparte cuando no entra en el alto disponible — nunca
       // "empuja" ni se va con el resto de la página. ──
-      className="md:sticky md:top-4 md:max-h-[calc(100svh-96px)] overflow-y-auto flex flex-col"
+      className="md:sticky md:top-4 md:max-h-[calc(100svh-56px)] overflow-y-auto flex flex-col"
       style={{
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
@@ -1517,125 +1540,129 @@ export function FichaStatsPanel({
           borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
         }}
       >
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <div
-              className="flex items-center gap-1.5"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              <span className="text-micro font-black uppercase tracking-wider">Vida</span>
+        <div className="grid grid-cols-2 gap-x-3 mb-2.5">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                Vida
+              </span>
+              <span
+                className="text-xs font-black tabular-nums flex items-center gap-1"
+                style={{ color: "var(--primary)" }}
+              >
+                {(editableStats || editableCondiciones) ? (
+                  <span className="inline-flex items-center gap-0.5">
+                    <CampoEditable
+                      valor={hpActual}
+                      editable={editableCondiciones}
+                      tipo="number"
+                      align="right"
+                      width={26}
+                      onCommit={(v) => onEditarCampo?.("hp_actual", Number(v) || 0)}
+                      className="text-xs font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                    /
+                    <CampoEditable
+                      valor={hpMax}
+                      editable={editableStats}
+                      tipo="number"
+                      width={26}
+                      onCommit={(v) => onEditarCampo?.("hp_max", Number(v) || 0)}
+                      className="text-xs font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </span>
+                ) : (
+                  <>
+                    {hpActual}/{hpMax || "—"}
+                  </>
+                )}
+                {/* ── PG temporales: absorben daño antes que los reales.
+                    Se muestran como un chip "+N" aparte de la barra normal
+                    porque NO se suman al máximo (regla 2024: no se acumulan,
+                    el mayor de los dos reemplaza al otro). ── */}
+                {(editableCondiciones || hpTemporal > 0) && (
+                  <span
+                    className="flex items-center gap-0.5 px-1 py-0.5 rounded-full text-micro font-black tabular-nums"
+                    style={{
+                      background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                    title="Puntos de golpe temporales: absorben daño antes que los reales."
+                  >
+                    +
+                    <CampoEditable
+                      valor={hpTemporal}
+                      editable={editableCondiciones}
+                      tipo="number"
+                      align="right"
+                      width={16}
+                      onCommit={(v) => onEditarCampo?.("hp_temporal", Number(v) || 0)}
+                      className="text-micro font-black tabular-nums"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </span>
+                )}
+              </span>
             </div>
-            <span
-              className="text-sm font-black tabular-nums flex items-center gap-1.5"
-              style={{ color: "var(--primary)" }}
-            >
-              {(editableStats || editableCondiciones) ? (
-                <span className="inline-flex items-center gap-1">
-                  <CampoEditable
-                    valor={hpActual}
-                    editable={editableCondiciones}
-                    tipo="number"
-                    align="right"
-                    width={32}
-                    onCommit={(v) => onEditarCampo?.("hp_actual", Number(v) || 0)}
-                    className="text-sm font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                  /
-                  <CampoEditable
-                    valor={hpMax}
-                    editable={editableStats}
-                    tipo="number"
-                    width={32}
-                    onCommit={(v) => onEditarCampo?.("hp_max", Number(v) || 0)}
-                    className="text-sm font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                </span>
-              ) : (
-                <>
-                  {hpActual}/{hpMax || "—"}
-                </>
-              )}
-              {/* ── PG temporales: absorben daño antes que los reales.
-                  Se muestran como un chip "+N" aparte de la barra normal
-                  porque NO se suman al máximo (regla 2024: no se acumulan,
-                  el mayor de los dos reemplaza al otro). ── */}
-              {(editableCondiciones || hpTemporal > 0) && (
-                <span
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-micro font-black tabular-nums"
+            <div className="flex gap-0.5">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-1 transition-all duration-700"
                   style={{
-                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "var(--primary)",
+                    background:
+                      hpMax > 0 && i < Math.round((hpActual / hpMax) * 10)
+                        ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderRadius: "1px",
                   }}
-                  title="Puntos de golpe temporales: absorben daño antes que los reales."
-                >
-                  +
-                  <CampoEditable
-                    valor={hpTemporal}
-                    editable={editableCondiciones}
-                    tipo="number"
-                    align="right"
-                    width={18}
-                    onCommit={(v) => onEditarCampo?.("hp_temporal", Number(v) || 0)}
-                    className="text-micro font-black tabular-nums"
-                    style={{ color: "var(--primary)" }}
-                  />
-                </span>
-              )}
-            </span>
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex gap-0.5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 h-1 transition-all duration-700"
-                style={{
-                  background:
-                    hpMax > 0 && i < Math.round((hpActual / hpMax) * 10)
-                      ? "color-mix(in srgb, var(--primary) 55%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  borderRadius: "1px",
-                }}
-              />
-            ))}
-          </div>
-        </div>
 
-        {/* ── Progreso de XP: barra hasta el próximo umbral. El nivel ya
-            se muestra y edita arriba en el header, así que acá no se
-            repite — solo el total actual y lo que falta para el próximo
-            umbral, en una sola línea con la barra. ── */}
-        <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span
-              className="text-micro font-black uppercase tracking-wider"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              XP
-            </span>
-            <span
-              className="text-micro font-bold tabular-nums"
-              style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-            >
-              {ficha.xp_total ?? 0}
-              {xp.xpProximoNivel != null ? ` / ${xp.xpProximoNivel}` : " (máx.)"}
-            </span>
-          </div>
-          <div className="flex gap-0.5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 h-1 transition-all duration-700"
-                style={{
-                  background:
-                    i < Math.round((xp.porcentaje / 100) * 10)
-                      ? "color-mix(in srgb, var(--primary) 40%, transparent)"
-                      : "color-mix(in srgb, var(--primary) 8%, transparent)",
-                  borderRadius: "1px",
-                }}
-              />
-            ))}
+          {/* ── Progreso de XP: barra hasta el próximo umbral. El nivel ya
+              se muestra y edita arriba en el header, así que acá no se
+              repite — solo el total actual y lo que falta para el próximo
+              umbral, en una sola línea con la barra. Al lado de Vida en
+              vez de abajo, para no apilar dos bloques con la misma forma
+              y ahorrar alto. ── */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span
+                className="text-micro font-black uppercase tracking-wider"
+                style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+              >
+                XP
+              </span>
+              <span
+                className="text-micro font-bold tabular-nums"
+                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+              >
+                {ficha.xp_total ?? 0}
+                {xp.xpProximoNivel != null ? `/${xp.xpProximoNivel}` : " (máx.)"}
+              </span>
+            </div>
+            <div className="flex gap-0.5">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-1 transition-all duration-700"
+                  style={{
+                    background:
+                      i < Math.round((xp.porcentaje / 100) * 10)
+                        ? "color-mix(in srgb, var(--primary) 40%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                    borderRadius: "1px",
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -1704,7 +1731,7 @@ export function FichaStatsPanel({
             percepción pasiva agrupadas arriba de la ficha; daño y bono de
             competencia son el núcleo de cada ataque). Celdas angostas, un
             solo grid — nada de dos filas de cajas grandes. ── */}
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-4 gap-1">
           <StatMini
             label="Iniciat."
             valor={iniciativa >= 0 ? `+${iniciativa}` : iniciativa}
@@ -1748,27 +1775,6 @@ export function FichaStatsPanel({
                 className="text-xs font-black tabular-nums"
                 style={{ color: "var(--primary)" }}
               />
-            }
-          />
-          <StatMini
-            label="Tamaño"
-            valor={
-              editableStats ? (
-                <select
-                  value={ficha.tamano ?? "Mediano"}
-                  onChange={(e) => onEditarCampo?.("tamano", e.target.value)}
-                  className="text-micro font-black bg-transparent outline-none text-center"
-                  style={{ color: "var(--primary)" }}
-                >
-                  {TAMANOS_DND.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                ficha.tamano ?? "Mediano"
-              )
             }
           />
           <StatMini
