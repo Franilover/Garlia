@@ -47,6 +47,12 @@ interface TableroAventuraProps {
   editable?: boolean;
   onMove?: (id: string, x: number, y: number) => void;
   onClickItem?: (id: string) => void;
+  /** Click en un punto vacío del lienzo (fuera de cualquier tarjeta):
+   *  reporta la posición lógica (ya dividida por zoom, mismas unidades
+   *  que pos_x/pos_y). Se usa para "mover con un click" — el jugador
+   *  clickea el pizarrón y su ficha salta ahí. No interfiere con el
+   *  drag del DM ni con onClickItem de las tarjetas. */
+  onCanvasClick?: (x: number, y: number) => void;
   renderBadge?: (item: TableroItem) => React.ReactNode;
   emptyHint?: string;
   /** Ancho de cada tarjeta en px. Default 260 (admin); usar ~360 en público. */
@@ -86,6 +92,7 @@ export function TableroAventura({
   editable = false,
   onMove,
   onClickItem,
+  onCanvasClick,
   renderBadge,
   emptyHint = "Todavía no hay nada aquí.",
   cardWidth = TABLERO_CARD_SIZE.width,
@@ -191,6 +198,19 @@ export function TableroAventura({
             height: canvasH,
             transform: `scale(${zoom})`,
             transformOrigin: "top left",
+            cursor: onCanvasClick ? "crosshair" : undefined,
+          }}
+          onClick={(e) => {
+            // Solo cuenta como "click en el lienzo" si el click no vino
+            // burbujeado desde una tarjeta (e.target sería ese div hijo,
+            // no este contenedor). Las tarjetas ya paran la propagación
+            // en pointerdown/up, pero este chequeo es la red de seguridad
+            // real para no mover la ficha al clickear encima de otra cosa.
+            if (!onCanvasClick || e.target !== e.currentTarget) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / zoom;
+            const y = (e.clientY - rect.top) / zoom;
+            onCanvasClick(Math.max(0, Math.round(x)), Math.max(0, Math.round(y)));
           }}
         >
         {resueltos.map((item) => {
@@ -218,7 +238,10 @@ export function TableroAventura({
                 width: cardStyleWidth,
                 height: CARD_H,
                 background: "var(--white-custom)",
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderColor: item.destacado
+                  ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderWidth: item.destacado ? 2 : 1,
                 cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                 touchAction: "manipulation",
                 zIndex: isDraggingThis ? 30 : 1,

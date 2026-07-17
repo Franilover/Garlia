@@ -395,8 +395,10 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
 // ── Feed de una aventura ─────────────────────────────────────────────────
 
 function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: () => void }) {
+  const { perfil } = useAuth();
   const { aventuras } = useAventurasList();
-  const { entidades, loading } = useAventuraEntidades(aventuraId);
+  const { entidades, loading, agregar, moverPosicion } = useAventuraEntidades(aventuraId);
+  const { activa: fichaActiva } = useFichasDnd(perfil?.id ?? null);
   const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
   const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
@@ -408,6 +410,33 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
       const tb = b.publicado_at ? new Date(b.publicado_at).getTime() : 0;
       return tb - ta;
     });
+
+  // ── Ficha propia en el tablero: si el jugador tiene una identidad activa
+  // y todavía no está agregada a esta aventura, se agrega sola (publicada
+  // implícitamente para él mismo — es su propio personaje, no algo que el
+  // DM tenga que revelar). Así aparece en el pizarrón apenas entra, sin
+  // pasos manuales. ──
+  const relacionPropia = entidades.find(
+    (e) => e.tabla === "fichas_dnd" && e.entidad_id === fichaActiva?.id,
+  );
+  React.useEffect(() => {
+    if (fichaActiva && !relacionPropia && !loading) {
+      agregar("fichas_dnd", fichaActiva.id);
+    }
+    // Solo se dispara cuando cambia la ficha activa o termina de cargar la
+    // lista; agregar/relacionPropia cambian de identidad en cada render y
+    // meterlos acá causaría un loop de inserts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fichaActiva?.id, loading]);
+
+  // El pizarrón del jugador muestra las entidades publicadas por el DM +
+  // su propia ficha (aunque el DM no la haya marcado "publicado": es su
+  // personaje, siempre visible para sí mismo). Si el DM también la marcó
+  // publicada, no se duplica.
+  const itemsTablero = [
+    ...publicadas,
+    ...(relacionPropia && !relacionPropia.publicado ? [relacionPropia] : []),
+  ];
 
   return (
     <>
@@ -430,8 +459,15 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
       </MotionDiv>
 
       <div className="flex-1 w-full relative">
-        {!loading && publicadas.length > 0 && (
-          <div className="flex justify-end mb-2">
+        {!loading && itemsTablero.length > 0 && (
+          <div className="flex items-center justify-between mb-2 gap-2">
+            {relacionPropia ? (
+              <span className="text-micro font-bold text-primary/35">
+                Clickeá el pizarrón para mover a {fichaActiva?.nombre ?? "tu personaje"}.
+              </span>
+            ) : (
+              <span />
+            )}
             <div className="flex items-center gap-1.5">
               <Maximize2 size={11} className="text-primary/35" />
               <input
@@ -454,7 +490,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           <div className="py-24 flex items-center justify-center text-primary/30">
             <Loader2 className="animate-spin" size={22} />
           </div>
-        ) : publicadas.length === 0 ? (
+        ) : itemsTablero.length === 0 ? (
           <div className="py-24 text-center">
             <Sparkles className="mx-auto mb-3 text-primary/20" size={28} />
             <Text as="p" variant="md" className="text-primary/40">
@@ -466,7 +502,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           <>
             <TableroAventura
               editable={false}
-              items={publicadas.map(
+              items={itemsTablero.map(
                 (entidad): TableroItem => ({
                   id: entidad.id,
                   nombre: entidad.nombre,
@@ -474,13 +510,23 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                   subtitulo: TABLA_LABEL[entidad.tabla].singular,
                   pos_x: entidad.pos_x,
                   pos_y: entidad.pos_y,
+                  destacado: entidad.id === relacionPropia?.id,
                 }),
               )}
               zoom={escala}
               onClickItem={(id) => {
+                // El click sobre la propia tarjeta no abre el modal de
+                // detalle (no tiene sentido "ver detalle" de uno mismo
+                // acá) — el modal es para las entidades del DM.
+                if (id === relacionPropia?.id) return;
                 const entidad = publicadas.find((e) => e.id === id);
                 if (entidad) setSeleccion(entidad);
               }}
+              onCanvasClick={
+                relacionPropia
+                  ? (x, y) => moverPosicion(relacionPropia.id, x, y)
+                  : undefined
+              }
             />
 
             {/* ── Dados: flotan fijos sobre el pizarrón, esquina inferior
