@@ -326,6 +326,14 @@ function SectionGraphPlugin({
   onHasSectionsChange?: (has: boolean) => void;
 }) {
   const [editor] = useLexicalComposerContext();
+  // Recuerda el último booleano notificado al padre. syncSectionIds corre
+  // en CADA tecla (registerUpdateListener dispara en cada update de
+  // Lexical) y antes llamaba onHasSectionsChange incondicionalmente — eso
+  // es un setState(hasSections) en RichEditor en cada pulsación, aunque
+  // el documento siga teniendo (o no teniendo) secciones igual que antes.
+  // Con este guard, solo se notifica al padre cuando el booleano realmente
+  // cambia (se agregó la primera sección, o se borró la última).
+  const lastHasSectionsRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     const syncSectionIds = () => {
@@ -341,8 +349,15 @@ function SectionGraphPlugin({
           if (children) children.forEach(visit);
         };
         visit(root);
+        // setKnownSectionIds es estado de módulo (no React) — barato,
+        // se mantiene sin guard porque no dispara re-render de nada.
         setKnownSectionIds(ids);
-        onHasSectionsChange?.(ids.size > 0);
+
+        const hasSections = ids.size > 0;
+        if (lastHasSectionsRef.current !== hasSections) {
+          lastHasSectionsRef.current = hasSections;
+          onHasSectionsChange?.(hasSections);
+        }
       });
     };
 
@@ -364,6 +379,7 @@ function SectionGraphPlugin({
 
   return null;
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Plugin: expone insertTableRef para que el padre inserte tablas desde /tabla
