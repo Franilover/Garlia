@@ -17,6 +17,7 @@ import React, { useState } from "react";
 import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
+import { useTheme } from "@/providers/ThemeProvider";
 
 import { TableroAventura, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
 import {
@@ -57,6 +58,28 @@ function formatFecha(iso: string | null): string {
 
 export default function Aventura() {
   const [aventuraId, setAventuraId] = useState<string | null>(null);
+
+  // ── Tema forzado: /garlia/aventura siempre se ve con el tema "Antiguo"
+  // (sepia), sin importar qué tema tenga elegido el usuario en el resto de
+  // la app — encaja mejor con el ambiente de mesa de rol. Al salir de esta
+  // página se restaura el tema que tenía antes de entrar. No se persiste
+  // como preferencia nueva (no es "cambiar el tema", es "mientras estás
+  // acá se ve así"): el valor original queda guardado solo en un ref de
+  // este componente. ──
+  const { theme, setTheme } = useTheme();
+  const temaAnteriorRef = React.useRef<typeof theme | null>(null);
+  React.useEffect(() => {
+    temaAnteriorRef.current = theme;
+    setTheme("sepia");
+    return () => {
+      if (temaAnteriorRef.current) setTheme(temaAnteriorRef.current);
+    };
+    // Solo se ejecuta al montar/desmontar la página — no queremos que un
+    // cambio posterior de `theme` (ej. si algo más lo modifica mientras
+    // estamos acá) dispare este efecto de nuevo y pise el valor a
+    // restaurar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
