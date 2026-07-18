@@ -818,7 +818,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                   subtitulo: TABLA_LABEL[entidad.tabla].singular,
                   pos_x: entidad.pos_x,
                   pos_y: entidad.pos_y,
-                  destacado: entidad.id === relacionPropia?.id,
+                  destacado: entidad.tabla === "fichas_dnd",
                 }),
               )}
               zoom={escala}
