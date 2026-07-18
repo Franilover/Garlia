@@ -21,6 +21,11 @@ export interface Aventura {
   imagen_url: string | null;
   created_at: string;
   updated_at: string;
+  /** Si está activo, el jugador ve niebla de guerra con line-of-sight real
+   *  contra aventura_obstaculos (lo nunca visto en negro, lo explorado
+   *  antes pero no visible ahora en gris). El DM siempre ve todo el
+   *  tablero completo, sin niebla, sin importar este valor. */
+  niebla_activa: boolean;
 }
 
 export type TablaEntidad =
@@ -147,7 +152,28 @@ export function useAventurasList() {
     if (error) throw error;
   }, []);
 
-  return { aventuras, loading, crear, renombrar, eliminar, refetch: fetchAll };
+  /** Prende/apaga la niebla de guerra para una aventura. Solo afecta la
+   *  vista del jugador — el DM sigue viendo todo siempre. Optimista +
+   *  persistido, mismo patrón que el resto de los toggles del módulo. */
+  const toggleNiebla = useCallback(
+    async (id: string, activa: boolean) => {
+      const anterior = aventuras;
+      setAventuras((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, niebla_activa: activa } : a)),
+      );
+      const { error } = await supabase
+        .from("aventuras")
+        .update({ niebla_activa: activa })
+        .eq("id", id);
+      if (error) {
+        setAventuras(anterior);
+        throw error;
+      }
+    },
+    [aventuras],
+  );
+
+  return { aventuras, loading, crear, renombrar, eliminar, toggleNiebla, refetch: fetchAll };
 }
 
 // ── Entidades de UNA aventura, resueltas contra sus tablas de origen ──────
@@ -532,4 +558,216 @@ export async function buscarEntidades(query: string): Promise<ResultadoBusqueda[
   );
 
   return resultados.flat();
+}
+
+// ── Obstáculos (paredes/ríos/bosques) de una aventura ─────────────────────
+
+export type ObstaculoTipo = "pared" | "rio" | "bosque";
+export type ObstaculoForma = "rect" | "circulo";
+
+export const OBSTACULO_LABEL: Record<ObstaculoTipo, string> = {
+  pared: "Pared",
+  rio: "Río",
+  bosque: "Bosque",
+};
+
+export interface AventuraObstaculo {
+  id: string;
+  aventura_id: string;
+  tipo: ObstaculoTipo;
+  forma: ObstaculoForma;
+  pos_x: number;
+  pos_y: number;
+  ancho: number;
+  alto: number;
+  /** Si es false, es puramente decorativo: no bloquea line-of-sight. */
+  bloquea_vision: boolean;
+  created_at: string;
+}
+
+const OBSTACULO_DEFAULT = { ancho: 160, alto: 120 };
+
+/** CRUD + realtime de los obstáculos de una aventura. Mismo patrón que
+ *  useAventuraEntidades: fetch inicial + canal realtime + updates
+ *  optimistas persistidos en Supabase. */
+export function useAventuraObstaculos(aventuraId: string | null) {
+  const [obstaculos, setObstaculos] = useState<AventuraObstaculo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const aventuraIdRef = useRef(aventuraId);
+  aventuraIdRef.current = aventuraId;
+
+  const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!aventuraIdRef.current) {
+      setObstaculos([]);
+      setLoading(false);
+      return;
+    }
+    if (!opts?.silent) setLoading(true);
+    const { data, error } = await supabase
+      .from("aventura_obstaculos")
+      .select("*")
+      .eq("aventura_id", aventuraIdRef.current)
+      .order("created_at", { ascending: true });
+    if (!error && data) setObstaculos(data as AventuraObstaculo[]);
+    if (!opts?.silent) setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+    if (!aventuraId) return;
+    const channel = supabase
+      .channel(`aventura-obstaculos-${aventuraId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "aventura_obstaculos", filter: `aventura_id=eq.${aventuraId}` },
+        () => fetchAll({ silent: true }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [aventuraId, fetchAll]);
+
+  const agregar = useCallback(
+    async (tipo: ObstaculoTipo, forma: ObstaculoForma, x: number, y: number, bloqueaVision = true) => {
+      if (!aventuraId) return;
+      const { data, error } = await supabase
+        .from("aventura_obstaculos")
+        .insert({
+          aventura_id: aventuraId,
+          tipo,
+          forma,
+          pos_x: Math.round(x),
+          pos_y: Math.round(y),
+          ancho: OBSTACULO_DEFAULT.ancho,
+          alto: OBSTACULO_DEFAULT.alto,
+          bloquea_vision: bloqueaVision,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (data) setObstaculos((prev) => [...prev, data as AventuraObstaculo]);
+    },
+    [aventuraId],
+  );
+
+  const mover = useCallback(async (id: string, x: number, y: number) => {
+    const anterior = obstaculos;
+    setObstaculos((prev) => prev.map((o) => (o.id === id ? { ...o, pos_x: x, pos_y: y } : o)));
+    const { error } = await supabase
+      .from("aventura_obstaculos")
+      .update({ pos_x: x, pos_y: y })
+      .eq("id", id);
+    if (error) {
+      setObstaculos(anterior);
+      throw error;
+    }
+  }, [obstaculos]);
+
+  const redimensionar = useCallback(async (id: string, ancho: number, alto: number) => {
+    const anterior = obstaculos;
+    setObstaculos((prev) => prev.map((o) => (o.id === id ? { ...o, ancho, alto } : o)));
+    const { error } = await supabase
+      .from("aventura_obstaculos")
+      .update({ ancho, alto })
+      .eq("id", id);
+    if (error) {
+      setObstaculos(anterior);
+      throw error;
+    }
+  }, [obstaculos]);
+
+  const eliminar = useCallback(async (id: string) => {
+    const anterior = obstaculos;
+    setObstaculos((prev) => prev.filter((o) => o.id !== id));
+    const { error } = await supabase.from("aventura_obstaculos").delete().eq("id", id);
+    if (error) {
+      setObstaculos(anterior);
+      throw error;
+    }
+  }, [obstaculos]);
+
+  const toggleBloqueaVision = useCallback(async (id: string, bloquea: boolean) => {
+    const anterior = obstaculos;
+    setObstaculos((prev) => prev.map((o) => (o.id === id ? { ...o, bloquea_vision: bloquea } : o)));
+    const { error } = await supabase
+      .from("aventura_obstaculos")
+      .update({ bloquea_vision: bloquea })
+      .eq("id", id);
+    if (error) {
+      setObstaculos(anterior);
+      throw error;
+    }
+  }, [obstaculos]);
+
+  return { obstaculos, loading, agregar, mover, redimensionar, eliminar, toggleBloqueaVision, refetch: fetchAll };
+}
+
+// ── Memoria de exploración (niebla de guerra) de UN jugador en una aventura ─
+
+/** Persiste y trae las celdas de grilla ya vistas alguna vez por la ficha
+ *  (fichaId, la ficha_dnd del jugador — no el id de la relación en
+ *  aventura_entidades) de un jugador. Guardado como una fila por celda
+ *  (aventura_id, ficha_id, celda_x, celda_y), así calza con la tabla
+ *  aventura_exploracion tal como ya existe en la base. */
+export function useAventuraExploracion(aventuraId: string | null, fichaId: string | null) {
+  const [celdasVistas, setCeldasVistas] = useState<Set<string>>(new Set());
+  const [cargado, setCargado] = useState(false);
+
+  useEffect(() => {
+    setCargado(false);
+    if (!aventuraId || !fichaId) {
+      setCeldasVistas(new Set());
+      setCargado(true);
+      return;
+    }
+    let cancelado = false;
+    supabase
+      .from("aventura_exploracion")
+      .select("celda_x, celda_y")
+      .eq("aventura_id", aventuraId)
+      .eq("ficha_id", fichaId)
+      .then(({ data }) => {
+        if (cancelado) return;
+        const celdas = (data ?? []).map((r: any) => `${r.celda_x},${r.celda_y}`);
+        setCeldasVistas(new Set(celdas));
+        setCargado(true);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [aventuraId, fichaId]);
+
+  /** Agrega celdas nuevas a la memoria (unión, no reemplazo) e inserta
+   *  solo las filas realmente nuevas — el conflicto de unicidad
+   *  (aventura_id, ficha_id, celda_x, celda_y) se ignora si por alguna
+   *  carrera ya existiera. Debe llamarse con el conjunto ENTERO de celdas
+   *  visibles ahora mismo (no solo el delta); el hook calcula qué es
+   *  nuevo antes de pegarle a la base. */
+  const registrarVisibles = useCallback(
+    (celdas: string[]) => {
+      if (!aventuraId || !fichaId || celdas.length === 0) return;
+      setCeldasVistas((prev) => {
+        const nuevas = celdas.filter((c) => !prev.has(c));
+        if (nuevas.length === 0) return prev;
+        const next = new Set(prev);
+        nuevas.forEach((c) => next.add(c));
+        const filas = nuevas.map((c) => {
+          const [celda_x, celda_y] = c.split(",").map(Number);
+          return { aventura_id: aventuraId, ficha_id: fichaId, celda_x, celda_y };
+        });
+        supabase
+          .from("aventura_exploracion")
+          .upsert(filas, {
+            onConflict: "aventura_id,ficha_id,celda_x,celda_y",
+            ignoreDuplicates: true,
+          })
+          .then(() => {});
+        return next;
+      });
+    },
+    [aventuraId, fichaId],
+  );
+
+  return { celdasVistas, cargado, registrarVisibles };
 }

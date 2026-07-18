@@ -28,8 +28,11 @@ import {
   Maximize2,
   Plus,
   Search,
+  Shield,
   Trash2,
+  TreeDeciduous,
   Users,
+  Waves,
   X,
 } from "lucide-react";
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -38,10 +41,14 @@ import { MotionDiv } from "@/components/ui/Motion";
 
 import {
   buscarEntidades,
+  OBSTACULO_LABEL,
   TABLA_LABEL,
   useAventuraEntidades,
+  useAventuraObstaculos,
   useAventurasList,
   type AventuraEntidad,
+  type ObstaculoForma,
+  type ObstaculoTipo,
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
 import {
@@ -319,7 +326,7 @@ function AventuraDetalle({
   aventuraId: string;
   onVolver: () => void;
 }) {
-  const { aventuras } = useAventurasList();
+  const { aventuras, toggleNiebla } = useAventurasList();
   const {
     entidades,
     loading,
@@ -331,7 +338,20 @@ function AventuraDetalle({
     redimensionar,
     asignarContenedor,
   } = useAventuraEntidades(aventuraId);
+  const {
+    obstaculos,
+    agregar: agregarObstaculo,
+    mover: moverObstaculo,
+    redimensionar: redimensionarObstaculo,
+    eliminar: eliminarObstaculo,
+  } = useAventuraObstaculos(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId);
+
+  // ── Modo "colocar obstáculo": si está activo, un click en el pizarrón
+  // crea un obstáculo del tipo/forma elegidos en vez de mover nada. Se
+  // apaga solo después de colocar uno (así no hay que acordarse de
+  // apagarlo, pero se puede volver a activar para poner varios seguidos). ──
+  const [modoObstaculo, setModoObstaculo] = useState<{ tipo: ObstaculoTipo; forma: ObstaculoForma } | null>(null);
 
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
@@ -672,7 +692,67 @@ function AventuraDetalle({
               Arrastrá las tarjetas para ordenarlas como quieras en el pizarrón.
               El ojo publica/oculta para los jugadores; la X quita del todo.
             </p>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+              {/* ── Colocar obstáculo: elegí tipo + forma, después click en
+                  el pizarrón para soltarlo. Se puede editar arrastrando o
+                  redimensionando el handle; el ícono de tacho lo borra. ── */}
+              {(
+                [
+                  { tipo: "pared" as ObstaculoTipo, Icono: Shield },
+                  { tipo: "rio" as ObstaculoTipo, Icono: Waves },
+                  { tipo: "bosque" as ObstaculoTipo, Icono: TreeDeciduous },
+                ]
+              ).map(({ tipo, Icono }) => {
+                const activo = modoObstaculo?.tipo === tipo;
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() =>
+                      setModoObstaculo((prev) =>
+                        prev?.tipo === tipo ? null : { tipo, forma: "rect" },
+                      )
+                    }
+                    title={`Colocar ${OBSTACULO_LABEL[tipo].toLowerCase()} (click en el pizarrón)`}
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                    style={{
+                      background: activo ? "var(--primary)" : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      color: activo ? "var(--btn-text)" : "var(--primary)",
+                    }}
+                  >
+                    <Icono size={13} />
+                  </button>
+                );
+              })}
+              {modoObstaculo && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setModoObstaculo((prev) =>
+                      prev ? { ...prev, forma: prev.forma === "rect" ? "circulo" : "rect" } : prev,
+                    )
+                  }
+                  className="text-micro font-bold text-primary/50 hover:text-primary/70 px-2 py-1 rounded-full"
+                  style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                >
+                  {modoObstaculo.forma === "rect" ? "▭ rect." : "◯ círculo"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => aventuraId && toggleNiebla(aventuraId, !aventura?.niebla_activa)}
+                title="Niebla de guerra para los jugadores (vos siempre ves todo)"
+                className="flex items-center gap-1 text-micro font-bold px-2 py-1 rounded-full transition-colors"
+                style={{
+                  background: aventura?.niebla_activa
+                    ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  color: "var(--primary)",
+                }}
+              >
+                {aventura?.niebla_activa ? <Eye size={12} /> : <EyeOff size={12} />}
+                Niebla
+              </button>
               <Maximize2 size={11} className="text-primary/35" />
               <input
                 type="range"
@@ -698,6 +778,23 @@ function AventuraDetalle({
               editable
               emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
               zoom={escala}
+              obstaculos={obstaculos.map((o) => ({ ...o, bloqueaVision: o.bloquea_vision }))}
+              onMoveObstaculo={(id, x, y) => moverObstaculo(id, x, y)}
+              onResizeObstaculo={(id, w, h) => redimensionarObstaculo(id, w, h)}
+              onClickObstaculo={(id) => {
+                // Click corto sobre un obstáculo ya puesto: lo borra. Es
+                // deliberadamente simple (sin confirmación) porque un
+                // obstáculo se recrea en dos clicks si fue sin querer.
+                if (!modoObstaculo) eliminarObstaculo(id);
+              }}
+              onCanvasClick={
+                modoObstaculo
+                  ? (x, y) => {
+                      agregarObstaculo(modoObstaculo.tipo, modoObstaculo.forma, x, y);
+                      setModoObstaculo(null);
+                    }
+                  : undefined
+              }
               items={entidades.map(
               (e): TableroItem => ({
                 id: e.id,

@@ -21,6 +21,14 @@
 import { BookOpen, UserRound } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
 
+import {
+  calcularPoligonoVisibilidad,
+  celdaDe,
+  celdasVisiblesEnPoligono,
+  GRID_SIZE,
+  type Obstaculo,
+} from "./visionUtils";
+
 const CANVAS_MIN_W = 1400;
 const CANVAS_MIN_H = 900;
 
@@ -61,7 +69,41 @@ export interface TableroItem {
   contenedorId?: string | null;
 }
 
+export interface TableroObstaculo extends Obstaculo {
+  tipo: "pared" | "rio" | "bosque";
+  /** Si es false, el obstáculo es puramente decorativo: se dibuja igual
+   *  pero no bloquea line-of-sight en el cálculo de niebla. */
+  bloqueaVision: boolean;
+}
+
+const OBSTACULO_ESTILO: Record<TableroObstaculo["tipo"], { fill: string; stroke: string }> = {
+  pared: { fill: "rgba(120,113,108,0.55)", stroke: "rgba(87,83,78,0.8)" },
+  rio: { fill: "rgba(59,130,246,0.35)", stroke: "rgba(37,99,235,0.7)" },
+  bosque: { fill: "rgba(34,197,94,0.35)", stroke: "rgba(21,128,61,0.7)" },
+};
+
 interface TableroAventuraProps {
+  /** Formas obstructoras (paredes/ríos/bosques) del tablero. Se dibujan
+   *  debajo de las tarjetas; si nieblaOrigenId está seteado, además
+   *  bloquean line-of-sight para calcular la niebla. */
+  obstaculos?: TableroObstaculo[];
+  /** Si se pasan (junto con `editable`), cada obstáculo se puede
+   *  arrastrar/redimensionar igual que una tarjeta — pensado para el
+   *  editor del DM. */
+  onMoveObstaculo?: (id: string, x: number, y: number) => void;
+  onResizeObstaculo?: (id: string, ancho: number, alto: number) => void;
+  onClickObstaculo?: (id: string) => void;
+  /** Id del item (típicamente el token del propio jugador) desde donde se
+   *  calcula la niebla de guerra. Si es null/undefined, no se dibuja
+   *  niebla (el DM, por ejemplo, siempre ve todo). */
+  nieblaOrigenId?: string | null;
+  /** Celdas de grilla ya exploradas alguna vez (se pintan atenuadas/gris
+   *  en vez de negro total, aunque no estén visibles ahora mismo). */
+  celdasExploradas?: Set<string>;
+  /** Se llama cada vez que se recalcula el polígono de visión, con las
+   *  celdas que quedaron visibles ahora — para persistir la memoria de
+   *  exploración. */
+  onCeldasVisibles?: (celdas: string[]) => void;
   items: TableroItem[];
   editable?: boolean;
   onMove?: (id: string, x: number, y: number) => void;
@@ -156,6 +198,13 @@ export function TableroAventura({
   imageWidth,
   zoom = 1,
   centrarEnId = null,
+  obstaculos = [],
+  onMoveObstaculo,
+  onResizeObstaculo,
+  onClickObstaculo,
+  nieblaOrigenId = null,
+  celdasExploradas,
+  onCeldasVisibles,
 }: TableroAventuraProps) {
   const CARD_W = cardWidth;
   const CARD_H = cardHeight;
@@ -172,6 +221,17 @@ export function TableroAventura({
   const [resizeId, setResizeId] = useState<string | null>(null);
   const [liveSize, setLiveSize] = useState<Record<string, { w: number; h: number }>>({});
   const resizeStart = useRef({ w: 0, h: 0, clientX: 0, clientY: 0 });
+
+  // ── Drag/resize de obstáculos: mismo patrón que items (live state +
+  // persistir al soltar), en variables propias para no pisar el drag de
+  // tarjetas — un obstáculo y una tarjeta nunca se arrastran a la vez. ──
+  const [obsDragId, setObsDragId] = useState<string | null>(null);
+  const [obsLivePos, setObsLivePos] = useState<Record<string, { x: number; y: number }>>({});
+  const obsDragOffset = useRef({ dx: 0, dy: 0 });
+  const [obsDragMoved, setObsDragMoved] = useState(false);
+  const [obsResizeId, setObsResizeId] = useState<string | null>(null);
+  const [obsLiveSize, setObsLiveSize] = useState<Record<string, { w: number; h: number }>>({});
+  const obsResizeStart = useRef({ w: 0, h: 0, clientX: 0, clientY: 0 });
 
   /** Tamaño efectivo (ya resuelto) de un item: usa su tamaño en vivo si se
    *  está redimensionando ahora mismo, si no su ancho/alto custom guardado,
@@ -210,6 +270,52 @@ export function TableroAventura({
     CANVAS_MIN_H,
     ...resueltos.map((i) => (i.pos_y ?? 0) + tamanoEfectivo(i).h + 60),
   );
+
+  /** Tamaño efectivo de un obstáculo (usa el tamaño en vivo si se está
+   *  redimensionando ahora mismo). */
+  const tamanoObstaculo = (o: TableroObstaculo): { w: number; h: number } => {
+    const live = obsLiveSize[o.id];
+    if (live) return { w: live.w, h: live.h };
+    return { w: o.ancho, h: o.alto };
+  };
+
+  // ── Polígono de visibilidad (niebla): se recalcula cada vez que cambia
+  // el origen (posición del token) o los obstáculos. Solo tiene sentido
+  // si se pasó nieblaOrigenId (el DM no lo pasa nunca — siempre ve todo). ──
+  const origenNiebla = nieblaOrigenId ? resueltos.find((i) => i.id === nieblaOrigenId) : undefined;
+  const origenX = origenNiebla ? (livePos[origenNiebla.id]?.x ?? origenNiebla.pos_x ?? 0) : null;
+  const origenY = origenNiebla ? (livePos[origenNiebla.id]?.y ?? origenNiebla.pos_y ?? 0) : null;
+
+  const poligonoVisible = useMemo(() => {
+    if (!nieblaOrigenId || origenX === null || origenY === null || !origenNiebla) return null;
+    const centroX = origenX + (origenNiebla.destacado ? 0 : tamanoEfectivo(origenNiebla).w / 2);
+    const centroY = origenY + (origenNiebla.destacado ? 0 : tamanoEfectivo(origenNiebla).h / 2);
+    return calcularPoligonoVisibilidad(
+      { x: centroX, y: centroY },
+      obstaculos
+        .filter((o) => o.bloqueaVision)
+        .map((o) => ({
+          id: o.id,
+          forma: o.forma,
+          pos_x: obsLivePos[o.id]?.x ?? o.pos_x,
+          pos_y: obsLivePos[o.id]?.y ?? o.pos_y,
+          ancho: tamanoObstaculo(o).w,
+          alto: tamanoObstaculo(o).h,
+        })),
+      canvasW,
+      canvasH,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nieblaOrigenId, origenX, origenY, obstaculos, obsLivePos, obsLiveSize, canvasW, canvasH]);
+
+  // Reporta las celdas recién visibles al padre (para que persista la
+  // memoria de exploración) cada vez que el polígono cambia de verdad.
+  React.useEffect(() => {
+    if (!poligonoVisible || !onCeldasVisibles) return;
+    const celdas = celdasVisiblesEnPoligono(poligonoVisible, canvasW, canvasH);
+    onCeldasVisibles(celdas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poligonoVisible]);
 
   // ── Auto-centrado en el propio personaje ──────────────────────────────
   // Mantiene al jugador siempre orientado: su ficha queda en el centro del
@@ -453,7 +559,79 @@ export function TableroAventura({
     // está en curso). Se limpia solo cuando cambian los items reales.
   };
 
-  if (items.length === 0) {
+  // ── Handlers de obstáculos: drag de posición y resize, mismo patrón
+  // que las tarjetas pero en su propio namespace de estado. ──
+  const handleObsPointerDown = (e: React.PointerEvent, o: TableroObstaculo) => {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const rect = target.getBoundingClientRect();
+    obsDragOffset.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+    setObsDragId(o.id);
+    setObsDragMoved(false);
+  };
+
+  const handleObsPointerMove = (e: React.PointerEvent) => {
+    if (!obsDragId || !containerRef.current || !editable) return;
+    const canvasRect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    const x = (e.clientX - canvasRect.left + scrollLeft - obsDragOffset.current.dx) / zoom;
+    const y = (e.clientY - canvasRect.top + scrollTop - obsDragOffset.current.dy) / zoom;
+    setObsLivePos((prev) => ({ ...prev, [obsDragId]: { x: Math.max(0, x), y: Math.max(0, y) } }));
+    setObsDragMoved(true);
+  };
+
+  const handleObsPointerUp = (e: React.PointerEvent, o: TableroObstaculo) => {
+    if (obsDragId !== o.id) return;
+    const target = e.currentTarget as HTMLElement;
+    target.releasePointerCapture(e.pointerId);
+    const final = obsLivePos[o.id];
+    setObsDragId(null);
+    if (final && obsDragMoved) {
+      onMoveObstaculo?.(o.id, Math.round(final.x), Math.round(final.y));
+    } else if (!obsDragMoved) {
+      onClickObstaculo?.(o.id);
+    }
+    setObsLivePos((prev) => {
+      const next = { ...prev };
+      delete next[o.id];
+      return next;
+    });
+  };
+
+  const handleObsResizePointerDown = (e: React.PointerEvent, o: TableroObstaculo) => {
+    if (!editable || !onResizeObstaculo) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const size = tamanoObstaculo(o);
+    obsResizeStart.current = { w: size.w, h: size.h, clientX: e.clientX, clientY: e.clientY };
+    setObsResizeId(o.id);
+  };
+
+  const handleObsResizePointerMove = (e: React.PointerEvent) => {
+    if (!obsResizeId) return;
+    const dx = (e.clientX - obsResizeStart.current.clientX) / zoom;
+    const dy = (e.clientY - obsResizeStart.current.clientY) / zoom;
+    const w = Math.max(40, Math.round(obsResizeStart.current.w + dx));
+    const h = Math.max(40, Math.round(obsResizeStart.current.h + dy));
+    setObsLiveSize((prev) => ({ ...prev, [obsResizeId]: { w, h } }));
+  };
+
+  const handleObsResizePointerUp = (e: React.PointerEvent, o: TableroObstaculo) => {
+    if (obsResizeId !== o.id) return;
+    const target = e.currentTarget as HTMLElement;
+    target.releasePointerCapture(e.pointerId);
+    const final = obsLiveSize[o.id];
+    setObsResizeId(null);
+    if (final) onResizeObstaculo?.(o.id, final.w, final.h);
+  };
+
+  if (items.length === 0 && obstaculos.length === 0) {
     return (
       <div className="py-16 text-center text-xs text-primary/30">{emptyHint}</div>
     );
@@ -497,6 +675,67 @@ export function TableroAventura({
             onCanvasClick(Math.max(0, Math.round(x)), Math.max(0, Math.round(y)));
           }}
         >
+        {/* ── Capa de obstáculos: debajo de las tarjetas, un <div> por
+            obstáculo (no SVG, para poder reusar el mismo patrón de
+            pointer-events que las tarjetas y el handle de resize). ── */}
+        {obstaculos.map((o) => {
+          const live = obsLivePos[o.id];
+          const x = live?.x ?? o.pos_x;
+          const y = live?.y ?? o.pos_y;
+          const size = tamanoObstaculo(o);
+          const estilo = OBSTACULO_ESTILO[o.tipo];
+          const isDraggingThis = obsDragId === o.id;
+          const isResizingThis = obsResizeId === o.id;
+          return (
+            <div
+              key={o.id}
+              onPointerDown={(e) => handleObsPointerDown(e, o)}
+              onPointerMove={handleObsPointerMove}
+              onPointerUp={(e) => handleObsPointerUp(e, o)}
+              className="group absolute select-none"
+              style={{
+                left: x,
+                top: y,
+                width: size.w,
+                height: size.h,
+                background: estilo.fill,
+                border: `2px solid ${estilo.stroke}`,
+                borderRadius: o.forma === "circulo" ? "50%" : 10,
+                cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "default",
+                touchAction: editable ? "none" : undefined,
+                zIndex: isDraggingThis || isResizingThis ? 25 : 0,
+                boxShadow: isDraggingThis || isResizingThis ? "0 8px 20px rgba(0,0,0,0.18)" : undefined,
+              }}
+            >
+              {editable && onResizeObstaculo && (
+                <div
+                  onPointerDown={(e) => handleObsResizePointerDown(e, o)}
+                  onPointerMove={handleObsResizePointerMove}
+                  onPointerUp={(e) => handleObsResizePointerUp(e, o)}
+                  title="Arrastrar para cambiar el tamaño"
+                  className="absolute bottom-0 right-0 w-5 h-5 flex items-end justify-end p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    cursor: "nwse-resize",
+                    touchAction: "none",
+                    zIndex: 26,
+                    opacity: isResizingThis ? 1 : undefined,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRight: "2.5px solid rgba(0,0,0,0.5)",
+                      borderBottom: "2.5px solid rgba(0,0,0,0.5)",
+                      borderBottomRightRadius: 3,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
         {resueltos.map((item) => {
           const live = livePos[item.id];
           const x = live?.x ?? item.pos_x ?? 0;
@@ -742,6 +981,92 @@ export function TableroAventura({
             </div>
           );
         })}
+
+        {/* ── Niebla de guerra: SVG a pantalla completa del lienzo, encima
+            de todo. Capa 1 = negro total sobre lo nunca visto; capa 2 =
+            gris semitransparente ("penumbra") sobre lo explorado antes
+            pero no visible ahora; ambas tienen un <mask> que recorta el
+            polígono de visibilidad actual (ahí no se pinta nada, queda
+            clarito). Solo se dibuja si hay un origen de niebla. ── */}
+        {nieblaOrigenId && poligonoVisible && (
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            width={canvasW}
+            height={canvasH}
+            style={{ zIndex: 40 }}
+          >
+            <defs>
+              {/* Máscara del negro total: blanco = pintar negro (nunca
+                  visto); negro = ocultar el negro (visible ahora o ya
+                  explorado antes). */}
+              <mask id="niebla-mask-nunca-visto">
+                <rect x={0} y={0} width={canvasW} height={canvasH} fill="white" />
+                <polygon
+                  points={poligonoVisible.map((p) => `${p.x},${p.y}`).join(" ")}
+                  fill="black"
+                />
+                {celdasExploradas &&
+                  Array.from(celdasExploradas).map((celda) => {
+                    const [cx, cy] = celda.split(",").map(Number);
+                    return (
+                      <rect
+                        key={celda}
+                        x={cx * GRID_SIZE}
+                        y={cy * GRID_SIZE}
+                        width={GRID_SIZE + 1}
+                        height={GRID_SIZE + 1}
+                        fill="black"
+                      />
+                    );
+                  })}
+              </mask>
+              {/* Máscara de la penumbra: blanco solo sobre celdas
+                  exploradas, y se le resta (negro) el polígono visible
+                  ahora — así el gris queda exactamente en "visto antes,
+                  pero no ahora". */}
+              <mask id="niebla-mask-penumbra">
+                <rect x={0} y={0} width={canvasW} height={canvasH} fill="black" />
+                {celdasExploradas &&
+                  Array.from(celdasExploradas).map((celda) => {
+                    const [cx, cy] = celda.split(",").map(Number);
+                    return (
+                      <rect
+                        key={celda}
+                        x={cx * GRID_SIZE}
+                        y={cy * GRID_SIZE}
+                        width={GRID_SIZE + 1}
+                        height={GRID_SIZE + 1}
+                        fill="white"
+                      />
+                    );
+                  })}
+                <polygon
+                  points={poligonoVisible.map((p) => `${p.x},${p.y}`).join(" ")}
+                  fill="black"
+                />
+              </mask>
+            </defs>
+            {/* Penumbra gris: solo sobre lo ya explorado y no visible ahora. */}
+            <rect
+              x={0}
+              y={0}
+              width={canvasW}
+              height={canvasH}
+              fill="rgba(10,10,15,0.55)"
+              mask="url(#niebla-mask-penumbra)"
+            />
+            {/* Negro total: todo lo que nunca se exploró ni es visible ahora. */}
+            <rect
+              x={0}
+              y={0}
+              width={canvasW}
+              height={canvasH}
+              fill="black"
+              mask="url(#niebla-mask-nunca-visto)"
+              opacity={0.97}
+            />
+          </svg>
+        )}
         </div>
       </div>
     </div>

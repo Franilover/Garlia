@@ -29,6 +29,8 @@ import {
 import {
   TABLA_LABEL,
   useAventuraEntidades,
+  useAventuraExploracion,
+  useAventuraObstaculos,
   useAventurasList,
   type Aventura as AventuraType,
   type AventuraEntidad,
@@ -678,6 +680,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const { perfil } = useAuth();
   const { aventuras } = useAventurasList();
   const { entidades, loading, agregar, moverPosicion } = useAventuraEntidades(aventuraId);
+  const { obstaculos } = useAventuraObstaculos(aventuraId);
   const { activa: fichaActiva } = useFichasDnd(perfil?.id ?? null);
   const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
@@ -727,6 +730,14 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   // mirar la aventura sin jugarla. ──
   const relacionPropia = entidades.find(
     (e) => e.tabla === "fichas_dnd" && e.entidad_id === fichaActiva?.id,
+  );
+  // ── Niebla de guerra: solo aplica si el DM la activó Y el jugador ya
+  // tiene un token propio en el pizarrón (sin token no hay desde dónde
+  // calcular line-of-sight). El DM (AventuraSection) nunca pasa esto —
+  // siempre ve todo el tablero completo. ──
+  const { celdasVistas, registrarVisibles } = useAventuraExploracion(
+    aventuraId,
+    fichaActiva?.id ?? null,
   );
   const [pidiendoUnion, setPidiendoUnion] = useState(false);
   const [uniendose, setUniendose] = useState(false);
@@ -943,6 +954,12 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
               )}
               zoom={escala}
               centrarEnId={relacionPropia?.id ?? null}
+              obstaculos={obstaculos.map((o) => ({ ...o, bloqueaVision: o.bloquea_vision }))}
+              nieblaOrigenId={
+                aventura?.niebla_activa && relacionPropia ? relacionPropia.id : null
+              }
+              celdasExploradas={celdasVistas}
+              onCeldasVisibles={registrarVisibles}
               onClickItem={(id) => {
                 // El click sobre la propia tarjeta no hace nada (no tiene
                 // sentido "atacarse a uno mismo" ni "ver detalle" propio).
