@@ -230,49 +230,73 @@ export function TableroAventura({
           // círculo queda centrado justo en el punto clickeado — se
           // resta la mitad del diámetro acá, en el único lugar que
           // dibuja el token, para no tener que ajustar la lógica de
-          // click/drag en ningún otro lado. ──
+          // click/drag en ningún otro lado.
+          //
+          // El nombre va en una etiqueta aparte debajo del círculo, en un
+          // wrapper sin overflow-hidden (el círculo sí lo tiene, para
+          // recortar la imagen) — así el texto no queda recortado. Los
+          // handlers de pointer siguen solo en el círculo: el wrapper es
+          // puramente de layout, no agranda el área de drag. ──
           if (item.destacado) {
             const size = TABLERO_TOKEN_SIZE;
             return (
               <div
                 key={item.id}
-                onPointerDown={(e) => handlePointerDown(e, item)}
-                onPointerMove={handlePointerMove}
-                onPointerUp={(e) => handlePointerUp(e, item)}
-                title={item.nombre}
-                className="group absolute rounded-full overflow-hidden select-none flex items-center justify-center"
+                className="absolute flex flex-col items-center select-none"
                 style={{
                   left: x - size / 2,
                   top: y - size / 2,
                   width: size,
-                  height: size,
-                  background: item.imagen_url
-                    ? undefined
-                    : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  border: "2.5px solid var(--primary)",
-                  cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
-                  touchAction: "manipulation",
                   zIndex: isDraggingThis ? 30 : 2,
-                  boxShadow: isDraggingThis
-                    ? "0 10px 24px rgba(0,0,0,0.22)"
-                    : "0 2px 6px rgba(0,0,0,0.15)",
-                  transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
                 }}
               >
-                {item.imagen_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.imagen_url}
-                    alt={item.nombre}
-                    draggable={false}
-                    className="w-full h-full object-cover pointer-events-none"
-                  />
-                ) : (
-                  <UserRound
-                    size={Math.round(size * 0.55)}
-                    style={{ color: "var(--primary)" }}
-                  />
-                )}
+                <div
+                  onPointerDown={(e) => handlePointerDown(e, item)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={(e) => handlePointerUp(e, item)}
+                  title={item.nombre}
+                  className="group rounded-full overflow-hidden flex items-center justify-center shrink-0"
+                  style={{
+                    width: size,
+                    height: size,
+                    background: item.imagen_url
+                      ? undefined
+                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    border: "2.5px solid var(--primary)",
+                    cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
+                    touchAction: "manipulation",
+                    boxShadow: isDraggingThis
+                      ? "0 10px 24px rgba(0,0,0,0.22)"
+                      : "0 2px 6px rgba(0,0,0,0.15)",
+                    transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
+                  }}
+                >
+                  {item.imagen_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.imagen_url}
+                      alt={item.nombre}
+                      draggable={false}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : (
+                    <UserRound
+                      size={Math.round(size * 0.55)}
+                      style={{ color: "var(--primary)" }}
+                    />
+                  )}
+                </div>
+                <span
+                  className="mt-1 px-1.5 py-0.5 rounded-full text-micro font-bold truncate text-center pointer-events-none"
+                  style={{
+                    maxWidth: size + 40,
+                    color: "var(--primary)",
+                    background: "color-mix(in srgb, var(--white-custom) 85%, transparent)",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+                  }}
+                >
+                  {item.nombre}
+                </span>
               </div>
             );
           }
