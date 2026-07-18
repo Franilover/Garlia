@@ -18,7 +18,7 @@
  * agregado), se le asigna una posición en cascada automática.
  */
 
-import { BookOpen } from "lucide-react";
+import { BookOpen, UserRound } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
 
 const CANVAS_MIN_W = 1400;
@@ -31,6 +31,11 @@ const CANVAS_MIN_H = 900;
  * valores sueltos — así no se vuelven a desincronizar.
  */
 export const TABLERO_CARD_SIZE = { width: 360, height: 140, imageWidth: 140 };
+
+/** Tamaño del círculo-ficha (token) del propio personaje del jugador en el
+ *  pizarrón — mismo diámetro tanto si tiene foto como si muestra el ícono
+ *  de persona por defecto. */
+export const TABLERO_TOKEN_SIZE = 64;
 
 export interface TableroItem {
   id: string;
@@ -218,6 +223,60 @@ export function TableroAventura({
           const x = live?.x ?? item.pos_x ?? 0;
           const y = live?.y ?? item.pos_y ?? 0;
           const isDraggingThis = dragId === item.id;
+
+          // ── Token circular: la propia ficha del jugador. pos_x/pos_y
+          // guardan el CENTRO del círculo (no la esquina como las
+          // tarjetas normales), así que al clickear el pizarrón el
+          // círculo queda centrado justo en el punto clickeado — se
+          // resta la mitad del diámetro acá, en el único lugar que
+          // dibuja el token, para no tener que ajustar la lógica de
+          // click/drag en ningún otro lado. ──
+          if (item.destacado) {
+            const size = TABLERO_TOKEN_SIZE;
+            return (
+              <div
+                key={item.id}
+                onPointerDown={(e) => handlePointerDown(e, item)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={(e) => handlePointerUp(e, item)}
+                title={item.nombre}
+                className="group absolute rounded-full overflow-hidden select-none flex items-center justify-center"
+                style={{
+                  left: x - size / 2,
+                  top: y - size / 2,
+                  width: size,
+                  height: size,
+                  background: item.imagen_url
+                    ? undefined
+                    : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  border: "2.5px solid var(--primary)",
+                  cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
+                  touchAction: "manipulation",
+                  zIndex: isDraggingThis ? 30 : 2,
+                  boxShadow: isDraggingThis
+                    ? "0 10px 24px rgba(0,0,0,0.22)"
+                    : "0 2px 6px rgba(0,0,0,0.15)",
+                  transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
+                }}
+              >
+                {item.imagen_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imagen_url}
+                    alt={item.nombre}
+                    draggable={false}
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
+                ) : (
+                  <UserRound
+                    size={Math.round(size * 0.55)}
+                    style={{ color: "var(--primary)" }}
+                  />
+                )}
+              </div>
+            );
+          }
+
           const tieneImagen = !!item.imagen_url;
           // Con imagen: tarjeta cuadrada (imagen ocupa todo el cuadro),
           // nombre y tipo abajo superpuestos con degradé, ej. "Personaje | Abel".
@@ -238,10 +297,8 @@ export function TableroAventura({
                 width: cardStyleWidth,
                 height: CARD_H,
                 background: "var(--white-custom)",
-                borderColor: item.destacado
-                  ? "color-mix(in srgb, var(--primary) 55%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderWidth: item.destacado ? 2 : 1,
+                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderWidth: 1,
                 cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                 touchAction: "manipulation",
                 zIndex: isDraggingThis ? 30 : 1,
