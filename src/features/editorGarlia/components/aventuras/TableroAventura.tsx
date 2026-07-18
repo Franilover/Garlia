@@ -37,6 +37,10 @@ export const TABLERO_CARD_SIZE = { width: 360, height: 140, imageWidth: 140 };
  *  de persona por defecto. */
 export const TABLERO_TOKEN_SIZE = 64;
 
+/** Tamaño mínimo al que se puede achicar una tarjeta con el handle de resize. */
+const MIN_RESIZE_W = 140;
+const MIN_RESIZE_H = 90;
+
 export interface TableroItem {
   id: string;
   nombre: string;
@@ -45,6 +49,16 @@ export interface TableroItem {
   pos_x: number | null;
   pos_y: number | null;
   destacado?: boolean;
+  /** Tamaño custom en px lógicos (sin escalar por zoom). Si están seteados,
+   *  reemplazan a cardWidth/cardHeight para ESTA tarjeta puntual — así un
+   *  reino se puede agrandar/achicar sin afectar al resto del tablero. */
+  ancho?: number | null;
+  alto?: number | null;
+  /** Si está seteado, la tarjeta se dibuja con un indicador de "contenida
+   *  dentro de" otra entidad (ej. un personaje dentro de un reino). Solo
+   *  afecta al render (borde/badge) — el posicionamiento sigue siendo
+   *  libre en coordenadas absolutas del canvas. */
+  contenedorId?: string | null;
 }
 
 interface TableroAventuraProps {
@@ -65,6 +79,19 @@ interface TableroAventuraProps {
    *  solapamiento se llama a onDropOnItem en vez de onMove (agrupar tiene
    *  prioridad sobre reposicionar libremente encima de otra tarjeta). */
   onDropOnItem?: (draggedId: string, targetId: string) => void;
+  /** Se dispara al soltar una tarjeta arrastrada dentro del ÁREA de otra
+   *  tarjeta más grande (ej. un personaje soltado sobre un reino
+   *  agrandado) — tiene prioridad sobre onDropOnItem (agrupar) y onMove.
+   *  Distinto de onDropOnItem: ese es "tarjetas del mismo tamaño que se
+   *  tocan" (agrupar en horda); esto es "una tarjeta más chica quedó
+   *  geométricamente adentro de una más grande" (contener). Si no se
+   *  pasa, cae al comportamiento anterior (onDropOnItem / onMove). */
+  onDropInsideContainer?: (draggedId: string, containerId: string) => void;
+  /** Al soltar el handle de resize de una tarjeta: nuevo ancho/alto en px
+   *  lógicos (ya clampeados a un mínimo razonable). Si se pasa, cualquier
+   *  tarjeta no-destacada muestra un handle de resize en su esquina
+   *  inferior-derecha (solo en editable). */
+  onResizeItem?: (id: string, ancho: number, alto: number) => void;
   /** Click en un punto vacío del lienzo (fuera de cualquier tarjeta):
    *  reporta la posición lógica (ya dividida por zoom, mismas unidades
    *  que pos_x/pos_y). Se usa para "mover con un click" — el jugador
@@ -119,6 +146,8 @@ export function TableroAventura({
   onClickItem,
   onLongPressItem,
   onDropOnItem,
+  onDropInsideContainer,
+  onResizeItem,
   onCanvasClick,
   renderBadge,
   emptyHint = "Todavía no hay nada aquí.",
@@ -137,6 +166,25 @@ export function TableroAventura({
   const dragOffset = useRef({ dx: 0, dy: 0 });
   const [livePos, setLivePos] = useState<Record<string, { x: number; y: number }>>({});
   const [dragMoved, setDragMoved] = useState(false);
+  // ── Resize: mientras se arrastra el handle de una tarjeta, el tamaño en
+  // vivo se guarda acá (mismo patrón que livePos para posición) y recién
+  // se persiste vía onResizeItem al soltar.
+  const [resizeId, setResizeId] = useState<string | null>(null);
+  const [liveSize, setLiveSize] = useState<Record<string, { w: number; h: number }>>({});
+  const resizeStart = useRef({ w: 0, h: 0, clientX: 0, clientY: 0 });
+
+  /** Tamaño efectivo (ya resuelto) de un item: usa su tamaño en vivo si se
+   *  está redimensionando ahora mismo, si no su ancho/alto custom guardado,
+   *  y si no el tamaño estándar de tarjeta. Los tokens (destacado) ignoran
+   *  todo esto — mantienen siempre TABLERO_TOKEN_SIZE. */
+  const tamanoEfectivo = (item: TableroItem): { w: number; h: number } => {
+    if (item.destacado) return { w: TABLERO_TOKEN_SIZE, h: TABLERO_TOKEN_SIZE };
+    const live = liveSize[item.id];
+    if (live) return { w: live.w, h: live.h };
+    const w = item.ancho ?? (item.imagen_url ? CARD_H : CARD_W);
+    const h = item.alto ?? CARD_H;
+    return { w, h };
+  };
   // ── Long press: si el pointer se mantiene quieto (sin drag) sobre una
   // tarjeta/token por LONG_PRESS_MS, se dispara onLongPressItem en vez de
   // la acción normal de click. Se cancela si hay drag o si se suelta
@@ -156,11 +204,11 @@ export function TableroAventura({
 
   const canvasW = Math.max(
     CANVAS_MIN_W,
-    ...resueltos.map((i) => (i.pos_x ?? 0) + CARD_W + 60),
+    ...resueltos.map((i) => (i.pos_x ?? 0) + tamanoEfectivo(i).w + 60),
   );
   const canvasH = Math.max(
     CANVAS_MIN_H,
-    ...resueltos.map((i) => (i.pos_y ?? 0) + CARD_H + 60),
+    ...resueltos.map((i) => (i.pos_y ?? 0) + tamanoEfectivo(i).h + 60),
   );
 
   // ── Auto-centrado en el propio personaje ──────────────────────────────
@@ -181,6 +229,26 @@ export function TableroAventura({
     return () => clearLongPressTimer();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Limpia liveSize apenas el tamaño persistido (item.ancho/alto) coincide
+  // con lo que ya mostrábamos en vivo — así no queda un tamaño "fantasma"
+  // colgado para siempre si el padre no vuelve a renderizar por alguna razón.
+  React.useEffect(() => {
+    setLiveSize((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const id of Object.keys(prev)) {
+        if (id === resizeId) continue; // sigue en curso, no tocar
+        const item = items.find((i) => i.id === id);
+        if (!item) continue;
+        if (item.ancho === prev[id].w && item.alto === prev[id].h) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items, resizeId]);
 
   React.useEffect(() => {
     if (!centrarEnId || centroX === null || centroY === null) return;
@@ -207,8 +275,39 @@ export function TableroAventura({
   // al soltar, así no hay dos implementaciones del cálculo de solapamiento
   // que puedan desincronizarse.
   const dragItem = dragId ? resueltos.find((i) => i.id === dragId) : undefined;
+
+  // ── "Contener": el centro de la tarjeta arrastrada cae DENTRO del
+  // rectángulo de otra tarjeta (típicamente un reino agrandado). Tiene
+  // prioridad sobre "agrupar" (dropTargetId más abajo) porque es una
+  // relación distinta y más específica — solo aplica si esa otra tarjeta
+  // es geométricamente más grande que la arrastrada, si no cualquier par
+  // de tarjetas del mismo tamaño que se solapan "contendría" a la otra.
+  const containerTargetId = useMemo(() => {
+    if (!dragId || !dragItem || !onDropInsideContainer || dragItem.destacado) return null;
+    const live = livePos[dragId];
+    if (!live) return null;
+    const dragSize = tamanoEfectivo(dragItem);
+    const centerX = live.x + dragSize.w / 2;
+    const centerY = live.y + dragSize.h / 2;
+    const objetivo = resueltos.find((other) => {
+      if (other.id === dragId || other.destacado) return false;
+      const otherSize = tamanoEfectivo(other);
+      // El contenedor tiene que ser sensiblemente más grande — si no,
+      // cualquier tarjeta normal "contendría" a otra tarjeta normal.
+      if (otherSize.w < dragSize.w * 1.15 || otherSize.h < dragSize.h * 1.15) return false;
+      const ox = other.pos_x ?? 0;
+      const oy = other.pos_y ?? 0;
+      return (
+        centerX >= ox && centerX <= ox + otherSize.w &&
+        centerY >= oy && centerY <= oy + otherSize.h
+      );
+    });
+    return objetivo?.id ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragId, dragItem, livePos, resueltos, onDropInsideContainer, liveSize, CARD_W, CARD_H]);
+
   const dropTargetId = useMemo(() => {
-    if (!dragId || !dragItem || !onDropOnItem) return null;
+    if (!dragId || !dragItem || !onDropOnItem || containerTargetId) return null;
     const live = livePos[dragId];
     if (!live) return null;
     const centerX = live.x + (dragItem.destacado ? 0 : CARD_W / 2);
@@ -224,7 +323,11 @@ export function TableroAventura({
     });
     return objetivo?.id ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragId, dragItem, livePos, resueltos, onDropOnItem, CARD_W, CARD_H]);
+  }, [dragId, dragItem, livePos, resueltos, onDropOnItem, containerTargetId, CARD_W, CARD_H]);
+
+  // Para el highlight visual, cualquiera de los dos cuenta como "hay un
+  // objetivo resaltado ahora mismo".
+  const highlightTargetId = containerTargetId ?? dropTargetId;
 
   const handlePointerDown = (e: React.PointerEvent, item: TableroItem) => {
     // En modo público (no editable) igual necesitamos trackear el
@@ -277,15 +380,22 @@ export function TableroAventura({
     const target = e.currentTarget as HTMLElement;
     target.releasePointerCapture(e.pointerId);
     const final = livePos[item.id];
-    // dropTargetId ya está calculado con la misma posición livePos[item.id]
-    // que estamos por soltar (se recalcula en cada render mientras se
-    // arrastra) — lo leemos ahora, antes de limpiar el drag, para no
-    // duplicar la lógica de solapamiento acá.
+    // Ambos targets ya están calculados con la misma posición livePos que
+    // estamos por soltar (se recalculan en cada render mientras se
+    // arrastra) — los leemos ahora, antes de limpiar el drag, para no
+    // duplicar la lógica geométrica acá. containerTargetId tiene prioridad
+    // sobre dropTargetId (contener > agrupar > mover libre).
+    const contenedorId = containerTargetId;
     const objetivoId = dropTargetId;
     setDragId(null);
     clearLongPressTimer();
     if (final && dragMoved) {
-      if (objetivoId) {
+      if (contenedorId) {
+        onDropInsideContainer?.(item.id, contenedorId);
+        // Además reposiciona la tarjeta donde se soltó (dentro del
+        // contenedor), igual que un movimiento normal.
+        onMove?.(item.id, Math.round(final.x), Math.round(final.y));
+      } else if (objetivoId) {
         // Soltó sobre otra tarjeta/token: se interpreta como "agrupar",
         // no como reposicionar libremente encima de ella.
         onDropOnItem?.(item.id, objetivoId);
@@ -303,6 +413,44 @@ export function TableroAventura({
       delete next[item.id];
       return next;
     });
+  };
+
+  // ── Resize: arrastrar el handle de la esquina inferior-derecha de una
+  // tarjeta. Mismo patrón que el drag de posición (live state + persistir
+  // al soltar), pero en un eje aparte para no pisar dragId/livePos. ──
+  const handleResizePointerDown = (e: React.PointerEvent, item: TableroItem) => {
+    if (!editable || !onResizeItem) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    const size = tamanoEfectivo(item);
+    resizeStart.current = { w: size.w, h: size.h, clientX: e.clientX, clientY: e.clientY };
+    setResizeId(item.id);
+  };
+
+  const handleResizePointerMove = (e: React.PointerEvent) => {
+    if (!resizeId) return;
+    const dx = (e.clientX - resizeStart.current.clientX) / zoom;
+    const dy = (e.clientY - resizeStart.current.clientY) / zoom;
+    const w = Math.max(MIN_RESIZE_W, Math.round(resizeStart.current.w + dx));
+    const h = Math.max(MIN_RESIZE_H, Math.round(resizeStart.current.h + dy));
+    setLiveSize((prev) => ({ ...prev, [resizeId]: { w, h } }));
+  };
+
+  const handleResizePointerUp = (e: React.PointerEvent, item: TableroItem) => {
+    if (resizeId !== item.id) return;
+    const target = e.currentTarget as HTMLElement;
+    target.releasePointerCapture(e.pointerId);
+    const final = liveSize[item.id];
+    setResizeId(null);
+    if (final) {
+      onResizeItem?.(item.id, final.w, final.h);
+    }
+    // Nota: no borramos liveSize acá — se queda como "tamaño en vivo"
+    // hasta que el prop item.ancho/alto se actualice tras persistir (así
+    // no hay un parpadeo de vuelta al tamaño viejo mientras el request
+    // está en curso). Se limpia solo cuando cambian los items reales.
   };
 
   if (items.length === 0) {
@@ -438,11 +586,19 @@ export function TableroAventura({
           }
 
           const tieneImagen = !!item.imagen_url;
-          // Con imagen: tarjeta cuadrada (imagen ocupa todo el cuadro),
-          // nombre y tipo abajo superpuestos con degradé, ej. "Personaje | Abel".
-          // Sin imagen: layout anterior, imagen placeholder a la izquierda + texto.
-          const cardStyleWidth = tieneImagen ? CARD_H : CARD_W;
+          const size = tamanoEfectivo(item);
+          // Con imagen: tarjeta cuadrada por default (imagen ocupa todo el
+          // cuadro), nombre y tipo abajo superpuestos con degradé, ej.
+          // "Personaje | Abel". Sin imagen: layout anterior, imagen
+          // placeholder a la izquierda + texto. Si el item tiene un
+          // ancho custom (ej. un reino agrandado), se respeta ese ancho
+          // en vez de forzar el cuadrado.
+          const cardStyleWidth = item.ancho != null ? size.w : tieneImagen ? size.h : size.w;
+          const cardStyleHeight = size.h;
           const esDropTarget = dropTargetId === item.id;
+          const esContainerTarget = containerTargetId === item.id;
+          const isResizingThis = resizeId === item.id;
+          const esResizable = editable && !!onResizeItem && !item.destacado;
           return (
             <div
               key={item.id}
@@ -456,24 +612,45 @@ export function TableroAventura({
                 left: x,
                 top: y,
                 width: cardStyleWidth,
-                height: CARD_H,
+                height: cardStyleHeight,
                 background: "var(--white-custom)",
-                borderColor: esDropTarget
-                  ? "#22c55e"
-                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderWidth: esDropTarget ? 2 : 1,
-                borderStyle: esDropTarget ? "dashed" : "solid",
+                borderColor: esContainerTarget
+                  ? "#3b82f6"
+                  : esDropTarget
+                    ? "#22c55e"
+                    : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderWidth: esContainerTarget || esDropTarget ? 2 : 1,
+                borderStyle: esContainerTarget || esDropTarget ? "dashed" : "solid",
                 cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                 touchAction: "manipulation",
-                zIndex: isDraggingThis ? 30 : 1,
-                boxShadow: esDropTarget
-                  ? "0 0 0 4px rgba(34,197,94,0.2)"
-                  : isDraggingThis
-                    ? "0 10px 24px rgba(0,0,0,0.18)"
-                    : "0 1px 3px rgba(0,0,0,0.06)",
-                transition: isDraggingThis ? "none" : "box-shadow 0.15s ease, border-color 0.15s ease",
+                zIndex: isDraggingThis || isResizingThis ? 30 : 1,
+                boxShadow: esContainerTarget
+                  ? "0 0 0 4px rgba(59,130,246,0.22)"
+                  : esDropTarget
+                    ? "0 0 0 4px rgba(34,197,94,0.2)"
+                    : isDraggingThis || isResizingThis
+                      ? "0 10px 24px rgba(0,0,0,0.18)"
+                      : "0 1px 3px rgba(0,0,0,0.06)",
+                transition:
+                  isDraggingThis || isResizingThis
+                    ? "none"
+                    : "box-shadow 0.15s ease, border-color 0.15s ease",
               }}
             >
+              {/* Indicador de "está contenida dentro de un reino/otra
+                  entidad" — solo un pequeño badge, no cambia el layout. */}
+              {item.contenedorId && (
+                <div
+                  className="absolute top-1 left-1 z-10 px-1.5 py-0.5 rounded-full text-micro font-bold pointer-events-none"
+                  style={{
+                    background: "rgba(59,130,246,0.85)",
+                    color: "white",
+                  }}
+                  title="Dentro de un reino"
+                >
+                  ⛺
+                </div>
+              )}
               {tieneImagen ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -524,12 +701,43 @@ export function TableroAventura({
                     )}
                     <h3
                       className="font-serif italic text-primary truncate"
-                      style={{ fontSize: CARD_H >= 130 ? "1.1rem" : undefined }}
+                      style={{ fontSize: cardStyleHeight >= 130 ? "1.1rem" : undefined }}
                     >
                       {item.nombre}
                     </h3>
                   </div>
                 </>
+              )}
+
+              {/* ── Handle de resize: esquina inferior-derecha, solo
+                  visible en editable y con onResizeItem provisto. Un
+                  drag propio, aparte del de posición, para no confundir
+                  "mover" con "agrandar". Se muestra al hacer hover sobre
+                  la tarjeta (group-hover) para no ensuciar el tablero. ── */}
+              {esResizable && (
+                <div
+                  onPointerDown={(e) => handleResizePointerDown(e, item)}
+                  onPointerMove={handleResizePointerMove}
+                  onPointerUp={(e) => handleResizePointerUp(e, item)}
+                  title="Arrastrar para cambiar el tamaño"
+                  className="absolute bottom-0 right-0 w-5 h-5 flex items-end justify-end p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    cursor: "nwse-resize",
+                    touchAction: "none",
+                    zIndex: 20,
+                    opacity: isResizingThis ? 1 : undefined,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRight: "2.5px solid var(--primary)",
+                      borderBottom: "2.5px solid var(--primary)",
+                      borderBottomRightRadius: 3,
+                    }}
+                  />
+                </div>
               )}
             </div>
           );

@@ -320,8 +320,17 @@ function AventuraDetalle({
   onVolver: () => void;
 }) {
   const { aventuras } = useAventurasList();
-  const { entidades, loading, agregar, quitar, togglePublicado, moverPosicion, asignarGrupo } =
-    useAventuraEntidades(aventuraId);
+  const {
+    entidades,
+    loading,
+    agregar,
+    quitar,
+    togglePublicado,
+    moverPosicion,
+    asignarGrupo,
+    redimensionar,
+    asignarContenedor,
+  } = useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId);
 
   const [query, setQuery] = useState("");
@@ -506,6 +515,20 @@ function AventuraDetalle({
     [entidades, asignarGrupo, moverPosicion, gruposExistentes],
   );
 
+  // Soltar cualquier tarjeta (personaje, criatura, ítem, etc.) DENTRO del
+  // área de un reino agrandado en el pizarrón: la marca como "contenida"
+  // en ese reino. Cualquier entidad puede entrar en cualquier otra
+  // (incluido meter un reino dentro de otro reino, si alguna vez hace
+  // falta un "sub-reino") — TableroAventura ya filtra que el contenedor
+  // sea sensiblemente más grande que la tarjeta soltada antes de llamar
+  // a esto, así que acá no hace falta repetir esa validación.
+  const handleDropInsideContainer = useCallback(
+    (draggedId: string, containerId: string) => {
+      void asignarContenedor(draggedId, containerId);
+    },
+    [asignarContenedor],
+  );
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < 2) {
@@ -687,6 +710,9 @@ function AventuraDetalle({
                 pos_x: e.pos_x,
                 pos_y: e.pos_y,
                 destacado: e.tabla === "fichas_dnd",
+                ancho: e.ancho,
+                alto: e.alto,
+                contenedorId: e.contenedor_id,
               }),
             )}
             renderBadge={(item) => {
@@ -695,6 +721,20 @@ function AventuraDetalle({
               const isPending = pendientes.has(e.id);
               return (
                 <div className="flex items-center gap-1">
+                  {e.contenedor_id && (
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        void asignarContenedor(e.id, null);
+                      }}
+                      onPointerDown={(ev) => ev.stopPropagation()}
+                      className="w-6 h-6 rounded-full flex items-center justify-center bg-black/30 hover:bg-blue-500/70 text-white transition-colors"
+                      title="Sacar del reino"
+                    >
+                      ⛺
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={isPending}
@@ -733,6 +773,8 @@ function AventuraDetalle({
             }}
               onMove={(id, x, y) => moverPosicion(id, x, y)}
               onDropOnItem={handleDropAgrupar}
+              onDropInsideContainer={handleDropInsideContainer}
+              onResizeItem={(id, ancho, alto) => redimensionar(id, ancho, alto)}
               onClickItem={(id) => {
                 const e = entidades.find((x) => x.id === id);
                 if (e) setSeleccion(e);

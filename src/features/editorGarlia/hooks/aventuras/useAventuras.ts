@@ -76,6 +76,16 @@ export interface AventuraEntidadRow {
    *  otra tabla) a propósito: no hace falta gestionar una tabla aparte
    *  para algo tan simple como una etiqueta compartida. */
   grupo_nombre: string | null;
+  /** Tamaño custom en px lógicos del tablero (no escalados por zoom).
+   *  Null = usa el tamaño estándar de tarjeta (TABLERO_CARD_SIZE). Pensado
+   *  sobre todo para reinos ("agrandar/achicar" el bloque), pero cualquier
+   *  entidad puede tener tamaño propio. */
+  ancho: number | null;
+  alto: number | null;
+  /** Si está seteado, esta fila se considera "dentro" del reino/entidad
+   *  con ese id (otra fila de aventura_entidades) — se arma soltando una
+   *  tarjeta encima de otra en el pizarrón. Null = suelta, sin contenedor. */
+  contenedor_id: string | null;
 }
 
 /** Fila resuelta: la relación + los datos legibles de la entidad original. */
@@ -399,6 +409,50 @@ export function useAventuraEntidades(aventuraId: string | null) {
     [entidades],
   );
 
+  /** Cambia el tamaño custom (ancho/alto en px lógicos) de una tarjeta del
+   *  pizarrón. Pasar null en ambos vuelve al tamaño estándar. Optimista +
+   *  persistido, mismo patrón que moverPosicion. */
+  const redimensionar = useCallback(
+    async (relacionId: string, ancho: number | null, alto: number | null) => {
+      const anterior = entidades;
+      setEntidades((prev) =>
+        prev.map((e) => (e.id === relacionId ? { ...e, ancho, alto } : e)),
+      );
+      const { error } = await supabase
+        .from("aventura_entidades")
+        .update({ ancho, alto })
+        .eq("id", relacionId);
+      if (error) {
+        setEntidades(anterior);
+        throw error;
+      }
+    },
+    [entidades],
+  );
+
+  /** Marca (o quita, con null) una entidad como "contenida dentro" de otra
+   *  fila del pizarrón — típicamente un personaje/criatura soltado dentro
+   *  de un reino. Optimista + persistido. No permite que una fila se
+   *  contenga a sí misma. */
+  const asignarContenedor = useCallback(
+    async (relacionId: string, contenedorId: string | null) => {
+      if (contenedorId === relacionId) return;
+      const anterior = entidades;
+      setEntidades((prev) =>
+        prev.map((e) => (e.id === relacionId ? { ...e, contenedor_id: contenedorId } : e)),
+      );
+      const { error } = await supabase
+        .from("aventura_entidades")
+        .update({ contenedor_id: contenedorId })
+        .eq("id", relacionId);
+      if (error) {
+        setEntidades(anterior);
+        throw error;
+      }
+    },
+    [entidades],
+  );
+
   const togglePublicado = useCallback(async (relacion: AventuraEntidad) => {
     const nuevoValor = !relacion.publicado;
     const nuevoPublicadoAt = nuevoValor ? new Date().toISOString() : null;
@@ -436,6 +490,8 @@ export function useAventuraEntidades(aventuraId: string | null) {
     togglePublicado,
     moverPosicion,
     asignarGrupo,
+    redimensionar,
+    asignarContenedor,
     refetch: fetchAll,
   };
 }
