@@ -79,29 +79,40 @@ function segmentosDeBorde(w: number, h: number): Segmento[] {
 }
 
 /** Intersección rayo (origen + dirección) contra segmento a-b. Devuelve la
- *  distancia t a lo largo del rayo, o null si no intersecta. */
+ *  distancia t a lo largo del rayo, o null si no intersecta.
+ *
+ *  BUG HISTÓRICO (niebla que "dejaba ver" o tapaba de más donde no
+ *  debía): la versión anterior despejaba t1 dividiendo por r_dx (o r_dy si
+ *  r_dx era 0) como paso separado después de calcular t2. Con rayos casi
+ *  verticales/horizontales o segmentos muy largos (como el borde del
+ *  canvas, miles de px), esa división arrastraba error de punto flotante
+ *  y en algunos ángulos devolvía un t1 falso ≈0 (o negativo) para un
+ *  segmento que en realidad estaba MUY lejos y en la dirección opuesta —
+ *  el rayo se cortaba corto donde no debía, generando huecos en el
+ *  polígono de visibilidad (se veía a través de zonas bloqueadas) o
+ *  cuñas que tapaban de más.
+ *
+ *  Esta versión usa la parametrización estándar rayo-segmento con una
+ *  sola división (mismo denominador `rxs` para t y u), que es la forma
+ *  numéricamente estable de este cálculo — no hay una segunda división
+ *  separada que pueda desalinearse del resultado de la primera. */
 function interseccionRayo(origen: Punto, dir: Punto, seg: Segmento): number | null {
-  const r_px = origen.x;
-  const r_py = origen.y;
-  const r_dx = dir.x;
-  const r_dy = dir.y;
+  const s = { x: seg.b.x - seg.a.x, y: seg.b.y - seg.a.y };
+  const rxs = dir.x * s.y - dir.y * s.x;
+  if (Math.abs(rxs) < 1e-9) return null; // paralelos (o segmento degenerado)
 
-  const s_px = seg.a.x;
-  const s_py = seg.a.y;
-  const s_dx = seg.b.x - seg.a.x;
-  const s_dy = seg.b.y - seg.a.y;
+  const qp = { x: seg.a.x - origen.x, y: seg.a.y - origen.y };
+  const t = (qp.x * s.y - qp.y * s.x) / rxs; // distancia a lo largo del rayo
+  const u = (qp.x * dir.y - qp.y * dir.x) / rxs; // posición a lo largo del segmento [0,1]
 
-  const denom = r_dx * s_dy - r_dy * s_dx;
-  if (Math.abs(denom) < 1e-10) return null; // paralelos
+  // Pequeño margen negativo en vez de comparar contra 0 exacto: evita
+  // descartar por error de redondeo una intersección real justo en el
+  // origen o en el borde del segmento (mismo espíritu que el EPS angular
+  // que ya usa calcularPoligonoVisibilidad).
+  if (t < 1e-9) return null; // detrás del origen (o en el origen mismo)
+  if (u < -1e-6 || u > 1 + 1e-6) return null; // fuera del segmento
 
-  const t2 = (r_dx * (s_py - r_py) + r_dy * (r_px - s_px)) / denom;
-  if (t2 < 0 || t2 > 1) return null; // fuera del segmento
-
-  const t1 =
-    r_dx !== 0 ? (s_px + s_dx * t2 - r_px) / r_dx : (s_py + s_dy * t2 - r_py) / r_dy;
-  if (t1 < 0) return null; // detrás del origen
-
-  return t1;
+  return t;
 }
 
 /**
@@ -123,14 +134,31 @@ export function calcularPoligonoVisibilidad(
   // Ángulos únicos a probar: cada vértice de cada segmento, +/- un épsilon
   // angular (así el rayo "roza" el borde del obstáculo en vez de pasar
   // justo por el vértice, donde el resultado es numéricamente inestable).
-  const EPS = 0.00005;
-  const angulos = new Set<number>();
+  // EPS un poco más grande que antes (además del fix de interseccionRayo)
+  // para tener más margen de maniobra frente a errores de redondeo en
+  // canvases grandes (miles de px de segmento de borde).
+  const EPS = 0.0003;
+  const angulosRaw = new Set<number>();
   for (const seg of segmentos) {
     for (const p of [seg.a, seg.b]) {
       const ang = Math.atan2(p.y - origen.y, p.x - origen.x);
-      angulos.add(ang - EPS);
-      angulos.add(ang);
-      angulos.add(ang + EPS);
+      angulosRaw.add(ang - EPS);
+      angulosRaw.add(ang);
+      angulosRaw.add(ang + EPS);
+    }
+  }
+  // Deduplica ángulos casi idénticos (distintos vértices pueden generar el
+  // mismo ángulo con un error de redondeo mínimo): sin esto, dos ángulos a
+  // 1e-12 de distancia pueden calcular impactos contra segmentos distintos
+  // por pura casualidad de qué segmento "gana" el mejorT en cada uno,
+  // generando un zigzag espurio de 1px en el polígono. Ordenando primero,
+  // alcanza con comparar cada uno contra el último aceptado.
+  const angulosOrdenados = Array.from(angulosRaw).sort((a, b) => a - b);
+  const angulos: number[] = [];
+  const MIN_SEPARACION = 1e-7;
+  for (const ang of angulosOrdenados) {
+    if (angulos.length === 0 || ang - angulos[angulos.length - 1] > MIN_SEPARACION) {
+      angulos.push(ang);
     }
   }
 

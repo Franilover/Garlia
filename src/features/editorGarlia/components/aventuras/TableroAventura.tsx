@@ -19,7 +19,7 @@
  */
 
 import { BookOpen, UserRound } from "lucide-react";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 
 import {
   calcularPoligonoVisibilidad,
@@ -232,6 +232,16 @@ export function TableroAventura({
   const IMG_W = imageWidth ?? TABLERO_CARD_SIZE.imageWidth;
   const resueltos = usePosicionesResueltas(items, CARD_W, CARD_H);
   const containerRef = useRef<HTMLDivElement>(null);
+  // IDs únicos para las <mask> de la niebla: si en algún momento hay más
+  // de un TableroAventura montado a la vez (o React re-monta uno sin
+  // limpiar bien el anterior), un id fijo tipo "niebla-mask-..." podía
+  // colisionar entre ambos SVGs y hacer que la máscara de un tablero
+  // "se robara" el recorte de visibilidad del otro — otra forma en la que
+  // la niebla podía terminar mostrando de más. Con useId cada instancia
+  // tiene su propio par de ids, sin importar cuántas haya en la página.
+  const maskIdBase = useId();
+  const maskIdNuncaVisto = `niebla-mask-nunca-visto-${maskIdBase}`;
+  const maskIdPenumbra = `niebla-mask-penumbra-${maskIdBase}`;
   const [dragId, setDragId] = useState<string | null>(null);
   const dragOffset = useRef({ dx: 0, dy: 0 });
   const [livePos, setLivePos] = useState<Record<string, { x: number; y: number }>>({});
@@ -1165,7 +1175,7 @@ export function TableroAventura({
               {/* Máscara del negro total: blanco = pintar negro (nunca
                   visto); negro = ocultar el negro (visible ahora o ya
                   explorado antes). */}
-              <mask id="niebla-mask-nunca-visto">
+              <mask id={maskIdNuncaVisto}>
                 <rect x={0} y={0} width={canvasW} height={canvasH} fill="white" />
                 <polygon
                   points={poligonoVisible.map((p) => `${p.x},${p.y}`).join(" ")}
@@ -1190,7 +1200,7 @@ export function TableroAventura({
                   exploradas, y se le resta (negro) el polígono visible
                   ahora — así el gris queda exactamente en "visto antes,
                   pero no ahora". */}
-              <mask id="niebla-mask-penumbra">
+              <mask id={maskIdPenumbra}>
                 <rect x={0} y={0} width={canvasW} height={canvasH} fill="black" />
                 {celdasExploradas &&
                   Array.from(celdasExploradas).map((celda) => {
@@ -1219,7 +1229,7 @@ export function TableroAventura({
               width={canvasW}
               height={canvasH}
               fill="rgba(10,10,15,0.55)"
-              mask="url(#niebla-mask-penumbra)"
+              mask={`url(#${maskIdPenumbra})`}
             />
             {/* Negro total: todo lo que nunca se exploró ni es visible ahora. */}
             <rect
@@ -1228,7 +1238,7 @@ export function TableroAventura({
               width={canvasW}
               height={canvasH}
               fill="black"
-              mask="url(#niebla-mask-nunca-visto)"
+              mask={`url(#${maskIdNuncaVisto})`}
               opacity={0.97}
             />
           </svg>
