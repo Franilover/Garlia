@@ -161,6 +161,18 @@ interface TableroAventuraProps {
    *  con el pan manual del usuario en otros momentos — solo re-centra en
    *  esos triggers puntuales, no en cada scroll. */
   centrarEnId?: string | null;
+  /** Si es true, arrastrar una tarjeta/token (y el click-to-move del
+   *  jugador) queda "imantado" a una grilla de `gridSize` px en vez de
+   *  quedar en cualquier posición libre. Además evita actualizar el
+   *  estado en cada pixel de movimiento (solo al cruzar una celda), que
+   *  es la causa real de la traba/tirones al arrastrar: bastante menos
+   *  renders por segundo durante el drag. Default true. */
+  snapToGrid?: boolean;
+  /** Tamaño de celda en px lógicos cuando snapToGrid está activo. Default
+   *  = GRID_SIZE (48px), el mismo tamaño de celda que usa la memoria de
+   *  exploración de la niebla — así el movimiento y lo que se "recuerda"
+   *  como visto quedan alineados 1 a 1. */
+  gridSize?: number;
 }
 
 /** Asigna una posición en cascada a los items que todavía no tienen pos_x/pos_y. */
@@ -205,6 +217,8 @@ export function TableroAventura({
   nieblaOrigenId = null,
   celdasExploradas,
   onCeldasVisibles,
+  snapToGrid = true,
+  gridSize = GRID_SIZE,
 }: TableroAventuraProps) {
   const CARD_W = cardWidth;
   const CARD_H = cardHeight;
@@ -270,6 +284,14 @@ export function TableroAventura({
     CANVAS_MIN_H,
     ...resueltos.map((i) => (i.pos_y ?? 0) + tamanoEfectivo(i).h + 60),
   );
+
+  /** Redondea una coordenada a la grilla activa. Además de "imantar" el
+   *  movimiento, esto es lo que corta la traba real: sin esto, cada
+   *  pixel de pointermove dispara un setState + re-render completo del
+   *  tablero; con el snap, solo se actualiza el estado (y por lo tanto
+   *  se re-renderiza) al cruzar el borde de una celda — muchísimas menos
+   *  actualizaciones por segundo mientras se arrastra. */
+  const snap = (v: number) => (snapToGrid ? Math.round(v / gridSize) * gridSize : v);
 
   /** Tamaño efectivo de un obstáculo (usa el tamaño en vivo si se está
    *  redimensionando ahora mismo). */
@@ -473,8 +495,16 @@ export function TableroAventura({
     // (sin escalar) en las que se guardan pos_x/pos_y.
     const x = (e.clientX - canvasRect.left + scrollLeft - dragOffset.current.dx) / zoom;
     const y = (e.clientY - canvasRect.top + scrollTop - dragOffset.current.dy) / zoom;
-    const clampedX = Math.max(0, x);
-    const clampedY = Math.max(0, y);
+    const clampedX = snap(Math.max(0, x));
+    const clampedY = snap(Math.max(0, y));
+    // Evita el setState (y el re-render) si el snap dio la misma celda
+    // que ya teníamos — la causa principal de la traba era actualizar
+    // estado en CADA pixel; esto lo corta del todo.
+    const anterior = livePos[dragId];
+    if (anterior && anterior.x === clampedX && anterior.y === clampedY) {
+      clearLongPressTimer();
+      return;
+    }
     setLivePos((prev) => ({ ...prev, [dragId]: { x: clampedX, y: clampedY } }));
     setDragMoved(true);
     dragMovedRef.current = true;
@@ -580,7 +610,11 @@ export function TableroAventura({
     const scrollTop = containerRef.current.scrollTop;
     const x = (e.clientX - canvasRect.left + scrollLeft - obsDragOffset.current.dx) / zoom;
     const y = (e.clientY - canvasRect.top + scrollTop - obsDragOffset.current.dy) / zoom;
-    setObsLivePos((prev) => ({ ...prev, [obsDragId]: { x: Math.max(0, x), y: Math.max(0, y) } }));
+    const clampedX = snap(Math.max(0, x));
+    const clampedY = snap(Math.max(0, y));
+    const anterior = obsLivePos[obsDragId];
+    if (anterior && anterior.x === clampedX && anterior.y === clampedY) return;
+    setObsLivePos((prev) => ({ ...prev, [obsDragId]: { x: clampedX, y: clampedY } }));
     setObsDragMoved(true);
   };
 
@@ -637,13 +671,14 @@ export function TableroAventura({
     );
   }
 
+  const celdaVisualBg = snapToGrid ? gridSize : 40;
   return (
     <div
       ref={containerRef}
       className="relative flex-1 min-h-0 min-w-0 overflow-auto rounded-xl"
       style={{
         background:
-          "repeating-linear-gradient(0deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, color-mix(in srgb, var(--primary) 6%, transparent) 40px)",
+          `repeating-linear-gradient(0deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px), repeating-linear-gradient(90deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px)`,
         touchAction: editable ? "none" : "pan-x pan-y",
       }}
     >
@@ -672,7 +707,7 @@ export function TableroAventura({
             const rect = e.currentTarget.getBoundingClientRect();
             const x = (e.clientX - rect.left) / zoom;
             const y = (e.clientY - rect.top) / zoom;
-            onCanvasClick(Math.max(0, Math.round(x)), Math.max(0, Math.round(y)));
+            onCanvasClick(snap(Math.max(0, x)), snap(Math.max(0, y)));
           }}
         >
         {/* ── Capa de obstáculos: debajo de las tarjetas, un <div> por
