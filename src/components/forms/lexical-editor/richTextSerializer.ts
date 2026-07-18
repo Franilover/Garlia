@@ -278,6 +278,36 @@ export function rawTextToLexicalTree(raw: string): void {
     },
   );
 
+  // 3.5) Párrafos vacíos intermedios ("línea en blanco real" que el
+  // usuario deja con doble Enter para separar escenas/bloques). Se
+  // serializan como 3+ "\n" seguidos (cada línea vacía extra suma 2
+  // saltos por encima del separador normal "\n\n"). El problema:
+  // $convertFromMarkdownString sigue la spec de Markdown, donde CUALQUIER
+  // secuencia de 2+ líneas en blanco colapsa a un solo separador de
+  // párrafo — el ParagraphNode vacío intermedio se pierde para siempre.
+  // Esto es lo que causaba que, tras guardar y recargar (InitialContentPlugin
+  // reconstruye el árbol en cuanto detecta que `value` no calza con el
+  // árbol actual — algo que pasa constantemente durante la escritura
+  // normal), las líneas en blanco entre párrafos desaparecieran y el
+  // texto terminara "pegado" en un bloque más grande.
+  // Fix: detectamos cada línea en blanco *extra* y la reemplazamos por un
+  // token propio que sobrevive intacto a $convertFromMarkdownString (es
+  // texto plano ASCII sin espacios, no calza con ninguna sintaxis
+  // markdown). En el post-proceso lo resolvemos a un ParagraphNode vacío.
+  const emptyParaToken = "xEmptyParaTokenxx";
+  working = working.replace(/\n{3,}/g, (run) => {
+    const totalBreaks = run.length;
+    // totalBreaks=4 → 1 línea vacía; 6 → 2 líneas vacías; etc.
+    const emptyLines = Math.floor((totalBreaks - 2) / 2);
+    if (emptyLines <= 0) return run;
+    // Cada línea vacía va en SU PROPIO token separado por "\n\n" — si
+    // van pegados (repeat sin separador) Markdown los fusiona de vuelta
+    // en un solo párrafo, el mismo problema que estamos arreglando un
+    // nivel más abajo.
+    const tokens = Array.from({ length: emptyLines }, () => emptyParaToken);
+    return "\n\n" + tokens.join("\n\n") + "\n\n";
+  });
+
   // 4) Saltos de línea simples: $convertFromMarkdownString sigue la spec
   // de Markdown, donde un solo "\n" dentro de un párrafo NO es un salto
   // de línea (se junta con la línea siguiente) — solo una línea en
@@ -294,6 +324,21 @@ export function rawTextToLexicalTree(raw: string): void {
   // headings, bold, italic, etc. — todo lo que MarkdownShortcutPlugin
   // aplicaría si el usuario lo tipeara a mano).
   $convertFromMarkdownString(working, TRANSFORMERS);
+
+  // 5.5) Cada token de párrafo vacío quedó como su propio ParagraphNode
+  // de texto plano (porque está rodeado de "\n\n", separador de párrafo
+  // real para Markdown) — lo vaciamos para que sea un párrafo genuinamente
+  // en blanco, igual al que el usuario había escrito originalmente.
+  {
+    const topChildren: LexicalNode[] = ($getRoot() as any).getChildren?.() ?? [];
+    for (const child of topChildren) {
+      if (child.getType() !== "paragraph") continue;
+      const text = (child as any).getTextContent?.() ?? "";
+      if (text.trim() === emptyParaToken) {
+        (child as any).clear?.();
+      }
+    }
+  }
 
   // 6) Post-proceso: recorremos todos los TextNode del árbol recién
   // creado buscando nuestros tokens y los reemplazamos in-place por el
