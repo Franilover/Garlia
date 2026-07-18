@@ -18,6 +18,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { supabase } from "@/lib/api/client/supabase";
 
 import {
   TABLERO_CARD_SIZE,
@@ -610,7 +611,36 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const { activa: fichaActiva } = useFichasDnd(perfil?.id ?? null);
   const aventura = aventuras.find((a) => a.id === aventuraId) as AventuraType | undefined;
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
+  const [fichaSeleccion, setFichaSeleccion] = useState<FichaDnd | null>(null);
+  const [cargandoFicha, setCargandoFicha] = useState(false);
   const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
+
+  // ── Al seleccionar una entidad tipo "fichas_dnd" (el token de otro
+  // jugador), se trae la ficha completa para mostrar sus stats reales
+  // (no solo nombre/descripción, que es lo único que resuelve
+  // useAventuraEntidades). Solo lectura acá — el jugador no puede editar
+  // la ficha de otro. ──
+  React.useEffect(() => {
+    if (!seleccion || seleccion.tabla !== "fichas_dnd") {
+      setFichaSeleccion(null);
+      return;
+    }
+    let cancelado = false;
+    setCargandoFicha(true);
+    supabase
+      .from("fichas_dnd")
+      .select("*")
+      .eq("id", seleccion.entidad_id)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        setFichaSeleccion(!error && data ? (data as FichaDnd) : null);
+        setCargandoFicha(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [seleccion]);
 
   const publicadas = entidades
     .filter((e) => e.publicado)
@@ -874,7 +904,9 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           >
             <MotionDiv
               animate={{ opacity: 1, scale: 1 }}
-              className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6"
+              className={`relative w-full max-h-[85vh] overflow-y-auto rounded-2xl p-6 ${
+                seleccion.tabla === "fichas_dnd" ? "max-w-2xl" : "max-w-lg"
+              }`}
               exit={{ opacity: 0, scale: 0.96 }}
               initial={{ opacity: 0, scale: 0.96 }}
               style={{ background: "var(--white-custom)" }}
@@ -888,34 +920,57 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                 <X size={14} className="text-primary/60" />
               </button>
 
-              {seleccion.imagen_url && (
-                <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-primary/5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={seleccion.imagen_url}
-                    alt={seleccion.nombre}
-                    className="w-full h-full object-cover"
+              {seleccion.tabla === "fichas_dnd" ? (
+                cargandoFicha ? (
+                  <div className="py-16 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-primary/30" size={20} />
+                  </div>
+                ) : fichaSeleccion ? (
+                  // Vista de otro jugador: siempre solo lectura, sin
+                  // condiciones (eso lo maneja el DM) y sin campos
+                  // secundarios de mecánica interna.
+                  <FichaStatsPanel
+                    ficha={fichaSeleccion}
+                    mostrarCondiciones={false}
+                    mostrarSecundarias={false}
                   />
-                </div>
-              )}
-
-              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                {TABLA_LABEL[seleccion.tabla].singular}
-              </span>
-              <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
-
-              {seleccion.descripcion ? (
-                <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
-                  {seleccion.descripcion}
-                </p>
+                ) : (
+                  <p className="text-sm text-primary/30 italic py-8 text-center">
+                    No se pudo cargar esta ficha.
+                  </p>
+                )
               ) : (
-                <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
-              )}
+                <>
+                  {seleccion.imagen_url && (
+                    <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-primary/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={seleccion.imagen_url}
+                        alt={seleccion.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
 
-              {seleccion.publicado_at && (
-                <p className="mt-4 text-micro text-primary/30">
-                  Publicado el {formatFecha(seleccion.publicado_at)}
-                </p>
+                  <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                    {TABLA_LABEL[seleccion.tabla].singular}
+                  </span>
+                  <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
+
+                  {seleccion.descripcion ? (
+                    <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
+                      {seleccion.descripcion}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
+                  )}
+
+                  {seleccion.publicado_at && (
+                    <p className="mt-4 text-micro text-primary/30">
+                      Publicado el {formatFecha(seleccion.publicado_at)}
+                    </p>
+                  )}
+                </>
               )}
             </MotionDiv>
           </MotionDiv>

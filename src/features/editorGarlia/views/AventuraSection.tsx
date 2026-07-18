@@ -48,10 +48,12 @@ import {
   TABLERO_CARD_SIZE,
   type TableroItem,
 } from "../components/aventuras/TableroAventura";
-import { PanelIdentidadesDM } from "../components/aventuras/PanelIdentidadesDM";
 import { PanelManualDnd } from "../components/aventuras/PanelManualDnd";
 import { PanelTiposMoneda } from "@/features/garlia/views/PanelTiposMoneda";
 import { useTableroEscala } from "@/features/garlia/hooks/useTableroEscala";
+import { FichaDetalle } from "@/features/garlia/views/fichaComponents";
+import type { FichaDnd } from "@/features/garlia/hooks/useFichasDnd";
+import { supabase } from "@/lib/api/client/supabase";
 
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
 
@@ -253,8 +255,60 @@ function AventuraDetalle({
   const [buscando, setBuscando] = useState(false);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
+  const [fichaSeleccion, setFichaSeleccion] = useState<FichaDnd | null>(null);
+  const [cargandoFicha, setCargandoFicha] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
+
+  // ── Al seleccionar un token de tipo "fichas_dnd" en el pizarrón del DM,
+  // se trae la ficha completa (todos los campos) para poder editarla sin
+  // restricciones — a diferencia del jugador, el DM puede tocar clase,
+  // inventario, stats, condiciones, todo. ──
+  useEffect(() => {
+    if (!seleccion || seleccion.tabla !== "fichas_dnd") {
+      setFichaSeleccion(null);
+      return;
+    }
+    let cancelado = false;
+    setCargandoFicha(true);
+    supabase
+      .from("fichas_dnd")
+      .select("*")
+      .eq("id", seleccion.entidad_id)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        setFichaSeleccion(!error && data ? (data as FichaDnd) : null);
+        setCargandoFicha(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [seleccion]);
+
+  const handleActualizarFicha = useCallback(async (id: string, cambios: Partial<FichaDnd>) => {
+    setFichaSeleccion((prev) => (prev ? { ...prev, ...cambios } : prev));
+    const { error } = await supabase.from("fichas_dnd").update(cambios).eq("id", id);
+    if (error) {
+      // Revierte trayendo el estado real si falló en el servidor.
+      const { data } = await supabase.from("fichas_dnd").select("*").eq("id", id).single();
+      if (data) setFichaSeleccion(data as FichaDnd);
+      throw error;
+    }
+  }, []);
+
+  const handleEliminarFicha = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("fichas_dnd").delete().eq("id", id);
+      if (error) throw error;
+      setSeleccion(null);
+      setFichaSeleccion(null);
+      // La fila en aventura_entidades apunta a una ficha que ya no existe;
+      // se limpia también para no dejar un token roto en el tablero.
+      if (seleccion) void quitar(seleccion.id);
+    },
+    [seleccion, quitar],
+  );
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -488,18 +542,11 @@ function AventuraDetalle({
             />
           )}
         </div>
-
-        {/* ── Columna lateral: identidades como dropdowns. Sin margen contra
-            el borde derecho de la ventana — llega justo hasta el borde. ── */}
-        <div
-          className="relative z-10 w-72 shrink-0 border-l border-primary/10 overflow-hidden mr-0"
-          style={{ background: "var(--bg-main)" }}
-        >
-          <PanelIdentidadesDM />
-        </div>
       </div>
 
-      {/* ── Modal de detalle (misma vista que ve el jugador) ────────── */}
+      {/* ── Modal de detalle: para fichas_dnd, la hoja completa editable
+          (misma UI que /myself/garlia, con FichaDetalle en modo modal). Para
+          el resto de entidades, la misma vista simple que ve el jugador. ── */}
       <AnimatePresence>
         {seleccion && (
           <MotionDiv
@@ -512,54 +559,81 @@ function AventuraDetalle({
           >
             <MotionDiv
               animate={{ opacity: 1, scale: 1 }}
-              className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6"
+              className={`relative w-full max-h-[85vh] overflow-y-auto rounded-2xl p-6 ${
+                seleccion.tabla === "fichas_dnd" ? "max-w-3xl" : "max-w-lg"
+              }`}
               exit={{ opacity: 0, scale: 0.96 }}
               initial={{ opacity: 0, scale: 0.96 }}
               style={{ background: "var(--white-custom)" }}
               onClick={(e) => e.stopPropagation()}
             >
-              <button
-                type="button"
-                onClick={() => setSeleccion(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-              >
-                <X size={14} className="text-primary/60" />
-              </button>
-
-              {seleccion.imagen_url && (
-                <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-primary/5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={seleccion.imagen_url}
-                    alt={seleccion.nombre}
-                    className="w-full h-full object-cover"
+              {seleccion.tabla === "fichas_dnd" ? (
+                cargandoFicha ? (
+                  <div className="py-16 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-primary/30" size={20} />
+                  </div>
+                ) : fichaSeleccion ? (
+                  <FichaDetalle
+                    key={fichaSeleccion.id}
+                    ficha={fichaSeleccion}
+                    esActiva
+                    variant="modal"
+                    onVolver={() => setSeleccion(null)}
+                    onActualizar={handleActualizarFicha}
+                    onEliminar={handleEliminarFicha}
+                    onElegirActiva={async () => {}}
                   />
-                </div>
-              )}
-
-              <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                {TABLA_LABEL[seleccion.tabla].singular}
-              </span>
-              <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
-
-              {seleccion.descripcion ? (
-                <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
-                  {seleccion.descripcion}
-                </p>
+                ) : (
+                  <p className="text-sm text-primary/30 italic py-8 text-center">
+                    No se pudo cargar esta ficha.
+                  </p>
+                )
               ) : (
-                <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
-              )}
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSeleccion(null)}
+                    className="absolute top-4 right-4 p-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  >
+                    <X size={14} className="text-primary/60" />
+                  </button>
 
-              <div className="mt-4 flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase ${
-                    seleccion.publicado ? "bg-primary text-white" : "bg-primary/10 text-primary/50"
-                  }`}
-                >
-                  {seleccion.publicado ? <Eye size={10} /> : <EyeOff size={10} />}
-                  {seleccion.publicado ? "Publicado" : "Oculto"}
-                </span>
-              </div>
+                  {seleccion.imagen_url && (
+                    <div className="w-full h-48 rounded-xl overflow-hidden mb-4 bg-primary/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={seleccion.imagen_url}
+                        alt={seleccion.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                    {TABLA_LABEL[seleccion.tabla].singular}
+                  </span>
+                  <h2 className="font-serif italic text-2xl text-primary mb-3">{seleccion.nombre}</h2>
+
+                  {seleccion.descripcion ? (
+                    <p className="text-sm text-primary/70 whitespace-pre-wrap leading-relaxed">
+                      {seleccion.descripcion}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-primary/30 italic">Sin descripción todavía.</p>
+                  )}
+
+                  <div className="mt-4 flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-micro font-black uppercase ${
+                        seleccion.publicado ? "bg-primary text-white" : "bg-primary/10 text-primary/50"
+                      }`}
+                    >
+                      {seleccion.publicado ? <Eye size={10} /> : <EyeOff size={10} />}
+                      {seleccion.publicado ? "Publicado" : "Oculto"}
+                    </span>
+                  </div>
+                </>
+              )}
             </MotionDiv>
           </MotionDiv>
         )}

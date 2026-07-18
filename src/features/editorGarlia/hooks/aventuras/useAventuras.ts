@@ -255,7 +255,22 @@ export function useAventuraEntidades(aventuraId: string | null) {
         { event: "*", schema: "public", table: "aventura_entidades", filter: `aventura_id=eq.${aventuraId}` },
         () => fetchAll({ silent: true }),
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        // Diagnóstico: si el canal no llega a "SUBSCRIBED", el realtime no
+        // va a funcionar aunque el resto del código esté bien. Las causas
+        // más comunes son: la tabla no está en la publicación
+        // `supabase_realtime`, o RLS bloquea el SELECT para el rol
+        // autenticado/anon en esta tabla.
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[aventura_entidades] Realtime no se pudo suscribir (status: ${status}). ` +
+              `Revisa que la tabla esté agregada a la publicación "supabase_realtime" ` +
+              `y que las políticas RLS permitan SELECT.`,
+            err,
+          );
+        }
+      });
     return () => {
       supabase.removeChannel(channel);
     };
