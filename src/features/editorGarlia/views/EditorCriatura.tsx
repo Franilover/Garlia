@@ -25,6 +25,7 @@ import {
   MapPin,
   Package,
   Save,
+  Shield,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -57,6 +58,7 @@ import {
 } from "@/features/editorGarlia/components/criaturas/CriaturaHabitat";
 import { useCraftedItems } from "@/features/editorGarlia/components/criaturas/CriaturaItemsCraftedos";
 import { BloqueMagico } from "@/features/editorGarlia/components/criaturas/CriaturaMagia";
+import { CriaturaStatsDndEditor } from "@/features/editorGarlia/components/criaturas/CriaturaStatsDnd";
 import { PickerImagenCriaturaBtn } from "@/features/editorGarlia/components/criaturas/PickerImagenCriaturaBtn";
 import {
   SelectorImagen,
@@ -188,6 +190,7 @@ export function EditorCriatura({
           imagen_url: form.imagen_url || null,
           descripcion: form.descripcion,
           descripcion_dnd: form.descripcion_dnd || null,
+          stats_dnd: form.stats_dnd || null,
         })
         .eq("id", form.id);
       if (error) throw error;
@@ -373,6 +376,29 @@ export function EditorCriatura({
               }
             />
           </div>
+
+          {/* Ficha de combate D&D 2024 — CA, HP, velocidades, stats,
+              salvaciones, habilidades, sentidos, RC/PX, resistencias/
+              inmunidades, rasgos y acciones. Colapsada por defecto: es
+              mucha info y la mayoría de las criaturas (decorativas, sin
+              stat block) no la necesitan abierta todo el tiempo. */}
+          <details className="rounded-xl border border-primary/8 open:pb-3">
+            <summary
+              className="flex items-center gap-2 px-2.5 py-2 cursor-pointer select-none rounded-xl"
+              style={{ background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}
+            >
+              <Shield size={11} className="text-primary/35" />
+              <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                Ficha de combate (D&D 2024)
+              </span>
+            </summary>
+            <div className="px-2.5 pt-3">
+              <CriaturaStatsDndEditor
+                valor={form.stats_dnd}
+                onCambiar={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
+              />
+            </div>
+          </details>
 
           {/* Clasificación */}
           <div

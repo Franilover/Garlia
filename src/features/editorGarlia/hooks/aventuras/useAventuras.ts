@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/lib/api/client/supabase";
+import type { CriaturaStatsDnd } from "@/features/editorGarlia/hooks/types";
 
 export interface Aventura {
   id: string;
@@ -74,6 +75,10 @@ export interface AventuraEntidad extends AventuraEntidadRow {
   nombre: string;
   imagen_url: string | null;
   descripcion: string | null;
+  /** Solo presente cuando tabla === "criaturas": su ficha de combate D&D
+   *  2024 (CA/HP/stats/acciones…) tal cual la cargó el DM en el editor.
+   *  Null si la criatura todavía no tiene stat block. */
+  stats_dnd?: CriaturaStatsDnd | null;
 }
 
 // ── Lista de aventuras (para el índice admin y el selector público) ────────
@@ -151,7 +156,10 @@ async function resolverEntidades(
     porTabla.set(r.tabla, list);
   }
 
-  const datosPorTablaId = new Map<string, { nombre: string; imagen_url: string | null; descripcion: string | null }>();
+  const datosPorTablaId = new Map<
+    string,
+    { nombre: string; imagen_url: string | null; descripcion: string | null; stats_dnd: CriaturaStatsDnd | null }
+  >();
 
   // Para fichas_dnd necesitamos resolver especie_id -> nombre de la criatura
   const fichasRows = await Promise.all(
@@ -195,6 +203,7 @@ async function resolverEntidades(
         nombre: row[NOMBRE_COL] ?? "Sin nombre",
         imagen_url: row[COLUMNA_IMAGEN[tabla as TablaEntidad] ?? "imagen_url"] ?? null,
         descripcion: descripcionBase,
+        stats_dnd: tabla === "criaturas" ? row.stats_dnd ?? null : null,
       });
     });
   });
@@ -206,6 +215,7 @@ async function resolverEntidades(
       nombre: info?.nombre ?? "(entidad eliminada)",
       imagen_url: info?.imagen_url ?? null,
       descripcion: info?.descripcion ?? null,
+      stats_dnd: info?.stats_dnd ?? null,
     };
   });
 }

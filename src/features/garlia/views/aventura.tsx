@@ -19,7 +19,12 @@ import { Text } from "@/components/ui/Tipografia";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 
-import { TableroAventura, type TableroItem } from "@/features/editorGarlia/components/aventuras/TableroAventura";
+import {
+  TABLERO_CARD_SIZE,
+  TABLERO_TOKEN_SIZE,
+  TableroAventura,
+  type TableroItem,
+} from "@/features/editorGarlia/components/aventuras/TableroAventura";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -417,6 +422,187 @@ function SelectorAventuras({ onSeleccionar }: { onSeleccionar: (id: string) => v
 
 // ── Feed de una aventura ─────────────────────────────────────────────────
 
+/** Distancia (en las mismas unidades lógicas que pos_x/pos_y, sin zoom)
+ *  por debajo de la cual se considera que el jugador movió su ficha
+ *  "hasta" una criatura — dispara el modo combate. Se calcula sumando
+ *  medio token del jugador + media tarjeta de criatura + un margen, así
+ *  no hace falta llegar pixel-perfecto encima. */
+const UMBRAL_COMBATE =
+  TABLERO_TOKEN_SIZE / 2 + TABLERO_CARD_SIZE.height / 2 + 40;
+
+function distancia(ax: number, ay: number, bx: number, by: number) {
+  return Math.hypot(ax - bx, ay - by);
+}
+
+// ── Pantalla de combate ──────────────────────────────────────────────────
+// Reemplaza el feed/pizarrón normal mientras `enCombate` está activo: cara
+// a cara entre la ficha del jugador y la criatura que gatilló el combate,
+// más los dados a mano para resolver tiradas. Salir vuelve al pizarrón tal
+// como estaba (las posiciones no se tocan).
+
+function BarraVida({ actual, max }: { actual: number; max: number }) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, (actual / max) * 100)) : 0;
+  return (
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-micro font-black uppercase tracking-widest text-primary/35">HP</span>
+        <span className="text-micro font-bold text-primary/50 tabular-nums">
+          {actual}/{max}
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-primary/10 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${pct}%`,
+            background: pct > 50 ? "#22c55e" : pct > 20 ? "#f59e0b" : "#ef4444",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LadoCombate({
+  imagen,
+  nombre,
+  subtitulo,
+  children,
+}: {
+  imagen: string | null;
+  nombre: string;
+  subtitulo?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex-1 flex flex-col items-center gap-3 p-5 rounded-2xl"
+      style={{
+        background: "var(--white-custom)",
+        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+      }}
+    >
+      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-primary/5 relative shrink-0">
+        {imagen ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imagen} alt={nombre} className="w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Swords size={22} className="text-primary/15" />
+          </div>
+        )}
+      </div>
+      <div className="text-center">
+        {subtitulo && (
+          <span className="block text-micro font-black uppercase tracking-widest text-primary/35">
+            {subtitulo}
+          </span>
+        )}
+        <h3 className="font-serif italic text-xl text-primary">{nombre}</h3>
+      </div>
+      {children && <div className="w-full mt-1">{children}</div>}
+    </div>
+  );
+}
+
+function PantallaCombate({
+  ficha,
+  rival,
+  onSalir,
+}: {
+  ficha: FichaDnd | null;
+  rival: AventuraEntidad;
+  onSalir: () => void;
+}) {
+  return (
+    <MotionDiv
+      animate={{ opacity: 1 }}
+      className="flex-1 w-full flex flex-col gap-6"
+      initial={{ opacity: 0 }}
+    >
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onSalir}
+          className="flex items-center gap-1.5 text-xs font-bold text-primary/40 hover:text-primary/70 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          Salir de combate
+        </button>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "var(--primary)" }}>
+          <Swords size={12} style={{ color: "var(--btn-text)" }} />
+          <span className="text-micro font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>
+            Combate
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row items-stretch gap-4 md:gap-3">
+        <LadoCombate
+          imagen={ficha?.imagen_url ?? null}
+          nombre={ficha?.nombre ?? "Tu personaje"}
+          subtitulo={[ficha?.clase, ficha?.nivel ? `Nivel ${ficha.nivel}` : null].filter(Boolean).join(" · ") || undefined}
+        >
+          {ficha && (
+            <div className="flex flex-col gap-2">
+              <BarraVida actual={ficha.hp_actual} max={ficha.hp_max} />
+              <div className="flex items-center justify-center gap-3 text-micro font-bold text-primary/50">
+                <span>CA {ficha.ca}</span>
+                <span>·</span>
+                <span>{ficha.velocidad} ft</span>
+              </div>
+            </div>
+          )}
+        </LadoCombate>
+
+        <div className="flex md:flex-col items-center justify-center shrink-0 py-2">
+          <span className="font-serif italic text-2xl text-primary/25">VS</span>
+        </div>
+
+        <LadoCombate
+          imagen={rival.imagen_url}
+          nombre={rival.nombre}
+          subtitulo={
+            [
+              rival.stats_dnd?.tamano,
+              rival.stats_dnd?.tipo ?? TABLA_LABEL[rival.tabla].singular,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+        >
+          {rival.stats_dnd?.hp_max != null ? (
+            <div className="flex flex-col gap-2">
+              <BarraVida actual={rival.stats_dnd.hp_max} max={rival.stats_dnd.hp_max} />
+              <div className="flex items-center justify-center gap-3 text-micro font-bold text-primary/50">
+                {rival.stats_dnd.ca != null && <span>CA {rival.stats_dnd.ca}</span>}
+                {rival.stats_dnd.rc && (
+                  <>
+                    <span>·</span>
+                    <span>RC {rival.stats_dnd.rc}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : rival.descripcion ? (
+            <p className="text-xs text-primary/60 text-center leading-relaxed line-clamp-4">
+              {rival.descripcion}
+            </p>
+          ) : (
+            <p className="text-xs text-primary/30 italic text-center">Sin descripción todavía.</p>
+          )}
+        </LadoCombate>
+      </div>
+
+      <div className="flex justify-center">
+        <div className="w-full max-w-xs">
+          <TiradaDados />
+        </div>
+      </div>
+    </MotionDiv>
+  );
+}
+
 function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: () => void }) {
   const { perfil } = useAuth();
   const { aventuras } = useAventurasList();
@@ -444,6 +630,12 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   );
   const [pidiendoUnion, setPidiendoUnion] = useState(false);
   const [uniendose, setUniendose] = useState(false);
+  // ── Modo combate: se activa solo cuando el jugador clickea el tablero
+  // para mover su ficha y el destino queda cerca de una criatura
+  // publicada. rivalCombate guarda esa criatura para mostrarla en el
+  // aviso; se puede salir manualmente con "Salir de combate".
+  const [enCombate, setEnCombate] = useState(false);
+  const [rivalCombate, setRivalCombate] = useState<AventuraEntidad | null>(null);
   // Solo se ofrece unirse una vez por sesión de este componente (si el
   // jugador cierra el modal sin confirmar, no se lo vuelve a interrumpir
   // hasta que salga y vuelva a entrar a la aventura).
@@ -475,6 +667,21 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
     ...publicadas,
     ...(relacionPropia && !relacionPropia.publicado ? [relacionPropia] : []),
   ];
+
+  // ── Modo combate activo: reemplaza todo el feed por una pantalla propia
+  // (ficha vs criatura + dados), en vez de mostrar el pizarrón normal. ──
+  if (enCombate && rivalCombate) {
+    return (
+      <PantallaCombate
+        ficha={fichaActiva}
+        rival={rivalCombate}
+        onSalir={() => {
+          setEnCombate(false);
+          setRivalCombate(null);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -619,7 +826,20 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
               }}
               onCanvasClick={
                 relacionPropia
-                  ? (x, y) => moverPosicion(relacionPropia.id, x, y)
+                  ? (x, y) => {
+                      moverPosicion(relacionPropia.id, x, y);
+                      const criaturaCercana = publicadas.find(
+                        (e) =>
+                          e.tabla === "criaturas" &&
+                          e.pos_x !== null &&
+                          e.pos_y !== null &&
+                          distancia(x, y, e.pos_x, e.pos_y) < UMBRAL_COMBATE,
+                      );
+                      if (criaturaCercana) {
+                        setEnCombate(true);
+                        setRivalCombate(criaturaCercana);
+                      }
+                    }
                   : undefined
               }
             />
