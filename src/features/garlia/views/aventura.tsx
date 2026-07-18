@@ -632,10 +632,16 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const [uniendose, setUniendose] = useState(false);
   // ── Modo combate: se activa solo cuando el jugador clickea el tablero
   // para mover su ficha y el destino queda cerca de una criatura
-  // publicada. rivalCombate guarda esa criatura para mostrarla en el
-  // aviso; se puede salir manualmente con "Salir de combate".
+  // publicada. Se guarda solo el ID (no una copia del objeto): así, si el
+  // DM edita la ficha de combate de esa criatura mientras el jugador ya
+  // está en pantalla de combate, `rivalCombate` de abajo se recalcula con
+  // el dato fresco de `entidades` en cada render — no queda una foto
+  // vieja. Se puede salir manualmente con "Salir de combate".
   const [enCombate, setEnCombate] = useState(false);
-  const [rivalCombate, setRivalCombate] = useState<AventuraEntidad | null>(null);
+  const [rivalCombateId, setRivalCombateId] = useState<string | null>(null);
+  const rivalCombate = rivalCombateId
+    ? (entidades.find((e) => e.id === rivalCombateId) ?? null)
+    : null;
   // Solo se ofrece unirse una vez por sesión de este componente (si el
   // jugador cierra el modal sin confirmar, no se lo vuelve a interrumpir
   // hasta que salga y vuelva a entrar a la aventura).
@@ -677,7 +683,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
         rival={rivalCombate}
         onSalir={() => {
           setEnCombate(false);
-          setRivalCombate(null);
+          setRivalCombateId(null);
         }}
       />
     );
@@ -837,7 +843,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                       );
                       if (criaturaCercana) {
                         setEnCombate(true);
-                        setRivalCombate(criaturaCercana);
+                        setRivalCombateId(criaturaCercana.id);
                       }
                     }
                   : undefined

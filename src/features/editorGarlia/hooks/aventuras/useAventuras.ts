@@ -226,13 +226,13 @@ export function useAventuraEntidades(aventuraId: string | null) {
   const aventuraIdRef = useRef(aventuraId);
   aventuraIdRef.current = aventuraId;
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
     if (!aventuraIdRef.current) {
       setEntidades([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     const { data, error } = await supabase
       .from("aventura_entidades")
       .select("*")
@@ -242,7 +242,7 @@ export function useAventuraEntidades(aventuraId: string | null) {
       const resueltas = await resolverEntidades(data as AventuraEntidadRow[]);
       setEntidades(resueltas);
     }
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -253,13 +253,49 @@ export function useAventuraEntidades(aventuraId: string | null) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "aventura_entidades", filter: `aventura_id=eq.${aventuraId}` },
-        () => fetchAll(),
+        () => fetchAll({ silent: true }),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [aventuraId, fetchAll]);
+
+  // ── Realtime de los DATOS de cada entidad (no de la relación): si el DM
+  // edita una criatura/personaje/ítem ya presente en este tablero — por
+  // ejemplo, carga su ficha de combate D&D 2024 — el jugador lo ve
+  // reflejado sin recargar la página. Se suscribe una vez por cada tabla
+  // que realmente esté en uso en este tablero (no a las 9 tablas siempre),
+  // y usa un ref con los ids vigentes para no tener que resuscribirse cada
+  // vez que cambia el contenido de `entidades`. ──
+  const entidadesRef = useRef(entidades);
+  entidadesRef.current = entidades;
+  const tablasEnUso = Array.from(new Set(entidades.map((e) => e.tabla))).sort().join(",");
+
+  useEffect(() => {
+    if (!aventuraId || !tablasEnUso) return;
+    const tablas = tablasEnUso.split(",") as TablaEntidad[];
+    const channels = tablas.map((tabla) =>
+      supabase
+        .channel(`aventura-datos-${aventuraId}-${tabla}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: tabla },
+          (payload) => {
+            const idCambiado = (payload.new as any)?.id ?? (payload.old as any)?.id;
+            if (!idCambiado) return;
+            const nosImporta = entidadesRef.current.some(
+              (e) => e.tabla === tabla && e.entidad_id === idCambiado,
+            );
+            if (nosImporta) fetchAll({ silent: true });
+          },
+        )
+        .subscribe(),
+    );
+    return () => {
+      channels.forEach((c) => supabase.removeChannel(c));
+    };
+  }, [aventuraId, tablasEnUso, fetchAll]);
 
   const agregar = useCallback(
     async (tabla: TablaEntidad, entidadId: string) => {
