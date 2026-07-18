@@ -810,6 +810,7 @@ function AventuraDetalle({
                 ancho: e.ancho,
                 alto: e.alto,
                 contenedorId: e.contenedor_id,
+                grupoNombre: e.tabla === "criaturas" ? e.grupo_nombre : null,
               }),
             )}
             renderBadge={(item) => {

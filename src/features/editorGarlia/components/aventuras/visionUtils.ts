@@ -165,6 +165,191 @@ export function celdaDe(x: number, y: number): string {
   return `${Math.floor(x / GRID_SIZE)},${Math.floor(y / GRID_SIZE)}`;
 }
 
+// ── Pathfinding (movimiento con colisión) ─────────────────────────────────
+// A* simple sobre la misma grilla de GRID_SIZE que ya usa la memoria de
+// exploración de la niebla. Se usa para que un jugador no pueda cruzar
+// clickeando "del otro lado" de una pared/río: en vez de moverlo en línea
+// recta al punto clickeado, se busca el camino más corto de celda en celda
+// que rodee los obstáculos, y se mueve a lo largo de ese camino.
+
+interface CeldaXY {
+  cx: number;
+  cy: number;
+}
+
+/** Todas las celdas de grilla que un obstáculo ocupa (aproximado a su
+ *  bounding box — alcanza para bloquear movimiento, no hace falta la
+ *  precisión del raycasting de línea de visión). */
+function celdasDeObstaculo(o: Obstaculo): CeldaXY[] {
+  const x0 = Math.floor(o.pos_x / GRID_SIZE);
+  const y0 = Math.floor(o.pos_y / GRID_SIZE);
+  const x1 = Math.floor((o.pos_x + o.ancho - 1) / GRID_SIZE);
+  const y1 = Math.floor((o.pos_y + o.alto - 1) / GRID_SIZE);
+  const celdas: CeldaXY[] = [];
+  for (let cx = x0; cx <= x1; cx++) {
+    for (let cy = y0; cy <= y1; cy++) {
+      celdas.push({ cx, cy });
+    }
+  }
+  return celdas;
+}
+
+/** Construye el set de celdas bloqueadas (como "cx,cy") a partir de la
+ *  lista de obstáculos que bloquean movimiento. */
+export function celdasBloqueadas(obstaculos: Obstaculo[]): Set<string> {
+  const set = new Set<string>();
+  for (const o of obstaculos) {
+    for (const { cx, cy } of celdasDeObstaculo(o)) {
+      set.add(`${cx},${cy}`);
+    }
+  }
+  return set;
+}
+
+/**
+ * Busca el camino más corto en la grilla (A*, 8 direcciones) desde `desde`
+ * hasta `hasta` (coordenadas lógicas en px), esquivando `bloqueadas`.
+ * Devuelve la lista de puntos (centros de celda, en px lógicos) del camino
+ * SIN incluir el punto de partida, o `[]` si no hay camino posible (rodeado
+ * por completo) o si el destino cae directo sobre una celda bloqueada (en
+ * ese caso se recorta al vecino transitable más cercano al destino).
+ * Acotado a un radio de búsqueda razonable alrededor del origen para no
+ * explorar un tablero entero si el destino está clickeado lejísimos.
+ */
+export function buscarCamino(
+  desde: Punto,
+  hasta: Punto,
+  bloqueadas: Set<string>,
+  canvasW: number,
+  canvasH: number,
+): Punto[] {
+  const startCx = Math.floor(desde.x / GRID_SIZE);
+  const startCy = Math.floor(desde.y / GRID_SIZE);
+  let endCx = Math.floor(hasta.x / GRID_SIZE);
+  let endCy = Math.floor(hasta.y / GRID_SIZE);
+
+  const maxCx = Math.floor(canvasW / GRID_SIZE);
+  const maxCy = Math.floor(canvasH / GRID_SIZE);
+  const key = (cx: number, cy: number) => `${cx},${cy}`;
+
+  // Si el destino cae justo sobre una celda bloqueada (clickeó "dentro" de
+  // la pared/río), se busca la celda transitable vecina más cercana al
+  // origen — así el personaje llega hasta el borde del obstáculo en vez de
+  // no moverse en absoluto.
+  if (bloqueadas.has(key(endCx, endCy))) {
+    let mejor: CeldaXY | null = null;
+    let mejorDist = Infinity;
+    for (let dx = -3; dx <= 3; dx++) {
+      for (let dy = -3; dy <= 3; dy++) {
+        const cx = endCx + dx;
+        const cy = endCy + dy;
+        if (cx < 0 || cy < 0 || cx > maxCx || cy > maxCy) continue;
+        if (bloqueadas.has(key(cx, cy))) continue;
+        const d = Math.hypot(cx - endCx, cy - endCy);
+        if (d < mejorDist) {
+          mejorDist = d;
+          mejor = { cx, cy };
+        }
+      }
+    }
+    if (!mejor) return [];
+    endCx = mejor.cx;
+    endCy = mejor.cy;
+  }
+
+  if (startCx === endCx && startCy === endCy) return [];
+
+  // Radio de búsqueda: acota el A* a un cuadrado alrededor de la línea
+  // recta origen→destino (con margen), para no recorrer un tablero enorme
+  // si el click cayó lejos. Suficiente margen para rodear obstáculos
+  // razonablemente grandes sin perder el camino.
+  const MARGEN_CELDAS = 12;
+  const minCx = Math.max(0, Math.min(startCx, endCx) - MARGEN_CELDAS);
+  const maxCxBusqueda = Math.min(maxCx, Math.max(startCx, endCx) + MARGEN_CELDAS);
+  const minCy = Math.max(0, Math.min(startCy, endCy) - MARGEN_CELDAS);
+  const maxCyBusqueda = Math.min(maxCy, Math.max(startCy, endCy) + MARGEN_CELDAS);
+
+  const heuristica = (cx: number, cy: number) => Math.hypot(cx - endCx, cy - endCy);
+
+  const abiertos = new Map<string, { cx: number; cy: number; f: number }>();
+  const gScore = new Map<string, number>();
+  const cameFrom = new Map<string, string>();
+  const startKey = key(startCx, startCy);
+  gScore.set(startKey, 0);
+  abiertos.set(startKey, { cx: startCx, cy: startCy, f: heuristica(startCx, startCy) });
+
+  const cerrados = new Set<string>();
+  const endKey = key(endCx, endCy);
+
+  // Límite duro de iteraciones: red de seguridad para que un caso patológico
+  // (destino inalcanzable en un mapa grande) no cuelgue el navegador.
+  let iteraciones = 0;
+  const MAX_ITER = 4000;
+
+  while (abiertos.size > 0 && iteraciones < MAX_ITER) {
+    iteraciones++;
+    let actualKey = "";
+    let actual: { cx: number; cy: number; f: number } | null = null;
+    for (const [k, v] of abiertos) {
+      if (!actual || v.f < actual.f) {
+        actual = v;
+        actualKey = k;
+      }
+    }
+    if (!actual) break;
+    if (actualKey === endKey) break;
+    abiertos.delete(actualKey);
+    cerrados.add(actualKey);
+
+    const vecinos = [
+      { dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
+      { dx: 1, dy: 1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 },
+    ];
+    for (const { dx, dy } of vecinos) {
+      const ncx = actual.cx + dx;
+      const ncy = actual.cy + dy;
+      if (ncx < minCx || ncx > maxCxBusqueda || ncy < minCy || ncy > maxCyBusqueda) continue;
+      const nKey = key(ncx, ncy);
+      if (cerrados.has(nKey) || bloqueadas.has(nKey)) continue;
+      // En movimiento diagonal, evita "cortar la esquina" de dos celdas
+      // bloqueadas adyacentes (si no, el camino podría atravesar el
+      // vértice exacto donde se tocan dos paredes en diagonal).
+      if (dx !== 0 && dy !== 0) {
+        if (bloqueadas.has(key(actual.cx + dx, actual.cy)) || bloqueadas.has(key(actual.cx, actual.cy + dy))) {
+          continue;
+        }
+      }
+      const costo = dx !== 0 && dy !== 0 ? Math.SQRT2 : 1;
+      const gTentativo = (gScore.get(actualKey) ?? Infinity) + costo;
+      if (gTentativo < (gScore.get(nKey) ?? Infinity)) {
+        cameFrom.set(nKey, actualKey);
+        gScore.set(nKey, gTentativo);
+        abiertos.set(nKey, { cx: ncx, cy: ncy, f: gTentativo + heuristica(ncx, ncy) });
+      }
+    }
+  }
+
+  if (!gScore.has(endKey)) return []; // no hay camino posible
+
+  // Reconstruye el camino de vuelta desde el destino, y lo invierte.
+  const camino: CeldaXY[] = [];
+  let k = endKey;
+  while (k !== startKey) {
+    const [cx, cy] = k.split(",").map(Number);
+    camino.push({ cx, cy });
+    const prev = cameFrom.get(k);
+    if (!prev) break;
+    k = prev;
+  }
+  camino.reverse();
+
+  return camino.map(({ cx, cy }) => ({
+    x: cx * GRID_SIZE + GRID_SIZE / 2,
+    y: cy * GRID_SIZE + GRID_SIZE / 2,
+  }));
+}
+
+
 /** Punto está dentro del polígono de visibilidad (ray casting par/impar). */
 function puntoEnPoligono(p: Punto, poligono: Punto[]): boolean {
   let dentro = false;

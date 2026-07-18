@@ -270,6 +270,29 @@ export function useAventuraEntidades(aventuraId: string | null) {
   const aventuraIdRef = useRef(aventuraId);
   aventuraIdRef.current = aventuraId;
 
+  // ── Guard anti-"rebote" de posición ────────────────────────────────────
+  // moverPosicion es optimista: actualiza `entidades` al instante y recién
+  // después persiste. El problema es que CUALQUIER cambio en la tabla
+  // (incluido nuestro propio UPDATE) dispara el listener de realtime, que
+  // llama a fetchAll y REEMPLAZA todo el array con lo que devuelve la DB.
+  // Si ese fetch fue disparado por un evento viejo, o llega desordenado
+  // respecto a un segundo move que ya se hizo mientras tanto, el fetch
+  // puede pisar momentáneamente la posición optimista con una posición
+  // vieja — y un instante después el fetch "bueno" la vuelve a corregir.
+  // Eso es exactamente el efecto de "se mueve, retrocede, y vuelve a
+  // moverse" que se veía al arrastrar.
+  //
+  // La solución: cada vez que se hace un move optimista se anota acá
+  // (id -> {x, y, t}), con timestamp. Cuando llega un fetchAll, por cada
+  // fila se compara: si hay un pendiente reciente (dentro de la ventana
+  // de gracia) para ese id, se conserva la posición optimista en vez de
+  // pisarla con la de la DB — así ningún fetch desordenado puede hacer
+  // "rebotar" visualmente una tarjeta que el usuario acaba de soltar. El
+  // pendiente se limpia solo (por vencimiento) para no quedar bloqueando
+  // updates ajenos (de otro jugador/DM) para siempre.
+  const posicionesPendientes = useRef(new Map<string, { x: number; y: number; t: number }>());
+  const GRACIA_MS = 4000;
+
   const fetchAll = useCallback(async (opts?: { silent?: boolean }) => {
     if (!aventuraIdRef.current) {
       setEntidades([]);
@@ -284,7 +307,23 @@ export function useAventuraEntidades(aventuraId: string | null) {
       .order("created_at", { ascending: false });
     if (!error && data) {
       const resueltas = await resolverEntidades(data as AventuraEntidadRow[]);
-      setEntidades(resueltas);
+      const ahora = Date.now();
+      const pendientes = posicionesPendientes.current;
+      const conGuard = resueltas.map((e) => {
+        const pendiente = pendientes.get(e.id);
+        if (!pendiente) return e;
+        if (ahora - pendiente.t > GRACIA_MS) {
+          // Venció la ventana de gracia (ya se persistió hace rato, o el
+          // request falló silenciosamente): se descarta el guard y se usa
+          // el valor real de la DB.
+          pendientes.delete(e.id);
+          return e;
+        }
+        // Todavía dentro de la ventana: preferimos nuestra posición
+        // optimista sobre la que trajo este fetch en particular.
+        return { ...e, pos_x: pendiente.x, pos_y: pendiente.y };
+      });
+      setEntidades(conGuard);
     }
     if (!opts?.silent) setLoading(false);
   }, []);
@@ -398,8 +437,11 @@ export function useAventuraEntidades(aventuraId: string | null) {
     }
   }, [entidades]);
 
-  /** Mueve un item en el tablero libre (pizarrón). Optimista + persistido. */
+  /** Mueve un item en el tablero libre (pizarrón). Optimista + persistido.
+   *  Registra la posición en `posicionesPendientes` (ver comentario arriba
+   *  de fetchAll) para que un realtime desordenado no la haga rebotar. */
   const moverPosicion = useCallback(async (relacionId: string, posX: number, posY: number) => {
+    posicionesPendientes.current.set(relacionId, { x: posX, y: posY, t: Date.now() });
     const anterior = entidades;
     setEntidades((prev) =>
       prev.map((e) => (e.id === relacionId ? { ...e, pos_x: posX, pos_y: posY } : e)),
@@ -409,9 +451,14 @@ export function useAventuraEntidades(aventuraId: string | null) {
       .update({ pos_x: posX, pos_y: posY })
       .eq("id", relacionId);
     if (error) {
+      posicionesPendientes.current.delete(relacionId);
       setEntidades(anterior);
       throw error;
     }
+    // Persistido con éxito: ya no hace falta seguir protegiendo esta
+    // posición contra fetches — cualquier fetch nuevo va a traer este
+    // mismo valor de la DB de todos modos.
+    posicionesPendientes.current.delete(relacionId);
   }, [entidades]);
 
   /** Asigna (o quita, si nombre es null/vacío) el grupo/horda de una

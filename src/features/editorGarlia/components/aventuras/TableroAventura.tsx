@@ -67,6 +67,13 @@ export interface TableroItem {
    *  afecta al render (borde/badge) — el posicionamiento sigue siendo
    *  libre en coordenadas absolutas del canvas. */
   contenedorId?: string | null;
+  /** Nombre del grupo/horda al que pertenece (ej. "Horda de goblins").
+   *  Items que comparten el mismo grupoNombre se dibujan como un solo
+   *  bloque apilado (una tarjeta "líder" al frente + un par de bordes
+   *  detrás simulando profundidad + contador ×N), en vez de una tarjeta
+   *  por cada uno. Solo afecta al render — cada item sigue existiendo por
+   *  separado en los datos y se puede arrastrar fuera del grupo. */
+  grupoNombre?: string | null;
 }
 
 export interface TableroObstaculo extends Obstaculo {
@@ -457,6 +464,47 @@ export function TableroAventura({
   // objetivo resaltado ahora mismo".
   const highlightTargetId = containerTargetId ?? dropTargetId;
 
+  // ── Agrupar visualmente por grupoNombre ────────────────────────────────
+  // Varias criaturas con el mismo grupoNombre (horda) se dibujan como un
+  // solo bloque: una tarjeta "líder" (la primera del grupo, en orden de
+  // aparición en `items`) al frente, con un par de bordes apilados detrás
+  // simulando profundidad y un contador ×N — en vez de una tarjeta suelta
+  // por cada miembro. El resto de los miembros del grupo no se dibujan
+  // como tarjetas propias (se "esconden" del render), pero siguen
+  // existiendo normalmente en los datos: se puede seguir arrastrando la
+  // tarjeta líder, y el resto de los miembros mantiene su posición real
+  // (por si el DM alguna vez los desagrupa). No aplica a tokens
+  // (destacado). Si un item está siendo arrastrado/redimensionado ahora
+  // mismo, momentáneamente se "despega" del stack para poder sacarlo del
+  // grupo o reordenarlo sin que el resto del bloque se mueva con él.
+  const liderPorGrupo = useMemo(() => {
+    const mapa = new Map<string, string>(); // grupoNombre -> id de la líder
+    for (const item of resueltos) {
+      if (item.destacado || !item.grupoNombre) continue;
+      if (!mapa.has(item.grupoNombre)) mapa.set(item.grupoNombre, item.id);
+    }
+    return mapa;
+  }, [resueltos]);
+
+  const tamanoGrupo = useMemo(() => {
+    const conteo = new Map<string, number>();
+    for (const item of resueltos) {
+      if (item.destacado || !item.grupoNombre) continue;
+      conteo.set(item.grupoNombre, (conteo.get(item.grupoNombre) ?? 0) + 1);
+    }
+    return conteo;
+  }, [resueltos]);
+
+  /** Un item se dibuja "suelto" (fuera del stack) si: no tiene grupo, es
+   *  la líder de su grupo, o se está arrastrando/redimensionando ahora
+   *  mismo (para no perder de vista lo que se está manipulando). El resto
+   *  de los miembros del grupo se saltea en el render principal. */
+  const esMiembroOcultoDeGrupo = (item: TableroItem) => {
+    if (item.destacado || !item.grupoNombre) return false;
+    if (dragId === item.id || resizeId === item.id) return false;
+    return liderPorGrupo.get(item.grupoNombre) !== item.id;
+  };
+
   const handlePointerDown = (e: React.PointerEvent, item: TableroItem) => {
     // En modo público (no editable) igual necesitamos trackear el
     // pointer down→up para poder distinguir "click" de "arrastre" y
@@ -677,8 +725,6 @@ export function TableroAventura({
       ref={containerRef}
       className="relative flex-1 min-h-0 min-w-0 overflow-auto rounded-xl"
       style={{
-        background:
-          `repeating-linear-gradient(0deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px), repeating-linear-gradient(90deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px)`,
         touchAction: editable ? "none" : "pan-x pan-y",
       }}
     >
@@ -696,6 +742,20 @@ export function TableroAventura({
             transform: `scale(${zoom})`,
             transformOrigin: "top left",
             cursor: onCanvasClick ? "crosshair" : undefined,
+            // ── Cuadrícula de fondo, alineada 1:1 con las celdas de
+            // click/snap: antes vivía en el contenedor con scroll (fuera
+            // del transform: scale), así que al hacer scroll o zoom se
+            // desincronizaba del contenido — cada cuadrito visual no
+            // coincidía con el lugar real donde caía el click. Viviendo
+            // acá, en el mismo lienzo lógico que arranca en (0,0) y que
+            // el click usa para calcular sus coordenadas (antes de
+            // dividir por zoom), la grilla queda pegada 1 a 1 a
+            // gridSize — cada cuadrito ES una celda de movimiento. Se
+            // ancla explícitamente a 0 0 (backgroundPosition) para que
+            // no dependa del scroll del contenedor.
+            background:
+              `repeating-linear-gradient(0deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px), repeating-linear-gradient(90deg, transparent, transparent ${celdaVisualBg - 1}px, color-mix(in srgb, var(--primary) 6%, transparent) ${celdaVisualBg}px)`,
+            backgroundPosition: "0 0",
           }}
           onClick={(e) => {
             // Solo cuenta como "click en el lienzo" si el click no vino
@@ -801,7 +861,7 @@ export function TableroAventura({
                   left: x - size / 2,
                   top: y - size / 2,
                   width: size,
-                  zIndex: isDraggingThis ? 30 : 2,
+                  zIndex: isDraggingThis ? 30 : item.contenedorId ? 5 : 2,
                 }}
               >
                 <div
@@ -859,6 +919,12 @@ export function TableroAventura({
             );
           }
 
+          // Miembro de un grupo/horda que no es la líder: no se dibuja como
+          // tarjeta propia (queda "escondido" detrás de la líder, ver
+          // stack más abajo), salvo que se lo esté arrastrando/
+          // redimensionando ahora mismo.
+          if (esMiembroOcultoDeGrupo(item)) return null;
+
           const tieneImagen = !!item.imagen_url;
           const size = tamanoEfectivo(item);
           // Con imagen: tarjeta cuadrada por default (imagen ocupa todo el
@@ -873,44 +939,108 @@ export function TableroAventura({
           const esContainerTarget = containerTargetId === item.id;
           const isResizingThis = resizeId === item.id;
           const esResizable = editable && !!onResizeItem && !item.destacado;
+          // ── Stack visual del grupo: si esta tarjeta es la líder de un
+          // grupo con más de un miembro, se dibujan 1-2 "bordes fantasma"
+          // detrás (offset diagonal fijo, mismo tamaño) simulando un mazo
+          // de cartas apilado, más un contador ×N en la esquina —
+          // puramente decorativo, no son elementos interactivos propios. ──
+          const tamanoDelGrupo = item.grupoNombre ? (tamanoGrupo.get(item.grupoNombre) ?? 1) : 1;
+          const esLiderDeGrupo = item.grupoNombre
+            ? liderPorGrupo.get(item.grupoNombre) === item.id && tamanoDelGrupo > 1
+            : false;
+          const capasStack = Math.min(tamanoDelGrupo - 1, 2);
+          // Offset diagonal fijo de cada capa fantasma detrás de la líder
+          // (en px lógicos, sin escalar por zoom — el <div> del canvas ya
+          // aplica el transform: scale a todo el árbol).
+          const STACK_OFFSET = 7;
           return (
-            <div
-              key={item.id}
-              onPointerDown={(e) => handlePointerDown(e, item)}
-              onPointerMove={handlePointerMove}
-              onPointerUp={(e) => handlePointerUp(e, item)}
-              className={`group absolute rounded-2xl border overflow-hidden shadow-sm select-none ${
-                tieneImagen ? "" : "flex items-stretch gap-3"
-              }`}
-              style={{
-                left: x,
-                top: y,
-                width: cardStyleWidth,
-                height: cardStyleHeight,
-                background: "var(--white-custom)",
-                borderColor: esContainerTarget
-                  ? "#3b82f6"
-                  : esDropTarget
-                    ? "#22c55e"
-                    : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderWidth: esContainerTarget || esDropTarget ? 2 : 1,
-                borderStyle: esContainerTarget || esDropTarget ? "dashed" : "solid",
-                cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
-                touchAction: "manipulation",
-                zIndex: isDraggingThis || isResizingThis ? 30 : 1,
-                boxShadow: esContainerTarget
-                  ? "0 0 0 4px rgba(59,130,246,0.22)"
-                  : esDropTarget
-                    ? "0 0 0 4px rgba(34,197,94,0.2)"
-                    : isDraggingThis || isResizingThis
-                      ? "0 10px 24px rgba(0,0,0,0.18)"
-                      : "0 1px 3px rgba(0,0,0,0.06)",
-                transition:
-                  isDraggingThis || isResizingThis
-                    ? "none"
-                    : "box-shadow 0.15s ease, border-color 0.15s ease",
-              }}
-            >
+            <React.Fragment key={item.id}>
+              {esLiderDeGrupo &&
+                Array.from({ length: capasStack }).map((_, i) => {
+                  // Se dibujan de atrás hacia adelante (la más alejada
+                  // primero) para que la de más arriba en z-index quede
+                  // justo debajo de la tarjeta líder real.
+                  const capa = capasStack - i;
+                  return (
+                    <div
+                      key={`${item.id}-stack-${capa}`}
+                      aria-hidden
+                      className="absolute rounded-2xl border pointer-events-none"
+                      style={{
+                        left: x + capa * STACK_OFFSET,
+                        top: y + capa * STACK_OFFSET,
+                        width: cardStyleWidth,
+                        height: cardStyleHeight,
+                        background: "var(--white-custom)",
+                        borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                        borderWidth: 1,
+                        opacity: 1 - capa * 0.18,
+                        zIndex: (isDraggingThis || isResizingThis ? 30 : 1) - capa,
+                      }}
+                    />
+                  );
+                })}
+              <div
+                onPointerDown={(e) => handlePointerDown(e, item)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={(e) => handlePointerUp(e, item)}
+                className={`group absolute rounded-2xl border overflow-hidden shadow-sm select-none ${
+                  tieneImagen ? "" : "flex items-stretch gap-3"
+                }`}
+                style={{
+                  left: x,
+                  top: y,
+                  width: cardStyleWidth,
+                  height: cardStyleHeight,
+                  background: "var(--white-custom)",
+                  borderColor: esContainerTarget
+                    ? "#3b82f6"
+                    : esDropTarget
+                      ? "#22c55e"
+                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  borderWidth: esContainerTarget || esDropTarget ? 2 : 1,
+                  borderStyle: esContainerTarget || esDropTarget ? "dashed" : "solid",
+                  cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
+                  touchAction: "manipulation",
+                  // Un item "contenido" dentro de un reino (contenedorId)
+                  // siempre se dibuja por encima del reino que lo alberga
+                  // — si no, al ser ambas tarjetas normales, el orden de
+                  // superposición dependería del orden de `items` y el
+                  // reino agrandado podía terminar tapando lo que tiene
+                  // adentro. zIndex 5 > el 1 base de una tarjeta suelta
+                  // (y de un reino, que no tiene contenedorId propio),
+                  // pero sigue por debajo de drag/resize (30).
+                  zIndex: isDraggingThis || isResizingThis ? 30 : item.contenedorId ? 5 : 1,
+                  boxShadow: esContainerTarget
+                    ? "0 0 0 4px rgba(59,130,246,0.22)"
+                    : esDropTarget
+                      ? "0 0 0 4px rgba(34,197,94,0.2)"
+                      : isDraggingThis || isResizingThis
+                        ? "0 10px 24px rgba(0,0,0,0.18)"
+                        : "0 1px 3px rgba(0,0,0,0.06)",
+                  transition:
+                    isDraggingThis || isResizingThis
+                      ? "none"
+                      : "box-shadow 0.15s ease, border-color 0.15s ease",
+                }}
+              >
+                {/* Contador ×N del grupo/horda: solo en la tarjeta líder
+                    de un grupo con más de un miembro — comunica de un
+                    vistazo "esto es un bloque de varias criaturas", sin
+                    tener que abrir el detalle de cada una. */}
+                {esLiderDeGrupo && (
+                  <div
+                    className="absolute -top-1.5 -right-1.5 z-20 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-micro font-black pointer-events-none"
+                    style={{
+                      background: "var(--primary)",
+                      color: "var(--white-custom)",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                    }}
+                    title={`Grupo: ${item.grupoNombre} (${tamanoDelGrupo})`}
+                  >
+                    ×{tamanoDelGrupo}
+                  </div>
+                )}
               {/* Indicador de "está contenida dentro de un reino/otra
                   entidad" — solo un pequeño badge, no cambia el layout. */}
               {item.contenedorId && (
@@ -1013,7 +1143,8 @@ export function TableroAventura({
                   />
                 </div>
               )}
-            </div>
+              </div>
+            </React.Fragment>
           );
         })}
 

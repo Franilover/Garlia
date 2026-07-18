@@ -26,6 +26,7 @@ import {
   TableroAventura,
   type TableroItem,
 } from "@/features/editorGarlia/components/aventuras/TableroAventura";
+import { buscarCamino, celdasBloqueadas, GRID_SIZE } from "@/features/editorGarlia/components/aventuras/visionUtils";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -688,6 +689,66 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const [cargandoFicha, setCargandoFicha] = useState(false);
   const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
 
+  // ── Movimiento con colisión (pathfinding) ──────────────────────────────
+  // Antes, clickear el pizarrón movía la ficha en línea recta al punto
+  // clickeado, sin importar si había una pared/río en el medio — se podía
+  // "atravesar" el obstáculo o aparecer del otro lado de un salto. Ahora
+  // se calcula un camino (A* en la misma grilla que usa la niebla) que
+  // esquiva las celdas ocupadas por obstáculos, y el token se anima paso a
+  // paso a lo largo de ese camino en vez de saltar directo. Si no hay
+  // camino posible (destino rodeado), no se mueve.
+  //
+  // `movimientoEnCursoRef` evita que dos animaciones de camino compitan
+  // entre sí si el jugador clickea de nuevo antes de que termine la
+  // anterior — se cancela la vieja y arranca la nueva desde la posición
+  // actual (no desde donde iba a llegar la cancelada).
+  const movimientoEnCursoRef = React.useRef<{ cancelado: boolean }>({ cancelado: false });
+  const PASO_MS = 140;
+
+  const moverConColision = React.useCallback(
+    (relacionId: string, desde: { x: number; y: number }, hasta: { x: number; y: number }) => {
+      movimientoEnCursoRef.current.cancelado = true;
+      const token = { cancelado: false };
+      movimientoEnCursoRef.current = token;
+
+      const bloqueadas = celdasBloqueadas(
+        obstaculos.map((o) => ({ id: o.id, forma: o.forma, pos_x: o.pos_x, pos_y: o.pos_y, ancho: o.ancho, alto: o.alto })),
+      );
+      // Cota generosa del lienzo para el A*: no necesita ser exacta (el
+      // algoritmo ya se acota solo por margen alrededor de origen/destino),
+      // solo tiene que cubrir cualquier posición real del tablero.
+      const canvasW = Math.max(2400, hasta.x + 400, desde.x + 400);
+      const canvasH = Math.max(1600, hasta.y + 400, desde.y + 400);
+      const camino = buscarCamino(desde, hasta, bloqueadas, canvasW, canvasH);
+
+      if (camino.length === 0) {
+        // Sin pared/río en el medio (o destino inalcanzable): si el
+        // destino no está bloqueado, se mueve directo como antes — el A*
+        // solo hace falta cuando efectivamente hay algo en el camino, así
+        // que este es el caso común y más rápido.
+        const cxDestino = Math.floor(hasta.x / GRID_SIZE);
+        const cyDestino = Math.floor(hasta.y / GRID_SIZE);
+        if (!bloqueadas.has(`${cxDestino},${cyDestino}`)) {
+          void moverPosicion(relacionId, hasta.x, hasta.y);
+        }
+        return;
+      }
+
+      let i = 0;
+      const avanzar = () => {
+        if (token.cancelado || i >= camino.length) return;
+        const paso = camino[i];
+        void moverPosicion(relacionId, Math.round(paso.x), Math.round(paso.y));
+        i++;
+        if (i < camino.length) {
+          setTimeout(avanzar, PASO_MS);
+        }
+      };
+      avanzar();
+    },
+    [obstaculos, moverPosicion],
+  );
+
   // ── Al seleccionar una entidad tipo "fichas_dnd" (el token de otro
   // jugador), se trae la ficha completa para mostrar sus stats reales
   // (no solo nombre/descripción, que es lo único que resuelve
@@ -950,6 +1011,10 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                   pos_x: entidad.pos_x,
                   pos_y: entidad.pos_y,
                   destacado: entidad.tabla === "fichas_dnd",
+                  grupoNombre: entidad.tabla === "criaturas" ? entidad.grupo_nombre : null,
+                  ancho: entidad.ancho,
+                  alto: entidad.alto,
+                  contenedorId: entidad.contenedor_id,
                 }),
               )}
               zoom={escala}
@@ -987,7 +1052,11 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
               onCanvasClick={
                 relacionPropia
                   ? (x, y) => {
-                      moverPosicion(relacionPropia.id, x, y);
+                      const desde = {
+                        x: relacionPropia.pos_x ?? x,
+                        y: relacionPropia.pos_y ?? y,
+                      };
+                      moverConColision(relacionPropia.id, desde, { x, y });
                       const criaturaCercana = publicadas.find(
                         (e) =>
                           e.tabla === "criaturas" &&
