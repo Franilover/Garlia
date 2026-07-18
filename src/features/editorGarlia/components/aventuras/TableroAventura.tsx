@@ -52,6 +52,19 @@ interface TableroAventuraProps {
   editable?: boolean;
   onMove?: (id: string, x: number, y: number) => void;
   onClickItem?: (id: string) => void;
+  /** Mantener presionada una tarjeta/token (sin arrastrar) más de
+   *  LONG_PRESS_MS: pensado para "ver descripción" sin disparar la acción
+   *  normal de onClickItem (ej. entrar en combate). Si se pasa, un click
+   *  corto sigue llamando a onClickItem como siempre; solo la presión
+   *  larga dispara esto en su lugar. */
+  onLongPressItem?: (id: string) => void;
+  /** Se dispara al soltar una tarjeta arrastrada (editable=true) sobre
+   *  otra tarjeta distinta — sus áreas se solapan lo suficiente al momento
+   *  de soltar. Pensado para "arrastrar una criatura sobre otra para
+   *  agruparlas en una horda". No interfiere con onMove: si hay
+   *  solapamiento se llama a onDropOnItem en vez de onMove (agrupar tiene
+   *  prioridad sobre reposicionar libremente encima de otra tarjeta). */
+  onDropOnItem?: (draggedId: string, targetId: string) => void;
   /** Click en un punto vacío del lienzo (fuera de cualquier tarjeta):
    *  reporta la posición lógica (ya dividida por zoom, mismas unidades
    *  que pos_x/pos_y). Se usa para "mover con un click" — el jugador
@@ -104,6 +117,8 @@ export function TableroAventura({
   editable = false,
   onMove,
   onClickItem,
+  onLongPressItem,
+  onDropOnItem,
   onCanvasClick,
   renderBadge,
   emptyHint = "Todavía no hay nada aquí.",
@@ -122,6 +137,22 @@ export function TableroAventura({
   const dragOffset = useRef({ dx: 0, dy: 0 });
   const [livePos, setLivePos] = useState<Record<string, { x: number; y: number }>>({});
   const [dragMoved, setDragMoved] = useState(false);
+  // ── Long press: si el pointer se mantiene quieto (sin drag) sobre una
+  // tarjeta/token por LONG_PRESS_MS, se dispara onLongPressItem en vez de
+  // la acción normal de click. Se cancela si hay drag o si se suelta
+  // antes. `longPressFiredRef` evita que handlePointerUp además ejecute
+  // el onClickItem normal cuando ya disparamos el long press.
+  const LONG_PRESS_MS = 500;
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFiredRef = useRef(false);
+  const dragMovedRef = useRef(false);
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const canvasW = Math.max(
     CANVAS_MIN_W,
@@ -147,6 +178,11 @@ export function TableroAventura({
   const centroY = itemCentrado?.pos_y ?? null;
 
   React.useEffect(() => {
+    return () => clearLongPressTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
     if (!centrarEnId || centroX === null || centroY === null) return;
     const el = containerRef.current;
     if (!el) return;
@@ -164,6 +200,32 @@ export function TableroAventura({
   }, [centrarEnId, centroX, centroY, zoom]);
 
 
+  // ── Drop target durante el arrastre: se recalcula en cada render
+  // mientras se arrastra (livePos cambia) — así la tarjeta objetivo se
+  // resalta ANTES de soltar, dándole feedback visual al DM de "esto se va
+  // a agrupar si soltás acá". handlePointerUp reutiliza este mismo valor
+  // al soltar, así no hay dos implementaciones del cálculo de solapamiento
+  // que puedan desincronizarse.
+  const dragItem = dragId ? resueltos.find((i) => i.id === dragId) : undefined;
+  const dropTargetId = useMemo(() => {
+    if (!dragId || !dragItem || !onDropOnItem) return null;
+    const live = livePos[dragId];
+    if (!live) return null;
+    const centerX = live.x + (dragItem.destacado ? 0 : CARD_W / 2);
+    const centerY = live.y + (dragItem.destacado ? 0 : CARD_H / 2);
+    const objetivo = resueltos.find((other) => {
+      if (other.id === dragId) return false;
+      const ox = (other.pos_x ?? 0) + (other.destacado ? 0 : CARD_W / 2);
+      const oy = (other.pos_y ?? 0) + (other.destacado ? 0 : CARD_H / 2);
+      const radio =
+        (dragItem.destacado ? TABLERO_TOKEN_SIZE / 2 : CARD_W / 2) +
+        (other.destacado ? TABLERO_TOKEN_SIZE / 2 : CARD_W / 2);
+      return Math.hypot(centerX - ox, centerY - oy) < radio * 0.6;
+    });
+    return objetivo?.id ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragId, dragItem, livePos, resueltos, onDropOnItem, CARD_W, CARD_H]);
+
   const handlePointerDown = (e: React.PointerEvent, item: TableroItem) => {
     // En modo público (no editable) igual necesitamos trackear el
     // pointer down→up para poder distinguir "click" de "arrastre" y
@@ -176,6 +238,18 @@ export function TableroAventura({
     dragOffset.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
     setDragId(item.id);
     setDragMoved(false);
+
+    longPressFiredRef.current = false;
+    dragMovedRef.current = false;
+    if (onLongPressItem) {
+      clearLongPressTimer();
+      longPressTimerRef.current = setTimeout(() => {
+        // Si para entonces ya se movió (drag), no cuenta como long press.
+        if (dragMovedRef.current) return;
+        longPressFiredRef.current = true;
+        onLongPressItem(item.id);
+      }, LONG_PRESS_MS);
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -194,6 +268,8 @@ export function TableroAventura({
     const clampedY = Math.max(0, y);
     setLivePos((prev) => ({ ...prev, [dragId]: { x: clampedX, y: clampedY } }));
     setDragMoved(true);
+    dragMovedRef.current = true;
+    clearLongPressTimer();
   };
 
   const handlePointerUp = (e: React.PointerEvent, item: TableroItem) => {
@@ -201,12 +277,27 @@ export function TableroAventura({
     const target = e.currentTarget as HTMLElement;
     target.releasePointerCapture(e.pointerId);
     const final = livePos[item.id];
+    // dropTargetId ya está calculado con la misma posición livePos[item.id]
+    // que estamos por soltar (se recalcula en cada render mientras se
+    // arrastra) — lo leemos ahora, antes de limpiar el drag, para no
+    // duplicar la lógica de solapamiento acá.
+    const objetivoId = dropTargetId;
     setDragId(null);
+    clearLongPressTimer();
     if (final && dragMoved) {
-      onMove?.(item.id, Math.round(final.x), Math.round(final.y));
-    } else if (!dragMoved) {
+      if (objetivoId) {
+        // Soltó sobre otra tarjeta/token: se interpreta como "agrupar",
+        // no como reposicionar libremente encima de ella.
+        onDropOnItem?.(item.id, objetivoId);
+      } else {
+        onMove?.(item.id, Math.round(final.x), Math.round(final.y));
+      }
+    } else if (!dragMoved && !longPressFiredRef.current) {
+      // Si el long press ya se disparó (mantuvo presionado), no
+      // ejecutamos también el click normal al soltar.
       onClickItem?.(item.id);
     }
+    longPressFiredRef.current = false;
     setLivePos((prev) => {
       const next = { ...prev };
       delete next[item.id];
@@ -279,6 +370,7 @@ export function TableroAventura({
           // puramente de layout, no agranda el área de drag. ──
           if (item.destacado) {
             const size = TABLERO_TOKEN_SIZE;
+            const esDropTarget = dropTargetId === item.id;
             return (
               <div
                 key={item.id}
@@ -302,13 +394,17 @@ export function TableroAventura({
                     background: item.imagen_url
                       ? undefined
                       : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    border: "2.5px solid var(--primary)",
+                    border: esDropTarget
+                      ? "2.5px dashed #22c55e"
+                      : "2.5px solid var(--primary)",
                     cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                     touchAction: "manipulation",
-                    boxShadow: isDraggingThis
-                      ? "0 10px 24px rgba(0,0,0,0.22)"
-                      : "0 2px 6px rgba(0,0,0,0.15)",
-                    transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
+                    boxShadow: esDropTarget
+                      ? "0 0 0 4px rgba(34,197,94,0.25)"
+                      : isDraggingThis
+                        ? "0 10px 24px rgba(0,0,0,0.22)"
+                        : "0 2px 6px rgba(0,0,0,0.15)",
+                    transition: isDraggingThis ? "none" : "box-shadow 0.15s ease, border-color 0.15s ease",
                   }}
                 >
                   {item.imagen_url ? (
@@ -346,6 +442,7 @@ export function TableroAventura({
           // nombre y tipo abajo superpuestos con degradé, ej. "Personaje | Abel".
           // Sin imagen: layout anterior, imagen placeholder a la izquierda + texto.
           const cardStyleWidth = tieneImagen ? CARD_H : CARD_W;
+          const esDropTarget = dropTargetId === item.id;
           return (
             <div
               key={item.id}
@@ -361,15 +458,20 @@ export function TableroAventura({
                 width: cardStyleWidth,
                 height: CARD_H,
                 background: "var(--white-custom)",
-                borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                borderWidth: 1,
+                borderColor: esDropTarget
+                  ? "#22c55e"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderWidth: esDropTarget ? 2 : 1,
+                borderStyle: esDropTarget ? "dashed" : "solid",
                 cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                 touchAction: "manipulation",
                 zIndex: isDraggingThis ? 30 : 1,
-                boxShadow: isDraggingThis
-                  ? "0 10px 24px rgba(0,0,0,0.18)"
-                  : "0 1px 3px rgba(0,0,0,0.06)",
-                transition: isDraggingThis ? "none" : "box-shadow 0.15s ease",
+                boxShadow: esDropTarget
+                  ? "0 0 0 4px rgba(34,197,94,0.2)"
+                  : isDraggingThis
+                    ? "0 10px 24px rgba(0,0,0,0.18)"
+                    : "0 1px 3px rgba(0,0,0,0.06)",
+                transition: isDraggingThis ? "none" : "box-shadow 0.15s ease, border-color 0.15s ease",
               }}
             >
               {tieneImagen ? (

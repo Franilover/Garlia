@@ -769,6 +769,22 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
     }
   };
 
+  // Activa el modo combate contra una criatura puntual. Si pertenece a un
+  // grupo/horda (grupo_nombre), se entra en combate contra TODAS las
+  // criaturas publicadas de ese mismo grupo, no solo la que gatilló — así
+  // el jugador ve a toda la horda de una. Se usa tanto desde el click
+  // directo sobre la tarjeta de la criatura como desde el click en el
+  // pizarrón que acerca la ficha propia a una criatura.
+  const entrarEnCombateContra = (criatura: AventuraEntidad) => {
+    setEnCombate(true);
+    const idsGrupo = criatura.grupo_nombre
+      ? publicadas
+          .filter((e) => e.tabla === "criaturas" && e.grupo_nombre === criatura.grupo_nombre)
+          .map((e) => e.id)
+      : [criatura.id];
+    setRivalesCombateIds(idsGrupo);
+  };
+
   // El pizarrón del jugador muestra las entidades publicadas por el DM +
   // su propia ficha (aunque el DM no la haya marcado "publicado": es su
   // personaje, siempre visible para sí mismo una vez que se unió). Si el
@@ -928,9 +944,25 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
               zoom={escala}
               centrarEnId={relacionPropia?.id ?? null}
               onClickItem={(id) => {
-                // El click sobre la propia tarjeta no abre el modal de
-                // detalle (no tiene sentido "ver detalle" de uno mismo
-                // acá) — el modal es para las entidades del DM.
+                // El click sobre la propia tarjeta no hace nada (no tiene
+                // sentido "atacarse a uno mismo" ni "ver detalle" propio).
+                if (id === relacionPropia?.id) return;
+                const entidad = publicadas.find((e) => e.id === id);
+                if (!entidad) return;
+                if (entidad.tabla === "criaturas") {
+                  // Click corto sobre una criatura: entra directo en
+                  // combate contra ella (y contra el resto de su
+                  // grupo/horda, si tiene uno), sin pasar por el modal de
+                  // detalle.
+                  entrarEnCombateContra(entidad);
+                } else {
+                  setSeleccion(entidad);
+                }
+              }}
+              onLongPressItem={(id) => {
+                // Mantener presionado: siempre muestra la descripción,
+                // incluso para criaturas (donde el click corto ya está
+                // reservado para entrar en combate).
                 if (id === relacionPropia?.id) return;
                 const entidad = publicadas.find((e) => e.id === id);
                 if (entidad) setSeleccion(entidad);
@@ -946,23 +978,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                           e.pos_y !== null &&
                           distancia(x, y, e.pos_x, e.pos_y) < UMBRAL_COMBATE,
                       );
-                      if (criaturaCercana) {
-                        setEnCombate(true);
-                        // Si pertenece a un grupo/horda, se entra en
-                        // combate contra TODAS las criaturas publicadas de
-                        // ese mismo grupo, no solo la que gatilló — así el
-                        // jugador ve a toda la horda de una.
-                        const idsGrupo = criaturaCercana.grupo_nombre
-                          ? publicadas
-                              .filter(
-                                (e) =>
-                                  e.tabla === "criaturas" &&
-                                  e.grupo_nombre === criaturaCercana.grupo_nombre,
-                              )
-                              .map((e) => e.id)
-                          : [criaturaCercana.id];
-                        setRivalesCombateIds(idsGrupo);
-                      }
+                      if (criaturaCercana) entrarEnCombateContra(criaturaCercana);
                     }
                   : undefined
               }

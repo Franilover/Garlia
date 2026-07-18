@@ -45,6 +45,7 @@ import {
   type ResultadoBusqueda,
 } from "../hooks/aventuras/useAventuras";
 import {
+  TABLERO_CARD_SIZE,
   TableroAventura,
   type TableroItem,
 } from "../components/aventuras/TableroAventura";
@@ -451,6 +452,60 @@ function AventuraDetalle({
     ),
   ).sort();
 
+  // Arrastrar una criatura sobre otra en el pizarrón: las agrupa en una
+  // horda, sin pasar por el input de texto. Reglas de resolución:
+  //   - Si el objetivo ya tiene grupo, la arrastrada se une a ESE grupo
+  //     (así arrastrar de a una sobre una horda existente la va sumando).
+  //   - Si la arrastrada ya tenía grupo pero el objetivo no, se propaga el
+  //     grupo de la arrastrada al objetivo (misma idea, en el otro sentido).
+  //   - Si ninguna tenía grupo, se crea uno nuevo con el nombre del
+  //     objetivo (ej. soltar "Goblin" sobre "Goblin" → grupo "Goblin"),
+  //     evitando colisión con nombres ya usados agregando un sufijo.
+  //   - Solo aplica entre dos criaturas — soltar una ficha de jugador u
+  //     otra entidad sobre algo no hace nada (los grupos/hordas son
+  //     puramente de criaturas, ver UMBRAL_COMBATE en aventura.tsx).
+  const handleDropAgrupar = useCallback(
+    (draggedId: string, targetId: string) => {
+      const arrastrada = entidades.find((e) => e.id === draggedId);
+      const objetivo = entidades.find((e) => e.id === targetId);
+      if (!arrastrada || !objetivo) return;
+      if (arrastrada.tabla !== "criaturas" || objetivo.tabla !== "criaturas") return;
+
+      // Tras agrupar, la arrastrada se reubica levemente al lado del
+      // objetivo (offset fijo) en vez de quedar tapándola — visualmente
+      // dos tarjetas contiguas comunican "ahora son del mismo grupo" mejor
+      // que una encima de la otra, y siguen quedando fáciles de separar a
+      // mano si el DM quiere reordenar la horda después.
+      const offsetX = TABLERO_CARD_SIZE.width + 16;
+      if (objetivo.pos_x !== null && objetivo.pos_y !== null) {
+        void moverPosicion(draggedId, objetivo.pos_x + offsetX, objetivo.pos_y);
+      }
+
+      if (objetivo.grupo_nombre) {
+        if (arrastrada.grupo_nombre !== objetivo.grupo_nombre) {
+          void asignarGrupo(draggedId, objetivo.grupo_nombre);
+        }
+        return;
+      }
+      if (arrastrada.grupo_nombre) {
+        void asignarGrupo(targetId, arrastrada.grupo_nombre);
+        return;
+      }
+      // Ninguna tenía grupo todavía: se crea uno nuevo a partir del
+      // nombre de la criatura objetivo, evitando pisar un nombre ya usado.
+      let nombreBase = objetivo.nombre;
+      let nombreFinal = nombreBase;
+      let sufijo = 2;
+      while (gruposExistentes.includes(nombreFinal)) {
+        nombreFinal = `${nombreBase} ${sufijo}`;
+        sufijo += 1;
+      }
+      void asignarGrupo(targetId, nombreFinal);
+      void asignarGrupo(draggedId, nombreFinal);
+    },
+    [entidades, asignarGrupo, moverPosicion, gruposExistentes],
+  );
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < 2) {
@@ -677,6 +732,7 @@ function AventuraDetalle({
               );
             }}
               onMove={(id, x, y) => moverPosicion(id, x, y)}
+              onDropOnItem={handleDropAgrupar}
               onClickItem={(id) => {
                 const e = entidades.find((x) => x.id === id);
                 if (e) setSeleccion(e);
