@@ -45,12 +45,11 @@ import {
 } from "../hooks/aventuras/useAventuras";
 import {
   TableroAventura,
-  TABLERO_CARD_SIZE,
   type TableroItem,
 } from "../components/aventuras/TableroAventura";
 import { PanelManualDnd } from "../components/aventuras/PanelManualDnd";
 import { PanelTiposMoneda } from "@/features/garlia/views/PanelTiposMoneda";
-import { useTableroEscala } from "@/features/garlia/hooks/useTableroEscala";
+import { useTableroEscala, CARD_SCALE_MIN, CARD_SCALE_MAX } from "@/features/garlia/hooks/useTableroEscala";
 import { FichaDetalle } from "@/features/garlia/views/fichaComponents";
 import type { FichaDnd } from "@/features/garlia/hooks/useFichasDnd";
 import { supabase } from "@/lib/api/client/supabase";
@@ -66,11 +65,11 @@ const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] =
   { key: "manual", label: "Manual", Icon: BookOpen },
 ];
 
-// ── Tamaño de tarjeta del pizarrón: ajustable por el DM, persistido en el
-// navegador (por aventura). Es una preferencia visual del DM, no afecta lo
-// que ven los jugadores (el público siempre usa TABLERO_CARD_SIZE fijo). ──
-const CARD_SCALE_MIN = 0.6;
-const CARD_SCALE_MAX = 1.8;
+// ── Zoom del pizarrón del DM: mismo mecanismo (CSS transform sobre el
+// lienzo, prop `zoom`) y mismo tamaño base de tarjeta (TABLERO_CARD_SIZE)
+// que ve el jugador en /garlia/aventura — así el DM ve exactamente el
+// mismo layout mientras arma la aventura. Solo el nivel de zoom en sí es
+// una preferencia local del DM, persistida por aventura. ──
 
 function SubPanelFallback() {
   return (
@@ -478,9 +477,7 @@ function AventuraDetalle({
             <TableroAventura
               editable
               emptyHint="Busca arriba y añade lo que quieras tener a mano para esta aventura."
-              cardWidth={Math.round(TABLERO_CARD_SIZE.width * escala)}
-              cardHeight={Math.round(TABLERO_CARD_SIZE.height * escala)}
-              imageWidth={Math.round(TABLERO_CARD_SIZE.imageWidth * escala)}
+              zoom={escala}
               items={entidades.map(
               (e): TableroItem => ({
                 id: e.id,
@@ -489,7 +486,7 @@ function AventuraDetalle({
                 subtitulo: TABLA_LABEL[e.tabla].singular,
                 pos_x: e.pos_x,
                 pos_y: e.pos_y,
-                destacado: e.publicado,
+                destacado: e.tabla === "fichas_dnd",
               }),
             )}
             renderBadge={(item) => {
