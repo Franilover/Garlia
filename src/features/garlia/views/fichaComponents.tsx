@@ -525,6 +525,18 @@ export function FichaDetalle({
         })}
       </div>
 
+      {/* ── Mejora de característica del trasfondo (PHB 2024) ──────────── */}
+      {editando && (
+        <MejoraTrasfondoSelector
+          caracteristicas={
+            trasfondos.find((t) => t.nombre === (borrador.trasfondo_mecanico as string))
+              ?.caracteristicas_trasfondo ?? null
+          }
+          valor={(borrador.mejora_trasfondo as FichaDnd["mejora_trasfondo"]) ?? {}}
+          onCambiar={(mejora) => setBorrador((prev) => ({ ...prev, mejora_trasfondo: mejora }))}
+        />
+      )}
+
       {/* ── Edición de datos base ───────────────────────────────────── */}
       {editando && (
         <div className="grid grid-cols-2 gap-2">
@@ -599,18 +611,6 @@ export function FichaDetalle({
           {campo("velocidad", "Velocidad", "number")}
           {campo("imagen_url", "URL de imagen")}
         </div>
-      )}
-
-      {/* ── Mejora de característica del trasfondo (PHB 2024) ──────────── */}
-      {editando && (
-        <MejoraTrasfondoSelector
-          caracteristicas={
-            trasfondos.find((t) => t.nombre === (borrador.trasfondo_mecanico as string))
-              ?.caracteristicas_trasfondo ?? null
-          }
-          valor={(borrador.mejora_trasfondo as FichaDnd["mejora_trasfondo"]) ?? {}}
-          onCambiar={(mejora) => setBorrador((prev) => ({ ...prev, mejora_trasfondo: mejora }))}
-        />
       )}
 
       {/* ── Características de especie ──────────────────────────────── */}
