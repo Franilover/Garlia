@@ -68,6 +68,14 @@ export interface AventuraEntidadRow {
   created_at: string;
   pos_x: number | null;
   pos_y: number | null;
+  /** Agrupa varias criaturas de esta aventura en una "horda"/grupo (ej.
+   *  "Horda de goblins"): todas las filas con el mismo nombre (case-
+   *  insensitive, comparado ya trimeado) se consideran del mismo grupo.
+   *  Solo tiene sentido para tabla === "criaturas" — no se usa en el resto.
+   *  Null/vacío = criatura suelta, sin grupo. Es texto libre (no un id a
+   *  otra tabla) a propósito: no hace falta gestionar una tabla aparte
+   *  para algo tan simple como una etiqueta compartida. */
+  grupo_nombre: string | null;
 }
 
 /** Fila resuelta: la relación + los datos legibles de la entidad original. */
@@ -370,6 +378,27 @@ export function useAventuraEntidades(aventuraId: string | null) {
     }
   }, [entidades]);
 
+  /** Asigna (o quita, si nombre es null/vacío) el grupo/horda de una
+   *  criatura. Optimista + persistido, mismo patrón que moverPosicion. */
+  const asignarGrupo = useCallback(
+    async (relacionId: string, nombreGrupo: string | null) => {
+      const anterior = entidades;
+      const limpio = nombreGrupo?.trim() || null;
+      setEntidades((prev) =>
+        prev.map((e) => (e.id === relacionId ? { ...e, grupo_nombre: limpio } : e)),
+      );
+      const { error } = await supabase
+        .from("aventura_entidades")
+        .update({ grupo_nombre: limpio })
+        .eq("id", relacionId);
+      if (error) {
+        setEntidades(anterior);
+        throw error;
+      }
+    },
+    [entidades],
+  );
+
   const togglePublicado = useCallback(async (relacion: AventuraEntidad) => {
     const nuevoValor = !relacion.publicado;
     const nuevoPublicadoAt = nuevoValor ? new Date().toISOString() : null;
@@ -399,7 +428,16 @@ export function useAventuraEntidades(aventuraId: string | null) {
     }
   }, []);
 
-  return { entidades, loading, agregar, quitar, togglePublicado, moverPosicion, refetch: fetchAll };
+  return {
+    entidades,
+    loading,
+    agregar,
+    quitar,
+    togglePublicado,
+    moverPosicion,
+    asignarGrupo,
+    refetch: fetchAll,
+  };
 }
 
 // ── Búsqueda de entidades (todas las tablas) para agregar a una aventura ──

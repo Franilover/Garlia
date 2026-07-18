@@ -29,6 +29,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -52,6 +53,8 @@ import { PanelTiposMoneda } from "@/features/garlia/views/PanelTiposMoneda";
 import { useTableroEscala, CARD_SCALE_MIN, CARD_SCALE_MAX } from "@/features/garlia/hooks/useTableroEscala";
 import { FichaDetalle } from "@/features/garlia/views/fichaComponents";
 import type { FichaDnd } from "@/features/garlia/hooks/useFichasDnd";
+import { CriaturaStatsDndEditor } from "../components/criaturas/CriaturaStatsDnd";
+import type { CriaturaStatsDnd } from "../hooks/types";
 import { supabase } from "@/lib/api/client/supabase";
 
 const AdminDescubrimientos = lazy(() => import("./editorRelaciones"));
@@ -235,6 +238,77 @@ function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void
   );
 }
 
+// ── Grupo/horda de criaturas ────────────────────────────────────────────
+// Input de texto libre con datalist de nombres ya usados en la aventura,
+// para que el DM junte varias criaturas bajo un mismo nombre de grupo
+// (ej. "Horda de goblins"). Debounced: no llama a onCambiar en cada tecla,
+// solo cuando el usuario deja de escribir o al perder foco.
+
+function GrupoCriaturaInput({
+  valor,
+  opciones,
+  onCambiar,
+}: {
+  valor: string | null;
+  opciones: string[];
+  onCambiar: (v: string | null) => void;
+}) {
+  const [texto, setTexto] = useState(valor ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const datalistId = useRef(`grupos-${Math.random().toString(36).slice(2)}`).current;
+
+  useEffect(() => {
+    setTexto(valor ?? "");
+  }, [valor]);
+
+  const disparar = (v: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onCambiar(v.trim() || null), 500);
+  };
+
+  return (
+    <div
+      className="flex items-center gap-2.5 px-3 py-2 rounded-xl border border-primary/10 bg-primary/[0.03]"
+    >
+      <Users size={14} className="text-primary/35 shrink-0" />
+      <input
+        type="text"
+        list={datalistId}
+        value={texto}
+        onChange={(e) => {
+          setTexto(e.target.value);
+          disparar(e.target.value);
+        }}
+        onBlur={(e) => {
+          if (debounceRef.current) clearTimeout(debounceRef.current);
+          onCambiar(e.target.value.trim() || null);
+        }}
+        placeholder="Sin grupo — escribí un nombre para juntarla con otras (ej. Horda de goblins)"
+        className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+      />
+      <datalist id={datalistId}>
+        {opciones.map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
+      {texto.trim() && (
+        <button
+          type="button"
+          onClick={() => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            setTexto("");
+            onCambiar(null);
+          }}
+          className="shrink-0 text-micro font-bold text-primary/35 hover:text-primary/60 transition-colors"
+          title="Quitar del grupo"
+        >
+          Quitar
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Detalle de una aventura ──────────────────────────────────────────────
 
 function AventuraDetalle({
@@ -245,7 +319,7 @@ function AventuraDetalle({
   onVolver: () => void;
 }) {
   const { aventuras } = useAventurasList();
-  const { entidades, loading, agregar, quitar, togglePublicado, moverPosicion } =
+  const { entidades, loading, agregar, quitar, togglePublicado, moverPosicion, asignarGrupo } =
     useAventuraEntidades(aventuraId);
   const aventura = aventuras.find((a) => a.id === aventuraId);
 
@@ -308,6 +382,74 @@ function AventuraDetalle({
     },
     [seleccion, quitar],
   );
+
+  // ── Edición de stats de monstruo (criaturas.stats_dnd) desde el token
+  // del tablero: mismo editor completo que en el editor de criaturas
+  // (CA, HP, características, salvaciones, acciones…), pero acá con
+  // guardado debounced porque CriaturaStatsDndEditor entrega el objeto
+  // completo en cada tecla — un UPDATE por cada cambio sería demasiado
+  // ruido de red. ──
+  const [criaturaSeleccion, setCriaturaSeleccion] = useState<{
+    id: string;
+    nombre: string;
+    stats_dnd: CriaturaStatsDnd | null;
+  } | null>(null);
+  const [cargandoCriatura, setCargandoCriatura] = useState(false);
+  const [guardandoCriatura, setGuardandoCriatura] = useState(false);
+  const statsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!seleccion || seleccion.tabla !== "criaturas") {
+      setCriaturaSeleccion(null);
+      return;
+    }
+    let cancelado = false;
+    setCargandoCriatura(true);
+    supabase
+      .from("criaturas")
+      .select("id, nombre, stats_dnd")
+      .eq("id", seleccion.entidad_id)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        setCriaturaSeleccion(!error && data ? (data as typeof criaturaSeleccion) : null);
+        setCargandoCriatura(false);
+      });
+    return () => {
+      cancelado = true;
+      if (statsDebounceRef.current) clearTimeout(statsDebounceRef.current);
+    };
+  }, [seleccion]);
+
+  const handleCambiarStatsCriatura = useCallback(
+    (v: CriaturaStatsDnd) => {
+      setCriaturaSeleccion((prev) => (prev ? { ...prev, stats_dnd: v } : prev));
+      if (statsDebounceRef.current) clearTimeout(statsDebounceRef.current);
+      const id = criaturaSeleccion?.id;
+      if (!id) return;
+      statsDebounceRef.current = setTimeout(async () => {
+        setGuardandoCriatura(true);
+        const { error } = await supabase.from("criaturas").update({ stats_dnd: v }).eq("id", id);
+        setGuardandoCriatura(false);
+        if (error) {
+          // eslint-disable-next-line no-console
+          console.error("[AventuraSection] Error guardando stats de criatura:", error);
+        }
+      }, 500);
+    },
+    [criaturaSeleccion?.id],
+  );
+
+  // Nombres de grupo ya usados en esta aventura (para el datalist del
+  // input de grupo — así el DM reutiliza el mismo nombre en vez de crear
+  // variantes tipo "Goblins"/"goblins " por accidente).
+  const gruposExistentes = Array.from(
+    new Set(
+      entidades
+        .filter((e) => e.tabla === "criaturas" && e.grupo_nombre)
+        .map((e) => e.grupo_nombre as string),
+    ),
+  ).sort();
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -483,7 +625,10 @@ function AventuraDetalle({
                 id: e.id,
                 nombre: e.nombre,
                 imagen_url: e.imagen_url,
-                subtitulo: TABLA_LABEL[e.tabla].singular,
+                subtitulo:
+                  e.tabla === "criaturas" && e.grupo_nombre
+                    ? `${TABLA_LABEL[e.tabla].singular} · 🛡️ ${e.grupo_nombre}`
+                    : TABLA_LABEL[e.tabla].singular,
                 pos_x: e.pos_x,
                 pos_y: e.pos_y,
                 destacado: e.tabla === "fichas_dnd",
@@ -557,7 +702,9 @@ function AventuraDetalle({
             <MotionDiv
               animate={{ opacity: 1, scale: 1 }}
               className={`relative w-full max-h-[85vh] overflow-y-auto rounded-2xl p-6 ${
-                seleccion.tabla === "fichas_dnd" ? "max-w-3xl" : "max-w-lg"
+                seleccion.tabla === "fichas_dnd" || seleccion.tabla === "criaturas"
+                  ? "max-w-3xl"
+                  : "max-w-lg"
               }`}
               exit={{ opacity: 0, scale: 0.96 }}
               initial={{ opacity: 0, scale: 0.96 }}
@@ -583,6 +730,63 @@ function AventuraDetalle({
                 ) : (
                   <p className="text-sm text-primary/30 italic py-8 text-center">
                     No se pudo cargar esta ficha.
+                  </p>
+                )
+              ) : seleccion.tabla === "criaturas" ? (
+                cargandoCriatura ? (
+                  <div className="py-16 flex items-center justify-center">
+                    <Loader2 className="animate-spin text-primary/30" size={20} />
+                  </div>
+                ) : criaturaSeleccion ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {seleccion.imagen_url && (
+                          <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-primary/5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={seleccion.imagen_url}
+                              alt={criaturaSeleccion.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                            Ficha de combate
+                          </span>
+                          <h2 className="font-serif italic text-xl text-primary truncate">
+                            {criaturaSeleccion.nombre}
+                          </h2>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {guardandoCriatura && (
+                          <Loader2 size={13} className="animate-spin text-primary/30" />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSeleccion(null)}
+                          className="p-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                        >
+                          <X size={14} className="text-primary/60" />
+                        </button>
+                      </div>
+                    </div>
+                    <GrupoCriaturaInput
+                      key={seleccion.id}
+                      valor={seleccion.grupo_nombre}
+                      opciones={gruposExistentes}
+                      onCambiar={(v) => asignarGrupo(seleccion.id, v)}
+                    />
+                    <CriaturaStatsDndEditor
+                      valor={criaturaSeleccion.stats_dnd}
+                      onCambiar={handleCambiarStatsCriatura}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-primary/30 italic py-8 text-center">
+                    No se pudo cargar esta criatura.
                   </p>
                 )
               ) : (

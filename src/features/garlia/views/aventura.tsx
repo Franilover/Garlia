@@ -506,15 +506,72 @@ function LadoCombate({
   );
 }
 
+/** Tarjeta compacta de un rival dentro de la horda: mismo contenido que
+ *  LadoCombate pero pensada para caber varias en fila/grid cuando el
+ *  combate es contra un grupo entero. */
+function TarjetaRival({ rival }: { rival: AventuraEntidad }) {
+  return (
+    <div
+      className="flex flex-col items-center gap-2 p-3 rounded-xl"
+      style={{
+        background: "var(--white-custom)",
+        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+      }}
+    >
+      <div className="w-16 h-16 rounded-xl overflow-hidden bg-primary/5 relative shrink-0">
+        {rival.imagen_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={rival.imagen_url} alt={rival.nombre} className="w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Swords size={16} className="text-primary/15" />
+          </div>
+        )}
+      </div>
+      <div className="text-center">
+        <h4 className="font-serif italic text-sm text-primary leading-tight">{rival.nombre}</h4>
+        {(rival.stats_dnd?.tamano || rival.stats_dnd?.tipo) && (
+          <span className="block text-micro text-primary/35">
+            {[rival.stats_dnd?.tamano, rival.stats_dnd?.tipo].filter(Boolean).join(" · ")}
+          </span>
+        )}
+      </div>
+      {rival.stats_dnd?.hp_max != null ? (
+        <div className="w-full flex flex-col gap-1">
+          <BarraVida actual={rival.stats_dnd.hp_max} max={rival.stats_dnd.hp_max} />
+          <div className="flex items-center justify-center gap-2 text-micro font-bold text-primary/50">
+            {rival.stats_dnd.ca != null && <span>CA {rival.stats_dnd.ca}</span>}
+            {rival.stats_dnd.rc && (
+              <>
+                <span>·</span>
+                <span>RC {rival.stats_dnd.rc}</span>
+              </>
+            )}
+          </div>
+        </div>
+      ) : rival.descripcion ? (
+        <p className="text-micro text-primary/60 text-center leading-relaxed line-clamp-3">
+          {rival.descripcion}
+        </p>
+      ) : (
+        <p className="text-micro text-primary/30 italic text-center">Sin descripción todavía.</p>
+      )}
+    </div>
+  );
+}
+
 function PantallaCombate({
   ficha,
-  rival,
+  rivales,
   onSalir,
 }: {
   ficha: FichaDnd | null;
-  rival: AventuraEntidad;
+  rivales: AventuraEntidad[];
   onSalir: () => void;
 }) {
+  const esGrupo = rivales.length > 1;
+  const nombreGrupo = esGrupo ? rivales[0]?.grupo_nombre : null;
+
   return (
     <MotionDiv
       animate={{ opacity: 1 }}
@@ -533,7 +590,7 @@ function PantallaCombate({
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "var(--primary)" }}>
           <Swords size={12} style={{ color: "var(--btn-text)" }} />
           <span className="text-micro font-black uppercase tracking-widest" style={{ color: "var(--btn-text)" }}>
-            Combate
+            {esGrupo && nombreGrupo ? nombreGrupo : "Combate"}
           </span>
         </div>
       </div>
@@ -560,39 +617,52 @@ function PantallaCombate({
           <span className="font-serif italic text-2xl text-primary/25">VS</span>
         </div>
 
-        <LadoCombate
-          imagen={rival.imagen_url}
-          nombre={rival.nombre}
-          subtitulo={
-            [
-              rival.stats_dnd?.tamano,
-              rival.stats_dnd?.tipo ?? TABLA_LABEL[rival.tabla].singular,
-            ]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          }
-        >
-          {rival.stats_dnd?.hp_max != null ? (
-            <div className="flex flex-col gap-2">
-              <BarraVida actual={rival.stats_dnd.hp_max} max={rival.stats_dnd.hp_max} />
-              <div className="flex items-center justify-center gap-3 text-micro font-bold text-primary/50">
-                {rival.stats_dnd.ca != null && <span>CA {rival.stats_dnd.ca}</span>}
-                {rival.stats_dnd.rc && (
-                  <>
-                    <span>·</span>
-                    <span>RC {rival.stats_dnd.rc}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          ) : rival.descripcion ? (
-            <p className="text-xs text-primary/60 text-center leading-relaxed line-clamp-4">
-              {rival.descripcion}
-            </p>
-          ) : (
-            <p className="text-xs text-primary/30 italic text-center">Sin descripción todavía.</p>
-          )}
-        </LadoCombate>
+        {/* ── Rival único: mismo bloque grande de siempre. Grupo/horda: grid
+            de tarjetas compactas, una por cada criatura del grupo — así el
+            jugador ve a toda la horda de un vistazo. ── */}
+        {esGrupo ? (
+          <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2 content-start">
+            {rivales.map((r) => (
+              <TarjetaRival key={r.id} rival={r} />
+            ))}
+          </div>
+        ) : (
+          rivales[0] && (
+            <LadoCombate
+              imagen={rivales[0].imagen_url}
+              nombre={rivales[0].nombre}
+              subtitulo={
+                [
+                  rivales[0].stats_dnd?.tamano,
+                  rivales[0].stats_dnd?.tipo ?? TABLA_LABEL[rivales[0].tabla].singular,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+            >
+              {rivales[0].stats_dnd?.hp_max != null ? (
+                <div className="flex flex-col gap-2">
+                  <BarraVida actual={rivales[0].stats_dnd.hp_max} max={rivales[0].stats_dnd.hp_max} />
+                  <div className="flex items-center justify-center gap-3 text-micro font-bold text-primary/50">
+                    {rivales[0].stats_dnd.ca != null && <span>CA {rivales[0].stats_dnd.ca}</span>}
+                    {rivales[0].stats_dnd.rc && (
+                      <>
+                        <span>·</span>
+                        <span>RC {rivales[0].stats_dnd.rc}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : rivales[0].descripcion ? (
+                <p className="text-xs text-primary/60 text-center leading-relaxed line-clamp-4">
+                  {rivales[0].descripcion}
+                </p>
+              ) : (
+                <p className="text-xs text-primary/30 italic text-center">Sin descripción todavía.</p>
+              )}
+            </LadoCombate>
+          )
+        )}
       </div>
 
       <div className="flex justify-center">
@@ -662,16 +732,20 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const [uniendose, setUniendose] = useState(false);
   // ── Modo combate: se activa solo cuando el jugador clickea el tablero
   // para mover su ficha y el destino queda cerca de una criatura
-  // publicada. Se guarda solo el ID (no una copia del objeto): así, si el
-  // DM edita la ficha de combate de esa criatura mientras el jugador ya
-  // está en pantalla de combate, `rivalCombate` de abajo se recalcula con
-  // el dato fresco de `entidades` en cada render — no queda una foto
-  // vieja. Se puede salir manualmente con "Salir de combate".
+  // publicada. Se guardan solo los IDs (no una copia de los objetos): así,
+  // si el DM edita la ficha de combate de alguna mientras el jugador ya
+  // está en pantalla de combate, `rivalesCombate` de abajo se recalcula
+  // con el dato fresco de `entidades` en cada render — no queda una foto
+  // vieja. Si la criatura que gatilló el combate pertenece a un grupo/
+  // horda (grupo_nombre), se suman automáticamente todas las demás
+  // criaturas publicadas de ese mismo grupo como rivales adicionales — el
+  // jugador ve a toda la horda, no solo a la que tocó. Se puede salir
+  // manualmente con "Salir de combate".
   const [enCombate, setEnCombate] = useState(false);
-  const [rivalCombateId, setRivalCombateId] = useState<string | null>(null);
-  const rivalCombate = rivalCombateId
-    ? (entidades.find((e) => e.id === rivalCombateId) ?? null)
-    : null;
+  const [rivalesCombateIds, setRivalesCombateIds] = useState<string[]>([]);
+  const rivalesCombate = rivalesCombateIds
+    .map((id) => entidades.find((e) => e.id === id))
+    .filter((e): e is AventuraEntidad => Boolean(e));
   // Solo se ofrece unirse una vez por sesión de este componente (si el
   // jugador cierra el modal sin confirmar, no se lo vuelve a interrumpir
   // hasta que salga y vuelva a entrar a la aventura).
@@ -706,14 +780,14 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
 
   // ── Modo combate activo: reemplaza todo el feed por una pantalla propia
   // (ficha vs criatura + dados), en vez de mostrar el pizarrón normal. ──
-  if (enCombate && rivalCombate) {
+  if (enCombate && rivalesCombate.length > 0) {
     return (
       <PantallaCombate
         ficha={fichaActiva}
-        rival={rivalCombate}
+        rivales={rivalesCombate}
         onSalir={() => {
           setEnCombate(false);
-          setRivalCombateId(null);
+          setRivalesCombateIds([]);
         }}
       />
     );
@@ -852,6 +926,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                 }),
               )}
               zoom={escala}
+              centrarEnId={relacionPropia?.id ?? null}
               onClickItem={(id) => {
                 // El click sobre la propia tarjeta no abre el modal de
                 // detalle (no tiene sentido "ver detalle" de uno mismo
@@ -873,7 +948,20 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                       );
                       if (criaturaCercana) {
                         setEnCombate(true);
-                        setRivalCombateId(criaturaCercana.id);
+                        // Si pertenece a un grupo/horda, se entra en
+                        // combate contra TODAS las criaturas publicadas de
+                        // ese mismo grupo, no solo la que gatilló — así el
+                        // jugador ve a toda la horda de una.
+                        const idsGrupo = criaturaCercana.grupo_nombre
+                          ? publicadas
+                              .filter(
+                                (e) =>
+                                  e.tabla === "criaturas" &&
+                                  e.grupo_nombre === criaturaCercana.grupo_nombre,
+                              )
+                              .map((e) => e.id)
+                          : [criaturaCercana.id];
+                        setRivalesCombateIds(idsGrupo);
                       }
                     }
                   : undefined

@@ -72,6 +72,13 @@ interface TableroAventuraProps {
    *  tarjetas y sus posiciones relativas quedan intactas, solo cambia
    *  cuánto ocupan en pantalla — como el zoom de un mapa. */
   zoom?: number;
+  /** Si se pasa, el lienzo se mantiene centrado en este item (típicamente
+   *  la propia ficha del jugador): al montar, al cambiar el zoom, y cada
+   *  vez que el item se mueve (moverPosicion vía click u onMove), el
+   *  scroll se reajusta para que quede en el centro del viewport. No pelea
+   *  con el pan manual del usuario en otros momentos — solo re-centra en
+   *  esos triggers puntuales, no en cada scroll. */
+  centrarEnId?: string | null;
 }
 
 /** Asigna una posición en cascada a los items que todavía no tienen pos_x/pos_y. */
@@ -104,6 +111,7 @@ export function TableroAventura({
   cardHeight = TABLERO_CARD_SIZE.height,
   imageWidth,
   zoom = 1,
+  centrarEnId = null,
 }: TableroAventuraProps) {
   const CARD_W = cardWidth;
   const CARD_H = cardHeight;
@@ -123,6 +131,38 @@ export function TableroAventura({
     CANVAS_MIN_H,
     ...resueltos.map((i) => (i.pos_y ?? 0) + CARD_H + 60),
   );
+
+  // ── Auto-centrado en el propio personaje ──────────────────────────────
+  // Mantiene al jugador siempre orientado: su ficha queda en el centro del
+  // viewport sin importar cuánto haga zoom o hacia dónde se mueva. Se
+  // re-centra en tres momentos puntuales (no en cada scroll, para no pelear
+  // con un pan manual que el usuario quisiera hacer mientras mira el
+  // pizarrón): al montar/cambiar de item objetivo, cuando cambia el zoom,
+  // y cuando el item objetivo cambia de posición lógica (se movió, sea por
+  // click propio o porque llegó por realtime).
+  const itemCentrado = centrarEnId
+    ? resueltos.find((i) => i.id === centrarEnId)
+    : undefined;
+  const centroX = itemCentrado?.pos_x ?? null;
+  const centroY = itemCentrado?.pos_y ?? null;
+
+  React.useEffect(() => {
+    if (!centrarEnId || centroX === null || centroY === null) return;
+    const el = containerRef.current;
+    if (!el) return;
+    // Coordenadas del punto lógico ya escaladas al espacio de pantalla
+    // (mismo espacio en el que vive el scroll), igual que en
+    // handlePointerMove/onCanvasClick.
+    const targetLeft = centroX * zoom - el.clientWidth / 2;
+    const targetTop = centroY * zoom - el.clientHeight / 2;
+    el.scrollTo({
+      left: Math.max(0, targetLeft),
+      top: Math.max(0, targetTop),
+      behavior: "smooth",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centrarEnId, centroX, centroY, zoom]);
+
 
   const handlePointerDown = (e: React.PointerEvent, item: TableroItem) => {
     // En modo público (no editable) igual necesitamos trackear el
