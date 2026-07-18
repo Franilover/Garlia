@@ -411,28 +411,43 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
       return tb - ta;
     });
 
-  // ── Ficha propia en el tablero: si el jugador tiene una identidad activa
-  // y todavía no está agregada a esta aventura, se agrega sola (publicada
-  // implícitamente para él mismo — es su propio personaje, no algo que el
-  // DM tenga que revelar). Así aparece en el pizarrón apenas entra, sin
-  // pasos manuales. ──
+  // ── Ficha propia en el tablero: a diferencia de antes, NO se agrega
+  // sola — recién existe la fila en aventura_entidades después de que el
+  // jugador confirme "Unirme" (ver modal más abajo). Así el pizarrón del
+  // DM no se llena de fichas de cuentas de prueba que solo entraron a
+  // mirar la aventura sin jugarla. ──
   const relacionPropia = entidades.find(
     (e) => e.tabla === "fichas_dnd" && e.entidad_id === fichaActiva?.id,
   );
+  const [pidiendoUnion, setPidiendoUnion] = useState(false);
+  const [uniendose, setUniendose] = useState(false);
+  // Solo se ofrece unirse una vez por sesión de este componente (si el
+  // jugador cierra el modal sin confirmar, no se lo vuelve a interrumpir
+  // hasta que salga y vuelva a entrar a la aventura).
+  const [unionDescartada, setUnionDescartada] = useState(false);
+
   React.useEffect(() => {
-    if (fichaActiva && !relacionPropia && !loading) {
-      agregar("fichas_dnd", fichaActiva.id);
+    if (fichaActiva && !relacionPropia && !loading && !unionDescartada) {
+      setPidiendoUnion(true);
     }
-    // Solo se dispara cuando cambia la ficha activa o termina de cargar la
-    // lista; agregar/relacionPropia cambian de identidad en cada render y
-    // meterlos acá causaría un loop de inserts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fichaActiva?.id, loading]);
+  }, [fichaActiva?.id, loading, unionDescartada]);
+
+  const handleUnirse = async () => {
+    if (!fichaActiva) return;
+    setUniendose(true);
+    try {
+      await agregar("fichas_dnd", fichaActiva.id);
+      setPidiendoUnion(false);
+    } finally {
+      setUniendose(false);
+    }
+  };
 
   // El pizarrón del jugador muestra las entidades publicadas por el DM +
   // su propia ficha (aunque el DM no la haya marcado "publicado": es su
-  // personaje, siempre visible para sí mismo). Si el DM también la marcó
-  // publicada, no se duplica.
+  // personaje, siempre visible para sí mismo una vez que se unió). Si el
+  // DM también la marcó publicada, no se duplica.
   const itemsTablero = [
     ...publicadas,
     ...(relacionPropia && !relacionPropia.publicado ? [relacionPropia] : []),
@@ -440,6 +455,63 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
 
   return (
     <>
+      {/* ── Modal: unirse a la aventura con la ficha activa. Bloquea el
+          feed hasta que el jugador decide (unirse o descartar) — así no
+          hay fichas "fantasma" apareciendo solas en el pizarrón del DM
+          apenas alguien entra a mirar. ── */}
+      <AnimatePresence>
+        {pidiendoUnion && fichaActiva && (
+          <MotionDiv
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            style={{ background: "rgba(0,0,0,0.5)" }}
+          >
+            <MotionDiv
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative w-full max-w-sm rounded-2xl p-6 text-center"
+              exit={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.96 }}
+              style={{ background: "var(--white-custom)" }}
+            >
+              <Swords size={22} className="mx-auto mb-3 text-primary/30" />
+              <p className="font-serif italic text-lg text-primary mb-1">
+                ¿Unir a {fichaActiva.nombre}?
+              </p>
+              <p className="text-xs text-primary/50 mb-5 leading-relaxed">
+                Tu personaje va a aparecer en el pizarrón de{" "}
+                {aventura?.nombre ?? "esta aventura"} y vas a poder moverlo
+                clickeando el tablero.
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUnionDescartada(true)}
+                  className="px-4 py-2 rounded-full text-xs font-bold text-primary/50 hover:text-primary/70 transition-colors"
+                >
+                  Solo mirar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUnirse}
+                  disabled={uniendose}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full disabled:opacity-50"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {uniendose && (
+                    <Loader2 size={12} className="animate-spin" style={{ color: "var(--btn-text)" }} />
+                  )}
+                  <span className="text-xs font-bold" style={{ color: "var(--btn-text)" }}>
+                    Unirme
+                  </span>
+                </button>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
       <MotionDiv
         animate={{ opacity: 1, y: 0 }}
         className="text-center shrink-0 relative"
