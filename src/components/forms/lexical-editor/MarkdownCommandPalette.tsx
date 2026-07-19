@@ -51,6 +51,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
   List as ListIcon,
   ListOrdered,
   Quote,
@@ -117,6 +118,14 @@ export const MARKDOWN_COMMAND_ITEMS: MarkdownCommandItem[] = [
     keywords: ["h3", "titulo", "subtitulo", "encabezado", "heading"],
     Icon: Heading3,
     run: (editor) => insertHeading(editor, "h3"),
+  },
+  {
+    id: "h4",
+    label: "Título 4",
+    hint: "####",
+    keywords: ["h4", "titulo", "subtitulo", "encabezado", "heading"],
+    Icon: Heading4,
+    run: (editor) => insertHeading(editor, "h4"),
   },
   {
     id: "bullet",

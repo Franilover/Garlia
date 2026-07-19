@@ -27,6 +27,8 @@ import { SnippetChip } from "./SnippetChip";
 
 export interface WikilinkPayload {
   target: string;
+  /** Alias opcional a mostrar en vez de `target` — [[target|alias]] */
+  alias?: string;
 }
 
 export type SerializedWikilinkNode = Spread<
@@ -48,7 +50,7 @@ function WikilinkChipView({
   return (
     <SnippetChip
       icon={<Link size={10} />}
-      text={payload.target}
+      text={payload.alias?.trim() || payload.target}
       title={`Ir a: ${payload.target}`}
       onClick={() => onNavigate?.(payload.target)}
       onDelete={() =>
@@ -88,8 +90,8 @@ export class WikilinkNode extends DecoratorNode<React.ReactNode> {
   static importJSON(
     serialized: SerializedLexicalNode & Record<string, unknown>,
   ): WikilinkNode {
-    const { target } = serialized as unknown as SerializedWikilinkNode;
-    return $createWikilinkNode({ target });
+    const { target, alias } = serialized as unknown as SerializedWikilinkNode;
+    return $createWikilinkNode({ target, alias });
   }
 
   exportJSON(): SerializedWikilinkNode {
@@ -115,7 +117,7 @@ export class WikilinkNode extends DecoratorNode<React.ReactNode> {
   }
 
   getTextContent(): string {
-    return `[[${this.__payload.target}]]`;
+    return wikilinkPayloadToRaw(this.__payload);
   }
 
   isInline(): true {
@@ -144,15 +146,18 @@ export function $isWikilinkNode(
   return node instanceof WikilinkNode;
 }
 
-// raw = "[[Nombre de Nota]]" (SIN kind| — distinto del resto de snippets)
+// raw = "[[Nombre de Nota]]" o "[[Nombre de Nota|Alias]]" (SIN kind| —
+// distinto del resto de snippets). El alias es opcional; cuando está
+// presente se muestra en vez del target, igual que en Obsidian.
 export function wikilinkRawToPayload(raw: string): WikilinkPayload | null {
-  const m = /^\[\[([^\[\]|]+)\]\]$/.exec(raw.trim());
+  const m = /^\[\[([^\[\]|]+)(?:\|([^\[\]|]*))?\]\]$/.exec(raw.trim());
   if (!m) return null;
   const target = m[1].trim();
   if (!target) return null;
-  return { target };
+  const alias = m[2]?.trim();
+  return alias ? { target, alias } : { target };
 }
 
 export function wikilinkPayloadToRaw(p: WikilinkPayload): string {
-  return `[[${p.target}]]`;
+  return p.alias?.trim() ? `[[${p.target}|${p.alias}]]` : `[[${p.target}]]`;
 }

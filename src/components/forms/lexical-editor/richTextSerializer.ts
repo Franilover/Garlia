@@ -112,12 +112,13 @@ const GATE_RE = /\[\[gate\|[^\|]+\|[\s\S]+?\]\]/g;
 const FLAG_IF_RE = /\[\[flag\|if\|[^\|]+\|[^\|]*\|[\s\S]+?\]\]/g;
 const SNIPPET_RE =
   /\[\[(?:drop|img|float|sound|choice|use|section|cita|flag\|set)[^\]]*\]\]/g;
-// Wikilinks: [[Nombre]] SIN "kind|" — debe evaluarse por separado porque
-// no calza con el patrón "[[palabra|...]]" de los demás snippets. Excluye
-// explícitamente los kind conocidos para no capturar snippets malformados
-// como si fueran wikilinks.
+// Wikilinks: [[Nombre]] o [[Nombre|Alias]] SIN "kind|" — debe evaluarse
+// por separado porque el resto de snippets usa "[[palabra|...]]" con un
+// kind reservado como primer segmento. Excluye explícitamente los kind
+// conocidos para no capturar snippets malformados como si fueran
+// wikilinks; el segundo segmento (alias), si existe, es libre.
 const WIKILINK_RE =
-  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|condicion|gate|flag)\|)([^\[\]|]+)\]\]/g;
+  /\[\[(?!(?:drop|img|float|sound|choice|use|section|cita|condicion|gate|flag)\|)([^\[\]|]+)(?:\|([^\[\]|]*))?\]\]/g;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Convierte un raw [[kind|...]] string → LexicalNode

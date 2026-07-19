@@ -485,6 +485,47 @@ function applyInlinePlainMarkdown(text: string): string {
     .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
 }
 
+// Estilos inline por nivel — replican el mismo lenguaje visual del theme
+// de Lexical (heading.h1..h4 en initialConfig) para que un heading se vea
+// IGUAL en modo edición y en el fallback de preview genérico. No podemos
+// reutilizar las clases Tailwind del theme de Lexical porque ese objeto
+// vive dentro de otro componente (RichEditor no exporta initialConfig),
+// así que se replica acá — cambiar un nivel implica tocar ambos lugares.
+const HEADING_PREVIEW_STYLE: Record<
+  1 | 2 | 3 | 4,
+  { fontSize: string; fontWeight: number; borderColor: string; label?: string }
+> = {
+  1: {
+    fontSize: "1.75rem",
+    fontWeight: 900,
+    borderColor: "var(--color-primary, #7c6af7)",
+    label: "H1",
+  },
+  2: {
+    fontSize: "1.4rem",
+    fontWeight: 800,
+    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 75%, transparent)",
+    label: "H2",
+  },
+  3: {
+    fontSize: "1.15rem",
+    fontWeight: 700,
+    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 50%, transparent)",
+    label: "H3",
+  },
+  4: {
+    fontSize: "0.85rem",
+    fontWeight: 700,
+    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 30%, transparent)",
+  },
+};
+
+// Detecta "# ".."#### " al inicio de un bloque (1 a 4 "#", con espacio) —
+// mismo límite de niveles que expone MarkdownCommandPalette (H1-H3) más H4
+// que sí soporta el theme de Lexical. "#####"/"######" (h5/h6) caen al
+// párrafo normal, igual que antes.
+const HEADING_LINE_RE = /^(#{1,4})\s+(.*)$/;
+
 function PlainMarkdownFallback({ value }: { value: string }) {
   const bloques = value.split(/\n{2,}/);
   return (
@@ -495,6 +536,56 @@ function PlainMarkdownFallback({ value }: { value: string }) {
             <p key={bi} aria-hidden style={{ margin: 0, minHeight: "1em" }} />
           );
         }
+
+        const headingMatch = HEADING_LINE_RE.exec(bloque);
+        if (headingMatch) {
+          const level = Math.min(4, headingMatch[1].length) as 1 | 2 | 3 | 4;
+          const text = headingMatch[2];
+          const style = HEADING_PREVIEW_STYLE[level];
+          return (
+            <div
+              key={bi}
+              style={{
+                position: "relative",
+                paddingLeft: level <= 2 ? 16 : 12,
+                marginTop: level === 1 ? 32 : level === 2 ? 24 : level === 3 ? 20 : 16,
+                marginBottom: level <= 2 ? 12 : 8,
+                borderLeft: `${level <= 2 ? 3 : 2}px solid ${style.borderColor}`,
+              }}
+            >
+              {style.label && (
+                <span
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: level === 1 ? 10 : 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.15em",
+                    color: style.borderColor,
+                    marginBottom: 2,
+                  }}
+                >
+                  {style.label}
+                </span>
+              )}
+              <span
+                style={{
+                  fontSize: style.fontSize,
+                  fontWeight: style.fontWeight,
+                  lineHeight: 1.25,
+                  letterSpacing: "-0.01em",
+                  textTransform: level === 4 ? "uppercase" : "none",
+                  opacity: level === 4 ? 0.9 : 1,
+                  display: "block",
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: applyInlinePlainMarkdown(text),
+                }}
+              />
+            </div>
+          );
+        }
+
         const lineas = bloque.split("\n");
         return (
           <p key={bi} style={{ margin: "0 0 0.6em 0" }}>
@@ -740,11 +831,54 @@ export function RichEditor({
       },
       theme: {
         paragraph: "mb-[0.4em] leading-[1.7]",
+        // ── Headings ──────────────────────────────────────────────────
+        // Antes: 4 tamaños muy próximos (2xl→base) y mismo color que el
+        // resto del texto — a simple vista un h3 se confundía con texto
+        // en negrita normal, no había forma rápida de saber en qué nivel
+        // estabas parado mientras escribías.
+        //
+        // Ahora cada nivel tiene:
+        //   1) Salto de tamaño más marcado (3xl → sm) para que la
+        //      jerarquía se lea de un vistazo, incluso salteando líneas.
+        //   2) Un borde izquierdo de color (más grueso y opaco en h1,
+        //      más fino y tenue en h4) — funciona como "riel" visual
+        //      recorriendo el documento, igual en editor y en preview.
+        //   3) Una etiqueta "H1"/"H2"/etc. en mayúsculas chica antes del
+        //      texto (::before), en el color de acento — deja clarísimo
+        //      el nivel sin tener que fijarse en el tamaño de fuente,
+        //      útil sobre todo entre h3/h4 que a veces se confunden.
+        // Todo con utilidades Tailwind arbitrarias — sin depender de
+        // CSS externo, autocontenido en este archivo.
         heading: {
-          h1: "text-2xl font-bold mt-6 mb-2",
-          h2: "text-xl font-bold mt-5 mb-2",
-          h3: "text-lg font-semibold mt-4 mb-1",
-          h4: "text-base font-semibold mt-3 mb-1",
+          h1: [
+            "relative pl-4 mt-8 mb-3 scroll-mt-4",
+            "text-3xl font-black tracking-tight leading-tight",
+            "border-l-[3px] border-l-primary",
+            "before:content-['H1'] before:block before:font-mono before:text-[10px]",
+            "before:font-bold before:tracking-[0.15em] before:text-primary/70",
+            "before:mb-0.5",
+          ].join(" "),
+          h2: [
+            "relative pl-4 mt-6 mb-2.5 scroll-mt-4",
+            "text-2xl font-extrabold tracking-tight leading-tight",
+            "border-l-[3px] border-l-primary/75",
+            "before:content-['H2'] before:block before:font-mono before:text-[9px]",
+            "before:font-bold before:tracking-[0.15em] before:text-primary/60",
+            "before:mb-0.5",
+          ].join(" "),
+          h3: [
+            "relative pl-3 mt-5 mb-2 scroll-mt-4",
+            "text-xl font-bold leading-snug",
+            "border-l-2 border-l-primary/50",
+            "before:content-['H3'] before:block before:font-mono before:text-[9px]",
+            "before:font-semibold before:tracking-[0.15em] before:text-primary/50",
+            "before:mb-0.5",
+          ].join(" "),
+          h4: [
+            "relative pl-3 mt-4 mb-1.5 scroll-mt-4",
+            "text-sm font-bold uppercase tracking-wide leading-snug opacity-90",
+            "border-l-2 border-l-primary/30",
+          ].join(" "),
         },
         quote: "border-l-2 border-primary/30 pl-4 italic opacity-75 my-4",
         code: "font-mono text-[0.875em] bg-surface-1 px-1.5 py-0.5 rounded",
