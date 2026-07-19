@@ -11,6 +11,7 @@ import {
   AlignLeft,
   BookMarked,
   Pencil,
+  Eye,
   MoreHorizontal,
   Globe,
   Lock,
@@ -2654,8 +2655,67 @@ export const PanelPersonajesCapitulo = ({
       </div>
     ) : null;
 
+  // ── Tabs: Escritor (herramientas de consistencia mientras se escribe) vs.
+  // Lectura (lo que el lector va descubriendo: personajes, criaturas, ítems,
+  // territorio). Persistido en localStorage para no perder la pestaña al
+  // cambiar de capítulo.
+  const [tabActiva, setTabActiva] = useState<"escritor" | "lectura">(() => {
+    try {
+      const raw = localStorage.getItem("garlia-panel-cap-tab");
+      return raw === "lectura" ? "lectura" : "escritor";
+    } catch {
+      return "escritor";
+    }
+  });
+
+  const cambiarTab = (t: "escritor" | "lectura") => {
+    setTabActiva(t);
+    try {
+      localStorage.setItem("garlia-panel-cap-tab", t);
+    } catch {}
+  };
+
+  const tabsHeader = (
+    <div
+      className="shrink-0 flex border-b"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+      }}
+    >
+      {(
+        [
+          { key: "escritor", label: "Escritor", icon: <Pencil size={9} /> },
+          { key: "lectura", label: "Lectura", icon: <Eye size={9} /> },
+        ] as const
+      ).map((t) => (
+        <button
+          key={t.key}
+          className="flex-1 flex items-center justify-center gap-1 px-2 py-2 text-micro font-black uppercase tracking-[0.15em] transition-all"
+          style={{
+            color:
+              tabActiva === t.key
+                ? "var(--primary)"
+                : "color-mix(in srgb, var(--primary) 35%, transparent)",
+            borderBottom:
+              tabActiva === t.key
+                ? "2px solid var(--primary)"
+                : "2px solid transparent",
+            background:
+              tabActiva === t.key
+                ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+                : "transparent",
+          }}
+          onClick={() => cambiarTab(t.key)}
+        >
+          {t.icon}
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+
   // Contenido compartido entre desktop y drawer mobile
-  const innerContent = (
+  const contenidoEscritor = (
     <>
       {bloqueSugerencias}
       {bloqueSugerenciasInversas}
@@ -2845,7 +2905,11 @@ export const PanelPersonajesCapitulo = ({
             </p>
           ))}
       </div>
+    </>
+  );
 
+  const contenidoLectura = (
+    <>
       {/* ── Reinos ──────────────────────────────────── */}
       <div
         ref={reinoRef}
@@ -2978,7 +3042,8 @@ export const PanelPersonajesCapitulo = ({
           background: "color-mix(in srgb, var(--primary) 2%, transparent)",
         }}
       >
-        {innerContent}
+        {tabsHeader}
+        {tabActiva === "escritor" ? contenidoEscritor : contenidoLectura}
       </div>
 
       {/* Mobile: drawer desde la derecha */}
@@ -3021,7 +3086,8 @@ export const PanelPersonajesCapitulo = ({
                 <X size={14} />
               </button>
             </div>
-            {innerContent}
+            {tabsHeader}
+            {tabActiva === "escritor" ? contenidoEscritor : contenidoLectura}
           </div>
         </div>
       )}

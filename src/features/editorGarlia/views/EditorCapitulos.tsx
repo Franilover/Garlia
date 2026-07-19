@@ -2745,7 +2745,7 @@ function SidebarLibros({
     <div
       className="shrink-0 flex flex-col border-r overflow-hidden"
       style={{
-        width: "clamp(200px, 20vw, 280px)",
+        width: "clamp(160px, 14vw, 220px)",
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
         background: "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
       }}
