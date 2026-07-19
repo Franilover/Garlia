@@ -485,46 +485,158 @@ function applyInlinePlainMarkdown(text: string): string {
     .replace(/==(.+?)==/g, '<mark class="md-mark">$1</mark>');
 }
 
-// Estilos inline por nivel — replican el mismo lenguaje visual del theme
-// de Lexical (heading.h1..h4 en initialConfig) para que un heading se vea
-// IGUAL en modo edición y en el fallback de preview genérico. No podemos
-// reutilizar las clases Tailwind del theme de Lexical porque ese objeto
-// vive dentro de otro componente (RichEditor no exporta initialConfig),
-// así que se replica acá — cambiar un nivel implica tocar ambos lugares.
-const HEADING_PREVIEW_STYLE: Record<
-  1 | 2 | 3 | 4,
-  { fontSize: string; fontWeight: number; borderColor: string; label?: string }
-> = {
-  1: {
-    fontSize: "1.75rem",
-    fontWeight: 900,
-    borderColor: "var(--color-primary, #7c6af7)",
-    label: "H1",
-  },
-  2: {
-    fontSize: "1.4rem",
-    fontWeight: 800,
-    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 75%, transparent)",
-    label: "H2",
-  },
-  3: {
-    fontSize: "1.15rem",
-    fontWeight: 700,
-    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 50%, transparent)",
-    label: "H3",
-  },
-  4: {
-    fontSize: "0.85rem",
-    fontWeight: 700,
-    borderColor: "color-mix(in srgb, var(--color-primary, #7c6af7) 30%, transparent)",
-  },
-};
-
 // Detecta "# ".."#### " al inicio de un bloque (1 a 4 "#", con espacio) —
-// mismo límite de niveles que expone MarkdownCommandPalette (H1-H3) más H4
-// que sí soporta el theme de Lexical. "#####"/"######" (h5/h6) caen al
-// párrafo normal, igual que antes.
+// mismo límite de niveles que expone MarkdownCommandPalette (H1-H4).
+// "#####"/"######" (h5/h6) caen al párrafo normal, igual que antes.
 const HEADING_LINE_RE = /^(#{1,4})\s+(.*)$/;
+
+const ACCENT = "var(--color-primary, #7c6af7)";
+
+// Cada nivel de heading tiene su propio lenguaje visual — no un único
+// patrón escalado por tamaño — para que la jerarquía se lea de un
+// vistazo. Replica en HTML/inline-styles exactamente lo que hace
+// theme.heading en initialConfig (más abajo en este archivo) para que
+// un heading se vea IGUAL en modo edición y en este fallback de preview.
+// No podemos compartir las clases Tailwind del theme de Lexical porque
+// ese objeto vive en otro componente (RichEditor no lo exporta), así que
+// se replica acá — cambiar un nivel implica tocar ambos lugares.
+function renderHeadingBlock(level: 1 | 2 | 3 | 4, text: string, key: number) {
+  const html = applyInlinePlainMarkdown(text);
+
+  // H1 — "portada de sección": centrado, ancho acotado a 500px (mx-auto)
+  // para que títulos largos hagan wrap sin desalinear las líneas
+  // laterales; las líneas van a los costados vía posicionamiento
+  // absoluto dentro de un wrapper relative.
+  if (level === 1) {
+    return (
+      <div
+        key={key}
+        style={{
+          position: "relative",
+          maxWidth: 500,
+          margin: "32px auto 24px",
+          padding: "0 20px",
+          textAlign: "center",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: 0,
+            width: 12,
+            height: 1,
+            transform: "translateY(-50%)",
+            background: "color-mix(in srgb, " + ACCENT + " 40%, transparent)",
+          }}
+        />
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: 0,
+            width: 12,
+            height: 1,
+            transform: "translateY(-50%)",
+            background: "color-mix(in srgb, " + ACCENT + " 40%, transparent)",
+          }}
+        />
+        <span
+          style={{
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.25,
+            display: "inline",
+          }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    );
+  }
+
+  // H2 — línea horizontal completa debajo del título.
+  if (level === 2) {
+    return (
+      <div
+        key={key}
+        style={{
+          margin: "24px 0 16px",
+          paddingBottom: 8,
+          borderBottom:
+            "1px solid color-mix(in srgb, " + ACCENT + " 25%, transparent)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: 600,
+            lineHeight: 1.3,
+            display: "block",
+          }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    );
+  }
+
+  // H3 — barra vertical de acento corta al costado del texto.
+  if (level === 3) {
+    return (
+      <div
+        key={key}
+        style={{
+          position: "relative",
+          paddingLeft: 12,
+          margin: "20px 0 8px",
+          borderLeft:
+            "2px solid color-mix(in srgb, " + ACCENT + " 50%, transparent)",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "1.1rem",
+            fontWeight: 600,
+            lineHeight: 1.3,
+            display: "block",
+          }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    );
+  }
+
+  // H4 — "drop-cap invertido": primera letra grande y de color, resto
+  // del texto en tamaño normal. Se separa el primer carácter del resto
+  // manualmente (en vez de CSS ::first-letter) porque acá el contenido
+  // ya pasó por applyInlinePlainMarkdown y puede empezar con una etiqueta
+  // HTML (ej. un wikilink) — ::first-letter tomaría la primera letra del
+  // markup, no del texto visible. Tomamos el primer carácter del texto
+  // PLANO (antes de convertir a HTML) y renderizamos el resto aparte.
+  const firstChar = text.charAt(0);
+  const rest = text.slice(1);
+  return (
+    <div key={key} style={{ margin: "16px 0 6px" }}>
+      <span
+        style={{
+          fontSize: "1.1rem",
+          fontWeight: 700,
+          color: "color-mix(in srgb, " + ACCENT + " 70%, transparent)",
+          lineHeight: 0.8,
+          marginRight: 1,
+        }}
+      >
+        {firstChar}
+      </span>
+      <span
+        style={{ fontSize: "0.95rem", fontWeight: 600 }}
+        dangerouslySetInnerHTML={{ __html: applyInlinePlainMarkdown(rest) }}
+      />
+    </div>
+  );
+}
 
 function PlainMarkdownFallback({ value }: { value: string }) {
   const bloques = value.split(/\n{2,}/);
@@ -540,50 +652,7 @@ function PlainMarkdownFallback({ value }: { value: string }) {
         const headingMatch = HEADING_LINE_RE.exec(bloque);
         if (headingMatch) {
           const level = Math.min(4, headingMatch[1].length) as 1 | 2 | 3 | 4;
-          const text = headingMatch[2];
-          const style = HEADING_PREVIEW_STYLE[level];
-          return (
-            <div
-              key={bi}
-              style={{
-                position: "relative",
-                paddingLeft: level <= 2 ? 16 : 12,
-                marginTop: level === 1 ? 32 : level === 2 ? 24 : level === 3 ? 20 : 16,
-                marginBottom: level <= 2 ? 12 : 8,
-                borderLeft: `${level <= 2 ? 3 : 2}px solid ${style.borderColor}`,
-              }}
-            >
-              {style.label && (
-                <span
-                  style={{
-                    display: "block",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: level === 1 ? 10 : 9,
-                    fontWeight: 700,
-                    letterSpacing: "0.15em",
-                    color: style.borderColor,
-                    marginBottom: 2,
-                  }}
-                >
-                  {style.label}
-                </span>
-              )}
-              <span
-                style={{
-                  fontSize: style.fontSize,
-                  fontWeight: style.fontWeight,
-                  lineHeight: 1.25,
-                  letterSpacing: "-0.01em",
-                  textTransform: level === 4 ? "uppercase" : "none",
-                  opacity: level === 4 ? 0.9 : 1,
-                  display: "block",
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: applyInlinePlainMarkdown(text),
-                }}
-              />
-            </div>
-          );
+          return renderHeadingBlock(level, headingMatch[2], bi);
         }
 
         const lineas = bloque.split("\n");
@@ -832,52 +901,55 @@ export function RichEditor({
       theme: {
         paragraph: "mb-[0.4em] leading-[1.7]",
         // ── Headings ──────────────────────────────────────────────────
-        // Antes: 4 tamaños muy próximos (2xl→base) y mismo color que el
-        // resto del texto — a simple vista un h3 se confundía con texto
-        // en negrita normal, no había forma rápida de saber en qué nivel
-        // estabas parado mientras escribías.
+        // Rediseño final — cada nivel tiene su propio lenguaje visual en
+        // vez de repetir el mismo patrón (borde + etiqueta) escalado por
+        // tamaño, para que la jerarquía se lea de inmediato incluso
+        // salteando líneas:
         //
-        // Ahora cada nivel tiene:
-        //   1) Salto de tamaño más marcado (3xl → sm) para que la
-        //      jerarquía se lea de un vistazo, incluso salteando líneas.
-        //   2) Un borde izquierdo de color (más grueso y opaco en h1,
-        //      más fino y tenue en h4) — funciona como "riel" visual
-        //      recorriendo el documento, igual en editor y en preview.
-        //   3) Una etiqueta "H1"/"H2"/etc. en mayúsculas chica antes del
-        //      texto (::before), en el color de acento — deja clarísimo
-        //      el nivel sin tener que fijarse en el tamaño de fuente,
-        //      útil sobre todo entre h3/h4 que a veces se confunden.
+        //   H1 — "portada de sección": centrado, ancho acotado (máx
+        //        500px, mx-auto) para que el texto haga wrap en varias
+        //        líneas si es largo sin que las líneas laterales queden
+        //        desalineadas. Las líneas van a los costados del texto
+        //        vía ::before/::after posicionados absolutos (Lexical
+        //        aplica el theme directo al <h1>, no hay wrapper propio
+        //        para un flex con líneas + texto, así que se resuelven
+        //        con pseudo-elementos position:absolute centrados en el
+        //        alto del bloque).
+        //   H2 — línea horizontal completa debajo del título (border-b).
+        //   H3 — barra vertical de acento corta al costado del texto.
+        //   H4 — "drop-cap invertido": primera letra grande y de color,
+        //        resto del texto en tamaño normal. Se resuelve 100% con
+        //        el pseudo-elemento CSS ::first-letter (variante
+        //        `first-letter:` de Tailwind) — no requiere envolver el
+        //        primer carácter en un span aparte, así que no toca el
+        //        árbol de nodos de Lexical ni interfiere con el cursor.
         // Todo con utilidades Tailwind arbitrarias — sin depender de
         // CSS externo, autocontenido en este archivo.
         heading: {
           h1: [
-            "relative pl-4 mt-8 mb-3 scroll-mt-4",
-            "text-3xl font-black tracking-tight leading-tight",
-            "border-l-[3px] border-l-primary",
-            "before:content-['H1'] before:block before:font-mono before:text-[10px]",
-            "before:font-bold before:tracking-[0.15em] before:text-primary/70",
-            "before:mb-0.5",
+            "relative mx-auto mt-8 mb-6 max-w-[500px]",
+            "text-center text-3xl font-bold tracking-tight leading-tight",
+            "px-5",
+            "before:content-[''] before:absolute before:top-1/2 before:-translate-y-1/2",
+            "before:left-0 before:w-3 before:h-px before:bg-primary/40",
+            "after:content-[''] after:absolute after:top-1/2 after:-translate-y-1/2",
+            "after:right-0 after:w-3 after:h-px after:bg-primary/40",
           ].join(" "),
           h2: [
-            "relative pl-4 mt-6 mb-2.5 scroll-mt-4",
-            "text-2xl font-extrabold tracking-tight leading-tight",
-            "border-l-[3px] border-l-primary/75",
-            "before:content-['H2'] before:block before:font-mono before:text-[9px]",
-            "before:font-bold before:tracking-[0.15em] before:text-primary/60",
-            "before:mb-0.5",
+            "mt-6 mb-4 pb-2 scroll-mt-4",
+            "text-xl font-semibold leading-snug",
+            "border-b border-b-primary/25",
           ].join(" "),
           h3: [
             "relative pl-3 mt-5 mb-2 scroll-mt-4",
-            "text-xl font-bold leading-snug",
+            "text-lg font-semibold leading-snug",
             "border-l-2 border-l-primary/50",
-            "before:content-['H3'] before:block before:font-mono before:text-[9px]",
-            "before:font-semibold before:tracking-[0.15em] before:text-primary/50",
-            "before:mb-0.5",
           ].join(" "),
           h4: [
-            "relative pl-3 mt-4 mb-1.5 scroll-mt-4",
-            "text-sm font-bold uppercase tracking-wide leading-snug opacity-90",
-            "border-l-2 border-l-primary/30",
+            "mt-4 mb-1.5 scroll-mt-4",
+            "text-sm font-semibold leading-snug",
+            "first-letter:text-lg first-letter:font-bold first-letter:text-primary/70",
+            "first-letter:mr-px",
           ].join(" "),
         },
         quote: "border-l-2 border-primary/30 pl-4 italic opacity-75 my-4",
