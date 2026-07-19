@@ -2137,18 +2137,7 @@ const SeccionTriggerWarnings = ({
   );
 };
 
-// React.memo: este panel monta 6 hooks de datos (personajes, criaturas,
-// items, reinos, ciudades, calendario) + más de 15 useState propios. Sin
-// memo, cada tecla que el usuario escribe en RichEditor (hermano de este
-// panel en EditorCapitulos) dispara setContenido() en el padre, y React
-// re-evalúa TODO el árbol hijo — incluido este panel entero, aunque
-// ninguna de sus props haya cambiado. Con memo, React compara props por
-// referencia antes de re-renderizar: como capId/value/criaturas_ids/etc.
-// vienen de useState estables en el padre (no se recrean en cada render),
-// el panel deja de re-evaluarse mientras se escribe. Ver EditorCapitulos.tsx
-// para el fix complementario (useCallback en onMobileClose, que si quedara
-// inline rompería esta memoización al recrearse en cada render del padre).
-export const PanelPersonajesCapitulo = React.memo(function PanelPersonajesCapitulo({
+export const PanelPersonajesCapitulo = ({
   capId,
   value,
   onChange,
@@ -2168,7 +2157,7 @@ export const PanelPersonajesCapitulo = React.memo(function PanelPersonajesCapitu
   onItemsChange?: (ids: string[]) => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
-}) {
+}) => {
   const { personajes, loading: loadingP } = usePersonajes();
   const { criaturas, loading: loadingC } = useCriaturas();
   const { items, loading: loadingI } = useItems();
@@ -2910,7 +2899,7 @@ export const PanelPersonajesCapitulo = React.memo(function PanelPersonajesCapitu
       )}
     </>
   );
-});
+};
 
 // ─── DialogSnippets ───────────────────────────────────────────────────────────
 

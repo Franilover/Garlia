@@ -153,39 +153,13 @@ async function getDexieRow(tabla: string, id: string | number): Promise<any> {
   }
 }
 
-async function readFromDexie<T>(
-  tabla: string,
-  order?: { campo: string; asc?: boolean },
-): Promise<T[]> {
+async function readFromDexie<T>(tabla: string): Promise<T[]> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla)) return [];
     const table = (db as any)[tabla];
     if (!table) return [];
     const rows = (await table.toArray()) as any[];
-    const filtered = rows.filter((r: any) => !r.deleted);
-    // Sin esto, el primer pintado (datos locales de Dexie, instantáneo)
-    // salía en el orden crudo de inserción de IndexedDB — que no tiene
-    // relación con el orden real del dato (ej. "created_at desc" para
-    // libros). Cuando la respuesta de Supabase llegaba unos segundos
-    // después SÍ ordenada, el array se reemplazaba entero y la lista
-    // "saltaba" a su orden correcto — el efecto visible era "primero
-    // aparecen 2 libros desordenados, después aparecen los 4 ordenados".
-    // Ordenar acá también, con el mismo criterio, hace que ambos
-    // pintados (local y remoto) coincidan en orden desde el principio.
-    if (order?.campo) {
-      const { campo, asc = true } = order;
-      filtered.sort((a: any, b: any) => {
-        const av = a?.[campo];
-        const bv = b?.[campo];
-        if (av == null && bv == null) return 0;
-        if (av == null) return asc ? -1 : 1;
-        if (bv == null) return asc ? 1 : -1;
-        if (av < bv) return asc ? -1 : 1;
-        if (av > bv) return asc ? 1 : -1;
-        return 0;
-      });
-    }
-    return filtered as T[];
+    return rows.filter((r: any) => !r.deleted) as T[];
   } catch {
     return [];
   }
@@ -315,7 +289,7 @@ export function useSupabaseData<T = any>(
     const myGen = ++fetchGenRef.current;
     const isStale = () => fetchGenRef.current !== myGen || !isMounted.current;
 
-    const localData = await readFromDexie<T>(tabla, optionsRef.current.order);
+    const localData = await readFromDexie<T>(tabla);
     const hasLocalData = localData.length > 0;
     if (isStale()) return;
 
@@ -406,7 +380,7 @@ export function useSupabaseData<T = any>(
       if (res?.error) throw res.error;
 
       // Re-leer pending desde Dexie en este momento, no usar el snapshot viejo
-      const freshLocal = await readFromDexie<T>(tabla, optionsRef.current.order);
+      const freshLocal = await readFromDexie<T>(tabla);
       if (isStale()) return;
 
       const merged = mergeWithPending<T>(finalData, freshLocal);

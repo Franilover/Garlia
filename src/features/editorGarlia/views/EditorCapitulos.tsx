@@ -230,15 +230,6 @@ const PanelEditor = ({
     initialQuery?: string;
   } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  // Identidad estable para PanelPersonajesCapitulo (memoizado con React.memo
-  // — ver libros/index.tsx). Si esto fuera una arrow function inline en el
-  // JSX (`onMobileClose={() => setMobileSidebarOpen(false)}`), se recrearía
-  // en cada render de este componente y el memo de PanelPersonajesCapitulo
-  // dejaría de tener efecto: React vería una prop "nueva" en cada tecla y
-  // volvería a re-renderizar el panel completo de todos modos.
-  const handleCloseMobileSidebar = useCallback(() => {
-    setMobileSidebarOpen(false);
-  }, []);
   // Fase 2 del rediseño Choice/Gate: toggle "Escribir / Grafo nodo" en el
   // panel central. En modo grafo se reemplaza el RichEditor por dos
   // sub-vistas: "problemas" (huérfanas + links rotos) y "canvas" (Fase 3:
@@ -1184,7 +1175,7 @@ const PanelEditor = ({
           onChange={setPersonajesIds}
           onCriaturasChange={setCriaturasIds}
           onItemsChange={setItemsIds}
-          onMobileClose={handleCloseMobileSidebar}
+          onMobileClose={() => setMobileSidebarOpen(false)}
         />
       )}
 

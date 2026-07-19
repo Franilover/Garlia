@@ -581,11 +581,14 @@ function AventuraDetalle({
   const handleAgregar = async (r: ResultadoBusqueda) => {
     const key = `${r.tabla}:${r.id}`;
     // Guard sincrónico: evita el doble-click/carrera antes de que el
-    // estado de React (pendientes/entidades) alcance a re-renderizar.
-    if (pendientes.has(key) || yaAgregada(r.tabla, r.id)) return;
+    // estado de React (pendientes/entidades) alcance a re-renderizar. Para
+    // criaturas NO bloquea por "ya agregada" — ahí clickear de nuevo es
+    // justamente cómo se suma otro miembro a la horda.
+    if (pendientes.has(key)) return;
+    if (r.tabla !== "criaturas" && yaAgregada(r.tabla, r.id)) return;
     marcarPendiente(key, true);
     try {
-      await agregar(r.tabla, r.id);
+      await agregar(r.tabla, r.id, r.nombre);
     } finally {
       marcarPendiente(key, false);
     }
@@ -646,14 +649,19 @@ function AventuraDetalle({
           <div className="absolute left-4 right-4 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg">
             {resultados.map((r) => {
               const key = `${r.tabla}:${r.id}`;
-              const yaEsta = yaAgregada(r.tabla, r.id);
+              const cantidadAgregada = entidades.filter(
+                (e) => e.tabla === r.tabla && e.entidad_id === r.id,
+              ).length;
+              const yaEsta = cantidadAgregada > 0;
+              const esCriatura = r.tabla === "criaturas";
               const isPending = pendientes.has(key);
               return (
                 <button
                   key={key}
                   type="button"
-                  disabled={yaEsta || isPending}
+                  disabled={(yaEsta && !esCriatura) || isPending}
                   onClick={() => handleAgregar(r)}
+                  title={esCriatura && yaEsta ? "Sumar otra a la horda" : undefined}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 disabled:opacity-50 transition-colors"
                 >
                   <div className="w-8 h-8 shrink-0 rounded-md overflow-hidden bg-primary/5">
@@ -672,6 +680,15 @@ function AventuraDetalle({
                   </div>
                   {isPending ? (
                     <Loader2 size={12} className="animate-spin text-primary/40" />
+                  ) : esCriatura ? (
+                    yaEsta ? (
+                      <span className="flex items-center gap-1 text-micro font-bold text-primary/40">
+                        ×{cantidadAgregada}
+                        <Plus size={12} className="text-primary/50" />
+                      </span>
+                    ) : (
+                      <Plus size={13} className="text-primary/40" />
+                    )
                   ) : yaEsta ? (
                     <span className="text-micro font-bold text-primary/30">Añadida</span>
                   ) : (

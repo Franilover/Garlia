@@ -12,7 +12,6 @@ import {
   Compass,
   BookText,
   BookOpen,
-  Music,
   ChevronRight,
   Cat,
   Search,
@@ -557,12 +556,6 @@ const Navbar = () => {
       label: "Libros",
       icon: BookText,
       active: currentPath?.startsWith("/garlia/libros") ?? false,
-    },
-    {
-      href: "/garlia/canciones",
-      label: "Canciones",
-      icon: Music,
-      active: currentPath?.startsWith("/garlia/canciones") ?? false,
     },
   ];
 

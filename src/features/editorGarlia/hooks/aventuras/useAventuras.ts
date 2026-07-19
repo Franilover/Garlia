@@ -396,21 +396,58 @@ export function useAventuraEntidades(aventuraId: string | null) {
   }, [aventuraId, tablasEnUso, fetchAll]);
 
   const agregar = useCallback(
-    async (tabla: TablaEntidad, entidadId: string) => {
+    async (tabla: TablaEntidad, entidadId: string, nombreEntidad?: string) => {
       if (!aventuraId) return;
-      // Evita el POST (y el 409 ruidoso en consola) si ya sabemos que existe.
+      // Solo "criaturas" se puede agregar más de una vez a propósito: así
+      // el DM arma una horda de varios goblins idénticos con un solo click
+      // repetido, sin tener que crear una fila distinta en la tabla
+      // `criaturas` por cada miembro. El resto de tablas (personajes,
+      // reinos, fichas...) no tiene sentido duplicarlas en el mismo
+      // pizarrón, así que ahí se mantiene el guard de siempre.
       const yaExiste = entidades.some((e) => e.tabla === tabla && e.entidad_id === entidadId);
-      if (yaExiste) return;
+      if (tabla !== "criaturas" && yaExiste) return;
+
+      // Si ya había una copia de esta criatura sin agrupar, la nueva
+      // heredá su grupo_nombre (o, si tampoco tenía, se arma un grupo
+      // nuevo con el nombre de la criatura) — así las dos copias quedan
+      // juntas como horda automáticamente en vez de aparecer sueltas y
+      // requerir que el DM las agrupe a mano.
+      let grupoInicial: string | null = null;
+      if (tabla === "criaturas" && yaExiste) {
+        const copiaPrevia = entidades.find((e) => e.tabla === tabla && e.entidad_id === entidadId);
+        grupoInicial = copiaPrevia?.grupo_nombre ?? nombreEntidad ?? copiaPrevia?.nombre ?? null;
+        // La copia previa todavía no tenía grupo asignado: se le asigna
+        // ahora mismo (mismo nombre que a la nueva) para que las dos
+        // queden del mismo lado del agrupamiento.
+        if (copiaPrevia && !copiaPrevia.grupo_nombre && grupoInicial) {
+          setEntidades((prev) =>
+            prev.map((e) => (e.id === copiaPrevia.id ? { ...e, grupo_nombre: grupoInicial } : e)),
+          );
+          void supabase
+            .from("aventura_entidades")
+            .update({ grupo_nombre: grupoInicial })
+            .eq("id", copiaPrevia.id);
+        }
+      }
 
       const { data, error } = await supabase
         .from("aventura_entidades")
-        .insert({ aventura_id: aventuraId, tabla, entidad_id: entidadId })
+        .insert({
+          aventura_id: aventuraId,
+          tabla,
+          entidad_id: entidadId,
+          ...(grupoInicial ? { grupo_nombre: grupoInicial } : {}),
+        })
         .select()
         .single();
 
       if (error) {
-        // Conflicto de unicidad (carrera): la fila ya existe, no es un error real.
-        if (error.code === "23505") return;
+        // Conflicto de unicidad (carrera): la fila ya existe, no es un
+        // error real — salvo para criaturas, donde SÍ pueden (y deben)
+        // convivir varias filas iguales, así que ahí un 23505 indica que
+        // la constraint vieja de la base todavía no se actualizó (ver
+        // migration_hordas_criaturas.sql) y conviene que se note.
+        if (error.code === "23505" && tabla !== "criaturas") return;
         throw error;
       }
 
