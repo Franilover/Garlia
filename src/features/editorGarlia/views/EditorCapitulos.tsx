@@ -439,7 +439,7 @@ const PanelEditor = ({
         const now = Date.now();
         if (now - lastSnapshotAtRef.current >= SNAPSHOT_MIN_INTERVAL_MS) {
           lastSnapshotAtRef.current = now;
-          void capGuardarVersion(capId, val, titulo).catch(() => {});
+          void capGuardarVersion(capId, val).catch(() => {});
         }
         const stillOnline = await isReallyOnline();
         setSaveStatus(stillOnline ? "saved" : "pending");
@@ -771,10 +771,10 @@ const PanelEditor = ({
 
   const handleRestaurarVersion = async (version: {
     id: string;
-    contenido: string;
-    created_at: string;
+    contenido_delta: string;
+    fecha: string;
   }) => {
-    const fechaLabel = new Date(version.created_at).toLocaleString("es-AR", {
+    const fechaLabel = new Date(version.fecha).toLocaleString("es-AR", {
       dateStyle: "medium",
       timeStyle: "short",
     });
@@ -790,10 +790,10 @@ const PanelEditor = ({
       // Actualiza el editor y dispara el guardado real inmediatamente (sin
       // esperar el debounce de 2s) — restaurar es una acción explícita, no
       // tipeo continuo, así que no tiene sentido diferirla.
-      setContenido(version.contenido);
-      draft.save(version.contenido);
+      setContenido(version.contenido_delta);
+      draft.save(version.contenido_delta);
       clearTimeout(timer.current);
-      await doSave(version.contenido);
+      await doSave(version.contenido_delta);
       setHistorialOpen(false);
     } finally {
       setRestaurando(false);
@@ -1166,7 +1166,7 @@ const PanelEditor = ({
                         ) : (
                           <div className="py-1">
                             {versiones.map((v, i) => {
-                              const fecha = new Date(v.created_at);
+                              const fecha = new Date(v.fecha);
                               const esActual = i === 0;
                               return (
                                 <div
@@ -1186,7 +1186,7 @@ const PanelEditor = ({
                                       })}
                                     </div>
                                     <div className="text-[10px] text-primary/35">
-                                      {wordCount(v.contenido)} palabras
+                                      {wordCount(v.contenido_delta)} palabras
                                       {esActual ? " · más reciente" : ""}
                                     </div>
                                   </div>

@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   Capitulo,
   Reino,
-  CapituloVersionRow} from "@/components/forms/lexical-editor/types";
+  HistorialVersionRow} from "@/components/forms/lexical-editor/types";
 import {
   TABLA_CAPS,
   dexieCapRead,
@@ -517,13 +517,14 @@ export function usePosicionesNodos(capId: string | null) {
 
 // ─── useCapituloVersiones ───────────────────────────────────────────────────
 //
-// Historial de versiones de un capítulo. La lista se lee de Dexie (fuente
-// instantánea, ya escrita por capGuardarVersion en cada guardado exitoso) y
-// se puede refrescar manualmente al abrir el dropdown, en vez de suscribirse
-// en vivo — el historial no necesita ser reactivo segundo a segundo.
+// Historial de versiones de un capítulo, leído de la tabla `historial_
+// contenido` en Supabase (fuente de verdad — ver comentario en
+// capGuardarVersion en types.ts). Se refresca manualmente al abrir el
+// dropdown, en vez de suscribirse en vivo — no necesita ser reactivo
+// segundo a segundo.
 
 export function useCapituloVersiones(capId: string | null) {
-  const [versiones, setVersiones] = useState<CapituloVersionRow[]>([]);
+  const [versiones, setVersiones] = useState<HistorialVersionRow[]>([]);
   const [loading, setLoading] = useState(false);
 
   const reload = useCallback(async () => {
@@ -545,9 +546,9 @@ export function useCapituloVersiones(capId: string | null) {
   }, [reload]);
 
   const guardarSnapshot = useCallback(
-    async (contenido: string, tituloCapitulo?: string) => {
+    async (contenido: string) => {
       if (!capId) return;
-      await capGuardarVersion(capId, contenido, tituloCapitulo);
+      await capGuardarVersion(capId, contenido);
       // No hace falta await del reload — el dropdown de historial recién se
       // consulta cuando el usuario lo abre, así que no vale la pena
       // refrescar la lista en cada guardado silencioso de fondo.

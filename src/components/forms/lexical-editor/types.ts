@@ -235,66 +235,55 @@ export async function capCreate(
 // patrón stale-while-revalidate que el resto del proyecto); Supabase se
 // intenta en background y si falla, el snapshot igual queda local — no vale
 // la pena bloquear el guardado principal ni encolar reintentos para esto.
+//
+// Nota: reusa la tabla `historial_contenido` que ya existía en Supabase
+// (252 filas al momento de conectar esto, con inserts activos desde otro
+// flujo — el nombre de columna `contenido_delta` es engañoso: cada fila
+// tiene el contenido COMPLETO del capítulo en ese momento, no un diff).
+// Supabase es la fuente de verdad acá (a diferencia del resto del
+// proyecto que es Dexie-first) porque el historial ya vivía ahí y no
+// tiene sentido duplicar el dataset existente en una tabla Dexie nueva.
 
-export const TABLA_CAP_VERSIONES = "capitulo_versiones";
+export const TABLA_HISTORIAL = "historial_contenido";
 
-export type CapituloVersionRow = {
+export type HistorialVersionRow = {
   id: string;
-  cap_id: string;
-  contenido: string;
-  titulo_capitulo?: string;
-  created_at: string;
-  status?: "pending" | "synced";
+  capitulo_id: string;
+  contenido_delta: string; // contenido completo del snapshot (nombre legado)
+  fecha: string;
 };
 
 export async function capGuardarVersion(
   capId: string,
   contenido: string,
-  tituloCapitulo?: string,
 ): Promise<void> {
-  const row: CapituloVersionRow = {
-    id: crypto.randomUUID(),
-    cap_id: capId,
-    contenido,
-    titulo_capitulo: tituloCapitulo,
-    created_at: new Date().toISOString(),
-    status: "pending",
-  };
+  if (!(await isReallyOnline())) return; // best-effort, sin cola offline
   try {
-    await (db as any)[TABLA_CAP_VERSIONES]?.put(row);
-  } catch (e) {
-    console.warn("[Dexie] capitulo_versiones:", e);
-    return; // sin registro local no tiene sentido intentar Supabase
-  }
-  if (!(await isReallyOnline())) return;
-  try {
-    const { error } = await supabase.from(TABLA_CAP_VERSIONES).insert([row]);
+    const { error } = await supabase.from(TABLA_HISTORIAL).insert([
+      { capitulo_id: capId, contenido_delta: contenido },
+    ]);
     if (error) throw error;
-    try {
-      await (db as any)[TABLA_CAP_VERSIONES]?.put({
-        ...row,
-        status: "synced",
-      });
-    } catch {}
-  } catch {
-    // Se queda "pending" en Dexie; no encolamos en offlineSync porque el
-    // historial es "best effort" — no queremos que un fallo acá bloquee
-    // ni reintente indefinidamente sobre el flujo de guardado principal.
+  } catch (e) {
+    console.warn("[Supabase] historial_contenido insert:", e);
+    // Sin reintento: un snapshot perdido no es crítico, y no queremos que
+    // esto compita con la cola de offlineSync del guardado principal.
   }
 }
 
 export async function capListarVersiones(
   capId: string,
-): Promise<CapituloVersionRow[]> {
+): Promise<HistorialVersionRow[]> {
   try {
-    const table = (db as any)[TABLA_CAP_VERSIONES];
-    if (!table) return [];
-    const rows = (await table
-      .where("cap_id")
-      .equals(capId)
-      .toArray()) as CapituloVersionRow[];
-    return rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  } catch {
+    const { data, error } = await supabase
+      .from(TABLA_HISTORIAL)
+      .select("id, capitulo_id, contenido_delta, fecha")
+      .eq("capitulo_id", capId)
+      .order("fecha", { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    return (data ?? []) as HistorialVersionRow[];
+  } catch (e) {
+    console.warn("[Supabase] historial_contenido select:", e);
     return [];
   }
 }
