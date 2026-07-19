@@ -229,6 +229,76 @@ export async function capCreate(
   }
 }
 
+// ─── Historial de versiones ──────────────────────────────────────────────────
+// Snapshots del contenido de un capítulo, tomados en cada guardado exitoso
+// con cambio real de texto. Dexie es la fuente de verdad instantánea (mismo
+// patrón stale-while-revalidate que el resto del proyecto); Supabase se
+// intenta en background y si falla, el snapshot igual queda local — no vale
+// la pena bloquear el guardado principal ni encolar reintentos para esto.
+
+export const TABLA_CAP_VERSIONES = "capitulo_versiones";
+
+export type CapituloVersionRow = {
+  id: string;
+  cap_id: string;
+  contenido: string;
+  titulo_capitulo?: string;
+  created_at: string;
+  status?: "pending" | "synced";
+};
+
+export async function capGuardarVersion(
+  capId: string,
+  contenido: string,
+  tituloCapitulo?: string,
+): Promise<void> {
+  const row: CapituloVersionRow = {
+    id: crypto.randomUUID(),
+    cap_id: capId,
+    contenido,
+    titulo_capitulo: tituloCapitulo,
+    created_at: new Date().toISOString(),
+    status: "pending",
+  };
+  try {
+    await (db as any)[TABLA_CAP_VERSIONES]?.put(row);
+  } catch (e) {
+    console.warn("[Dexie] capitulo_versiones:", e);
+    return; // sin registro local no tiene sentido intentar Supabase
+  }
+  if (!(await isReallyOnline())) return;
+  try {
+    const { error } = await supabase.from(TABLA_CAP_VERSIONES).insert([row]);
+    if (error) throw error;
+    try {
+      await (db as any)[TABLA_CAP_VERSIONES]?.put({
+        ...row,
+        status: "synced",
+      });
+    } catch {}
+  } catch {
+    // Se queda "pending" en Dexie; no encolamos en offlineSync porque el
+    // historial es "best effort" — no queremos que un fallo acá bloquee
+    // ni reintente indefinidamente sobre el flujo de guardado principal.
+  }
+}
+
+export async function capListarVersiones(
+  capId: string,
+): Promise<CapituloVersionRow[]> {
+  try {
+    const table = (db as any)[TABLA_CAP_VERSIONES];
+    if (!table) return [];
+    const rows = (await table
+      .where("cap_id")
+      .equals(capId)
+      .toArray()) as CapituloVersionRow[];
+    return rows.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  } catch {
+    return [];
+  }
+}
+
 export async function capDelete(id: string): Promise<void> {
   const existing = await dexieCapGet(id);
   if (!(await isReallyOnline())) {

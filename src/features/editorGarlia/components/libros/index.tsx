@@ -23,6 +23,7 @@ import {
   SlidersHorizontal,
   Check,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -2476,6 +2477,139 @@ export const PanelPersonajesCapitulo = ({
     if (s.tipo === "item") void handleToggleItem(s.id, true);
   };
 
+  // ── Detector inverso ─────────────────────────────────────────────────────
+  // Al revés del bloque anterior: entidades que SÍ están vinculadas a este
+  // capítulo (en value/criaturas_ids/items_ids) pero cuyo nombre ya NO
+  // aparece en el texto actual. Típico de "lo agregué pero me olvidé de
+  // escribirlo" o un vínculo que quedó de un draft viejo. Reusa el mismo
+  // matcher de palabra completa que el detector forward.
+  type SugerenciaInversa = {
+    id: string;
+    nombre: string;
+    tipo: TipoSugerencia;
+  };
+
+  const [ignoradasInversas, setIgnoradasInversas] = useState<Set<string>>(
+    () => {
+      try {
+        const raw = localStorage.getItem(
+          `garlia-sug-inversas-ignoradas:${capId}`,
+        );
+        return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+      } catch {
+        return new Set();
+      }
+    },
+  );
+
+  const ignorarSugerenciaInversa = (key: string) => {
+    setIgnoradasInversas((prev) => {
+      const next = new Set(prev).add(key);
+      try {
+        localStorage.setItem(
+          `garlia-sug-inversas-ignoradas:${capId}`,
+          JSON.stringify([...next]),
+        );
+      } catch {}
+      return next;
+    });
+  };
+
+  const sugerenciasInversas = useMemo(() => {
+    // Capítulo vacío: no acusamos "no aparece" de nada — sería ruido.
+    if (!contenido || contenido.trim().length === 0) return [];
+
+    const vinculados: { id: string; nombre: string; tipo: TipoSugerencia }[] =
+      [
+        ...personajes
+          .filter((p) => value.includes(p.id))
+          .map((p) => ({ id: p.id, nombre: p.nombre, tipo: "personaje" as const })),
+        ...criaturas
+          .filter((c) => criaturas_ids.includes(c.id))
+          .map((c) => ({ id: c.id, nombre: c.nombre, tipo: "criatura" as const })),
+        ...items
+          .filter((i) => items_ids.includes(i.id))
+          .map((i) => ({ id: i.id, nombre: i.nombre, tipo: "item" as const })),
+      ];
+
+    const ausentes: SugerenciaInversa[] = [];
+    for (const v of vinculados) {
+      if (!v.nombre || v.nombre.trim().length < 3) continue;
+      const key = `${v.tipo}:${v.id}`;
+      if (ignoradasInversas.has(key)) continue;
+      try {
+        if (!construirMatcher(v.nombre).test(contenido)) {
+          ausentes.push({ id: v.id, nombre: v.nombre, tipo: v.tipo });
+        }
+      } catch {}
+    }
+    return ausentes.slice(0, 8);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    contenido,
+    personajes,
+    criaturas,
+    items,
+    value,
+    criaturas_ids,
+    items_ids,
+    ignoradasInversas,
+  ]);
+
+  const desvincularSugerenciaInversa = (s: SugerenciaInversa) => {
+    if (s.tipo === "personaje") void handleTogglePersonaje(s.id, false);
+    if (s.tipo === "criatura") void handleToggleCriatura(s.id, false);
+    if (s.tipo === "item") void handleToggleItem(s.id, false);
+  };
+
+  const bloqueSugerenciasInversas =
+    sugerenciasInversas.length > 0 ? (
+      <div
+        className="shrink-0 px-3 py-2.5 border-b space-y-1.5"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          background:
+            "color-mix(in srgb, var(--callout-warning-border) 6%, transparent)",
+        }}
+      >
+        <span
+          className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1"
+          style={{ color: "var(--callout-warning-title, var(--primary))" }}
+        >
+          <AlertTriangle size={9} /> Vinculados sin aparecer ·{" "}
+          {sugerenciasInversas.length}
+        </span>
+        <div className="flex flex-col gap-1">
+          {sugerenciasInversas.map((s) => (
+            <div
+              key={`inv:${s.tipo}:${s.id}`}
+              className="flex items-center gap-1 text-micro"
+            >
+              <span className="flex-1 min-w-0 truncate font-bold text-primary/70">
+                {s.nombre}
+              </span>
+              <button
+                className="shrink-0 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary font-black uppercase tracking-wide transition-all"
+                title={`Quitar vínculo de ${s.nombre} a este capítulo`}
+                onClick={() => desvincularSugerenciaInversa(s)}
+              >
+                Quitar
+              </button>
+              <button
+                className="shrink-0 p-0.5 rounded text-primary/25 hover:text-primary/50 transition-all"
+                title="Ignorar esta sugerencia"
+                onClick={() =>
+                  ignorarSugerenciaInversa(`${s.tipo}:${s.id}`)
+                }
+              >
+                <X size={9} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   const bloqueSugerencias =
     sugerencias.length > 0 ? (
       <div
@@ -2524,6 +2658,7 @@ export const PanelPersonajesCapitulo = ({
   const innerContent = (
     <>
       {bloqueSugerencias}
+      {bloqueSugerenciasInversas}
 
       {/* ── Narrador ────────────────────────────────────────────────────── */}
       <div

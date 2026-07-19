@@ -241,6 +241,18 @@ export interface GaleriaItem {
   creado_en: string;
 }
 
+// Snapshot histórico del contenido de un capítulo — historial de versiones.
+// Se guarda uno cada vez que doSave() completa un guardado exitoso con
+// cambios de contenido reales (no en cada guardado de metadata suelto).
+export interface CapituloVersion {
+  id: string; // uuid propio del snapshot
+  cap_id: string;
+  contenido: string;
+  titulo_capitulo?: string;
+  created_at: string; // ISO timestamp
+  status?: "pending" | "synced";
+}
+
 export interface OfflineOperation {
   id?: number;
   table: string;
@@ -522,6 +534,7 @@ class AgendaFraniDB extends Dexie {
   items!: Table<Item, string>;
   libros!: Table<Libro, string>;
   capitulos!: Table<Capitulo, string>;
+  capitulo_versiones!: Table<CapituloVersion, string>;
   canciones!: Table<Cancion, string>;
   secciones_cancion!: Table<SeccionCancion, string>;
   reinos!: Table<Reino, string>;
@@ -1322,6 +1335,14 @@ class AgendaFraniDB extends Dexie {
     // deja de ser el índice principal de consulta.
     this.version(27).stores({
       misiones_usuario: "id, ficha_id, user_id, mision_id, estado, status",
+    });
+
+    // ─── v28: historial de versiones / snapshots de capítulos ────────────────
+    // Un snapshot por guardado exitoso con cambios de contenido reales.
+    // Índice compuesto [cap_id+created_at] para listar el historial de un
+    // capítulo ya ordenado por fecha sin traer toda la tabla a memoria.
+    this.version(28).stores({
+      capitulo_versiones: "id, cap_id, created_at, [cap_id+created_at], status",
     });
   }
 }

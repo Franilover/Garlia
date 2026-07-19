@@ -10,12 +10,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import type {
   Capitulo,
-  Reino} from "@/components/forms/lexical-editor/types";
+  Reino,
+  CapituloVersionRow} from "@/components/forms/lexical-editor/types";
 import {
   TABLA_CAPS,
   dexieCapRead,
   dexieCapGet,
   dexieCapWrite,
+  capGuardarVersion,
+  capListarVersiones,
 } from "@/components/forms/lexical-editor/types";
 import { isReallyOnline } from "@/hooks/data/useOfflineSync";
 import { db } from "@/lib/api/client/db";
@@ -510,4 +513,47 @@ export function usePosicionesNodos(capId: string | null) {
   }, []);
 
   return { posiciones, setPos, loaded };
+}
+
+// ─── useCapituloVersiones ───────────────────────────────────────────────────
+//
+// Historial de versiones de un capítulo. La lista se lee de Dexie (fuente
+// instantánea, ya escrita por capGuardarVersion en cada guardado exitoso) y
+// se puede refrescar manualmente al abrir el dropdown, en vez de suscribirse
+// en vivo — el historial no necesita ser reactivo segundo a segundo.
+
+export function useCapituloVersiones(capId: string | null) {
+  const [versiones, setVersiones] = useState<CapituloVersionRow[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const reload = useCallback(async () => {
+    if (!capId) {
+      setVersiones([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const rows = await capListarVersiones(capId);
+      setVersiones(rows);
+    } finally {
+      setLoading(false);
+    }
+  }, [capId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const guardarSnapshot = useCallback(
+    async (contenido: string, tituloCapitulo?: string) => {
+      if (!capId) return;
+      await capGuardarVersion(capId, contenido, tituloCapitulo);
+      // No hace falta await del reload — el dropdown de historial recién se
+      // consulta cuando el usuario lo abre, así que no vale la pena
+      // refrescar la lista en cada guardado silencioso de fondo.
+    },
+    [capId],
+  );
+
+  return { versiones, loading, reload, guardarSnapshot };
 }

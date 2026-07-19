@@ -27,6 +27,7 @@ import {
   Waypoints,
   Ban,
   GripVertical,
+  History,
 } from "lucide-react";
 import React, {
   useState,
@@ -53,10 +54,12 @@ import type {
 import {
   VISIBILIDAD_CONFIG,
   toDateInput,
+  wordCount,
   capUpdateContenido,
   capUpdateMeta,
   capCreate,
   capDelete,
+  capGuardarVersion,
   libroUpdateMeta,
   libroDelete,
 } from "@/components/forms/lexical-editor/types";
@@ -91,6 +94,7 @@ import {
   useCapituloEditor,
   useChapterGraph,
   usePosicionesNodos,
+  useCapituloVersiones,
 } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
 import {
   EntidadesLoreProvider,
@@ -280,6 +284,17 @@ const PanelEditor = ({
   // guardarlo ciegamente.
   const lastNonEmptyContentRef = useRef<string>("");
   const { confirm, ConfirmModal } = useConfirm();
+  const { versiones, loading: loadingVersiones, reload: reloadVersiones } =
+    useCapituloVersiones(capId);
+  const [historialOpen, setHistorialOpen] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
+  // Throttle de snapshots: un guardado exitoso dispara un snapshot solo si
+  // pasaron al menos 5 minutos desde el último, para no llenar el historial
+  // con una entrada cada vez que el debounce de 2s del editor guarda mientras
+  // el usuario tipea sin parar. Igual queda un registro cada guardado real
+  // si el usuario deja de escribir y vuelve más tarde.
+  const lastSnapshotAtRef = useRef<number>(0);
+  const SNAPSHOT_MIN_INTERVAL_MS = 5 * 60_000;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -417,6 +432,15 @@ const PanelEditor = ({
         );
         if (val.trim() !== "") lastNonEmptyContentRef.current = val;
         draft.clear();
+        // Snapshot de versión: solo si pasaron 5+ min desde el último, para
+        // no llenar el historial con una entrada por cada auto-guardado
+        // mientras el usuario tipea sin parar. best-effort — un fallo acá
+        // nunca debe afectar el guardado principal, que ya se confirmó.
+        const now = Date.now();
+        if (now - lastSnapshotAtRef.current >= SNAPSHOT_MIN_INTERVAL_MS) {
+          lastSnapshotAtRef.current = now;
+          void capGuardarVersion(capId, val, titulo).catch(() => {});
+        }
         const stillOnline = await isReallyOnline();
         setSaveStatus(stillOnline ? "saved" : "pending");
         if (stillOnline)
@@ -433,7 +457,7 @@ const PanelEditor = ({
         }, 5000);
       }
     },
-    [capId, setCap, draft],
+    [capId, setCap, draft, titulo],
   );
 
   const onChange = useCallback(
@@ -743,6 +767,37 @@ const PanelEditor = ({
       await capDelete(capId);
       onCapitulosChange();
     } catch {}
+  };
+
+  const handleRestaurarVersion = async (version: {
+    id: string;
+    contenido: string;
+    created_at: string;
+  }) => {
+    const fechaLabel = new Date(version.created_at).toLocaleString("es-AR", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    const ok = await confirm({
+      title: "Restaurar versión",
+      message: `Se reemplazará el contenido actual por la versión del ${fechaLabel}. Esto no se puede deshacer.`,
+      danger: true,
+      confirmLabel: "Restaurar",
+    });
+    if (!ok) return;
+    setRestaurando(true);
+    try {
+      // Actualiza el editor y dispara el guardado real inmediatamente (sin
+      // esperar el debounce de 2s) — restaurar es una acción explícita, no
+      // tipeo continuo, así que no tiene sentido diferirla.
+      setContenido(version.contenido);
+      draft.save(version.contenido);
+      clearTimeout(timer.current);
+      await doSave(version.contenido);
+      setHistorialOpen(false);
+    } finally {
+      setRestaurando(false);
+    }
   };
 
   if (loading)
@@ -1061,6 +1116,99 @@ const PanelEditor = ({
                 >
                   <Minimize2 size={11} />
                 </button>
+                <div className="relative">
+                  <button
+                    className={`p-1.5 rounded transition-all ${
+                      historialOpen
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-primary/8 text-primary/25 hover:text-primary"
+                    }`}
+                    title="Historial de versiones"
+                    onClick={() => {
+                      setHistorialOpen((v) => !v);
+                      if (!historialOpen) void reloadVersiones();
+                    }}
+                  >
+                    <History size={11} />
+                  </button>
+                  {historialOpen && (
+                    <>
+                      {/* Overlay para cerrar al hacer click afuera */}
+                      <div
+                        className="fixed inset-0 z-[55]"
+                        onClick={() => setHistorialOpen(false)}
+                      />
+                      <div
+                        className="absolute right-0 top-full mt-1 w-72 max-h-96 overflow-y-auto rounded-[var(--radius-btn)] border shadow-2xl z-[56] bg-white-custom"
+                        style={{
+                          borderColor:
+                            "color-mix(in srgb, var(--primary) 12%, transparent)",
+                        }}
+                      >
+                        <div
+                          className="sticky top-0 px-3 py-2 border-b text-micro font-black uppercase tracking-[0.2em] text-primary/50 bg-white-custom"
+                          style={{
+                            borderColor:
+                              "color-mix(in srgb, var(--primary) 10%, transparent)",
+                          }}
+                        >
+                          Versiones
+                        </div>
+                        {loadingVersiones ? (
+                          <div className="p-4 flex items-center justify-center text-primary/30">
+                            <Loader2 className="animate-spin" size={16} />
+                          </div>
+                        ) : versiones.length === 0 ? (
+                          <div className="p-4 text-micro text-primary/40 text-center">
+                            Todavía no hay versiones guardadas de este
+                            capítulo.
+                          </div>
+                        ) : (
+                          <div className="py-1">
+                            {versiones.map((v, i) => {
+                              const fecha = new Date(v.created_at);
+                              const esActual = i === 0;
+                              return (
+                                <div
+                                  key={v.id}
+                                  className="px-3 py-2 flex items-center gap-2 hover:bg-primary/5 transition-colors"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-micro font-bold text-primary/70">
+                                      {fecha.toLocaleDateString("es-AR", {
+                                        day: "numeric",
+                                        month: "short",
+                                      })}{" "}
+                                      ·{" "}
+                                      {fecha.toLocaleTimeString("es-AR", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })}
+                                    </div>
+                                    <div className="text-[10px] text-primary/35">
+                                      {wordCount(v.contenido)} palabras
+                                      {esActual ? " · más reciente" : ""}
+                                    </div>
+                                  </div>
+                                  <button
+                                    className="shrink-0 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary text-micro font-black uppercase tracking-wide transition-all disabled:opacity-30"
+                                    disabled={restaurando}
+                                    title="Restaurar esta versión"
+                                    onClick={() =>
+                                      handleRestaurarVersion(v)
+                                    }
+                                  >
+                                    Restaurar
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
                 <button
                   className="p-1.5 rounded hover:bg-red-500/10 text-primary/20 hover:text-red-400 transition-all"
                   title="Eliminar capítulo"
