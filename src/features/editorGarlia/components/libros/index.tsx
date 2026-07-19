@@ -50,6 +50,7 @@ import { diasPorAnio as calcDiasPorAnio } from "@/lib/utils/calendario";
 
 import { useCapitulos } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
 import { useEdicionRapidaNarrador } from "@/features/editorGarlia/hooks/personajes/useEdicionRapidaNarrador";
+import { useEstadoMundoCapitulo } from "@/features/editorGarlia/hooks/personajes/useEstadoMundoCapitulo";
 import { useEntidadesLore } from "@/features/editorGarlia/context/EntidadesLoreContext";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
@@ -2104,6 +2105,149 @@ const EdicionRapidaNarrador = ({ personajeId }: { personajeId: string }) => {
   );
 };
 
+// ─── BloqueEstadoMundo ───────────────────────────────────────────────────────
+// "¿Qué pasa en el mundo en este punto de la historia?" — lista compacta,
+// colapsada por defecto, con la edad y era vigente de cada personaje
+// vinculado al capítulo. Complementa al bloque "Narrador" de arriba (que
+// ya muestra esto para uno solo) extendiéndolo a todos los vinculados.
+
+const BloqueEstadoMundo = ({
+  estados,
+  loading,
+  diaAbsoluto,
+}: {
+  estados: {
+    id: string;
+    nombre: string;
+    edad: number | null;
+    eraLabel: string;
+    rasgos: string[];
+    notas: string;
+  }[];
+  loading: boolean;
+  diaAbsoluto: number | null;
+}) => {
+  const [abierto, setAbierto] = useState(false);
+
+  return (
+    <div
+      className="shrink-0 px-3 py-2.5 border-b"
+      style={{
+        borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+      }}
+    >
+      <button
+        className="w-full flex items-center gap-1"
+        title="Edad y era de cada personaje vinculado, en este punto de la historia"
+        onClick={() => setAbierto((v) => !v)}
+      >
+        <Sparkles
+          size={8}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}
+        />
+        <span
+          className="text-micro font-black uppercase tracking-[0.2em] flex-1 text-left"
+          style={{
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}
+        >
+          Estado del mundo
+        </span>
+        {loading && <Loader2 className="animate-spin text-primary/25" size={8} />}
+        <ChevronDown
+          size={9}
+          style={{
+            color: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            transform: abierto ? "rotate(180deg)" : "none",
+            transition: "transform 0.15s",
+          }}
+        />
+      </button>
+
+      {abierto && (
+        <div className="mt-2 space-y-2.5">
+          {!diaAbsoluto && (
+            <p
+              className="text-micro font-bold italic"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 25%, transparent)",
+              }}
+            >
+              Asigná una fecha al capítulo para ver edades y eras.
+            </p>
+          )}
+          {diaAbsoluto && estados.length === 0 && !loading && (
+            <p
+              className="text-micro font-bold italic"
+              style={{
+                color: "color-mix(in srgb, var(--primary) 25%, transparent)",
+              }}
+            >
+              Ninguno de los vinculados tiene fecha de nacimiento o eras
+              registradas todavía.
+            </p>
+          )}
+          {estados.map((e) => (
+            <div key={e.id} className="space-y-1">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-micro font-black text-primary/70">
+                  {e.nombre}
+                </span>
+                {e.edad != null && (
+                  <span
+                    className="text-micro font-bold tabular-nums"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    {e.edad} años
+                  </span>
+                )}
+                {e.eraLabel && (
+                  <span className="text-micro font-bold italic text-primary/35 truncate">
+                    {e.eraLabel}
+                  </span>
+                )}
+              </div>
+              {e.rasgos.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {e.rasgos.map((rasgo) => (
+                    <span
+                      key={rasgo}
+                      className="px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--primary) 6%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--primary) 14%, transparent)",
+                        color:
+                          "color-mix(in srgb, var(--primary) 55%, transparent)",
+                      }}
+                    >
+                      {rasgo}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {e.notas && (
+                <p
+                  className="text-[10px] leading-relaxed"
+                  style={{
+                    color:
+                      "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  }}
+                >
+                  {e.notas}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const PanelPersonajesCapitulo = ({
   capId,
   contenido = "",
@@ -2446,6 +2590,16 @@ export const PanelPersonajesCapitulo = ({
     if (!candidatas.length) return null;
     return candidatas.reduce((max, e) => (e.momento > max.momento ? e : max));
   }, [erasNarrador, ordenLinea]);
+
+  // ── Estado del mundo: edad + era vigente de CADA personaje vinculado al
+  // capítulo (no solo el narrador), en el mismo punto de la línea de
+  // tiempo. Reusa la misma regla de "era vigente" que ya se usa arriba.
+  const diaAbsolutoCap = ordenLinea.trim()
+    ? parseInt(ordenLinea.trim(), 10)
+    : null;
+  const { estados: estadoMundo, loading: loadingEstadoMundo } =
+    useEstadoMundoCapitulo(value, diaAbsolutoCap, diasPorAnioNarrador);
+
 
   const _handleSaveOrdenCap = async () => {
     const num = parseInt(ordenCap.trim(), 10);
@@ -3011,6 +3165,16 @@ export const PanelPersonajesCapitulo = ({
             </p>
           ))}
       </div>
+
+      {/* ── Estado del mundo: edad + era vigente de cada personaje
+          vinculado al capítulo, en este punto de la línea de tiempo ──── */}
+      {value.length > 0 && (
+        <BloqueEstadoMundo
+          diaAbsoluto={diaAbsolutoCap}
+          estados={estadoMundo}
+          loading={loadingEstadoMundo}
+        />
+      )}
     </>
   );
 
