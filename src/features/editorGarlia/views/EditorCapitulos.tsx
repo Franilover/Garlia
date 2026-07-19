@@ -92,7 +92,10 @@ import {
   useChapterGraph,
   usePosicionesNodos,
 } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
-import { EntidadesLoreProvider } from "@/features/editorGarlia/context/EntidadesLoreContext";
+import {
+  EntidadesLoreProvider,
+  useEntidadesLore,
+} from "@/features/editorGarlia/context/EntidadesLoreContext";
 import {
   insertChoiceAtEndOfSection,
   type StoryGraph,
