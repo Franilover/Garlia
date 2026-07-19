@@ -49,6 +49,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import { diasPorAnio as calcDiasPorAnio } from "@/lib/utils/calendario";
 
 import { useCapitulos } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
+import { useEdicionRapidaNarrador } from "@/features/editorGarlia/hooks/personajes/useEdicionRapidaNarrador";
 import { useEntidadesLore } from "@/features/editorGarlia/context/EntidadesLoreContext";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
@@ -1999,6 +2000,110 @@ const SeccionTriggerWarnings = ({
   );
 };
 
+// ─── EdicionRapidaNarrador ──────────────────────────────────────────────────
+// Editar `sobre` (descripción) y `caracteristicas` del narrador sin salir
+// del editor de capítulos. Colapsado por defecto (el panel ya es angosto);
+// se expande con el lápiz junto al selector de narrador.
+
+const EdicionRapidaNarrador = ({ personajeId }: { personajeId: string }) => {
+  const [abierto, setAbierto] = useState(false);
+  const {
+    sobre,
+    caracteristicas,
+    setSobre,
+    setCaracteristicas,
+    loading,
+    status,
+  } = useEdicionRapidaNarrador(abierto ? personajeId : null);
+
+  return (
+    <div className="mt-1.5">
+      <button
+        className="w-full flex items-center gap-1 text-micro font-bold uppercase tracking-wide transition-all"
+        style={{
+          color: abierto
+            ? "var(--primary)"
+            : "color-mix(in srgb, var(--primary) 40%, transparent)",
+        }}
+        title="Editar descripción y características sin salir del editor"
+        onClick={() => setAbierto((v) => !v)}
+      >
+        <Pencil size={8} />
+        <span className="flex-1 text-left">Editar descripción</span>
+        {status === "saving" && (
+          <Loader2 className="animate-spin" size={8} />
+        )}
+        {status === "saved" && (
+          <Check size={8} style={{ color: "var(--accent, #2a9d5c)" }} />
+        )}
+        <ChevronDown
+          size={9}
+          style={{
+            transform: abierto ? "rotate(180deg)" : "none",
+            transition: "transform 0.15s",
+          }}
+        />
+      </button>
+
+      {abierto && (
+        <div className="mt-1.5 space-y-2">
+          {loading ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="animate-spin text-primary/25" size={10} />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wide text-primary/30 mb-0.5">
+                  Sobre
+                </label>
+                <textarea
+                  className="w-full rounded-[var(--radius-btn)] border px-2 py-1.5 text-micro leading-relaxed resize-none focus:outline-none focus:ring-1"
+                  placeholder="Descripción del personaje…"
+                  rows={3}
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background: "var(--white-custom, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 70%, transparent)",
+                  }}
+                  value={sobre}
+                  onChange={(e) => setSobre(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wide text-primary/30 mb-0.5">
+                  Características
+                </label>
+                <textarea
+                  className="w-full rounded-[var(--radius-btn)] border px-2 py-1.5 text-micro leading-relaxed resize-none focus:outline-none focus:ring-1"
+                  placeholder="Rasgos, personalidad, aspecto…"
+                  rows={3}
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--primary) 12%, transparent)",
+                    background: "var(--white-custom, transparent)",
+                    color:
+                      "color-mix(in srgb, var(--primary) 70%, transparent)",
+                  }}
+                  value={caracteristicas}
+                  onChange={(e) => setCaracteristicas(e.target.value)}
+                />
+              </div>
+              {status === "error" && (
+                <p className="text-[10px] font-bold text-red-400">
+                  No se pudo guardar. Revisá tu conexión.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const PanelPersonajesCapitulo = ({
   capId,
   contenido = "",
@@ -2757,6 +2862,7 @@ export const PanelPersonajesCapitulo = ({
           onChange={handleSaveNarrador}
           onNavigate={(id) => dispatchOpen("personajes", id)}
         />
+        {narradorId && <EdicionRapidaNarrador personajeId={narradorId} />}
       </div>
 
       {/* ── Línea de tiempo (fecha + edad/era del narrador, todo junto) ──── */}
