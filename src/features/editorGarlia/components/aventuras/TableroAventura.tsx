@@ -193,8 +193,8 @@ function usePosicionesResueltas(items: TableroItem[], cardW: number, cardH: numb
       cascadeIndex += 1;
       return {
         ...item,
-        pos_x: 24 + col * (cardW + 24),
-        pos_y: 24 + row * (cardH + 24),
+        pos_x: Math.round((24 + col * (cardW + 24)) / GRID_SIZE) * GRID_SIZE,
+        pos_y: Math.round((24 + row * (cardH + 24)) / GRID_SIZE) * GRID_SIZE,
       };
     });
   }, [items, cardW, cardH]);
@@ -843,8 +843,13 @@ export function TableroAventura({
 
         {resueltos.map((item) => {
           const live = livePos[item.id];
-          const x = live?.x ?? item.pos_x ?? 0;
-          const y = live?.y ?? item.pos_y ?? 0;
+          // Se alinea a la grilla al dibujar, aunque pos_x/pos_y hayan
+          // quedado guardados en una posición libre de antes de que
+          // existiera el snap (reinos/criaturas viejos, cascada inicial,
+          // etc.) — así todo el tablero se ve prolijamente alineado sin
+          // tener que re-guardar cada item.
+          const x = snap(live?.x ?? item.pos_x ?? 0);
+          const y = snap(live?.y ?? item.pos_y ?? 0);
           const isDraggingThis = dragId === item.id;
 
           // ── Token circular: la propia ficha del jugador. pos_x/pos_y
@@ -994,21 +999,28 @@ export function TableroAventura({
                 onPointerDown={(e) => handlePointerDown(e, item)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={(e) => handlePointerUp(e, item)}
-                className={`group absolute rounded-2xl border overflow-hidden shadow-sm select-none ${
-                  tieneImagen ? "" : "flex items-stretch gap-3"
+                className={`group absolute overflow-hidden select-none ${
+                  tieneImagen
+                    ? esContainerTarget || esDropTarget
+                      ? "rounded-2xl border shadow-sm"
+                      : ""
+                    : "rounded-2xl border shadow-sm flex items-stretch gap-3"
                 }`}
                 style={{
                   left: x,
                   top: y,
                   width: cardStyleWidth,
                   height: cardStyleHeight,
-                  background: "var(--white-custom)",
-                  borderColor: esContainerTarget
-                    ? "#3b82f6"
-                    : esDropTarget
-                      ? "#22c55e"
-                      : "color-mix(in srgb, var(--primary) 12%, transparent)",
-                  borderWidth: esContainerTarget || esDropTarget ? 2 : 1,
+                  background: tieneImagen ? undefined : "var(--white-custom)",
+                  borderColor:
+                    tieneImagen && !esContainerTarget && !esDropTarget
+                      ? undefined
+                      : esContainerTarget
+                        ? "#3b82f6"
+                        : esDropTarget
+                          ? "#22c55e"
+                          : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  borderWidth: tieneImagen && !esContainerTarget && !esDropTarget ? 0 : esContainerTarget || esDropTarget ? 2 : 1,
                   borderStyle: esContainerTarget || esDropTarget ? "dashed" : "solid",
                   cursor: editable ? (isDraggingThis ? "grabbing" : "grab") : "pointer",
                   touchAction: "manipulation",
@@ -1027,7 +1039,9 @@ export function TableroAventura({
                       ? "0 0 0 4px rgba(34,197,94,0.2)"
                       : isDraggingThis || isResizingThis
                         ? "0 10px 24px rgba(0,0,0,0.18)"
-                        : "0 1px 3px rgba(0,0,0,0.06)",
+                        : tieneImagen
+                          ? undefined
+                          : "0 1px 3px rgba(0,0,0,0.06)",
                   transition:
                     isDraggingThis || isResizingThis
                       ? "none"
@@ -1071,25 +1085,10 @@ export function TableroAventura({
                   <img
                     src={item.imagen_url!}
                     alt={item.nombre}
+                    title={item.nombre}
                     draggable={false}
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                   />
-                  <div
-                    className="absolute inset-x-0 bottom-0 px-2.5 py-2"
-                    style={{
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.35) 60%, transparent)",
-                    }}
-                  >
-                    {item.subtitulo && (
-                      <span className="block text-micro font-black uppercase tracking-widest text-white/70 truncate">
-                        {item.subtitulo}
-                      </span>
-                    )}
-                    <h3 className="font-serif italic text-white truncate text-sm">
-                      {item.nombre}
-                    </h3>
-                  </div>
                   {renderBadge && (
                     <div className="absolute top-1 right-1">{renderBadge(item)}</div>
                   )}
