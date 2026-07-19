@@ -26,6 +26,7 @@ import {
   MapPin,
   Waypoints,
   Ban,
+  GripVertical,
 } from "lucide-react";
 import React, {
   useState,
@@ -88,10 +89,10 @@ import {
 } from "@/features/editorGarlia/components/libros";
 import {
   useCapituloEditor,
-  useReinos,
   useChapterGraph,
   usePosicionesNodos,
 } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
+import { EntidadesLoreProvider } from "@/features/editorGarlia/context/EntidadesLoreContext";
 import {
   insertChoiceAtEndOfSection,
   type StoryGraph,
@@ -1168,6 +1169,7 @@ const PanelEditor = ({
       {(
         <PanelPersonajesCapitulo
           capId={capId}
+          contenido={contenido}
           criaturas_ids={criaturasIds}
           items_ids={itemsIds}
           mobileOpen={mobileSidebarOpen}
@@ -1723,42 +1725,6 @@ function BibliotecaPortadas({
 // Barra superior + panel de configuración expandible del libro.
 // Reemplaza ModalEditarLibro: todo editable inline.
 
-// ─── useCiudades (local) ─────────────────────────────────────────────────────
-function useCiudades() {
-  const [ciudades, setCiudades] = useState<
-    { id: string; nombre: string; reino_id?: string | null }[]
-  >([]);
-  useEffect(() => {
-    void (async () => {
-      try {
-        const table = (db as any)["ciudades"];
-        if (table) {
-          const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) {
-            setCiudades(local);
-            return;
-          }
-        }
-      } catch {}
-      if (!navigator.onLine) return;
-      try {
-        const { data } = await supabase
-          .from("ciudades")
-          .select("id, nombre, reino_id")
-          .order("nombre");
-        if (data) {
-          setCiudades(data as any[]);
-          try {
-            const t = (db as any)["ciudades"];
-            if (t) await t.bulkPut(data);
-          } catch {}
-        }
-      } catch {}
-    })();
-  }, []);
-  return { ciudades };
-}
-
 // ─── BarraLibro constants ─────────────────────────────────────────────────────
 const ESTADOS_LIBRO = ["BORRADOR", "EN PROCESO", "FINALIZADO", "PAUSADO"];
 const TW_PREDEFINIDOS_BARRA = [
@@ -1823,8 +1789,7 @@ function BarraLibro({
   const titRef = useRef<HTMLInputElement>(null);
 
   const { items: gruposItems, loading: _loadingGrupos } = useGruposLibros();
-  const { reinos } = useReinos();
-  const { ciudades } = useCiudades();
+  const { reinos, ciudades } = useEntidadesLore();
 
   // Reinos y ciudades únicos de todos los capítulos del libro
   const reinosIdsUnicos = Array.from(
@@ -2536,6 +2501,7 @@ function SidebarLibros({
   onNuevoLibro,
   onDeleteLibro,
   onToggleSidebar,
+  onReorderCaps,
 }: {
   libros: Libro[];
   loadingLibros: boolean;
@@ -2551,7 +2517,40 @@ function SidebarLibros({
   onNuevoLibro: () => void;
   onDeleteLibro: (libroId: string) => void;
   onToggleSidebar: () => void;
+  onReorderCaps: (libroId: string, orderedIds: string[]) => void;
 }) {
+  // ── Drag-and-drop de capítulos (reordenar) ────────────────────────────────
+  // Nativo (HTML5 DnD), sin dependencias nuevas. `dragCapId` es el capítulo
+  // que se está arrastrando; `overCapId` el que está debajo del cursor
+  // (para pintar el indicador de "soltar acá").
+  const [dragCapId, setDragCapId] = useState<string | null>(null);
+  const [overCapId, setOverCapId] = useState<string | null>(null);
+
+  const handleDropCap = (libroId: string, targetCapId: string) => {
+    const caps = porLibro[libroId] ?? [];
+    if (!dragCapId || dragCapId === targetCapId) {
+      setDragCapId(null);
+      setOverCapId(null);
+      return;
+    }
+    const ordenados = [...caps].sort((a, b) => a.orden - b.orden);
+    const fromIdx = ordenados.findIndex((c) => c.id === dragCapId);
+    const toIdx = ordenados.findIndex((c) => c.id === targetCapId);
+    if (fromIdx === -1 || toIdx === -1) {
+      setDragCapId(null);
+      setOverCapId(null);
+      return;
+    }
+    const reordenados = [...ordenados];
+    const [moved] = reordenados.splice(fromIdx, 1);
+    reordenados.splice(toIdx, 0, moved);
+    onReorderCaps(
+      libroId,
+      reordenados.map((c) => c.id),
+    );
+    setDragCapId(null);
+    setOverCapId(null);
+  };
   const [expandidos, setExpandidos] = useState<Set<string>>(
     new Set(selectedLibroId ? [selectedLibroId] : []),
   );
@@ -2713,10 +2712,13 @@ function SidebarLibros({
                     ) : (
                       (caps ?? []).map((cap) => {
                         const activo = cap.id === selectedCapId;
+                        const arrastrando = dragCapId === cap.id;
+                        const esDestino =
+                          overCapId === cap.id && dragCapId !== cap.id;
                         return (
                           <div
                             key={cap.id}
-                            className="group relative flex items-center gap-1.5 pl-7 pr-2.5 py-1.5 cursor-pointer transition-all"
+                            className="group relative flex items-center gap-1 pl-1 pr-2.5 py-1.5 cursor-pointer transition-all"
                             style={{
                               background: activo
                                 ? "color-mix(in srgb, var(--primary) 8%, transparent)"
@@ -2724,9 +2726,46 @@ function SidebarLibros({
                               borderLeft: activo
                                 ? "2px solid var(--primary)"
                                 : "2px solid transparent",
+                              borderTop: esDestino
+                                ? "2px solid var(--primary)"
+                                : "2px solid transparent",
+                              opacity: arrastrando ? 0.4 : 1,
                             }}
                             onClick={() => onSelectCap(libro.id, cap.id)}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              if (dragCapId && dragCapId !== cap.id)
+                                setOverCapId(cap.id);
+                            }}
+                            onDragLeave={() => {
+                              setOverCapId((prev) =>
+                                prev === cap.id ? null : prev,
+                              );
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              handleDropCap(libro.id, cap.id);
+                            }}
                           >
+                            {/* Handle de drag — visible en hover, evita arrastrar
+                                toda la fila por error al querer solo abrir el capítulo */}
+                            <span
+                              className="shrink-0 hidden group-hover:flex items-center justify-center text-primary/20 hover:text-primary/50 cursor-grab active:cursor-grabbing"
+                              draggable
+                              title="Arrastrar para reordenar"
+                              onClick={(e) => e.stopPropagation()}
+                              onDragEnd={() => {
+                                setDragCapId(null);
+                                setOverCapId(null);
+                              }}
+                              onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = "move";
+                                setDragCapId(cap.id);
+                              }}
+                            >
+                              <GripVertical size={10} />
+                            </span>
+
                             {/* Número de orden */}
                             <span
                               className="shrink-0 text-micro font-black tabular-nums"
@@ -2977,6 +3016,30 @@ export function EditorCapitulosPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingLibros, libros.length]);
 
+  // Reordenar capítulos (drag-and-drop en la sidebar). `orderedIds` ya viene
+  // en el nuevo orden deseado — reindexamos 1..n y guardamos.
+  // Optimista: el estado local se actualiza al toque (se siente instantáneo);
+  // capUpdateMeta ya maneja offline/pending por su cuenta, así que si falla
+  // la red el cambio queda encolado igual que el resto de la app.
+  const handleReorderCaps = (libroId: string, orderedIds: string[]) => {
+    const capsActuales = porLibro[libroId] ?? [];
+    const porId = new Map(capsActuales.map((c) => [c.id, c]));
+    const reindexados = orderedIds
+      .map((id, i) => {
+        const c = porId.get(id);
+        return c ? { ...c, orden: i + 1 } : null;
+      })
+      .filter((c): c is Capitulo => c !== null);
+
+    setPorLibro((prev) => ({ ...prev, [libroId]: reindexados }));
+
+    void Promise.all(
+      reindexados.map((c) =>
+        capUpdateMeta(c.id, { orden: c.orden }).catch(() => {}),
+      ),
+    );
+  };
+
   const handleSelectCap = (libroId: string, capId: string) => {
     setSelectedLibroId(libroId);
     setSelectedCapId(capId);
@@ -3068,6 +3131,7 @@ export function EditorCapitulosPanel() {
               setShowNuevoCap(true);
             }}
             onNuevoLibro={() => setShowNuevoLibro(true)}
+            onReorderCaps={handleReorderCaps}
             onSelectCap={handleSelectCap}
             onToggleSidebar={() => setSidebarOpen((o) => !o)}
           />
@@ -3133,7 +3197,9 @@ export function EditorCapitulosPanel() {
 export default function EstudioCapitulos() {
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-bg-main">
-      <EditorCapitulosPanel />
+      <EntidadesLoreProvider>
+        <EditorCapitulosPanel />
+      </EntidadesLoreProvider>
     </div>
   );
 }

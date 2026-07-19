@@ -22,9 +22,10 @@ import {
   Plus,
   SlidersHorizontal,
   Check,
+  Sparkles,
 } from "lucide-react";
 import Image from "next/image";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 
 import type {
   Libro,
@@ -41,12 +42,12 @@ import { SeccionEntidad } from "@/components/ui/SeccionEntidad";
 import { SelectorFechaMundo } from "@/features/editorGarlia/components/calendario/SelectorFechaMundo";
 import { useCalendario } from "@/features/editorGarlia/hooks/calendario/useCalendario";
 import SimpleImagePicker from "@/features/editorGarlia/components/libros/snippets/forms/SimpleImagePicker";
-import { usePersonajes } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
 import { diasPorAnio as calcDiasPorAnio } from "@/lib/utils/calendario";
 
-import { useCapitulos, useReinos } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
+import { useCapitulos } from "@/features/editorGarlia/hooks/capitulos/useCapitulosEditor";
+import { useEntidadesLore } from "@/features/editorGarlia/context/EntidadesLoreContext";
 // ─── EstadisticasEscritura ────────────────────────────────────────────────────
 
 export const EstadisticasEscritura = ({
@@ -1557,7 +1558,7 @@ export const SelectorNarrador = ({
   // para saltar directo a su ficha de personaje.
   onNavigate?: (id: string) => void;
 }) => {
-  const { personajes, loading } = usePersonajes();
+  const { personajes, loading } = useEntidadesLore();
   const items = personajes.map((p) => ({
     id: p.id,
     label: p.nombre,
@@ -1588,7 +1589,7 @@ export const SelectorReino = ({
   value: string[];
   onChange: (ids: string[]) => void;
 }) => {
-  const { reinos, loading } = useReinos();
+  const { reinos, loading } = useEntidadesLore();
   const items = reinos.map((r) => ({
     id: r.id,
     label: r.nombre,
@@ -1617,7 +1618,7 @@ export const SelectorPersonajesCapitulo = ({
   value: string[];
   onChange: (ids: string[]) => void;
 }) => {
-  const { personajes, loading } = usePersonajes();
+  const { personajes, loading } = useEntidadesLore();
   const items = personajes.map((p) => ({
     id: p.id,
     label: p.nombre,
@@ -1642,7 +1643,7 @@ export const SelectorPersonajesCapitulo = ({
 // ─── NarradorPill ─────────────────────────────────────────────────────────────
 
 export const NarradorPill = ({ narradorId }: { narradorId: string }) => {
-  const { personajes } = usePersonajes();
+  const { personajes } = useEntidadesLore();
   const p = personajes.find((x) => x.id === narradorId);
   if (!p) return null;
   return (
@@ -1746,147 +1747,6 @@ export function SelectorImagenPortada({
   );
 }
 
-// ─── hooks internos de criaturas e items ─────────────────────────────────────
-
-function useCriaturas() {
-  const [criaturas, setCriaturas] = useState<
-    { id: string; nombre: string; imagen_url?: string }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    void (async () => {
-      // 1️⃣ Dexie first
-      try {
-        const table = (db as any)["criaturas"];
-        if (table) {
-          const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) {
-            setCriaturas(local);
-            setLoading(false);
-          }
-        }
-      } catch {}
-
-      // 2️⃣ Bail if offline
-      if (!navigator.onLine) {
-        setLoading(false);
-        return;
-      }
-
-      // 3️⃣ Refresh from Supabase and update cache
-      try {
-        const { data } = await supabase
-          .from("criaturas")
-          .select("id, nombre, imagen_url")
-          .order("nombre");
-        if (data) {
-          setCriaturas(data as any[]);
-          try {
-            const table = (db as any)["criaturas"];
-            if (table) await table.bulkPut(data);
-          } catch {}
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, []);
-  return { criaturas, loading };
-}
-
-function useItems() {
-  const [items, setItems] = useState<
-    { id: string; nombre: string; imagen_url?: string; categoria?: string }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    void (async () => {
-      // 1️⃣ Dexie first
-      try {
-        const table = (db as any)["items"];
-        if (table) {
-          const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) {
-            setItems(local);
-            setLoading(false);
-          }
-        }
-      } catch {}
-
-      // 2️⃣ Bail if offline
-      if (!navigator.onLine) {
-        setLoading(false);
-        return;
-      }
-
-      // 3️⃣ Refresh from Supabase and update cache
-      try {
-        const { data } = await supabase
-          .from("items")
-          .select("id, nombre, imagen_url, categoria")
-          .order("nombre");
-        if (data) {
-          setItems(data as any[]);
-          try {
-            const table = (db as any)["items"];
-            if (table) await table.bulkPut(data);
-          } catch {}
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, []);
-  return { items, loading };
-}
-
-function useCiudades() {
-  const [ciudades, setCiudades] = useState<
-    {
-      id: string;
-      nombre: string;
-      imagen_url?: string | null;
-      reino_id?: string | null;
-    }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    void (async () => {
-      // 1️⃣ Dexie first
-      try {
-        const table = (db as any)["ciudades"];
-        if (table) {
-          const local = await table.orderBy("nombre").toArray();
-          if (local.length > 0) {
-            setCiudades(local);
-            setLoading(false);
-          }
-        }
-      } catch {}
-
-      // 2️⃣ Bail if offline
-      if (!navigator.onLine) {
-        setLoading(false);
-        return;
-      }
-
-      // 3️⃣ Refresh from Supabase and update cache
-      try {
-        const { data } = await supabase
-          .from("ciudades")
-          .select("id, nombre, imagen_url, reino_id")
-          .order("nombre");
-        if (data) {
-          setCiudades(data as any[]);
-          try {
-            const table = (db as any)["ciudades"];
-            if (table) await table.bulkPut(data);
-          } catch {}
-        }
-      } catch {}
-      setLoading(false);
-    })();
-  }, []);
-  return { ciudades, loading };
-}
 
 // ─── PanelPersonajesCapitulo (Personajes + Criaturas + Items en vertical) ─────
 
@@ -2139,6 +1999,7 @@ const SeccionTriggerWarnings = ({
 
 export const PanelPersonajesCapitulo = ({
   capId,
+  contenido = "",
   value,
   onChange,
   criaturas_ids = [],
@@ -2149,6 +2010,7 @@ export const PanelPersonajesCapitulo = ({
   onMobileClose,
 }: {
   capId: string;
+  contenido?: string;
   value: string[];
   onChange: (ids: string[]) => void;
   criaturas_ids?: string[];
@@ -2158,9 +2020,19 @@ export const PanelPersonajesCapitulo = ({
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }) => {
-  const { personajes, loading: loadingP } = usePersonajes();
-  const { criaturas, loading: loadingC } = useCriaturas();
-  const { items, loading: loadingI } = useItems();
+  const {
+    personajes,
+    criaturas,
+    items,
+    reinos,
+    ciudades,
+    loading: loadingLore,
+  } = useEntidadesLore();
+  const loadingP = loadingLore;
+  const loadingC = loadingLore;
+  const loadingI = loadingLore;
+  const loadingReinos = loadingLore;
+  const loadingCiudades = loadingLore;
 
   const [savingP, setSavingP] = useState(false);
   const [savingC, setSavingC] = useState(false);
@@ -2176,13 +2048,11 @@ export const PanelPersonajesCapitulo = ({
   const _ordenInputRef = useRef<HTMLInputElement>(null);
 
   // ── Reinos del capítulo ───────────────────────────────────────────────────
-  const { reinos, loading: loadingReinos } = useReinos();
   const [reinosIds, setReinosIds] = useState<string[]>([]);
   const [savingReino, setSavingReino] = useState(false);
   const reinoRef = useRef<HTMLDivElement>(null);
 
   // ── Ciudades del capítulo ─────────────────────────────────────────────────
-  const { ciudades, loading: loadingCiudades } = useCiudades();
   const [ciudadesIds, setCiudadesIds] = useState<string[]>([]);
   const [savingCiudad, setSavingCiudad] = useState(false);
 
@@ -2529,9 +2399,132 @@ export const PanelPersonajesCapitulo = ({
     );
   };
 
+  // ── Detector de menciones ──────────────────────────────────────────────
+  // Escanea `contenido` buscando nombres de personajes/criaturas/items que
+  // ya existen en la base pero todavía no están vinculados a este capítulo,
+  // y sugiere vincularlos. Todo client-side (las listas ya están en memoria
+  // por los hooks de arriba), sin llamadas extra a Supabase.
+  type TipoSugerencia = "personaje" | "criatura" | "item";
+  type Sugerencia = {
+    id: string;
+    nombre: string;
+    tipo: TipoSugerencia;
+  };
+
+  const [ignoradas, setIgnoradas] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(`garlia-sug-ignoradas:${capId}`);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const ignorarSugerencia = (key: string) => {
+    setIgnoradas((prev) => {
+      const next = new Set(prev).add(key);
+      try {
+        localStorage.setItem(
+          `garlia-sug-ignoradas:${capId}`,
+          JSON.stringify([...next]),
+        );
+      } catch {}
+      return next;
+    });
+  };
+
+  // Escapa regex y arma un matcher de "palabra completa" (respeta acentos,
+  // no matchea substrings dentro de otra palabra, ej. "Ana" no matchea "Anaïs").
+  const construirMatcher = (nombre: string) => {
+    const escapado = nombre.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?<![\\p{L}\\p{N}])${escapado}(?![\\p{L}\\p{N}])`, "iu");
+  };
+
+  const sugerencias = useMemo(() => {
+    if (!contenido || contenido.trim().length === 0) return [];
+    const candidatos: { id: string; nombre: string; tipo: TipoSugerencia }[] =
+      [
+        ...personajes
+          .filter((p) => !value.includes(p.id))
+          .map((p) => ({ id: p.id, nombre: p.nombre, tipo: "personaje" as const })),
+        ...criaturas
+          .filter((c) => !criaturas_ids.includes(c.id))
+          .map((c) => ({ id: c.id, nombre: c.nombre, tipo: "criatura" as const })),
+        ...items
+          .filter((i) => !items_ids.includes(i.id))
+          .map((i) => ({ id: i.id, nombre: i.nombre, tipo: "item" as const })),
+      ];
+
+    const encontradas: Sugerencia[] = [];
+    for (const c of candidatos) {
+      if (!c.nombre || c.nombre.trim().length < 3) continue; // evita falsos positivos con nombres muy cortos
+      const key = `${c.tipo}:${c.id}`;
+      if (ignoradas.has(key)) continue;
+      try {
+        if (construirMatcher(c.nombre).test(contenido)) {
+          encontradas.push({ id: c.id, nombre: c.nombre, tipo: c.tipo });
+        }
+      } catch {}
+    }
+    return encontradas.slice(0, 8); // tope razonable, no inundar el panel
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contenido, personajes, criaturas, items, value, criaturas_ids, items_ids, ignoradas]);
+
+  const vincularSugerencia = (s: Sugerencia) => {
+    if (s.tipo === "personaje") void handleTogglePersonaje(s.id, true);
+    if (s.tipo === "criatura") void handleToggleCriatura(s.id, true);
+    if (s.tipo === "item") void handleToggleItem(s.id, true);
+  };
+
+  const bloqueSugerencias =
+    sugerencias.length > 0 ? (
+      <div
+        className="shrink-0 px-3 py-2.5 border-b space-y-1.5"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          background: "color-mix(in srgb, var(--callout-info-border) 6%, transparent)",
+        }}
+      >
+        <span
+          className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1"
+          style={{ color: "var(--callout-info-title, var(--primary))" }}
+        >
+          <Sparkles size={9} /> Detectados · {sugerencias.length}
+        </span>
+        <div className="flex flex-col gap-1">
+          {sugerencias.map((s) => (
+            <div
+              key={`${s.tipo}:${s.id}`}
+              className="flex items-center gap-1 text-micro"
+            >
+              <span className="flex-1 min-w-0 truncate font-bold text-primary/70">
+                {s.nombre}
+              </span>
+              <button
+                className="shrink-0 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary font-black uppercase tracking-wide transition-all"
+                title={`Vincular ${s.nombre} a este capítulo`}
+                onClick={() => vincularSugerencia(s)}
+              >
+                Vincular
+              </button>
+              <button
+                className="shrink-0 p-0.5 rounded text-primary/25 hover:text-primary/50 transition-all"
+                title="Ignorar esta sugerencia"
+                onClick={() => ignorarSugerencia(`${s.tipo}:${s.id}`)}
+              >
+                <X size={9} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   // Contenido compartido entre desktop y drawer mobile
   const innerContent = (
     <>
+      {bloqueSugerencias}
+
       {/* ── Narrador ────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 px-3 py-2.5 border-b"
