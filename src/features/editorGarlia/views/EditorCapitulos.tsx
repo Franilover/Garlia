@@ -107,6 +107,7 @@ import {
   useLastOpenedId,
   useDraftRestore,
   DraftRestoreBanner,
+  useDebouncedValue,
 } from "@/hooks/useEditorShared";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
@@ -217,7 +218,12 @@ const PanelEditor = ({
   // mantiene la misma forma { id, label }[] que ya consumía FormChoice para
   // no romper nada; `chapterGraph` completo (con huérfanas/rotas) queda
   // disponible para cuando se conecte el panel visual (Fase 3).
-  const chapterGraph = useChapterGraph(capId, titulo, contenido);
+  // Debounced: el grafo narrativo (regex sobre todo el texto) y el detector
+  // de menciones son cálculos que no necesitan correr en cada tecla — solo
+  // cuando el usuario deja de tipear un rato. `contenido` crudo sigue yendo
+  // directo al RichEditor, así que la escritura no se siente con lag.
+  const contenidoDebounced = useDebouncedValue(contenido, 400);
+  const chapterGraph = useChapterGraph(capId, titulo, contenidoDebounced);
   const listaSecciones = useMemo(
     () =>
       chapterGraph.nodes
@@ -1169,7 +1175,7 @@ const PanelEditor = ({
       {(
         <PanelPersonajesCapitulo
           capId={capId}
-          contenido={contenido}
+          contenido={contenidoDebounced}
           criaturas_ids={criaturasIds}
           items_ids={itemsIds}
           mobileOpen={mobileSidebarOpen}

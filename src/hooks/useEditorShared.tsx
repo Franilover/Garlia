@@ -287,3 +287,17 @@ export function SelectIdioma({
     </div>
   );
 }
+// ─── useDebouncedValue ────────────────────────────────────────────────────
+// Devuelve `value` retrasado `delayMs` — solo se actualiza cuando el valor
+// deja de cambiar durante ese lapso. Pensado para separar el estado "vivo"
+// (lo que ve el usuario mientras tipea, sin lag) de cálculos pesados que se
+// derivan de ese estado (grafos narrativos, matching de texto, etc.) y no
+// necesitan correr en cada tecla.
+export function useDebouncedValue<T>(value: T, delayMs = 400): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
