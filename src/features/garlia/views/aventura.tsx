@@ -26,7 +26,7 @@ import {
   TableroAventura,
   type TableroItem,
 } from "@/features/editorGarlia/components/aventuras/TableroAventura";
-import { buscarCamino, celdasBloqueadas, GRID_SIZE } from "@/features/editorGarlia/components/aventuras/visionUtils";
+import { celdasBloqueadas, GRID_SIZE } from "@/features/editorGarlia/components/aventuras/visionUtils";
 import {
   TABLA_LABEL,
   useAventuraEntidades,
@@ -689,66 +689,6 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   const [cargandoFicha, setCargandoFicha] = useState(false);
   const { escala, actualizar: actualizarEscala } = useTableroEscala(aventuraId);
 
-  // ── Movimiento con colisión (pathfinding) ──────────────────────────────
-  // Antes, clickear el pizarrón movía la ficha en línea recta al punto
-  // clickeado, sin importar si había una pared/río en el medio — se podía
-  // "atravesar" el obstáculo o aparecer del otro lado de un salto. Ahora
-  // se calcula un camino (A* en la misma grilla que usa la niebla) que
-  // esquiva las celdas ocupadas por obstáculos, y el token se anima paso a
-  // paso a lo largo de ese camino en vez de saltar directo. Si no hay
-  // camino posible (destino rodeado), no se mueve.
-  //
-  // `movimientoEnCursoRef` evita que dos animaciones de camino compitan
-  // entre sí si el jugador clickea de nuevo antes de que termine la
-  // anterior — se cancela la vieja y arranca la nueva desde la posición
-  // actual (no desde donde iba a llegar la cancelada).
-  const movimientoEnCursoRef = React.useRef<{ cancelado: boolean }>({ cancelado: false });
-  const PASO_MS = 140;
-
-  const moverConColision = React.useCallback(
-    (relacionId: string, desde: { x: number; y: number }, hasta: { x: number; y: number }) => {
-      movimientoEnCursoRef.current.cancelado = true;
-      const token = { cancelado: false };
-      movimientoEnCursoRef.current = token;
-
-      const bloqueadas = celdasBloqueadas(
-        obstaculos.map((o) => ({ id: o.id, forma: o.forma, pos_x: o.pos_x, pos_y: o.pos_y, ancho: o.ancho, alto: o.alto })),
-      );
-      // Cota generosa del lienzo para el A*: no necesita ser exacta (el
-      // algoritmo ya se acota solo por margen alrededor de origen/destino),
-      // solo tiene que cubrir cualquier posición real del tablero.
-      const canvasW = Math.max(2400, hasta.x + 400, desde.x + 400);
-      const canvasH = Math.max(1600, hasta.y + 400, desde.y + 400);
-      const camino = buscarCamino(desde, hasta, bloqueadas, canvasW, canvasH);
-
-      if (camino.length === 0) {
-        // Sin pared/río en el medio (o destino inalcanzable): si el
-        // destino no está bloqueado, se mueve directo como antes — el A*
-        // solo hace falta cuando efectivamente hay algo en el camino, así
-        // que este es el caso común y más rápido.
-        const cxDestino = Math.floor(hasta.x / GRID_SIZE);
-        const cyDestino = Math.floor(hasta.y / GRID_SIZE);
-        if (!bloqueadas.has(`${cxDestino},${cyDestino}`)) {
-          void moverPosicion(relacionId, hasta.x, hasta.y);
-        }
-        return;
-      }
-
-      let i = 0;
-      const avanzar = () => {
-        if (token.cancelado || i >= camino.length) return;
-        const paso = camino[i];
-        void moverPosicion(relacionId, Math.round(paso.x), Math.round(paso.y));
-        i++;
-        if (i < camino.length) {
-          setTimeout(avanzar, PASO_MS);
-        }
-      };
-      avanzar();
-    },
-    [obstaculos, moverPosicion],
-  );
-
   // ── Al seleccionar una entidad tipo "fichas_dnd" (el token de otro
   // jugador), se trae la ficha completa para mostrar sus stats reales
   // (no solo nombre/descripción, que es lo único que resuelve
@@ -857,6 +797,78 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
     setRivalesCombateIds(idsGrupo);
   };
 
+  // ── Movimiento de una sola celda por vez ────────────────────────────────
+  // Antes se podía clickear cualquier punto del pizarrón y la ficha viajaba
+  // ahí (con pathfinding esquivando obstáculos). Ahora el jugador solo se
+  // puede mover una celda de grilla a la vez: con WASD, o clickeando una de
+  // las 8 celdas adyacentes al token propio. `moverUnaCelda` es la única
+  // puerta de entrada a ambos casos — valida que la celda destino no esté
+  // bloqueada por un obstáculo antes de mover.
+  const moverUnaCelda = React.useCallback(
+    (dx: number, dy: number) => {
+      if (!relacionPropia || relacionPropia.pos_x === null || relacionPropia.pos_y === null) return;
+      const cxActual = Math.floor(relacionPropia.pos_x / GRID_SIZE);
+      const cyActual = Math.floor(relacionPropia.pos_y / GRID_SIZE);
+      const cxDestino = cxActual + dx;
+      const cyDestino = cyActual + dy;
+      if (cxDestino < 0 || cyDestino < 0) return;
+
+      const bloqueadas = celdasBloqueadas(
+        obstaculos.map((o) => ({ id: o.id, forma: o.forma, pos_x: o.pos_x, pos_y: o.pos_y, ancho: o.ancho, alto: o.alto })),
+      );
+      if (bloqueadas.has(`${cxDestino},${cyDestino}`)) return;
+
+      const destinoX = cxDestino * GRID_SIZE;
+      const destinoY = cyDestino * GRID_SIZE;
+      void moverPosicion(relacionPropia.id, destinoX, destinoY);
+
+      const criaturaCercana = publicadas.find(
+        (e) =>
+          e.tabla === "criaturas" &&
+          e.pos_x !== null &&
+          e.pos_y !== null &&
+          distancia(destinoX, destinoY, e.pos_x, e.pos_y) < UMBRAL_COMBATE,
+      );
+      if (criaturaCercana) entrarEnCombateContra(criaturaCercana);
+    },
+    [relacionPropia, obstaculos, moverPosicion, publicadas],
+  );
+
+  // ── Teclado WASD: mueve una celda por tecla presionada. Se ignora si el
+  // foco está en un input/textarea (por ejemplo el buscador o el modal de
+  // detalle), para no interferir con la escritura normal. ──
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (!relacionPropia) return;
+
+      switch (e.key.toLowerCase()) {
+        case "w":
+          e.preventDefault();
+          moverUnaCelda(0, -1);
+          break;
+        case "s":
+          e.preventDefault();
+          moverUnaCelda(0, 1);
+          break;
+        case "a":
+          e.preventDefault();
+          moverUnaCelda(-1, 0);
+          break;
+        case "d":
+          e.preventDefault();
+          moverUnaCelda(1, 0);
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [relacionPropia, moverUnaCelda]);
+
   // El pizarrón del jugador muestra las entidades publicadas por el DM +
   // su propia ficha (aunque el DM no la haya marcado "publicado": es su
   // personaje, siempre visible para sí mismo una vez que se unió). Si el
@@ -910,7 +922,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
               <p className="text-xs text-primary/50 mb-5 leading-relaxed">
                 Tu personaje va a aparecer en el pizarrón de{" "}
                 {aventura?.nombre ?? "esta aventura"} y vas a poder moverlo
-                clickeando el tablero.
+                con WASD o clickeando las celdas de al lado.
               </p>
               <div className="flex items-center justify-center gap-2">
                 <button
@@ -963,7 +975,8 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
           <div className="flex items-center justify-between mb-2 gap-2">
             {relacionPropia ? (
               <span className="text-micro font-bold text-primary/35">
-                Clickeá el pizarrón para mover a {fichaActiva?.nombre ?? "tu personaje"}.
+                Movete con WASD o clickeá una celda adyacente para mover a{" "}
+                {fichaActiva?.nombre ?? "tu personaje"}.
               </span>
             ) : (
               <span />
@@ -1050,21 +1063,21 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                 if (entidad) setSeleccion(entidad);
               }}
               onCanvasClick={
-                relacionPropia
+                relacionPropia && relacionPropia.pos_x !== null && relacionPropia.pos_y !== null
                   ? (x, y) => {
-                      const desde = {
-                        x: relacionPropia.pos_x ?? x,
-                        y: relacionPropia.pos_y ?? y,
-                      };
-                      moverConColision(relacionPropia.id, desde, { x, y });
-                      const criaturaCercana = publicadas.find(
-                        (e) =>
-                          e.tabla === "criaturas" &&
-                          e.pos_x !== null &&
-                          e.pos_y !== null &&
-                          distancia(x, y, e.pos_x, e.pos_y) < UMBRAL_COMBATE,
-                      );
-                      if (criaturaCercana) entrarEnCombateContra(criaturaCercana);
+                      // Solo se acepta el click si cae en una de las 8
+                      // celdas adyacentes al token propio (mismo criterio
+                      // que WASD) — ya no se puede saltar a cualquier
+                      // punto del pizarrón.
+                      const cxActual = Math.floor(relacionPropia.pos_x! / GRID_SIZE);
+                      const cyActual = Math.floor(relacionPropia.pos_y! / GRID_SIZE);
+                      const cxClick = Math.floor(x / GRID_SIZE);
+                      const cyClick = Math.floor(y / GRID_SIZE);
+                      const dx = cxClick - cxActual;
+                      const dy = cyClick - cyActual;
+                      if (dx === 0 && dy === 0) return;
+                      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) return;
+                      moverUnaCelda(dx, dy);
                     }
                   : undefined
               }
