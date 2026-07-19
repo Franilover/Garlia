@@ -804,11 +804,30 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
   // las 8 celdas adyacentes al token propio. `moverUnaCelda` es la única
   // puerta de entrada a ambos casos — valida que la celda destino no esté
   // bloqueada por un obstáculo antes de mover.
+  // Se guarda la posición "creída" del jugador en un ref, no solo en el
+  // estado — así, si se presiona una segunda tecla antes de que React
+  // termine de re-renderizar con la posición del primer paso (algo muy
+  // común con WASD mantenido, ya que el teclado dispara eventos mucho más
+  // rápido que un ciclo de render+efecto), el segundo paso se calcula
+  // desde la posición correcta y no desde una vieja. Antes esto hacía que
+  // el segundo/tercer paso se "perdiera" o se recalculara mal, y cuando el
+  // fetch de la posición real llegaba de vuelta, la ficha pegaba un salto
+  // visible a donde "debía" estar. El ref se sincroniza con el estado real
+  // cada vez que este cambia (por ejemplo si otro cliente movió la ficha,
+  // caso raro pero posible), y también se actualiza al toque en cada paso.
+  const posActualRef = React.useRef<{ x: number; y: number } | null>(null);
+  React.useEffect(() => {
+    if (relacionPropia && relacionPropia.pos_x !== null && relacionPropia.pos_y !== null) {
+      posActualRef.current = { x: relacionPropia.pos_x, y: relacionPropia.pos_y };
+    }
+  }, [relacionPropia?.pos_x, relacionPropia?.pos_y]);
+
   const moverUnaCelda = React.useCallback(
     (dx: number, dy: number) => {
-      if (!relacionPropia || relacionPropia.pos_x === null || relacionPropia.pos_y === null) return;
-      const cxActual = Math.floor(relacionPropia.pos_x / GRID_SIZE);
-      const cyActual = Math.floor(relacionPropia.pos_y / GRID_SIZE);
+      if (!relacionPropia) return;
+      const base = posActualRef.current ?? { x: relacionPropia.pos_x ?? 0, y: relacionPropia.pos_y ?? 0 };
+      const cxActual = Math.floor(base.x / GRID_SIZE);
+      const cyActual = Math.floor(base.y / GRID_SIZE);
       const cxDestino = cxActual + dx;
       const cyDestino = cyActual + dy;
       if (cxDestino < 0 || cyDestino < 0) return;
@@ -820,6 +839,10 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
 
       const destinoX = cxDestino * GRID_SIZE;
       const destinoY = cyDestino * GRID_SIZE;
+      // Se actualiza el ref ANTES de esperar la respuesta del servidor:
+      // el siguiente paso (si llega mientras este todavía está en vuelo)
+      // ya lo ve reflejado.
+      posActualRef.current = { x: destinoX, y: destinoY };
       void moverPosicion(relacionPropia.id, destinoX, destinoY);
 
       const criaturaCercana = publicadas.find(
@@ -836,7 +859,14 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
 
   // ── Teclado WASD: mueve una celda por tecla presionada. Se ignora si el
   // foco está en un input/textarea (por ejemplo el buscador o el modal de
-  // detalle), para no interferir con la escritura normal. ──
+  // detalle), para no interferir con la escritura normal. Se throttlea a
+  // un paso cada ~130ms: sin esto, mantener apretada una tecla dispara
+  // eventos de auto-repeat del sistema operativo mucho más rápido de lo
+  // que la animación/red pueden seguir, y eso es lo que se sentía como
+  // tirones — se "amontonaban" varios pasos y después se resolvían todos
+  // de golpe. ──
+  const ultimoPasoRef = React.useRef(0);
+  const PASO_MIN_MS = 130;
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -844,21 +874,25 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       if (!relacionPropia) return;
 
+      const esTeclaDeMovimiento = ["w", "a", "s", "d"].includes(e.key.toLowerCase());
+      if (!esTeclaDeMovimiento) return;
+      e.preventDefault();
+
+      const ahora = Date.now();
+      if (ahora - ultimoPasoRef.current < PASO_MIN_MS) return;
+      ultimoPasoRef.current = ahora;
+
       switch (e.key.toLowerCase()) {
         case "w":
-          e.preventDefault();
           moverUnaCelda(0, -1);
           break;
         case "s":
-          e.preventDefault();
           moverUnaCelda(0, 1);
           break;
         case "a":
-          e.preventDefault();
           moverUnaCelda(-1, 0);
           break;
         case "d":
-          e.preventDefault();
           moverUnaCelda(1, 0);
           break;
         default:
@@ -868,6 +902,7 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [relacionPropia, moverUnaCelda]);
+
 
   // El pizarrón del jugador muestra las entidades publicadas por el DM +
   // su propia ficha (aunque el DM no la haya marcado "publicado": es su
@@ -1067,10 +1102,13 @@ function AventuraFeed({ aventuraId, onVolver }: { aventuraId: string; onVolver: 
                   ? (x, y) => {
                       // Solo se acepta el click si cae en una de las 8
                       // celdas adyacentes al token propio (mismo criterio
-                      // que WASD) — ya no se puede saltar a cualquier
-                      // punto del pizarrón.
-                      const cxActual = Math.floor(relacionPropia.pos_x! / GRID_SIZE);
-                      const cyActual = Math.floor(relacionPropia.pos_y! / GRID_SIZE);
+                      // que WASD, y misma fuente de verdad: el ref, no el
+                      // estado, para que no se desincronice con un
+                      // movimiento por teclado que todavía no terminó de
+                      // reflejarse en el render).
+                      const base = posActualRef.current ?? { x: relacionPropia.pos_x!, y: relacionPropia.pos_y! };
+                      const cxActual = Math.floor(base.x / GRID_SIZE);
+                      const cyActual = Math.floor(base.y / GRID_SIZE);
                       const cxClick = Math.floor(x / GRID_SIZE);
                       const cyClick = Math.floor(y / GRID_SIZE);
                       const dx = cxClick - cxActual;

@@ -331,12 +331,42 @@ export function useAventuraEntidades(aventuraId: string | null) {
   useEffect(() => {
     fetchAll();
     if (!aventuraId) return;
+
+    // Ráfagas de eventos (varios movimientos seguidos, o una horda que se
+    // agrega de una) se juntan en un solo fetchAll en vez de uno por
+    // evento — si no, WASD mantenido dispara un refetch completo del
+    // tablero por cada celda, y ESE refetch (no el movimiento en sí) es lo
+    // que se sentía como tirones/saltos.
+    let fetchTimer: ReturnType<typeof setTimeout> | null = null;
+    const fetchDebounced = () => {
+      if (fetchTimer) clearTimeout(fetchTimer);
+      fetchTimer = setTimeout(() => fetchAll({ silent: true }), 120);
+    };
+
     const channel = supabase
       .channel(`aventura-entidades-${aventuraId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "aventura_entidades", filter: `aventura_id=eq.${aventuraId}` },
-        () => fetchAll({ silent: true }),
+        (payload) => {
+          // Si el cambio es exactamente nuestro propio movimiento
+          // optimista (mismo id, misma posición que ya pusimos en pantalla
+          // hace un instante), no hace falta re-pedir todo el tablero: ya
+          // estamos mostrando ese valor. Esto es lo que evita el refetch
+          // pesado (trae todas las entidades + re-resuelve nombre/imagen
+          // de cada una) en cada paso de WASD.
+          const fila = payload.new as { id?: string; pos_x?: number | null; pos_y?: number | null } | null;
+          const pendiente = fila?.id ? posicionesPendientes.current.get(fila.id) : undefined;
+          if (
+            pendiente &&
+            fila &&
+            fila.pos_x === pendiente.x &&
+            fila.pos_y === pendiente.y
+          ) {
+            return;
+          }
+          fetchDebounced();
+        },
       )
       .subscribe((status, err) => {
         // Diagnóstico: si el canal no llega a "SUBSCRIBED", el realtime no
@@ -355,6 +385,7 @@ export function useAventuraEntidades(aventuraId: string | null) {
         }
       });
     return () => {
+      if (fetchTimer) clearTimeout(fetchTimer);
       supabase.removeChannel(channel);
     };
   }, [aventuraId, fetchAll]);
@@ -479,7 +510,7 @@ export function useAventuraEntidades(aventuraId: string | null) {
    *  de fetchAll) para que un realtime desordenado no la haga rebotar. */
   const moverPosicion = useCallback(async (relacionId: string, posX: number, posY: number) => {
     posicionesPendientes.current.set(relacionId, { x: posX, y: posY, t: Date.now() });
-    const anterior = entidades;
+    const anterior = entidadesRef.current;
     setEntidades((prev) =>
       prev.map((e) => (e.id === relacionId ? { ...e, pos_x: posX, pos_y: posY } : e)),
     );
@@ -496,7 +527,7 @@ export function useAventuraEntidades(aventuraId: string | null) {
     // posición contra fetches — cualquier fetch nuevo va a traer este
     // mismo valor de la DB de todos modos.
     posicionesPendientes.current.delete(relacionId);
-  }, [entidades]);
+  }, []);
 
   /** Asigna (o quita, si nombre es null/vacío) el grupo/horda de una
    *  criatura. Optimista + persistido, mismo patrón que moverPosicion. */
