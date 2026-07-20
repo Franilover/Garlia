@@ -38,7 +38,9 @@ export function useEdicionRapidaNarrador(personajeId: string | null) {
   // Guarda el id que originó la carga más reciente, para descartar
   // respuestas tardías si el usuario cambia de narrador rápido.
   const loadedForRef = useRef<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     loadedForRef.current = null;
