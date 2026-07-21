@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Loading } from "@/components/ui";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { useLlamadaStore } from "@/features/personal/hooks/useLlamadaStore";
+import { useEstaEnLinea } from "@/features/personal/hooks/useEnLinea";
 import {
   cargarMensajes,
   enviarMensaje,
@@ -17,6 +18,10 @@ import {
   type PerfilResumen,
 } from "@/lib/api/client/chatEngine";
 import { crearLlamada, ofrecerLlamada } from "@/lib/api/client/callEngine";
+import {
+  emitirEscribiendo,
+  suscribirseAEscribiendo,
+} from "@/lib/api/client/presenceEngine";
 import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -50,8 +55,13 @@ export default function DetalleConversacion() {
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otroParticipante, setOtroParticipante] = useState<PerfilResumen | null>(null);
+  const [otroEscribiendo, setOtroEscribiendo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const escribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const otroEscribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const otroEnLinea = useEstaEnLinea(otroParticipante?.id);
 
   const iniciarLlamando = useLlamadaStore((s) => s.iniciarLlamando);
   const estadoLlamada = useLlamadaStore((s) => s.estado);
@@ -138,11 +148,60 @@ export default function DetalleConversacion() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [mensajes.length]);
 
+  // ── Indicador "escribiendo…" del otro participante ──────────────────────
+  useEffect(() => {
+    if (!conversacionId || conversacionId === "placeholder" || !user) return;
+
+    const canal = suscribirseAEscribiendo(conversacionId, (senal) => {
+      if (senal.perfilId === user.id) return; // ignorar nuestras propias señales
+
+      if (otroEscribiendoOffRef.current) clearTimeout(otroEscribiendoOffRef.current);
+
+      if (senal.escribiendo) {
+        setOtroEscribiendo(true);
+        // Salvavidas: si nunca llega la señal de "paró de escribir" (se
+        // cerró la app, se cayó la conexión), lo apagamos solos a los 4s,
+        // igual que hace WhatsApp.
+        otroEscribiendoOffRef.current = setTimeout(() => setOtroEscribiendo(false), 4000);
+      } else {
+        setOtroEscribiendo(false);
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(canal);
+      if (otroEscribiendoOffRef.current) clearTimeout(otroEscribiendoOffRef.current);
+    };
+  }, [conversacionId, user]);
+
+  // Avisa "escribiendo" mientras el usuario tipea, y "paró" 1.5s después de
+  // la última tecla. Debounce local, no manda un broadcast por cada letra.
+  const handleCambioTexto = (valor: string) => {
+    setTexto(valor);
+    if (!conversacionId || conversacionId === "placeholder" || !user) return;
+
+    if (!escribiendoOffRef.current) {
+      void emitirEscribiendo(conversacionId, user.id, true);
+    } else {
+      clearTimeout(escribiendoOffRef.current);
+    }
+
+    escribiendoOffRef.current = setTimeout(() => {
+      void emitirEscribiendo(conversacionId, user.id, false);
+      escribiendoOffRef.current = null;
+    }, 1500);
+  };
+
   const handleEnviar = async () => {
     if (!texto.trim() || enviando) return;
     setEnviando(true);
     const contenido = texto;
     setTexto("");
+    if (escribiendoOffRef.current) {
+      clearTimeout(escribiendoOffRef.current);
+      escribiendoOffRef.current = null;
+      void emitirEscribiendo(conversacionId, user.id, false);
+    }
     try {
       await enviarMensaje(conversacionId, contenido);
     } catch {
@@ -194,9 +253,43 @@ export default function DetalleConversacion() {
         <button onClick={() => router.push("/personal/mensajes")} aria-label="Volver">
           <ArrowLeft className="text-primary/50" size={18} />
         </button>
-        <span className="font-black text-sm text-primary uppercase tracking-wide flex-1">
-          {otroParticipante?.username ?? "Conversación"}
-        </span>
+
+        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+          <SmartImage
+            alt={otroParticipante?.username ?? "Usuario"}
+            className="w-full h-full"
+            src={otroParticipante?.avatar_url || "/icon.jpg"}
+          />
+          {otroEnLinea && (
+            <span
+              className="absolute bottom-0 right-0 rounded-full"
+              style={{
+                width: 9,
+                height: 9,
+                background: "#22c55e",
+                border: "2px solid var(--bg-main)",
+              }}
+            />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-black text-sm text-primary uppercase tracking-wide truncate">
+            {otroParticipante?.username ?? "Conversación"}
+          </p>
+          <p className="text-micro font-bold leading-none mt-0.5">
+            {otroEscribiendo ? (
+              <span style={{ color: "var(--primary)" }} className="italic">
+                escribiendo…
+              </span>
+            ) : otroEnLinea ? (
+              <span style={{ color: "#22c55e" }}>en línea</span>
+            ) : (
+              <span className="text-primary/30">&nbsp;</span>
+            )}
+          </p>
+        </div>
+
         <button
           disabled={!otroParticipante || estadoLlamada !== "inactiva"}
           onClick={() => void handleLlamar()}
@@ -295,7 +388,7 @@ export default function DetalleConversacion() {
             background: "color-mix(in srgb, var(--primary) 5%, transparent)",
           }}
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onChange={(e) => handleCambioTexto(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();

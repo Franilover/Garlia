@@ -6,6 +6,7 @@ import React, { useEffect, useState, useRef } from "react";
 
 import { Loading } from "@/components/ui";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { useUsuariosEnLinea } from "@/features/personal/hooks/useEnLinea";
 import {
   listarConversaciones,
   buscarPerfiles,
@@ -32,6 +33,7 @@ function timeAgo(iso: string): string {
 export default function BibliotecaMensajes() {
   const { user } = useAuth() as { user: any };
   const router = useRouter();
+  const idsEnLinea = useUsuariosEnLinea();
 
   const [conversaciones, setConversaciones] = useState<ConversacionResumen[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,12 +185,23 @@ export default function BibliotecaMensajes() {
                   border: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
                 }}
               >
-                <div className="w-11 h-11 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+                <div className="relative w-11 h-11 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
                   <SmartImage
                     alt={c.otroParticipante?.username ?? c.nombre ?? "Chat"}
                     className="w-full h-full"
                     src={c.otroParticipante?.avatar_url || "/icon.jpg"}
                   />
+                  {c.otroParticipante && idsEnLinea.has(c.otroParticipante.id) && (
+                    <span
+                      className="absolute bottom-0 right-0 rounded-full"
+                      style={{
+                        width: 11,
+                        height: 11,
+                        background: "#22c55e",
+                        border: "2px solid var(--bg-main)",
+                      }}
+                    />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
