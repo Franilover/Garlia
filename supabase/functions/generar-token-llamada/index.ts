@@ -6,31 +6,27 @@
  * devuelve un token de LiveKit para conectarse a la sala (`room_name` de esa
  * llamada). Solo habilita publicar audio por ahora (ver callEngine.ts).
  *
- * ── Por qué fallaba con CORS/503 ────────────────────────────────────────
- * Esta función NO estaba en el repo — se había deployado suelta y nunca se
- * subió a git, así que no había forma de saber qué tenía. El síntoma típico
- * de "CORS preflight did not succeed / 503" casi siempre es que la función
- * se cae al arrancar (import roto, variable de entorno faltante leída con
- * `!` o similar que tira excepción a nivel de módulo) — cuando el proceso
- * ni siquiera levanta, Deno/Supabase no llega a responder el OPTIONS con
- * headers CORS, y el browser lo reporta como fallo de preflight en vez de
- * mostrar el 503 real. Esta versión:
- *   1) responde el preflight OPTIONS explícitamente, antes que nada,
- *   2) nunca lee env vars con `!` a nivel de módulo (usa una función que
- *      tira un error controlado, siempre con headers CORS puestos),
- *   3) envuelve todo en try/catch y SIEMPRE devuelve los headers CORS,
- *      incluso en las respuestas de error.
+ * ── Por qué seguía dando 503 en el OPTIONS ──────────────────────────────
+ * La versión anterior importaba `livekit-server-sdk` desde esm.sh. Esa
+ * librería tiene dependencias (`camelcase-keys`, `@bufbuild/protobuf`) con
+ * problemas conocidos de interop CJS/ESM que esm.sh no siempre resuelve
+ * bien para el runtime de Deno — cuando el import de nivel superior falla,
+ * el worker de la Edge Function ni siquiera termina de arrancar, así que
+ * NINGÚN request llega a ejecutarse (ni el OPTIONS del preflight), y
+ * Supabase devuelve 503 sin headers CORS.
+ *
+ * Un token de LiveKit es, en el fondo, un JWT HS256 firmado con el API
+ * secret con un claim `video` (grant). Acá lo generamos a mano con `djwt`
+ * (Deno puro, sin dependencias npm), evitando el import problemático.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { AccessToken } from "https://esm.sh/livekit-server-sdk@2.9.2?target=deno&no-check";
+import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
 // ─── CORS ───────────────────────────────────────────────────────────────
 
-// Si en el futuro esto necesita restringirse a un origen puntual, mejor
-// hacerlo con una whitelist explícita que caer en un 503 opaco por un typo.
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -53,10 +49,41 @@ function envRequerida(nombre: string): string {
   return valor;
 }
 
+interface GrantLiveKit {
+  room: string;
+  roomJoin: boolean;
+  canPublish: boolean;
+  canPublishSources: string[];
+  canSubscribe: boolean;
+}
+
+async function generarTokenLiveKit(
+  apiKey: string,
+  apiSecret: string,
+  identity: string,
+  grant: GrantLiveKit,
+): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(apiSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const payload = {
+    iss: apiKey,
+    sub: identity,
+    nbf: getNumericDate(0),
+    exp: getNumericDate(60 * 10), // 10 minutos
+    jti: identity,
+    video: grant,
+  };
+  return await create({ alg: "HS256", typ: "JWT" }, payload, key);
+}
+
 serve(async (req: Request) => {
-  // El preflight se responde SIEMPRE antes de tocar env vars, DB o nada que
-  // pueda tirar una excepción — así el OPTIONS nunca puede convertirse en
-  // un 503 sin headers.
+  // El preflight se responde SIEMPRE primero, antes de tocar env vars, DB o
+  // nada que pueda tirar una excepción.
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
   }
@@ -103,11 +130,6 @@ serve(async (req: Request) => {
       return jsonResponse({ error: "Falta llamada_id." }, 400);
     }
 
-    // Trae la llamada + la conversación asociada. Si RLS no deja verla, o no
-    // existe, esto devuelve null y ahí cortamos — no hace falta un query
-    // aparte para chequear participación: si el usuario no es participante,
-    // la política RLS de `llamadas`/`conversacion_participantes` ya la
-    // filtra.
     const { data: llamada, error: errLlamada } = await supabaseUsuario
       .from("llamadas")
       .select("id, room_name, estado, conversacion_id")
@@ -135,19 +157,18 @@ serve(async (req: Request) => {
       );
     }
 
-    const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-      identity: user.id,
-      ttl: "10m",
-    });
-    token.addGrant({
-      room: llamada.room_name,
-      roomJoin: true,
-      canPublish: true,
-      canPublishSources: ["microphone"],
-      canSubscribe: true,
-    });
-
-    const jwt = await token.toJwt();
+    const jwt = await generarTokenLiveKit(
+      LIVEKIT_API_KEY,
+      LIVEKIT_API_SECRET,
+      user.id,
+      {
+        room: llamada.room_name,
+        roomJoin: true,
+        canPublish: true,
+        canPublishSources: ["microphone"],
+        canSubscribe: true,
+      },
+    );
 
     return jsonResponse(
       { token: jwt, url: LIVEKIT_URL, roomName: llamada.room_name },
