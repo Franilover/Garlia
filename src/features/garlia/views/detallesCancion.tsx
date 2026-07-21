@@ -220,7 +220,27 @@ function CoverFlip({
 export default function CancionDetallesPage() {
   const params = useParams();
   const router = useRouter();
-  const slugParam = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+  const paramFromNext = Array.isArray(params?.id)
+    ? params.id[0]
+    : (params?.id as string);
+  // En output:"export" + rewrite de Vercel a /placeholder, useParams()
+  // devuelve el valor horneado en build ("placeholder"), no el slug real
+  // de la URL. Si detectamos ese caso, leemos el segmento real desde
+  // window.location, que sí refleja la URL que ve el usuario.
+  const [slugParam, setSlugParam] = useState<string>(paramFromNext);
+
+  useEffect(() => {
+    if (paramFromNext !== "placeholder") {
+      setSlugParam(paramFromNext);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const partes = window.location.pathname.split("/").filter(Boolean);
+    // /garlia/canciones/:slug
+    const real = partes[partes.length - 1];
+    if (real) setSlugParam(real);
+  }, [paramFromNext]);
+
   // id es el UUID real resuelto a partir del slug
   const [id, setId] = useState<string>("");
 

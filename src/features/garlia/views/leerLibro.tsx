@@ -596,10 +596,31 @@ function PanelLateral({
    ───────────────────────────────────────────── */
 export default function Lector() {
   const params = useParams();
-  const slugParam = params?.id as string;
-  // ordenParam es el número de capítulo en la URL: /leer/1, /leer/2, etc.
-  // También puede llegar un UUID legacy que se canonicaliza.
-  const ordenParam = params?.capId as string;
+  const idFromNext = params?.id as string;
+  const capIdFromNext = params?.capId as string;
+  // En output:"export" + rewrite de Vercel a /placeholder/leer/placeholder,
+  // useParams() devuelve los valores horneados en build, no los reales de
+  // la URL. Si detectamos ese caso, leemos ambos segmentos reales desde
+  // window.location, que sí refleja la URL que ve el usuario.
+  const [slugParam, setSlugParam] = useState<string>(idFromNext);
+  const [ordenParam, setOrdenParam] = useState<string>(capIdFromNext);
+
+  useEffect(() => {
+    if (idFromNext !== "placeholder" && capIdFromNext !== "placeholder") {
+      setSlugParam(idFromNext);
+      setOrdenParam(capIdFromNext);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    // /garlia/libros/:id/leer/:capId
+    const partes = window.location.pathname.split("/").filter(Boolean);
+    const leerIdx = partes.indexOf("leer");
+    if (leerIdx > 0 && partes[leerIdx + 1]) {
+      setSlugParam(partes[leerIdx - 1]);
+      setOrdenParam(partes[leerIdx + 1]);
+    }
+  }, [idFromNext, capIdFromNext]);
+
   const router = useRouter();
 
   const [_id, setId] = useState<string>("");
