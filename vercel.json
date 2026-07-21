@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/garlia/libros/:id/leer/:capId",
+      "destination": "/garlia/libros/placeholder/leer/placeholder"
+    },
+    {
+      "source": "/garlia/libros/:id",
+      "destination": "/garlia/libros/placeholder"
+    },
+    {
+      "source": "/garlia/canciones/:id",
+      "destination": "/garlia/canciones/placeholder"
+    },
+    {
+      "source": "/garlia/personal/:username",
+      "destination": "/garlia/personal/placeholder"
+    }
+  ]
+}
