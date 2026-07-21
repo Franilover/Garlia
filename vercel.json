@@ -15,6 +15,10 @@
     {
       "source": "/garlia/personal/:username",
       "destination": "/garlia/personal/placeholder"
+    },
+    {
+      "source": "/personal/mensajes/:id",
+      "destination": "/personal/mensajes/placeholder"
     }
   ]
 }

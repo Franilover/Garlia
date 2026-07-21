@@ -16,6 +16,7 @@ import {
   Cat,
   Search,
   SlidersHorizontal,
+  MessageCircle,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -530,6 +531,17 @@ const Navbar = () => {
       active: currentPath?.startsWith("/personal/galeria") ?? false,
       fillActive: false,
     },
+    ...(user
+      ? [
+          {
+            href: "/personal/mensajes",
+            label: "Mensajes",
+            icon: MessageCircle,
+            active: currentPath?.startsWith("/personal/mensajes") ?? false,
+            fillActive: false,
+          },
+        ]
+      : []),
   ];
 
   const garliaLinks: NavLinkDef[] = [
