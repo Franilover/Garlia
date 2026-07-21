@@ -26,6 +26,7 @@ import { supabase } from "@/lib/api/client/supabase";
 // ─── Presencia global ("en línea") ─────────────────────────────────────────
 
 let canalPresenciaGlobal: RealtimeChannel | null = null;
+let subscriptoresPresencia = 0;
 
 /**
  * Se conecta al canal de presencia global y empieza a trackear al usuario
@@ -34,21 +35,27 @@ let canalPresenciaGlobal: RealtimeChannel | null = null;
  * devuelve. Si se llama más de una vez, reutiliza el mismo canal.
  */
 export function conectarPresencia(perfilId: string): () => void {
+  subscriptoresPresencia++;
+
   if (!canalPresenciaGlobal) {
     canalPresenciaGlobal = supabase.channel("presencia:global", {
       config: { presence: { key: perfilId } },
     });
     canalPresenciaGlobal.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        await canalPresenciaGlobal?.track({ online_at: new Date().toISOString() });
+        await canalPresenciaGlobal?.track({
+          online_at: new Date().toISOString(),
+        });
       }
     });
   }
 
   return () => {
-    if (canalPresenciaGlobal) {
+    subscriptoresPresencia--;
+    if (subscriptoresPresencia <= 0 && canalPresenciaGlobal) {
       supabase.removeChannel(canalPresenciaGlobal);
       canalPresenciaGlobal = null;
+      subscriptoresPresencia = 0;
     }
   };
 }
@@ -58,7 +65,9 @@ export function conectarPresencia(perfilId: string): () => void {
  * función de limpieza. Requiere que `conectarPresencia` ya se haya llamado
  * (si no, el set siempre viene vacío).
  */
-export function suscribirseAPresencia(onCambio: (idsEnLinea: Set<string>) => void): () => void {
+export function suscribirseAPresencia(
+  onCambio: (idsEnLinea: Set<string>) => void,
+): () => void {
   if (!canalPresenciaGlobal) {
     onCambio(new Set());
     return () => {};
@@ -77,9 +86,12 @@ export function suscribirseAPresencia(onCambio: (idsEnLinea: Set<string>) => voi
   leerEstado();
 
   return () => {
-    canalPresenciaGlobal?.off("presence", { event: "sync" } as any);
-    canalPresenciaGlobal?.off("presence", { event: "join" } as any);
-    canalPresenciaGlobal?.off("presence", { event: "leave" } as any);
+    // Para limpiar listeners en Supabase sin destruir el canal global,
+    // volvemos a evaluar el estado o removemos la suscripción si corresponde.
+    if (canalPresenciaGlobal && subscriptoresPresencia <= 0) {
+      supabase.removeChannel(canalPresenciaGlobal);
+      canalPresenciaGlobal = null;
+    }
   };
 }
 
@@ -114,17 +126,28 @@ export async function emitirEscribiendo(
   conversacionId: string,
   perfilId: string,
   escribiendo: boolean,
+  canalExistente?: RealtimeChannel,
 ): Promise<void> {
-  const canal = supabase.channel(`mensajes:${conversacionId}`);
-  await new Promise<void>((resolve) => {
-    canal.subscribe((status) => {
-      if (status === "SUBSCRIBED") resolve();
+  // Reutiliza el canal activo si ya existe (por ejemplo, devuelto por suscribirseAEscribiendo o chatEngine)
+  const canal =
+    canalExistente ?? supabase.channel(`mensajes:${conversacionId}`);
+
+  if (canal.state !== "joined") {
+    await new Promise<void>((resolve) => {
+      canal.subscribe((status) => {
+        if (status === "SUBSCRIBED") resolve();
+      });
     });
-  });
+  }
+
   await canal.send({
     type: "broadcast",
     event: "escribiendo",
     payload: { perfilId, escribiendo } as SenalEscribiendo,
   });
-  await supabase.removeChannel(canal);
+
+  // Solo remueve el canal si fue creado temporalmente dentro de esta función
+  if (!canalExistente) {
+    await supabase.removeChannel(canal);
+  }
 }
