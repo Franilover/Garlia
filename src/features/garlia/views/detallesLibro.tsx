@@ -93,7 +93,8 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
       if (todos.length > 0) {
         const encontrado = todos.find(
           (l: any) =>
-            toSlug(l.titulo ?? "") === slugParam && l.visibilidad === "publico",
+            toSlug(l.titulo ?? "") === slugParam &&
+            (l.visibilidad === "publico" || l.visibilidad === "programado"),
         );
         // Solo usar caché si ya tiene trigger_warnings (campo nuevo)
         if (encontrado && Array.isArray(encontrado.trigger_warnings)) {
@@ -106,7 +107,7 @@ async function resolverLibroPorSlug(slugParam: string): Promise<Libro | null> {
   const { data } = await supabase
     .from("libros")
     .select("id, titulo, sinopsis, portada_url, categoria, trigger_warnings")
-    .eq("visibilidad", "publico");
+    .in("visibilidad", ["publico", "programado"]);
   if (!data) return null;
 
   try {
@@ -398,7 +399,7 @@ export default function LibroDetalle() {
               "id, titulo, sinopsis, portada_url, categoria, trigger_warnings",
             )
             .eq("id", slugParam)
-            .eq("visibilidad", "publico")
+            .in("visibilidad", ["publico", "programado"])
             .single();
           libroData = data as Libro | null;
           if (libroData) {
