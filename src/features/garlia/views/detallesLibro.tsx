@@ -291,7 +291,25 @@ function ModalTriggerWarning({
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function LibroDetalle() {
   const params = useParams();
-  const slugParam = params?.id as string;
+  const paramFromNext = params?.id as string;
+  // En output:"export" + rewrite de Vercel a /placeholder, useParams()
+  // devuelve el valor horneado en build ("placeholder"), no el slug real
+  // de la URL. Si detectamos ese caso, leemos el segmento real desde
+  // window.location, que sí refleja la URL que ve el usuario.
+  const [slugParam, setSlugParam] = useState<string>(paramFromNext);
+
+  useEffect(() => {
+    if (paramFromNext !== "placeholder") {
+      setSlugParam(paramFromNext);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const partes = window.location.pathname.split("/").filter(Boolean);
+    // /garlia/libros/:slug
+    const real = partes[partes.length - 1];
+    if (real) setSlugParam(real);
+  }, [paramFromNext]);
+
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
