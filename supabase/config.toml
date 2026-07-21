@@ -393,3 +393,12 @@ entrypoint = "./functions/notify-subscribers/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/notify-subscribers/*.html" ]
+
+[functions.generar-token-llamada]
+enabled = true
+# verify_jwt en false a propósito: la función valida el JWT ella misma
+# (supabaseUsuario.auth.getUser()) y así puede responder el preflight
+# OPTIONS sin que el gateway de Supabase lo bloquee antes de llegar al
+# código — que fue justamente lo que estaba rompiendo el CORS.
+verify_jwt = false
+entrypoint = "./functions/generar-token-llamada/index.ts"

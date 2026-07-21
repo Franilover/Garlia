@@ -180,14 +180,26 @@ export async function listarConversaciones(): Promise<ConversacionResumen[]> {
 
 // ─── Mensajes ───────────────────────────────────────────────────────────────
 
-export async function cargarMensajes(conversacionId: string): Promise<Mensaje[]> {
+/**
+ * Trae los últimos `limite` mensajes de la conversación (por defecto 50).
+ * Antes traía TODO el historial sin límite, lo cual es la causa principal
+ * de que abrir un chat con mucha actividad tardara: en conversaciones
+ * largas eso podía ser miles de filas en un solo `select("*")`. Pedimos los
+ * más recientes en orden descendente (así el índice por created_at se usa
+ * bien) y los damos vuelta para pintar de más viejo a más nuevo.
+ */
+export async function cargarMensajes(
+  conversacionId: string,
+  limite = 50,
+): Promise<Mensaje[]> {
   const { data, error } = await supabase
     .from("mensajes")
     .select("*")
     .eq("conversacion_id", conversacionId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(limite);
   if (error) throw error;
-  return (data ?? []) as Mensaje[];
+  return ((data ?? []) as Mensaje[]).reverse();
 }
 
 export async function enviarMensaje(
@@ -223,24 +235,79 @@ export async function marcarComoLeido(conversacionId: string): Promise<void> {
     .eq("perfil_id", user.id);
 }
 
-/** Suscripción en vivo a mensajes nuevos de una conversación. */
+// ─── Canal compartido por conversación ─────────────────────────────────────
+//
+// ANTES: chatEngine (mensajes nuevos) y presenceEngine ("escribiendo…")
+// creaban CADA UNO su propio `supabase.channel(\`mensajes:${id}\`)` con el
+// mismo topic. Realtime/Phoenix permite tener dos joins distintos al mismo
+// topic desde el mismo socket, pero en la práctica eso generaba joins que
+// competían entre sí y se traducía en reconexiones erráticas y eventos que
+// a veces no llegaban. Ahora hay un único canal por conversación,
+// reference-counted, y ambos módulos cuelgan sus listeners del mismo canal
+// antes de que se haga el `.subscribe()` (que se dispara recién en un
+// microtask, dando tiempo a que todos los `.on()` ya estén registrados).
+
+interface EntradaCanalConversacion {
+  canal: RealtimeChannel;
+  refs: number;
+  listo: Promise<void>;
+}
+
+const canalesConversacion = new Map<string, EntradaCanalConversacion>();
+
+/** @internal usado también por presenceEngine.ts para "escribiendo…" */
+export function _obtenerCanalConversacion(conversacionId: string): EntradaCanalConversacion {
+  const topic = `mensajes:${conversacionId}`;
+  let entrada = canalesConversacion.get(topic);
+  if (!entrada) {
+    const canal = supabase.channel(topic);
+    const listo = new Promise<void>((resolve) => {
+      queueMicrotask(() => {
+        canal.subscribe((status) => {
+          if (status === "SUBSCRIBED") resolve();
+        });
+      });
+    });
+    entrada = { canal, refs: 0, listo };
+    canalesConversacion.set(topic, entrada);
+  }
+  entrada.refs++;
+  return entrada;
+}
+
+/** @internal contraparte de _obtenerCanalConversacion */
+export function _liberarCanalConversacion(conversacionId: string): void {
+  const topic = `mensajes:${conversacionId}`;
+  const entrada = canalesConversacion.get(topic);
+  if (!entrada) return;
+  entrada.refs--;
+  if (entrada.refs <= 0) {
+    supabase.removeChannel(entrada.canal);
+    canalesConversacion.delete(topic);
+  }
+}
+
+/**
+ * Suscripción en vivo a mensajes nuevos de una conversación.
+ * Devuelve una función de limpieza (ya NO un RealtimeChannel crudo) —
+ * llamarla en el cleanup del efecto en vez de `supabase.removeChannel`.
+ */
 export function suscribirseAMensajes(
   conversacionId: string,
   onNuevoMensaje: (mensaje: Mensaje) => void,
-): RealtimeChannel {
-  return supabase
-    .channel(`mensajes:${conversacionId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "mensajes",
-        filter: `conversacion_id=eq.${conversacionId}`,
-      },
-      (payload) => onNuevoMensaje(payload.new as Mensaje),
-    )
-    .subscribe();
+): () => void {
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  entrada.canal.on(
+    "postgres_changes",
+    {
+      event: "INSERT",
+      schema: "public",
+      table: "mensajes",
+      filter: `conversacion_id=eq.${conversacionId}`,
+    },
+    (payload) => onNuevoMensaje(payload.new as Mensaje),
+  );
+  return () => _liberarCanalConversacion(conversacionId);
 }
 
 /** Suscripción en vivo a nuevas conversaciones/actividad, para la lista general. */

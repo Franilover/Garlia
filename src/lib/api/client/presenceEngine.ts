@@ -22,6 +22,10 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/api/client/supabase";
+import {
+  _obtenerCanalConversacion,
+  _liberarCanalConversacion,
+} from "@/lib/api/client/chatEngine";
 
 // ─── Presencia global ("en línea") ─────────────────────────────────────────
 
@@ -104,21 +108,23 @@ interface SenalEscribiendo {
 
 /**
  * Se suscribe a los eventos de "escribiendo" de una conversación puntual.
- * Usa el mismo canal `mensajes:<conversacionId>` que chatEngine, así no
- * duplicamos conexiones — Supabase permite tener varios listeners (postgres
- * changes + broadcast) sobre el mismo canal.
+ * Usa el mismo canal compartido `mensajes:<conversacionId>` que chatEngine
+ * (vía `_obtenerCanalConversacion`, reference-counted), así no duplicamos
+ * el join al topic — antes cada módulo abría su propio canal con el mismo
+ * nombre, lo que generaba conexiones que competían entre sí.
+ *
+ * Devuelve una función de limpieza; llamarla en el cleanup del efecto en
+ * vez de `supabase.removeChannel`.
  */
 export function suscribirseAEscribiendo(
   conversacionId: string,
   onCambio: (senal: SenalEscribiendo) => void,
-): RealtimeChannel {
-  const canal = supabase.channel(`mensajes:${conversacionId}`);
-  canal
-    .on("broadcast", { event: "escribiendo" }, (payload) => {
-      onCambio(payload.payload as SenalEscribiendo);
-    })
-    .subscribe();
-  return canal;
+): () => void {
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  entrada.canal.on("broadcast", { event: "escribiendo" }, (payload) => {
+    onCambio(payload.payload as SenalEscribiendo);
+  });
+  return () => _liberarCanalConversacion(conversacionId);
 }
 
 /** Avisa a la conversación que el usuario actual está (o dejó de estar) escribiendo. */
@@ -126,28 +132,16 @@ export async function emitirEscribiendo(
   conversacionId: string,
   perfilId: string,
   escribiendo: boolean,
-  canalExistente?: RealtimeChannel,
 ): Promise<void> {
-  // Reutiliza el canal activo si ya existe (por ejemplo, devuelto por suscribirseAEscribiendo o chatEngine)
-  const canal =
-    canalExistente ?? supabase.channel(`mensajes:${conversacionId}`);
-
-  if (canal.state !== "joined") {
-    await new Promise<void>((resolve) => {
-      canal.subscribe((status) => {
-        if (status === "SUBSCRIBED") resolve();
-      });
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  try {
+    await entrada.listo;
+    await entrada.canal.send({
+      type: "broadcast",
+      event: "escribiendo",
+      payload: { perfilId, escribiendo } as SenalEscribiendo,
     });
-  }
-
-  await canal.send({
-    type: "broadcast",
-    event: "escribiendo",
-    payload: { perfilId, escribiendo } as SenalEscribiendo,
-  });
-
-  // Solo remueve el canal si fue creado temporalmente dentro de esta función
-  if (!canalExistente) {
-    await supabase.removeChannel(canal);
+  } finally {
+    _liberarCanalConversacion(conversacionId);
   }
 }

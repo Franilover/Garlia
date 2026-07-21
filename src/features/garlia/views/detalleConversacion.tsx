@@ -133,26 +133,39 @@ export default function DetalleConversacion() {
       }
     })();
 
-    const canal = suscribirseAMensajes(conversacionId, (m) => {
+    const desuscribirMensajes = suscribirseAMensajes(conversacionId, (m) => {
       setMensajes((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev, m]));
       void marcarComoLeido(conversacionId);
     });
 
     return () => {
       mounted = false;
-      supabase.removeChannel(canal);
+      desuscribirMensajes();
     };
   }, [conversacionId]);
 
+  // Autoscroll al fondo. Al abrir el chat (o cambiar de conversación) el
+  // salto es instantáneo — nadie quiere ver la animación subiendo desde
+  // arriba cada vez que entra a un chat con historial. Para mensajes nuevos
+  // que llegan mientras ya está abierto, el scroll es suave.
+  const scrolleoInicialHechoRef = useRef(false);
+
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrolleoInicialHechoRef.current = false;
+  }, [conversacionId]);
+
+  useEffect(() => {
+    if (!scrollRef.current || mensajes.length === 0) return;
+    const comportamiento: ScrollBehavior = scrolleoInicialHechoRef.current ? "smooth" : "auto";
+    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: comportamiento });
+    scrolleoInicialHechoRef.current = true;
   }, [mensajes.length]);
 
   // ── Indicador "escribiendo…" del otro participante ──────────────────────
   useEffect(() => {
     if (!conversacionId || conversacionId === "placeholder" || !user) return;
 
-    const canal = suscribirseAEscribiendo(conversacionId, (senal) => {
+    const desuscribirEscribiendo = suscribirseAEscribiendo(conversacionId, (senal) => {
       if (senal.perfilId === user.id) return; // ignorar nuestras propias señales
 
       if (otroEscribiendoOffRef.current) clearTimeout(otroEscribiendoOffRef.current);
@@ -169,7 +182,7 @@ export default function DetalleConversacion() {
     });
 
     return () => {
-      supabase.removeChannel(canal);
+      desuscribirEscribiendo();
       if (otroEscribiendoOffRef.current) clearTimeout(otroEscribiendoOffRef.current);
     };
   }, [conversacionId, user]);
