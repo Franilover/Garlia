@@ -3,6 +3,7 @@ import { Montserrat, Geist, Pixelify_Sans, Caveat, Lora, Literata } from 'next/f
 
 import { GlobalCommandPalette } from "@/components/command";
 import Navbar from "@/components/layout/navbar";
+import LlamadaGlobal from "@/features/personal/components/LlamadaGlobal";
 import { LightboxProvider } from "@/components/modal/lightbox/";
 import { cn } from "@/lib/utils/index";
 import AppLogic from "@/providers/AppLogic";
@@ -110,6 +111,7 @@ export default function RootLayout({
             <ThemeProvider>
               <LightboxProvider>
                 <GlobalCommandPalette />
+                <LlamadaGlobal />
                 <Navbar />
                 <div className="flex-grow flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
                   <main className="flex-grow custom-scrollbar">

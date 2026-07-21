@@ -2,14 +2,14 @@
   "name": "agenda-next",
   "version": "0.1.0",
   "private": true,
-"scripts": {
-  "dev": "next dev",
-  "build": "node scripts/generate-static-indexes.mjs && next build",
-  "start": "next start",
-  "lint": "next lint",
-  "tauri": "tauri",
-  "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/lib/types/supabase.ts"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "node scripts/generate-static-indexes.mjs && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "tauri": "tauri",
+    "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/lib/types/supabase.ts"
+  },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
     "@lexical/code": "^0.46.0",
@@ -36,6 +36,7 @@
     "dexie": "^4.3.0",
     "framer-motion": "^12.34.3",
     "lexical": "^0.46.0",
+    "livekit-client": "^2.20.2",
     "lucide-react": "^0.562.0",
     "million": "^3.1.11",
     "music-metadata-browser": "^2.5.11",

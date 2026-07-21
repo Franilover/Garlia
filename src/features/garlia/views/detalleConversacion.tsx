@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, Paperclip, Phone, Send, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
 import { Loading } from "@/components/ui";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { useLlamadaStore } from "@/features/personal/hooks/useLlamadaStore";
 import {
   cargarMensajes,
   enviarMensaje,
@@ -13,7 +14,9 @@ import {
   subirAdjunto,
   suscribirseAMensajes,
   type Mensaje,
+  type PerfilResumen,
 } from "@/lib/api/client/chatEngine";
+import { crearLlamada, ofrecerLlamada } from "@/lib/api/client/callEngine";
 import { supabase } from "@/lib/api/client/supabase";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -46,8 +49,62 @@ export default function DetalleConversacion() {
   const [enviando, setEnviando] = useState(false);
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otroParticipante, setOtroParticipante] = useState<PerfilResumen | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const iniciarLlamando = useLlamadaStore((s) => s.iniciarLlamando);
+  const estadoLlamada = useLlamadaStore((s) => s.estado);
+
+  // Traemos los datos del otro participante para el header y para poder
+  // ofrecerle la llamada (nombre/avatar que se muestran en su pantalla).
+  useEffect(() => {
+    if (!conversacionId || conversacionId === "placeholder" || !user) return;
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase
+        .from("conversacion_participantes")
+        .select("perfil_id, perfiles!inner(id, username, avatar_url)")
+        .eq("conversacion_id", conversacionId)
+        .neq("perfil_id", user.id)
+        .maybeSingle();
+      if (mounted && data) {
+        const p: any = (data as any).perfiles;
+        setOtroParticipante({ id: p.id, username: p.username, avatar_url: p.avatar_url });
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [conversacionId, user]);
+
+  const handleLlamar = async () => {
+    if (!user || !otroParticipante || estadoLlamada !== "inactiva") return;
+    try {
+      const { id: llamadaId, roomName } = await crearLlamada(conversacionId, "audio");
+      iniciarLlamando({
+        conversacionId,
+        llamadaId,
+        roomName,
+        otro: {
+          id: otroParticipante.id,
+          nombre: otroParticipante.username,
+          avatar: otroParticipante.avatar_url,
+        },
+      });
+      await ofrecerLlamada({
+        conversacionId,
+        llamadaId,
+        roomName,
+        paraId: otroParticipante.id,
+        deId: user.id,
+        deNombre: user.user_metadata?.username ?? user.email ?? null,
+        deAvatar: user.user_metadata?.avatar_url ?? null,
+      });
+    } catch {
+      setError("No se pudo iniciar la llamada.");
+    }
+  };
 
   useEffect(() => {
     if (!conversacionId || conversacionId === "placeholder") return;
@@ -137,9 +194,23 @@ export default function DetalleConversacion() {
         <button onClick={() => router.push("/personal/mensajes")} aria-label="Volver">
           <ArrowLeft className="text-primary/50" size={18} />
         </button>
-        <span className="font-black text-sm text-primary uppercase tracking-wide">
-          Conversación
+        <span className="font-black text-sm text-primary uppercase tracking-wide flex-1">
+          {otroParticipante?.username ?? "Conversación"}
         </span>
+        <button
+          disabled={!otroParticipante || estadoLlamada !== "inactiva"}
+          onClick={() => void handleLlamar()}
+          aria-label="Llamar"
+          className="flex items-center justify-center rounded-full flex-shrink-0"
+          style={{
+            width: 34,
+            height: 34,
+            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            opacity: !otroParticipante || estadoLlamada !== "inactiva" ? 0.4 : 1,
+          }}
+        >
+          <Phone className="text-primary" size={15} />
+        </button>
       </div>
 
       {/* ── Mensajes ── */}
