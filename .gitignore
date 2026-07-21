@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+src-tauri/target
+src-tauri/genpublic/dibujos-index.json
+public/sonidos-index.json

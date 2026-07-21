@@ -42,5 +42,5 @@
     ".next/dev/types/**/*.ts",
     "src/lib/api/client/db.js"
   ],
-  "exclude": ["node_modules", "supabase"]
+  "exclude": ["node_modules", "supabase", "src-tauri"]
 }

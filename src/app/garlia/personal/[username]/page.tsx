@@ -1,12 +1,14 @@
-"use client";
+import PersonalUsernameClient from "./PersonalUsernameClient";
 
-import { useParams } from "next/navigation";
-
-import PersonalUsername from "@/features/garlia/views/personalUsername";
+// Requerido por `output: export`. Ver nota en canciones/[id]/page.tsx.
+// Este archivo es Server Component (sin "use client") porque
+// generateStaticParams solo puede vivir en un Server Component.
+// La lógica que antes estaba acá (useParams, etc.) se movió a
+// PersonalUsernameClient.tsx, que sigue siendo "use client".
+export async function generateStaticParams() {
+  return [{ username: "placeholder" }];
+}
 
 export default function Page() {
-  const params   = useParams();
-  const username = params?.username as string;
-
-  return <PersonalUsername username={username} />;
+  return <PersonalUsernameClient />;
 }

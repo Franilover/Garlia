@@ -12,11 +12,13 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
+  output: "export",
   eslint: {
     ignoreDuringBuilds: true,
   },
   turbopack: {},
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

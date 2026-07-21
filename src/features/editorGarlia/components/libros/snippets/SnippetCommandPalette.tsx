@@ -15,6 +15,8 @@ import {
   Flag,
 } from "lucide-react";
 
+import { fetchEntidades } from "@/lib/api/queries/entidades";
+
 /**
  * SnippetCommandPalette — búsqueda unificada
  * ──────────────────────────────────────────
@@ -410,8 +412,7 @@ function FormDrop({
   }, [active]);
 
   useEffect(() => {
-    void fetch("/api/entidades")
-      .then((r) => r.json())
+    void fetchEntidades()
       .then((d) => {
         if (!d.ok) return;
         const list: Ent[] = [
@@ -858,8 +859,7 @@ function FormUse({
   }, [active]);
 
   useEffect(() => {
-    void fetch("/api/entidades?tipo=item")
-      .then((r) => r.json())
+    void fetchEntidades("item")
       .then((d) => {
         if (d.ok)
           setItems(
@@ -1077,8 +1077,7 @@ function FormCondicion({
   }, [active]);
 
   useEffect(() => {
-    void fetch("/api/entidades?tipo=item")
-      .then((r) => r.json())
+    void fetchEntidades("item")
       .then((d) => {
         if (d.ok) {
           const fetched = (d.data?.items ?? []).map((x: any) => ({
@@ -1459,7 +1458,7 @@ function FormImagen({
   }, [active]);
 
   useEffect(() => {
-    void fetch("/api/dibujos")
+    void fetch("/dibujos-index.json")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) setAll(flattenTree(d.tree));
@@ -1684,7 +1683,7 @@ function FormSound({
   }, [active]);
 
   useEffect(() => {
-    void fetch("/api/sonidos")
+    void fetch("/sonidos-index.json")
       .then((r) => r.json())
       .then((d) => {
         if (d.ok) setAll(flattenTree(d.tree));

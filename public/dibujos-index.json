@@ -1,0 +1,458 @@
+{
+  "ok": true,
+  "tree": [
+    {
+      "name": "abstracto",
+      "type": "folder",
+      "children": [
+        {
+          "name": "stopit.png",
+          "url": "/dibujos/abstracto/stopit.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "criaturas",
+      "type": "folder",
+      "children": [
+        {
+          "name": "slime.png",
+          "url": "/dibujos/criaturas/slime.png",
+          "type": "image"
+        },
+        {
+          "name": "vex.png",
+          "url": "/dibujos/criaturas/vex.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "fanart",
+      "type": "folder",
+      "children": [
+        {
+          "name": "02.png",
+          "url": "/dibujos/fanart/02.png",
+          "type": "image"
+        },
+        {
+          "name": "03.png",
+          "url": "/dibujos/fanart/03.png",
+          "type": "image"
+        },
+        {
+          "name": "04.png",
+          "url": "/dibujos/fanart/04.png",
+          "type": "image"
+        },
+        {
+          "name": "05.png",
+          "url": "/dibujos/fanart/05.png",
+          "type": "image"
+        },
+        {
+          "name": "06.png",
+          "url": "/dibujos/fanart/06.png",
+          "type": "image"
+        },
+        {
+          "name": "07.png",
+          "url": "/dibujos/fanart/07.png",
+          "type": "image"
+        },
+        {
+          "name": "08.png",
+          "url": "/dibujos/fanart/08.png",
+          "type": "image"
+        },
+        {
+          "name": "09.png",
+          "url": "/dibujos/fanart/09.png",
+          "type": "image"
+        },
+        {
+          "name": "10.png",
+          "url": "/dibujos/fanart/10.png",
+          "type": "image"
+        },
+        {
+          "name": "11.png",
+          "url": "/dibujos/fanart/11.png",
+          "type": "image"
+        },
+        {
+          "name": "12.png",
+          "url": "/dibujos/fanart/12.png",
+          "type": "image"
+        },
+        {
+          "name": "13.png",
+          "url": "/dibujos/fanart/13.png",
+          "type": "image"
+        },
+        {
+          "name": "14.png",
+          "url": "/dibujos/fanart/14.png",
+          "type": "image"
+        },
+        {
+          "name": "15.png",
+          "url": "/dibujos/fanart/15.png",
+          "type": "image"
+        },
+        {
+          "name": "16.png",
+          "url": "/dibujos/fanart/16.png",
+          "type": "image"
+        },
+        {
+          "name": "17.png",
+          "url": "/dibujos/fanart/17.png",
+          "type": "image"
+        },
+        {
+          "name": "aereonato.png",
+          "url": "/dibujos/fanart/aereonato.png",
+          "type": "image"
+        },
+        {
+          "name": "aurora.png",
+          "url": "/dibujos/fanart/aurora.png",
+          "type": "image"
+        },
+        {
+          "name": "evefanart.png",
+          "url": "/dibujos/fanart/evefanart.png",
+          "type": "image"
+        },
+        {
+          "name": "guibli.png",
+          "url": "/dibujos/fanart/guibli.png",
+          "type": "image"
+        },
+        {
+          "name": "guibli1.png",
+          "url": "/dibujos/fanart/guibli1.png",
+          "type": "image"
+        },
+        {
+          "name": "guibli2.png",
+          "url": "/dibujos/fanart/guibli2.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "items",
+      "type": "folder",
+      "children": [
+        {
+          "name": "esapada_topacio.png",
+          "url": "/dibujos/items/esapada_topacio.png",
+          "type": "image"
+        },
+        {
+          "name": "esp_caelistan.png",
+          "url": "/dibujos/items/esp_caelistan.png",
+          "type": "image"
+        },
+        {
+          "name": "espinacarmesi.png",
+          "url": "/dibujos/items/espinacarmesi.png",
+          "type": "image"
+        },
+        {
+          "name": "mineral_mana.png",
+          "url": "/dibujos/items/mineral_mana.png",
+          "type": "image"
+        },
+        {
+          "name": "nucleoespinoso.png",
+          "url": "/dibujos/items/nucleoespinoso.png",
+          "type": "image"
+        },
+        {
+          "name": "pistola_mana.png",
+          "url": "/dibujos/items/pistola_mana.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "personajes",
+      "type": "folder",
+      "children": [
+        {
+          "name": "abel_cara_rostros.png",
+          "url": "/dibujos/personajes/abel_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "abel_cuerpo_completo.png",
+          "url": "/dibujos/personajes/abel_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "abel_niño_cuerpo_completo.png",
+          "url": "/dibujos/personajes/abel_niño_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "airis_cuerpo_completo.png",
+          "url": "/dibujos/personajes/airis_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "aldruka_rostros.png",
+          "url": "/dibujos/personajes/aldruka_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "asher_rostros.png",
+          "url": "/dibujos/personajes/asher_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "ashley_rostros.png",
+          "url": "/dibujos/personajes/ashley_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "b1_bocetos.png",
+          "url": "/dibujos/personajes/b1_bocetos.png",
+          "type": "image"
+        },
+        {
+          "name": "b2_bocetos.png",
+          "url": "/dibujos/personajes/b2_bocetos.png",
+          "type": "image"
+        },
+        {
+          "name": "carzal_cuerpo_completo.png",
+          "url": "/dibujos/personajes/carzal_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "cazador_cuerpo_completo.png",
+          "url": "/dibujos/personajes/cazador_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "crazygirl_cara_rostros.png",
+          "url": "/dibujos/personajes/crazygirl_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "crazygirl_cuerpo_completo.png",
+          "url": "/dibujos/personajes/crazygirl_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "dorian_cara_rostros.png",
+          "url": "/dibujos/personajes/dorian_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "dorian_cuerpo_completo.png",
+          "url": "/dibujos/personajes/dorian_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "errantes_froslia_cuerpo_completo.png",
+          "url": "/dibujos/personajes/errantes_froslia_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "faker_cara_rostros.png",
+          "url": "/dibujos/personajes/faker_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "faker_cuerpo_completo.png",
+          "url": "/dibujos/personajes/faker_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "florgelida_cuerpo_completo.png",
+          "url": "/dibujos/personajes/florgelida_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "frani_postsuicideparede_cara_rostros.png",
+          "url": "/dibujos/personajes/frani_postsuicideparede_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "frani_postsuicideparede_cuerpo_completo.png",
+          "url": "/dibujos/personajes/frani_postsuicideparede_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "greenhairgirl_rostros.png",
+          "url": "/dibujos/personajes/greenhairgirl_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "icarus_cara_rostros.png",
+          "url": "/dibujos/personajes/icarus_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "icarus_cuerpo_completo.png",
+          "url": "/dibujos/personajes/icarus_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "liam_rostros.png",
+          "url": "/dibujos/personajes/liam_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "logan_cara_rostros.png",
+          "url": "/dibujos/personajes/logan_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "new.png",
+          "url": "/dibujos/personajes/new.png",
+          "type": "image"
+        },
+        {
+          "name": "noa_cara_rostros.png",
+          "url": "/dibujos/personajes/noa_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "pinkkiller_cuerpo_completo.png",
+          "url": "/dibujos/personajes/pinkkiller_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "samuel_rostros.png",
+          "url": "/dibujos/personajes/samuel_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "sofia_cara_rostros.png",
+          "url": "/dibujos/personajes/sofia_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "sol_rostros.png",
+          "url": "/dibujos/personajes/sol_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "stargirl_cuerpo_completo.png",
+          "url": "/dibujos/personajes/stargirl_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "tom_cara_rostros.png",
+          "url": "/dibujos/personajes/tom_cara_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "tori_rostros.png",
+          "url": "/dibujos/personajes/tori_rostros.png",
+          "type": "image"
+        },
+        {
+          "name": "watergirl_cuerpo_completo.png",
+          "url": "/dibujos/personajes/watergirl_cuerpo_completo.png",
+          "type": "image"
+        },
+        {
+          "name": "zenitiarey_cuerpo_completo.png",
+          "url": "/dibujos/personajes/zenitiarey_cuerpo_completo.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "random",
+      "type": "folder",
+      "children": [
+        {
+          "name": "fotografo.png",
+          "url": "/dibujos/random/fotografo.png",
+          "type": "image"
+        },
+        {
+          "name": "miapikazo1.png",
+          "url": "/dibujos/random/miapikazo1.png",
+          "type": "image"
+        },
+        {
+          "name": "reboy.png",
+          "url": "/dibujos/random/reboy.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "reinos",
+      "type": "folder",
+      "children": [
+        {
+          "name": "Greendom.svg",
+          "url": "/dibujos/reinos/Greendom.svg",
+          "type": "image"
+        },
+        {
+          "name": "mapa.png",
+          "url": "/dibujos/reinos/mapa.png",
+          "type": "image"
+        },
+        {
+          "name": "nerisia_ciudades.png",
+          "url": "/dibujos/reinos/nerisia_ciudades.png",
+          "type": "image"
+        },
+        {
+          "name": "norisia_ciudades.png",
+          "url": "/dibujos/reinos/norisia_ciudades.png",
+          "type": "image"
+        },
+        {
+          "name": "oestisia_ciudades.png",
+          "url": "/dibujos/reinos/oestisia_ciudades.png",
+          "type": "image"
+        },
+        {
+          "name": "omnisia.png",
+          "url": "/dibujos/reinos/omnisia.png",
+          "type": "image"
+        },
+        {
+          "name": "serisia_ciudades.png",
+          "url": "/dibujos/reinos/serisia_ciudades.png",
+          "type": "image"
+        },
+        {
+          "name": "sorisia_ciudades.png",
+          "url": "/dibujos/reinos/sorisia_ciudades.png",
+          "type": "image"
+        },
+        {
+          "name": "surisia_ciudades.png",
+          "url": "/dibujos/reinos/surisia_ciudades.png",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "runas",
+      "type": "folder",
+      "children": [
+        {
+          "name": "runas.png",
+          "url": "/dibujos/runas/runas.png",
+          "type": "image"
+        }
+      ]
+    }
+  ]
+}

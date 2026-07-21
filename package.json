@@ -2,13 +2,14 @@
   "name": "agenda-next",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build && next-sitemap",
-    "start": "next start",
-    "lint": "next lint",
-    "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/lib/types/supabase.ts"
-  },
+"scripts": {
+  "dev": "next dev",
+  "build": "node scripts/generate-static-indexes.mjs && next build",
+  "start": "next start",
+  "lint": "next lint",
+  "tauri": "tauri",
+  "gen:types": "supabase gen types typescript --project-id ftdxthnizdosaaavjhah --schema public > src/lib/types/supabase.ts"
+},
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
     "@lexical/code": "^0.46.0",
@@ -59,6 +60,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@next/bundle-analyzer": "^16.2.3",
+    "@tauri-apps/cli": "^2.0.0-rc.18",
     "@types/d3": "^7.4.3",
     "@types/node": "^25.2.1",
     "@types/react": "^19.2.13",
