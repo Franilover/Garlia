@@ -31,6 +31,14 @@ export interface Mensaje {
   eliminado: boolean;
 }
 
+export interface MensajeReaccion {
+  id: string;
+  mensaje_id: string;
+  perfil_id: string;
+  emoji: string;
+  created_at: string;
+}
+
 export interface ConversacionResumen {
   id: string;
   es_grupo: boolean;
@@ -191,13 +199,23 @@ export async function listarConversaciones(): Promise<ConversacionResumen[]> {
 export async function cargarMensajes(
   conversacionId: string,
   limite = 50,
+  antesDe?: string,
 ): Promise<Mensaje[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("mensajes")
     .select("*")
     .eq("conversacion_id", conversacionId)
     .order("created_at", { ascending: false })
     .limit(limite);
+
+  // Paginación "cargar mensajes anteriores": si viene un cursor, pedimos
+  // los que son estrictamente más viejos que el primer mensaje que ya
+  // tenemos pintado en pantalla.
+  if (antesDe) {
+    query = query.lt("created_at", antesDe);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return ((data ?? []) as Mensaje[]).reverse();
 }
@@ -213,14 +231,92 @@ export async function enviarMensaje(
   if (!user) throw new Error("No hay sesión activa.");
   if (!contenido.trim() && !adjunto) return;
 
-  const { error } = await supabase.from("mensajes").insert({
-    conversacion_id: conversacionId,
-    remitente_id: user.id,
-    contenido: contenido.trim() || null,
-    adjunto_url: adjunto?.url ?? null,
-    adjunto_tipo: adjunto?.tipo ?? null,
-  });
+  const { data: nuevoMensaje, error } = await supabase
+    .from("mensajes")
+    .insert({
+      conversacion_id: conversacionId,
+      remitente_id: user.id,
+      contenido: contenido.trim() || null,
+      adjunto_url: adjunto?.url ?? null,
+      adjunto_tipo: adjunto?.tipo ?? null,
+    })
+    .select("id")
+    .single();
   if (error) throw error;
+
+  // Push al/los destinatario/s. Fire-and-forget: si falla, no queremos que
+  // el envío del mensaje (que ya se guardó bien) aparezca como error para
+  // quien está escribiendo. La función decide del lado servidor a quién
+  // pushear; acá no filtramos por "está en línea" porque el browser mismo
+  // no muestra la notificación si la pestaña está enfocada y visible.
+  if (nuevoMensaje?.id) {
+    void dispararNotificacionMensaje(conversacionId, nuevoMensaje.id, user.id);
+  }
+}
+
+/**
+ * Invoca la Edge Function `notify-message` para pushear a los demás
+ * participantes de la conversación. No usa el patrón de `notify-subscribers`
+ * (broadcast a todos) porque acá necesitamos targetear puntualmente a quien
+ * corresponde; ver supabase/functions/notify-message/index.ts.
+ */
+async function dispararNotificacionMensaje(
+  conversacionId: string,
+  mensajeId: string,
+  remitenteId: string,
+): Promise<void> {
+  try {
+    await supabase.functions.invoke("notify-message", {
+      body: { conversacionId, mensajeId, remitenteId },
+    });
+  } catch (err) {
+    console.warn("No se pudo disparar la notificación push del mensaje:", err);
+  }
+}
+
+/**
+ * Edita el contenido de un mensaje propio. RLS en `mensajes` ya restringe
+ * el UPDATE a `remitente_id = auth.uid()`, así que un intento de editar el
+ * mensaje de otro simplemente no afecta filas (Supabase no tira error, pero
+ * tampoco cambia nada) — igual chequeamos acá para dar mejor feedback.
+ */
+export async function editarMensaje(mensajeId: string, contenido: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No hay sesión activa.");
+  if (!contenido.trim()) throw new Error("El mensaje no puede quedar vacío.");
+
+  const { error, count } = await supabase
+    .from("mensajes")
+    .update({ contenido: contenido.trim(), editado: true }, { count: "exact" })
+    .eq("id", mensajeId)
+    .eq("remitente_id", user.id);
+  if (error) throw error;
+  if (!count) throw new Error("No se pudo editar el mensaje.");
+}
+
+/**
+ * Borrado "suave": no se elimina la fila (así no se rompe el hilo ni las
+ * reacciones asociadas), se marca `eliminado = true` y se limpia el
+ * contenido/adjunto. La UI pinta "Mensaje eliminado" para esos casos.
+ */
+export async function eliminarMensaje(mensajeId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No hay sesión activa.");
+
+  const { error, count } = await supabase
+    .from("mensajes")
+    .update(
+      { eliminado: true, contenido: null, adjunto_url: null, adjunto_tipo: null },
+      { count: "exact" },
+    )
+    .eq("id", mensajeId)
+    .eq("remitente_id", user.id);
+  if (error) throw error;
+  if (!count) throw new Error("No se pudo eliminar el mensaje.");
 }
 
 export async function marcarComoLeido(conversacionId: string): Promise<void> {
@@ -310,6 +406,57 @@ export function suscribirseAMensajes(
   return () => _liberarCanalConversacion(conversacionId);
 }
 
+/**
+ * Suscripción en vivo a ediciones/borrados de mensajes existentes de la
+ * conversación (columnas `editado` / `eliminado`). Comparte el mismo canal
+ * reference-counted que el resto.
+ */
+export function suscribirseAMensajesEditados(
+  conversacionId: string,
+  onMensajeActualizado: (mensaje: Mensaje) => void,
+): () => void {
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  entrada.canal.on(
+    "postgres_changes",
+    {
+      event: "UPDATE",
+      schema: "public",
+      table: "mensajes",
+      filter: `conversacion_id=eq.${conversacionId}`,
+    },
+    (payload) => onMensajeActualizado(payload.new as Mensaje),
+  );
+  return () => _liberarCanalConversacion(conversacionId);
+}
+
+/**
+ * Suscripción en vivo a cambios de `ultimo_leido_at` de los participantes de
+ * la conversación — es lo que dispara el doble check / "visto" en la UI.
+ * No filtra por perfil porque el filtro de postgres_changes no puede andar
+ * sobre `conversacion_id` de esta tabla combinado con excluir al usuario
+ * propio; el callback filtra eso del lado del cliente.
+ */
+export function suscribirseALecturas(
+  conversacionId: string,
+  onLectura: (participacion: { perfil_id: string; ultimo_leido_at: string | null }) => void,
+): () => void {
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  entrada.canal.on(
+    "postgres_changes",
+    {
+      event: "UPDATE",
+      schema: "public",
+      table: "conversacion_participantes",
+      filter: `conversacion_id=eq.${conversacionId}`,
+    },
+    (payload) => {
+      const fila = payload.new as { perfil_id: string; ultimo_leido_at: string | null };
+      onLectura(fila);
+    },
+  );
+  return () => _liberarCanalConversacion(conversacionId);
+}
+
 /** Suscripción en vivo a nuevas conversaciones/actividad, para la lista general. */
 export function suscribirseAConversaciones(
   perfilId: string,
@@ -395,6 +542,86 @@ export async function estaBloqueado(perfilId: string): Promise<boolean> {
     .eq("bloqueado_id", perfilId)
     .maybeSingle();
   return !!data;
+}
+
+// ─── Doble check / visto ────────────────────────────────────────────────────
+
+/** Trae el `ultimo_leido_at` actual del otro participante de una conversación 1 a 1. */
+export async function obtenerUltimoLeidoDeOtro(
+  conversacionId: string,
+  otroPerfilId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("conversacion_participantes")
+    .select("ultimo_leido_at")
+    .eq("conversacion_id", conversacionId)
+    .eq("perfil_id", otroPerfilId)
+    .maybeSingle();
+  return data?.ultimo_leido_at ?? null;
+}
+
+// ─── Reacciones ─────────────────────────────────────────────────────────────
+
+export async function reaccionarAMensaje(mensajeId: string, emoji: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No hay sesión activa.");
+  // upsert: si el usuario ya puso ese mismo emoji, no duplica (unique de la tabla).
+  const { error } = await supabase
+    .from("mensaje_reacciones")
+    .upsert(
+      { mensaje_id: mensajeId, perfil_id: user.id, emoji },
+      { onConflict: "mensaje_id,perfil_id,emoji", ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
+export async function quitarReaccion(mensajeId: string, emoji: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("mensaje_reacciones")
+    .delete()
+    .eq("mensaje_id", mensajeId)
+    .eq("perfil_id", user.id)
+    .eq("emoji", emoji);
+}
+
+/** Trae todas las reacciones de los mensajes visibles actualmente (para el load inicial). */
+export async function cargarReacciones(mensajeIds: string[]): Promise<MensajeReaccion[]> {
+  if (mensajeIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("mensaje_reacciones")
+    .select("*")
+    .in("mensaje_id", mensajeIds);
+  if (error) throw error;
+  return (data ?? []) as MensajeReaccion[];
+}
+
+/**
+ * Suscripción en vivo a reacciones nuevas/borradas de la conversación.
+ * Comparte el mismo canal reference-counted que el resto de chatEngine.
+ */
+export function suscribirseAReacciones(
+  conversacionId: string,
+  onCambio: (evento: "INSERT" | "DELETE", reaccion: MensajeReaccion) => void,
+): () => void {
+  const entrada = _obtenerCanalConversacion(conversacionId);
+  entrada.canal
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "mensaje_reacciones" },
+      (payload) => onCambio("INSERT", payload.new as MensajeReaccion),
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "mensaje_reacciones" },
+      (payload) => onCambio("DELETE", payload.old as MensajeReaccion),
+    );
+  return () => _liberarCanalConversacion(conversacionId);
 }
 
 // ─── Búsqueda de usuarios (para iniciar conversación) ────────────────────────

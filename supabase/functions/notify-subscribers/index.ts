@@ -2,6 +2,10 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7"
 import WebPush from "https://esm.sh/web-push@3.6.6?target=deno&no-check"
 
+// TODO(seguridad): estas claves VAPID están hardcodeadas y comprometidas por
+// estar en el historial de git. Moverlas a `supabase secrets set` y leerlas
+// con Deno.env.get (como ya se hace abajo con SUPABASE_SERVICE_ROLE_KEY), y
+// rotar el par si este repo estuvo alguna vez expuesto públicamente.
 const VAPID_PUBLIC_KEY = "BG-LnxDWcr_4PGYVPdRr_L4qAnvgSGsc18-NAZR23bz4O1MmV8SEsV8ew_RlvEaSKPjN3mS9LI4wa-96-dWPKIY";
 const VAPID_PRIVATE_KEY = "mdE23gCH8qrbeZeMYoPKLa0biCZaPFCrNRm0mJgy2kw";
 

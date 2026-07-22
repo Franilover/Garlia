@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Paperclip, Phone, Send, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Paperclip, Phone, Send, SmilePlus, Trash2, X } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -10,11 +10,21 @@ import { useLlamadaStore } from "@/features/personal/hooks/useLlamadaStore";
 import { useEstaEnLinea } from "@/features/personal/hooks/useEnLinea";
 import {
   cargarMensajes,
+  cargarReacciones,
+  editarMensaje,
+  eliminarMensaje,
   enviarMensaje,
   marcarComoLeido,
+  obtenerUltimoLeidoDeOtro,
+  quitarReaccion,
+  reaccionarAMensaje,
   subirAdjunto,
+  suscribirseALecturas,
   suscribirseAMensajes,
+  suscribirseAMensajesEditados,
+  suscribirseAReacciones,
   type Mensaje,
+  type MensajeReaccion,
   type PerfilResumen,
 } from "@/lib/api/client/chatEngine";
 import { crearLlamada, ofrecerLlamada } from "@/lib/api/client/callEngine";
@@ -60,6 +70,24 @@ export default function DetalleConversacion() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const escribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const otroEscribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Doble check / visto ──────────────────────────────────────────────
+  const [otroUltimoLeido, setOtroUltimoLeido] = useState<string | null>(null);
+
+  // ── Reacciones ───────────────────────────────────────────────────────
+  const [reacciones, setReacciones] = useState<MensajeReaccion[]>([]);
+  const [pickerAbiertoPara, setPickerAbiertoPara] = useState<string | null>(null);
+  const EMOJIS_RAPIDOS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
+
+  // ── Editar / eliminar mensaje propio ────────────────────────────────
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [textoEdicion, setTextoEdicion] = useState("");
+  const [menuAbiertoPara, setMenuAbiertoPara] = useState<string | null>(null);
+
+  // ── Paginación "cargar mensajes anteriores" ─────────────────────────
+  const [cargandoAnteriores, setCargandoAnteriores] = useState(false);
+  const [hayMasAnteriores, setHayMasAnteriores] = useState(true);
+  const scrollHeightPrevioRef = useRef<number | null>(null);
 
   const otroEnLinea = useEstaEnLinea(otroParticipante?.id);
 
@@ -119,13 +147,21 @@ export default function DetalleConversacion() {
   useEffect(() => {
     if (!conversacionId || conversacionId === "placeholder") return;
     let mounted = true;
+    setHayMasAnteriores(true);
 
     (async () => {
       setLoading(true);
       try {
         const data = await cargarMensajes(conversacionId);
-        if (mounted) setMensajes(data);
+        if (mounted) {
+          setMensajes(data);
+          setHayMasAnteriores(data.length >= 50);
+        }
         void marcarComoLeido(conversacionId);
+        if (data.length > 0) {
+          const reacc = await cargarReacciones(data.map((m) => m.id));
+          if (mounted) setReacciones(reacc);
+        }
       } catch {
         if (mounted) setError("No se pudo cargar la conversación.");
       } finally {
@@ -138,11 +174,81 @@ export default function DetalleConversacion() {
       void marcarComoLeido(conversacionId);
     });
 
+    const desuscribirEditados = suscribirseAMensajesEditados(conversacionId, (m) => {
+      setMensajes((prev) => prev.map((p) => (p.id === m.id ? m : p)));
+    });
+
+    const desuscribirReacciones = suscribirseAReacciones(conversacionId, (evento, r) => {
+      setReacciones((prev) => {
+        if (evento === "INSERT") {
+          return prev.some((p) => p.id === r.id) ? prev : [...prev, r];
+        }
+        return prev.filter(
+          (p) => !(p.mensaje_id === r.mensaje_id && p.perfil_id === r.perfil_id && p.emoji === r.emoji),
+        );
+      });
+    });
+
     return () => {
       mounted = false;
       desuscribirMensajes();
+      desuscribirEditados();
+      desuscribirReacciones();
     };
   }, [conversacionId]);
+
+  // Doble check / visto: leemos el estado inicial y escuchamos cambios en
+  // `conversacion_participantes` (ultimo_leido_at del otro participante),
+  // sobre el mismo canal compartido de la conversación.
+  useEffect(() => {
+    if (!conversacionId || conversacionId === "placeholder" || !otroParticipante) return;
+    let mounted = true;
+
+    void obtenerUltimoLeidoDeOtro(conversacionId, otroParticipante.id).then((valor) => {
+      if (mounted) setOtroUltimoLeido(valor);
+    });
+
+    const desuscribirLecturas = suscribirseALecturas(conversacionId, (participacion) => {
+      if (participacion.perfil_id !== otroParticipante.id) return;
+      setOtroUltimoLeido(participacion.ultimo_leido_at);
+    });
+
+    return () => {
+      mounted = false;
+      desuscribirLecturas();
+    };
+  }, [conversacionId, otroParticipante]);
+
+  /** Pide los siguientes 50 mensajes más viejos que el primero que ya tenemos. */
+  const handleCargarAnteriores = async () => {
+    if (cargandoAnteriores || !hayMasAnteriores || mensajes.length === 0) return;
+    setCargandoAnteriores(true);
+    scrollHeightPrevioRef.current = scrollRef.current?.scrollHeight ?? null;
+    try {
+      const masViejos = await cargarMensajes(conversacionId, 50, mensajes[0].created_at);
+      if (masViejos.length === 0) {
+        setHayMasAnteriores(false);
+      } else {
+        setMensajes((prev) => [...masViejos, ...prev]);
+        if (masViejos.length < 50) setHayMasAnteriores(false);
+        const reacc = await cargarReacciones(masViejos.map((m) => m.id));
+        setReacciones((prev) => [...prev, ...reacc]);
+      }
+    } catch {
+      setError("No se pudieron cargar los mensajes anteriores.");
+    } finally {
+      setCargandoAnteriores(false);
+    }
+  };
+
+  // Mantiene la posición de scroll al insertar mensajes viejos arriba (sin
+  // esto, el navegador salta al tope de golpe al crecer el contenido).
+  useEffect(() => {
+    if (scrollHeightPrevioRef.current == null || !scrollRef.current) return;
+    const nuevoAlto = scrollRef.current.scrollHeight;
+    scrollRef.current.scrollTop = nuevoAlto - scrollHeightPrevioRef.current;
+    scrollHeightPrevioRef.current = null;
+  }, [mensajes]);
 
   // Autoscroll al fondo. Al abrir el chat (o cambiar de conversación) el
   // salto es instantáneo — nadie quiere ver la animación subiendo desde
@@ -156,6 +262,9 @@ export default function DetalleConversacion() {
 
   useEffect(() => {
     if (!scrollRef.current || mensajes.length === 0) return;
+    // Si el cambio vino de "cargar anteriores", el otro efecto ya se encarga
+    // de reposicionar el scroll — no lo pisamos saltando al fondo.
+    if (scrollHeightPrevioRef.current != null) return;
     const comportamiento: ScrollBehavior = scrolleoInicialHechoRef.current ? "smooth" : "auto";
     scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: comportamiento });
     scrolleoInicialHechoRef.current = true;
@@ -222,6 +331,52 @@ export default function DetalleConversacion() {
       setTexto(contenido);
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const handleScrollMensajes = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop < 80) void handleCargarAnteriores();
+  };
+
+  const handleIniciarEdicion = (m: Mensaje) => {
+    setEditandoId(m.id);
+    setTextoEdicion(m.contenido ?? "");
+    setMenuAbiertoPara(null);
+  };
+
+  const handleConfirmarEdicion = async () => {
+    if (!editandoId) return;
+    try {
+      await editarMensaje(editandoId, textoEdicion);
+      setEditandoId(null);
+      setTextoEdicion("");
+    } catch (err: any) {
+      setError(err?.message ?? "No se pudo editar el mensaje.");
+    }
+  };
+
+  const handleEliminarMensaje = async (mensajeId: string) => {
+    setMenuAbiertoPara(null);
+    try {
+      await eliminarMensaje(mensajeId);
+    } catch (err: any) {
+      setError(err?.message ?? "No se pudo eliminar el mensaje.");
+    }
+  };
+
+  const handleToggleReaccion = async (mensajeId: string, emoji: string) => {
+    setPickerAbiertoPara(null);
+    const yaReaccione = reacciones.some(
+      (r) => r.mensaje_id === mensajeId && r.perfil_id === user.id && r.emoji === emoji,
+    );
+    try {
+      if (yaReaccione) {
+        await quitarReaccion(mensajeId, emoji);
+      } else {
+        await reaccionarAMensaje(mensajeId, emoji);
+      }
+    } catch {
+      setError("No se pudo actualizar la reacción.");
     }
   };
 
@@ -320,44 +475,203 @@ export default function DetalleConversacion() {
       </div>
 
       {/* ── Mensajes ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2"
+        onScroll={handleScrollMensajes}
+      >
+        {cargandoAnteriores && (
+          <p className="text-center text-primary/30 text-micro italic py-2">Cargando mensajes anteriores…</p>
+        )}
         {mensajes.length === 0 ? (
           <p className="text-center text-primary/30 text-micro italic py-10">
             Todavía no hay mensajes. ¡Decí hola!
           </p>
         ) : (
-          mensajes.map((m) => {
+          mensajes.map((m, idx) => {
             const esMio = m.remitente_id === user.id;
+            const esUltimoPropio =
+              esMio && !mensajes.slice(idx + 1).some((s) => s.remitente_id === user.id);
+            const visto =
+              esUltimoPropio &&
+              !!otroUltimoLeido &&
+              new Date(otroUltimoLeido) >= new Date(m.created_at);
+            const reaccionesDelMensaje = reacciones.filter((r) => r.mensaje_id === m.id);
+            const reaccionesAgrupadas = reaccionesDelMensaje.reduce<Record<string, number>>(
+              (acc, r) => ({ ...acc, [r.emoji]: (acc[r.emoji] ?? 0) + 1 }),
+              {},
+            );
+            const enEdicion = editandoId === m.id;
+
             return (
-              <div
-                key={m.id}
-                className={`max-w-[75%] px-4 py-2.5 rounded-[var(--radius-btn)] ${esMio ? "self-end" : "self-start"}`}
-                style={{
-                  background: esMio
-                    ? "var(--primary)"
-                    : "color-mix(in srgb, var(--primary) 6%, transparent)",
-                  color: esMio ? "var(--btn-text)" : "var(--foreground)",
-                }}
-              >
-                {m.adjunto_tipo === "imagen" && m.adjunto_url && (
-                  <div className="w-48 rounded-[var(--radius-btn)] overflow-hidden mb-1">
-                    <SmartImage alt="Adjunto" className="w-full h-full" src={m.adjunto_url} />
+              <div key={m.id} className={`flex flex-col ${esMio ? "items-end" : "items-start"} group`}>
+                <div
+                  className="max-w-[75%] px-4 py-2.5 rounded-[var(--radius-btn)] relative"
+                  style={{
+                    background: esMio
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                    color: esMio ? "var(--btn-text)" : "var(--foreground)",
+                  }}
+                >
+                  {m.eliminado ? (
+                    <p className="text-sm font-medium italic opacity-60">Mensaje eliminado</p>
+                  ) : (
+                    <>
+                      {m.adjunto_tipo === "imagen" && m.adjunto_url && (
+                        <div className="w-48 rounded-[var(--radius-btn)] overflow-hidden mb-1">
+                          <SmartImage alt="Adjunto" className="w-full h-full" src={m.adjunto_url} />
+                        </div>
+                      )}
+                      {m.adjunto_tipo === "audio" && m.adjunto_url && (
+                        <audio className="mb-1" controls src={m.adjunto_url} />
+                      )}
+                      {m.adjunto_tipo === "archivo" && m.adjunto_url && (
+                        <a
+                          className="underline text-sm font-bold block mb-1"
+                          href={m.adjunto_url}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                        >
+                          📎 Archivo adjunto
+                        </a>
+                      )}
+
+                      {enEdicion ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            className="flex-1 bg-transparent outline-none text-sm font-medium border-b border-current/30"
+                            value={textoEdicion}
+                            onChange={(e) => setTextoEdicion(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void handleConfirmarEdicion();
+                              if (e.key === "Escape") setEditandoId(null);
+                            }}
+                          />
+                          <button
+                            className="text-micro font-black underline flex-shrink-0"
+                            onClick={() => void handleConfirmarEdicion()}
+                          >
+                            Listo
+                          </button>
+                        </div>
+                      ) : (
+                        m.contenido && (
+                          <p className="text-sm font-medium">
+                            {m.contenido}
+                            {m.editado && (
+                              <span className="text-micro italic opacity-60 ml-1">(editado)</span>
+                            )}
+                          </p>
+                        )
+                      )}
+                    </>
+                  )}
+
+                  {/* Menú de opciones (editar/eliminar/reaccionar), solo visible al hover/tap */}
+                  {!m.eliminado && (
+                    <div
+                      className={`absolute top-1 ${esMio ? "-left-16" : "-right-16"} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1`}
+                    >
+                      <button
+                        aria-label="Reaccionar"
+                        onClick={() => setPickerAbiertoPara(pickerAbiertoPara === m.id ? null : m.id)}
+                        className="p-1 rounded-full"
+                        style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                      >
+                        <SmilePlus className="text-primary/60" size={13} />
+                      </button>
+                      {esMio && (
+                        <button
+                          aria-label="Más opciones"
+                          onClick={() => setMenuAbiertoPara(menuAbiertoPara === m.id ? null : m.id)}
+                          className="p-1 rounded-full"
+                          style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+                        >
+                          <Trash2 className="text-primary/60" size={13} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Picker de emojis rápidos */}
+                  {pickerAbiertoPara === m.id && (
+                    <div
+                      className={`absolute -top-9 ${esMio ? "right-0" : "left-0"} flex gap-1 px-2 py-1 rounded-full z-10`}
+                      style={{ background: "var(--bg-main)", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}
+                    >
+                      {EMOJIS_RAPIDOS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          className="text-sm hover:scale-125 transition-transform"
+                          onClick={() => void handleToggleReaccion(m.id, emoji)}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Menú editar/eliminar (solo mensajes propios) */}
+                  {menuAbiertoPara === m.id && esMio && (
+                    <div
+                      className={`absolute -top-16 ${esMio ? "right-0" : "left-0"} flex flex-col rounded-[var(--radius-btn)] overflow-hidden z-10`}
+                      style={{ background: "var(--bg-main)", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}
+                    >
+                      <button
+                        className="px-3 py-1.5 text-micro font-bold text-left text-primary hover:opacity-70"
+                        onClick={() => handleIniciarEdicion(m)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="px-3 py-1.5 text-micro font-bold text-left text-red-400 hover:opacity-70"
+                        onClick={() => void handleEliminarMensaje(m.id)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reacciones puestas al mensaje */}
+                {Object.keys(reaccionesAgrupadas).length > 0 && (
+                  <div className="flex gap-1 mt-0.5">
+                    {Object.entries(reaccionesAgrupadas).map(([emoji, cantidad]) => {
+                      const propia = reaccionesDelMensaje.some(
+                        (r) => r.perfil_id === user.id && r.emoji === emoji,
+                      );
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => void handleToggleReaccion(m.id, emoji)}
+                          className="text-micro px-1.5 py-0.5 rounded-full flex items-center gap-0.5"
+                          style={{
+                            background: propia
+                              ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+                              : "color-mix(in srgb, var(--primary) 6%, transparent)",
+                            border: propia ? "1px solid var(--primary)" : "1px solid transparent",
+                          }}
+                        >
+                          <span>{emoji}</span>
+                          {cantidad > 1 && <span className="text-primary/60">{cantidad}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
-                {m.adjunto_tipo === "audio" && m.adjunto_url && (
-                  <audio className="mb-1" controls src={m.adjunto_url} />
+
+                {/* Doble check / visto, solo en el último mensaje propio */}
+                {esUltimoPropio && (
+                  <span className="mt-0.5 flex items-center gap-0.5 text-primary/30">
+                    {visto ? (
+                      <CheckCheck size={12} style={{ color: "var(--primary)" }} />
+                    ) : (
+                      <Check size={12} />
+                    )}
+                  </span>
                 )}
-                {m.adjunto_tipo === "archivo" && m.adjunto_url && (
-                  <a
-                    className="underline text-sm font-bold block mb-1"
-                    href={m.adjunto_url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    📎 Archivo adjunto
-                  </a>
-                )}
-                {m.contenido && <p className="text-sm font-medium">{m.contenido}</p>}
               </div>
             );
           })

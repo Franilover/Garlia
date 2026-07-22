@@ -12,6 +12,7 @@ import { DataProvider } from "@/providers/DataProvider";
 import "@/style/tailwind.css";
 import { OfflineSyncActivator } from "@/providers/OfflineSyncActivator";
 import { PresenciaActivator } from "@/providers/PresenciaActivator";
+import { PushActivator } from "@/providers/PushActivator";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
@@ -114,6 +115,7 @@ export default function RootLayout({
                 <GlobalCommandPalette />
                 <LlamadaGlobal />
                 <PresenciaActivator />
+                <PushActivator />
                 <Navbar />
                 <div className="flex-grow flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
                   <main className="flex-grow custom-scrollbar">
