@@ -9,7 +9,15 @@ pub fn run() {
     .install_default()
     .expect("no se pudo instalar el crypto provider de rustls");
 
-  tauri::Builder::default()
+  let builder = tauri::Builder::default()
+    .plugin(tauri_plugin_http::init())
+    .plugin(tauri_plugin_fs::init())
+    .plugin(tauri_plugin_opener::init());
+
+  #[cfg(target_os = "android")]
+  let builder = builder.plugin(tauri_plugin_android_installer::init());
+
+  builder
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

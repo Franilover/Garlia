@@ -1,0 +1,19 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "actualizaciones",
+  "description": "Permisos para chequear, descargar e instalar actualizaciones del APK (solo Android).",
+  "windows": ["main"],
+  "platforms": ["android"],
+  "permissions": [
+    "http:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "https://*.supabase.co/*" }]
+    },
+    "fs:default",
+    "fs:allow-app-write",
+    "fs:allow-app-write-recursive",
+    "fs:scope-app-recursive",
+    "opener:default"
+  ]
+}

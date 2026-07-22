@@ -18,6 +18,7 @@ import {
   obtenerUltimoLeidoDeOtro,
   quitarReaccion,
   reaccionarAMensaje,
+  reconectarRealtimeSiHaceFalta,
   subirAdjunto,
   suscribirseALecturas,
   suscribirseAMensajes,
@@ -218,6 +219,62 @@ export default function DetalleConversacion() {
       desuscribirLecturas();
     };
   }, [conversacionId, otroParticipante]);
+
+  // ── Recuperación al volver de background (clave en mobile) ─────────────
+  // En mobile es común que el browser suspenda o mate el WebSocket de
+  // Realtime cuando la pestaña/PWA pasa a segundo plano o se bloquea la
+  // pantalla, sin que el código reciba ningún evento para reaccionar solo.
+  // Sin este handler, la sesión queda con el canal "colgado" — se ve como
+  // si el chat funcionara pero no llegara nada nuevo — hasta que se fuerza
+  // un remount con F5. Al volver a "visible": forzamos la reconexión del
+  // socket + re-join de los canales activos, y además hacemos un refetch
+  // completo como red de seguridad (por si igual se perdió algún evento
+  // mientras el canal se estaba reenganchando).
+  useEffect(() => {
+    if (!conversacionId || conversacionId === "placeholder") return;
+
+    const handleVisibilidad = () => {
+      if (document.visibilityState !== "visible") return;
+      reconectarRealtimeSiHaceFalta();
+
+      (async () => {
+        try {
+          const data = await cargarMensajes(conversacionId);
+          setMensajes((prev) => {
+            // Si mientras tanto el usuario scrolleó y cargó mensajes más
+            // viejos que los últimos 50, no los pisamos: solo refrescamos
+            // los últimos 50 y dejamos el resto del historial ya cargado.
+            const idsNuevos = new Set(data.map((m) => m.id));
+            const previosNoTraidos = prev.filter((p) => !idsNuevos.has(p.id));
+            return [...previosNoTraidos, ...data].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            );
+          });
+          void marcarComoLeido(conversacionId);
+          if (data.length > 0) {
+            const reacc = await cargarReacciones(data.map((m) => m.id));
+            setReacciones((prev) => {
+              const idsMensajesRefrescados = new Set(data.map((m) => m.id));
+              const previasFueraDelRango = prev.filter(
+                (p) => !idsMensajesRefrescados.has(p.mensaje_id),
+              );
+              return [...previasFueraDelRango, ...reacc];
+            });
+          }
+        } catch {
+          // Silencioso: si esto falla, las suscripciones realtime (ya
+          // reconectadas arriba) deberían seguir trayendo lo que falte.
+        }
+      })();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilidad);
+    window.addEventListener("focus", handleVisibilidad);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilidad);
+      window.removeEventListener("focus", handleVisibilidad);
+    };
+  }, [conversacionId]);
 
   /** Pide los siguientes 50 mensajes más viejos que el primero que ya tenemos. */
   const handleCargarAnteriores = async () => {

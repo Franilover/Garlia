@@ -352,6 +352,28 @@ interface EntradaCanalConversacion {
 const canalesConversacion = new Map<string, EntradaCanalConversacion>();
 
 /**
+ * Fuerza la reconexión del socket de Realtime si se cayó (típico en mobile:
+ * el browser suspende/mata el WebSocket cuando la pestaña pasa a background
+ * o la pantalla se bloquea, y no siempre dispara un evento que el código
+ * pueda escuchar para reaccionar solo). Pensado para llamarse al volver la
+ * pestaña a primer plano (`visibilitychange` → "visible").
+ *
+ * IMPORTANTE: reconectar el socket no revive automáticamente los channels
+ * que ya estaban unidos — hay que volver a unirlos. Como acá los canales
+ * son reference-counted y viven en `canalesConversacion`, re-unimos todos
+ * los que sigan activos.
+ */
+export function reconectarRealtimeSiHaceFalta(): void {
+  if (supabase.realtime.isConnected()) return;
+  supabase.realtime.connect();
+  canalesConversacion.forEach((entrada) => {
+    if (entrada.canal.state !== "joined" && entrada.canal.state !== "joining") {
+      entrada.canal.subscribe();
+    }
+  });
+}
+
+/**
  * @internal Acceso al canal SIN tocar el contador de referencias. Pensado
  * para operaciones puntuales de una sola vez (como un `send` de broadcast)
  * que necesitan que el canal ya exista y esté vivo, pero que NO deben
