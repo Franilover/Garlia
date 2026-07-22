@@ -17,6 +17,8 @@ import {
   Search,
   SlidersHorizontal,
   MessageCircle,
+  ScrollText,
+  Music,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -510,6 +512,7 @@ const Navbar = () => {
   const mundoSelectedId = useMundoNavigation((s) => s.selectedId);
   const mundoGoToMenu = useMundoNavigation((s) => s.goToMenu);
   const mundoClearSelection = useMundoNavigation((s) => s.clearSelection);
+  const mundoSelectSection = useMundoNavigation((s) => s.selectSection);
   const showMundoBack = isGarliaeditor && mundoSection !== null;
   const mundoBackAction = mundoSelectedId ? mundoClearSelection : mundoGoToMenu;
   const mundoBackLabel = mundoSelectedId ? "Volver a la lista" : "Volver a secciones";
@@ -762,6 +765,27 @@ const Navbar = () => {
                   onClose={closeAll}
                 />
               ))}
+              <NavDivider />
+              <SideNavItem
+                active={isGarliaeditor && mundoSection === "capitulos"}
+                href="/myself/garlia"
+                icon={ScrollText}
+                label="Capítulos"
+                onClose={() => {
+                  mundoSelectSection("capitulos");
+                  closeAll();
+                }}
+              />
+              <SideNavItem
+                active={isGarliaeditor && mundoSection === "letras"}
+                href="/myself/garlia"
+                icon={Music}
+                label="Letras"
+                onClose={() => {
+                  mundoSelectSection("letras");
+                  closeAll();
+                }}
+              />
             </>
           )}
         </nav>
