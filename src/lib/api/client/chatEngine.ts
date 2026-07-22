@@ -351,6 +351,29 @@ interface EntradaCanalConversacion {
 
 const canalesConversacion = new Map<string, EntradaCanalConversacion>();
 
+/**
+ * @internal Acceso al canal SIN tocar el contador de referencias. Pensado
+ * para operaciones puntuales de una sola vez (como un `send` de broadcast)
+ * que necesitan que el canal ya exista y esté vivo, pero que NO deben
+ * afectar cuánto tiempo vive el canal — a diferencia de una suscripción
+ * persistente, que sí debe pasar por `_obtenerCanalConversacion` /
+ * `_liberarCanalConversacion` en su ciclo de vida (mount/unmount).
+ *
+ * BUG que esto arregla: `emitirEscribiendo` (en presenceEngine.ts) llamaba
+ * a obtener/liberar en cada tecleo. Eso comparte el mismo contador que usan
+ * las suscripciones reales del componente montado; si esa llamada fugaz
+ * hacía bajar el contador a 0 en el momento equivocado (por ejemplo, justo
+ * cuando el otro participante recién está montando sus propios listeners),
+ * el canal entero se destruía con `supabase.removeChannel` aunque el
+ * componente siguiera vivo y con handlers colgados de él — dejando a ese
+ * usuario sin recibir más eventos realtime hasta que refrescaba la página
+ * (remount total, que vuelve a pedir el canal desde cero).
+ */
+export function _usarCanalConversacionSinRef(conversacionId: string): EntradaCanalConversacion | null {
+  const topic = `mensajes:${conversacionId}`;
+  return canalesConversacion.get(topic) ?? null;
+}
+
 /** @internal usado también por presenceEngine.ts para "escribiendo…" */
 export function _obtenerCanalConversacion(conversacionId: string): EntradaCanalConversacion {
   const topic = `mensajes:${conversacionId}`;

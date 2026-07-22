@@ -25,6 +25,7 @@ import { supabase } from "@/lib/api/client/supabase";
 import {
   _obtenerCanalConversacion,
   _liberarCanalConversacion,
+  _usarCanalConversacionSinRef,
 } from "@/lib/api/client/chatEngine";
 
 // ─── Presencia global ("en línea") ─────────────────────────────────────────
@@ -127,13 +128,24 @@ export function suscribirseAEscribiendo(
   return () => _liberarCanalConversacion(conversacionId);
 }
 
-/** Avisa a la conversación que el usuario actual está (o dejó de estar) escribiendo. */
+/**
+ * Avisa a la conversación que el usuario actual está (o dejó de estar)
+ * escribiendo. NO usa `_obtenerCanalConversacion`/`_liberarCanalConversacion`
+ * — esta es una operación fugaz de una sola vez, y pisar el contador de refs
+ * del canal compartido en cada tecleo podía destruir el canal mientras el
+ * componente seguía montado (ver comentario en
+ * `_usarCanalConversacionSinRef` en chatEngine.ts). Si todavía no hay una
+ * suscripción real activa para esta conversación, no hay canal al que
+ * mandarle nada — se ignora en silencio (no vale la pena crear un canal
+ * solo para esto).
+ */
 export async function emitirEscribiendo(
   conversacionId: string,
   perfilId: string,
   escribiendo: boolean,
 ): Promise<void> {
-  const entrada = _obtenerCanalConversacion(conversacionId);
+  const entrada = _usarCanalConversacionSinRef(conversacionId);
+  if (!entrada) return;
   try {
     await entrada.listo;
     await entrada.canal.send({
@@ -141,7 +153,7 @@ export async function emitirEscribiendo(
       event: "escribiendo",
       payload: { perfilId, escribiendo } as SenalEscribiendo,
     });
-  } finally {
-    _liberarCanalConversacion(conversacionId);
+  } catch (err) {
+    console.warn("No se pudo emitir la señal de 'escribiendo':", err);
   }
 }
