@@ -4,15 +4,15 @@ use tauri::{
     AppHandle, Runtime,
 };
 
-use crate::InstallApkArgs;
-
-tauri::plugin::mobile::declare_plugin!(
-    "com.frani.garlia.installer",
-    "InstallerPlugin"
-);
+/// Args que le pasamos al lado Kotlin — tienen que ser Serialize (van hacia
+/// afuera), no Deserialize como estaba antes.
+#[derive(Serialize)]
+pub struct InstallApkArgs {
+    pub path: String,
+}
 
 pub fn init<R: Runtime, C: serde::de::DeserializeOwned>(
-    app: &AppHandle<R>,
+    _app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> crate::Result<AndroidInstaller<R>> {
     let handle = api.register_android_plugin("com.frani.garlia.installer", "InstallerPlugin")?;
@@ -21,7 +21,9 @@ pub fn init<R: Runtime, C: serde::de::DeserializeOwned>(
 
 pub struct AndroidInstaller<R: Runtime>(PluginHandle<R>);
 
-#[derive(Serialize)]
+/// Respuesta que devuelve el lado Kotlin al resolver `invoke.resolve()` sin
+/// argumentos — tiene que ser Deserialize (viene desde afuera), no Serialize.
+#[derive(Deserialize)]
 struct EmptyResponse {}
 
 impl<R: Runtime> AndroidInstaller<R> {

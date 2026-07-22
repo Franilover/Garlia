@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Plugin mínimo para Garlia: abre el instalador nativo de Android para un APK ya descargado."
 edition = "2021"
 rust-version = "1.71"
+links = "tauri-plugin-android-installer"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]

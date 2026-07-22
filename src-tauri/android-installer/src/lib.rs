@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::{
     plugin::{Builder, TauriPlugin},
     Manager, Runtime,
@@ -8,13 +8,6 @@ use tauri::{
 mod mobile;
 #[cfg(target_os = "android")]
 use mobile::AndroidInstaller;
-
-#[derive(Debug, Deserialize)]
-pub struct InstallApkArgs {
-    /// Ruta absoluta al .apk ya descargado en almacenamiento de la app
-    /// (ej. el que devuelve tauri-plugin-fs / app.path().app_data_dir()).
-    pub path: String,
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -27,8 +20,12 @@ pub enum Error {
     NoSoportado,
 }
 
+// El trait Serialize exige que serialize() devuelva Result<S::Ok, S::Error>
+// (el error del propio Serializer, no el nuestro) — por eso acá usamos
+// std::result::Result explícito en vez del alias `Result<T>` de más abajo,
+// que solo tiene un genérico y no aplica a esta firma.
 impl Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
@@ -36,7 +33,7 @@ impl Serialize for Error {
     }
 }
 
-type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Dispara el Intent nativo de instalación (ACTION_VIEW + FileProvider) para
 /// el APK en `path`. En Android esto abre la pantalla del sistema donde el
