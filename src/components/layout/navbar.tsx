@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   CircleUser,
+  Clock,
   Flower2,
   PenTool,
   Moon,
@@ -14,11 +15,14 @@ import {
   BookOpen,
   ChevronRight,
   Cat,
+  Home,
+  Mountain,
   Search,
   SlidersHorizontal,
   MessageCircle,
   ScrollText,
   Music,
+  Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -27,7 +31,10 @@ import React, { useState, useEffect } from "react";
 
 import { useCommandPalette } from "@/components/command";
 import { MotionDiv } from "@/components/ui/Motion";
-import { useMundoNavigation } from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
+import {
+  useMundoNavigation,
+  type SectionKey,
+} from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
@@ -190,7 +197,7 @@ function SideNavItem({
   active: boolean;
   fillActive?: boolean;
   subLinks?: NavLinkDef[];
-  onClose: () => void;
+  onClose: (e?: React.MouseEvent) => void;
 }) {
   const currentPath = usePathname();
   const { theme } = useTheme();
@@ -471,6 +478,13 @@ const Navbar = () => {
   const { user, isAdmin } = useAuth() as { user: any; isAdmin: boolean };
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
+  // Submenú admin del sidebar desktop (reemplaza a Personal/Garlia mientras
+  // está abierto). Es puramente de UI, no depende de la ruta: se abre al
+  // click en "Arte" (antes navegaba directo a /myself/garlia) y se cierra
+  // con "Volver al navbar normal" — sin tocar la URL en ningún caso. Si el
+  // usuario sale de /myself/garlia por otro medio (ej. navbar mobile), se
+  // cierra solo para no quedar en un estado inconsistente.
+  const [adminSubmenuOpen, setAdminSubmenuOpen] = useState(false);
   const { dark, toggleDark, theme } = useTheme();
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
@@ -501,6 +515,10 @@ const Navbar = () => {
   const isGarlia = currentPath?.startsWith("/garlia") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
   const personalIsActive = currentPath === "/garlia/personal";
+
+  useEffect(() => {
+    if (!isGarliaeditor) setAdminSubmenuOpen(false);
+  }, [isGarliaeditor]);
 
   // ── Botón de volver del editor de mundo ──────────────────────────────────
   // Vive en la navbar (no flotando sobre el contenido) porque el editor de
@@ -600,6 +618,87 @@ const Navbar = () => {
     },
   ];
 
+  // ── Submenú admin (desktop) ──────────────────────────────────────────────
+  // Reemplaza a <MundoTabs /> (que vivía arriba del editor): toda la
+  // navegación entre secciones de /myself/garlia pasa a vivir acá. "letras"
+  // queda fuera de ENTIDADES_SECTIONS para que "Canciones" tenga su propio
+  // estado activo sin solaparse con "Entidades".
+  const ENTIDADES_SECTIONS = new Set<SectionKey>([
+    "personajes",
+    "criaturas",
+    "items",
+    "reinos",
+    "ciudades",
+    "hechizos",
+    "dones",
+    "runas",
+    "grupos",
+    "notas",
+  ]);
+
+  type AdminSubmenuItem = {
+    key: string;
+    label: string;
+    icon: React.ElementType;
+    active: boolean;
+    onSelect: () => void;
+  };
+
+  const adminSubmenuItems: AdminSubmenuItem[] = [
+    {
+      key: "inicio",
+      label: "Inicio",
+      icon: Home,
+      active: isGarliaeditor && mundoSection === null,
+      onSelect: () => mundoGoToMenu(),
+    },
+    {
+      key: "aventura",
+      label: "Aventura",
+      icon: Compass,
+      active: isGarliaeditor && mundoSection === "aventura",
+      onSelect: () => mundoSelectSection("aventura"),
+    },
+    {
+      key: "entidades",
+      label: "Entidades",
+      icon: Users,
+      active:
+        isGarliaeditor &&
+        mundoSection !== null &&
+        ENTIDADES_SECTIONS.has(mundoSection),
+      onSelect: () => mundoSelectSection("personajes"),
+    },
+    {
+      key: "mapa",
+      label: "Mapa",
+      icon: Mountain,
+      active: isGarliaeditor && mundoSection === "mapa",
+      onSelect: () => mundoSelectSection("mapa"),
+    },
+    {
+      key: "capitulos",
+      label: "Capítulos",
+      icon: ScrollText,
+      active: isGarliaeditor && mundoSection === "capitulos",
+      onSelect: () => mundoSelectSection("capitulos"),
+    },
+    {
+      key: "letras",
+      label: "Canciones",
+      icon: Music,
+      active: isGarliaeditor && mundoSection === "letras",
+      onSelect: () => mundoSelectSection("letras"),
+    },
+    {
+      key: "linea-tiempo",
+      label: "Línea de tiempo",
+      icon: Clock,
+      active: isGarliaeditor && mundoSection === "linea-tiempo",
+      onSelect: () => mundoSelectSection("linea-tiempo"),
+    },
+  ];
+
   // ── Shared mobile toggle handler ─────────────────────────────────────────────
 
   const mobileToggle = (href: string) =>
@@ -620,35 +719,6 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        {showMundoBack && (
-          <button
-            type="button"
-            onClick={mundoBackAction}
-            className="flex items-center justify-center transition-all shrink-0 mx-auto"
-            style={{
-              width: "36px",
-              height: "40px",
-              borderRadius: "var(--radius-btn)",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              background: "transparent",
-            }}
-            title={mundoBackLabel}
-            aria-label={mundoBackLabel}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background =
-                "color-mix(in srgb, var(--primary) 6%, transparent)";
-              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color =
-                "color-mix(in srgb, var(--primary) 40%, transparent)";
-            }}
-          >
-            {mundoSelectedId ? <ArrowLeft size={15} /> : <X size={15} />}
-          </button>
-        )}
-        {showMundoBack && <NavDivider margin="6px 12px" />}
         <div className="relative shrink-0 mx-auto">
           <button
             className="flex items-center justify-center transition-all"
@@ -722,43 +792,40 @@ const Navbar = () => {
         <NavDivider margin="0 12px" />
 
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
-          {personalLinks.map(({ href, label, icon, active, fillActive }) => (
-            <SideNavItem
-              key={href}
-              active={active}
-              fillActive={fillActive}
-              href={href}
-              icon={icon}
-              label={label}
-              onClose={closeAll}
-            />
-          ))}
-          <NavDivider />
-          {garliaLinks.map(({ href, label, icon, active, fillActive }) => (
-            <SideNavItem
-              key={href}
-              active={active}
-              fillActive={fillActive}
-              href={href}
-              icon={icon}
-              label={label}
-              onClose={closeAll}
-            />
-          ))}
-          {isAdmin && (
+          {isAdmin && adminSubmenuOpen ? (
             <>
-              <NavDivider />
               <SideNavItem
-                active={isEscritorio}
-                href="/myself/escritorio"
-                icon={PenTool}
-                label="Escritorio"
-                onClose={closeAll}
+                active={false}
+                href="#"
+                icon={ArrowLeft}
+                label="Volver al navbar normal"
+                onClose={(e) => {
+                  e?.preventDefault();
+                  setAdminSubmenuOpen(false);
+                }}
               />
-              {franiLinks.map(({ href, label, icon, active }) => (
+              <NavDivider />
+              {adminSubmenuItems.map(({ key, label, icon, active, onSelect }) => (
+                <SideNavItem
+                  key={key}
+                  active={active}
+                  href="/myself/garlia"
+                  icon={icon}
+                  label={label}
+                  onClose={() => {
+                    onSelect();
+                    closeAll();
+                  }}
+                />
+              ))}
+            </>
+          ) : (
+            <>
+              {personalLinks.map(({ href, label, icon, active, fillActive }) => (
                 <SideNavItem
                   key={href}
                   active={active}
+                  fillActive={fillActive}
                   href={href}
                   icon={icon}
                   label={label}
@@ -766,26 +833,42 @@ const Navbar = () => {
                 />
               ))}
               <NavDivider />
-              <SideNavItem
-                active={isGarliaeditor && mundoSection === "capitulos"}
-                href="/myself/garlia"
-                icon={ScrollText}
-                label="Capítulos"
-                onClose={() => {
-                  mundoSelectSection("capitulos");
-                  closeAll();
-                }}
-              />
-              <SideNavItem
-                active={isGarliaeditor && mundoSection === "letras"}
-                href="/myself/garlia"
-                icon={Music}
-                label="Letras"
-                onClose={() => {
-                  mundoSelectSection("letras");
-                  closeAll();
-                }}
-              />
+              {garliaLinks.map(({ href, label, icon, active, fillActive }) => (
+                <SideNavItem
+                  key={href}
+                  active={active}
+                  fillActive={fillActive}
+                  href={href}
+                  icon={icon}
+                  label={label}
+                  onClose={closeAll}
+                />
+              ))}
+              {isAdmin && (
+                <>
+                  <NavDivider />
+                  <SideNavItem
+                    active={isEscritorio}
+                    href="/myself/escritorio"
+                    icon={PenTool}
+                    label="Escritorio"
+                    onClose={closeAll}
+                  />
+                  {franiLinks.map(({ href, label, icon, active }) => (
+                    <SideNavItem
+                      key={href}
+                      active={active}
+                      href={href}
+                      icon={icon}
+                      label={label}
+                      onClose={(e) => {
+                        e?.preventDefault();
+                        setAdminSubmenuOpen(true);
+                      }}
+                    />
+                  ))}
+                </>
+              )}
             </>
           )}
         </nav>
