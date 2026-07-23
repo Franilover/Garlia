@@ -30,7 +30,7 @@ import {
   Shirt,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 
 import { useCommandPalette } from "@/components/command";
@@ -490,6 +490,7 @@ function MobileNavItem({
 
 const Navbar = () => {
   const currentPath = usePathname();
+  const router = useRouter();
   const { user, isAdmin } = useAuth() as { user: any; isAdmin: boolean };
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
@@ -784,36 +785,69 @@ const Navbar = () => {
     },
   ];
 
-  // ── Atajos "g + letra" (estilo Gmail/Linear) ─────────────────────────────
-  // Cada ruta registra su propio set de letras — no hay conflicto entre
-  // rutas porque cada hook solo está `enabled` mientras esa ruta es la
-  // actual (ver useGotoHotkeys: ignora el evento si el foco está en un
-  // input/textarea/contentEditable, así que no interfiere con el editor
-  // de notas ni con ningún campo de texto).
-  useGotoHotkeys(
-    {
-      i: () => selectEscritorioSection("inicio"),
-      l: () => selectEscritorioSection("libros"),
-      c: () => selectEscritorioSection("cocina"),
-      n: () => selectEscritorioSection("ingredientes"), // iNgredientes: "i" ya es Inicio
-      e: () => selectEscritorioSection("ejercicio"),
-      r: () => selectEscritorioSection("ropa"),
+  // ── Atajos globales "g + g/d + letra" (estilo Gmail/Linear) ──────────────
+  // Funcionan desde CUALQUIER página (no solo dentro de /myself/*): si no
+  // estamos en la ruta correspondiente, primero navegamos y de paso dejamos
+  // seteada la sección en el store — así al llegar ya se ve la sección
+  // correcta en vez de la última que quedó guardada. Si ya estamos en la
+  // ruta, solo cambia de sección sin recargar nada.
+  // "gg_" = Garlia (/myself/garlia), "gd_" = Desktop/Escritorio (/myself/escritorio).
+  useGotoHotkeys({
+    // ── Garlia ──────────────────────────────────────────────────────────
+    ggh: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoGoToMenu();
     },
-    { enabled: isEscritorio },
-  );
-
-  useGotoHotkeys(
-    {
-      i: () => mundoGoToMenu(),
-      a: () => mundoSelectSection("aventura"),
-      e: () => mundoSelectSection("personajes"), // Entidades
-      m: () => mundoSelectSection("mapa"),
-      c: () => mundoSelectSection("capitulos"),
-      s: () => mundoSelectSection("letras"), // canciones (Songs, evita chocar con Capitulos)
-      t: () => mundoSelectSection("linea-tiempo"), // Tiempo
+    ggl: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("capitulos");
     },
-    { enabled: isGarliaeditor },
-  );
+    gga: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("aventura");
+    },
+    gge: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("personajes"); // Entidades
+    },
+    ggm: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("mapa");
+    },
+    ggc: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("letras"); // Canciones
+    },
+    ggt: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("linea-tiempo");
+    },
+    // ── Escritorio ──────────────────────────────────────────────────────
+    gdh: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("inicio");
+    },
+    gdl: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("libros");
+    },
+    gdc: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("cocina");
+    },
+    gdi: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("ingredientes");
+    },
+    gde: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("ejercicio");
+    },
+    gdr: () => {
+      if (!isEscritorio) router.push("/myself/escritorio");
+      selectEscritorioSection("ropa");
+    },
+  });
 
   // ── Shared mobile toggle handler ─────────────────────────────────────────────
 

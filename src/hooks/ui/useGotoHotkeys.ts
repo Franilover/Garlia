@@ -4,40 +4,46 @@ import { useEffect, useRef } from "react";
 
 /**
  * useGotoHotkeys — atajos estilo Gmail/Linear/Notion: presionar "g" y luego
- * una letra ejecuta una acción (típicamente, cambiar de sección sin navegar).
+ * una secuencia de letras ejecuta una acción (típicamente, navegar y/o
+ * cambiar de sección sin recargar). Soporta secuencias de cualquier largo,
+ * ej. "g" "g" "h" → Garlia → Inicio, "g" "d" "l" → Escritorio → Libros.
  *
- * Por qué "g + letra" y no un modificador (Ctrl+Alt+dígito, etc.):
+ * Por qué "g + letras" y no un modificador (Ctrl+Alt+dígito, etc.):
  * Ctrl+Alt es el atajo de AltGr en varios layouts de teclado (incluido
  * español), así que el sistema operativo o el navegador a menudo se comen el
  * evento antes de que la app lo vea — es un atajo que "a veces no funciona"
- * de forma impredecible según el SO/layout del usuario. "g + letra" no choca
- * con ningún atajo de navegador/SO conocido y es el patrón que usan Gmail,
- * Linear, GitHub y Notion para exactamente este caso de uso.
+ * de forma impredecible según el SO/layout del usuario. "g + letras" no
+ * choca con ningún atajo de navegador/SO conocido y es el patrón que usan
+ * Gmail, Linear, GitHub y Notion para exactamente este caso de uso.
  *
  * Seguridad ante inputs: como no hay modificador, cualquier letra suelta
  * podría interceptar texto que el usuario esté escribiendo. Por eso el hook
  * IGNORA el evento por completo si el foco actual está en un campo editable
  * (input, textarea, [contenteditable] — esto cubre el editor Lexical de
- * notas). Además, "g" debe soltarse y volver a presionarse: no hay timeout
- * abierto esperando la segunda tecla indefinidamente, así que escribir
- * "genial" en un campo no editable en un instante de descuido no dispara
- * nada raro salvo que además la app esperara letras sueltas ahí (no debería).
+ * notas). Además, la secuencia debe completarse dentro de una ventana corta
+ * tras la primera "g": no hay timeout abierto indefinidamente, así que
+ * escribir "genial" en un campo no editable en un instante de descuido no
+ * dispara nada raro salvo que la secuencia completa coincida con un atajo
+ * real dentro de la ventana de tiempo.
  *
  * Uso:
  * ```tsx
  * useGotoHotkeys({
- *   i: () => selectSection("inicio"),
- *   l: () => selectSection("libros"),
- * }, { enabled: isEscritorio });
+ *   gh: () => router.push("/myself/garlia"), // "g" "g" "h"... la 1ra "g" es implícita
+ *   gl: () => selectGarliaSection("capitulos"),
+ * });
  * ```
+ * Nota: las claves del mapa de `actions` NO incluyen la "g" inicial — esa
+ * siempre arma la secuencia. Una clave `"gh"` corresponde a presionar
+ * "g" → "g" → "h" en total.
  */
 
 type GotoActions = Record<string, () => void>;
 
 interface UseGotoHotkeysOptions {
-  /** Si es false, no registra el listener (ej. página distinta a la dueña del atajo). */
+  /** Si es false, no registra el listener. Default true (atajo global). */
   enabled?: boolean;
-  /** Ventana en ms entre presionar "g" y la letra siguiente. Default 900ms. */
+  /** Ventana en ms entre cada tecla de la secuencia. Default 900ms. */
   windowMs?: number;
 }
 
@@ -58,7 +64,16 @@ export function useGotoHotkeys(
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
 
-  // true mientras estamos "esperando la segunda tecla" tras una "g".
+  // Longitud máxima de secuencia registrada (todas empiezan con "g", así
+  // que comparamos contra bufferSinLaGInicial.length + 1).
+  const maxLenRef = useRef(1);
+  maxLenRef.current = Object.keys(actions).reduce(
+    (max, k) => Math.max(max, k.length + 1),
+    1,
+  );
+
+  // Buffer de teclas ya presionadas DESPUÉS de la "g" que armó la secuencia.
+  const bufferRef = useRef("");
   const armedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,10 +82,16 @@ export function useGotoHotkeys(
 
     const disarm = () => {
       armedRef.current = false;
+      bufferRef.current = "";
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
+    };
+
+    const restartTimer = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(disarm, windowMs);
     };
 
     const handler = (e: KeyboardEvent) => {
@@ -88,23 +109,41 @@ export function useGotoHotkeys(
         return;
       }
 
+      const key = e.key.toLowerCase();
+
       if (!armedRef.current) {
-        if (e.key.toLowerCase() === "g") {
+        if (key === "g") {
           armedRef.current = true;
-          timerRef.current = setTimeout(disarm, windowMs);
+          bufferRef.current = "";
+          restartTimer();
         }
         return;
       }
 
-      // Ya está "armado" (se presionó "g" hace poco): la siguiente letra
-      // decide la acción, sea cual sea.
-      const action = actionsRef.current[e.key.toLowerCase()];
-      disarm();
-      if (!action) return;
+      // Ya armado: cada tecla se suma al buffer.
+      const candidate = bufferRef.current + key;
 
-      e.preventDefault();
-      e.stopPropagation();
-      action();
+      const exactAction = actionsRef.current[candidate];
+      if (exactAction) {
+        disarm();
+        e.preventDefault();
+        e.stopPropagation();
+        exactAction();
+        return;
+      }
+
+      // ¿Hay alguna acción que empiece con este prefijo? Si no, cortamos —
+      // no tiene sentido seguir esperando teclas que no llevan a nada.
+      const hasPrefixMatch = Object.keys(actionsRef.current).some((k) =>
+        k.startsWith(candidate),
+      );
+      if (!hasPrefixMatch || candidate.length >= maxLenRef.current) {
+        disarm();
+        return;
+      }
+
+      bufferRef.current = candidate;
+      restartTimer();
     };
 
     window.addEventListener("keydown", handler, true);
