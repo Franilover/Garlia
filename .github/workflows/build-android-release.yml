@@ -82,6 +82,9 @@ jobs:
             npx tauri android init
           fi
 
+      - name: DEBUG - mostrar build.gradle.kts generado
+        run: cat src-tauri/gen/android/app/build.gradle.kts
+
       - name: Configurar firma de release
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
