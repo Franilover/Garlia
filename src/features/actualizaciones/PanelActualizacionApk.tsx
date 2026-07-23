@@ -3,21 +3,29 @@
 /**
  * PanelActualizacionApk
  * ─────────────────────────────────────────────────────────────────────────────
- * Panel de admin en /myself/actualizaciones. Permite elegir un .apk generado
- * localmente, subirlo al bucket `apks` de Storage, y actualizar la fila
- * `app_version` — con eso, la próxima vez que alguien abra un APK viejo va
- * a ver el banner de "hay una actualización" (ver ActualizacionDisponible.tsx).
+ * Panel de admin en /myself/actualizaciones. Ya no sube el .apk a Storage
+ * (plan Free de Supabase limita a 50MB por archivo y el APK universal pesa
+ * ~75MB). En cambio: subís el .apk a mano a un GitHub Release y acá pegás
+ * la URL del asset — el panel solo actualiza la fila `app_version`, con eso
+ * la próxima vez que alguien abra un APK viejo va a ver el banner de "hay
+ * una actualización" (ver ActualizacionDisponible.tsx).
+ *
+ * Flujo para publicar:
+ *   1. Generar el build en:
+ *      src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+ *   2. Subirlo a un GitHub Release (gh release create/upload, o la web de GitHub).
+ *   3. Copiar la URL del asset (termina en .apk) y pegarla acá abajo.
  *
  * Uso: envolver con <AdminOnly> (ya lo hace app/myself/actualizaciones/page.tsx).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { Loader2, UploadCloud } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   obtenerVersionActual,
-  subirNuevaVersion,
+  publicarNuevaVersion,
   type VersionActual,
 } from "@/lib/api/client/updaterEngine";
 
@@ -25,14 +33,12 @@ export function PanelActualizacionApk() {
   const [actual, setActual] = useState<VersionActual | null>(null);
   const [cargandoActual, setCargandoActual] = useState(true);
 
-  const [archivo, setArchivo] = useState<File | null>(null);
+  const [url, setUrl] = useState("");
   const [version, setVersion] = useState("");
   const [notas, setNotas] = useState("");
-  const [subiendo, setSubiendo] = useState(false);
+  const [publicando, setPublicando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const inputClase =
     "h-10 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-sm text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors w-full";
@@ -44,40 +50,38 @@ export function PanelActualizacionApk() {
       .finally(() => setCargandoActual(false));
   }, []);
 
-  function manejarSeleccion(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setArchivo(f);
+  function manejarCambioUrl(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setUrl(v);
     setError(null);
     setExito(false);
 
-    // Si el nombre del archivo trae la versión (ej. garlia-0.2.0.apk), la
+    // Si la URL trae la versión (ej. .../releases/download/v0.2.0/...), la
     // sugerimos en el campo — el admin la puede corregir igual.
-    if (f) {
-      const match = f.name.match(/(\d+\.\d+\.\d+)/);
-      if (match && !version) setVersion(match[1]);
-    }
+    const match = v.match(/(\d+\.\d+\.\d+)/);
+    if (match && !version) setVersion(match[1]);
   }
 
-  async function manejarSubir() {
-    if (!archivo) {
-      setError("Elegí un archivo .apk primero.");
+  async function manejarPublicar() {
+    if (!url.trim()) {
+      setError("Pegá la URL del asset de GitHub Releases primero.");
       return;
     }
     setError(null);
     setExito(false);
-    setSubiendo(true);
+    setPublicando(true);
 
     try {
-      const nueva = await subirNuevaVersion({ file: archivo, version, notas });
+      const nueva = await publicarNuevaVersion({ url, version, notas });
       setActual(nueva);
       setExito(true);
-      setArchivo(null);
+      setUrl("");
       setNotas("");
-      if (inputRef.current) inputRef.current.value = "";
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error subiendo el APK.");
+      setError(e instanceof Error ? e.message : "Error publicando la versión.");
+      console.error(e);
     } finally {
-      setSubiendo(false);
+      setPublicando(false);
     }
   }
 
@@ -88,8 +92,9 @@ export function PanelActualizacionApk() {
           Actualización de la app
         </h3>
         <p className="text-xs text-primary/40">
-          Subí un .apk nuevo acá. Los que tengan una versión anterior instalada van a
-          ver un banner ofreciendo actualizar, sin que tengas que pasarles el archivo.
+          Subí el .apk a un GitHub Release y pegá acá la URL del asset. Los que
+          tengan una versión anterior instalada van a ver un banner ofreciendo
+          actualizar.
         </p>
       </div>
 
@@ -105,6 +110,7 @@ export function PanelActualizacionApk() {
               Versión publicada: <strong>{actual.version}</strong>
             </span>
             {actual.notas && <span className="text-primary/40 text-xs">{actual.notas}</span>}
+            <span className="text-primary/30 text-xs break-all">{actual.url}</span>
             <span className="text-primary/30 text-xs">
               Actualizado: {new Date(actual.updated_at).toLocaleString("es-AR")}
             </span>
@@ -114,23 +120,17 @@ export function PanelActualizacionApk() {
         )}
       </div>
 
-      {/* Formulario de subida */}
+      {/* Formulario de publicación */}
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-primary/50">Archivo .apk</span>
+          <span className="text-xs text-primary/50">URL del asset en GitHub Releases</span>
           <input
-            ref={inputRef}
-            type="file"
-            accept=".apk,application/vnd.android.package-archive"
-            onChange={manejarSeleccion}
-            disabled={subiendo}
-            className="text-sm text-primary/70 file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:text-primary/80 file:cursor-pointer"
+            className={inputClase}
+            value={url}
+            onChange={manejarCambioUrl}
+            placeholder="https://github.com/usuario/repo/releases/download/v0.2.0/app-universal-release.apk"
+            disabled={publicando}
           />
-          {archivo && (
-            <span className="text-xs text-primary/40">
-              {archivo.name} — {(archivo.size / (1024 * 1024)).toFixed(1)} MB
-            </span>
-          )}
         </label>
 
         <label className="flex flex-col gap-1.5">
@@ -140,7 +140,7 @@ export function PanelActualizacionApk() {
             value={version}
             onChange={(e) => setVersion(e.target.value)}
             placeholder="0.2.0"
-            disabled={subiendo}
+            disabled={publicando}
           />
         </label>
 
@@ -151,7 +151,7 @@ export function PanelActualizacionApk() {
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             placeholder="Qué cambió en esta versión…"
-            disabled={subiendo}
+            disabled={publicando}
           />
         </label>
 
@@ -164,13 +164,13 @@ export function PanelActualizacionApk() {
 
         <button
           type="button"
-          onClick={manejarSubir}
-          disabled={subiendo || !archivo}
+          onClick={manejarPublicar}
+          disabled={publicando || !url.trim()}
           className="flex items-center justify-center gap-2 h-10 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50"
         >
-          {subiendo ? (
+          {publicando ? (
             <>
-              <Loader2 className="animate-spin" size={16} /> Subiendo…
+              <Loader2 className="animate-spin" size={16} /> Publicando…
             </>
           ) : (
             <>

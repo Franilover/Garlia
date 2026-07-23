@@ -1,19 +1,24 @@
 /**
  * updaterEngine.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * Sube un .apk nuevo al bucket público `apks` de Storage y actualiza la fila
- * `app_version` para que el banner de actualización (ActualizacionDisponible.tsx,
- * dentro de la app Tauri/Android) lo detecte.
+ * Ya NO sube el .apk a Supabase Storage (el plan Free tiene un límite global
+ * de 50MB por archivo, y el APK universal de Tauri/Android pesa ~75MB — ver
+ * https://supabase.com/docs/guides/storage/uploads/file-limits).
  *
- * La escritura de `app_version` está bloqueada por RLS para el cliente normal
- * (ver migración 20260722_app_version.sql) — la policy de update se agrega acá
- * mismo, restringida a rol admin, para que esto funcione desde el panel.
+ * En cambio, el .apk se sube a mano a un GitHub Release:
+ *
+ *   1. Generar el build: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+ *   2. gh release create vX.Y.Z ./app-universal-release.apk --title "vX.Y.Z"
+ *      (o subir el asset a un release existente desde la web de GitHub)
+ *   3. Copiar la URL pública del asset (termina en .apk) y pegarla acá.
+ *
+ * Esta función solo valida esa URL y actualiza la fila `app_version` — la
+ * escritura sigue restringida por RLS a rol admin (ver migración
+ * 20260722_app_version.sql).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { supabase } from "@/lib/api/client/supabase";
-
-const MAX_SIZE_BYTES = 200 * 1024 * 1024; // 200MB, generoso para un APK
 
 export interface VersionActual {
   version: string;
@@ -33,41 +38,29 @@ export async function obtenerVersionActual(): Promise<VersionActual | null> {
   return data as VersionActual | null;
 }
 
-export async function subirNuevaVersion(params: {
-  file: File;
+export async function publicarNuevaVersion(params: {
+  url: string;
   version: string;
   notas: string;
-  onProgreso?: (pct: number) => void;
 }): Promise<VersionActual> {
-  const { file, version, notas } = params;
+  const { url, version, notas } = params;
 
-  if (!file.name.toLowerCase().endsWith(".apk")) {
-    throw new Error("El archivo debe ser un .apk");
-  }
-  if (file.size > MAX_SIZE_BYTES) {
-    throw new Error("El archivo supera los 200MB.");
+  const urlLimpia = url.trim();
+
+  if (!/^https:\/\/github\.com\/.+\/releases\/download\/.+\.apk$/.test(urlLimpia)) {
+    throw new Error(
+      "La URL debe ser un asset de GitHub Releases y terminar en .apk (ej. https://github.com/usuario/repo/releases/download/v0.2.0/app-universal-release.apk)"
+    );
   }
   if (!/^\d+\.\d+\.\d+$/.test(version.trim())) {
     throw new Error("La versión debe tener formato semver, ej. 0.2.0");
   }
 
-  const nombreArchivo = `garlia-${version.trim()}.apk`;
-
-  // upsert: si volvés a subir la misma versión (ej. corrigiendo un build),
-  // pisa el archivo anterior en vez de fallar por "ya existe".
-  const { error: errUpload } = await supabase.storage
-    .from("apks")
-    .upload(nombreArchivo, file, { upsert: true, contentType: "application/vnd.android.package-archive" });
-
-  if (errUpload) throw errUpload;
-
-  const { data: urlData } = supabase.storage.from("apks").getPublicUrl(nombreArchivo);
-
   const { data, error: errUpdate } = await supabase
     .from("app_version")
     .update({
       version: version.trim(),
-      url: urlData.publicUrl,
+      url: urlLimpia,
       notas: notas.trim() || null,
       updated_at: new Date().toISOString(),
     })
