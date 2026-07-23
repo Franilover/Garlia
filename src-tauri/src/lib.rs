@@ -43,9 +43,21 @@ pub fn run() {
       // las rutas [id] solo con Next, sin necesitar ningún rewrite. Ese
       // problema solo existe en el build estático (`output: "export"`),
       // así que acá solo redirigimos en producción.
+      //
+      // OJO: la forma del scheme custom depende del SO. En macOS/Linux es
+      // "garlia://localhost/", pero en Windows y Android Tauri lo expone
+      // como "http://garlia.localhost/" (mismo patrón que tauri:// vs
+      // http://tauri.localhost). Si esto queda hardcodeado a una sola
+      // forma, en Windows/Android la navegación nunca llega al protocolo
+      // con el rewrite y las rutas [id] siguen dando 404 ahí.
       if !cfg!(debug_assertions) {
         if let Some(window) = app.get_webview_window("main") {
-          window.navigate("garlia://localhost/".parse().expect("URL inválida"))?;
+          let url = if cfg!(any(windows, target_os = "android")) {
+            "http://garlia.localhost/"
+          } else {
+            "garlia://localhost/"
+          };
+          window.navigate(url.parse().expect("URL inválida"))?;
         }
       }
 
