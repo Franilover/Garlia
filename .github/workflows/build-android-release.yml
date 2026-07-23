@@ -93,6 +93,20 @@ jobs:
           mkdir -p src-tauri/gen/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks"
 
+      - name: Forzar compileSdk/targetSdk compatibles con AGP
+        # setup-android@v3 instala el SDK más nuevo (API 36), pero la Tauri
+        # CLI trae empaquetado AGP 8.5.1, que solo soporta oficialmente hasta
+        # compileSdk 34. Ese desfase compila "sin errores" pero genera un APK
+        # cuyo manifest/resources AAPT2 arma mal para API 36 — el instalador
+        # de Android no lo puede parsear ("There was a problem while parsing
+        # the package"), aunque el build y la firma salgan perfectos.
+        run: |
+          GRADLE_FILE="src-tauri/gen/android/app/build.gradle.kts"
+          sed -i 's/compileSdk = [0-9]\+/compileSdk = 34/' "$GRADLE_FILE"
+          sed -i 's/targetSdk = [0-9]\+/targetSdk = 34/' "$GRADLE_FILE"
+          echo "Quedó configurado así:"
+          grep -n "compileSdk\|targetSdk" "$GRADLE_FILE"
+
       - name: Configurar firma de release
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
