@@ -60,6 +60,9 @@ jobs:
       - name: Instalar NDK
         run: sdkmanager --install "ndk;27.0.12077973"
 
+      - name: Configurar NDK_HOME
+        run: echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+
       - name: Instalar dependencias de npm
         run: npm ci
 
