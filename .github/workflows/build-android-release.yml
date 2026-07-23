@@ -76,11 +76,17 @@ jobs:
           mkdir -p src-tauri/gen/android
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks"
 
-      - name: Inicializar el proyecto Android de Tauri (si no existe)
+      - name: Inicializar el proyecto Android de Tauri
+        # Siempre se borra gen/android antes de generarlo de nuevo: si quedara
+        # a medio generar (de un run anterior, de un residuo de checkout, o de
+        # cuando esta carpeta todavía estaba commiteada por error en el repo),
+        # `tauri android init` se niega a correr con un error de "Project
+        # directory ... does not exist" en vez de sobreescribir solo. Partir
+        # siempre de cero es lo único que garantiza que quede sincronizado con
+        # el tauri.conf.json / Cargo.toml actuales.
         run: |
-          if [ ! -f src-tauri/gen/android/app/build.gradle.kts ] && [ ! -f src-tauri/gen/android/app/build.gradle ]; then
-            npx tauri android init
-          fi
+          rm -rf src-tauri/gen/android
+          npx tauri android init
 
       - name: Configurar firma de release
         env:
