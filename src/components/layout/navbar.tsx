@@ -40,6 +40,7 @@ import {
   type SectionKey,
 } from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
 import { useEscritorioNavigation } from "@/features/ensayos/hooks/notas/useEscritorioNavigationStore";
+import { useGotoHotkeys } from "@/hooks/ui/useGotoHotkeys";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
@@ -782,6 +783,37 @@ const Navbar = () => {
       onSelect: () => selectEscritorioSection("ropa"),
     },
   ];
+
+  // ── Atajos "g + letra" (estilo Gmail/Linear) ─────────────────────────────
+  // Cada ruta registra su propio set de letras — no hay conflicto entre
+  // rutas porque cada hook solo está `enabled` mientras esa ruta es la
+  // actual (ver useGotoHotkeys: ignora el evento si el foco está en un
+  // input/textarea/contentEditable, así que no interfiere con el editor
+  // de notas ni con ningún campo de texto).
+  useGotoHotkeys(
+    {
+      i: () => selectEscritorioSection("inicio"),
+      l: () => selectEscritorioSection("libros"),
+      c: () => selectEscritorioSection("cocina"),
+      n: () => selectEscritorioSection("ingredientes"), // iNgredientes: "i" ya es Inicio
+      e: () => selectEscritorioSection("ejercicio"),
+      r: () => selectEscritorioSection("ropa"),
+    },
+    { enabled: isEscritorio },
+  );
+
+  useGotoHotkeys(
+    {
+      i: () => mundoGoToMenu(),
+      a: () => mundoSelectSection("aventura"),
+      e: () => mundoSelectSection("personajes"), // Entidades
+      m: () => mundoSelectSection("mapa"),
+      c: () => mundoSelectSection("capitulos"),
+      s: () => mundoSelectSection("letras"), // canciones (Songs, evita chocar con Capitulos)
+      t: () => mundoSelectSection("linea-tiempo"), // Tiempo
+    },
+    { enabled: isGarliaeditor },
+  );
 
   // ── Shared mobile toggle handler ─────────────────────────────────────────────
 
