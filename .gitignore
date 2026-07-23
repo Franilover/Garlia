@@ -45,5 +45,6 @@ yarn-error.log*
 next-env.d.ts
 
 src-tauri/target
-src-tauri/genpublic/dibujos-index.json
+src-tauri/gen
+public/dibujos-index.json
 public/sonidos-index.json
