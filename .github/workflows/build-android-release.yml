@@ -95,6 +95,92 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      - name: Aplicar signingConfig al build.gradle.kts
+        # `tauri android init` no deja el build de "release" firmado por
+        # defecto — hay que declarar el signingConfig a mano y asignarlo al
+        # buildType release, o Gradle sigue generando *-unsigned.apk aunque
+        # keystore.properties exista. Ver https://github.com/tauri-apps/tauri/issues/10313
+        run: |
+          GRADLE_FILE="src-tauri/gen/android/app/build.gradle.kts"
+
+          if grep -q "keystorePropertiesFile" "$GRADLE_FILE"; then
+            echo "El build.gradle.kts ya tiene signingConfig, no se toca."
+            exit 0
+          fi
+
+          python3 - "$GRADLE_FILE" << 'PYEOF'
+          import re
+          import sys
+
+          path = sys.argv[1]
+          with open(path, "r") as f:
+              contenido = f.read()
+
+          # 1. Inserta la carga de keystore.properties antes del bloque android {
+          preamble = '''import java.io.FileInputStream
+          import java.util.Properties
+
+          val keystorePropertiesFile = rootProject.file("keystore.properties")
+          val keystoreProperties = Properties()
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+
+          '''
+          contenido = preamble + contenido
+
+          # 2. Inserta el signingConfigs dentro del bloque android { ... }
+          #    justo después de la línea "android {"
+          signing_block = '''    signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String?
+                      keyPassword = keystoreProperties["keyPassword"] as String?
+                      storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                      storePassword = keystoreProperties["password"] as String?
+                  }
+              }
+
+          '''
+          contenido = re.sub(r"(android\s*\{\n)", r"\1" + signing_block, contenido, count=1)
+
+          # 3. Asigna signingConfig al buildType "release"
+          #    Busca el bloque `release {` dentro de buildTypes y le agrega la línea si no está.
+          def agregar_signing(match):
+              bloque = match.group(0)
+              if "signingConfig" in bloque:
+                  return bloque
+              return bloque.replace(
+                  "release {",
+                  'release {\n                signingConfig = signingConfigs.getByName("release")',
+                  1,
+              )
+
+          contenido = re.sub(
+              r"release\s*\{[^}]*\}",
+              agregar_signing,
+              contenido,
+              count=1,
+              flags=re.DOTALL,
+          )
+
+          with open(path, "w") as f:
+              f.write(contenido)
+
+          assert "signingConfigs" in contenido, "No se pudo insertar signingConfigs — revisar build.gradle.kts a mano."
+          assert 'signingConfig = signingConfigs.getByName("release")' in contenido, \
+              "No se pudo asignar signingConfig al buildType release — revisar build.gradle.kts a mano."
+
+          print("build.gradle.kts parcheado con signingConfig de release.")
+          PYEOF
+
+      - name: Verificar que el gradle quedó con signing
+        run: |
+          grep -q "signingConfigs" src-tauri/gen/android/app/build.gradle.kts || {
+            echo "::error::build.gradle.kts no tiene signingConfigs — el APK saldría sin firmar."
+            cat src-tauri/gen/android/app/build.gradle.kts
+            exit 1
+          }
+
       - name: Build del APK universal (release, firmado)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -106,11 +192,13 @@ jobs:
       - name: Ubicar el .apk generado
         id: apk
         run: |
-          APK_PATH=$(find src-tauri/gen/android -iname "*universal-release*.apk" | head -n 1)
+          APK_PATH=$(find src-tauri/gen/android -iname "*universal-release*.apk" ! -iname "*unsigned*" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            echo "No se encontró el .apk generado." >&2
+            echo "No se encontró un .apk firmado. Archivos disponibles:" >&2
+            find src-tauri/gen/android -iname "*.apk" >&2
             exit 1
           fi
+          echo "APK encontrado: $APK_PATH"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Crear el Release y subir el APK
