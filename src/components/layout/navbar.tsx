@@ -46,6 +46,7 @@ import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
 
+
 // ── Shared types ─────────────────────────────────────────────────────────────
 
 interface NavLinkDef {
@@ -1325,8 +1326,7 @@ const Navbar = () => {
                   icon={PenTool}
                   isOpen={false}
                   label="Escritorio"
-                  onClose={(e) => {
-                    e?.preventDefault?.();
+                  onClose={() => {
                     setEscritorioSubmenuOpen(true);
                   }}
                   onToggle={() => setEscritorioSubmenuOpen(true)}
@@ -1339,8 +1339,7 @@ const Navbar = () => {
                     icon={icon}
                     isOpen={false}
                     label={label}
-                    onClose={(e) => {
-                      e?.preventDefault?.();
+                    onClose={() => {
                       setAdminSubmenuOpen(true);
                     }}
                     onToggle={() => setAdminSubmenuOpen(true)}
