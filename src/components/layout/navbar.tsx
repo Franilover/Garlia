@@ -601,18 +601,22 @@ const Navbar = () => {
       icon: CircleUser,
       active: personalIsActive,
     },
-    {
-      href: "/garlia/mapa",
-      label: "Mapa",
-      icon: Compass,
-      active: currentPath?.startsWith("/garlia/mapa") ?? false,
-    },
-    {
-      href: "/garlia/aventura",
-      label: "Aventura",
-      icon: BookOpen,
-      active: currentPath?.startsWith("/garlia/aventura") ?? false,
-    },
+    ...(user
+      ? [
+          {
+            href: "/garlia/mapa",
+            label: "Mapa",
+            icon: Compass,
+            active: currentPath?.startsWith("/garlia/mapa") ?? false,
+          },
+          {
+            href: "/garlia/aventura",
+            label: "Aventura",
+            icon: BookOpen,
+            active: currentPath?.startsWith("/garlia/aventura") ?? false,
+          },
+        ]
+      : []),
     {
       href: "/garlia/libros",
       label: "Libros",
