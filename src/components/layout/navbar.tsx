@@ -537,11 +537,11 @@ const Navbar = () => {
   const personalIsActive = currentPath === "/garlia/personal";
 
   useEffect(() => {
-    if (!isGarliaeditor) setAdminSubmenuOpen(false);
+    setAdminSubmenuOpen(isGarliaeditor);
   }, [isGarliaeditor]);
 
   useEffect(() => {
-    if (!isEscritorio) setEscritorioSubmenuOpen(false);
+    setEscritorioSubmenuOpen(isEscritorio);
   }, [isEscritorio]);
 
   const escritorioSection = useEscritorioNavigation((s) => s.section);
