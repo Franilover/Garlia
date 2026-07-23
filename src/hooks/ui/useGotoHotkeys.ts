@@ -29,13 +29,13 @@ import { useEffect, useRef } from "react";
  * Uso:
  * ```tsx
  * useGotoHotkeys({
- *   gh: () => router.push("/myself/garlia"), // "g" "g" "h"... la 1ra "g" es implícita
- *   gl: () => selectGarliaSection("capitulos"),
+ *   gh: () => router.push("/myself/garlia"), // secuencia completa: "g" "h"
+ *   gl: () => selectGarliaSection("capitulos"), // secuencia completa: "g" "l"
  * });
  * ```
- * Nota: las claves del mapa de `actions` NO incluyen la "g" inicial — esa
- * siempre arma la secuencia. Una clave `"gh"` corresponde a presionar
- * "g" → "g" → "h" en total.
+ * Nota: las claves del mapa de `actions` SÍ incluyen la "g" inicial —
+ * representan la secuencia completa de teclas tal cual se presionan. Una
+ * clave `"ggh"` corresponde a presionar "g" → "g" → "h" en total.
  */
 
 type GotoActions = Record<string, () => void>;
@@ -64,15 +64,15 @@ export function useGotoHotkeys(
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
 
-  // Longitud máxima de secuencia registrada (todas empiezan con "g", así
-  // que comparamos contra bufferSinLaGInicial.length + 1).
+  // Longitud máxima de secuencia registrada (las claves ya incluyen la "g"
+  // inicial, así que comparamos directo contra el largo del buffer).
   const maxLenRef = useRef(1);
   maxLenRef.current = Object.keys(actions).reduce(
-    (max, k) => Math.max(max, k.length + 1),
+    (max, k) => Math.max(max, k.length),
     1,
   );
 
-  // Buffer de teclas ya presionadas DESPUÉS de la "g" que armó la secuencia.
+  // Buffer de teclas de la secuencia actual (incluye la "g" que la armó).
   const bufferRef = useRef("");
   const armedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,7 +114,7 @@ export function useGotoHotkeys(
       if (!armedRef.current) {
         if (key === "g") {
           armedRef.current = true;
-          bufferRef.current = "";
+          bufferRef.current = "g";
           restartTimer();
         }
         return;
