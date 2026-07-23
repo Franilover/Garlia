@@ -28,6 +28,7 @@ import {
   Wheat,
   Dumbbell,
   Shirt,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -937,6 +938,36 @@ const Navbar = () => {
                       {isDark ? "Modo claro" : "Modo oscuro"}
                     </span>
                   </button>
+                  {isAdmin && (
+                    <Link
+                      className="flex items-center gap-2.5 w-full px-4 py-3 transition-all"
+                      href="/myself/actualizaciones"
+                      style={{
+                        color:
+                          "color-mix(in srgb, var(--primary) 60%, transparent)",
+                        borderBottom:
+                          "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                      }}
+                      onClick={closeAll}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.background =
+                          "color-mix(in srgb, var(--primary) 5%, transparent)";
+                        (e.currentTarget as HTMLElement).style.color =
+                          "var(--primary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.background =
+                          "transparent";
+                        (e.currentTarget as HTMLElement).style.color =
+                          "color-mix(in srgb, var(--primary) 60%, transparent)";
+                      }}
+                    >
+                      <Upload size={13} />
+                      <span className="text-micro font-black uppercase tracking-widest">
+                        Actualizar APK
+                      </span>
+                    </Link>
+                  )}
                   <ThemeSelector />
                 </MotionDiv>
               </>
