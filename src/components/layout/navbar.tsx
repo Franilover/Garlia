@@ -24,6 +24,10 @@ import {
   Music,
   Users,
   X,
+  Utensils,
+  Wheat,
+  Dumbbell,
+  Shirt,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,6 +39,7 @@ import {
   useMundoNavigation,
   type SectionKey,
 } from "@/features/editorGarlia/hooks/mundo/useMundoNavigationStore";
+import { useEscritorioNavigation } from "@/features/ensayos/hooks/notas/useEscritorioNavigationStore";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
@@ -47,6 +52,7 @@ interface NavLinkDef {
   icon: React.ElementType;
   active: boolean;
   fillActive?: boolean;
+  onSelect?: () => void;
 }
 
 // ── Shared constants ──────────────────────────────────────────────────────────
@@ -314,12 +320,14 @@ function MobileSubItem({
   icon: Icon,
   active,
   onClose,
+  onSelect,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
   active: boolean;
   onClose: () => void;
+  onSelect?: () => void;
 }) {
   return (
     <Link
@@ -334,7 +342,10 @@ function MobileSubItem({
           ? "var(--primary)"
           : "color-mix(in srgb, var(--primary) 60%, transparent)",
       }}
-      onClick={() => setTimeout(onClose, 150)}
+      onClick={() => {
+        onSelect?.();
+        setTimeout(onClose, 150);
+      }}
     >
       <SubItemLabel active={active} icon={Icon} label={label} />
     </Link>
@@ -454,16 +465,19 @@ function MobileNavItem({
             >
               {label}
             </p>
-            {subLinks!.map(({ href: sub, label: subLabel, icon: SubIcon }) => (
-              <MobileSubItem
-                key={sub}
-                active={!!currentPath?.includes(sub.split("?")[0])}
-                href={sub}
-                icon={SubIcon}
-                label={subLabel}
-                onClose={onClose}
-              />
-            ))}
+            {subLinks!.map(
+              ({ href: sub, label: subLabel, icon: SubIcon, onSelect }) => (
+                <MobileSubItem
+                  key={sub}
+                  active={!!currentPath?.includes(sub.split("?")[0])}
+                  href={sub}
+                  icon={SubIcon}
+                  label={subLabel}
+                  onClose={onClose}
+                  onSelect={onSelect}
+                />
+              ),
+            )}
           </MotionDiv>
         )}
       </AnimatePresence>
@@ -485,6 +499,10 @@ const Navbar = () => {
   // usuario sale de /myself/garlia por otro medio (ej. navbar mobile), se
   // cierra solo para no quedar en un estado inconsistente.
   const [adminSubmenuOpen, setAdminSubmenuOpen] = useState(false);
+  // Submenú de Escritorio (sidebar desktop), mismo patrón que adminSubmenuOpen
+  // para "Arte": reemplaza Personal/Garlia mientras está abierto, es puramente
+  // de UI (no depende de la ruta) y cambia de sección sin navegar.
+  const [escritorioSubmenuOpen, setEscritorioSubmenuOpen] = useState(false);
   const { dark, toggleDark, theme } = useTheme();
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
@@ -519,6 +537,15 @@ const Navbar = () => {
   useEffect(() => {
     if (!isGarliaeditor) setAdminSubmenuOpen(false);
   }, [isGarliaeditor]);
+
+  useEffect(() => {
+    if (!isEscritorio) setEscritorioSubmenuOpen(false);
+  }, [isEscritorio]);
+
+  const escritorioSection = useEscritorioNavigation((s) => s.section);
+  const selectEscritorioSection = useEscritorioNavigation(
+    (s) => s.selectSection,
+  );
 
   // ── Botón de volver del editor de mundo ──────────────────────────────────
   // Vive en la navbar (no flotando sobre el contenido) porque el editor de
@@ -699,6 +726,63 @@ const Navbar = () => {
     },
   ];
 
+  // ── Submenú Escritorio (desktop) ─────────────────────────────────────────
+  // Mismo patrón que adminSubmenuItems: click en "Escritorio" abre el
+  // submenú acá en vez de navegar; cada item cambia la sección activa vía
+  // useEscritorioNavigation, sin tocar la URL.
+  type EscritorioSubmenuItem = {
+    key: string;
+    label: string;
+    icon: React.ElementType;
+    active: boolean;
+    onSelect: () => void;
+  };
+
+  const escritorioSubmenuItems: EscritorioSubmenuItem[] = [
+    {
+      key: "inicio",
+      label: "Inicio",
+      icon: Home,
+      active: isEscritorio && escritorioSection === "inicio",
+      onSelect: () => selectEscritorioSection("inicio"),
+    },
+    {
+      key: "libros",
+      label: "Libros",
+      icon: BookText,
+      active: isEscritorio && escritorioSection === "libros",
+      onSelect: () => selectEscritorioSection("libros"),
+    },
+    {
+      key: "cocina",
+      label: "Cocina",
+      icon: Utensils,
+      active: isEscritorio && escritorioSection === "cocina",
+      onSelect: () => selectEscritorioSection("cocina"),
+    },
+    {
+      key: "ingredientes",
+      label: "Ingredientes",
+      icon: Wheat,
+      active: isEscritorio && escritorioSection === "ingredientes",
+      onSelect: () => selectEscritorioSection("ingredientes"),
+    },
+    {
+      key: "ejercicio",
+      label: "Ejercicio",
+      icon: Dumbbell,
+      active: isEscritorio && escritorioSection === "ejercicio",
+      onSelect: () => selectEscritorioSection("ejercicio"),
+    },
+    {
+      key: "ropa",
+      label: "Ropa",
+      icon: Shirt,
+      active: isEscritorio && escritorioSection === "ropa",
+      onSelect: () => selectEscritorioSection("ropa"),
+    },
+  ];
+
   // ── Shared mobile toggle handler ─────────────────────────────────────────────
 
   const mobileToggle = (href: string) =>
@@ -819,6 +903,35 @@ const Navbar = () => {
                 />
               ))}
             </>
+          ) : isAdmin && escritorioSubmenuOpen ? (
+            <>
+              <SideNavItem
+                active={false}
+                href="#"
+                icon={ArrowLeft}
+                label="Volver al navbar normal"
+                onClose={(e) => {
+                  e?.preventDefault();
+                  setEscritorioSubmenuOpen(false);
+                }}
+              />
+              <NavDivider />
+              {escritorioSubmenuItems.map(
+                ({ key, label, icon, active, onSelect }) => (
+                  <SideNavItem
+                    key={key}
+                    active={active}
+                    href="/myself/escritorio"
+                    icon={icon}
+                    label={label}
+                    onClose={() => {
+                      onSelect();
+                      closeAll();
+                    }}
+                  />
+                ),
+              )}
+            </>
           ) : (
             <>
               {personalLinks.map(({ href, label, icon, active, fillActive }) => (
@@ -852,7 +965,10 @@ const Navbar = () => {
                     href="/myself/escritorio"
                     icon={PenTool}
                     label="Escritorio"
-                    onClose={closeAll}
+                    onClose={(e) => {
+                      e?.preventDefault();
+                      setEscritorioSubmenuOpen(true);
+                    }}
                   />
                   {franiLinks.map(({ href, label, icon, active }) => (
                     <SideNavItem
@@ -992,30 +1108,34 @@ const Navbar = () => {
                   />
                 ))}
                 <NavVerticalDivider />
-                <Link
-                  className="flex items-center justify-center transition-all"
+                <MobileNavItem
+                  active={isEscritorio}
+                  fillActive
                   href="/myself/escritorio"
-                  style={{
-                    borderRadius: "var(--radius-btn)",
-                    border:
-                      useOutline && isEscritorio
-                        ? "var(--border-width) solid var(--primary)"
-                        : "var(--border-width) solid transparent",
-                    background:
-                      !useOutline && isEscritorio
-                        ? "var(--primary)"
-                        : "transparent",
-                    color: isEscritorio
-                      ? "var(--primary)"
-                      : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    width: 36,
-                    height: 36,
-                    touchAction: "manipulation",
-                  }}
-                  onClick={closeAll}
-                >
-                  <PenTool size={16} strokeWidth={isEscritorio ? 2.5 : 2} />
-                </Link>
+                  icon={PenTool}
+                  isOpen={mobileOpenMenu === "/myself/escritorio"}
+                  label="Escritorio"
+                  subLinks={escritorioSubmenuItems.map(
+                    ({ key, label, icon, active }) => ({
+                      href: "/myself/escritorio",
+                      label,
+                      icon,
+                      active,
+                      onSelect: () =>
+                        selectEscritorioSection(
+                          key as
+                            | "inicio"
+                            | "libros"
+                            | "cocina"
+                            | "ingredientes"
+                            | "ejercicio"
+                            | "ropa",
+                        ),
+                    }),
+                  )}
+                  onClose={closeAll}
+                  onToggle={() => mobileToggle("/myself/escritorio")}
+                />
                 {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
                     key={href}

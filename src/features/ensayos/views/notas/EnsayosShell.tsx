@@ -9,9 +9,15 @@ import { ToastContainer } from "@/components/ui/ToastContainer";
 import Editor from "@/features/ensayos/components/notas/EditorEnsayo";
 import { GrafoEnsayos } from "@/features/ensayos/components/notas/GrafoEnsayos";
 import NewNoteModal from "@/features/ensayos/components/notas/newNoteModal";
+import ArmarioPage from "@/features/ensayos/components/ropa/ropa";
+import RecetasPage from "@/features/ensayos/views/cocina/recetas";
+import { IngredientesPage } from "@/features/ensayos/views/cocina/ingredientes";
+import { PaginaEjercicios } from "@/features/ensayos/views/ejercicios/ejerciciosComponent";
 import { HomeDashboard } from "@/features/ensayos/views/notas/HomeDashboard";
 import { LibrosDashboard } from "@/features/ensayos/views/notas/LibrosDashboard";
+import { useEscritorioNavigation } from "@/features/ensayos/hooks/notas/useEscritorioNavigationStore";
 import { useZotero } from "@/features/ensayos/hooks/notas/useZotero";
+
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { useToast } from "@/hooks/ui/useToast";
 import { eventosQueries } from "@/lib/api/queries/personal/eventos";
@@ -40,12 +46,15 @@ function EnsayosInner() {
   const { toasts, dismiss } = useToast();
   const { confirm, ConfirmModal }  = useConfirm();
 
+  const escritorioSection = useEscritorioNavigation((s) => s.section);
+  const selectEscritorioSection = useEscritorioNavigation((s) => s.selectSection);
+
   const irAlHome = () => {
     setEnsayoActivoId(null);
     setTagActivo(null);
     setTocOpen(false);
     setTocEntries([]);
-    setVistaActiva("home");
+    selectEscritorioSection("inicio");
     localStorage.setItem(LS_HOME, "1");
   };
 
@@ -54,11 +63,10 @@ function EnsayosInner() {
     setTagActivo(null);
     setTocOpen(false);
     setTocEntries([]);
-    setVistaActiva("libros");
+    selectEscritorioSection("libros");
     localStorage.setItem(LS_HOME, "1");
   };
   const [editMode,          setEditMode]          = useState(true);
-  const [vistaActiva,       setVistaActiva]       = useState<"home" | "libros">("home");
   const [tocOpen,           setTocOpen]           = useState(false);
   const [tocEntries,        setTocEntries]        = useState<{ level: number; text: string; id: string }[]>([]);
   const [searchPanelOpen,   setSearchPanelOpen]   = useState(false);
@@ -159,11 +167,14 @@ function EnsayosInner() {
     if (id) {
       localStorage.setItem(LS_ACTIVE, id);
       localStorage.removeItem(LS_HOME);
+      // Abrir una nota nos saca de cualquier sección (cocina/ropa/etc.)
+      // para volver a mostrar el editor.
+      selectEscritorioSection("inicio");
     } else {
       localStorage.removeItem(LS_ACTIVE);
       localStorage.setItem(LS_HOME, "1");
     }
-  }, []);
+  }, [selectEscritorioSection]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -877,7 +888,15 @@ function EnsayosInner() {
             </div>
           ) : (
             <AnimatePresence mode="wait">
-              {ensayoActivo ? (
+              {escritorioSection === "cocina" ? (
+                <RecetasPage key="cocina" />
+              ) : escritorioSection === "ingredientes" ? (
+                <IngredientesPage key="ingredientes" />
+              ) : escritorioSection === "ejercicio" ? (
+                <PaginaEjercicios key="ejercicio" />
+              ) : escritorioSection === "ropa" ? (
+                <ArmarioPage key="ropa" />
+              ) : ensayoActivo ? (
                 <Editor
                   key={ensayoActivo.id}
                   editMode={editMode}
@@ -895,7 +914,7 @@ function EnsayosInner() {
                   onToggleEditMode={() => setEditMode(p => !p)}
                   onUpdateField={actualizarLocal}
                 />
-              ) : vistaActiva === "libros" ? (
+              ) : escritorioSection === "libros" ? (
                 <LibrosDashboard
                   key="libros"
                   ensayos={ensayos}
