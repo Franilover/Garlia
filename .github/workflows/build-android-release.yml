@@ -82,9 +82,6 @@ jobs:
             npx tauri android init
           fi
 
-      - name: DEBUG - mostrar build.gradle.kts generado
-        run: cat src-tauri/gen/android/app/build.gradle.kts
-
       - name: Configurar firma de release
         env:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -103,6 +100,11 @@ jobs:
         # defecto — hay que declarar el signingConfig a mano y asignarlo al
         # buildType release, o Gradle sigue generando *-unsigned.apk aunque
         # keystore.properties exista. Ver https://github.com/tauri-apps/tauri/issues/10313
+        #
+        # La estructura real que genera `tauri android init` (Tauri 2.0 RC)
+        # usa `getByName("release") { ... }` dentro de buildTypes, y ya
+        # importa java.util.Properties arriba para leer tauri.properties —
+        # el patch reusa esa instancia en vez de crear una nueva.
         run: |
           GRADLE_FILE="src-tauri/gen/android/app/build.gradle.kts"
 
@@ -119,21 +121,24 @@ jobs:
           with open(path, "r") as f:
               contenido = f.read()
 
-          # 1. Inserta la carga de keystore.properties antes del bloque android {
+          # 1. Carga de keystore.properties, insertada después del import de
+          #    Properties que ya existe (no duplicamos el import).
           preamble = '''import java.io.FileInputStream
-          import java.util.Properties
 
           val keystorePropertiesFile = rootProject.file("keystore.properties")
           val keystoreProperties = Properties()
           if (keystorePropertiesFile.exists()) {
               keystoreProperties.load(FileInputStream(keystorePropertiesFile))
           }
-
           '''
-          contenido = preamble + contenido
+          contenido = contenido.replace(
+              "import java.util.Properties\n",
+              "import java.util.Properties\n" + preamble,
+              1,
+          )
 
-          # 2. Inserta el signingConfigs dentro del bloque android { ... }
-          #    justo después de la línea "android {"
+          # 2. Inserta signingConfigs dentro de android { ... }, antes de
+          #    defaultConfig para que quede declarado primero.
           signing_block = '''    signingConfigs {
                   create("release") {
                       keyAlias = keystoreProperties["keyAlias"] as String?
@@ -142,36 +147,26 @@ jobs:
                       storePassword = keystoreProperties["password"] as String?
                   }
               }
-
           '''
           contenido = re.sub(r"(android\s*\{\n)", r"\1" + signing_block, contenido, count=1)
 
-          # 3. Asigna signingConfig al buildType "release"
-          #    Busca el bloque `release {` dentro de buildTypes y le agrega la línea si no está.
-          def agregar_signing(match):
-              bloque = match.group(0)
-              if "signingConfig" in bloque:
-                  return bloque
-              return bloque.replace(
-                  "release {",
-                  'release {\n                signingConfig = signingConfigs.getByName("release")',
-                  1,
-              )
-
-          contenido = re.sub(
-              r"release\s*\{[^}]*\}",
-              agregar_signing,
+          # 3. Asigna signingConfig al buildType release, que en este proyecto
+          #    usa la sintaxis getByName("release") { ... } (con llaves que
+          #    pueden tener contenido multilínea, por eso el match no es codicioso).
+          patron_release = re.compile(
+              r'(getByName\("release"\)\s*\{)', re.DOTALL
+          )
+          contenido, n = patron_release.subn(
+              r'\1\n            signingConfig = signingConfigs.getByName("release")',
               contenido,
               count=1,
-              flags=re.DOTALL,
           )
 
           with open(path, "w") as f:
               f.write(contenido)
 
           assert "signingConfigs" in contenido, "No se pudo insertar signingConfigs — revisar build.gradle.kts a mano."
-          assert 'signingConfig = signingConfigs.getByName("release")' in contenido, \
-              "No se pudo asignar signingConfig al buildType release — revisar build.gradle.kts a mano."
+          assert n == 1, "No se encontró el bloque getByName(\"release\") { — revisar build.gradle.kts a mano."
 
           print("build.gradle.kts parcheado con signingConfig de release.")
           PYEOF
