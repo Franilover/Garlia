@@ -69,6 +69,42 @@ jobs:
       - name: Instalar Tauri CLI
         run: npm install -g @tauri-apps/cli@latest
 
+      - name: Optimizar tamaño del binario Rust (strip + LTO + opt-level=s)
+        # Verificado con adb: el APK de v0.4.8 SÍ instala bien (probado por
+        # USB/adb en el mismo Redmi que fallaba desde el navegador) — el
+        # problema real nunca fue el build, fue el navegador de MIUI cortando
+        # la descarga de un .apk de ~300MB desde GitHub. La causa de que
+        # pesara 300MB: los 4 libapp_lib.so (arm64, armv7, x86, x86_64) salían
+        # "not stripped" (~70-77MB cada uno) porque Cargo no tenía un perfil
+        # de release optimizado para tamaño.
+        #
+        # Esto agrega [profile.release] a src-tauri/Cargo.toml SOLO si el
+        # archivo no tiene ya una sección [profile.release] (para no pisar
+        # configuración existente). Con strip=true + lto=true + opt-level="s"
+        # + panic="abort", cada .so debería bajar de ~70MB a ~10-15MB —
+        # llevando el universal APK de ~300MB a ~50-70MB. Son las opciones
+        # recomendadas oficialmente por Tauri: https://v2.tauri.app/concept/size/
+        run: |
+          CARGO_FILE="src-tauri/Cargo.toml"
+
+          if grep -q "^\[profile.release\]" "$CARGO_FILE"; then
+            echo "Ya existe [profile.release] en Cargo.toml — no se toca para no pisar configuración existente."
+            echo "Contenido actual de esa sección:"
+            awk '/^\[profile.release\]/,/^\[/{if (!/^\[profile.release\]/ && /^\[/ && !/^\[profile.release\]/) exit; print}' "$CARGO_FILE"
+          else
+            echo "" >> "$CARGO_FILE"
+            cat >> "$CARGO_FILE" << 'EOF'
+          [profile.release]
+          codegen-units = 1  # compilar de a un crate por vez, mejor optimización de LLVM
+          lto = true         # link-time optimization entre todos los crates
+          opt-level = "s"    # priorizar tamaño de binario sobre velocidad
+          panic = "abort"    # sin unwinding de panics, menos código generado
+          strip = true       # quitar símbolos de debug del binario final
+          EOF
+            echo "Agregado [profile.release] a Cargo.toml:"
+            tail -6 "$CARGO_FILE"
+          fi
+
       - name: Inicializar el proyecto Android de Tauri
         # Siempre se borra gen/android antes de generarlo de nuevo: si quedara
         # a medio generar (de un run anterior, de un residuo de checkout, o de
@@ -96,10 +132,9 @@ jobs:
       - name: Forzar compileSdk/targetSdk compatibles con AGP
         # setup-android@v3 instala el SDK más nuevo (API 36), pero la Tauri
         # CLI trae empaquetado AGP 8.5.1, que solo soporta oficialmente hasta
-        # compileSdk 34. Ese desfase compila "sin errores" pero genera un APK
-        # cuyo manifest/resources AAPT2 arma mal para API 36 — el instalador
-        # de Android no lo puede parsear ("There was a problem while parsing
-        # the package"), aunque el build y la firma salgan perfectos.
+        # compileSdk 34. Se deja en 34 por prolijidad y para evitar el warning
+        # de Gradle, aunque quedó confirmado (con adb + inspección manual del
+        # APK) que esto NO era la causa del error de parsing original.
         run: |
           GRADLE_FILE="src-tauri/gen/android/app/build.gradle.kts"
           sed -i 's/compileSdk = [0-9]\+/compileSdk = 34/' "$GRADLE_FILE"
@@ -226,7 +261,7 @@ jobs:
             find src-tauri/gen/android -iname "*.apk" >&2
             exit 1
           fi
-          echo "APK encontrado: $APK_PATH"
+          echo "APK encontrado: $APK_PATH ($(du -h "$APK_PATH" | cut -f1))"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Crear el Release y subir el APK
