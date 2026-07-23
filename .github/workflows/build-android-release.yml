@@ -74,7 +74,7 @@ jobs:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           mkdir -p src-tauri/gen/android
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > src-tauri/gen/android/upload-keystore.jks
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks"
 
       - name: Inicializar el proyecto Android de Tauri (si no existe)
         run: |
@@ -88,11 +88,16 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          # storeFile con ruta ABSOLUTA — con ruta relativa, Gradle la resuelve
+          # distinto según si evalúa keystore.properties desde la raíz del
+          # proyecto Android o desde el módulo app/, y termina buscando en el
+          # lugar equivocado (error real que tuvimos: "Keystore file
+          # .../app/upload-keystore.jks not found").
           cat > src-tauri/gen/android/keystore.properties << EOF
           password=$ANDROID_KEYSTORE_PASSWORD
           keyAlias=$ANDROID_KEY_ALIAS
           keyPassword=$ANDROID_KEY_PASSWORD
-          storeFile=upload-keystore.jks
+          storeFile=$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks
           EOF
 
       - name: Aplicar signingConfig al build.gradle.kts
