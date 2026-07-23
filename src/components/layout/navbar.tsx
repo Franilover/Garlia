@@ -23,7 +23,6 @@ import {
   ScrollText,
   Music,
   Users,
-  X,
   Utensils,
   Wheat,
   Dumbbell,
@@ -611,8 +610,11 @@ const Navbar = () => {
   const mundoClearSelection = useMundoNavigation((s) => s.clearSelection);
   const mundoSelectSection = useMundoNavigation((s) => s.selectSection);
   const showMundoBack = isGarliaeditor && mundoSection !== null;
-  const mundoBackAction = mundoSelectedId ? mundoClearSelection : mundoGoToMenu;
-  const mundoBackLabel = mundoSelectedId ? "Volver a la lista" : "Volver a secciones";
+  // Ahora solo se usa para volver de una entidad seleccionada a la lista —
+  // volver de una sección al menú de 12 lo cubre "Volver al navbar normal"
+  // (ver render del botón más abajo, que además filtra por mundoSelectedId).
+  const mundoBackAction = mundoClearSelection;
+  const mundoBackLabel = "Volver a la lista";
 
   // ── Link definitions ─────────────────────────────────────────────────────────
 
@@ -1196,7 +1198,12 @@ const Navbar = () => {
         >
           {/* Theme toggle */}
           <div className="flex items-center gap-1 z-[101]">
-            {showMundoBack && (
+            {/* Botón de "volver" del editor de Mundo: ahora solo se muestra
+                para volver de una entidad seleccionada a la lista (flecha).
+                Volver de una sección al menú de 12 secciones (antes la X)
+                ya lo cubre "Volver al navbar normal" del bloque de arriba,
+                así que mostrar los dos al mismo tiempo era redundante. */}
+            {showMundoBack && mundoSelectedId && (
               <button
                 type="button"
                 onClick={mundoBackAction}
@@ -1211,7 +1218,7 @@ const Navbar = () => {
                 title={mundoBackLabel}
                 aria-label={mundoBackLabel}
               >
-                {mundoSelectedId ? <ArrowLeft size={16} /> : <X size={16} />}
+                <ArrowLeft size={16} />
               </button>
             )}
             <button
