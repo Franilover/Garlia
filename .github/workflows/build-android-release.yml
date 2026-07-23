@@ -69,13 +69,6 @@ jobs:
       - name: Instalar Tauri CLI
         run: npm install -g @tauri-apps/cli@latest
 
-      - name: Restaurar el keystore de firma
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          mkdir -p src-tauri/gen/android
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks"
-
       - name: Inicializar el proyecto Android de Tauri
         # Siempre se borra gen/android antes de generarlo de nuevo: si quedara
         # a medio generar (de un run anterior, de un residuo de checkout, o de
@@ -84,9 +77,21 @@ jobs:
         # directory ... does not exist" en vez de sobreescribir solo. Partir
         # siempre de cero es lo único que garantiza que quede sincronizado con
         # el tauri.conf.json / Cargo.toml actuales.
+        #
+        # Va ANTES de restaurar el keystore: si corriera después, el rm -rf
+        # de este paso borraría el .jks que el paso de keystore ya había
+        # escrito adentro de gen/android (error real que tuvimos: Gradle no
+        # encontraba el keystore porque este paso se lo llevó puesto).
         run: |
           rm -rf src-tauri/gen/android
           npx tauri android init
+
+      - name: Restaurar el keystore de firma
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p src-tauri/gen/android
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/src-tauri/gen/android/upload-keystore.jks"
 
       - name: Configurar firma de release
         env:
