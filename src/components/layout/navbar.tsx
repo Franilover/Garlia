@@ -869,26 +869,27 @@ const Navbar = () => {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        <div className="relative shrink-0 mx-auto">
-          <button
-            className="flex items-center justify-center transition-all"
-            style={{
-              width: "36px",
-              height: "52px",
-              color: "var(--primary)",
-              background: themeMenuOpen
-                ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                : "transparent",
-            }}
-            title="Cambiar tema"
-            onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-          >
-            <Flower2 size={18} />
-          </button>
+        {!adminSubmenuOpen && !escritorioSubmenuOpen && (
+          <div className="relative shrink-0 mx-auto">
+            <button
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: "36px",
+                height: "52px",
+                color: "var(--primary)",
+                background: themeMenuOpen
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "transparent",
+              }}
+              title="Cambiar tema"
+              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+            >
+              <Flower2 size={18} />
+            </button>
 
-          <AnimatePresence>
-            {themeMenuOpen && (
-              <>
+            <AnimatePresence>
+              {themeMenuOpen && (
+                <>
                 <MotionDiv
                   animate={{ opacity: 1 }}
                   className="fixed inset-0 z-[1000]"
@@ -936,10 +937,13 @@ const Navbar = () => {
                 </MotionDiv>
               </>
             )}
-          </AnimatePresence>
-        </div>
+            </AnimatePresence>
+          </div>
+        )}
 
-        <NavDivider margin="0 12px" />
+        {!adminSubmenuOpen && !escritorioSubmenuOpen && (
+          <NavDivider margin="0 12px" />
+        )}
 
         <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
           {isAdmin && adminSubmenuOpen ? (
