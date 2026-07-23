@@ -354,6 +354,54 @@ function MobileSubItem({
   );
 }
 
+function MobileFlatButton({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const { theme } = useTheme();
+  const useOutline = OUTLINE_THEMES.has(theme);
+
+  const style: React.CSSProperties = useOutline
+    ? {
+        borderRadius: "var(--radius-btn)",
+        touchAction: "manipulation",
+        border: active
+          ? "var(--border-width) solid var(--primary)"
+          : "var(--border-width) solid transparent",
+        color: active
+          ? "var(--primary)"
+          : "color-mix(in srgb, var(--primary) 40%, transparent)",
+      }
+    : {
+        borderRadius: "var(--radius-btn)",
+        touchAction: "manipulation",
+        background: active ? "var(--primary)" : "transparent",
+        color: active
+          ? "var(--btn-text)"
+          : "color-mix(in srgb, var(--primary) 40%, transparent)",
+      };
+
+  return (
+    <button
+      className="flex items-center justify-center transition-all"
+      style={{ ...style, width: 36, height: 36 }}
+      title={label}
+      aria-label={label}
+      type="button"
+      onClick={onClick}
+    >
+      <Icon size={16} strokeWidth={active ? 2.5 : 2} />
+    </button>
+  );
+}
+
 function MobileNavItem({
   href,
   label,
@@ -1197,7 +1245,64 @@ const Navbar = () => {
                 "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
             }}
           >
-            {isAdmin ? (
+            {isAdmin && adminSubmenuOpen ? (
+              // Mismo patrón que el sidebar desktop: mientras el editor de
+              // Garlia/Mundo está activo, la fila reemplaza sus botones
+              // normales por "volver" + las secciones del editor, en vez de
+              // abrir un flotante encima.
+              <>
+                <MobileFlatButton
+                  active={false}
+                  icon={ArrowLeft}
+                  label="Volver al navbar normal"
+                  onClick={() => {
+                    setAdminSubmenuOpen(false);
+                    closeAll();
+                  }}
+                />
+                <NavVerticalDivider />
+                {adminSubmenuItems.map(({ key, label, icon, active, onSelect }) => (
+                  <MobileFlatButton
+                    key={key}
+                    active={active}
+                    icon={icon}
+                    label={label}
+                    onClick={() => {
+                      onSelect();
+                      closeAll();
+                    }}
+                  />
+                ))}
+              </>
+            ) : isAdmin && escritorioSubmenuOpen ? (
+              // Mismo patrón para Escritorio.
+              <>
+                <MobileFlatButton
+                  active={false}
+                  icon={ArrowLeft}
+                  label="Volver al navbar normal"
+                  onClick={() => {
+                    setEscritorioSubmenuOpen(false);
+                    closeAll();
+                  }}
+                />
+                <NavVerticalDivider />
+                {escritorioSubmenuItems.map(
+                  ({ key, label, icon, active, onSelect }) => (
+                    <MobileFlatButton
+                      key={key}
+                      active={active}
+                      icon={icon}
+                      label={label}
+                      onClick={() => {
+                        onSelect();
+                        closeAll();
+                      }}
+                    />
+                  ),
+                )}
+              </>
+            ) : isAdmin ? (
               <>
                 {mainLinks.map(({ href, label, icon, active, fillActive }) => (
                   <MobileNavItem
@@ -1218,28 +1323,13 @@ const Navbar = () => {
                   fillActive
                   href="/myself/escritorio"
                   icon={PenTool}
-                  isOpen={mobileOpenMenu === "/myself/escritorio"}
+                  isOpen={false}
                   label="Escritorio"
-                  subLinks={escritorioSubmenuItems.map(
-                    ({ key, label, icon, active }) => ({
-                      href: "/myself/escritorio",
-                      label,
-                      icon,
-                      active,
-                      onSelect: () =>
-                        selectEscritorioSection(
-                          key as
-                            | "inicio"
-                            | "libros"
-                            | "cocina"
-                            | "ingredientes"
-                            | "ejercicio"
-                            | "ropa",
-                        ),
-                    }),
-                  )}
-                  onClose={closeAll}
-                  onToggle={() => mobileToggle("/myself/escritorio")}
+                  onClose={(e) => {
+                    e?.preventDefault?.();
+                    setEscritorioSubmenuOpen(true);
+                  }}
+                  onToggle={() => setEscritorioSubmenuOpen(true)}
                 />
                 {franiLinks.map(({ href, label, icon, active }) => (
                   <MobileNavItem
@@ -1247,10 +1337,13 @@ const Navbar = () => {
                     active={active}
                     href={href}
                     icon={icon}
-                    isOpen={mobileOpenMenu === href}
+                    isOpen={false}
                     label={label}
-                    onClose={closeAll}
-                    onToggle={() => mobileToggle(href)}
+                    onClose={(e) => {
+                      e?.preventDefault?.();
+                      setAdminSubmenuOpen(true);
+                    }}
+                    onToggle={() => setAdminSubmenuOpen(true)}
                   />
                 ))}
               </>
