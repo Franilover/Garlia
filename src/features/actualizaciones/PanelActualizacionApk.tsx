@@ -5,22 +5,22 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Panel de admin en /myself/actualizaciones. Ya no sube el .apk a Storage
  * (plan Free de Supabase limita a 50MB por archivo y el APK universal pesa
- * ~75MB). En cambio: subís el .apk a mano a un GitHub Release y acá pegás
- * la URL del asset — el panel solo actualiza la fila `app_version`, con eso
- * la próxima vez que alguien abra un APK viejo va a ver el banner de "hay
- * una actualización" (ver ActualizacionDisponible.tsx).
+ * ~75MB). En cambio: subís el .apk a mano a un GitHub Release, y acá elegís
+ * cuál publicar desde un selector (mismo patrón que SelectorImagen /
+ * SimpleImagePicker) — con eso, la próxima vez que alguien abra un APK viejo
+ * va a ver el banner de "hay una actualización" (ver ActualizacionDisponible.tsx).
  *
  * Flujo para publicar:
  *   1. Generar el build en:
  *      src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
  *   2. Subirlo a un GitHub Release (gh release create/upload, o la web de GitHub).
- *   3. Copiar la URL del asset (termina en .apk) y pegarla acá abajo.
+ *   3. Acá abajo, click en "Elegir release" y seleccionarlo de la lista.
  *
  * Uso: envolver con <AdminOnly> (ya lo hace app/myself/actualizaciones/page.tsx).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, Package, UploadCloud, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -29,13 +29,25 @@ import {
   type VersionActual,
 } from "@/lib/api/client/updaterEngine";
 
+import SelectorApk from "./SelectorApk";
+
+interface ApkReleaseOption {
+  tag: string;
+  titulo: string;
+  publicadoEn: string;
+  url: string;
+  nombreArchivo: string;
+  tamanioMB: number;
+}
+
 export function PanelActualizacionApk() {
   const [actual, setActual] = useState<VersionActual | null>(null);
   const [cargandoActual, setCargandoActual] = useState(true);
 
-  const [url, setUrl] = useState("");
+  const [elegida, setElegida] = useState<ApkReleaseOption | null>(null);
   const [version, setVersion] = useState("");
   const [notas, setNotas] = useState("");
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
@@ -50,21 +62,21 @@ export function PanelActualizacionApk() {
       .finally(() => setCargandoActual(false));
   }, []);
 
-  function manejarCambioUrl(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = e.target.value;
-    setUrl(v);
+  function manejarSeleccion(op: ApkReleaseOption) {
+    setElegida(op);
+    setSelectorAbierto(false);
     setError(null);
     setExito(false);
 
-    // Si la URL trae la versión (ej. .../releases/download/v0.2.0/...), la
-    // sugerimos en el campo — el admin la puede corregir igual.
-    const match = v.match(/(\d+\.\d+\.\d+)/);
+    // Sugerimos la versión a partir del tag (ej. v0.2.0 → 0.2.0), sin pisar
+    // si el admin ya escribió algo.
+    const match = op.tag.match(/(\d+\.\d+\.\d+)/);
     if (match && !version) setVersion(match[1]);
   }
 
   async function manejarPublicar() {
-    if (!url.trim()) {
-      setError("Pegá la URL del asset de GitHub Releases primero.");
+    if (!elegida) {
+      setError("Elegí un release primero.");
       return;
     }
     setError(null);
@@ -72,10 +84,10 @@ export function PanelActualizacionApk() {
     setPublicando(true);
 
     try {
-      const nueva = await publicarNuevaVersion({ url, version, notas });
+      const nueva = await publicarNuevaVersion({ url: elegida.url, version, notas });
       setActual(nueva);
       setExito(true);
-      setUrl("");
+      setElegida(null);
       setNotas("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error publicando la versión.");
@@ -92,8 +104,8 @@ export function PanelActualizacionApk() {
           Actualización de la app
         </h3>
         <p className="text-xs text-primary/40">
-          Subí el .apk a un GitHub Release y pegá acá la URL del asset. Los que
-          tengan una versión anterior instalada van a ver un banner ofreciendo
+          Subí el .apk a un GitHub Release y elegilo acá abajo. Los que tengan
+          una versión anterior instalada van a ver un banner ofreciendo
           actualizar.
         </p>
       </div>
@@ -123,14 +135,36 @@ export function PanelActualizacionApk() {
       {/* Formulario de publicación */}
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-primary/50">URL del asset en GitHub Releases</span>
-          <input
-            className={inputClase}
-            value={url}
-            onChange={manejarCambioUrl}
-            placeholder="https://github.com/usuario/repo/releases/download/v0.2.0/app-universal-release.apk"
-            disabled={publicando}
-          />
+          <span className="text-xs text-primary/50">Release de GitHub</span>
+
+          {elegida ? (
+            <div className="flex items-center gap-3 px-3 h-12 rounded-lg border border-primary/15 bg-primary/[0.04]">
+              <Package className="text-primary/40 shrink-0" size={16} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-primary/80 truncate">{elegida.titulo}</p>
+                <p className="text-xs text-primary/40 truncate">
+                  {elegida.nombreArchivo} — {elegida.tamanioMB} MB
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-primary/30 hover:text-red-500 transition-colors shrink-0"
+                onClick={() => setElegida(null)}
+                disabled={publicando}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelectorAbierto(true)}
+              disabled={publicando}
+              className="flex items-center justify-center gap-2 h-12 rounded-lg border border-dashed border-primary/20 text-primary/50 text-sm hover:border-primary/40 hover:text-primary/70 transition-colors"
+            >
+              <Package size={16} /> Elegir release
+            </button>
+          )}
         </label>
 
         <label className="flex flex-col gap-1.5">
@@ -165,7 +199,7 @@ export function PanelActualizacionApk() {
         <button
           type="button"
           onClick={manejarPublicar}
-          disabled={publicando || !url.trim()}
+          disabled={publicando || !elegida}
           className="flex items-center justify-center gap-2 h-10 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-50"
         >
           {publicando ? (
@@ -179,6 +213,34 @@ export function PanelActualizacionApk() {
           )}
         </button>
       </div>
+
+      {selectorAbierto && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4"
+          onClick={() => setSelectorAbierto(false)}
+        >
+          <div
+            className="bg-white-custom rounded-t-2xl sm:rounded-2xl shadow-2xl border border-primary/15 w-full sm:max-w-lg p-5 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-micro font-black uppercase tracking-[0.3em] text-primary/50 flex items-center gap-2">
+                <Package size={11} /> Elegir release
+              </h3>
+              <button
+                className="text-primary/30 hover:text-primary transition-colors"
+                onClick={() => setSelectorAbierto(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <SelectorApk
+              onClose={() => setSelectorAbierto(false)}
+              onSelect={manejarSeleccion}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
