@@ -896,6 +896,23 @@ function EnsayosInner() {
                 <PaginaEjercicios key="ejercicio" />
               ) : escritorioSection === "ropa" ? (
                 <ArmarioPage key="ropa" />
+              ) : escritorioSection === "libros" ? (
+                <LibrosDashboard
+                  key="libros"
+                  ensayos={ensayos}
+                  onCrearLibro={crearLibro}
+                  onNavigate={(titulo) => navigateToPage(titulo, false)}
+                  onTagClick={handleTagClick}
+                  onToggleEstado={(libroId, estado, add) => {
+                    const libro = ensayos.find((e: any) => e.id === libroId);
+                    if (!libro) return;
+                    const tagsActuales: string[] = libro.tags ?? [];
+                    const nuevosTags = add
+                      ? [...new Set([...tagsActuales, estado])]
+                      : tagsActuales.filter((t: string) => t !== estado);
+                    scheduleSave(libroId, { tags: nuevosTags });
+                  }}
+                />
               ) : ensayoActivo ? (
                 <Editor
                   key={ensayoActivo.id}
@@ -913,23 +930,6 @@ function EnsayosInner() {
                   onTocToggle={() => setTocOpen(p => !p)}
                   onToggleEditMode={() => setEditMode(p => !p)}
                   onUpdateField={actualizarLocal}
-                />
-              ) : escritorioSection === "libros" ? (
-                <LibrosDashboard
-                  key="libros"
-                  ensayos={ensayos}
-                  onCrearLibro={crearLibro}
-                  onNavigate={(titulo) => navigateToPage(titulo, false)}
-                  onTagClick={handleTagClick}
-                  onToggleEstado={(libroId, estado, add) => {
-                    const libro = ensayos.find((e: any) => e.id === libroId);
-                    if (!libro) return;
-                    const tagsActuales: string[] = libro.tags ?? [];
-                    const nuevosTags = add
-                      ? [...new Set([...tagsActuales, estado])]
-                      : tagsActuales.filter((t: string) => t !== estado);
-                    scheduleSave(libroId, { tags: nuevosTags });
-                  }}
                 />
               ) : (
                 <HomeDashboard 
