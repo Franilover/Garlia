@@ -19,8 +19,18 @@ pub fn handle<R: Runtime>(
     let original_path = request.uri().path();
     let rewritten_path = rewrite_path(original_path);
 
-    match app.asset_resolver().get(rewritten_path) {
+    // DEBUG TEMPORAL: confirmar si el WebView está pegándole al protocolo
+    // custom en absoluto, y qué path llega. Buscar "GARLIA_PROTO" en logcat.
+    eprintln!(
+        "GARLIA_PROTO uri_completa={} path_original={} path_reescrito={}",
+        request.uri(),
+        original_path,
+        rewritten_path
+    );
+
+    match app.asset_resolver().get(rewritten_path.clone()) {
         Some(asset) => {
+            eprintln!("GARLIA_PROTO HIT path={} bytes={}", rewritten_path, asset.bytes.len());
             let mut builder = http::Response::builder()
                 .status(http::StatusCode::OK)
                 .header(http::header::CONTENT_TYPE, asset.mime_type);
@@ -33,12 +43,15 @@ pub fn handle<R: Runtime>(
                 .body(std::borrow::Cow::Owned(asset.bytes))
                 .unwrap()
         }
-        None => http::Response::builder()
-            .status(http::StatusCode::NOT_FOUND)
-            .header(http::header::CONTENT_TYPE, "text/plain")
-            .body(std::borrow::Cow::Borrowed(
-                b"asset no encontrado" as &[u8]
-            ))
-            .unwrap(),
+        None => {
+            eprintln!("GARLIA_PROTO MISS path={}", rewritten_path);
+            http::Response::builder()
+                .status(http::StatusCode::NOT_FOUND)
+                .header(http::header::CONTENT_TYPE, "text/plain")
+                .body(std::borrow::Cow::Borrowed(
+                    b"asset no encontrado" as &[u8]
+                ))
+                .unwrap()
+        }
     }
 }

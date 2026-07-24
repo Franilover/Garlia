@@ -30,10 +30,26 @@ export function estaEnTauri(): boolean {
   // seteado en tauri.conf.json (no es el caso acá). `__TAURI_INTERNALS__` en
   // cambio SIEMPRE está presente en Tauri v2 — es lo que usa internamente
   // @tauri-apps/api para el IPC — así que es el chequeo confiable.
-  return (
+  const resultado =
     typeof window !== "undefined" &&
-    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)
-  );
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window);
+
+  // DEBUG TEMPORAL — buscar "GARLIA_JS" en logcat (tag "chromium" o
+  // "Capacitor/Console"/"CONSOLE"). Sacar después de diagnosticar.
+  if (typeof window !== "undefined") {
+    console.log(
+      "GARLIA_JS estaEnTauri()=",
+      resultado,
+      "tiene___TAURI_INTERNALS__=",
+      "__TAURI_INTERNALS__" in window,
+      "tiene___TAURI__=",
+      "__TAURI__" in window,
+      "location=",
+      window.location.href
+    );
+  }
+
+  return resultado;
 }
 
 /**
@@ -53,9 +69,11 @@ export function estaEnTauri(): boolean {
  */
 export function navegarRutaDinamica(ruta: string, fallbackSpa?: () => void): void {
   if (estaEnTauri()) {
+    console.log("GARLIA_JS navegarRutaDinamica -> window.location.href =", ruta);
     window.location.href = ruta;
     return;
   }
+  console.log("GARLIA_JS navegarRutaDinamica -> fallback SPA, ruta=", ruta);
   if (fallbackSpa) {
     fallbackSpa();
   } else {
