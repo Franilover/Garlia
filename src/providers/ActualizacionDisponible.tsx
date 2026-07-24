@@ -150,56 +150,58 @@ export function ActualizacionDisponible() {
   return (
     <div
       role="alert"
-      className="fixed bottom-4 left-1/2 z-[999] w-[min(92vw,420px)] -translate-x-1/2 rounded-xl border border-primary/30 bg-bg-main/95 p-4 shadow-lg backdrop-blur-sm md:bottom-6"
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-fg-main">
-            Hay una actualización disponible
-          </p>
-          <p className="mt-0.5 text-xs text-fg-muted">
-            Versión {remota.version}
-            {remota.notas ? ` — ${remota.notas}` : ""}
-          </p>
-          {estado === "error" && error && (
-            <p className="mt-1 text-xs text-red-500">{error}</p>
-          )}
+      <div className="w-[min(92vw,420px)] rounded-xl border border-primary/30 bg-bg-main p-4 shadow-lg">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-fg-main">
+              Hay una actualización disponible
+            </p>
+            <p className="mt-0.5 text-xs text-fg-muted">
+              Versión {remota.version}
+              {remota.notas ? ` — ${remota.notas}` : ""}
+            </p>
+            {estado === "error" && error && (
+              <p className="mt-1 text-xs text-red-500">{error}</p>
+            )}
+          </div>
+
+          {estado === "idle" || estado === "error" ? (
+            <button
+              type="button"
+              onClick={() => setVisible(false)}
+              className="shrink-0 text-fg-muted hover:text-fg-main"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          ) : null}
         </div>
 
-        {estado === "idle" || estado === "error" ? (
+        <div className="mt-3 flex gap-2">
           <button
             type="button"
-            onClick={() => setVisible(false)}
-            className="shrink-0 text-fg-muted hover:text-fg-main"
-            aria-label="Cerrar"
+            onClick={manejarActualizar}
+            disabled={estado === "descargando" || estado === "instalando"}
+            className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            ✕
+            {estado === "descargando" && "Descargando…"}
+            {estado === "instalando" && "Abriendo instalador…"}
+            {(estado === "idle" || estado === "error") &&
+              (estado === "error" ? "Reintentar" : "Actualizar")}
           </button>
-        ) : null}
-      </div>
 
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={manejarActualizar}
-          disabled={estado === "descargando" || estado === "instalando"}
-          className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {estado === "descargando" && "Descargando…"}
-          {estado === "instalando" && "Abriendo instalador…"}
-          {(estado === "idle" || estado === "error") &&
-            (estado === "error" ? "Reintentar" : "Actualizar")}
-        </button>
-
-        {(estado === "idle" || estado === "error") && (
-          <button
-            type="button"
-            onClick={() => setVisible(false)}
-            className="rounded-lg border border-fg-muted/30 px-3 py-2 text-sm text-fg-muted"
-          >
-            Después
-          </button>
-        )}
+          {(estado === "idle" || estado === "error") && (
+            <button
+              type="button"
+              onClick={() => setVisible(false)}
+              className="rounded-lg border border-fg-muted/30 px-3 py-2 text-sm text-fg-muted"
+            >
+              Después
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

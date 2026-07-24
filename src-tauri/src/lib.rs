@@ -50,7 +50,12 @@ pub fn run() {
       // http://tauri.localhost). Si esto queda hardcodeado a una sola
       // forma, en Windows/Android la navegación nunca llega al protocolo
       // con el rewrite y las rutas [id] siguen dando 404 ahí.
-      if !cfg!(debug_assertions) {
+      #[cfg(any(target_os = "android", target_os = "ios"))]
+      let necesita_rewrite = true;
+      #[cfg(not(any(target_os = "android", target_os = "ios")))]
+      let necesita_rewrite = !cfg!(debug_assertions);
+
+      if necesita_rewrite {
         if let Some(window) = app.get_webview_window("main") {
           let url = if cfg!(any(windows, target_os = "android")) {
             "http://garlia.localhost/"
