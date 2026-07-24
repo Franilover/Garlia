@@ -18,6 +18,7 @@ import {
 import { Vignette } from "@/features/garlia/components/LectorUI";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+import { navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 // ⚠️ Ajustar esta ruta si syncEngine.ts vive en otra carpeta del proyecto.
 import {
   collectIds,
@@ -1070,7 +1071,7 @@ export default function Lector() {
         <Btn
           size="sm"
           variant="outline"
-          onClick={() => router.push(`/garlia/libros/${slugParam}`)}
+          onClick={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
         >
           Volver al índice
         </Btn>
@@ -1095,7 +1096,7 @@ export default function Lector() {
       >
         <button
           className="flex items-center gap-2 text-primary/40 hover:text-primary transition-colors font-black text-micro uppercase tracking-widest"
-          onClick={() => router.push(`/garlia/libros/${slugParam}`)}
+          onClick={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
         >
           <ChevronLeft size={14} /> Volver
         </button>
@@ -1157,7 +1158,7 @@ export default function Lector() {
                   handleNavigate(id);
                   setShowSidebar(false);
                 }}
-                onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
+                onVolver={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
               />
             </motion.div>
           </>
@@ -1177,7 +1178,7 @@ export default function Lector() {
           personajesMap={personajesMap}
           reinosMap={reinosMap}
           onSelectCap={handleNavigate}
-          onVolver={() => router.push(`/garlia/libros/${slugParam}`)}
+          onVolver={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
         />
       </div>
 
@@ -1258,7 +1259,7 @@ export default function Lector() {
               /* Poemario / extra: solo botón volver al índice, sin anterior/siguiente */
               <button
                 className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
-                onClick={() => router.push(`/garlia/libros/${slugParam}`)}
+                onClick={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
               >
                 <List size={16} /> Índice
               </button>
@@ -1282,7 +1283,7 @@ export default function Lector() {
 
                 <button
                   className="flex items-center gap-2 text-primary/40 hover:text-primary font-black text-micro uppercase tracking-widest transition-all"
-                  onClick={() => router.push(`/garlia/libros/${slugParam}`)}
+                  onClick={() => navegarRutaDinamica(`/garlia/libros/${slugParam}`, () => router.push(`/garlia/libros/${slugParam}`))}
                 >
                   <List size={16} /> Índice
                 </button>

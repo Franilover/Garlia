@@ -9,6 +9,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { useSupabaseData } from "@/hooks/data/useSupabaseData";
 import { supabase } from "@/lib/api/client/supabase";
+import { estaEnTauri, navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import { toSlug } from "@/lib/utils/slugify";
 
 interface Personaje {
@@ -49,7 +50,15 @@ const CancionCardGrid = ({
     initial={{ opacity: 0, y: 20 }}
     transition={{ delay: index * 0.04 }}
   >
-    <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
+    <Link
+      href={`/garlia/canciones/${toSlug(cancion.titulo)}`}
+      onClick={(e) => {
+        if (estaEnTauri()) {
+          e.preventDefault();
+          navegarRutaDinamica(`/garlia/canciones/${toSlug(cancion.titulo)}`);
+        }
+      }}
+    >
       <MotionDiv
         className="cursor-pointer h-full"
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -118,7 +127,15 @@ const CancionCardFila = ({
     initial={{ opacity: 0, y: 6 }}
     transition={{ delay: index * 0.03 }}
   >
-    <Link href={`/garlia/canciones/${toSlug(cancion.titulo)}`}>
+    <Link
+      href={`/garlia/canciones/${toSlug(cancion.titulo)}`}
+      onClick={(e) => {
+        if (estaEnTauri()) {
+          e.preventDefault();
+          navegarRutaDinamica(`/garlia/canciones/${toSlug(cancion.titulo)}`);
+        }
+      }}
+    >
       <div
         className="group flex items-center gap-3 bg-primary/[0.03] hover:bg-primary/[0.06] px-3 py-2 transition-all duration-300 cursor-pointer"
         style={{

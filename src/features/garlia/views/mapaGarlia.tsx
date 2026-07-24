@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 import { MotionDiv, MotionButton } from "@/components/ui/Motion";
+import { navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import { ReinoTileCanvas } from "@/features/editorGarlia/components/reinos/ReinoTileCanvas";
 import {
   UnifiedTileCanvas,
@@ -987,7 +988,9 @@ function PanelContenido({
                           cursor: "pointer",
                         }}
                         onClick={() =>
-                          router.push(`/garlia/libros/${libro.id}`)
+                          navegarRutaDinamica(`/garlia/libros/${libro.id}`, () =>
+                            router.push(`/garlia/libros/${libro.id}`),
+                          )
                         }
                       >
                         {libro.portada_url && (

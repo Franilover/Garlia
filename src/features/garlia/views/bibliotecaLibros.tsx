@@ -2,6 +2,8 @@
 
 import { Lock, Timer, BookOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
+
+import { estaEnTauri, navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 import { Loading } from "@/components/ui";
@@ -302,7 +304,16 @@ function LibroCard({
       initial={{ y: 20, opacity: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <Link className="block" href={href}>
+      <Link
+        className="block"
+        href={href}
+        onClick={(e) => {
+          if (estaEnTauri()) {
+            e.preventDefault();
+            navegarRutaDinamica(href);
+          }
+        }}
+      >
         {/* MÓVIL: layout horizontal */}
         <div className="flex sm:hidden items-center gap-4 p-3 rounded-[var(--radius-card)] border border-primary/8 bg-white-custom shadow-sm group-hover:border-primary/20 transition-colors">
           <div className="relative flex-shrink-0 w-16 aspect-[3/4] rounded-[var(--radius-btn)] overflow-hidden">

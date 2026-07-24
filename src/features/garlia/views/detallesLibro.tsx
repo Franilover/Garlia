@@ -10,6 +10,8 @@ import {
   User,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+
+import { navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import React, { useEffect, useState, useRef } from "react";
 
 import { Loading, BackBtn } from "@/components/ui";
@@ -435,7 +437,7 @@ export default function LibroDetalle() {
           return;
         }
         const slug = toSlug(libroData.titulo);
-        if (slug) router.replace(`/garlia/libros/${slug}`);
+        if (slug) navegarRutaDinamica(`/garlia/libros/${slug}`, () => router.replace(`/garlia/libros/${slug}`));
       } else {
         libroData = await resolverLibroPorSlug(slugParam);
         if (!libroData) {
@@ -543,7 +545,7 @@ export default function LibroDetalle() {
       pendingRouteRef.current = ruta;
       setMostrarModalTW(true);
     } else {
-      router.push(ruta);
+      navegarRutaDinamica(ruta, () => router.push(ruta));
     }
   };
 
@@ -724,8 +726,9 @@ export default function LibroDetalle() {
           setMostrarModalTW(false);
           marcarLibroTWAceptado(libro.id);
           if (pendingRouteRef.current) {
-            router.push(pendingRouteRef.current);
+            const ruta = pendingRouteRef.current;
             pendingRouteRef.current = null;
+            navegarRutaDinamica(ruta, () => router.push(ruta));
           }
         }}
         onRechazar={() => {

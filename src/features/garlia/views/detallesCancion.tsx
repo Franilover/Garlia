@@ -8,6 +8,7 @@ import { MotionDiv } from "@/components/ui/Motion";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { db } from "@/lib/api/client/db";
 import { supabase } from "@/lib/api/client/supabase";
+import { navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import { toSlug, esUUID } from "@/lib/utils/slugify";
 
 function useIsMobile() {
@@ -260,7 +261,9 @@ export default function CancionDetallesPage() {
         const { data } = await supabase
           .from("canciones").select("id, titulo").eq("id", slugParam).single();
         if (data) {
-          router.replace(`/garlia/canciones/${toSlug(data.titulo)}`);
+          navegarRutaDinamica(`/garlia/canciones/${toSlug(data.titulo)}`, () =>
+            router.replace(`/garlia/canciones/${toSlug(data.titulo)}`),
+          );
           setId(data.id);
         }
         return;

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+
+import { estaEnTauri, navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -645,6 +647,12 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                         key={cancion.id ?? i}
                         className="group flex items-center gap-3 px-3 py-3 transition-all"
                         href={`/garlia/canciones/${cancion.id}`}
+                        onClick={(e) => {
+                          if (estaEnTauri()) {
+                            e.preventDefault();
+                            navegarRutaDinamica(`/garlia/canciones/${cancion.id}`);
+                          }
+                        }}
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
@@ -2144,7 +2152,16 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {otrosPerfiles.map((p) => (
-                    <Link key={p.id} href={`/garlia/personal/${p.username}`}>
+                    <Link
+                      key={p.id}
+                      href={`/garlia/personal/${p.username}`}
+                      onClick={(e) => {
+                        if (estaEnTauri()) {
+                          e.preventDefault();
+                          navegarRutaDinamica(`/garlia/personal/${p.username}`);
+                        }
+                      }}
+                    >
                       <div
                         className="flex items-center gap-2 px-3 py-2 transition-all hover:opacity-80"
                         style={{
@@ -2842,7 +2859,16 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                   }}
                 >
                   {otrosPerfiles.map((p, idx) => (
-                    <Link key={p.id} href={`/garlia/personal/${p.username}`}>
+                    <Link
+                      key={p.id}
+                      href={`/garlia/personal/${p.username}`}
+                      onClick={(e) => {
+                        if (estaEnTauri()) {
+                          e.preventDefault();
+                          navegarRutaDinamica(`/garlia/personal/${p.username}`);
+                        }
+                      }}
+                    >
                       <MotionDiv
                         className="flex items-center gap-2.5 px-3 py-3 cursor-pointer transition-colors"
                         style={{

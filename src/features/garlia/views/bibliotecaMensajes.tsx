@@ -16,6 +16,7 @@ import {
   type PerfilResumen,
 } from "@/lib/api/client/chatEngine";
 import { supabase } from "@/lib/api/client/supabase";
+import { estaEnTauri, navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 
@@ -83,7 +84,7 @@ export default function BibliotecaMensajes() {
     const convId = await obtenerOCrearConversacion1a1(perfil.id);
     setBusqueda("");
     setResultados([]);
-    router.push(`/personal/mensajes/${convId}`);
+    navegarRutaDinamica(`/personal/mensajes/${convId}`, () => router.push(`/personal/mensajes/${convId}`));
   };
 
   if (!user) {
@@ -180,6 +181,12 @@ export default function BibliotecaMensajes() {
                 key={c.id}
                 className="flex items-center gap-3 p-3 rounded-[var(--radius-btn)] transition-all"
                 href={`/personal/mensajes/${c.id}`}
+                onClick={(e) => {
+                  if (estaEnTauri()) {
+                    e.preventDefault();
+                    navegarRutaDinamica(`/personal/mensajes/${c.id}`);
+                  }
+                }}
                 style={{
                   background: "var(--white-custom)",
                   border: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",

@@ -17,6 +17,7 @@ import Link from "next/link";
 import React from "react";
 
 import { MotionDiv } from "@/components/ui/Motion";
+import { estaEnTauri, navegarRutaDinamica } from "@/lib/utils/navegacionTauri";
 
 export interface Descubrimiento {
   tipo: "item" | "criatura" | "personaje";
@@ -356,6 +357,12 @@ export function ModalDetalle({
                         key={cancion.id ?? i}
                         className="group flex items-center gap-3 px-3 py-2.5 transition-all"
                         href={`/garlia/canciones/${cancion.id}`}
+                        onClick={(e) => {
+                          if (estaEnTauri()) {
+                            e.preventDefault();
+                            navegarRutaDinamica(`/garlia/canciones/${cancion.id}`);
+                          }
+                        }}
                         style={{
                           background:
                             "color-mix(in srgb, var(--primary) 3%, var(--white-custom))",
