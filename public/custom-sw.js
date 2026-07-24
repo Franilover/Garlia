@@ -34,6 +34,28 @@ registerRoute(
 );
 
 // ── Navegación: NetworkFirst con fallback al caché ───────────────────────────
+//
+// IMPORTANTE: las rutas dinámicas ([id], [username], etc. — ver
+// src-tauri/src/static_rewrite.rs) NO deben pasar por acá. Dentro de la app
+// empaquetada de Tauri, `navegarRutaDinamica()` fuerza un
+// `window.location.href` para que esa navegación llegue al protocolo
+// `garlia://` de Rust, que reescribe el path hacia el `placeholder`
+// correspondiente antes de servir el archivo.
+//
+// El Service Worker corre dentro del mismo WebView y su NavigationRoute
+// intercepta CUALQUIER request de navegación (mode: 'navigate') antes de que
+// le llegue al protocolo custom de Tauri. Como esas rutas con id/slug real
+// nunca están en caché (solo los paths fijos en APP_ROUTES) y en la app
+// empaquetada no hay red real que las resuelva vía NetworkFirst, el SW
+// termina sirviendo un fallback que no es la página esperada — el síntoma
+// es que la navegación "rebota": el WebView recarga como si fuera un
+// arranque limpio de la app (incluso reapareciendo pantallas de solo-primer-
+// arranque como el aviso de actualización disponible), en vez de mostrar la
+// página del id pedido.
+//
+// Con este `denylist`, el SW deja pasar de largo esas rutas (no intercepta
+// la navegación), y es Tauri quien las resuelve directamente vía
+// `garlia://` + `rewrite_path`, tal como se diseñó.
 registerRoute(
   new NavigationRoute(
     new NetworkFirst({
@@ -45,7 +67,15 @@ registerRoute(
           maxAgeSeconds: 7 * 24 * 60 * 60, // 7 días
         }),
       ],
-    })
+    }),
+    {
+      denylist: [
+        /^\/garlia\/libros\/.+/,
+        /^\/garlia\/canciones\/.+/,
+        /^\/garlia\/personal\/.+/,
+        /^\/personal\/mensajes\/.+/,
+      ],
+    }
   )
 );
 
