@@ -39,7 +39,13 @@ interface FilaVersion {
 }
 
 function estaEnTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI__" in window;
+  // `window.__TAURI__` solo existe si `app.withGlobalTauri: true` está
+  // seteado en tauri.conf.json — no es nuestro caso. `__TAURI_INTERNALS__`
+  // sí está siempre presente en Tauri v2 (lo usa @tauri-apps/api para IPC).
+  return (
+    typeof window !== "undefined" &&
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)
+  );
 }
 
 export function ActualizacionDisponible() {

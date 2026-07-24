@@ -26,7 +26,14 @@
  */
 
 export function estaEnTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI__" in window;
+  // OJO: `window.__TAURI__` solo existe si `app.withGlobalTauri: true` está
+  // seteado en tauri.conf.json (no es el caso acá). `__TAURI_INTERNALS__` en
+  // cambio SIEMPRE está presente en Tauri v2 — es lo que usa internamente
+  // @tauri-apps/api para el IPC — así que es el chequeo confiable.
+  return (
+    typeof window !== "undefined" &&
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)
+  );
 }
 
 /**
