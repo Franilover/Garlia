@@ -383,7 +383,7 @@ export const PanelEditor = ({
                   {idioma !== "es" && (
                     <SyllableColumn
                       countMode={countMode}
-                      refLineas={texto.split("\n")}
+                      refTexto={texto}
                       texto={textoDerecha}
                     />
                   )}

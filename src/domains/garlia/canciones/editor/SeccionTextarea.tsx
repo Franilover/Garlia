@@ -55,35 +55,51 @@ const FONT_SIZE_PX = 11;
  */
 export function SyllableColumn({
   texto,
-  refLineas,
+  refTexto,
   countMode,
   align = "end",
 }: {
-  texto:     string;
-  refLineas: string[] | null;
+  texto:    string;
+  /**
+   * Texto CRUDO (sin partir) de la columna de referencia. Antes este
+   * prop llegaba ya partido en `string[]` vía `.split("\n")` desde el
+   * padre — eso perdía la distinción entre "\n" (soft break, misma
+   * línea de letra) y "\n\n" (nuevo párrafo), que es justo lo que hace
+   * falta para alinear filas correctamente. Ver comentario de `aFilas`
+   * más abajo.
+   */
+  refTexto: string | null;
   countMode: CountMode;
   align?: "start" | "end";
 }) {
-  // ── Por qué normalizamos "\n\n" → "\n" antes de dividir en líneas ──────
-  // RichEditor serializa cada línea de texto escrita con Enter (nuevo
-  // párrafo) separándola con "\n\n" (doble salto — ver richTextSerializer.
-  // ts, serializeRootToRaw), mientras que una línea escrita con Shift+Enter
-  // (soft break, LineBreakNode) se serializa como un solo "\n". Antes,
-  // texto.split("\n") no distinguía esto: una columna escrita con Enter
-  // generaba una fila vacía FANTASMA entre cada línea real (por el "\n\n"),
-  // mientras que la misma letra en el otro idioma, si se había tipeado con
-  // Shift+Enter, no tenía esa fila vacía — el resultado era que la fila N
-  // de un idioma terminaba comparada contra la fila N±1 del otro, es decir
-  // el desface que se reporta al mezclar Enter y Shift+Enter entre columnas.
+  // ── Por qué NO se puede usar texto.split("\n") a secas ─────────────────
+  // RichEditor (richTextSerializer.ts, serializeRootToRaw) usa DOS
+  // convenciones de salto de línea distintas al mismo tiempo:
+  //   - Enter (nuevo párrafo)      → separador "\n\n" entre párrafos
+  //   - Shift+Enter (soft break)   → un solo "\n" DENTRO de un párrafo
+  //   - Línea en blanco intencional (párrafo vacío) → "\n\n\n" (3+)
+  // texto.split("\n") trataba cada uno de esos "\n" como una fila nueva
+  // sin distinguirlos: una letra escrita con Enter generaba una fila
+  // vacía FANTASMA extra por cada salto de párrafo (por el "\n\n"),
+  // mientras la misma letra en el otro idioma, si se tipeó con
+  // Shift+Enter, no tenía esa fila vacía — la fila N de un idioma
+  // terminaba comparada contra la fila N±1 del otro. Un primer intento
+  // de arreglo (colapsar cualquier "\n{2,}" a un solo "\n") sí igualaba
+  // el conteo, pero de paso fusionaba las líneas en blanco INTENCIONALES
+  // que el usuario deja para separar estrofas, perdiéndolas.
   //
-  // Colapsar cualquier secuencia de 2+ "\n" a un solo "\n" antes de partir
-  // hace que el conteo de líneas sea el mismo sin importar si el usuario
-  // usó Enter o Shift+Enter para pasar a la siguiente línea de letra —
-  // ambos casos generan exactamente una fila por línea visible de texto.
-  const normalizar = (s: string) => s.replace(/\n{2,}/g, "\n");
+  // La forma correcta de partir en "filas visuales" es replicar cómo
+  // Lexical arma el árbol: primero separar por PÁRRAFO ("\n\n" — cada
+  // uno es un <p> real, incluidos los vacíos que representan una línea
+  // en blanco intencional), y luego, dentro de cada párrafo, separar por
+  // soft break ("\n" simple, cada uno un <br> dentro del mismo <p>). El
+  // resultado tiene exactamente una fila por línea visible en pantalla,
+  // sin fantasmas y sin perder las líneas en blanco reales.
+  const aFilas = (s: string) =>
+    s.split("\n\n").flatMap((parrafo) => parrafo.split("\n"));
 
-  const lineas = normalizar(texto).split("\n");
-  const refLineasNorm = refLineas ? normalizar(refLineas.join("\n")).split("\n") : null;
+  const lineas = aFilas(texto);
+  const refLineasNorm = refTexto !== null ? aFilas(refTexto) : null;
   const justify = align === "start" ? "justify-start" : "justify-end";
 
   return (
@@ -233,8 +249,12 @@ export const SeccionTextarea = ({
   }, [doSave, draft, onTextoChange]);
 
   // ── Texto de referencia (columna opuesta en split mode) ─────────────────
-  const refCampo  = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
-  const refLineas = refCampo ? ((sec[refCampo] as string) || "").split("\n") : null;
+  const refCampo = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
+  // Texto crudo, SIN partir — SyllableColumn necesita ver los "\n" y
+  // "\n\n" originales tal cual los serializó RichEditor para poder
+  // separar filas correctamente (ver comentario en aFilas dentro de
+  // SyllableColumn). Partir acá con .split("\n") perdía esa distinción.
+  const refTexto = refCampo ? ((sec[refCampo] as string) || "") : null;
 
 
   // ── Border según estado ──────────────────────────────────────────────────
@@ -291,7 +311,7 @@ export const SeccionTextarea = ({
         {showSyllableColumn && (
           <SyllableColumn
             countMode={countMode}
-            refLineas={refLineas}
+            refTexto={refTexto}
             texto={texto}
           />
         )}
