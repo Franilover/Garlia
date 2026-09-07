@@ -60,46 +60,12 @@ export function SyllableColumn({
   align = "end",
 }: {
   texto:    string;
-  /**
-   * Texto CRUDO (sin partir) de la columna de referencia. Antes este
-   * prop llegaba ya partido en `string[]` vía `.split("\n")` desde el
-   * padre — eso perdía la distinción entre "\n" (soft break, misma
-   * línea de letra) y "\n\n" (nuevo párrafo), que es justo lo que hace
-   * falta para alinear filas correctamente. Ver comentario de `aFilas`
-   * más abajo.
-   */
   refTexto: string | null;
   countMode: CountMode;
   align?: "start" | "end";
 }) {
-  // ── Por qué NO se puede usar texto.split("\n") a secas ─────────────────
-  // RichEditor (richTextSerializer.ts, serializeRootToRaw) usa DOS
-  // convenciones de salto de línea distintas al mismo tiempo:
-  //   - Enter (nuevo párrafo)      → separador "\n\n" entre párrafos
-  //   - Shift+Enter (soft break)   → un solo "\n" DENTRO de un párrafo
-  //   - Línea en blanco intencional (párrafo vacío) → "\n\n\n" (3+)
-  // texto.split("\n") trataba cada uno de esos "\n" como una fila nueva
-  // sin distinguirlos: una letra escrita con Enter generaba una fila
-  // vacía FANTASMA extra por cada salto de párrafo (por el "\n\n"),
-  // mientras la misma letra en el otro idioma, si se tipeó con
-  // Shift+Enter, no tenía esa fila vacía — la fila N de un idioma
-  // terminaba comparada contra la fila N±1 del otro. Un primer intento
-  // de arreglo (colapsar cualquier "\n{2,}" a un solo "\n") sí igualaba
-  // el conteo, pero de paso fusionaba las líneas en blanco INTENCIONALES
-  // que el usuario deja para separar estrofas, perdiéndolas.
-  //
-  // La forma correcta de partir en "filas visuales" es replicar cómo
-  // Lexical arma el árbol: primero separar por PÁRRAFO ("\n\n" — cada
-  // uno es un <p> real, incluidos los vacíos que representan una línea
-  // en blanco intencional), y luego, dentro de cada párrafo, separar por
-  // soft break ("\n" simple, cada uno un <br> dentro del mismo <p>). El
-  // resultado tiene exactamente una fila por línea visible en pantalla,
-  // sin fantasmas y sin perder las líneas en blanco reales.
-  const aFilas = (s: string) =>
-    s.split("\n\n").flatMap((parrafo) => parrafo.split("\n"));
-
-  const lineas = aFilas(texto);
-  const refLineasNorm = refTexto !== null ? aFilas(refTexto) : null;
+  const lineas = texto.split("\n");
+  const refLineas = refTexto !== null ? refTexto.split("\n") : null;
   const justify = align === "start" ? "justify-start" : "justify-end";
 
   return (
@@ -113,16 +79,19 @@ export function SyllableColumn({
     >
       {lineas.map((linea, idx) => {
         const miTxt  = linea;
-        const refTxt = refLineasNorm ? (refLineasNorm[idx] ?? "") : "";
+        const refTxt = refLineas ? (refLineas[idx] ?? "") : "";
         const miVacia  = miTxt.trim() === "";
         const refVacia = refTxt.trim() === "";
 
         // Antes solo se mostraba el número si AMBOS lados tenían texto en
-        // esa fila (refN === null cuando no había refLineas en absoluto).
-        // Ahora se muestra el número apenas UNO de los dos lados tenga
-        // texto, para que una línea sin sincronizar en el otro idioma
-        // (o directamente vacía/faltante) sea visible como "N/0" o "0/N"
-        // en vez de desaparecer de la columna.
+        // esa fila (es decir, si mi línea estaba vacía, no se mostraba
+        // nada aunque el otro idioma sí tuviera letra ahí, y viceversa).
+        // Eso hacía "desaparecer" de la columna justo las filas que más
+        // interesa ver: una línea que un idioma ya tiene escrita pero el
+        // otro todavía no (ej. español con más líneas que el idioma de
+        // destino). Ahora se muestra el número apenas UNO de los dos
+        // lados tenga texto en esa fila, como "N/0" o "0/N", para que
+        // esas líneas sin sincronizar queden visibles de inmediato.
         if (miVacia && refVacia) {
           return (
             <div
@@ -134,7 +103,7 @@ export function SyllableColumn({
         }
 
         const miN  = miVacia ? 0 : contar(miTxt, countMode);
-        const refN = refLineasNorm ? (refVacia ? 0 : contar(refTxt, countMode)) : null;
+        const refN = refLineas ? (refVacia ? 0 : contar(refTxt, countMode)) : null;
 
         let color = "";
         if (refN === null) {
@@ -250,10 +219,6 @@ export const SeccionTextarea = ({
 
   // ── Texto de referencia (columna opuesta en split mode) ─────────────────
   const refCampo = refIdioma ? IDIOMAS.find(i => i.id === refIdioma)?.campo : null;
-  // Texto crudo, SIN partir — SyllableColumn necesita ver los "\n" y
-  // "\n\n" originales tal cual los serializó RichEditor para poder
-  // separar filas correctamente (ver comentario en aFilas dentro de
-  // SyllableColumn). Partir acá con .split("\n") perdía esa distinción.
   const refTexto = refCampo ? ((sec[refCampo] as string) || "") : null;
 
 
