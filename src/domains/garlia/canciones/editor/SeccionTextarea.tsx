@@ -64,7 +64,26 @@ export function SyllableColumn({
   countMode: CountMode;
   align?: "start" | "end";
 }) {
-  const lineas = texto.split("\n");
+  // ── Por qué normalizamos "\n\n" → "\n" antes de dividir en líneas ──────
+  // RichEditor serializa cada línea de texto escrita con Enter (nuevo
+  // párrafo) separándola con "\n\n" (doble salto — ver richTextSerializer.
+  // ts, serializeRootToRaw), mientras que una línea escrita con Shift+Enter
+  // (soft break, LineBreakNode) se serializa como un solo "\n". Antes,
+  // texto.split("\n") no distinguía esto: una columna escrita con Enter
+  // generaba una fila vacía FANTASMA entre cada línea real (por el "\n\n"),
+  // mientras que la misma letra en el otro idioma, si se había tipeado con
+  // Shift+Enter, no tenía esa fila vacía — el resultado era que la fila N
+  // de un idioma terminaba comparada contra la fila N±1 del otro, es decir
+  // el desface que se reporta al mezclar Enter y Shift+Enter entre columnas.
+  //
+  // Colapsar cualquier secuencia de 2+ "\n" a un solo "\n" antes de partir
+  // hace que el conteo de líneas sea el mismo sin importar si el usuario
+  // usó Enter o Shift+Enter para pasar a la siguiente línea de letra —
+  // ambos casos generan exactamente una fila por línea visible de texto.
+  const normalizar = (s: string) => s.replace(/\n{2,}/g, "\n");
+
+  const lineas = normalizar(texto).split("\n");
+  const refLineasNorm = refLineas ? normalizar(refLineas.join("\n")).split("\n") : null;
   const justify = align === "start" ? "justify-start" : "justify-end";
 
   return (
@@ -77,20 +96,38 @@ export function SyllableColumn({
       style={{ paddingTop: 4 }}
     >
       {lineas.map((linea, idx) => {
-        const miN  = contar(linea, countMode);
-        const refN = refLineas ? contar(refLineas[idx] ?? "", countMode) : null;
-        const vacia = linea.trim() === "";
+        const miTxt  = linea;
+        const refTxt = refLineasNorm ? (refLineasNorm[idx] ?? "") : "";
+        const miVacia  = miTxt.trim() === "";
+        const refVacia = refTxt.trim() === "";
+
+        // Antes solo se mostraba el número si AMBOS lados tenían texto en
+        // esa fila (refN === null cuando no había refLineas en absoluto).
+        // Ahora se muestra el número apenas UNO de los dos lados tenga
+        // texto, para que una línea sin sincronizar en el otro idioma
+        // (o directamente vacía/faltante) sea visible como "N/0" o "0/N"
+        // en vez de desaparecer de la columna.
+        if (miVacia && refVacia) {
+          return (
+            <div
+              key={idx}
+              className={`flex items-center ${justify} gap-0.5`}
+              style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${FONT_SIZE_PX * 1.7}px` }}
+            />
+          );
+        }
+
+        const miN  = miVacia ? 0 : contar(miTxt, countMode);
+        const refN = refLineasNorm ? (refVacia ? 0 : contar(refTxt, countMode)) : null;
 
         let color = "";
-        if (!vacia) {
-          if (refN === null) {
-            color =
-              miN <= 6  ? "text-primary/30"
-            : miN <= 10 ? "text-amber-400/50"
-            :             "text-rose-400/50";
-          } else {
-            color = miN === refN ? "text-emerald-400/90" : "text-rose-400/90";
-          }
+        if (refN === null) {
+          color =
+            miN <= 6  ? "text-primary/30"
+          : miN <= 10 ? "text-amber-400/50"
+          :             "text-rose-400/50";
+        } else {
+          color = miN === refN ? "text-emerald-400/90" : "text-rose-400/90";
         }
 
         return (
@@ -99,19 +136,15 @@ export function SyllableColumn({
             className={`flex items-center ${justify} gap-0.5 ${color}`}
             style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${FONT_SIZE_PX * 1.7}px` }}
           >
-            {!vacia && (
+            <span className="text-micro font-black tabular-nums leading-none">
+              {miN}
+            </span>
+            {refN !== null && (
               <>
-                <span className="text-micro font-black tabular-nums leading-none">
-                  {miN}
+                <span className="text-micro opacity-40 mx-px">/</span>
+                <span className="text-micro font-black tabular-nums leading-none opacity-55">
+                  {refN}
                 </span>
-                {refN !== null && (
-                  <>
-                    <span className="text-micro opacity-40 mx-px">/</span>
-                    <span className="text-micro font-black tabular-nums leading-none opacity-55">
-                      {refN}
-                    </span>
-                  </>
-                )}
               </>
             )}
           </div>
