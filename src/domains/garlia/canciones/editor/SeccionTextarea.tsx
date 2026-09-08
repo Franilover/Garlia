@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, CheckCircle2, AlertCircle, WifiOff, Circle } from "lucide-react";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useImperativeHandle } from "react";
 
 import { RichEditor } from "@/editor/lexical";
 import { IDIOMAS, IDLE_STATE } from "@/domains/garlia/canciones/constants";
@@ -58,23 +58,96 @@ export function SyllableColumn({
   refTexto,
   countMode,
   align = "end",
+  /**
+   * Ref al contenedor que envuelve al RichEditor (ver uso más abajo en
+   * SeccionTextarea). Se usa para medir la altura REAL de cada línea
+   * renderizada en pantalla, en vez de asumir una altura fija por línea.
+   *
+   * Por qué hace falta: RichEditor usa `white-space: pre-wrap` +
+   * `word-break: break-word` (ver RichEditor.tsx), así que una línea de
+   * letra larga hace WRAP visual a 2+ líneas dentro del mismo <p> cuando
+   * no cabe en el ancho del editor. Antes cada fila de esta columna medía
+   * `FONT_SIZE_PX * 1.7` fijo, sin saber que una línea lógica podía ocupar
+   * más alto en pantalla — resultado: apenas una sola línea larga hacía
+   * wrap, todos los números de las filas siguientes quedaban más arriba
+   * que su letra correspondiente (el desface que se reporta).
+   *
+   * Con `editorRef`, medimos el alto real de cada <p> (y de cada <br>
+   * suelto dentro de él) vía ResizeObserver y usamos esas alturas en vez
+   * de una constante — así cada número queda a la misma altura que su
+   * línea, haga wrap o no.
+   */
+  editorRef,
 }: {
   texto:    string;
   refTexto: string | null;
   countMode: CountMode;
   align?: "start" | "end";
+  editorRef?: React.RefObject<HTMLElement | null>;
 }) {
   const lineas = texto.split("\n");
   const refLineas = refTexto !== null ? refTexto.split("\n") : null;
   const justify = align === "start" ? "justify-start" : "justify-end";
 
+  // ── Medición real de alturas de línea ───────────────────────────────
+  // rowHeights[i] = alto en px de la fila i tal como se ve en pantalla.
+  // Si no hay editorRef (o aún no midió), cae de vuelta a la altura fija
+  // de siempre, así el componente sigue funcionando en cualquier lugar
+  // donde no se le pase la referencia al editor.
+  const alturaFija = FONT_SIZE_PX * 1.7;
+  const [rowHeights, setRowHeights] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    const root = editorRef?.current;
+    if (!root) { setRowHeights(null); return; }
+
+    const medir = () => {
+      // Lexical serializa: un párrafo (<p>) por bloque de Enter, y dentro
+      // de cada uno, un <br> por cada Shift+Enter. Un párrafo vacío
+      // (`<p><br data-lexical-managed-linebreak></p>`) es UNA fila; un
+      // párrafo con N <br> internos son N+1 filas dentro de ese <p> — hay
+      // que medir cada segmento, no solo la altura total del <p>, porque
+      // un párrafo con texto que hace wrap reparte su altura entre varias
+      // filas lógicas de forma pareja, mientras uno con <br><br><br>
+      // reparte su altura en franjas iguales por línea vacía.
+      const parrafos = Array.from(root.querySelectorAll<HTMLElement>("[data-lexical-editor] > p"));
+      if (parrafos.length === 0) { setRowHeights(null); return; }
+
+      const alturas: number[] = [];
+      for (const p of parrafos) {
+        const totalH = p.getBoundingClientRect().height || alturaFija;
+        // Cantidad de <br> dentro de este párrafo = líneas extra dentro
+        // del mismo bloque (soft breaks). N <br> ⇒ N+1 filas lógicas.
+        const brs = p.querySelectorAll("br").length;
+        const segmentos = Math.max(1, brs + (brs === 0 ? 1 : brs));
+        // Nota: cuando el párrafo tiene texto que además hace wrap visual
+        // (más líneas en pantalla que <br> reales), el navegador ya lo
+        // refleja en `totalH` — repartir esa altura entre los `segmentos`
+        // lógicos declarados por Lexical sigue siendo la mejor aproximación
+        // posible sin reimplementar el layout de texto nosotros mismos.
+        const porSegmento = totalH / segmentos;
+        for (let i = 0; i < segmentos; i++) alturas.push(porSegmento);
+      }
+      setRowHeights(alturas);
+    };
+
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(root);
+    // También observamos mutaciones de contenido (escribir texto cambia
+    // el wrap sin necesariamente disparar resize del contenedor).
+    const mo = new MutationObserver(medir);
+    mo.observe(root, { childList: true, subtree: true, characterData: true });
+
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [editorRef, texto, alturaFija]);
+
   return (
     <div
       aria-hidden
       className="flex flex-col shrink-0 select-none"
-      // El padding-top y el line-height deben calzar exactamente con el
-      // RichEditor (fontSize 11px, lineHeight 1.7, padding "4px 8px 8px")
-      // para que cada número quede alineado con su línea real de texto.
+      // El padding-top debe calzar con el padding-top real del editor
+      // (RichEditor: "4px 8px 8px") para que la fila 0 arranque alineada.
       style={{ paddingTop: 4 }}
     >
       {lineas.map((linea, idx) => {
@@ -82,22 +155,18 @@ export function SyllableColumn({
         const refTxt = refLineas ? (refLineas[idx] ?? "") : "";
         const miVacia  = miTxt.trim() === "";
         const refVacia = refTxt.trim() === "";
+        const filaAltura = rowHeights?.[idx] ?? alturaFija;
 
-        // Antes solo se mostraba el número si AMBOS lados tenían texto en
-        // esa fila (es decir, si mi línea estaba vacía, no se mostraba
-        // nada aunque el otro idioma sí tuviera letra ahí, y viceversa).
-        // Eso hacía "desaparecer" de la columna justo las filas que más
-        // interesa ver: una línea que un idioma ya tiene escrita pero el
-        // otro todavía no (ej. español con más líneas que el idioma de
-        // destino). Ahora se muestra el número apenas UNO de los dos
-        // lados tenga texto en esa fila, como "N/0" o "0/N", para que
-        // esas líneas sin sincronizar queden visibles de inmediato.
+        // Se muestra el número apenas UNO de los dos lados tenga texto en
+        // esa fila (antes exigía que ambos tuvieran texto), para que una
+        // línea sin sincronizar en el otro idioma no desaparezca de la
+        // columna.
         if (miVacia && refVacia) {
           return (
             <div
               key={idx}
               className={`flex items-center ${justify} gap-0.5`}
-              style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${FONT_SIZE_PX * 1.7}px` }}
+              style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${filaAltura}px` }}
             />
           );
         }
@@ -119,7 +188,7 @@ export function SyllableColumn({
           <div
             key={idx}
             className={`flex items-center ${justify} gap-0.5 ${color}`}
-            style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${FONT_SIZE_PX * 1.7}px` }}
+            style={{ fontSize: FONT_SIZE_PX, lineHeight: 1.7, height: `${filaAltura}px` }}
           >
             <span className="text-micro font-black tabular-nums leading-none">
               {miN}
@@ -141,10 +210,7 @@ export function SyllableColumn({
 
 // ── Componente principal ─────────────────────────────────────────────────────
 
-export const SeccionTextarea = ({
-  sec, idioma, refIdioma, onSave, nombreSeccion: _nombreSeccion, countMode,
-  showSyllableColumn = true, onTextoChange,
-}: {
+export const SeccionTextarea = React.forwardRef<HTMLDivElement, {
   sec:           Seccion;
   idioma:        IdiomaKey;
   refIdioma?:    IdiomaKey;
@@ -153,14 +219,24 @@ export const SeccionTextarea = ({
   countMode:     "silabas" | "vocales";
   showSyllableColumn?: boolean;
   onTextoChange?: (texto: string) => void;
-}) => {
+}>(function SeccionTextarea({
+  sec, idioma, refIdioma, onSave, nombreSeccion: _nombreSeccion, countMode,
+  showSyllableColumn = true, onTextoChange,
+}, forwardedEditorRef) {
   const campo     = IDIOMAS.find(i => i.id === idioma)!.campo;
   const serverVal = (sec[campo] as string) || "";
 
   const [texto, setTexto] = useState(serverVal);
   const [st,    setSt]    = useState<ColState>(IDLE_STATE);
 
-  const timer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timer     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Envuelve al RichEditor para que SyllableColumn pueda medir la altura
+  // real de cada línea renderizada (ver comentario en SyllableColumn).
+  // También se expone hacia afuera vía forwardRef: PanelEditor lo usa
+  // para que la columna central (compartida entre español y el idioma
+  // de destino) mida el editor de español aunque viva en otro componente.
+  const editorWrapRef = useRef<HTMLDivElement>(null);
+  useImperativeHandle(forwardedEditorRef, () => editorWrapRef.current as HTMLDivElement, []);
   const draftKey = `sec-draft-${sec.id}-${idioma}`;
   const draft    = useDraftRestore({ key: draftKey, serverValue: serverVal, enabled: !!sec.id });
 
@@ -264,7 +340,7 @@ export const SeccionTextarea = ({
 
       {/* ── Editor con columna de contadores al costado ── */}
       <div className={`flex items-start gap-1 ${statusRingClass}`}>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0" ref={editorWrapRef}>
           <RichEditor
             editable
             minHeight="4rem"
@@ -276,6 +352,7 @@ export const SeccionTextarea = ({
         {showSyllableColumn && (
           <SyllableColumn
             countMode={countMode}
+            editorRef={editorWrapRef}
             refTexto={refTexto}
             texto={texto}
           />
@@ -288,4 +365,4 @@ export const SeccionTextarea = ({
       )}
     </div>
   );
-};
+});

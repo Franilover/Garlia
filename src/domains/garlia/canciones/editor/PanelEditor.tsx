@@ -141,6 +141,11 @@ export const PanelEditor = ({
   // pasar el chequeo antes de que el primer setCreandoBloque(true) surtiera
   // efecto, generando dos filas de bloque único para la misma canción.
   const creandoBloqueParaRef = useRef<string | null>(null);
+  // Ref al contenedor del RichEditor de español, expuesto por
+  // SeccionTextarea vía forwardRef — la columna central de sílabas
+  // (compartida entre español y el idioma de destino) lo usa para medir
+  // la altura real de cada línea y alinear los números correctamente.
+  const editorEsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!cancion || loading || bloque) return;
     if (creandoBloqueParaRef.current === cancionId) return;
@@ -370,6 +375,7 @@ export const PanelEditor = ({
                   <SeccionTextarea
                     countMode={countMode}
                     idioma="es"
+                    ref={editorEsRef}
                     refIdioma={idioma !== "es" ? idioma : undefined}
                     sec={bloque}
                     showSyllableColumn={idioma === "es"}
@@ -383,6 +389,7 @@ export const PanelEditor = ({
                   {idioma !== "es" && (
                     <SyllableColumn
                       countMode={countMode}
+                      editorRef={editorEsRef}
                       refTexto={textoDerecha}
                       texto={texto}
                     />
