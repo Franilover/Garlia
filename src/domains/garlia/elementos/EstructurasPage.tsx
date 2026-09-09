@@ -1097,25 +1097,26 @@ export default function EstructurasPage() {
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
   const seleccionada = items.find((e) => e.id === seleccionadaId) ?? null;
 
-  // Separa el catálogo en Bases estructurales (tipo="base_estructural",
-  // ej. Lámina/Fibra/Tubular) y Estructuras concretas (todo lo demás,
-  // ej. Hoja/Pétalo/Raquis) — antes se mostraban todas mezcladas en una
-  // sola lista plana. Las concretas se subagrupan por su
-  // estructura_base_id (nombre de la base como subtítulo), y las que no
-  // tienen base asignada (anatómica/celular/molecular/vegetal/cristalina
-  // sueltas) van al final bajo "Sin base asignada" en vez de perderse.
+  // Separa el catálogo en Patrones estructurales (tipo="patron_estructural",
+  // ej. Lámina/Fibra/Tubular — renombrado 2026-09 desde "base_estructural")
+  // y Estructuras concretas (todo lo demás, ej. Hoja/Pétalo/Raquis) — antes
+  // se mostraban todas mezcladas en una sola lista plana. Las concretas se
+  // subagrupan por su patron_estructural_id (renombrado desde
+  // estructura_base_id; nombre del patrón como subtítulo), y las que no
+  // tienen patrón asignado (anatómica/celular/molecular/vegetal/cristalina
+  // sueltas) van al final bajo "Sin patrón asignado" en vez de perderse.
   const { bases, gruposConcretas, sinBase } = useMemo(() => {
-    const bases = items.filter((e) => e.tipo === "base_estructural");
-    const concretas = items.filter((e) => e.tipo !== "base_estructural");
+    const bases = items.filter((e) => e.tipo === "patron_estructural");
+    const concretas = items.filter((e) => e.tipo !== "patron_estructural");
     const basesPorId = new Map(bases.map((b) => [b.id, b]));
 
     const porBase = new Map<string, Estructura[]>();
     const sinBase: Estructura[] = [];
     for (const e of concretas) {
-      if (e.estructura_base_id && basesPorId.has(e.estructura_base_id)) {
-        const lista = porBase.get(e.estructura_base_id) ?? [];
+      if (e.patron_estructural_id && basesPorId.has(e.patron_estructural_id)) {
+        const lista = porBase.get(e.patron_estructural_id) ?? [];
         lista.push(e);
-        porBase.set(e.estructura_base_id, lista);
+        porBase.set(e.patron_estructural_id, lista);
       } else {
         sinBase.push(e);
       }

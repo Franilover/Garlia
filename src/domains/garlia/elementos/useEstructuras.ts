@@ -16,7 +16,8 @@
  *  - 2026-09-09: crearEstructura (click en título → Añadir), pedido
  *    explícito de permitir crear Estructuras a mano desde el panel admin
  *    en vez de solo por migración. Nace con tipo="funcional" (categoría
- *    genérica activa en estructura_tipos_catalogo) y el resto de columnas
+ *    genérica activa en tipos_estructura, renombrada 2026-09 desde
+ *    estructura_tipos_catalogo) y el resto de columnas
  *    calculadas en sus defaults ('pendiente'/'{}') — igual que un elemento
  *    nuevo, se completa después desde el editor.
  *

@@ -243,8 +243,13 @@ function estadoInicialDeCompuesto(
     propiedades.tipo_compuesto = compuesto.tipo_compuesto;
   }
 
-  if (compuesto.estado_estructura != null) {
-    propiedades.estado_estructura = compuesto.estado_estructura;
+  // 2026-09: Compuesto.estado_estructura → estado_topologia y
+  // Compuesto.tipo_estructura → topologia_estructura (rename en Supabase).
+  // La clave de salida en "propiedades" se deja igual (estado_estructura/
+  // tipo_estructura) porque es solo la etiqueta interna de display del
+  // sandbox, no una columna real — ver ETIQUETAS_PROPIEDAD más abajo.
+  if (compuesto.estado_topologia != null) {
+    propiedades.estado_estructura = compuesto.estado_topologia;
   }
 
   if (compuesto.formula_canonica != null) {
@@ -255,8 +260,8 @@ function estadoInicialDeCompuesto(
     propiedades.clasificacion = compuesto.clasificacion;
   }
 
-  if (compuesto.tipo_estructura != null) {
-    propiedades.tipo_estructura = compuesto.tipo_estructura;
+  if (compuesto.topologia_estructura != null) {
+    propiedades.tipo_estructura = compuesto.topologia_estructura;
   }
 
   if (compuesto.estado != null) {

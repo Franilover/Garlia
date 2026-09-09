@@ -476,7 +476,9 @@ export interface Compuesto {
   // estado_proyecto: "90/90 compuestos pasan auditoría composición
   // elemento→propiedades"). El frontend nunca escribe acá directamente.
   tipo_compuesto?: string | null;
-  estado_estructura?: string | null;
+  /** 2026-09: renombrada en Supabase de "estado_estructura" a
+   *  "estado_topologia" (fase de nomenclatura del equipo de datos). */
+  estado_topologia?: string | null;
   formula_canonica?: string | null;
   masa?: number | null;
   carga?: number | null;
@@ -492,7 +494,8 @@ export interface Compuesto {
   volumen?: number | null;
   densidad?: number | null;
   clasificacion?: string | null;
-  tipo_estructura?: string | null;
+  /** 2026-09: renombrada de "tipo_estructura" a "topologia_estructura". */
+  topologia_estructura?: string | null;
 
   // ─── Resto de columnas reales de Supabase (2026-08-27) ──────────────────
   // Faltaban en el select/tipo pese a existir en la tabla real "compuestos"
@@ -504,7 +507,9 @@ export interface Compuesto {
   auditoria?: Record<string, unknown> | null;
   umbral_estabilidad?: number | null;
   topologia_enlace?: string | null;
-  tipo_estructura_derivada?: string | null;
+  /** 2026-09: renombrada de "tipo_estructura_derivada" a
+   *  "topologia_estructura_derivada". */
+  topologia_estructura_derivada?: string | null;
   naturaleza_semantica?: string | null;
   razon_clasificacion?: string | null;
 }
@@ -521,12 +526,18 @@ export const CONFIG_COMPUESTOS = {
   // validacion, propiedades_emergentes, auditoria, umbral_estabilidad,
   // topologia_enlace, tipo_estructura_derivada, naturaleza_semantica,
   // razon_clasificacion, updated_at) — ver auditoría de columnas faltantes.
+  // 2026-09: la fase de renombrado del equipo de datos renombró columnas
+  // de "compuestos" (estado_estructura → estado_topologia,
+  // tipo_estructura → topologia_estructura, tipo_estructura_derivada →
+  // topologia_estructura_derivada) — select actualizado a los nombres
+  // nuevos, o el select entero vuelve a fallar con 42703 como pasó antes
+  // con "componentes" (ver nota arriba).
   select:
     "id, nombre, simbolo, notas, created_at, updated_at, sustancia_base_id, estado, " +
-    "tipo_compuesto, estado_estructura, formula_canonica, masa, carga, estabilidad, rigidez, " +
+    "tipo_compuesto, estado_topologia, formula_canonica, masa, carga, estabilidad, rigidez, " +
     "flexibilidad, propiedades_emergentes, estructura, validacion, compatibilidad, " +
-    "tipo_estructura, energia_enlace, umbral_estabilidad, clasificacion, razon_clasificacion, " +
-    "auditoria, topologia_enlace, tipo_estructura_derivada, naturaleza_semantica, dureza, " +
+    "topologia_estructura, energia_enlace, umbral_estabilidad, clasificacion, razon_clasificacion, " +
+    "auditoria, topologia_enlace, topologia_estructura_derivada, naturaleza_semantica, dureza, " +
     "conductividad, transparencia, interaccion, volumen, densidad",
 };
 
@@ -613,9 +624,9 @@ export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalcula
     { clave: "energia_enlace", label: "Energía de enlace", valor: fmt(c.energia_enlace, 4), descripcion: "Energía acumulada en los enlaces del compuesto.", formula: "Energía de enlace = Σ (coste energético × intensidad × (1 − reversibilidad)) de cada enlace", grupo: G.fisicas },
 
     // ─── Estructura ─────────────────────────────────────────────────────
-    { clave: "estado_estructura", label: "Estado de estructura", valor: c.estado_estructura ?? null, descripcion: "Qué tan completa/consistente está la definición estructural del compuesto.", grupo: G.estructura },
-    { clave: "tipo_estructura", label: "Tipo de estructura", valor: c.tipo_estructura ?? null, descripcion: "Clasificación de la arquitectura de enlaces del compuesto.", grupo: G.estructura },
-    { clave: "tipo_estructura_derivada", label: "Tipo de estructura (derivada)", valor: c.tipo_estructura_derivada ?? null, descripcion: "Tipo de estructura recalculado automáticamente a partir de la composición y enlaces actuales.", grupo: G.estructura },
+    { clave: "estado_estructura", label: "Estado de estructura", valor: c.estado_topologia ?? null, descripcion: "Qué tan completa/consistente está la definición estructural del compuesto.", grupo: G.estructura },
+    { clave: "tipo_estructura", label: "Tipo de estructura", valor: c.topologia_estructura ?? null, descripcion: "Clasificación de la arquitectura de enlaces del compuesto.", grupo: G.estructura },
+    { clave: "tipo_estructura_derivada", label: "Tipo de estructura (derivada)", valor: c.topologia_estructura_derivada ?? null, descripcion: "Tipo de estructura recalculado automáticamente a partir de la composición y enlaces actuales.", grupo: G.estructura },
     { clave: "topologia_enlace", label: "Topología de enlace", valor: c.topologia_enlace ?? null, descripcion: "Forma en que se organizan los enlaces entre los elementos del compuesto (ej. lineal, ramificada).", grupo: G.estructura },
 
     // ─── Clasificación ──────────────────────────────────────────────────
@@ -826,20 +837,22 @@ export interface Estructura {
   calculado_at: string | null;
   created_at: string;
   updated_at?: string;
-  /** Si esta Estructura es una variante concreta de una base estructural
-   *  (tipo="base_estructural"), apunta al id de esa base — ej. "Hoja" →
-   *  "Lámina". Null si la Estructura es ella misma una base, o si no tiene
-   *  base asignada (estructuras anatómica/celular/molecular/vegetal/
-   *  cristalina sueltas, sin agrupar). Ver EstructurasPage: separa el
-   *  catálogo en "Bases estructurales" (tipo="base_estructural") y
-   *  "Estructuras concretas" (agrupadas por estructura_base_id). */
-  estructura_base_id: string | null;
+  /** 2026-09: columna renombrada en Supabase de "estructura_base_id" a
+   *  "patron_estructural_id". Si esta Estructura es una variante concreta
+   *  de un patrón estructural (tipo="patron_estructural", antes
+   *  "base_estructural"), apunta al id de ese patrón — ej. "Hoja" →
+   *  "Lámina". Null si la Estructura es ella misma un patrón, o si no
+   *  tiene patrón asignado (estructuras anatómica/celular/molecular/
+   *  vegetal/cristalina sueltas, sin agrupar). Ver EstructurasPage: separa
+   *  el catálogo en "Patrones estructurales" (tipo="patron_estructural") y
+   *  "Estructuras concretas" (agrupadas por patron_estructural_id). */
+  patron_estructural_id: string | null;
 }
 
 export const CONFIG_ESTRUCTURAS = {
   tabla: "estructuras",
   select:
-    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, estructura_base_id",
+    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, patron_estructural_id",
 };
 
 /**
