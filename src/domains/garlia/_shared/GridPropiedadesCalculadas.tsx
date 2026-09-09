@@ -183,14 +183,14 @@ function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo
     return (
       <div
         title={p.significadoHumano}
-        className="flex flex-col gap-1 min-w-0 px-2.5 py-2 rounded-lg border border-accent/20 bg-accent/[0.06]"
+        className="flex flex-col gap-0.5 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]"
       >
-        <span className="text-[10px] font-black uppercase tracking-widest text-accent/60 truncate">
-          {p.label}
-        </span>
-        <span className="text-sm font-black text-accent capitalize leading-tight truncate">
-          {p.nivelHumano}
-        </span>
+        <div className="flex items-center justify-between gap-1 min-w-0">
+          <span className="text-micro font-bold text-accent/60 truncate">{p.label}</span>
+          <span className="text-micro font-black text-accent capitalize shrink-0 truncate max-w-[6.5rem] text-right">
+            {p.nivelHumano}
+          </span>
+        </div>
         {p.significadoHumano && (
           <span className="text-[10px] leading-snug text-primary/50">{p.significadoHumano}</span>
         )}
