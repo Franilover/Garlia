@@ -726,23 +726,47 @@ export function ElementosPage({
   // estos hooks acá, cada subpágina (EstructurasPage/MaterialesPage/
   // ProcesosPage/FenomenosPage) sigue haciendo su propio fetch/render;
   // esto solo lee el total para elegir 3 columnas iguales vs 2/3+1/3.
-  // También trae renombrarEstructura/eliminarEstructura y
-  // renombrarMaterial/eliminarMaterial (agregados 2026-08-28) para el modal
-  // "Editar" del título de sección — ver CabeceraSeccionConMenu.tsx. Nota:
-  // esta es una instancia separada de useSupabaseData de la que usan
-  // EstructurasPage/MaterialesPage internamente (mismo patrón preexistente
-  // que ya tenían estas dos líneas solo para el conteo); el hook está
-  // suscrito a cambios en la tabla, así que ambas instancias convergen.
+  // También trae crearEstructura/renombrarEstructura/eliminarEstructura y
+  // crearMaterial/renombrarMaterial/eliminarMaterial (2026-08-28 y
+  // 2026-09-09) para el menú del título de sección — ver
+  // CabeceraSeccionConMenu.tsx. Nota: esta es una instancia separada de
+  // useSupabaseData de la que usan EstructurasPage/MaterialesPage
+  // internamente (mismo patrón preexistente que ya tenían estas dos líneas
+  // solo para el conteo); el hook está suscrito a cambios en la tabla, así
+  // que ambas instancias convergen.
   const {
     items: estructurasParaConteo,
+    crearEstructura,
     renombrarEstructura,
     eliminarEstructura,
   } = useEstructuras();
   const {
     items: materialesParaConteo,
+    crearMaterial,
     renombrarMaterial,
     eliminarMaterial,
   } = useMateriales();
+  const [creatingEstructura, setCreatingEstructura] = useState(false);
+  const [creatingMaterial, setCreatingMaterial] = useState(false);
+
+  async function handleCrearEstructura() {
+    setCreatingEstructura(true);
+    try {
+      await crearEstructura();
+    } finally {
+      setCreatingEstructura(false);
+    }
+  }
+
+  async function handleCrearMaterial() {
+    setCreatingMaterial(true);
+    try {
+      await crearMaterial();
+    } finally {
+      setCreatingMaterial(false);
+    }
+  }
+
   const { items: procesosParaConteo } = useProcesos();
   const { items: fenomenosParaConteo } = useFenomenos();
 
@@ -944,9 +968,8 @@ export function ElementosPage({
             titulo: "Estructuras",
             total: estructurasParaConteo.length,
             items: estructurasParaConteo,
-            // Sin onAñadir: Estructuras se puebla por migración/cálculo, no
-            // por creación manual (ver useEstructuras.ts) — el menú del
-            // título muestra solo "Editar" (renombrar/borrar), no "Añadir".
+            onAñadir: handleCrearEstructura,
+            añadiendo: creatingEstructura,
             onRenombrar: renombrarEstructura,
             onEliminar: eliminarEstructura,
             contenido: <EstructurasPage />,
@@ -956,7 +979,8 @@ export function ElementosPage({
             titulo: "Materiales",
             total: materialesParaConteo.length,
             items: materialesParaConteo,
-            // Mismo caso que Estructuras: sin onAñadir, solo renombrar/borrar.
+            onAñadir: handleCrearMaterial,
+            añadiendo: creatingMaterial,
             onRenombrar: renombrarMaterial,
             onEliminar: eliminarMaterial,
             contenido: <MaterialesPage />,

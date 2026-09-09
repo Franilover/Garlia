@@ -10,11 +10,15 @@
  *
  * Las propiedades calculadas (propiedades_calculadas, estado_calculo, etc.)
  * siguen siendo de solo lectura desde el frontend — se generan por
- * migración/cálculo, no por edición manual. Lo que SÍ se agregó acá
- * (2026-08-28, pedido de UI "click en título → Editar → renombrar/borrar"):
- * renombrarEstructura/eliminarEstructura, análogos a los de useCompuestos —
- * solo tocan el campo "nombre" o borran la fila entera, nunca los campos
- * calculados.
+ * migración/cálculo, no por edición manual. Lo que SÍ se agregó acá:
+ *  - 2026-08-28: renombrarEstructura/eliminarEstructura (click en título →
+ *    Editar → renombrar/borrar).
+ *  - 2026-09-09: crearEstructura (click en título → Añadir), pedido
+ *    explícito de permitir crear Estructuras a mano desde el panel admin
+ *    en vez de solo por migración. Nace con tipo="funcional" (categoría
+ *    genérica activa en estructura_tipos_catalogo) y el resto de columnas
+ *    calculadas en sus defaults ('pendiente'/'{}') — igual que un elemento
+ *    nuevo, se completa después desde el editor.
  *
  * Mismo patrón useSupabaseData que useCompuestos.ts / useOrganismos.ts.
  */
@@ -32,6 +36,21 @@ export function useEstructuras() {
   });
 
   const items = useMemo(() => data, [data]);
+
+  async function crearEstructura() {
+    const { data: nuevo, error } = await supabase
+      .from(CONFIG_ESTRUCTURAS.tabla)
+      .insert([{ nombre: "Nueva estructura", tipo: "funcional" }])
+      .select()
+      .single();
+    if (error || !nuevo) {
+      console.error("[useEstructuras] error creando estructura:", error);
+      return null;
+    }
+    const fila = nuevo as unknown as Estructura;
+    setData((prev) => [...prev, fila]);
+    return fila;
+  }
 
   async function renombrarEstructura(id: string, nuevoNombre: string) {
     const { error } = await supabase
@@ -54,5 +73,5 @@ export function useEstructuras() {
     setData((prev) => prev.filter((e) => e.id !== id));
   }
 
-  return { items, loading, renombrarEstructura, eliminarEstructura };
+  return { items, loading, crearEstructura, renombrarEstructura, eliminarEstructura };
 }

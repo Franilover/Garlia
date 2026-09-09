@@ -8,10 +8,16 @@
  * siendo de solo lectura desde el frontend — se derivan de composición/
  * microestructura por Supabase, no se editan a mano.
  *
- * Lo que SÍ se agregó acá (2026-08-28, mismo pedido de UI que
- * useEstructuras.ts: "click en título → Editar → renombrar/borrar"):
- * renombrarMaterial/eliminarMaterial — solo tocan "nombre" o borran la fila,
- * nunca los campos calculados.
+ * Lo que SÍ se agregó acá:
+ *  - 2026-08-28: renombrarMaterial/eliminarMaterial (click en título →
+ *    Editar → renombrar/borrar).
+ *  - 2026-09-09: crearMaterial (click en título → Añadir), pedido
+ *    explícito de permitir crear Materiales a mano. Nace con
+ *    tipo_material="experimental" (para distinguir a simple vista de una
+ *    "clase" curada) y el resto en sus defaults. "nombre" tiene un UNIQUE
+ *    constraint en la tabla — si "Nuevo material" ya existe, se agrega un
+ *    sufijo numérico hasta encontrar uno libre, igual que evitaría el
+ *    usuario a mano.
  */
 
 import { useMemo } from "react";
@@ -33,6 +39,27 @@ export function useMateriales() {
   );
 
   const items = useMemo(() => data, [data]);
+
+  async function crearMaterial() {
+    let nombre = "Nuevo material";
+    let sufijo = 2;
+    while (items.some((m) => m.nombre === nombre)) {
+      nombre = `Nuevo material ${sufijo}`;
+      sufijo++;
+    }
+    const { data: nuevo, error } = await supabase
+      .from(CONFIG_MATERIALES.tabla)
+      .insert([{ nombre, tipo_material: "experimental" }])
+      .select()
+      .single();
+    if (error || !nuevo) {
+      console.error("[useMateriales] error creando material:", error);
+      return null;
+    }
+    const fila = nuevo as unknown as Material;
+    setData((prev) => [...prev, fila]);
+    return fila;
+  }
 
   async function renombrarMaterial(id: string, nuevoNombre: string) {
     const { error } = await supabase
@@ -58,6 +85,7 @@ export function useMateriales() {
   return {
     items,
     loading,
+    crearMaterial,
     renombrarMaterial,
     eliminarMaterial,
   };
