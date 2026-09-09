@@ -19,15 +19,15 @@
  * lugar de donde hoy se renderiza <FisicaPage />.
  *
  * Formas/Variables/Leyes son catálogos "canónicos" (poblados por
- * documentación/migración del sistema físico) — igual que Estructuras y
- * Materiales, el menú de título acá NO incluye "Añadir" por defecto: solo
- * renombrar/borrar. Si más adelante se quiere permitir crear formas nuevas
- * a mano, agregar el insert acá es directo (mismo patrón que
- * handleCreateCompuesto en ElementosPage.tsx).
+ * documentación/migración del sistema físico). 2026-09-09: se agregó
+ * "Añadir" al título de Formas (crearForma en useGeometriaCatalogo.ts,
+ * mismo patrón que crearEstructura/crearMaterial) para poder crear Formas
+ * nuevas a mano desde el panel admin — Variables y Leyes siguen siendo
+ * solo renombrar/borrar, sin insert propio todavía.
  */
 
 import { Loader2 } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { FilaAsimetrica } from "@/domains/garlia/_shared/FilaAsimetrica";
@@ -129,9 +129,24 @@ function ListaLeyes() {
 }
 
 export function GeometriasPage() {
-  const { items: formas, renombrarForma, eliminarForma } = useFormasGeometricas();
+  const {
+    items: formas,
+    crearForma,
+    renombrarForma,
+    eliminarForma,
+  } = useFormasGeometricas();
   const { items: variables } = useGeometriaVariables();
   const { items: leyes } = useLeyesGeometricas();
+  const [creandoForma, setCreandoForma] = useState(false);
+
+  async function handleCrearForma() {
+    setCreandoForma(true);
+    try {
+      await crearForma();
+    } finally {
+      setCreandoForma(false);
+    }
+  }
 
   // Variables y Leyes siguen siendo 100% solo-lectura desde acá (sin
   // renombrarForma/eliminarForma propio en el hook todavía) — mismo patrón
@@ -155,6 +170,8 @@ export function GeometriasPage() {
             titulo: "Formas",
             total: formas.length,
             items: formas,
+            onAñadir: handleCrearForma,
+            añadiendo: creandoForma,
             onRenombrar: renombrarForma,
             onEliminar: eliminarForma,
             contenido: <ListaFormas />,

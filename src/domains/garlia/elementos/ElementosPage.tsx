@@ -748,13 +748,20 @@ export function ElementosPage({
     renombrarMaterial,
     eliminarMaterial,
   } = useMateriales();
-  // Geometrías (cuarto grid, pedido 2026-09-09): Formas es catálogo
-  // canónico igual que Estructuras/Materiales, sin "Añadir" propio acá
-  // (mismo criterio que en GeometriasPage.tsx) — solo renombrar/borrar
-  // desde el menú del título.
-  const { items: formasParaConteo, renombrarForma, eliminarForma } = useFormasGeometricas();
+  // Geometrías (cuarto grid, pedido 2026-09-09; "Añadir" agregado
+  // 2026-09-09 también, a diferencia de Estructuras/Materiales que ya
+  // traían el suyo desde antes): Formas ahora es creable a mano desde el
+  // panel admin igual que Estructuras/Materiales — ver crearForma en
+  // useGeometriaCatalogo.ts.
+  const {
+    items: formasParaConteo,
+    crearForma,
+    renombrarForma,
+    eliminarForma,
+  } = useFormasGeometricas();
   const [creatingEstructura, setCreatingEstructura] = useState(false);
   const [creatingMaterial, setCreatingMaterial] = useState(false);
+  const [creatingForma, setCreatingForma] = useState(false);
 
   async function handleCrearEstructura() {
     setCreatingEstructura(true);
@@ -771,6 +778,15 @@ export function ElementosPage({
       await crearMaterial();
     } finally {
       setCreatingMaterial(false);
+    }
+  }
+
+  async function handleCrearForma() {
+    setCreatingForma(true);
+    try {
+      await crearForma();
+    } finally {
+      setCreatingForma(false);
     }
   }
 
@@ -1000,6 +1016,8 @@ export function ElementosPage({
             titulo: "Geometrías",
             total: formasParaConteo.length,
             items: formasParaConteo,
+            onAñadir: handleCrearForma,
+            añadiendo: creatingForma,
             onRenombrar: renombrarForma,
             onEliminar: eliminarForma,
             contenido: <ListaFormas />,

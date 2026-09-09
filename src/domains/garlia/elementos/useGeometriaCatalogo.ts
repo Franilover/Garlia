@@ -14,11 +14,12 @@
  * Estructura, y por la sección "Química → Geometrías" (cuarto grid,
  * ver ElementosPage.tsx / FilaAsimetrica.tsx).
  *
- * 2026-09-09: se agregó renombrarForma/eliminarForma a useFormasGeometricas
- * (mismo patrón que useEstructuras.ts) para el menú del título del grid —
- * antes esta tabla se trataba como 100% solo-lectura (poblada por
- * migración), pero para editar el nombre/borrar una Forma desde el panel
- * admin hace falta setData expuesto, igual que en las otras entidades.
+ * 2026-09-09: se agregó renombrarForma/eliminarForma/crearForma a
+ * useFormasGeometricas (mismo patrón que useEstructuras.ts) para el menú
+ * del título del grid — antes esta tabla se trataba como 100% solo-lectura
+ * (poblada por migración), pero para editar/crear/borrar una Forma desde
+ * el panel admin hace falta setData expuesto, igual que en las otras
+ * entidades.
  */
 
 import { useMemo } from "react";
@@ -44,6 +45,32 @@ export function useFormasGeometricas() {
   );
   const items = useMemo(() => data, [data]);
 
+  async function crearForma() {
+    // "clave" es la que tiene el UNIQUE constraint (no "nombre") — mismo
+    // patrón de sufijo numérico que crearMaterial usa para su UNIQUE en
+    // nombre, pero acá aplicado sobre clave. Nace en estado "experimental"
+    // (default de la tabla) para distinguirse a simple vista de una Forma
+    // canónica curada por migración.
+    let clave = "nueva-forma";
+    let sufijo = 2;
+    while (items.some((f) => f.clave === clave)) {
+      clave = `nueva-forma-${sufijo}`;
+      sufijo++;
+    }
+    const { data: nuevo, error } = await supabase
+      .from(CONFIG_FORMAS_GEOMETRICAS.tabla)
+      .insert([{ clave, nombre: "Nueva forma" }])
+      .select()
+      .single();
+    if (error || !nuevo) {
+      console.error("[useFormasGeometricas] error creando forma:", error);
+      return null;
+    }
+    const fila = nuevo as unknown as FormaGeometrica;
+    setData((prev) => [...prev, fila]);
+    return fila;
+  }
+
   async function renombrarForma(id: string, nuevoNombre: string) {
     const { error } = await supabase
       .from(CONFIG_FORMAS_GEOMETRICAS.tabla)
@@ -65,7 +92,7 @@ export function useFormasGeometricas() {
     setData((prev) => prev.filter((f) => f.id !== id));
   }
 
-  return { items, loading, renombrarForma, eliminarForma };
+  return { items, loading, crearForma, renombrarForma, eliminarForma };
 }
 
 export function useLeyesGeometricas() {
