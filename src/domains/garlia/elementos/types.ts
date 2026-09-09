@@ -842,6 +842,102 @@ export const CONFIG_ESTRUCTURAS = {
     "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, estructura_base_id",
 };
 
+/**
+ * Geometría — catálogo de Formas/Variables/Leyes (tablas físicas globales,
+ * pobladas por migración/documentación del sistema, solo lectura desde acá)
+ * más la instancia real por Estructura en estructura_geometrias (esa sí
+ * editable: forma elegida + parámetros + volumen calculado).
+ *
+ * Jerarquía (ver pedido 2026-09-09 "Física → Geometrías → Formas/Variables/
+ * Leyes", y dentro de una Estructura → bloque "Geometría"):
+ *   FormaGeometrica  (prisma_rectangular, esfera, cilindro...)
+ *   GeometriaVariable (longitud, ancho, radio... con su unidad y tipo)
+ *   LeyGeometrica     (fórmula ligada a una Forma, ej. V = l×a×g, con
+ *                      magnitud/unidad de salida — normalmente Volumen)
+ *   EstructuraGeometria (estructura_id único → qué Forma tiene esa
+ *                      Estructura, con qué parámetros concretos, y el
+ *                      volumen ya calculado por esa Ley)
+ */
+export interface FormaGeometrica {
+  id: string;
+  clave: string;
+  nombre: string;
+  descripcion: string | null;
+  /** [{clave, dimension}] — qué parámetros necesita esta forma (ej.
+   *  longitud/ancho/grosor para prisma_rectangular). Viene del catálogo,
+   *  solo lectura. */
+  parametros_requeridos: { clave: string; dimension?: string }[];
+  estado: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export const CONFIG_FORMAS_GEOMETRICAS = {
+  tabla: "formas_geometricas",
+  select: "id, clave, nombre, descripcion, parametros_requeridos, estado, created_at, updated_at",
+};
+
+export interface GeometriaVariable {
+  id: string;
+  clave: string;
+  nombre: string;
+  unidad: string | null;
+  descripcion: string;
+  tipo: "intrinseca" | "derivada" | "relacional";
+  version: string;
+  estado: string;
+}
+
+export const CONFIG_GEOMETRIA_VARIABLES = {
+  tabla: "geometria_variables",
+  select: "id, clave, nombre, unidad, descripcion, tipo, version, estado",
+};
+
+export interface LeyGeometrica {
+  id: string;
+  forma_id: string;
+  magnitud_salida_id: string | null;
+  salida_magnitud_id: string | null;
+  salida_unidad_id: string | null;
+  formula_simbolica: string;
+  parametros_requeridos: { clave: string; dimension?: string }[];
+  parametros_magnitudes: Record<string, unknown> | null;
+  operacion: Record<string, unknown> | null;
+  version: string;
+  estado: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export const CONFIG_LEYES_GEOMETRICAS = {
+  tabla: "leyes_geometricas",
+  select:
+    "id, forma_id, magnitud_salida_id, salida_magnitud_id, salida_unidad_id, formula_simbolica, " +
+    "parametros_requeridos, parametros_magnitudes, operacion, version, estado, created_at, updated_at",
+};
+
+/** Instancia real de geometría de UNA Estructura — estructura_id es único
+ *  (1 Estructura tiene a lo sumo 1 geometría activa). "Sin geometría" en la
+ *  UI = no existe fila acá todavía para esa estructura_id. */
+export interface EstructuraGeometria {
+  id: string;
+  estructura_id: string;
+  geometria_id: string;
+  /** { [clave_parametro]: number } — ej. { longitud: 10, ancho: 4, grosor: 2 }. */
+  parametros: Record<string, number>;
+  volumen: number | null;
+  estado_calculo: string;
+  fuente_formula_id: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+export const CONFIG_ESTRUCTURA_GEOMETRIAS = {
+  tabla: "estructura_geometrias",
+  select:
+    "id, estructura_id, geometria_id, parametros, volumen, estado_calculo, fuente_formula_id, created_at, updated_at",
+};
+
 /** Fila puente estructura_compuestos: de qué Compuestos está hecha una Estructura (M:N). */
 export interface EstructuraCompuesto {
   id: string;

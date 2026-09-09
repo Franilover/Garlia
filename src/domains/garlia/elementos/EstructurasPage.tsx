@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PropiedadesFisicasGenerico } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
+import { GeometriaBloque } from "@/domains/garlia/_shared/GeometriaBloque";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
 
@@ -980,6 +981,7 @@ function EstructuraDetail({ estructura }: { estructura: Estructura }) {
       <div className="grid grid-cols-2 gap-3 items-start">
         <div className="flex flex-col gap-2 min-w-0">
           <PropiedadesFisicasGenerico propiedades={propiedades} columnas={2} />
+          <GeometriaBloque estructuraId={estructura.id} />
         </div>
         <div className="flex flex-col gap-2 min-w-0">
           <ComposicionEstructuraBloque estructuraId={estructura.id} />
