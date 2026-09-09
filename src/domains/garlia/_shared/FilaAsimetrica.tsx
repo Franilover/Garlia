@@ -23,6 +23,11 @@
  * candidatos a "grande", se prioriza el primero (izquierda) para mantener
  * el orden visual estable en vez de saltar entre layouts al cambiar un
  * ítem cerca del umbral.
+ *
+ * Con 4 bloques (ej. Compuestos/Estructuras/Materiales/Geometrías) no se
+ * aplica la lógica de "bloque dominante" — directamente 2 columnas × 2
+ * filas, simétrico. Es el caso más simple y evita reglas de dominancia
+ * poco legibles con 4 ítems (¿qué pasa si dos son grandes a la vez?).
  */
 
 import React from "react";
@@ -51,6 +56,7 @@ interface Bloque {
 const UMBRAL_DOMINANCIA = 1.5;
 
 function elegirBloqueGrande(bloques: Bloque[]): number | null {
+  // 4 bloques → siempre 2×2 simétrico, nunca "bloque dominante".
   if (bloques.length !== 2 && bloques.length !== 3) return null;
   for (let i = 0; i < bloques.length; i++) {
     const resto = bloques.reduce((suma, b, j) => (j === i ? suma : suma + b.total), 0);
@@ -64,6 +70,28 @@ function elegirBloqueGrande(bloques: Bloque[]): number | null {
 export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
   const idxGrande = elegirBloqueGrande(bloques);
   const columnas = bloques.length;
+
+  if (columnas === 4) {
+    // 2 columnas × 2 filas, apilado a 1 columna en mobile. Sin bloque
+    // dominante: cada celda ocupa su cuadrante tal cual.
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        {bloques.map((bloque) => (
+          <div key={bloque.key} className="min-w-0">
+            <CabeceraSeccionConMenu
+              titulo={bloque.titulo}
+              items={bloque.items}
+              onAñadir={bloque.onAñadir}
+              onRenombrar={bloque.onRenombrar}
+              onEliminar={bloque.onEliminar}
+              añadiendo={bloque.añadiendo}
+            />
+            {bloque.contenido}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (idxGrande === null) {
     // Reparto simétrico — columnas iguales (mitad y mitad con 2 bloques,

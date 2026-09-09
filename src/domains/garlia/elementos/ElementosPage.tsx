@@ -35,6 +35,8 @@ import {
 import { useReacciones } from "./useReacciones";
 import { useEstructuras } from "./useEstructuras";
 import { useMateriales } from "../materiales/useMateriales";
+import { useFormasGeometricas } from "./useGeometriaCatalogo";
+import { ListaFormas } from "../fisica/GeometriasPage";
 import { useProcesos } from "./useProcesos";
 import { useFenomenos } from "./useFenomenos";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
@@ -746,6 +748,11 @@ export function ElementosPage({
     renombrarMaterial,
     eliminarMaterial,
   } = useMateriales();
+  // Geometrías (cuarto grid, pedido 2026-09-09): Formas es catálogo
+  // canónico igual que Estructuras/Materiales, sin "Añadir" propio acá
+  // (mismo criterio que en GeometriasPage.tsx) — solo renombrar/borrar
+  // desde el menú del título.
+  const { items: formasParaConteo, renombrarForma, eliminarForma } = useFormasGeometricas();
   const [creatingEstructura, setCreatingEstructura] = useState(false);
   const [creatingMaterial, setCreatingMaterial] = useState(false);
 
@@ -925,11 +932,14 @@ export function ElementosPage({
         </div>
       </div>
 
-      {/* Compuestos / Estructuras / Materiales — layout adaptativo (ver
-          _shared/FilaAsimetrica.tsx): 3 columnas iguales si los totales son
-          comparables, o una columna grande (2/3) + dos apiladas (1/3) si
-          uno de los tres domina en cantidad de ítems, para no dejar un
-          hueco vacío enorme al lado de un bloque con pocos ítems. */}
+      {/* Compuestos / Estructuras / Materiales / Geometrías — layout
+          adaptativo (ver _shared/FilaAsimetrica.tsx). Con 4 bloques se usa
+          siempre 2 columnas × 2 filas (sin lógica de "bloque dominante",
+          que solo aplica a 2/3 bloques). Geometrías reusa ListaFormas de
+          fisica/GeometriasPage.tsx en vez de la fila Formas/Variables/Leyes
+          completa — acá solo mostramos el catálogo de Formas, que es lo
+          accionable a nivel Química; Variables/Leyes quedan en la sección
+          Física → Geometrías dedicada. */}
       <FilaAsimetrica
         bloques={[
           {
@@ -984,6 +994,15 @@ export function ElementosPage({
             onRenombrar: renombrarMaterial,
             onEliminar: eliminarMaterial,
             contenido: <MaterialesPage />,
+          },
+          {
+            key: "geometrias",
+            titulo: "Geometrías",
+            total: formasParaConteo.length,
+            items: formasParaConteo,
+            onRenombrar: renombrarForma,
+            onEliminar: eliminarForma,
+            contenido: <ListaFormas />,
           },
         ]}
       />

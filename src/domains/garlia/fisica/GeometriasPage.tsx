@@ -27,7 +27,7 @@
  */
 
 import { Loader2 } from "lucide-react";
-import React, { useState } from "react";
+import React from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { FilaAsimetrica } from "@/domains/garlia/_shared/FilaAsimetrica";
@@ -43,7 +43,10 @@ import {
   CONFIG_LEYES_GEOMETRICAS,
 } from "@/domains/garlia/elementos/types";
 
-function ListaFormas() {
+/** Exportado para reusar como `contenido` del cuarto grid "Geometrías" en
+ *  Química (ver ElementosPage.tsx) — mismo listado, sin repetir el fila
+ *  Formas/Variables/Leyes completa dentro de una celda. */
+export function ListaFormas() {
   const { items, loading } = useFormasGeometricas();
   if (loading) {
     return (
@@ -123,20 +126,16 @@ function ListaLeyes() {
 }
 
 export function GeometriasPage() {
-  const { items: formas } = useFormasGeometricas();
+  const { items: formas, renombrarForma, eliminarForma } = useFormasGeometricas();
   const { items: variables } = useGeometriaVariables();
   const { items: leyes } = useLeyesGeometricas();
 
-  const [renombrando, setRenombrando] = useState(false);
-
+  // Variables y Leyes siguen siendo 100% solo-lectura desde acá (sin
+  // renombrarForma/eliminarForma propio en el hook todavía) — mismo patrón
+  // genérico de antes solo para esas dos.
   async function renombrarFila(tabla: string, id: string, nuevoNombre: string) {
-    setRenombrando(true);
-    try {
-      const { error } = await supabase.from(tabla).update({ nombre: nuevoNombre }).eq("id", id);
-      if (error) console.error(`[GeometriasPage] error renombrando en ${tabla}:`, error);
-    } finally {
-      setRenombrando(false);
-    }
+    const { error } = await supabase.from(tabla).update({ nombre: nuevoNombre }).eq("id", id);
+    if (error) console.error(`[GeometriasPage] error renombrando en ${tabla}:`, error);
   }
 
   async function eliminarFila(tabla: string, id: string) {
@@ -153,10 +152,8 @@ export function GeometriasPage() {
             titulo: "Formas",
             total: formas.length,
             items: formas,
-            añadiendo: renombrando,
-            onRenombrar: (id, nuevoNombre) =>
-              renombrarFila(CONFIG_FORMAS_GEOMETRICAS.tabla, id, nuevoNombre),
-            onEliminar: (id) => eliminarFila(CONFIG_FORMAS_GEOMETRICAS.tabla, id),
+            onRenombrar: renombrarForma,
+            onEliminar: eliminarForma,
             contenido: <ListaFormas />,
           },
           {
