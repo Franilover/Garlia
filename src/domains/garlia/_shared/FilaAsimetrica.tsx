@@ -24,10 +24,13 @@
  * el orden visual estable en vez de saltar entre layouts al cambiar un
  * ítem cerca del umbral.
  *
- * Con 4 bloques (ej. Compuestos/Estructuras/Materiales/Geometrías) no se
- * aplica la lógica de "bloque dominante" — directamente 2 columnas × 2
- * filas, simétrico. Es el caso más simple y evita reglas de dominancia
- * poco legibles con 4 ítems (¿qué pasa si dos son grandes a la vez?).
+ * Con 4 bloques (ej. Compuestos/Estructuras/Materiales/Geometrías) se
+ * aplica la MISMA lógica de bloque dominante que con 3 — el bloque con
+ * más ítems ocupa 2/3 del ancho y los otros tres se apilan en el 1/3
+ * restante. Un 2×2 simétrico fijo se probó y dejaba un cuadrante enorme
+ * desperdiciado cuando un bloque (ej. Geometrías, ~7 ítems cortos) es
+ * mucho más chico que otro (ej. Estructuras, con subgrupos largos) — con
+ * dominante+apilado ese desbalance ya no genera hueco vacío.
  */
 
 import React from "react";
@@ -56,8 +59,9 @@ interface Bloque {
 const UMBRAL_DOMINANCIA = 1.5;
 
 function elegirBloqueGrande(bloques: Bloque[]): number | null {
-  // 4 bloques → siempre 2×2 simétrico, nunca "bloque dominante".
-  if (bloques.length !== 2 && bloques.length !== 3) return null;
+  // Aplica con 2, 3 o 4 bloques (ver nota arriba sobre por qué 4 dejó de
+  // ser un caso especial de 2×2 fijo).
+  if (bloques.length < 2 || bloques.length > 4) return null;
   for (let i = 0; i < bloques.length; i++) {
     const resto = bloques.reduce((suma, b, j) => (j === i ? suma : suma + b.total), 0);
     if (bloques[i].total >= UMBRAL_DOMINANCIA * Math.max(resto, 1)) {
@@ -71,33 +75,18 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
   const idxGrande = elegirBloqueGrande(bloques);
   const columnas = bloques.length;
 
-  if (columnas === 4) {
-    // 2 columnas × 2 filas, apilado a 1 columna en mobile. Sin bloque
-    // dominante: cada celda ocupa su cuadrante tal cual.
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2">
-        {bloques.map((bloque) => (
-          <div key={bloque.key} className="min-w-0">
-            <CabeceraSeccionConMenu
-              titulo={bloque.titulo}
-              items={bloque.items}
-              onAñadir={bloque.onAñadir}
-              onRenombrar={bloque.onRenombrar}
-              onEliminar={bloque.onEliminar}
-              añadiendo={bloque.añadiendo}
-            />
-            {bloque.contenido}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   if (idxGrande === null) {
-    // Reparto simétrico — columnas iguales (mitad y mitad con 2 bloques,
-    // tercios con 3), apiladas en mobile. Clase explícita (no interpolada)
-    // porque Tailwind purga clases armadas por template string en runtime.
-    const colsClase = columnas === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
+    // Reparto simétrico — columnas iguales (mitad con 2, tercios con 3,
+    // cuartos con 4), apiladas en mobile (2 columnas desde md para que 4
+    // bloques angostos no queden ilegibles, 4 recién desde lg). Clases
+    // explícitas (no interpoladas) porque Tailwind purga clases armadas
+    // por template string en runtime.
+    const colsClase =
+      columnas === 2
+        ? "md:grid-cols-2"
+        : columnas === 3
+          ? "md:grid-cols-3"
+          : "md:grid-cols-2 lg:grid-cols-4";
     return (
       <div className={`grid grid-cols-1 ${colsClase}`}>
         {bloques.map((bloque) => (
