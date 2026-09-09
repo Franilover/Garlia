@@ -79,6 +79,26 @@ export function ElementosSection({ selectedId }: { selectedId: string | null }) 
     }
   }
 
+  // Renombrado liviano desde el modal "Editar" del título de sección (ver
+  // CabeceraSeccionConMenu) — a diferencia de onActualizar (que solo toca
+  // estado local, persistido en otro lado por ElementoEditor.persist), este
+  // sí escribe directo a Supabase porque el modal no pasa por el editor
+  // completo.
+  async function handleRenombrar(id: string, nuevoNombre: string) {
+    try {
+      const { error } = await supabase
+        .from("elementos")
+        .update({ nombre: nuevoNombre })
+        .eq("id", id);
+      if (error) throw error;
+      setElementos((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, nombre: nuevoNombre } : e)),
+      );
+    } catch (e) {
+      console.error("[ElementosSection] error renombrando elemento:", e);
+    }
+  }
+
   async function handleEliminar(id: string) {
     try {
       const { error } = await supabase.from("elementos").delete().eq("id", id);
@@ -134,6 +154,7 @@ export function ElementosSection({ selectedId }: { selectedId: string | null }) 
         setElementos((prev) => prev.map((e) => (e.id === id ? { ...e, ...cambios } : e)))
       }
       onEliminar={handleEliminar}
+      onRenombrar={handleRenombrar}
       seleccionarId={esCompuesto ? recienCreadoId : (selectedId ?? recienCreadoId)}
       compuestoIdInicial={compuestoIdInicial}
       onImportarElementos={handleImportarElementos}

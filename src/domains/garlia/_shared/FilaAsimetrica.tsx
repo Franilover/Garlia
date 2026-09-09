@@ -27,11 +27,25 @@
 
 import React from "react";
 
+import {
+  CabeceraSeccionConMenu,
+  type ItemEditable,
+} from "./CabeceraSeccionConMenu";
+
 interface Bloque {
   key: string;
   titulo: string;
   total: number;
   contenido: React.ReactNode;
+  /** Ítems del catálogo de este bloque, para el modal "Editar" del título
+   *  (click en título → Añadir/Editar). Si se omite (junto con los
+   *  callbacks de abajo), el título queda como antes: solo texto, sin
+   *  menú clicable — ver CabeceraSeccionConMenu.tsx. */
+  items?: ItemEditable[];
+  onAñadir?: () => void | Promise<void>;
+  onRenombrar?: (id: string, nuevoNombre: string) => void | Promise<void>;
+  onEliminar?: (id: string) => void | Promise<void>;
+  añadiendo?: boolean;
 }
 
 const UMBRAL_DOMINANCIA = 1.5;
@@ -47,14 +61,6 @@ function elegirBloqueGrande(bloques: Bloque[]): number | null {
   return null;
 }
 
-function Cabecera({ titulo }: { titulo: string }) {
-  return (
-    <div className="px-3 pt-3 text-primary/40 text-center">
-      <p className="text-micro font-black uppercase tracking-widest">{titulo}</p>
-    </div>
-  );
-}
-
 export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
   const idxGrande = elegirBloqueGrande(bloques);
   const columnas = bloques.length;
@@ -68,7 +74,14 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
       <div className={`grid grid-cols-1 ${colsClase}`}>
         {bloques.map((bloque) => (
           <div key={bloque.key} className="min-w-0">
-            <Cabecera titulo={bloque.titulo} />
+            <CabeceraSeccionConMenu
+              titulo={bloque.titulo}
+              items={bloque.items}
+              onAñadir={bloque.onAñadir}
+              onRenombrar={bloque.onRenombrar}
+              onEliminar={bloque.onEliminar}
+              añadiendo={bloque.añadiendo}
+            />
             {bloque.contenido}
           </div>
         ))}
@@ -82,13 +95,27 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3">
       <div className="min-w-0 md:col-span-2">
-        <Cabecera titulo={grande.titulo} />
+        <CabeceraSeccionConMenu
+          titulo={grande.titulo}
+          items={grande.items}
+          onAñadir={grande.onAñadir}
+          onRenombrar={grande.onRenombrar}
+          onEliminar={grande.onEliminar}
+          añadiendo={grande.añadiendo}
+        />
         {grande.contenido}
       </div>
       <div className="min-w-0 flex flex-col">
         {chicos.map((bloque) => (
           <div key={bloque.key}>
-            <Cabecera titulo={bloque.titulo} />
+            <CabeceraSeccionConMenu
+              titulo={bloque.titulo}
+              items={bloque.items}
+              onAñadir={bloque.onAñadir}
+              onRenombrar={bloque.onRenombrar}
+              onEliminar={bloque.onEliminar}
+              añadiendo={bloque.añadiendo}
+            />
             {bloque.contenido}
           </div>
         ))}

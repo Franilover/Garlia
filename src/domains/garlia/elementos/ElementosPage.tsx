@@ -38,6 +38,7 @@ import { useMateriales } from "../materiales/useMateriales";
 import { useProcesos } from "./useProcesos";
 import { useFenomenos } from "./useFenomenos";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
+import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
 import {
   type EditorHeaderControls,
 } from "../_shared/useEditorHeaderControls";
@@ -175,6 +176,10 @@ interface Props {
   onCreate?: () => void;
   onActualizar: (id: string, cambios: Partial<Elemento>) => void;
   onEliminar?: (id: string) => void;
+  /** Renombrado liviano (solo campo "nombre", persistido directo a
+   *  Supabase) para el modal "Editar" del título de sección — ver
+   *  CabeceraSeccionConMenu.tsx. Distinto de onActualizar (estado local). */
+  onRenombrar?: (id: string, nuevoNombre: string) => void | Promise<void>;
   /**
    * Borra varios elementos de una: usada por la selección múltiple
    * (Shift+Click en el grid). Si no se pasa, se cae a llamar onEliminar
@@ -494,6 +499,7 @@ export function ElementosPage({
   onCreate,
   onActualizar,
   onEliminar,
+  onRenombrar,
   onEliminarVarios,
   seleccionarId,
   onImportarElementos,
@@ -659,6 +665,25 @@ export function ElementosPage({
     }
   }
 
+  // Renombrar desde el modal "Editar" del título de sección (ver
+  // CabeceraSeccionConMenu) — antes el único renombrado de Compuesto vivía
+  // adentro de CompuestoEditor (persist con onBlur, requiere abrir el panel
+  // flotante completo). Este es más liviano: solo el campo "nombre".
+  async function handleRenombrarCompuesto(id: string, nuevoNombre: string) {
+    try {
+      const { error } = await supabase
+        .from("compuestos")
+        .update({ nombre: nuevoNombre })
+        .eq("id", id);
+      if (error) throw error;
+      setCompuestos((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, nombre: nuevoNombre } : c)),
+      );
+    } catch (e) {
+      console.error("[ElementosPage] error renombrando compuesto:", e);
+    }
+  }
+
   // Laboratorio: crea un compuesto ya con componentes definidos (unión de
   // los de dos compuestos existentes) — usado por CompuestosPage.
   async function handleCrearCompuestoConComponentes(
@@ -701,8 +726,23 @@ export function ElementosPage({
   // estos hooks acá, cada subpágina (EstructurasPage/MaterialesPage/
   // ProcesosPage/FenomenosPage) sigue haciendo su propio fetch/render;
   // esto solo lee el total para elegir 3 columnas iguales vs 2/3+1/3.
-  const { items: estructurasParaConteo } = useEstructuras();
-  const { items: materialesParaConteo } = useMateriales();
+  // También trae renombrarEstructura/eliminarEstructura y
+  // renombrarMaterial/eliminarMaterial (agregados 2026-08-28) para el modal
+  // "Editar" del título de sección — ver CabeceraSeccionConMenu.tsx. Nota:
+  // esta es una instancia separada de useSupabaseData de la que usan
+  // EstructurasPage/MaterialesPage internamente (mismo patrón preexistente
+  // que ya tenían estas dos líneas solo para el conteo); el hook está
+  // suscrito a cambios en la tabla, así que ambas instancias convergen.
+  const {
+    items: estructurasParaConteo,
+    renombrarEstructura,
+    eliminarEstructura,
+  } = useEstructuras();
+  const {
+    items: materialesParaConteo,
+    renombrarMaterial,
+    eliminarMaterial,
+  } = useMateriales();
   const { items: procesosParaConteo } = useProcesos();
   const { items: fenomenosParaConteo } = useFenomenos();
 
@@ -754,9 +794,14 @@ export function ElementosPage({
     <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
       {/* Elementos */}
       <div className="flex flex-col">
-        <div className="shrink-0 px-3 pt-3 text-primary/40">
-          <p className="text-micro font-black uppercase tracking-widest">Elementos</p>
-        </div>
+        <CabeceraSeccionConMenu
+          titulo="Elementos"
+          items={elementos}
+          onAñadir={onCreate}
+          añadiendo={creating}
+          onRenombrar={onRenombrar}
+          onEliminar={onEliminar}
+        />
         <div className="flex relative">
         <div className="flex-1 p-3 flex flex-col gap-3">
         {seleccionMultiple.size > 0 && (
@@ -867,6 +912,11 @@ export function ElementosPage({
             key: "compuestos",
             titulo: "Compuestos",
             total: compuestos.length,
+            items: compuestos,
+            onAñadir: handleCreateCompuesto,
+            añadiendo: creatingCompuesto,
+            onRenombrar: handleRenombrarCompuesto,
+            onEliminar: handleEliminarCompuesto,
             contenido: (
               <CompuestosPage
                 compuestos={compuestos}
@@ -893,12 +943,22 @@ export function ElementosPage({
             key: "estructuras",
             titulo: "Estructuras",
             total: estructurasParaConteo.length,
+            items: estructurasParaConteo,
+            // Sin onAñadir: Estructuras se puebla por migración/cálculo, no
+            // por creación manual (ver useEstructuras.ts) — el menú del
+            // título muestra solo "Editar" (renombrar/borrar), no "Añadir".
+            onRenombrar: renombrarEstructura,
+            onEliminar: eliminarEstructura,
             contenido: <EstructurasPage />,
           },
           {
             key: "materiales",
             titulo: "Materiales",
             total: materialesParaConteo.length,
+            items: materialesParaConteo,
+            // Mismo caso que Estructuras: sin onAñadir, solo renombrar/borrar.
+            onRenombrar: renombrarMaterial,
+            onEliminar: eliminarMaterial,
             contenido: <MaterialesPage />,
           },
         ]}
