@@ -45,7 +45,13 @@ import {
 
 /** Exportado para reusar como `contenido` del cuarto grid "Geometrías" en
  *  Química (ver ElementosPage.tsx) — mismo listado, sin repetir el fila
- *  Formas/Variables/Leyes completa dentro de una celda. */
+ *  Formas/Variables/Leyes completa dentro de una celda.
+ *
+ * Mismo diseño pill que CompuestoCasilla/MaterialPill/ChipGrupoEstructuras
+ * (chip compacto rounded-full, px-2.5 py-1, text-micro font-bold
+ * tracking-wide) en vez de filas de texto — para que las 4 celdas del grid
+ * de Química se vean consistentes entre sí. Sin estado seleccionado (acá
+ * no abre un panel de detalle, es solo el catálogo de Formas). */
 export function ListaFormas() {
   const { items, loading } = useFormasGeometricas();
   if (loading) {
@@ -56,19 +62,16 @@ export function ListaFormas() {
     );
   }
   return (
-    <div className="flex flex-col gap-1 p-2">
+    <div className="flex flex-wrap gap-1 p-2">
       {items.map((f) => (
-        <div key={f.id} className="flex flex-col gap-0.5 px-2 py-1.5 rounded-md hover:bg-primary/5">
-          <span className="text-xs font-bold text-primary/75">{f.nombre}</span>
-          {f.descripcion && (
-            <span className="text-micro text-primary/40 leading-snug">{f.descripcion}</span>
-          )}
-          {f.parametros_requeridos.length > 0 && (
-            <span className="text-micro text-primary/30">
-              Parámetros: {f.parametros_requeridos.map((p) => p.clave).join(", ")}
-            </span>
-          )}
-        </div>
+        <button
+          key={f.id}
+          type="button"
+          title={f.descripcion ?? f.nombre}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
+        >
+          <span className="truncate">{f.nombre}</span>
+        </button>
       ))}
     </div>
   );
