@@ -301,11 +301,66 @@ export interface PropiedadCalculada {
  *  mostrar en la sección "Propiedades físicas (derivado)" de
  *  ElementoEditor — puramente de presentación, sin recalcular nada acá
  *  (los valores ya vienen calculados desde Supabase). */
+/** Lee propiedades_emergentes.interpretacion_humana de un Elemento, si
+ *  existe — mismo shape que Compuesto (ver InterpretacionHumanaEntry /
+ *  interpretacionHumanaDeCompuesto). La capa humana de Elemento guarda
+ *  "masa"/"volumen"/"carga_neta" (ver auditoría 2026-09), mientras que
+ *  propiedadesCalculadasDeElemento usa "masa_base"/"volumen_base"/
+ *  "carga_q" como p.clave (nombres de columna reales) — se resuelve el
+ *  alias acá, en adjuntar(), sin renombrar columnas ni tocar la función
+ *  de Compuesto.
+ */
+function interpretacionHumanaDeElemento(
+  el: Elemento,
+): Record<string, InterpretacionHumanaEntry> | undefined {
+  const emergentes = el.propiedades_emergentes;
+  const bruto = emergentes?.["interpretacion_humana"];
+  return bruto && typeof bruto === "object"
+    ? (bruto as Record<string, InterpretacionHumanaEntry>)
+    : undefined;
+}
+
+/** Resumen humano de la composición del elemento (propiedades_emergentes.
+ *  humano.resumen) — mismo patrón que resumenHumanoDeCompuesto, para
+ *  mostrar como encabezado del modo Humana en ElementoEditor. */
+export function resumenHumanoDeElemento(el: Elemento): string | null {
+  const humano = el.propiedades_emergentes?.["humano"];
+  if (!humano || typeof humano !== "object") return null;
+  const resumen = (humano as Record<string, unknown>)["resumen"];
+  return typeof resumen === "string" ? resumen : null;
+}
+
+/** Claves de p.clave en propiedadesCalculadasDeElemento que se guardan con
+ *  un nombre distinto en interpretacion_humana (nombre de columna interno
+ *  vs. nombre de propiedad público) — mismo tipo de desalineación que se
+ *  encontró y corrigió en Compuesto (carga/energia_enlace), pero acá se
+ *  resuelve con un alias en frontend en vez de tocar la función SQL,
+ *  porque son solo 3 y afectan solo a la lectura, no al cálculo. */
+const ALIAS_CLAVE_HUMANA_ELEMENTO: Record<string, string> = {
+  masa_base: "masa",
+  volumen_base: "volumen",
+  carga_q: "carga_neta",
+};
+
 export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculada[] {
   const fmt = (v?: number | null, digitos = 3) =>
     v === null || v === undefined ? null : v.toFixed(digitos);
   const prop = (v?: number | null) =>
     v === null || v === undefined ? undefined : Math.max(0, Math.min(1, v));
+
+  // ─── Capa humana: mismo mecanismo que adjuntar() en
+  // propiedadesCalculadasDeCompuesto — busca nivel/significado por clave,
+  // resolviendo primero el alias si p.clave es un nombre de columna interno
+  // (ver ALIAS_CLAVE_HUMANA_ELEMENTO). Si el elemento no tiene capa humana
+  // todavía o la propiedad puntual no está interpretada, queda undefined y
+  // el toggle Humana cae de vuelta al valor técnico (ver TarjetaPropiedad).
+  const humanaPorClave = interpretacionHumanaDeElemento(el);
+  function adjuntar(p: PropiedadCalculada): PropiedadCalculada {
+    const clave = ALIAS_CLAVE_HUMANA_ELEMENTO[p.clave] ?? p.clave;
+    const h = humanaPorClave?.[clave];
+    if (!h) return p;
+    return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
+  }
 
   // ─── 4 familias, mismo orden en el que se muestran agrupadas en el
   // panel (ver TarjetaPropiedadesFisicas con agruparPor="grupo"):
@@ -371,7 +426,7 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
     { clave: "catalisis_total", label: "Catálisis total", valor: fmt(el.catalisis_total, 2), descripcion: "Suma de catálisis en las 3 capas — numerador de la relación R usada en régimen estructural." },
     { clave: "transicion_total", label: "Transición total", valor: fmt(el.transicion_total, 2), descripcion: "Suma de transición en las 3 capas — denominador de la relación R usada en régimen estructural." },
     { clave: "balance_ct", label: "Balance Catálisis/Transición", valor: fmt(el.balance_ct), descripcion: "R = Catálisis total / Transición total. Define la familia (Rígido/Intermedio/Reactivo) junto a Noble/Inerte.", formula: "R = Catálisis total / Transición total" },
-  ];
+  ].map(adjuntar);
 }
 
 // ─── Compuestos: combinaciones de elementos de la Tabla Química ───────────

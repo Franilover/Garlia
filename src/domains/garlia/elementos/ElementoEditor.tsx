@@ -12,7 +12,7 @@
  * a Supabase + propagación al estado del padre via onActualizar.
  */
 
-import { Atom, ChevronLeft, Package } from "lucide-react";
+import { Atom, Beaker, ChevronLeft, Package, UserRound } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -38,6 +38,7 @@ import {
   capacidadExterna,
   layerTotal,
   propiedadesCalculadasDeElemento,
+  resumenHumanoDeElemento,
   type Compuesto,
   type Elemento,
   type LayerName,
@@ -81,6 +82,12 @@ export function ElementoEditor({
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(elemento);
+  // Toggle "Química ↔ Humana" del header — mismo patrón que CompuestoEditor:
+  // alterna cómo se muestran las propiedades físicas (valor técnico vs.
+  // nivel + explicación en lenguaje llano), sin recalcular nada — ambas
+  // capas ya vienen en la misma fila de "elementos" (propiedades_emergentes.
+  // interpretacion_humana), ver propiedadesCalculadasDeElemento.
+  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
 
   useEffect(() => setLocal(elemento), [elemento]);
 
@@ -195,14 +202,34 @@ export function ElementoEditor({
     onGuardar: handleGuardar,
     onEliminar: handleEliminar,
     extra: (
-      <input
-        value={local.simbolo ?? ""}
-        onChange={(e) => setLocal((p) => ({ ...p, simbolo: e.target.value }))}
-        onBlur={() => persist({ simbolo: local.simbolo })}
-        placeholder="Sm"
-        maxLength={3}
-        className="shrink-0 w-10 text-center bg-primary/5 rounded-md px-1 py-0.5 text-micro font-black text-primary outline-none placeholder:text-primary/25 border border-primary/10"
-      />
+      <>
+        <input
+          value={local.simbolo ?? ""}
+          onChange={(e) => setLocal((p) => ({ ...p, simbolo: e.target.value }))}
+          onBlur={() => persist({ simbolo: local.simbolo })}
+          placeholder="Sm"
+          maxLength={3}
+          className="shrink-0 w-10 text-center bg-primary/5 rounded-md px-1 py-0.5 text-micro font-black text-primary outline-none placeholder:text-primary/25 border border-primary/10"
+        />
+        <button
+          type="button"
+          onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+          title={
+            modoVista === "quimica"
+              ? "Ver explicación humana de las propiedades"
+              : "Ver valores y fórmulas químicas"
+          }
+          aria-pressed={modoVista === "humana"}
+          className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+            modoVista === "humana"
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+          }`}
+        >
+          {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
+          <span className="hidden sm:inline">{modoVista === "humana" ? "Humana" : "Química"}</span>
+        </button>
+      </>
     ),
   };
 
@@ -249,7 +276,11 @@ export function ElementoEditor({
             seguido comparado con las partículas de las 3 capas. */}
         <div className="grid grid-cols-[0.85fr_1.3fr] gap-3 items-start">
           <div className="flex flex-col gap-2 min-w-0">
-            <PropiedadesFisicasBloque propiedades={propiedadesFisicas} />
+            <PropiedadesFisicasBloque
+              propiedades={propiedadesFisicas}
+              modo={modoVista}
+              resumenHumano={resumenHumanoDeElemento(local)}
+            />
             <SitiosEnlaceBloque sitios={sitiosEnlace} loading={sitiosLoading} />
           </div>
 
@@ -440,13 +471,36 @@ function SitiosEnlaceBloque({
  * marcan visualmente que no son campos manuales, mismo criterio pedido para
  * Compuesto.
  */
-function PropiedadesFisicasBloque({ propiedades }: { propiedades: PropiedadCalculada[] }) {
+function PropiedadesFisicasBloque({
+  propiedades,
+  modo = "quimica",
+  resumenHumano,
+}: {
+  propiedades: PropiedadCalculada[];
+  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+   *  nivel + explicación en lenguaje llano — ver botón Química ↔ Humana en
+   *  el header de ElementoEditor, mismo patrón que CompuestoEditor. */
+  modo?: "quimica" | "humana";
+  /** Frase de propiedades_emergentes.humano.resumen — se muestra arriba de
+   *  la grilla solo en modo Humana. Null si el elemento no tiene capa
+   *  humana todavía. */
+  resumenHumano?: string | null;
+}) {
   // columnas=3 (antes 2): con las columnas de carga/catálisis/transición por
   // capa + ocupación externa sumadas (ver auditoría 2026-08-30), la lista
   // pasó de 21 a 41 propiedades — 2 columnas dejaba una sola tira vertical
   // larguísima. 3 reparte mejor sin apretar tanto como las 5 de Compuesto
   // (que tiene menos texto por etiqueta).
-  return <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={3} />;
+  return (
+    <div className="flex flex-col gap-2">
+      {modo === "humana" && resumenHumano && (
+        <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
+          {resumenHumano}
+        </p>
+      )}
+      <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={3} modo={modo} />
+    </div>
+  );
 }
 
 // ─── Visualización tipo átomo real ──────────────────────────────────────
