@@ -172,32 +172,47 @@ function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo
   // (no inventar "??" cuando falta un dato, ver comentario en
   // formulaExpandidaCompuesto).
   const esHumana = modo === "humana" && p.nivelHumano !== undefined;
-  const titulo = esHumana ? p.significadoHumano ?? p.descripcion : p.descripcion;
-  const valorMostrado = esHumana ? p.nivelHumano : p.valor;
+
+  // Modo Humana: tarjeta completamente distinta — sin número técnico, sin
+  // barra de proporción, sin fórmula. Fondo tipo "chip" propio (no la caja
+  // gris genérica de Química) para que el toggle se sienta como cambiar de
+  // vista real, no solo cambiar un texto. Solo el nivel cualitativo
+  // ("Muy compatible", "Alta", "Baja") destaca arriba, con la frase en
+  // lenguaje llano debajo.
+  if (esHumana) {
+    return (
+      <div
+        title={p.significadoHumano}
+        className="flex flex-col gap-1 min-w-0 px-2.5 py-2 rounded-lg border border-accent/20 bg-accent/[0.06]"
+      >
+        <span className="text-[10px] font-black uppercase tracking-widest text-accent/60 truncate">
+          {p.label}
+        </span>
+        <span className="text-sm font-black text-accent capitalize leading-tight truncate">
+          {p.nivelHumano}
+        </span>
+        {p.significadoHumano && (
+          <span className="text-[10px] leading-snug text-primary/50">{p.significadoHumano}</span>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div title={titulo} className="flex flex-col gap-1 min-w-0 px-2 py-1.5">
+    <div title={p.descripcion} className="flex flex-col gap-1 min-w-0 px-2 py-1.5">
       <div className="flex items-center justify-between gap-1 min-w-0">
         <span className="text-micro font-bold text-primary/50 truncate">{p.label}</span>
-        <span
-          className={`text-micro font-black tabular-nums shrink-0 truncate max-w-[6.5rem] text-right ${
-            esHumana ? "text-accent/80 capitalize" : "text-primary/70"
-          }`}
-        >
-          {valorMostrado}
+        <span className="text-micro font-black tabular-nums shrink-0 truncate max-w-[6.5rem] text-right text-primary/70">
+          {p.valor}
         </span>
       </div>
-      {esHumana ? (
-        <span className="text-[10px] leading-snug text-primary/45">{p.significadoHumano}</span>
-      ) : (
-        p.proporcion !== undefined && (
-          <div className="h-1 rounded-full bg-primary/10 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-accent/50"
-              style={{ width: `${p.proporcion * 100}%` }}
-            />
-          </div>
-        )
+      {p.proporcion !== undefined && (
+        <div className="h-1 rounded-full bg-primary/10 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-accent/50"
+            style={{ width: `${p.proporcion * 100}%` }}
+          />
+        </div>
       )}
     </div>
   );
@@ -225,7 +240,14 @@ export function TarjetaPropiedadesFisicas({
    *  todavía caen de vuelta al valor técnico (ver TarjetaPropiedad). */
   modo?: "quimica" | "humana";
 }) {
-  const conValor = propiedades.filter((p) => p.valor !== null);
+  // Modo Humana: se ocultan las propiedades que no tienen capa humana
+  // calculada (clasificación, estructura, fórmula canónica, etc. — texto
+  // técnico que no tiene traducción a nivel cualitativo) en vez de
+  // mostrarlas igual que en modo Química. Así el toggle cambia realmente
+  // toda la vista, no solo el texto de las tarjetas que sí tienen capa
+  // humana — ver botón Química ↔ Humana en CompuestoEditor.
+  const base = propiedades.filter((p) => p.valor !== null);
+  const conValor = modo === "humana" ? base.filter((p) => p.nivelHumano !== undefined) : base;
   if (conValor.length === 0) return null;
 
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];
@@ -243,7 +265,11 @@ export function TarjetaPropiedadesFisicas({
     return (
       <div className="flex flex-col gap-1.5 min-w-0 p-2">
         <div className="flex items-center gap-1.5">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          <span
+            className={`text-micro font-black uppercase tracking-[0.2em] ${
+              modo === "humana" ? "text-accent/50" : "text-primary/30"
+            }`}
+          >
             {titulo}
           </span>
           {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
@@ -268,7 +294,11 @@ export function TarjetaPropiedadesFisicas({
   return (
     <div className="flex flex-col gap-1.5 min-w-0 p-2">
       <div className="flex items-center gap-1.5">
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <span
+          className={`text-micro font-black uppercase tracking-[0.2em] ${
+            modo === "humana" ? "text-accent/50" : "text-primary/30"
+          }`}
+        >
           {titulo}
         </span>
         {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
