@@ -165,22 +165,39 @@ export function propiedadesCalculadasGenerico(
  */
 /** Una tarjeta individual de propiedad — extraído para no duplicar el JSX
  *  entre el render agrupado y el plano de abajo. */
-function TarjetaPropiedad({ p }: { p: PropiedadCalculada }) {
+function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo?: "quimica" | "humana" }) {
+  // Modo Humana: si esta propiedad no tiene capa humana calculada todavía
+  // (ver interpretacionHumanaDeCompuesto), cae de vuelta al valor técnico
+  // en vez de mostrar un hueco — mismo criterio que el resto del sistema
+  // (no inventar "??" cuando falta un dato, ver comentario en
+  // formulaExpandidaCompuesto).
+  const esHumana = modo === "humana" && p.nivelHumano !== undefined;
+  const titulo = esHumana ? p.significadoHumano ?? p.descripcion : p.descripcion;
+  const valorMostrado = esHumana ? p.nivelHumano : p.valor;
+
   return (
-    <div title={p.descripcion} className="flex flex-col gap-1 min-w-0 px-2 py-1.5">
+    <div title={titulo} className="flex flex-col gap-1 min-w-0 px-2 py-1.5">
       <div className="flex items-center justify-between gap-1 min-w-0">
         <span className="text-micro font-bold text-primary/50 truncate">{p.label}</span>
-        <span className="text-micro font-black text-primary/70 tabular-nums shrink-0 truncate max-w-[6.5rem] text-right">
-          {p.valor}
+        <span
+          className={`text-micro font-black tabular-nums shrink-0 truncate max-w-[6.5rem] text-right ${
+            esHumana ? "text-accent/80 capitalize" : "text-primary/70"
+          }`}
+        >
+          {valorMostrado}
         </span>
       </div>
-      {p.proporcion !== undefined && (
-        <div className="h-1 rounded-full bg-primary/10 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-accent/50"
-            style={{ width: `${p.proporcion * 100}%` }}
-          />
-        </div>
+      {esHumana ? (
+        <span className="text-[10px] leading-snug text-primary/45">{p.significadoHumano}</span>
+      ) : (
+        p.proporcion !== undefined && (
+          <div className="h-1 rounded-full bg-primary/10 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-accent/50"
+              style={{ width: `${p.proporcion * 100}%` }}
+            />
+          </div>
+        )
       )}
     </div>
   );
@@ -190,6 +207,7 @@ export function TarjetaPropiedadesFisicas({
   propiedades,
   columnas = 3,
   titulo = "Propiedades físicas",
+  modo = "quimica",
 }: {
   propiedades: PropiedadCalculada[];
   /** Cuántas columnas usar en el grid — Compuesto tiene más propiedades
@@ -200,6 +218,12 @@ export function TarjetaPropiedadesFisicas({
    *  ("Propiedades") porque el desglose real vive en los subtítulos de
    *  cada grupo (p.grupo) — ver ElementoEditor. */
   titulo?: string;
+  /** "quimica" (default): valor numérico + fórmula técnica, igual que
+   *  siempre. "humana": nivel cualitativo + explicación en lenguaje llano
+   *  (propiedades_emergentes.interpretacion_humana) — ver botón Química ↔
+   *  Humana en CompuestoEditor. Propiedades sin capa humana calculada
+   *  todavía caen de vuelta al valor técnico (ver TarjetaPropiedad). */
+  modo?: "quimica" | "humana";
 }) {
   const conValor = propiedades.filter((p) => p.valor !== null);
   if (conValor.length === 0) return null;
@@ -222,11 +246,11 @@ export function TarjetaPropiedadesFisicas({
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
             {titulo}
           </span>
-          <InfoFormulasPopover propiedades={conValor} />
+          {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
         </div>
         <div className={`grid ${gridCols} gap-1.5 min-w-0`}>
           {conValor.map((p) => (
-            <TarjetaPropiedad key={p.clave} p={p} />
+            <TarjetaPropiedad key={p.clave} p={p} modo={modo} />
           ))}
         </div>
       </div>
@@ -247,7 +271,7 @@ export function TarjetaPropiedadesFisicas({
         <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
           {titulo}
         </span>
-        <InfoFormulasPopover propiedades={conValor} />
+        {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
       </div>
       <div className="flex flex-col gap-2.5 min-w-0">
         {grupos.map((g, i) => (
@@ -259,7 +283,7 @@ export function TarjetaPropiedadesFisicas({
             )}
             <div className={`grid ${gridCols} gap-1.5 min-w-0`}>
               {g.items.map((p) => (
-                <TarjetaPropiedad key={p.clave} p={p} />
+                <TarjetaPropiedad key={p.clave} p={p} modo={modo} />
               ))}
             </div>
             {i < grupos.length - 1 && <div className="border-t border-primary/10 mt-0.5" />}

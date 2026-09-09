@@ -284,6 +284,17 @@ export interface PropiedadCalculada {
    *  grupo genérico sin encabezado — mantiene compatibilidad con listas
    *  (Compuesto/Material/Estructura) que todavía no clasifican por grupo. */
   grupo?: string;
+  /** Nivel cualitativo de la capa humana (ej. "media", "baja", "muy
+   *  flexible") — viene de propiedades_emergentes.interpretacion_humana en
+   *  Supabase. undefined si esta propiedad todavía no tiene capa humana
+   *  calculada (ej. columnas de clasificación/estructura, que ya son
+   *  texto). Ver toggle Química ↔ Humana en CompuestoEditor. */
+  nivelHumano?: string;
+  /** Explicación en lenguaje llano de qué significa el valor actual (ej.
+   *  "Presenta una resistencia intermedia a la deformación."), específica
+   *  al valor calculado — distinta de `descripcion`, que explica la
+   *  propiedad en general sin importar su valor. */
+  significadoHumano?: string;
 }
 
 /** Arma la lista de propiedades físicas calculadas de un Elemento para
@@ -467,11 +478,57 @@ export const CONFIG_COMPUESTOS = {
 /** Una propiedad física calculada del Compuesto, lista para renderizar en
  *  la sección de solo lectura de CompuestoEditor — mismo shape que
  *  PropiedadCalculada de Elemento (ver propiedadesCalculadasDeElemento). */
+/** Shape de una entrada de propiedades_emergentes.interpretacion_humana —
+ *  ver auditoría "capa humana" (2026-09): 20/20 compuestos canónicos, 15/15
+ *  propiedades base, guardado en dos niveles (nivel + significado) además
+ *  del valor numérico ya presente en la columna directa. */
+interface InterpretacionHumanaEntry {
+  nivel?: string;
+  valor?: number;
+  significado?: string;
+}
+
+/** Lee propiedades_emergentes.interpretacion_humana de un Compuesto, si
+ *  existe — undefined si el compuesto todavía no tiene capa humana
+ *  calculada (compuestos fuera de los 20 canónicos, por ahora). */
+function interpretacionHumanaDeCompuesto(
+  c: Compuesto,
+): Record<string, InterpretacionHumanaEntry> | undefined {
+  const emergentes = c.propiedades_emergentes;
+  const bruto = emergentes?.["interpretacion_humana"];
+  return bruto && typeof bruto === "object"
+    ? (bruto as Record<string, InterpretacionHumanaEntry>)
+    : undefined;
+}
+
+/** Resumen humano de la composición del compuesto (propiedades_emergentes.
+ *  humano.resumen) — una frase en lenguaje llano sobre de qué está hecho y
+ *  qué tan estable es, para mostrar como encabezado del modo Humana. */
+export function resumenHumanoDeCompuesto(c: Compuesto): string | null {
+  const humano = c.propiedades_emergentes?.["humano"];
+  if (!humano || typeof humano !== "object") return null;
+  const resumen = (humano as Record<string, unknown>)["resumen"];
+  return typeof resumen === "string" ? resumen : null;
+}
+
 export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalculada[] {
   const fmt = (v?: number | null, digitos = 3) =>
     v === null || v === undefined ? null : v.toFixed(digitos);
   const prop = (v?: number | null) =>
     v === null || v === undefined ? undefined : Math.max(0, Math.min(1, v));
+
+  // ─── Capa humana (propiedades_emergentes.interpretacion_humana): nivel +
+  // significado por propiedad, guardados aparte del valor numérico — ver
+  // interpretacionHumanaDeCompuesto. adjuntar() fusiona esto en cada
+  // PropiedadCalculada sin tocar el resto de la función; si el compuesto
+  // no tiene capa humana todavía, queda undefined y el toggle Humana cae
+  // de vuelta al valor técnico (ver TarjetaPropiedad).
+  const humanaPorClave = interpretacionHumanaDeCompuesto(c);
+  function adjuntar(p: PropiedadCalculada): PropiedadCalculada {
+    const h = humanaPorClave?.[p.clave];
+    if (!h) return p;
+    return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
+  }
 
   // ─── 3 familias propias del Compuesto (la 4ta, "Análisis estructural",
   // se agrega en propiedadesDeEstabilidadDetalle porque viene de una fuente
@@ -523,7 +580,7 @@ export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalcula
     // diagnóstico interno, no aplanables a una tarjeta simple sin decidir
     // antes qué mostrar de cada uno.
     { clave: "umbral_estabilidad", label: "Umbral de estabilidad", valor: fmt(c.umbral_estabilidad), proporcion: prop(c.umbral_estabilidad), descripcion: "Estabilidad mínima requerida para que el compuesto se considere formado de manera consistente.", grupo: "Análisis estructural" },
-  ];
+  ].map(adjuntar);
 }
 
 /** Fila cruda tal cual vive en Supabase (tabla "compuesto_elementos") —

@@ -24,6 +24,7 @@ import {
   Save,
   Search,
   Trash2,
+  UserRound,
   Wand2,
   X,
 } from "lucide-react";
@@ -98,6 +99,7 @@ import {
   REACTIVIDAD_LABEL,
   propiedadesCalculadasDeCompuesto,
   propiedadesCalculadasDeElemento,
+  resumenHumanoDeCompuesto,
   type ComponenteCompuesto,
   type Compuesto,
   type Elemento,
@@ -320,12 +322,35 @@ function formulaExpandidaCompuesto(
   return partes.join(" + ");
 }
 
-function PropiedadesFisicasCompuestoBloque({ propiedades }: { propiedades: PropiedadCalculada[] }) {
+function PropiedadesFisicasCompuestoBloque({
+  propiedades,
+  modo = "quimica",
+  resumenHumano,
+}: {
+  propiedades: PropiedadCalculada[];
+  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+   *  nivel + explicación en lenguaje llano — ver botón Química ↔ Humana
+   *  en el header de CompuestoEditor. */
+  modo?: "quimica" | "humana";
+  /** Frase de propiedades_emergentes.humano.resumen (composición +
+   *  estabilidad en lenguaje llano) — se muestra arriba de la grilla solo
+   *  en modo Humana. Null si el compuesto no tiene capa humana todavía. */
+  resumenHumano?: string | null;
+}) {
   // columnas=4 (antes 5): con Estabilidad-detalle + las columnas de
   // clasificación/estructura fundidas (ver auditoría 2026-08-30), varias
   // etiquetas nuevas son largas ("Tipo de estructura (derivada)", "Razón de
   // clasificación") — 5 columnas las apretaba demasiado.
-  return <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={4} />;
+  return (
+    <div className="flex flex-col gap-2">
+      {modo === "humana" && resumenHumano && (
+        <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
+          {resumenHumano}
+        </p>
+      )}
+      <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={4} modo={modo} />
+    </div>
+  );
 }
 
 /**
@@ -990,6 +1015,12 @@ function CompuestoEditor({
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(compuesto);
+  // Toggle "Química ↔ Humana" del header: alterna cómo se muestran las
+  // propiedades físicas (valor + fórmula técnica vs. nivel + explicación
+  // en lenguaje llano) sin recalcular ni volver a pedir nada — ambas capas
+  // ya vienen en la misma fila de "compuestos" (propiedades_emergentes.
+  // interpretacion_humana), ver propiedadesCalculadasDeCompuesto.
+  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [editandoElementoIdLocal, setEditandoElementoIdLocal] = useState<string | null>(null);
   const editandoElementoId =
     elementoAbiertoProp !== undefined ? elementoAbiertoProp : editandoElementoIdLocal;
@@ -1207,6 +1238,24 @@ function CompuestoEditor({
         >
           <Wand2 size={11} />
         </button>
+        <button
+          type="button"
+          onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+          title={
+            modoVista === "quimica"
+              ? "Ver explicación humana de las propiedades"
+              : "Ver valores y fórmulas químicas"
+          }
+          aria-pressed={modoVista === "humana"}
+          className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+            modoVista === "humana"
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+          }`}
+        >
+          {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
+          <span className="hidden sm:inline">{modoVista === "humana" ? "Humana" : "Química"}</span>
+        </button>
       </>
     ),
   };
@@ -1239,7 +1288,11 @@ function CompuestoEditor({
             redundantes con Propiedades físicas + Estabilidad. */}
         <div className="grid grid-cols-[minmax(11rem,14rem)_1fr] gap-3 items-start">
           <AtomoVisualCompuesto compuesto={local} elementos={elementos} />
-          <PropiedadesFisicasCompuestoBloque propiedades={propiedadesFisicas} />
+          <PropiedadesFisicasCompuestoBloque
+            propiedades={propiedadesFisicas}
+            modo={modoVista}
+            resumenHumano={resumenHumanoDeCompuesto(local)}
+          />
         </div>
 
         {/* Composición real (izquierda) · Enlaces (derecha). */}
