@@ -240,14 +240,13 @@ export function TarjetaPropiedadesFisicas({
    *  todavía caen de vuelta al valor técnico (ver TarjetaPropiedad). */
   modo?: "quimica" | "humana";
 }) {
-  // Modo Humana: se ocultan las propiedades que no tienen capa humana
-  // calculada (clasificación, estructura, fórmula canónica, etc. — texto
-  // técnico que no tiene traducción a nivel cualitativo) en vez de
-  // mostrarlas igual que en modo Química. Así el toggle cambia realmente
-  // toda la vista, no solo el texto de las tarjetas que sí tienen capa
-  // humana — ver botón Química ↔ Humana en CompuestoEditor.
-  const base = propiedades.filter((p) => p.valor !== null);
-  const conValor = modo === "humana" ? base.filter((p) => p.nivelHumano !== undefined) : base;
+  // Modo Humana: las propiedades sin capa humana calculada (clasificación,
+  // estructura, fórmula canónica, etc. — texto técnico que no tiene
+  // traducción a nivel cualitativo) ya no se ocultan — se muestran igual
+  // que en modo Química (fallback automático en TarjetaPropiedad, ver
+  // esHumana ahí) para que el toggle no haga desaparecer tarjetas, solo
+  // cambie de vista las que sí tienen traducción humana.
+  const conValor = propiedades.filter((p) => p.valor !== null);
   if (conValor.length === 0) return null;
 
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];
