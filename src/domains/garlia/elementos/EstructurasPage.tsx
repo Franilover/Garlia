@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Link2, Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PropiedadesFisicasGenerico } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
@@ -1095,32 +1095,136 @@ export default function EstructurasPage() {
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
   const seleccionada = items.find((e) => e.id === seleccionadaId) ?? null;
 
+  // Separa el catálogo en Bases estructurales (tipo="base_estructural",
+  // ej. Lámina/Fibra/Tubular) y Estructuras concretas (todo lo demás,
+  // ej. Hoja/Pétalo/Raquis) — antes se mostraban todas mezcladas en una
+  // sola lista plana. Las concretas se subagrupan por su
+  // estructura_base_id (nombre de la base como subtítulo), y las que no
+  // tienen base asignada (anatómica/celular/molecular/vegetal/cristalina
+  // sueltas) van al final bajo "Sin base asignada" en vez de perderse.
+  const { bases, gruposConcretas, sinBase } = useMemo(() => {
+    const bases = items.filter((e) => e.tipo === "base_estructural");
+    const concretas = items.filter((e) => e.tipo !== "base_estructural");
+    const basesPorId = new Map(bases.map((b) => [b.id, b]));
+
+    const porBase = new Map<string, Estructura[]>();
+    const sinBase: Estructura[] = [];
+    for (const e of concretas) {
+      if (e.estructura_base_id && basesPorId.has(e.estructura_base_id)) {
+        const lista = porBase.get(e.estructura_base_id) ?? [];
+        lista.push(e);
+        porBase.set(e.estructura_base_id, lista);
+      } else {
+        sinBase.push(e);
+      }
+    }
+    // Mismo orden que las bases aparecen en su propia sección, para que el
+    // subtítulo de cada grupo de concretas sea fácil de ubicar arriba.
+    const gruposConcretas = bases
+      .map((b) => ({ base: b, items: porBase.get(b.id) ?? [] }))
+      .filter((g) => g.items.length > 0);
+
+    return { bases, gruposConcretas, sinBase };
+  }, [items]);
+
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
       ) : (
-        <div className="flex flex-wrap gap-1">
-          {items.map((estructura) => (
-            <button
-              key={estructura.id}
-              type="button"
-              onClick={() => setSeleccionadaId(estructura.id)}
-              title={estructura.nombre}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
-                estructura.id === seleccionadaId
-                  ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-                  : "hover:bg-primary/10 text-primary/70 border border-primary/15"
-              }`}
-            >
-              <span className="truncate">{estructura.nombre}</span>
-            </button>
-          ))}
+        <div className="flex flex-col gap-3">
+          {bases.length > 0 && (
+            <ChipGrupoEstructuras
+              titulo="Bases estructurales"
+              items={bases}
+              seleccionadaId={seleccionadaId}
+              onSeleccionar={setSeleccionadaId}
+            />
+          )}
+
+          {gruposConcretas.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Estructuras concretas
+              </span>
+              <div className="flex flex-col gap-2 pl-0.5">
+                {gruposConcretas.map(({ base, items: itemsBase }) => (
+                  <ChipGrupoEstructuras
+                    key={base.id}
+                    titulo={base.nombre}
+                    tituloVariante="subgrupo"
+                    items={itemsBase}
+                    seleccionadaId={seleccionadaId}
+                    onSeleccionar={setSeleccionadaId}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sinBase.length > 0 && (
+            <ChipGrupoEstructuras
+              titulo="Sin base asignada"
+              items={sinBase}
+              seleccionadaId={seleccionadaId}
+              onSeleccionar={setSeleccionadaId}
+            />
+          )}
         </div>
       )}
       {seleccionada && (
         <EstructuraPanelFlotante estructura={seleccionada} onClose={() => setSeleccionadaId(null)} />
       )}
+    </div>
+  );
+}
+
+/** Un grupo de chips con su título — extraído para no repetir el mismo
+ *  JSX 3 veces en EstructurasPage (Bases / cada base de Concretas / Sin
+ *  base). "subgrupo" usa una etiqueta más chica/tenue que el título de
+ *  sección normal, para que se note la jerarquía (sección → subgrupo por
+ *  base) sin agregar otro nivel visual pesado. */
+function ChipGrupoEstructuras({
+  titulo,
+  tituloVariante = "seccion",
+  items,
+  seleccionadaId,
+  onSeleccionar,
+}: {
+  titulo: string;
+  tituloVariante?: "seccion" | "subgrupo";
+  items: Estructura[];
+  seleccionadaId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span
+        className={
+          tituloVariante === "seccion"
+            ? "text-micro font-black uppercase tracking-[0.2em] text-primary/30"
+            : "text-[10px] font-black uppercase tracking-widest text-primary/35"
+        }
+      >
+        {titulo}
+      </span>
+      <div className="flex flex-wrap gap-1">
+        {items.map((estructura) => (
+          <button
+            key={estructura.id}
+            type="button"
+            onClick={() => onSeleccionar(estructura.id)}
+            title={estructura.nombre}
+            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
+              estructura.id === seleccionadaId
+                ? "text-primary border border-primary/40 ring-2 ring-primary/30"
+                : "hover:bg-primary/10 text-primary/70 border border-primary/15"
+            }`}
+          >
+            <span className="truncate">{estructura.nombre}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

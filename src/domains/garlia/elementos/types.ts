@@ -826,12 +826,20 @@ export interface Estructura {
   calculado_at: string | null;
   created_at: string;
   updated_at?: string;
+  /** Si esta Estructura es una variante concreta de una base estructural
+   *  (tipo="base_estructural"), apunta al id de esa base — ej. "Hoja" →
+   *  "Lámina". Null si la Estructura es ella misma una base, o si no tiene
+   *  base asignada (estructuras anatómica/celular/molecular/vegetal/
+   *  cristalina sueltas, sin agrupar). Ver EstructurasPage: separa el
+   *  catálogo en "Bases estructurales" (tipo="base_estructural") y
+   *  "Estructuras concretas" (agrupadas por estructura_base_id). */
+  estructura_base_id: string | null;
 }
 
 export const CONFIG_ESTRUCTURAS = {
   tabla: "estructuras",
   select:
-    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at",
+    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, estructura_base_id",
 };
 
 /** Fila puente estructura_compuestos: de qué Compuestos está hecha una Estructura (M:N). */
