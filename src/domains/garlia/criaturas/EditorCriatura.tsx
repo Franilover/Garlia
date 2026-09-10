@@ -472,7 +472,9 @@ export function EditorCriatura({
                 reinicie al ir y volver entre secciones. */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
-                {/* Perfil atómico */}
+                {/* Perfil atómico — a todo el ancho porque internamente ya
+                    distribuye sus propios sub-bloques (Canalización, Rasgos
+                    evolutivos, Composición material, Notas) en grid. */}
                 <section className="flex flex-col gap-2">
                   <header className="flex items-center gap-1.5">
                     <Atom size={10} className="text-primary/35" />
@@ -500,44 +502,42 @@ export function EditorCriatura({
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
                 />
 
-                {/* Órganos */}
-                <section className="flex flex-col gap-2">
-                  <SeccionGruposVinculados
-                    titulo="Órganos"
-                    descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
-                    icono={Layers}
-                    items={organosCriatura.organos}
-                    catalogo={catalogoOrganos}
-                    loading={organosCriatura.loading}
-                    onCrearNuevo={async () => {
-                      const nuevo = await organosCriatura.crearYVincularOrgano();
-                      if (nuevo) setEditandoGrupoId(nuevo.id);
-                      return nuevo;
-                    }}
-                    onUsarExistente={(id) => void organosCriatura.vincularOrganoExistente(id)}
-                    onDelete={(vinculoId) => void organosCriatura.desvincularOrgano(vinculoId)}
-                    onAbrirGrupo={(id) => setEditandoGrupoId(id)}
-                    onAbrirCelula={setEditandoCelulaId}
-                  />
-                </section>
+                {/* Órganos + Organismo, lado a lado — ambos son el "techo" de
+                    la cadena biológica (Célula→Tejido→Órgano→Sistema→
+                    Organismo) aplicada a esta criatura. */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                    <SeccionGruposVinculados
+                      titulo="Órganos"
+                      descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
+                      icono={Layers}
+                      items={organosCriatura.organos}
+                      catalogo={catalogoOrganos}
+                      loading={organosCriatura.loading}
+                      onCrearNuevo={async () => {
+                        const nuevo = await organosCriatura.crearYVincularOrgano();
+                        if (nuevo) setEditandoGrupoId(nuevo.id);
+                        return nuevo;
+                      }}
+                      onUsarExistente={(id) => void organosCriatura.vincularOrganoExistente(id)}
+                      onDelete={(vinculoId) => void organosCriatura.desvincularOrgano(vinculoId)}
+                      onAbrirGrupo={(id) => setEditandoGrupoId(id)}
+                      onAbrirCelula={setEditandoCelulaId}
+                    />
+                  </section>
 
-                <div
-                  className="border-t"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-                />
-
-                {/* Organismo */}
-                <section className="flex flex-col gap-2">
-                  <PanelOrganismosCriatura
-                    items={organismosCriatura.items}
-                    loading={organismosCriatura.loading}
-                    catalogo={catalogoOrganismos}
-                    onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
-                    onActualizar={organismosCriatura.actualizarVinculo}
-                    onMarcarPrincipal={organismosCriatura.marcarPrincipal}
-                    onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
-                  />
-                </section>
+                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                    <PanelOrganismosCriatura
+                      items={organismosCriatura.items}
+                      loading={organismosCriatura.loading}
+                      catalogo={catalogoOrganismos}
+                      onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
+                      onActualizar={organismosCriatura.actualizarVinculo}
+                      onMarcarPrincipal={organismosCriatura.marcarPrincipal}
+                      onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
+                    />
+                  </section>
+                </div>
               </div>
 
               <div className={`flex flex-col gap-4 ${seccionActiva !== "extra" ? "hidden" : ""}`}>
@@ -549,7 +549,7 @@ export function EditorCriatura({
                       Clasificación
                     </h3>
                   </header>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {(
                       [
                         { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
@@ -594,68 +594,64 @@ export function EditorCriatura({
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
                 />
 
-                {/* Ilustraciones */}
-                <section className="flex flex-col gap-2">
-                  <header className="flex items-center gap-1.5">
-                    <ImageIcon size={10} className="text-primary/35" />
-                    <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                      Ilustraciones
-                    </h3>
-                  </header>
-                  <p className="text-micro text-primary/35 leading-relaxed">
-                    Referencias visuales de la criatura (concept art, poses, variantes…).
-                  </p>
-                  <div className="w-full max-w-[220px]">
-                    <SelectorImagen
-                      aspect="square"
-                      label="Ilustración principal"
-                      placeholder={<ImageIcon className="opacity-20" size={20} />}
-                      value={form.imagen_url ?? ""}
-                      onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
-                    />
-                  </div>
-                </section>
-
-                <div
-                  className="border-t"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-                />
-
-                {/* Perfil DND */}
-                <section className="flex flex-col gap-2">
-                  <header className="flex items-center gap-1.5">
-                    <Dices size={10} className="text-primary/35" />
-                    <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                      Perfil DND
-                    </h3>
-                  </header>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
-                      Descripción D&D
-                    </label>
-                    <textarea
-                      className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
-                      placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
-                      rows={4}
-                      value={form.descripcion_dnd ?? ""}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, descripcion_dnd: e.target.value || null }))
-                      }
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5 mt-1">
-                    <div className="flex items-center gap-2">
-                      <Shield size={11} className="text-primary/35" />
-                      <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
-                        Ficha de combate (D&D 2024)
-                      </span>
+                {/* Ilustraciones + Perfil DND, lado a lado */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                    <header className="flex items-center gap-1.5">
+                      <ImageIcon size={10} className="text-primary/35" />
+                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                        Ilustraciones
+                      </h3>
+                    </header>
+                    <p className="text-micro text-primary/35 leading-relaxed">
+                      Referencias visuales de la criatura (concept art, poses, variantes…).
+                    </p>
+                    <div className="w-full max-w-[220px]">
+                      <SelectorImagen
+                        aspect="square"
+                        label="Ilustración principal"
+                        placeholder={<ImageIcon className="opacity-20" size={20} />}
+                        value={form.imagen_url ?? ""}
+                        onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+                      />
                     </div>
-                    <CriaturaStatsDndEditor
-                      valor={form.stats_dnd}
-                      onCambiar={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
-                    />
-                  </div>
-                </section>
+                  </section>
+
+                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                    <header className="flex items-center gap-1.5">
+                      <Dices size={10} className="text-primary/35" />
+                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                        Perfil DND
+                      </h3>
+                    </header>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
+                        Descripción D&D
+                      </label>
+                      <textarea
+                        className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+                        placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
+                        rows={4}
+                        value={form.descripcion_dnd ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, descripcion_dnd: e.target.value || null }))
+                        }
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <div className="flex items-center gap-2">
+                        <Shield size={11} className="text-primary/35" />
+                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                          Ficha de combate (D&D 2024)
+                        </span>
+                      </div>
+                      <CriaturaStatsDndEditor
+                        valor={form.stats_dnd}
+                        onCambiar={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
+                      />
+                    </div>
+                  </section>
+                </div>
               </div>
             </div>
           </div>

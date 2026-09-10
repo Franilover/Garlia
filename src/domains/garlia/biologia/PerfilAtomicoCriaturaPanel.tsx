@@ -78,7 +78,7 @@ function BarraCapa({
       <div className="h-1.5 rounded-full bg-primary/8 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
-            balance < 0 ? "bg-amber-400/60" : balance > 0 ? "bg-accent/60" : "bg-emerald-400/60"
+            balance < 0 ? "bg-primary/45" : balance > 0 ? "bg-accent/60" : "bg-primary/70"
           }`}
           style={{ width: `${pct}%` }}
         />
@@ -260,150 +260,161 @@ export function PanelPerfilCriatura({
   }
 
   return (
-    <div>
-      {/* Bloque 1: Canalización — qué Oris puede canalizar activamente si
-          es mágica. Afinidad de USO, no de composición: un Oris es una
-          ley externa al universo, no algo de lo que la criatura "está
-          hecha". */}
-      <div className="mb-4">
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1.5">
-          Canalización — Oris que puede usar
-        </span>
-        <p className="text-micro text-primary/30 mb-1.5 -mt-1">
-          Solo si es mágica. Los Oris son leyes externas al universo; esto marca qué fuerzas puede dirigir, no de qué está hecha.
-        </p>
-        {orisDisponibles.length === 0 ? (
-          <p className="text-micro text-primary/25 italic py-1">No hay Oris cargados todavía</p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {orisDisponibles.map((o) => {
-              const activo = orisIds.includes(o.id);
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => toggleOris(o.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-micro font-bold transition-colors ${
-                    activo
-                      ? "border-accent/40 bg-accent/10 text-accent"
-                      : "border-primary/10 text-primary/50 hover:border-primary/25"
-                  }`}
-                >
-                  <Zap size={9} />
-                  {o.nombre}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Bloque 2: Rasgos evolutivos — marca física permanente por
-          Fantasía evolutiva (adaptación generacional) o residual
-          (exposición acumulada sin canalización activa). */}
-      <div className="mb-4 pt-4 border-t border-primary/10">
-        <div className="flex items-center justify-between mb-1.5">
+    <div className="flex flex-col gap-3">
+      {/* Fila superior: Canalización + Rasgos evolutivos, lado a lado.
+          Ambos hablan de "fuerzas externas" (Oris) — uno de uso activo,
+          el otro de marca pasiva — así que van agrupados visualmente. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        {/* Bloque 1: Canalización — qué Oris puede canalizar activamente si
+            es mágica. Afinidad de USO, no de composición: un Oris es una
+            ley externa al universo, no algo de lo que la criatura "está
+            hecha". */}
+        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Rasgos evolutivos
+            Canalización — Oris que puede usar
           </span>
-          <button
-            type="button"
-            onClick={agregarRasgo}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
-          >
-            <Plus size={9} /> Agregar rasgo
-          </button>
-        </div>
-        <p className="text-micro text-primary/30 mb-1.5 -mt-1">
-          Marca física permanente por exposición ambiental a un Oris — distinto de canalizarlo.
-        </p>
-        {rasgosEvolutivos.length === 0 ? (
-          <p className="text-micro text-primary/25 italic py-1">Sin rasgos evolutivos todavía</p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {rasgosEvolutivos.map((r) => (
-              <RasgoEvolutivoRow
-                key={r.id}
-                rasgo={r}
-                orisDisponibles={orisDisponibles}
-                onChange={(cambios) => cambiarRasgo(r.id, cambios)}
-                onEliminar={() => eliminarRasgo(r.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Bloque 3: Composición material — de qué está hecho el tejido
-          duro/mineral (huesos, caparazón, escamas), reusando el motor de
-          afinidad.ts de Elementos. NO representa a la criatura entera. */}
-      <div className="mb-4 pt-4 border-t border-primary/10">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Composición material (tejido duro)
-          </span>
-          {componentes.length > 0 && (
-            <button
-              type="button"
-              onClick={autocompletar}
-              title="Agregar elementos hasta cerrar el déficit de las 3 capas"
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
-            >
-              <Wand2 size={10} /> Autocompletar
-            </button>
+          <p className="text-micro text-primary/30 -mt-0.5">
+            Solo si es mágica. Los Oris son leyes externas al universo; esto marca qué fuerzas puede dirigir, no de qué está hecha.
+          </p>
+          {orisDisponibles.length === 0 ? (
+            <p className="text-micro text-primary/25 italic py-1">No hay Oris cargados todavía</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {orisDisponibles.map((o) => {
+                const activo = orisIds.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => toggleOris(o.id)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-micro font-bold transition-colors ${
+                      activo
+                        ? "border-accent/40 bg-accent/10 text-accent"
+                        : "border-primary/10 text-primary/50 hover:border-primary/25"
+                    }`}
+                  >
+                    <Zap size={9} />
+                    {o.nombre}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
-        <p className="text-micro text-primary/30 mb-1.5 -mt-1">
-          Elementos de la Tabla Química que forman huesos, caparazón, escamas u otro tejido duro/mineral — no representa al organismo entero (hoy la Tabla es geología/minerales, sin elementos orgánicos).
-        </p>
 
-        <SelectorComposicionElementos
-          elementos={elementos}
-          componentes={componentes}
-          onChange={cambiarComponentes}
-        />
+        {/* Bloque 2: Rasgos evolutivos — marca física permanente por
+            Fantasía evolutiva (adaptación generacional) o residual
+            (exposición acumulada sin canalización activa). */}
+        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
+          <div className="flex items-center justify-between">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+              Rasgos evolutivos
+            </span>
+            <button
+              type="button"
+              onClick={agregarRasgo}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <Plus size={9} /> Agregar rasgo
+            </button>
+          </div>
+          <p className="text-micro text-primary/30 -mt-0.5">
+            Marca física permanente por exposición ambiental a un Oris — distinto de canalizarlo.
+          </p>
+          {rasgosEvolutivos.length === 0 ? (
+            <p className="text-micro text-primary/25 italic py-1">Sin rasgos evolutivos todavía</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {rasgosEvolutivos.map((r) => (
+                <RasgoEvolutivoRow
+                  key={r.id}
+                  rasgo={r}
+                  orisDisponibles={orisDisponibles}
+                  onChange={(cambios) => cambiarRasgo(r.id, cambios)}
+                  onEliminar={() => eliminarRasgo(r.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Balance por capa */}
-      {componentes.length > 0 && (
-        <div className="mb-4 p-3 rounded-xl border border-primary/10 bg-primary/[0.02]">
-          {LAYERS.map((layer) => {
-            const b = balance.find((x) => x.layer === layer)!;
-            return (
-              <BarraCapa
-                key={layer}
-                layer={layer}
-                perfil={perfilAtomico[layer]}
-                total={b.total}
-                capacidad={b.capacidad}
-              />
-            );
-          })}
+      {/* Fila inferior: Composición material (+ su balance por capa, que
+          depende de ella) a la izquierda, Notas libres a la derecha. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3 items-start">
+        <div className="flex flex-col gap-3">
+          {/* Bloque 3: Composición material — de qué está hecho el tejido
+              duro/mineral (huesos, caparazón, escamas), reusando el motor de
+              afinidad.ts de Elementos. NO representa a la criatura entera. */}
+          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+                Composición material (tejido duro)
+              </span>
+              {componentes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={autocompletar}
+                  title="Agregar elementos hasta cerrar el déficit de las 3 capas"
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+                >
+                  <Wand2 size={10} /> Autocompletar
+                </button>
+              )}
+            </div>
+            <p className="text-micro text-primary/30 -mt-0.5">
+              Elementos de la Tabla Química que forman huesos, caparazón, escamas u otro tejido duro/mineral — no representa al organismo entero (hoy la Tabla es geología/minerales, sin elementos orgánicos).
+            </p>
 
-
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary/10">
-            <span className="text-micro font-bold text-primary/50">
-              Reactividad: <span className="text-primary/80">{REACTIVIDAD_LABEL[reactividad.nivel]}</span>
-            </span>
-            <span className="text-micro font-bold text-primary/50">
-              Peso: <span className="text-primary/80">{peso.pesoTotal} ({peso.categoria})</span>
-            </span>
+            <SelectorComposicionElementos
+              elementos={elementos}
+              componentes={componentes}
+              onChange={cambiarComponentes}
+            />
           </div>
-        </div>
-      )}
 
-      {/* Notas libres */}
-      <div>
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1.5">
-          Notas
-        </span>
-        <textarea
-          className="w-full min-h-[4.5rem] bg-primary/[0.02] border border-primary/10 rounded-lg px-2.5 py-1.5 text-xs text-primary/70 outline-none placeholder:text-primary/30 resize-y"
-          placeholder="Comportamiento general, dieta, hábitat, cualquier otra nota libre…"
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-          onBlur={() => guardar({ notas })}
-        />
+          {/* Balance por capa — depende directamente de la composición de
+              arriba, así que va inmediatamente debajo de ella. */}
+          {componentes.length > 0 && (
+            <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+              {LAYERS.map((layer) => {
+                const b = balance.find((x) => x.layer === layer)!;
+                return (
+                  <BarraCapa
+                    key={layer}
+                    layer={layer}
+                    perfil={perfilAtomico[layer]}
+                    total={b.total}
+                    capacidad={b.capacidad}
+                  />
+                );
+              })}
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary/10">
+                <span className="text-micro font-bold text-primary/50">
+                  Reactividad: <span className="text-primary/80">{REACTIVIDAD_LABEL[reactividad.nivel]}</span>
+                </span>
+                <span className="text-micro font-bold text-primary/50">
+                  Peso: <span className="text-primary/80">{peso.pesoTotal} ({peso.categoria})</span>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Notas libres */}
+        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+            Notas
+          </span>
+          <textarea
+            className="w-full flex-1 min-h-[8rem] bg-primary/[0.02] border border-primary/10 rounded-lg px-2.5 py-1.5 text-xs text-primary/70 outline-none placeholder:text-primary/30 resize-y"
+            placeholder="Comportamiento general, dieta, hábitat, cualquier otra nota libre…"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            onBlur={() => guardar({ notas })}
+          />
+        </div>
       </div>
     </div>
   );
