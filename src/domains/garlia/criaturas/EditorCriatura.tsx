@@ -82,6 +82,7 @@ import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresia
 import { PanelPerfilCriatura } from "@/domains/garlia/biologia/PerfilAtomicoCriaturaPanel";
 import { SeccionGruposVinculados } from "@/domains/garlia/_shared/SeccionGruposVinculados";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
+import { OrganismoPanelFlotante } from "@/domains/garlia/criaturas/OrganismoPanelFlotante";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
 import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
@@ -193,6 +194,9 @@ export function EditorCriatura({
   // de Órganos de arriba, así que trae su propio useOrganismos().
   const { items: catalogoOrganismos } = useOrganismos();
   const organismosCriatura = useCriaturaOrganismos(form.id);
+  // Panel flotante de detalle del Organismo (Sistemas→Órganos) abierto al
+  // clickear una fila en PanelOrganismosCriatura — ver OrganismoPanelFlotante.tsx.
+  const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
   // Panel de la Célula abierto al clickear "hecho de: [Célula]" en la fila
   // de fórmula de un Tejido (Órgano→Tejido→Célula→Compuesto). Ver misma
   // nota en MineralEditor.tsx/EditorItem.tsx (su espejo Grano).
@@ -528,6 +532,7 @@ export function EditorCriatura({
                       onActualizar={organismosCriatura.actualizarVinculo}
                       onMarcarPrincipal={organismosCriatura.marcarPrincipal}
                       onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
+                      onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
                     />
                   </section>
                 </div>
@@ -931,6 +936,21 @@ export function EditorCriatura({
         />
       )}
 
+      {/* Click en una fila de Organismo (PanelOrganismosCriatura) — muestra
+          sus Sistemas y, dentro de cada uno, sus Órganos. Mismo idioma
+          visual que GrupoCompuestoPanelFlotante de arriba. */}
+      {editandoOrganismoId &&
+        (() => {
+          const organismoActivo = catalogoOrganismos.find((o) => o.id === editandoOrganismoId);
+          if (!organismoActivo) return null;
+          return (
+            <OrganismoPanelFlotante
+              organismo={organismoActivo}
+              onCerrar={() => setEditandoOrganismoId(null)}
+            />
+          );
+        })()}
+
       {/* Click en "hecho de: [Célula]" en la fila de fórmula de un Tejido —
           la cadena real es Tejido→Célula→Compuesto, así que esto abre la
           Célula (donde vive compuesto_id), no el Compuesto directo. */}
@@ -1129,6 +1149,7 @@ function PanelOrganismosCriatura({
   onActualizar,
   onMarcarPrincipal,
   onQuitar,
+  onAbrirOrganismo,
 }: {
   items: {
     vinculo_id: string;
@@ -1147,6 +1168,8 @@ function PanelOrganismosCriatura({
   ) => void;
   onMarcarPrincipal: (vinculoId: string, esPrincipal: boolean) => void;
   onQuitar: (vinculoId: string) => void;
+  /** Click en el nombre del Organismo — abre OrganismoPanelFlotante (Sistemas→Órganos). */
+  onAbrirOrganismo?: (organismoId: string) => void;
 }) {
   const [buscando, setBuscando] = useState(false);
 
@@ -1182,9 +1205,15 @@ function PanelOrganismosCriatura({
             >
               <div className="flex items-center gap-1.5">
                 <Boxes size={11} className="text-primary/40 shrink-0" />
-                <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80">
+                <button
+                  type="button"
+                  onClick={() => onAbrirOrganismo?.(v.organismo_id)}
+                  title="Ver Sistemas y Órganos"
+                  disabled={!onAbrirOrganismo}
+                  className="flex-1 min-w-0 text-left truncate text-micro font-bold text-primary/80 hover:text-accent transition-colors disabled:cursor-default disabled:hover:text-primary/80 cursor-pointer"
+                >
                   {v.organismo.nombre || "Sin nombre"}
-                </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => onMarcarPrincipal(v.vinculo_id, !v.es_principal)}
