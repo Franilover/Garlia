@@ -1201,22 +1201,24 @@ export const CONFIG_CRIATURA_ORGANISMOS = {
   select: "id, criatura_id, organismo_id, rol, cantidad, es_principal, created_at",
 };
 
-/** Fila puente criatura_sistemas: vincula un Sistema directo a una Criatura
- *  (M:N), con proporción libre — mismo shape que organismo_sistemas, pero
- *  aplicado directo a la Criatura en vez de pasar por su Organismo. Permite
- *  registrar un Sistema propio de la criatura (ej. un sistema mágico
- *  vestigial) sin necesidad de que cuelgue de un Organismo del catálogo. */
-export interface CriaturaSistema {
+/** Fila puente organismo_organos: vincula un Órgano directo a un Organismo
+ *  (M:N), con rol y cantidad — distinto de organismo_sistemas→sistema_organos
+ *  (que llega al Órgano pasando por un Sistema intermedio). Un Organismo
+ *  puede tener Órganos que no cuelgan de ningún Sistema catalogado (ej.
+ *  "Piel" como órgano suelto), y esta tabla lo expresa directo: "este
+ *  Organismo posee este Órgano, con esta cantidad y este rol". */
+export interface OrganismoOrgano {
   id: string;
-  criatura_id: string;
-  sistema_id: string;
-  proporcion: string | null;
+  organismo_id: string;
+  organo_id: string;
+  rol: string | null;
+  cantidad: number;
   created_at: string;
 }
 
-export const CONFIG_CRIATURA_SISTEMAS = {
-  tabla: "criatura_sistemas",
-  select: "id, criatura_id, sistema_id, proporcion, created_at",
+export const CONFIG_ORGANISMO_ORGANOS = {
+  tabla: "organismo_organos",
+  select: "id, organismo_id, organo_id, rol, cantidad, created_at",
 };
 
 // ─── Granos / Vetas: composición de una Formación (minerales) ────────────
