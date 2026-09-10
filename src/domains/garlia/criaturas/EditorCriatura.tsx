@@ -38,6 +38,7 @@ import {
   UserCircle2,
   Users,
   Wand2,
+  Waypoints,
   Wrench,
   X,
 } from "lucide-react";
@@ -80,9 +81,11 @@ import { useMembresiaSubsistemaCriatura } from "@/domains/garlia/criaturas/useMe
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
 import { PanelPerfilCriatura } from "@/domains/garlia/biologia/PerfilAtomicoCriaturaPanel";
-import { SeccionGruposVinculados } from "@/domains/garlia/_shared/SeccionGruposVinculados";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { OrganismoPanelFlotante } from "@/domains/garlia/criaturas/OrganismoPanelFlotante";
+import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
+import { useOrganismoSistemas } from "@/domains/garlia/elementos/useOrganismoSistemas";
+import { useOrganismoOrganos } from "@/domains/garlia/elementos/useOrganismoOrganos";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
 import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
@@ -197,6 +200,33 @@ export function EditorCriatura({
   // Panel flotante de detalle del Organismo (Sistemas→Órganos) abierto al
   // clickear una fila en PanelOrganismosCriatura — ver OrganismoPanelFlotante.tsx.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
+
+  // ── Organismo "principal" resuelto para la fila 2 (Órganos del organismo |
+  // Sistemas del organismo), mostrada inline en el propio editor sin abrir
+  // el panel flotante. Prioriza es_principal; si no hay ninguno marcado,
+  // usa el primero de la lista de organismos vinculados. Si no hay ninguno
+  // vinculado, ambas columnas quedan vacías con su mensaje correspondiente.
+  const organismoPrincipalVinculo = useMemo(() => {
+    if (organismosCriatura.items.length === 0) return null;
+    return (
+      organismosCriatura.items.find((v) => v.es_principal) ?? organismosCriatura.items[0]
+    );
+  }, [organismosCriatura.items]);
+  const organismoPrincipalId = organismoPrincipalVinculo?.organismo_id ?? null;
+
+  const sistemasOrganismo = useOrganismoSistemas(organismoPrincipalId ?? "");
+  const organosDirectosOrganismo = useOrganismoOrganos(organismoPrincipalId ?? "");
+
+  // Panel del Sistema abierto al clickear una fila en la columna "Sistemas
+  // del organismo" — mismo patrón que dentro de OrganismoPanelFlotante.
+  const [editandoSistemaOrganismoId, setEditandoSistemaOrganismoId] = useState<string | null>(
+    null,
+  );
+  // Panel del Órgano abierto al clickear una fila en "Órganos del organismo"
+  // (órganos directos del organismo, sin pasar por un Sistema).
+  const [editandoOrganoDirectoOrganismoId, setEditandoOrganoDirectoOrganismoId] = useState<
+    string | null
+  >(null);
   // Panel de la Célula abierto al clickear "hecho de: [Célula]" en la fila
   // de fórmula de un Tejido (Órgano→Tejido→Célula→Compuesto). Ver misma
   // nota en MineralEditor.tsx/EditorItem.tsx (su espejo Grano).
@@ -468,59 +498,29 @@ export function EditorCriatura({
                 reinicie al ir y volver entre secciones. */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
-                {/* Perfil atómico — a todo el ancho porque internamente ya
-                    distribuye sus propios sub-bloques (Canalización, Rasgos
-                    evolutivos, Composición material, Notas) en grid. */}
-                <section className="flex flex-col gap-2">
-                  <header className="flex items-center gap-1.5">
-                    <Atom size={10} className="text-primary/35" />
-                    <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                      Perfil atómico
-                    </h3>
-                  </header>
-                  {loadingElementosPerfil || loadingOrisPerfil || loadingPerfilesAtomicos ? (
-                    <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
-                  ) : (
-                    <PanelPerfilCriatura
-                      key={form.id}
-                      actualizar={actualizarPerfil}
-                      criaturaId={form.id}
-                      criaturaNombre={form.nombre}
-                      elementos={elementosPerfil}
-                      obtenerOCrear={obtenerOCrearPerfil}
-                      orisDisponibles={orisDisponiblesPerfil}
-                    />
-                  )}
-                </section>
-
-                <div
-                  className="border-t"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-                />
-
-                {/* Órganos + Organismo, lado a lado — ambos son el "techo" de
-                    la cadena biológica (Célula→Tejido→Órgano→Sistema→
-                    Organismo) aplicada a esta criatura. Un solo divisor
-                    vertical entre columnas, sin tarjetas anidadas. */}
+                {/* Fila 1: Rasgos evolutivos (Perfil atómico) | Organismo —
+                    vínculo criatura→organismo (rol, cantidad, principal). */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
                   <section className="flex flex-col gap-2 lg:pr-4">
-                    <SeccionGruposVinculados
-                      titulo="Órganos"
-                      descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
-                      icono={Layers}
-                      items={organosCriatura.organos}
-                      catalogo={catalogoOrganos}
-                      loading={organosCriatura.loading}
-                      onCrearNuevo={async () => {
-                        const nuevo = await organosCriatura.crearYVincularOrgano();
-                        if (nuevo) setEditandoGrupoId(nuevo.id);
-                        return nuevo;
-                      }}
-                      onUsarExistente={(id) => void organosCriatura.vincularOrganoExistente(id)}
-                      onDelete={(vinculoId) => void organosCriatura.desvincularOrgano(vinculoId)}
-                      onAbrirGrupo={(id) => setEditandoGrupoId(id)}
-                      onAbrirCelula={setEditandoCelulaId}
-                    />
+                    <header className="flex items-center gap-1.5">
+                      <Atom size={10} className="text-primary/35" />
+                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                        Rasgos evolutivos
+                      </h3>
+                    </header>
+                    {loadingElementosPerfil || loadingOrisPerfil || loadingPerfilesAtomicos ? (
+                      <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
+                    ) : (
+                      <PanelPerfilCriatura
+                        key={form.id}
+                        actualizar={actualizarPerfil}
+                        criaturaId={form.id}
+                        criaturaNombre={form.nombre}
+                        elementos={elementosPerfil}
+                        obtenerOCrear={obtenerOCrearPerfil}
+                        orisDisponibles={orisDisponiblesPerfil}
+                      />
+                    )}
                   </section>
 
                   <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
@@ -534,6 +534,100 @@ export function EditorCriatura({
                       onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
                       onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
                     />
+                  </section>
+                </div>
+
+                <div
+                  className="border-t"
+                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
+                />
+
+                {/* Fila 2: Órganos del organismo | Sistemas del organismo —
+                    resueltas contra el Organismo principal (o el primero
+                    vinculado) de esta criatura, mostradas inline sin abrir
+                    OrganismoPanelFlotante. */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
+                  <section className="flex flex-col gap-2 lg:pr-4">
+                    <header className="flex items-center gap-1.5">
+                      <Layers size={10} className="text-primary/35" />
+                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                        Órganos del organismo
+                      </h3>
+                    </header>
+                    {!organismoPrincipalId ? (
+                      <p className="text-micro text-primary/25 italic py-1">
+                        Vinculá un Organismo arriba para ver sus Órganos directos.
+                      </p>
+                    ) : organosDirectosOrganismo.loading ? (
+                      <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+                    ) : organosDirectosOrganismo.items.length === 0 ? (
+                      <p className="text-micro text-primary/25 italic py-1">
+                        Sin Órganos directos todavía para{" "}
+                        {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"}.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {organosDirectosOrganismo.items.map((o) => (
+                          <button
+                            key={o.vinculo_id}
+                            type="button"
+                            onClick={() => setEditandoOrganoDirectoOrganismoId(o.organo_id)}
+                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
+                          >
+                            <Layers size={11} className="shrink-0 text-primary/30" />
+                            <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
+                              {o.organo.nombre || "Sin nombre"}
+                            </span>
+                            {o.rol && (
+                              <span className="shrink-0 text-micro text-primary/35">{o.rol}</span>
+                            )}
+                            <span className="shrink-0 text-micro text-primary/35">×{o.cantidad}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
+                    <header className="flex items-center gap-1.5">
+                      <Boxes size={10} className="text-primary/35" />
+                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                        Sistemas del organismo
+                      </h3>
+                    </header>
+                    {!organismoPrincipalId ? (
+                      <p className="text-micro text-primary/25 italic py-1">
+                        Vinculá un Organismo arriba para ver sus Sistemas.
+                      </p>
+                    ) : sistemasOrganismo.loading ? (
+                      <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+                    ) : sistemasOrganismo.items.length === 0 ? (
+                      <p className="text-micro text-primary/25 italic py-1">
+                        Sin Sistemas vinculados a{" "}
+                        {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"} todavía.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {sistemasOrganismo.items.map((s) => (
+                          <button
+                            key={s.vinculo_id}
+                            type="button"
+                            onClick={() => setEditandoSistemaOrganismoId(s.sistema_id)}
+                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
+                          >
+                            <Waypoints size={11} className="shrink-0 text-primary/30" />
+                            <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
+                              {s.sistema.nombre || "Sin nombre"}
+                            </span>
+                            {s.proporcion && (
+                              <span className="shrink-0 text-micro text-primary/35">
+                                {s.proporcion}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </section>
                 </div>
               </div>
@@ -947,6 +1041,46 @@ export function EditorCriatura({
             <OrganismoPanelFlotante
               organismo={organismoActivo}
               onCerrar={() => setEditandoOrganismoId(null)}
+            />
+          );
+        })()}
+
+      {/* Click en una fila de "Sistemas del organismo" (fila 2 inline de
+          Biología) — mismo panel que usa OrganismoPanelFlotante para sus
+          Sistemas. */}
+      {editandoSistemaOrganismoId &&
+        (() => {
+          const sistemaActivo = sistemasOrganismo.items.find(
+            (s) => s.sistema_id === editandoSistemaOrganismoId,
+          )?.sistema;
+          if (!sistemaActivo) return null;
+          return (
+            <SistemaPanelFlotante
+              sistema={sistemaActivo}
+              onCerrar={() => setEditandoSistemaOrganismoId(null)}
+            />
+          );
+        })()}
+
+      {/* Click en una fila de "Órganos del organismo" (fila 2 inline de
+          Biología) — abre el editor completo del Órgano, mismo componente
+          que usa OrganismoPanelFlotante para sus Órganos directos. */}
+      {editandoOrganoDirectoOrganismoId &&
+        (() => {
+          const organoActivo = catalogoOrganos.find(
+            (o) => o.id === editandoOrganoDirectoOrganismoId,
+          );
+          if (!organoActivo) return null;
+          return (
+            <GrupoCompuestoPanelFlotante
+              grupo={organoActivo}
+              compuestos={compuestosOrganos}
+              onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}
+              onActualizar={(id, cambios) =>
+                setCatalogoOrganos((prev) =>
+                  prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
+                )
+              }
             />
           );
         })()}
