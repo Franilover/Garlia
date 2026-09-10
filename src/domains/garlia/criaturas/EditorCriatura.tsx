@@ -566,13 +566,13 @@ export function EditorCriatura({
                         {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"}.
                       </p>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                         {organosDirectosOrganismo.items.map((o) => (
                           <button
                             key={o.vinculo_id}
                             type="button"
                             onClick={() => setEditandoOrganoDirectoOrganismoId(o.organo_id)}
-                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
                           >
                             <Layers size={11} className="shrink-0 text-primary/30" />
                             <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
@@ -607,13 +607,13 @@ export function EditorCriatura({
                         {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"} todavía.
                       </p>
                     ) : (
-                      <div className="flex flex-col gap-1">
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                         {sistemasOrganismo.items.map((s) => (
                           <button
                             key={s.vinculo_id}
                             type="button"
                             onClick={() => setEditandoSistemaOrganismoId(s.sistema_id)}
-                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
                           >
                             <Waypoints size={11} className="shrink-0 text-primary/30" />
                             <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
