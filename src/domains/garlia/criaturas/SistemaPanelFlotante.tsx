@@ -1,42 +1,42 @@
 "use client";
 
 /**
- * OrganismoPanelFlotante.tsx
+ * SistemaPanelFlotante.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Panel flotante de detalle de UN Organismo — click en una fila de
- * PanelOrganismosCriatura (dentro de EditorCriatura) abre esto. Muestra el
- * nivel "techo" de la cadena biológica que cuelga del Organismo: sus
- * Sistemas (organismo_sistemas) — mismo idioma visual que
- * GrupoCompuestoPanelFlotante (elementos/GruposCompuestosPage.tsx): modal
- * centrado con backdrop blur, header con ícono + nombre + cerrar, cierra
- * con click en el backdrop, Escape o el botón X.
+ * Panel flotante de detalle de UN Sistema — sus Órganos (sistema_organos).
+ * Extraído de OrganismoPanelFlotante para reutilizarlo también desde el
+ * bloque "Sistemas vinculados" de PerfilAtomicoCriaturaPanel (Sistema
+ * enlazado directo a una Criatura, sin pasar por un Organismo). Mismo
+ * idioma visual que GrupoCompuestoPanelFlotante/OrganismoPanelFlotante:
+ * modal centrado con backdrop blur, cierra con click en el backdrop,
+ * Escape o el botón X.
  *
- * Click en un Sistema listado abre SistemaPanelFlotante (sus Órganos)
- * apilado encima — mismo patrón de navegación en cascada que el resto del
- * EditorCriatura.
+ * Click en un Órgano listado abre el editor completo de Órgano
+ * (GrupoCompuestoPanelFlotante, tipo="organo") apilado encima.
  */
 
-import { Boxes, Waypoints, X } from "lucide-react";
+import { Layers, Waypoints, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useOrganismoSistemas } from "@/domains/garlia/elementos/useOrganismoSistemas";
-import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
-import type { Organismo } from "@/domains/garlia/elementos/types";
+import { useSistemaOrganos } from "@/domains/garlia/elementos/useSistemaOrganos";
+import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
+import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
+import { useOrganos } from "@/domains/garlia/elementos/useOrganos";
+import type { Sistema } from "@/domains/garlia/elementos/types";
 
-export function OrganismoPanelFlotante({
-  organismo,
+export function SistemaPanelFlotante({
+  sistema,
   onCerrar,
 }: {
-  organismo: Organismo;
+  sistema: Sistema;
   onCerrar: () => void;
 }) {
-  const sistemas = useOrganismoSistemas(organismo.id);
+  const organos = useSistemaOrganos(sistema.id);
+  const { items: compuestosOrganos } = useCompuestosConElementos();
+  const { items: catalogoOrganos, setItems: setCatalogoOrganos } = useOrganos();
 
-  // Sistema abierto (encima de este panel) al clickear una fila de Sistema
-  // — reutiliza SistemaPanelFlotante, mismo que usa el bloque "Sistemas
-  // vinculados" de PerfilAtomicoCriaturaPanel.
-  const [editandoSistemaId, setEditandoSistemaId] = useState<string | null>(null);
+  const [editandoOrganoId, setEditandoOrganoId] = useState<string | null>(null);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -72,9 +72,6 @@ export function OrganismoPanelFlotante({
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
-        {/* Header: ícono + nombre (solo lectura acá — el nombre del
-            Organismo se edita desde su propio catálogo, no desde este
-            panel de solo-visualización de Sistemas) + cerrar. */}
         <div
           className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
           style={{
@@ -89,13 +86,13 @@ export function OrganismoPanelFlotante({
               borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
             }}
           >
-            <Boxes className="text-primary/50" size={12} />
+            <Waypoints className="text-primary/50" size={12} />
           </div>
           <p className="flex-1 min-w-0 text-sm font-black text-primary truncate">
-            {organismo.nombre || "Sin nombre"}
+            {sistema.nombre || "Sin nombre"}
           </p>
           <p className="shrink-0 text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Organismo
+            Sistema
           </p>
           <button
             type="button"
@@ -107,36 +104,28 @@ export function OrganismoPanelFlotante({
           </button>
         </div>
 
-        {/* Contenido: Sistemas del Organismo — techo de la cadena
-            Célula→Tejido→Órgano→Sistema→Organismo, visto de arriba hacia
-            abajo. Click en uno abre sus Órganos en SistemaPanelFlotante. */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4">
           <p className="text-micro font-black uppercase tracking-widest text-primary/40 mb-2">
-            Sistemas
+            Órganos
           </p>
 
-          {sistemas.loading ? (
+          {organos.loading ? (
             <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
-          ) : sistemas.items.length === 0 ? (
+          ) : organos.items.length === 0 ? (
             <p className="text-micro text-primary/25 italic py-1">
-              Sin Sistemas vinculados a este Organismo todavía.
+              Sin Órganos vinculados a este Sistema todavía.
             </p>
           ) : (
             <div className="flex flex-col gap-1">
-              {sistemas.items.map((s) => (
+              {organos.items.map((o) => (
                 <button
-                  key={s.vinculo_id}
+                  key={o.vinculo_id}
                   type="button"
-                  onClick={() => setEditandoSistemaId(s.sistema_id)}
-                  className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
+                  onClick={() => setEditandoOrganoId(o.organo_id)}
+                  className="flex items-center gap-1.5 text-left text-micro text-primary/70 hover:text-accent px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer"
                 >
-                  <Waypoints size={11} className="shrink-0 text-primary/30" />
-                  <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
-                    {s.sistema.nombre || "Sin nombre"}
-                  </span>
-                  {s.proporcion && (
-                    <span className="shrink-0 text-micro text-primary/35">{s.proporcion}</span>
-                  )}
+                  <Layers size={11} className="shrink-0 text-primary/30" />
+                  <span className="truncate">{o.organo.nombre || "Sin nombre"}</span>
                 </button>
               ))}
             </div>
@@ -144,13 +133,21 @@ export function OrganismoPanelFlotante({
         </div>
       </div>
 
-      {/* Detalle del Sistema elegido (sus Órganos) — apilado encima. */}
-      {editandoSistemaId &&
+      {editandoOrganoId &&
         (() => {
-          const sistemaActivo = sistemas.items.find((s) => s.sistema_id === editandoSistemaId)?.sistema;
-          if (!sistemaActivo) return null;
+          const organoActivo = catalogoOrganos.find((o) => o.id === editandoOrganoId);
+          if (!organoActivo) return null;
           return (
-            <SistemaPanelFlotante sistema={sistemaActivo} onCerrar={() => setEditandoSistemaId(null)} />
+            <GrupoCompuestoPanelFlotante
+              grupo={organoActivo}
+              compuestos={compuestosOrganos}
+              onCerrar={() => setEditandoOrganoId(null)}
+              onActualizar={(id, cambios) =>
+                setCatalogoOrganos((prev) =>
+                  prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
+                )
+              }
+            />
           );
         })()}
     </div>,

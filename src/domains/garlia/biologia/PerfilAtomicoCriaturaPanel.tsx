@@ -15,13 +15,16 @@
  * se editan desde acá.
  */
 
-import { Atom, Bug, Plus, Search, X } from "lucide-react";
+import { Atom, Boxes, Bug, Plus, Search, Waypoints, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
-import { type Elemento } from "@/domains/garlia/elementos/types";
+import { type Elemento, type Sistema } from "@/domains/garlia/elementos/types";
 import { useOris } from "@/domains/garlia/fisica/useFisica";
 import { useCriaturasCatalogoMin } from "@/domains/garlia/runas/useCriaturasCatalogoMin";
+import { useSistemas } from "@/domains/garlia/elementos/useSistemas";
+import { useCriaturaSistemas } from "@/domains/garlia/criaturas/useCriaturaSistemas";
+import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
 
 import { usePerfilesAtomicosCriatura } from "./useBiologia";
 import { TIPO_RASGO_EVOLUTIVO_LABEL, type RasgoEvolutivo } from "./types";
@@ -109,6 +112,14 @@ export function PanelPerfilCriatura({
   const [perfilId, setPerfilId] = useState<string | null>(null);
   const [rasgosEvolutivos, setRasgosEvolutivos] = useState<RasgoEvolutivo[]>([]);
 
+  // ── Sistemas vinculados directo a la Criatura (criatura_sistemas) — al
+  // lado de Rasgos evolutivos. Distinto de "Órganos/Organismo" del Editor
+  // de Criatura: acá el Sistema cuelga directo de la Criatura, sin pasar
+  // por un Organismo del catálogo (ej. un sistema mágico exclusivo suyo). ──
+  const sistemasCriatura = useCriaturaSistemas(criaturaId);
+  const { items: catalogoSistemas } = useSistemas();
+  const [editandoSistemaId, setEditandoSistemaId] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelado = false;
     void obtenerOCrear(criaturaId).then((p) => {
@@ -151,41 +162,192 @@ export function PanelPerfilCriatura({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Rasgos evolutivos — marca física permanente por Fantasía evolutiva
-          (adaptación generacional) o residual (exposición acumulada sin
-          canalización activa). */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Rasgos evolutivos
-          </span>
+      {/* Rasgos evolutivos + Sistemas vinculados, lado a lado — mismo
+          patrón de grid que Órganos/Organismo en EditorCriatura.tsx. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-0 items-start">
+        <div className="flex flex-col gap-1.5 lg:pr-4">
+          <div className="flex items-center justify-between">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+              Rasgos evolutivos
+            </span>
+            <button
+              type="button"
+              onClick={agregarRasgo}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <Plus size={9} /> Agregar rasgo
+            </button>
+          </div>
+          <p className="text-micro text-primary/30 -mt-0.5">
+            Marca física permanente por exposición ambiental a un Oris — distinto de canalizarlo.
+          </p>
+          {rasgosEvolutivos.length === 0 ? (
+            <p className="text-micro text-primary/25 italic py-1">Sin rasgos evolutivos todavía</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {rasgosEvolutivos.map((r) => (
+                <RasgoEvolutivoRow
+                  key={r.id}
+                  rasgo={r}
+                  orisDisponibles={orisDisponibles}
+                  onChange={(cambios) => cambiarRasgo(r.id, cambios)}
+                  onEliminar={() => eliminarRasgo(r.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="lg:pl-4 lg:border-l lg:border-primary/10">
+          <PanelSistemasCriatura
+            items={sistemasCriatura.items}
+            loading={sistemasCriatura.loading}
+            catalogo={catalogoSistemas}
+            onAgregar={(id) => void sistemasCriatura.vincularExistente(id)}
+            onActualizarProporcion={sistemasCriatura.actualizarProporcion}
+            onQuitar={(vinculoId) => void sistemasCriatura.quitar(vinculoId)}
+            onAbrirSistema={setEditandoSistemaId}
+          />
+        </div>
+      </div>
+
+      {editandoSistemaId &&
+        (() => {
+          const sistemaActivo = sistemasCriatura.items.find(
+            (s) => s.sistema_id === editandoSistemaId,
+          )?.sistema;
+          if (!sistemaActivo) return null;
+          return (
+            <SistemaPanelFlotante sistema={sistemaActivo} onCerrar={() => setEditandoSistemaId(null)} />
+          );
+        })()}
+    </div>
+  );
+}
+
+// ─── Panel Sistemas vinculados: vincula/gestiona Sistema(s) directo a la
+// Criatura vía criatura_sistemas (proporción libre) — mismo lenguaje visual
+// que PanelOrganismosCriatura en EditorCriatura.tsx, pero sin rol/cantidad/
+// es_principal (el shape acá es más simple: pertenencia + proporción). ─────
+
+function PanelSistemasCriatura({
+  items,
+  loading,
+  catalogo,
+  onAgregar,
+  onActualizarProporcion,
+  onQuitar,
+  onAbrirSistema,
+}: {
+  items: {
+    vinculo_id: string;
+    sistema_id: string;
+    proporcion: string | null;
+    sistema: Sistema;
+  }[];
+  loading: boolean;
+  catalogo: Sistema[];
+  onAgregar: (sistemaId: string) => void;
+  onActualizarProporcion: (vinculoId: string, proporcion: string) => void;
+  onQuitar: (vinculoId: string) => void;
+  onAbrirSistema: (sistemaId: string) => void;
+}) {
+  const [buscando, setBuscando] = useState(false);
+
+  const yaVinculadosIds = useMemo(() => new Set(items.map((v) => v.sistema_id)), [items]);
+  const disponibles = useMemo(
+    () => catalogo.filter((s) => !yaVinculadosIds.has(s.id)),
+    [catalogo, yaVinculadosIds],
+  );
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div>
+        <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/40">
+          Sistemas vinculados
+        </p>
+        <p className="text-micro text-primary/30 mt-0.5">
+          Sistema(s) enlazado directo a esta Criatura, sin pasar por un Organismo del catálogo.
+        </p>
+      </div>
+
+      {loading ? (
+        <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+      ) : items.length === 0 ? (
+        <p className="text-micro text-primary/25 italic py-1">Sin Sistemas vinculados todavía.</p>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {items.map((v) => (
+            <div
+              key={v.vinculo_id}
+              className="flex items-center gap-1.5 bg-primary/5 rounded-md px-2.5 py-2 border border-primary/10"
+            >
+              <Waypoints size={11} className="text-primary/40 shrink-0" />
+              <button
+                type="button"
+                onClick={() => onAbrirSistema(v.sistema_id)}
+                title="Ver Órganos"
+                className="flex-1 min-w-0 text-left truncate text-micro font-bold text-primary/80 hover:text-accent transition-colors cursor-pointer"
+              >
+                {v.sistema.nombre || "Sin nombre"}
+              </button>
+              <input
+                value={v.proporcion ?? ""}
+                onChange={(e) => onActualizarProporcion(v.vinculo_id, e.target.value)}
+                placeholder="Proporción…"
+                className="w-20 shrink-0 bg-transparent px-0 py-0.5 text-micro text-primary/60 outline-none text-right placeholder:text-primary/25"
+              />
+              <button
+                type="button"
+                onClick={() => onQuitar(v.vinculo_id)}
+                title="Quitar"
+                className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-primary/40 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {buscando ? (
+        <div className="flex flex-col gap-1 border border-primary/10 rounded-md p-2">
+          {disponibles.length === 0 ? (
+            <p className="text-micro text-primary/25 italic py-1">
+              No hay más Sistemas disponibles en el catálogo.
+            </p>
+          ) : (
+            disponibles.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  onAgregar(s.id);
+                  setBuscando(false);
+                }}
+                className="text-left text-micro text-primary/70 hover:text-accent px-1.5 py-1 rounded hover:bg-primary/5 transition-colors cursor-pointer"
+              >
+                {s.nombre}
+              </button>
+            ))
+          )}
           <button
             type="button"
-            onClick={agregarRasgo}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-dashed border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer"
+            onClick={() => setBuscando(false)}
+            className="self-start text-micro text-primary/35 hover:text-primary/60 mt-1 cursor-pointer"
           >
-            <Plus size={9} /> Agregar rasgo
+            Cancelar
           </button>
         </div>
-        <p className="text-micro text-primary/30 -mt-0.5">
-          Marca física permanente por exposición ambiental a un Oris — distinto de canalizarlo.
-        </p>
-        {rasgosEvolutivos.length === 0 ? (
-          <p className="text-micro text-primary/25 italic py-1">Sin rasgos evolutivos todavía</p>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {rasgosEvolutivos.map((r) => (
-              <RasgoEvolutivoRow
-                key={r.id}
-                rasgo={r}
-                orisDisponibles={orisDisponibles}
-                onChange={(cambios) => cambiarRasgo(r.id, cambios)}
-                onEliminar={() => eliminarRasgo(r.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setBuscando(true)}
+          className="flex items-center gap-1 self-start text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors cursor-pointer"
+        >
+          <Boxes size={10} /> Agregar sistema existente
+        </button>
+      )}
     </div>
   );
 }

@@ -1201,6 +1201,24 @@ export const CONFIG_CRIATURA_ORGANISMOS = {
   select: "id, criatura_id, organismo_id, rol, cantidad, es_principal, created_at",
 };
 
+/** Fila puente criatura_sistemas: vincula un Sistema directo a una Criatura
+ *  (M:N), con proporción libre — mismo shape que organismo_sistemas, pero
+ *  aplicado directo a la Criatura en vez de pasar por su Organismo. Permite
+ *  registrar un Sistema propio de la criatura (ej. un sistema mágico
+ *  vestigial) sin necesidad de que cuelgue de un Organismo del catálogo. */
+export interface CriaturaSistema {
+  id: string;
+  criatura_id: string;
+  sistema_id: string;
+  proporcion: string | null;
+  created_at: string;
+}
+
+export const CONFIG_CRIATURA_SISTEMAS = {
+  tabla: "criatura_sistemas",
+  select: "id, criatura_id, sistema_id, proporcion, created_at",
+};
+
 // ─── Granos / Vetas: composición de una Formación (minerales) ────────────
 // Espejo inerte de Célula/Tejido: Formacion → formacion_vetas → Veta →
 // (estructura_componentes) → Grano → (estructura_componentes) → Compuesto.
