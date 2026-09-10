@@ -80,10 +80,17 @@ export function useCriaturaOrganismos(criaturaId: string | null) {
       return;
     }
 
-    const { data: organismoData } = await supabase
+    const { data: organismoData, error: organismoError } = await supabase
       .from(CONFIG_ORGANISMOS.tabla)
       .select(CONFIG_ORGANISMOS.select)
       .in("id", organismoIds);
+    if (organismoError) {
+      // No se corta el flujo (vinculos ya quedaron seteados arriba), pero
+      // se loguea siempre — antes un error acá (ej. columna inexistente en
+      // el select) quedaba invisible: `items` salía vacío como si no
+      // hubiera vínculos, aunque `criatura_organismos` sí tuviera filas.
+      console.error("[useCriaturaOrganismos] error cargando organismos:", organismoError);
+    }
     const organismosPorId: Record<string, Organismo> = {};
     for (const o of (organismoData ?? []) as unknown as Organismo[]) organismosPorId[o.id] = o;
     setOrganismos(organismosPorId);

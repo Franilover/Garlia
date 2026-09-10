@@ -1108,8 +1108,11 @@ export interface Sistema {
  *  contra Supabase) YA tiene propiedades_calculadas poblado en las 3 filas
  *  existentes — mismo patrón calculado que Estructura/Compuesto, derivado
  *  de sus Sistemas/Órganos (`fuente` dentro del jsonb indica de cuál).
- *  compuesto_id es legado de un intento anterior 1:1 (mayormente null hoy,
- *  no confundir con la fórmula real que vive en organismo_sistemas). */
+ *  `material_id` es el legado de un intento anterior 1:1 (mayormente null
+ *  hoy, no confundir con la fórmula real que vive en organismo_sistemas) —
+ *  la columna se llama así en Supabase, NO "compuesto_id" (fix 2026-09-10:
+ *  el select anterior pedía "compuesto_id", que no existe en esta tabla y
+ *  hacía fallar todo el fetch en silencio — ver useCriaturaOrganismos.ts). */
 export interface Organismo {
   id: string;
   nombre: string;
@@ -1117,7 +1120,7 @@ export interface Organismo {
   notas: string | null;
   tipo_organismo: string | null;
   /** @deprecated Legacy, casi siempre null — no es la fórmula real. */
-  compuesto_id?: string | null;
+  material_id?: string | null;
   imagen_url: string | null;
   /** Legacy: partes sueltas antes de que organismo_sistemas existiera. */
   componentes: unknown[] | null;
@@ -1125,6 +1128,13 @@ export interface Organismo {
   propiedades_calculadas: Record<string, unknown> | null;
   estado_calculo: string | null;
   calculado_at: string | null;
+  /** Organismo del que este es una variante (ej. macho/hembra de la misma
+   *  especie) — null si es el organismo base. */
+  organismo_base_id?: string | null;
+  variante_tipo?: string | null;
+  sexo_biologico?: string | null;
+  /** Clado al que pertenece este Organismo, si corresponde. */
+  clado_id?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -1154,7 +1164,7 @@ export const CONFIG_SISTEMAS = {
 export const CONFIG_ORGANISMOS = {
   tabla: "organismos",
   select:
-    "id, nombre, descripcion, notas, tipo_organismo, compuesto_id, imagen_url, componentes, orden, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at",
+    "id, nombre, descripcion, notas, tipo_organismo, material_id, imagen_url, componentes, orden, propiedades_calculadas, estado_calculo, calculado_at, organismo_base_id, variante_tipo, sexo_biologico, clado_id, created_at, updated_at",
 };
 
 export const CONFIG_SISTEMA_ORGANOS = {
