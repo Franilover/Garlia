@@ -23,6 +23,7 @@ import {
   Boxes,
   Bug,
   Brain,
+  ChevronDown,
   Dices,
   Globe,
   Image as ImageIcon,
@@ -127,9 +128,16 @@ export function EditorCriatura({
   const [form, setForm] = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [showModalDnd, setShowModalDnd] = useState(false);
-  const [panelActivo, setPanelActivo] = useState<
-    "clasificacion" | "ilustraciones" | "perfilAtomico" | "organos" | "organismo" | null
-  >(null);
+  // ── Secciones del editor ────────────────────────────────────────────────
+  // "normal" = pantalla por defecto (detalles + reino/ciudades/personajes/
+  // creaciones). Cualquier otra sección reemplaza todo ese panel mientras
+  // esté activa; al volver a "normal" reaparece.
+  const [seccionActiva, setSeccionActiva] = useState<SeccionCriaturaDropdown>("normal");
+  // panelActivo se deriva de seccionActiva solo para reusar el panel lateral
+  // existente (Clasificación/Ilustraciones/Perfil atómico/Órganos/Organismo)
+  // sin reescribir su JSX interno.
+  const panelActivo =
+    seccionActiva === "normal" || seccionActiva === "perfilDnd" ? null : seccionActiva;
   const { onWikilink } = useWikilink();
 
   // ── Grupos ────────────────────────────────────────────────────────────────
@@ -337,100 +345,19 @@ export function EditorCriatura({
     setSavingCrafted(false);
   };
 
-  // Los cuatro toggles de panel (Clasificación/Ilustraciones/Perfil
-  // atómico/Órganos) + el dado D&D son específicos de Criatura, así que
-  // viajan juntos como "extra" dentro de los controles de header.
+  // Dropdown único de sección, agrupado en Biología / Extra / Normal —
+  // reemplaza los antiguos 6 botones sueltos en el header.
   const extraBotonesHeader = (
-    <>
-      <button
-        className={`shrink-0 flex items-center gap-1 px-2 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
-          panelActivo === "clasificacion"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        title="Clasificación"
-        type="button"
-        onClick={() =>
-          setPanelActivo((p) => (p === "clasificacion" ? null : "clasificacion"))
+    <SelectorSeccionCriatura
+      seccionActiva={seccionActiva}
+      onSeleccionar={(s) => {
+        if (s === "perfilDnd") {
+          setShowModalDnd(true);
+          return;
         }
-      >
-        <Tags size={11} />
-        <span className="hidden md:inline">Clasificación</span>
-      </button>
-
-      <button
-        className={`shrink-0 flex items-center gap-1 px-2 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
-          panelActivo === "ilustraciones"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        title="Ilustraciones"
-        type="button"
-        onClick={() =>
-          setPanelActivo((p) => (p === "ilustraciones" ? null : "ilustraciones"))
-        }
-      >
-        <ImageIcon size={11} />
-        <span className="hidden md:inline">Ilustraciones</span>
-      </button>
-
-      <button
-        className={`shrink-0 flex items-center gap-1 px-2 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
-          panelActivo === "perfilAtomico"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        title="Perfil atómico"
-        type="button"
-        onClick={() =>
-          setPanelActivo((p) => (p === "perfilAtomico" ? null : "perfilAtomico"))
-        }
-      >
-        <Atom size={11} />
-        <span className="hidden md:inline">Perfil atómico</span>
-      </button>
-
-      <button
-        className={`shrink-0 flex items-center gap-1 px-2 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
-          panelActivo === "organos"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        title="Órganos"
-        type="button"
-        onClick={() =>
-          setPanelActivo((p) => (p === "organos" ? null : "organos"))
-        }
-      >
-        <Layers size={11} />
-        <span className="hidden md:inline">Órganos</span>
-      </button>
-
-      <button
-        className={`shrink-0 flex items-center gap-1 px-2 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
-          panelActivo === "organismo"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        title="Organismo"
-        type="button"
-        onClick={() =>
-          setPanelActivo((p) => (p === "organismo" ? null : "organismo"))
-        }
-      >
-        <Boxes size={11} />
-        <span className="hidden md:inline">Organismo</span>
-      </button>
-
-      <button
-        className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all"
-        title="Reglas D&D 2024"
-        type="button"
-        onClick={() => setShowModalDnd(true)}
-      >
-        <Dices size={13} />
-      </button>
-    </>
+        setSeccionActiva(s);
+      }}
+    />
   );
 
   const headerControls = {
@@ -457,14 +384,10 @@ export function EditorCriatura({
           className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {/* Imagen + Descripción + Panel lateral (Clasificación / Ilustraciones) */}
-          <div className="flex gap-3 items-start">
-            {/* Imagen + Descripción: se "empujan" (comprimen) cuando hay panel activo */}
-            <div
-              className={`flex gap-3 min-w-0 transition-all duration-200 ${
-                panelActivo ? "flex-1 basis-0" : "flex-1"
-              }`}
-            >
+          {/* Sección "Normal": Imagen + Descripción (Detalles). Se oculta por
+              completo mientras cualquier otra sección esté activa. */}
+          <div className={`flex gap-3 items-start ${seccionActiva !== "normal" ? "hidden" : ""}`}>
+            <div className="flex gap-3 min-w-0 flex-1">
               <div className="hidden sm:block shrink-0 w-36">
                 <SelectorImagen
                   aspect="square"
@@ -511,11 +434,13 @@ export function EditorCriatura({
                 />
               </div>
             </div>
+          </div>
 
-            {/* Panel lateral: Clasificación o Ilustraciones, según el botón activo */}
-            {panelActivo && (
+          {/* Panel de sección: reemplaza todo el panel "Normal" mientras
+              cualquier sección de Biología/Extra esté activa. */}
+          {panelActivo && (
               <div
-                className="flex-1 basis-0 min-w-0 rounded-xl p-2.5 animate-[popIn_160ms_cubic-bezier(0.34,1.56,0.64,1)]"
+                className="flex-1 min-w-0 rounded-xl p-2.5 animate-[popIn_160ms_cubic-bezier(0.34,1.56,0.64,1)]"
                 style={{
                   background:
                     "color-mix(in srgb, var(--primary) 2%, transparent)",
@@ -536,7 +461,7 @@ export function EditorCriatura({
                   <button
                     className="text-primary/25 hover:text-primary transition-colors"
                     type="button"
-                    onClick={() => setPanelActivo(null)}
+                    onClick={() => setSeccionActiva("normal")}
                   >
                     <X size={11} />
                   </button>
@@ -664,12 +589,14 @@ export function EditorCriatura({
                 )}
               </div>
             )}
-          </div>
         </div>
 
-        {/* ── BARRA DE ENTIDADES — fila horizontal inferior ────────────────── */}
+        {/* ── BARRA DE ENTIDADES — fila horizontal inferior (solo en sección
+             "Normal"; oculta mientras haya otra sección activa) ─────────── */}
         <div
-          className="shrink-0 hidden sm:flex border-t overflow-y-auto"
+          className={`shrink-0 sm:flex border-t overflow-y-auto ${
+            seccionActiva !== "normal" ? "hidden" : "hidden sm:flex"
+          }`}
           style={{
             maxHeight: "60vh",
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -800,7 +727,7 @@ export function EditorCriatura({
       </div>
 
       {/* ── BARRA DE ENTIDADES — mobile drawer ───────────────────────────────── */}
-      {mobileAsideOpen && (
+      {mobileAsideOpen && seccionActiva === "normal" && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0"
@@ -1032,6 +959,151 @@ export function EditorCriatura({
             />
           );
         })()}
+    </div>
+  );
+}
+
+// ─── Selector de sección (dropdown) ─────────────────────────────────────────
+// Reemplaza los antiguos 6 botones sueltos del header. Tres grupos:
+//  · Normal      → pantalla por defecto (detalles + reino/ciudades/
+//                  personajes/creaciones)
+//  · Biología    → Perfil atómico / Órganos / Organismo
+//  · Extra       → Clasificación / Ilustraciones / Perfil DND
+// Elegir "Perfil DND" abre el modal existente (no reemplaza el panel);
+// cualquier otra opción reemplaza el panel principal mientras esté activa.
+type SeccionCriaturaDropdown =
+  | "normal"
+  | "perfilAtomico"
+  | "organos"
+  | "organismo"
+  | "clasificacion"
+  | "ilustraciones"
+  | "perfilDnd";
+
+const OPCIONES_SECCION: {
+  grupo: string;
+  opciones: { value: SeccionCriaturaDropdown; label: string; icon: typeof Atom }[];
+}[] = [
+  {
+    grupo: "Biología",
+    opciones: [
+      { value: "perfilAtomico", label: "Perfil atómico", icon: Atom },
+      { value: "organos", label: "Órganos", icon: Layers },
+      { value: "organismo", label: "Organismo", icon: Boxes },
+    ],
+  },
+  {
+    grupo: "Extra",
+    opciones: [
+      { value: "clasificacion", label: "Clasificación", icon: Tags },
+      { value: "ilustraciones", label: "Ilustraciones", icon: ImageIcon },
+      { value: "perfilDnd", label: "Perfil DND", icon: Dices },
+    ],
+  },
+];
+
+function SelectorSeccionCriatura({
+  seccionActiva,
+  onSeleccionar,
+}: {
+  seccionActiva: SeccionCriaturaDropdown;
+  onSeleccionar: (s: SeccionCriaturaDropdown) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+    const onClickFuera = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false);
+    };
+    document.addEventListener("mousedown", onClickFuera);
+    return () => document.removeEventListener("mousedown", onClickFuera);
+  }, [abierto]);
+
+  const actual =
+    seccionActiva === "normal"
+      ? { label: "Normal", icon: SlidersHorizontal }
+      : (OPCIONES_SECCION.flatMap((g) => g.opciones).find((o) => o.value === seccionActiva) ?? {
+          label: "Normal",
+          icon: SlidersHorizontal,
+        });
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button
+        className={`flex items-center gap-1.5 px-2.5 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all ${
+          seccionActiva !== "normal"
+            ? "border-primary/40 text-primary bg-primary/8"
+            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+        }`}
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+      >
+        {React.createElement(actual.icon, { size: 11 })}
+        <span className="hidden md:inline">{actual.label}</span>
+        <ChevronDown
+          size={10}
+          className={`transition-transform ${abierto ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {abierto && (
+        <div
+          className="absolute right-0 top-full mt-1 z-30 w-44 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
+          style={{
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        >
+          <button
+            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors ${
+              seccionActiva === "normal"
+                ? "text-primary bg-primary/8"
+                : "text-primary/50 hover:text-primary hover:bg-primary/5"
+            }`}
+            type="button"
+            onClick={() => {
+              onSeleccionar("normal");
+              setAbierto(false);
+            }}
+          >
+            <SlidersHorizontal size={11} />
+            Normal
+          </button>
+
+          {OPCIONES_SECCION.map((grupo) => (
+            <div key={grupo.grupo}>
+              <div
+                className="px-2.5 pt-1.5 pb-0.5 text-[7px] font-black uppercase tracking-[0.25em] text-primary/25 border-t"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+                }}
+              >
+                {grupo.grupo}
+              </div>
+              {grupo.opciones.map((op) => (
+                <button
+                  key={op.value}
+                  className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors ${
+                    seccionActiva === op.value
+                      ? "text-primary bg-primary/8"
+                      : "text-primary/50 hover:text-primary hover:bg-primary/5"
+                  }`}
+                  type="button"
+                  onClick={() => {
+                    onSeleccionar(op.value);
+                    setAbierto(false);
+                  }}
+                >
+                  {React.createElement(op.icon, { size: 11 })}
+                  {op.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
