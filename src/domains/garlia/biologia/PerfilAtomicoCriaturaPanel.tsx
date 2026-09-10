@@ -3,92 +3,28 @@
 /**
  * PerfilAtomicoCriaturaPanel.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Perfil de una criatura, en 2 bloques con semántica distinta (ver types.ts
- * para el detalle de diseño):
+ * Perfil de una criatura — actualmente solo Rasgos evolutivos: marca física
+ * permanente por Fantasía evolutiva/residual (exposición ambiental
+ * acumulada a un Oris concreto). Ver types.ts para el detalle de diseño.
  *
- *   1. Rasgos evolutivos: marca física permanente por Fantasía evolutiva/
- *      residual — exposición ambiental acumulada a un Oris concreto.
- *   2. Composición material: de qué está hecho el tejido duro/mineral
- *      (huesos, caparazón, escamas) — reusa TAL CUAL el motor de
- *      afinidad.ts de Elementos (calcularPerfilAtomico, calcularBalance-
- *      PorCapa, calcularReactividad, calcularPeso). NO representa a la
- *      criatura entera: hoy la Tabla Química es geología/minerales, sin
- *      elementos orgánicos todavía.
- *
- * Nota: el bloque de "Canalización" (Oris que la criatura puede usar
- * activamente) y el de "Notas" libres se quitaron del frontend a pedido
- * — el estado/persistencia de esos campos (oris_ids, notas) sigue
- * existiendo en types.ts y en la tabla, solo no se editan desde acá.
+ * Nota: los bloques de "Canalización" (Oris que la criatura puede usar
+ * activamente), "Composición material" (elementos que forman su tejido
+ * duro/mineral, con el motor de afinidad.ts) y "Notas" libres se quitaron
+ * del frontend a pedido — el estado/persistencia de esos campos (oris_ids,
+ * componentes, notas) sigue existiendo en types.ts y en la tabla, solo no
+ * se editan desde acá.
  */
 
-import { Atom, Bug, Plus, Search, Wand2, X } from "lucide-react";
+import { Atom, Bug, Plus, Search, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
-import {
-  autocompletarHastaEstable,
-  calcularBalancePorCapa,
-  calcularPerfilAtomico,
-  calcularPeso,
-  calcularReactividad,
-} from "@/domains/garlia/elementos/afinidad";
-import { SelectorComposicionElementos } from "@/domains/garlia/elementos/SelectorComposicionElementos";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
-import {
-  LAYER_LABEL,
-  REACTIVIDAD_LABEL,
-  formatLayer,
-  type Compuesto,
-  type ComponenteCompuesto,
-  type Elemento,
-  type LayerName,
-} from "@/domains/garlia/elementos/types";
+import { type Elemento } from "@/domains/garlia/elementos/types";
 import { useOris } from "@/domains/garlia/fisica/useFisica";
 import { useCriaturasCatalogoMin } from "@/domains/garlia/runas/useCriaturasCatalogoMin";
 
 import { usePerfilesAtomicosCriatura } from "./useBiologia";
 import { TIPO_RASGO_EVOLUTIVO_LABEL, type RasgoEvolutivo } from "./types";
-
-const LAYERS: LayerName[] = ["nucleo", "media", "externa"];
-
-// ─── Barra de balance de una capa ───────────────────────────────────────────
-
-function BarraCapa({
-  layer,
-  perfil,
-  total,
-  capacidad,
-}: {
-  layer: LayerName;
-  perfil: Record<string, number | undefined>;
-  total: number;
-  capacidad: number;
-}) {
-  const balance = total - capacidad;
-  const pct = capacidad > 0 ? Math.min(100, (total / capacidad) * 100) : 0;
-
-  return (
-    <div className="mb-2.5 last:mb-0">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-micro font-black uppercase tracking-wide text-primary/50">
-          {LAYER_LABEL[layer]}
-        </span>
-        <span className="text-micro font-bold text-primary/40">
-          {total}/{capacidad}{" "}
-          {balance === 0 ? "(saturada)" : balance > 0 ? `(+${balance})` : `(${balance})`}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-primary/8 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${
-            balance < 0 ? "bg-primary/45" : balance > 0 ? "bg-accent/60" : "bg-primary/70"
-          }`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="text-micro text-primary/35 mt-0.5 block">{formatLayer(perfil)}</span>
-    </div>
-  );
-}
 
 
 // ─── Rasgos evolutivos (Fantasía evolutiva/residual) ───────────────────────
@@ -171,7 +107,6 @@ export function PanelPerfilCriatura({
   actualizar: ReturnType<typeof usePerfilesAtomicosCriatura>["actualizar"];
 }) {
   const [perfilId, setPerfilId] = useState<string | null>(null);
-  const [componentes, setComponentes] = useState<ComponenteCompuesto[]>([]);
   const [rasgosEvolutivos, setRasgosEvolutivos] = useState<RasgoEvolutivo[]>([]);
 
   useEffect(() => {
@@ -179,7 +114,6 @@ export function PanelPerfilCriatura({
     void obtenerOCrear(criaturaId).then((p) => {
       if (cancelado || !p) return;
       setPerfilId(p.id);
-      setComponentes(p.componentes ?? []);
       setRasgosEvolutivos(p.rasgos_evolutivos ?? []);
     });
     return () => {
@@ -187,41 +121,9 @@ export function PanelPerfilCriatura({
     };
   }, [criaturaId]);
 
-  const guardar = (patch: {
-    componentes?: ComponenteCompuesto[];
-    rasgos_evolutivos?: RasgoEvolutivo[];
-  }) => {
+  const guardar = (patch: { rasgos_evolutivos?: RasgoEvolutivo[] }) => {
     if (!perfilId) return;
     void actualizar(perfilId, patch);
-  };
-
-  const compuestoTemporal: Compuesto = useMemo(
-    () => ({ id: criaturaId, nombre: criaturaNombre, componentes }),
-    [criaturaId, criaturaNombre, componentes],
-  );
-
-  const perfilAtomico = useMemo(
-    () => calcularPerfilAtomico(compuestoTemporal, elementos),
-    [compuestoTemporal, elementos],
-  );
-  const balance = useMemo(() => calcularBalancePorCapa(perfilAtomico), [perfilAtomico]);
-  const reactividad = useMemo(
-    () => calcularReactividad(compuestoTemporal, elementos),
-    [compuestoTemporal, elementos],
-  );
-  const peso = useMemo(() => calcularPeso(compuestoTemporal, elementos), [compuestoTemporal, elementos]);
-
-  const cambiarComponentes = (next: ComponenteCompuesto[]) => {
-    setComponentes(next);
-    guardar({ componentes: next });
-  };
-
-  // Auto-completar hasta estable — mismo motor que CompuestosPage: agrega
-  // en orden greedy los elementos que más déficit cierran hasta que las 3
-  // capas queden en 0 o no haya más candidatos que ayuden.
-  const autocompletar = () => {
-    const next = autocompletarHastaEstable(componentes, elementos);
-    cambiarComponentes(next);
   };
 
   const agregarRasgo = () => {
@@ -284,64 +186,6 @@ export function PanelPerfilCriatura({
           </div>
         )}
       </div>
-
-      <div className="border-t border-primary/10" />
-
-      {/* Composición material — de qué está hecho el tejido duro/mineral
-          (huesos, caparazón, escamas), reusando el motor de afinidad.ts de
-          Elementos. NO representa a la criatura entera. */}
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Composición material (tejido duro)
-          </span>
-          {componentes.length > 0 && (
-            <button
-              type="button"
-              onClick={autocompletar}
-              title="Agregar elementos hasta cerrar el déficit de las 3 capas"
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-micro font-black uppercase tracking-wide border border-primary/15 text-primary/50 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
-            >
-              <Wand2 size={10} /> Autocompletar
-            </button>
-          )}
-        </div>
-
-        <SelectorComposicionElementos
-          elementos={elementos}
-          componentes={componentes}
-          onChange={cambiarComponentes}
-        />
-      </div>
-
-      {/* Balance por capa — depende directamente de la composición de
-          arriba, así que va inmediatamente debajo de ella, separado solo
-          por un divisor. */}
-      {componentes.length > 0 && (
-        <div className="flex flex-col gap-0 pt-3 border-t border-primary/10">
-          {LAYERS.map((layer) => {
-            const b = balance.find((x) => x.layer === layer)!;
-            return (
-              <BarraCapa
-                key={layer}
-                layer={layer}
-                perfil={perfilAtomico[layer]}
-                total={b.total}
-                capacidad={b.capacidad}
-              />
-            );
-          })}
-
-          <div className="flex items-center justify-between mt-1 pt-2 border-t border-primary/10">
-            <span className="text-micro font-bold text-primary/50">
-              Reactividad: <span className="text-primary/80">{REACTIVIDAD_LABEL[reactividad.nivel]}</span>
-            </span>
-            <span className="text-micro font-bold text-primary/50">
-              Peso: <span className="text-primary/80">{peso.pesoTotal} ({peso.categoria})</span>
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
