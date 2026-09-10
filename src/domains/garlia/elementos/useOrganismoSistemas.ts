@@ -13,7 +13,10 @@
  *
  * Fase 8: cache-first vía Dexie, mismo patrón que useOrganoTejidos.ts /
  * useSistemaOrganos.ts (organismo_sistemas y sistemas ya están en
- * DEXIE_TABLES desde v35).
+ * DEXIE_TABLES desde v35). Además espeja el resultado en
+ * useOrganismoBiologiaStore (Zustand) para que otra instancia del hook
+ * pidiendo el mismo organismoId (ej. EditorCriatura + OrganismoPanelFlotante
+ * abiertos a la vez) adopte el resultado ya resuelto sin refetchear.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -26,6 +29,7 @@ import {
   type OrganismoSistema,
   type Sistema,
 } from "@/domains/garlia/elementos/types";
+import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
 async function leerVinculosDeDexie(organismoId: string): Promise<OrganismoSistema[]> {
@@ -71,28 +75,74 @@ export interface SistemaDeOrganismo {
 }
 
 export function useOrganismoSistemas(organismoId: string | null) {
-  const [vinculos, setVinculos] = useState<OrganismoSistema[]>([]);
-  const [sistemas, setSistemas] = useState<Record<string, Sistema>>({});
-  const [loading, setLoading] = useState(true);
+  // ── Zustand: cache en memoria compartida entre componentes ────────────
+  const cacheEntry = useOrganismoBiologiaStore((s) =>
+    organismoId ? s.sistemasPorOrganismo[organismoId] : undefined,
+  );
+  const setSistemasEnStore = useOrganismoBiologiaStore((s) => s.setSistemas);
+
+  const [vinculos, setVinculosLocal] = useState<OrganismoSistema[]>(cacheEntry?.vinculos ?? []);
+  const [sistemas, setSistemasLocal] = useState<Record<string, Sistema>>(cacheEntry?.sistemas ?? {});
+  const [loading, setLoading] = useState(!cacheEntry);
+
+  // Si otro componente ya resolvió este organismoId en el store, adoptamos
+  // ese estado de inmediato en vez de esperar otro round-trip.
+  useEffect(() => {
+    if (cacheEntry) {
+      setVinculosLocal(cacheEntry.vinculos);
+      setSistemasLocal(cacheEntry.sistemas);
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organismoId]);
+
+  const setVinculos = useCallback(
+    (updater: OrganismoSistema[] | ((prev: OrganismoSistema[]) => OrganismoSistema[])) => {
+      setVinculosLocal((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (organismoId) setSistemasEnStore(organismoId, next, sistemas);
+        return next;
+      });
+    },
+    [organismoId, sistemas, setSistemasEnStore],
+  );
+
+  const setSistemas = useCallback(
+    (
+      updater:
+        | Record<string, Sistema>
+        | ((prev: Record<string, Sistema>) => Record<string, Sistema>),
+    ) => {
+      setSistemasLocal((prev) => {
+        const next = typeof updater === "function" ? (updater as any)(prev) : updater;
+        if (organismoId) setSistemasEnStore(organismoId, vinculos, next);
+        return next;
+      });
+    },
+    [organismoId, vinculos, setSistemasEnStore],
+  );
 
   const load = useCallback(async () => {
     if (!organismoId) {
-      setVinculos([]);
-      setSistemas({});
+      setVinculosLocal([]);
+      setSistemasLocal({});
       setLoading(false);
       return;
     }
 
     // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
-    const vinculosLocales = await leerVinculosDeDexie(organismoId);
-    if (vinculosLocales.length > 0) {
-      setVinculos(vinculosLocales);
-      const sistemaIdsLocales = vinculosLocales.map((v) => v.sistema_id);
-      const sistemasLocales = await leerSistemasDeDexie(sistemaIdsLocales);
-      setSistemas(sistemasLocales);
-      setLoading(false);
-    } else {
-      setLoading(true);
+    if (!cacheEntry) {
+      const vinculosLocales = await leerVinculosDeDexie(organismoId);
+      if (vinculosLocales.length > 0) {
+        setVinculosLocal(vinculosLocales);
+        const sistemaIdsLocales = vinculosLocales.map((v) => v.sistema_id);
+        const sistemasLocales = await leerSistemasDeDexie(sistemaIdsLocales);
+        setSistemasLocal(sistemasLocales);
+        setSistemasEnStore(organismoId, vinculosLocales, sistemasLocales);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
     }
 
     // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
@@ -103,20 +153,18 @@ export function useOrganismoSistemas(organismoId: string | null) {
       .order("created_at", { ascending: true });
 
     if (vinculoError || !vinculoData) {
-      if (vinculosLocales.length === 0) {
-        setVinculos([]);
-        setSistemas({});
-      }
       setLoading(false);
       return;
     }
-    setVinculos(vinculoData as unknown as OrganismoSistema[]);
+    const vinculosResueltos = vinculoData as unknown as OrganismoSistema[];
+    setVinculosLocal(vinculosResueltos);
 
-    const sistemaIds = (vinculoData as unknown as OrganismoSistema[]).map((v) => v.sistema_id);
+    const sistemaIds = vinculosResueltos.map((v) => v.sistema_id);
     if (sistemaIds.length === 0) {
-      setSistemas({});
+      setSistemasLocal({});
+      setSistemasEnStore(organismoId, vinculosResueltos, {});
       setLoading(false);
-      void guardarEnDexie(vinculoData as unknown as OrganismoSistema[], []);
+      void guardarEnDexie(vinculosResueltos, []);
       return;
     }
 
@@ -127,17 +175,16 @@ export function useOrganismoSistemas(organismoId: string | null) {
 
     const sistemasPorId: Record<string, Sistema> = {};
     for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
-    setSistemas(sistemasPorId);
+    setSistemasLocal(sistemasPorId);
+    setSistemasEnStore(organismoId, vinculosResueltos, sistemasPorId);
     setLoading(false);
-    void guardarEnDexie(
-      vinculoData as unknown as OrganismoSistema[],
-      Object.values(sistemasPorId),
-    );
-  }, [organismoId]);
+    void guardarEnDexie(vinculosResueltos, Object.values(sistemasPorId));
+  }, [organismoId, cacheEntry, setSistemasEnStore]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organismoId]);
 
   const items = useMemo<SistemaDeOrganismo[]>(() => {
     return vinculos
@@ -166,49 +213,59 @@ export function useOrganismoSistemas(organismoId: string | null) {
         .single();
       if (error || !vinculo) return null;
 
-      if (!sistemas[sistemaId]) {
+      let sistemaResuelto = sistemas[sistemaId];
+      if (!sistemaResuelto) {
         const { data: sistemaData } = await supabase
           .from(CONFIG_SISTEMAS.tabla)
           .select(CONFIG_SISTEMAS.select)
           .eq("id", sistemaId)
           .single();
         if (sistemaData) {
-          const sistema = sistemaData as unknown as Sistema;
-          setSistemas((prev) => ({ ...prev, [sistemaId]: sistema }));
-          void guardarEnDexie([], [sistema]);
+          sistemaResuelto = sistemaData as unknown as Sistema;
+          setSistemas((prev) => ({ ...prev, [sistemaId]: sistemaResuelto }));
         }
       }
-      setVinculos((prev) => [...prev, vinculo as unknown as OrganismoSistema]);
-      void guardarEnDexie([vinculo as unknown as OrganismoSistema], []);
-      return vinculo as unknown as OrganismoSistema;
+      const vinculoTyped = vinculo as unknown as OrganismoSistema;
+      setVinculos((prev) => [...prev, vinculoTyped]);
+      void guardarEnDexie([vinculoTyped], sistemaResuelto ? [sistemaResuelto] : []);
+      return vinculoTyped;
     },
-    [organismoId, sistemas],
+    [organismoId, sistemas, setSistemas, setVinculos],
   );
 
   /** Editar la proporción de una fila. */
-  const actualizarProporcion = useCallback(async (vinculoId: string, proporcion: string) => {
-    setVinculos((prev) => {
-      const next = prev.map((v) => (v.id === vinculoId ? { ...v, proporcion } : v));
-      const actualizado = next.find((v) => v.id === vinculoId);
-      if (actualizado) void guardarEnDexie([actualizado], []);
-      return next;
-    });
-    const { error } = await supabase
-      .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
-      .update({ proporcion })
-      .eq("id", vinculoId);
-    if (error) console.error("[useOrganismoSistemas] error actualizando proporción:", error);
-  }, []);
+  const actualizarProporcion = useCallback(
+    async (vinculoId: string, proporcion: string) => {
+      setVinculos((prev) => {
+        const next = prev.map((v) => (v.id === vinculoId ? { ...v, proporcion } : v));
+        const actualizado = next.find((v) => v.id === vinculoId);
+        if (actualizado) void guardarEnDexie([actualizado], []);
+        return next;
+      });
+      const { error } = await supabase
+        .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+        .update({ proporcion })
+        .eq("id", vinculoId);
+      if (error) console.error("[useOrganismoSistemas] error actualizando proporción:", error);
+    },
+    [setVinculos],
+  );
 
   /** Quitar el vínculo (el Sistema queda en su catálogo, no se borra). */
-  const quitar = useCallback(async (vinculoId: string) => {
-    setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
-    try {
-      if (db) await db.organismo_sistemas.delete(vinculoId);
-    } catch {}
-    const { error } = await supabase.from(CONFIG_ORGANISMO_SISTEMAS.tabla).delete().eq("id", vinculoId);
-    if (error) console.error("[useOrganismoSistemas] error quitando vínculo:", error);
-  }, []);
+  const quitar = useCallback(
+    async (vinculoId: string) => {
+      setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
+      try {
+        if (db) await db.organismo_sistemas.delete(vinculoId);
+      } catch {}
+      const { error } = await supabase
+        .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+        .delete()
+        .eq("id", vinculoId);
+      if (error) console.error("[useOrganismoSistemas] error quitando vínculo:", error);
+    },
+    [setVinculos],
+  );
 
   return { items, loading, vincularExistente, actualizarProporcion, quitar, load };
 }
