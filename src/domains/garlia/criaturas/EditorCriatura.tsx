@@ -127,17 +127,15 @@ export function EditorCriatura({
 }) {
   const [form, setForm] = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [showModalDnd, setShowModalDnd] = useState(false);
   // ── Secciones del editor ────────────────────────────────────────────────
-  // "normal" = pantalla por defecto (detalles + reino/ciudades/personajes/
-  // creaciones). Cualquier otra sección reemplaza todo ese panel mientras
-  // esté activa; al volver a "normal" reaparece.
-  const [seccionActiva, setSeccionActiva] = useState<SeccionCriaturaDropdown>("normal");
-  // panelActivo se deriva de seccionActiva solo para reusar el panel lateral
-  // existente (Clasificación/Ilustraciones/Perfil atómico/Órganos/Organismo)
-  // sin reescribir su JSX interno.
-  const panelActivo =
-    seccionActiva === "normal" || seccionActiva === "perfilDnd" ? null : seccionActiva;
+  // Solo 3 opciones en el selector: "normal" (detalles + reino/ciudades/
+  // personajes/creaciones), "biologia" (Perfil atómico + Órganos + Organismo,
+  // todos juntos) y "extra" (Clasificación + Ilustraciones + Perfil DND,
+  // todos juntos). Elegir cualquiera que no sea "normal" oculta el panel
+  // por defecto y muestra los 3 sub-bloques de esa sección apilados.
+  const [seccionActiva, setSeccionActiva] = useState<"normal" | "biologia" | "extra">(
+    "normal",
+  );
   const { onWikilink } = useWikilink();
 
   // ── Grupos ────────────────────────────────────────────────────────────────
@@ -345,19 +343,10 @@ export function EditorCriatura({
     setSavingCrafted(false);
   };
 
-  // Dropdown único de sección, agrupado en Biología / Extra / Normal —
-  // reemplaza los antiguos 6 botones sueltos en el header.
+  // Dropdown único de sección con solo 3 opciones — reemplaza los antiguos
+  // 6 botones sueltos en el header.
   const extraBotonesHeader = (
-    <SelectorSeccionCriatura
-      seccionActiva={seccionActiva}
-      onSeleccionar={(s) => {
-        if (s === "perfilDnd") {
-          setShowModalDnd(true);
-          return;
-        }
-        setSeccionActiva(s);
-      }}
-    />
+    <SelectorSeccionCriatura seccionActiva={seccionActiva} onSeleccionar={setSeccionActiva} />
   );
 
   const headerControls = {
@@ -437,10 +426,11 @@ export function EditorCriatura({
           </div>
 
           {/* Panel de sección: reemplaza todo el panel "Normal" mientras
-              cualquier sección de Biología/Extra esté activa. */}
-          {panelActivo && (
+              Biología o Extra esté activa. Cada sección muestra sus 3
+              sub-bloques apilados de una — no hay selección individual. */}
+          {seccionActiva !== "normal" && (
               <div
-                className="flex-1 min-w-0 rounded-xl p-2.5 animate-[popIn_160ms_cubic-bezier(0.34,1.56,0.64,1)]"
+                className="flex-1 min-w-0 flex flex-col gap-3 rounded-xl p-2.5 animate-[popIn_160ms_cubic-bezier(0.34,1.56,0.64,1)]"
                 style={{
                   background:
                     "color-mix(in srgb, var(--primary) 2%, transparent)",
@@ -448,15 +438,9 @@ export function EditorCriatura({
                     "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
                 }}
               >
-                <div className="flex items-center justify-between mb-2 px-0.5">
+                <div className="flex items-center justify-between px-0.5">
                   <p className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
-                    {panelActivo === "clasificacion"
-                      ? "Clasificación"
-                      : panelActivo === "ilustraciones"
-                        ? "Ilustraciones"
-                        : panelActivo === "organos"
-                          ? "Órganos"
-                          : "Perfil atómico"}
+                    {seccionActiva === "biologia" ? "Biología" : "Extra"}
                   </p>
                   <button
                     className="text-primary/25 hover:text-primary transition-colors"
@@ -467,125 +451,196 @@ export function EditorCriatura({
                   </button>
                 </div>
 
-                {panelActivo === "clasificacion" ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
-                        {
-                          label: "Inteligencia",
-                          subtipo: "Inteligencia",
-                          icon: Brain,
-                        },
-                        { label: "Alma", subtipo: "Alma", icon: Wand2 },
-                        {
-                          label: "Usar Mana",
-                          subtipo: "Usar Mana",
-                          icon: Sparkles,
-                        },
-                        {
-                          label: "Produce Mana",
-                          subtipo: "Produce Mana",
-                          icon: Star,
-                        },
-                      ] as const
-                    ).map(({ label, subtipo, icon }) => (
-                      <div key={subtipo} className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
-                          {React.createElement(icon, { size: 7 })} {label}
+                {seccionActiva === "biologia" ? (
+                  <>
+                    {/* Perfil atómico */}
+                    <div className="flex flex-col gap-1.5 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <Atom size={11} className="text-primary/35" />
+                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                          Perfil atómico
                         </span>
-                        <BloqueGrupoCategoria
-                          gruposActuales={gruposActuales as GrupoMinExt[]}
-                          icon={icon}
-                          label={label}
-                          subtipo={subtipo}
-                          todosGrupos={todosGrupos as GrupoMinExt[]}
-                          onAdd={addToGrupo}
-                          onRemove={removeFromGrupo}
-                          onSelectGrupo={onSelectGrupo}
+                      </div>
+                      <div className="max-h-[45vh] overflow-y-auto pr-0.5">
+                        {loadingElementosPerfil ||
+                        loadingOrisPerfil ||
+                        loadingPerfilesAtomicos ? (
+                          <div className="py-4 text-xs text-primary/30 text-center">
+                            Cargando…
+                          </div>
+                        ) : (
+                          <PanelPerfilCriatura
+                            key={form.id}
+                            actualizar={actualizarPerfil}
+                            criaturaId={form.id}
+                            criaturaNombre={form.nombre}
+                            elementos={elementosPerfil}
+                            obtenerOCrear={obtenerOCrearPerfil}
+                            orisDisponibles={orisDisponiblesPerfil}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Órganos */}
+                    <div className="flex flex-col gap-1.5 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+                      <SeccionGruposVinculados
+                        titulo="Órganos"
+                        descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
+                        icono={Layers}
+                        items={organosCriatura.organos}
+                        catalogo={catalogoOrganos}
+                        loading={organosCriatura.loading}
+                        onCrearNuevo={async () => {
+                          const nuevo = await organosCriatura.crearYVincularOrgano();
+                          if (nuevo) setEditandoGrupoId(nuevo.id);
+                          return nuevo;
+                        }}
+                        onUsarExistente={(id) => void organosCriatura.vincularOrganoExistente(id)}
+                        onDelete={(vinculoId) => void organosCriatura.desvincularOrgano(vinculoId)}
+                        onAbrirGrupo={(id) => setEditandoGrupoId(id)}
+                        onAbrirCelula={setEditandoCelulaId}
+                      />
+                    </div>
+
+                    {/* Organismo */}
+                    <div className="flex flex-col gap-1.5">
+                      <PanelOrganismosCriatura
+                        items={organismosCriatura.items}
+                        loading={organismosCriatura.loading}
+                        catalogo={catalogoOrganismos}
+                        onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
+                        onActualizar={organismosCriatura.actualizarVinculo}
+                        onMarcarPrincipal={organismosCriatura.marcarPrincipal}
+                        onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Clasificación */}
+                    <div className="flex flex-col gap-1.5 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <Tags size={11} className="text-primary/35" />
+                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                          Clasificación
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
+                            {
+                              label: "Inteligencia",
+                              subtipo: "Inteligencia",
+                              icon: Brain,
+                            },
+                            { label: "Alma", subtipo: "Alma", icon: Wand2 },
+                            {
+                              label: "Usar Mana",
+                              subtipo: "Usar Mana",
+                              icon: Sparkles,
+                            },
+                            {
+                              label: "Produce Mana",
+                              subtipo: "Produce Mana",
+                              icon: Star,
+                            },
+                          ] as const
+                        ).map(({ label, subtipo, icon }) => (
+                          <div key={subtipo} className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
+                              {React.createElement(icon, { size: 7 })} {label}
+                            </span>
+                            <BloqueGrupoCategoria
+                              gruposActuales={gruposActuales as GrupoMinExt[]}
+                              icon={icon}
+                              label={label}
+                              subtipo={subtipo}
+                              todosGrupos={todosGrupos as GrupoMinExt[]}
+                              onAdd={addToGrupo}
+                              onRemove={removeFromGrupo}
+                              onSelectGrupo={onSelectGrupo}
+                            />
+                          </div>
+                        ))}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
+                            <Atom size={7} /> Subsistema Mágico
+                          </span>
+                          <BloqueSubsistemaMagicoCriatura
+                            subsistemaActual={subsistemaActual}
+                            todosSubsistemas={todosSubsistemas}
+                            onChange={setSubsistema}
+                            onSelectSubsistema={onSelectSubsistema}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ilustraciones */}
+                    <div className="flex flex-col gap-1.5 pb-3 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}>
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <ImageIcon size={11} className="text-primary/35" />
+                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                          Ilustraciones
+                        </span>
+                      </div>
+                      <p className="text-micro text-primary/35 leading-relaxed px-0.5">
+                        Referencias visuales de la criatura (concept art, poses,
+                        variantes…).
+                      </p>
+                      <div className="w-full max-w-[220px]">
+                        <SelectorImagen
+                          aspect="square"
+                          label="Ilustración principal"
+                          placeholder={
+                            <ImageIcon className="opacity-20" size={20} />
+                          }
+                          value={form.imagen_url ?? ""}
+                          onChange={(url) =>
+                            setForm((f) => ({ ...f, imagen_url: url }))
+                          }
                         />
                       </div>
-                    ))}
-                    <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
-                        <Atom size={7} /> Subsistema Mágico
-                      </span>
-                      <BloqueSubsistemaMagicoCriatura
-                        subsistemaActual={subsistemaActual}
-                        todosSubsistemas={todosSubsistemas}
-                        onChange={setSubsistema}
-                        onSelectSubsistema={onSelectSubsistema}
-                      />
                     </div>
-                  </div>
-                ) : panelActivo === "ilustraciones" ? (
-                  <div className="flex flex-col gap-2">
-                    <p className="text-micro text-primary/35 leading-relaxed px-0.5">
-                      Referencias visuales de la criatura (concept art, poses,
-                      variantes…).
-                    </p>
-                    <div className="w-full max-w-[220px]">
-                      <SelectorImagen
-                        aspect="square"
-                        label="Ilustración principal"
-                        placeholder={
-                          <ImageIcon className="opacity-20" size={20} />
-                        }
-                        value={form.imagen_url ?? ""}
-                        onChange={(url) =>
-                          setForm((f) => ({ ...f, imagen_url: url }))
-                        }
-                      />
-                    </div>
-                  </div>
-                ) : panelActivo === "organos" ? (
-                  <SeccionGruposVinculados
-                    titulo="Órganos"
-                    descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
-                    icono={Layers}
-                    items={organosCriatura.organos}
-                    catalogo={catalogoOrganos}
-                    loading={organosCriatura.loading}
-                    onCrearNuevo={async () => {
-                      const nuevo = await organosCriatura.crearYVincularOrgano();
-                      if (nuevo) setEditandoGrupoId(nuevo.id);
-                      return nuevo;
-                    }}
-                    onUsarExistente={(id) => void organosCriatura.vincularOrganoExistente(id)}
-                    onDelete={(vinculoId) => void organosCriatura.desvincularOrgano(vinculoId)}
-                    onAbrirGrupo={(id) => setEditandoGrupoId(id)}
-                    onAbrirCelula={setEditandoCelulaId}
-                  />
-                ) : panelActivo === "organismo" ? (
-                  <PanelOrganismosCriatura
-                    items={organismosCriatura.items}
-                    loading={organismosCriatura.loading}
-                    catalogo={catalogoOrganismos}
-                    onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
-                    onActualizar={organismosCriatura.actualizarVinculo}
-                    onMarcarPrincipal={organismosCriatura.marcarPrincipal}
-                    onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
-                  />
-                ) : (
-                  <div className="max-h-[70vh] overflow-y-auto pr-0.5">
-                    {loadingElementosPerfil ||
-                    loadingOrisPerfil ||
-                    loadingPerfilesAtomicos ? (
-                      <div className="py-4 text-xs text-primary/30 text-center">
-                        Cargando…
+
+                    {/* Perfil DND */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 px-0.5">
+                        <Dices size={11} className="text-primary/35" />
+                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                          Perfil DND
+                        </span>
                       </div>
-                    ) : (
-                      <PanelPerfilCriatura
-                        key={form.id}
-                        actualizar={actualizarPerfil}
-                        criaturaId={form.id}
-                        criaturaNombre={form.nombre}
-                        elementos={elementosPerfil}
-                        obtenerOCrear={obtenerOCrearPerfil}
-                        orisDisponibles={orisDisponiblesPerfil}
-                      />
-                    )}
-                  </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
+                          Descripción D&D
+                        </label>
+                        <textarea
+                          className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
+                          placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
+                          rows={4}
+                          value={form.descripcion_dnd ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, descripcion_dnd: e.target.value || null }))
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 mt-1">
+                        <div className="flex items-center gap-2 px-0.5">
+                          <Shield size={11} className="text-primary/35" />
+                          <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
+                            Ficha de combate (D&D 2024)
+                          </span>
+                        </div>
+                        <CriaturaStatsDndEditor
+                          valor={form.stats_dnd}
+                          onCambiar={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -861,19 +916,6 @@ export function EditorCriatura({
         </div>
       )}
 
-      {showModalDnd && (
-        <ModalReglasDndCriatura
-          descripcionDnd={form.descripcion_dnd ?? ""}
-          nombre={form.nombre}
-          statsDnd={form.stats_dnd}
-          onChangeDescripcionDnd={(v) =>
-            setForm((f) => ({ ...f, descripcion_dnd: v || null }))
-          }
-          onChangeStatsDnd={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
-          onClose={() => setShowModalDnd(false)}
-        />
-      )}
-
       {editandoGrupoId && (
         <GrupoCompuestoPanelFlotante
           grupo={catalogoOrganos.find((g) => g.id === editandoGrupoId)!}
@@ -964,50 +1006,14 @@ export function EditorCriatura({
 }
 
 // ─── Selector de sección (dropdown) ─────────────────────────────────────────
-// Reemplaza los antiguos 6 botones sueltos del header. Tres grupos:
-//  · Normal      → pantalla por defecto (detalles + reino/ciudades/
-//                  personajes/creaciones)
-//  · Biología    → Perfil atómico / Órganos / Organismo
-//  · Extra       → Clasificación / Ilustraciones / Perfil DND
-// Elegir "Perfil DND" abre el modal existente (no reemplaza el panel);
-// cualquier otra opción reemplaza el panel principal mientras esté activa.
-type SeccionCriaturaDropdown =
-  | "normal"
-  | "perfilAtomico"
-  | "organos"
-  | "organismo"
-  | "clasificacion"
-  | "ilustraciones"
-  | "perfilDnd";
-
-const OPCIONES_SECCION: {
-  grupo: string;
-  opciones: { value: SeccionCriaturaDropdown; label: string; icon: typeof Atom }[];
-}[] = [
-  {
-    grupo: "Biología",
-    opciones: [
-      { value: "perfilAtomico", label: "Perfil atómico", icon: Atom },
-      { value: "organos", label: "Órganos", icon: Layers },
-      { value: "organismo", label: "Organismo", icon: Boxes },
-    ],
-  },
-  {
-    grupo: "Extra",
-    opciones: [
-      { value: "clasificacion", label: "Clasificación", icon: Tags },
-      { value: "ilustraciones", label: "Ilustraciones", icon: ImageIcon },
-      { value: "perfilDnd", label: "Perfil DND", icon: Dices },
-    ],
-  },
-];
-
+// Solo 3 opciones: Normal / Biología / Extra. Al elegir Biología o Extra se
+// muestran sus 3 sub-bloques apilados de una — no hay selección individual.
 function SelectorSeccionCriatura({
   seccionActiva,
   onSeleccionar,
 }: {
-  seccionActiva: SeccionCriaturaDropdown;
-  onSeleccionar: (s: SeccionCriaturaDropdown) => void;
+  seccionActiva: "normal" | "biologia" | "extra";
+  onSeleccionar: (s: "normal" | "biologia" | "extra") => void;
 }) {
   const [abierto, setAbierto] = useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -1021,13 +1027,12 @@ function SelectorSeccionCriatura({
     return () => document.removeEventListener("mousedown", onClickFuera);
   }, [abierto]);
 
-  const actual =
-    seccionActiva === "normal"
-      ? { label: "Normal", icon: SlidersHorizontal }
-      : (OPCIONES_SECCION.flatMap((g) => g.opciones).find((o) => o.value === seccionActiva) ?? {
-          label: "Normal",
-          icon: SlidersHorizontal,
-        });
+  const OPCIONES = [
+    { value: "normal" as const, label: "Normal", icon: SlidersHorizontal },
+    { value: "biologia" as const, label: "Biología", icon: Atom },
+    { value: "extra" as const, label: "Extra", icon: Sparkles },
+  ];
+  const actual = OPCIONES.find((o) => o.value === seccionActiva)!;
 
   return (
     <div className="relative shrink-0" ref={ref}>
@@ -1050,171 +1055,32 @@ function SelectorSeccionCriatura({
 
       {abierto && (
         <div
-          className="absolute right-0 top-full mt-1 z-30 w-44 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
+          className="absolute right-0 top-full mt-1 z-30 w-36 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
           }}
         >
-          <button
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors ${
-              seccionActiva === "normal"
-                ? "text-primary bg-primary/8"
-                : "text-primary/50 hover:text-primary hover:bg-primary/5"
-            }`}
-            type="button"
-            onClick={() => {
-              onSeleccionar("normal");
-              setAbierto(false);
-            }}
-          >
-            <SlidersHorizontal size={11} />
-            Normal
-          </button>
-
-          {OPCIONES_SECCION.map((grupo) => (
-            <div key={grupo.grupo}>
-              <div
-                className="px-2.5 pt-1.5 pb-0.5 text-[7px] font-black uppercase tracking-[0.25em] text-primary/25 border-t"
-                style={{
-                  borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                }}
-              >
-                {grupo.grupo}
-              </div>
-              {grupo.opciones.map((op) => (
-                <button
-                  key={op.value}
-                  className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors ${
-                    seccionActiva === op.value
-                      ? "text-primary bg-primary/8"
-                      : "text-primary/50 hover:text-primary hover:bg-primary/5"
-                  }`}
-                  type="button"
-                  onClick={() => {
-                    onSeleccionar(op.value);
-                    setAbierto(false);
-                  }}
-                >
-                  {React.createElement(op.icon, { size: 11 })}
-                  {op.label}
-                </button>
-              ))}
-            </div>
+          {OPCIONES.map((op) => (
+            <button
+              key={op.value}
+              className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors ${
+                seccionActiva === op.value
+                  ? "text-primary bg-primary/8"
+                  : "text-primary/50 hover:text-primary hover:bg-primary/5"
+              }`}
+              type="button"
+              onClick={() => {
+                onSeleccionar(op.value);
+                setAbierto(false);
+              }}
+            >
+              {React.createElement(op.icon, { size: 11 })}
+              {op.label}
+            </button>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Modal de reglas D&D ────────────────────────────────────────────────────
-// Antes "Descripción D&D" y la ficha de combate vivían inline en el cuerpo
-// del editor; ahora se acceden desde el botón de dado junto al nombre, así
-// el editor principal queda enfocado en lore/hábitat/relaciones y las
-// reglas mecánicas (D&D) quedan agrupadas en un modal aparte.
-function ModalReglasDndCriatura({
-  nombre,
-  descripcionDnd,
-  statsDnd,
-  onChangeDescripcionDnd,
-  onChangeStatsDnd,
-  onClose,
-}: {
-  nombre: string;
-  descripcionDnd: string;
-  statsDnd: Criatura["stats_dnd"];
-  onChangeDescripcionDnd: (v: string) => void;
-  onChangeStatsDnd: (v: Criatura["stats_dnd"]) => void;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", k);
-    return () => document.removeEventListener("keydown", k);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-80 flex items-center justify-center p-4"
-      style={{
-        background: "color-mix(in srgb, var(--primary) 30%, transparent)",
-        backdropFilter: "blur(6px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-xl overflow-hidden shadow-2xl"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center gap-3 px-4 py-3 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
-          <div
-            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
-            }}
-          >
-            <Dices size={13} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-black uppercase tracking-widest text-primary/40">
-              Reglas D&D
-            </p>
-            <p className="text-xs font-bold text-primary truncate">{nombre || "Sin nombre"}</p>
-          </div>
-          <button
-            className="shrink-0 p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-            type="button"
-            onClick={onClose}
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div className="p-4 max-h-[75vh] overflow-y-auto flex flex-col gap-3">
-          {/* Descripción D&D — texto plano, se copia a la ficha del
-              personaje que elija esta especie (rasgos raciales, etc). */}
-          <div className="flex flex-col gap-1">
-            <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
-              Descripción D&D
-            </label>
-            <textarea
-              className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
-              placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
-              rows={4}
-              value={descripcionDnd}
-              onChange={(e) => onChangeDescripcionDnd(e.target.value)}
-            />
-          </div>
-
-          {/* Ficha de combate D&D 2024 — CA, HP, velocidades, stats,
-              salvaciones, habilidades, sentidos, RC/PX, resistencias/
-              inmunidades, rasgos y acciones. */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2 px-0.5">
-              <Shield size={11} className="text-primary/35" />
-              <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
-                Ficha de combate (D&D 2024)
-              </span>
-            </div>
-            <CriaturaStatsDndEditor valor={statsDnd} onCambiar={onChangeStatsDnd} />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
