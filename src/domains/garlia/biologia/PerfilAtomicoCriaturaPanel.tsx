@@ -175,9 +175,6 @@ export function PanelPerfilCriatura({
             <Plus size={9} /> Agregar rasgo
           </button>
         </div>
-        <p className="text-micro text-primary/30 -mt-0.5">
-          Marca física permanente por exposición ambiental a un Oris — distinto de canalizarlo.
-        </p>
         {rasgosEvolutivos.length === 0 ? (
           <p className="text-micro text-primary/25 italic py-1">Sin rasgos evolutivos todavía</p>
         ) : (

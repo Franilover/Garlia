@@ -1319,11 +1319,6 @@ function PanelOrganismosCriatura({
         <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/40">
           Organismo
         </p>
-        <p className="text-micro text-primary/40 mt-0.5">
-          Techo de la cadena biológica (Célula→Tejido→Órgano→Sistema→Organismo) aplicado a
-          esta criatura — qué Organismo(s) del catálogo tiene, con cantidad y cuál es el
-          principal.
-        </p>
       </div>
 
       {loading ? (
