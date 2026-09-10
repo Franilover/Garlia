@@ -430,24 +430,16 @@ export function EditorCriatura({
               apilados. Igual que arriba, se oculta con `hidden` en vez de
               desmontarse — así los paneles internos (Perfil atómico,
               Órganos, Organismo) no vuelven a disparar sus fetches ni
-              pierden su estado de scroll cada vez que cambias de sección. */}
+              pierden su estado de scroll cada vez que cambias de sección.
+              Mismo criterio minimalista que ElementoEditor: un solo borde
+              fino, sin fondo tintado ni bordes anidados. */}
           <div
-            className={`flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden ${
+            className={`flex-1 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden ${
               seccionActiva === "normal" ? "hidden" : ""
             }`}
-            style={{
-              background: "color-mix(in srgb, var(--primary) 2%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
           >
             {/* Header de la sección activa */}
-            <div
-              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
-              style={{
-                borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
-              }}
-            >
+            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-primary/10">
               <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.25em] text-primary/45">
                 {seccionActiva === "biologia" ? (
                   <Atom size={11} className="text-primary/50" />
@@ -504,9 +496,10 @@ export function EditorCriatura({
 
                 {/* Órganos + Organismo, lado a lado — ambos son el "techo" de
                     la cadena biológica (Célula→Tejido→Órgano→Sistema→
-                    Organismo) aplicada a esta criatura. */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                    Organismo) aplicada a esta criatura. Un solo divisor
+                    vertical entre columnas, sin tarjetas anidadas. */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
+                  <section className="flex flex-col gap-2 lg:pr-4">
                     <SeccionGruposVinculados
                       titulo="Órganos"
                       descripcion="Ensamblaje de compuestos de la criatura — mismo catálogo que Formaciones de Minerales/Items y Órganos de Flora."
@@ -526,7 +519,7 @@ export function EditorCriatura({
                     />
                   </section>
 
-                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
                     <PanelOrganismosCriatura
                       items={organismosCriatura.items}
                       loading={organismosCriatura.loading}
@@ -594,9 +587,10 @@ export function EditorCriatura({
                   style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
                 />
 
-                {/* Ilustraciones + Perfil DND, lado a lado */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                {/* Ilustraciones + Perfil DND, lado a lado — un solo
+                    divisor vertical entre columnas, sin tarjetas anidadas. */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
+                  <section className="flex flex-col gap-2 lg:pr-4">
                     <header className="flex items-center gap-1.5">
                       <ImageIcon size={10} className="text-primary/35" />
                       <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
@@ -617,7 +611,7 @@ export function EditorCriatura({
                     </div>
                   </section>
 
-                  <section className="flex flex-col gap-2 rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
                     <header className="flex items-center gap-1.5">
                       <Dices size={10} className="text-primary/35" />
                       <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">

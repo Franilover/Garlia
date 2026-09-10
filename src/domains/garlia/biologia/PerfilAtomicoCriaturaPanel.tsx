@@ -260,16 +260,18 @@ export function PanelPerfilCriatura({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Fila superior: Canalización + Rasgos evolutivos, lado a lado.
           Ambos hablan de "fuerzas externas" (Oris) — uno de uso activo,
-          el otro de marca pasiva — así que van agrupados visualmente. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+          el otro de marca pasiva — así que van agrupados visualmente.
+          Un solo divisor vertical entre columnas, sin tarjetas anidadas
+          (mismo criterio minimalista que ElementoEditor). */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-0 items-start">
         {/* Bloque 1: Canalización — qué Oris puede canalizar activamente si
             es mágica. Afinidad de USO, no de composición: un Oris es una
             ley externa al universo, no algo de lo que la criatura "está
             hecha". */}
-        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
+        <div className="flex flex-col gap-1.5 md:pr-4">
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
             Canalización — Oris que puede usar
           </span>
@@ -305,7 +307,7 @@ export function PanelPerfilCriatura({
         {/* Bloque 2: Rasgos evolutivos — marca física permanente por
             Fantasía evolutiva (adaptación generacional) o residual
             (exposición acumulada sin canalización activa). */}
-        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
+        <div className="flex flex-col gap-1.5 md:pl-4 md:border-l md:border-primary/10">
           <div className="flex items-center justify-between">
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
               Rasgos evolutivos
@@ -339,14 +341,17 @@ export function PanelPerfilCriatura({
         </div>
       </div>
 
+      <div className="border-t border-primary/10" />
+
       {/* Fila inferior: Composición material (+ su balance por capa, que
-          depende de ella) a la izquierda, Notas libres a la derecha. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3 items-start">
-        <div className="flex flex-col gap-3">
+          depende de ella) a la izquierda, Notas libres a la derecha. Mismo
+          criterio: un solo divisor vertical, sin tarjetas anidadas. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3 lg:gap-0 items-start">
+        <div className="flex flex-col gap-3 lg:pr-4">
           {/* Bloque 3: Composición material — de qué está hecho el tejido
               duro/mineral (huesos, caparazón, escamas), reusando el motor de
               afinidad.ts de Elementos. NO representa a la criatura entera. */}
-          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
                 Composición material (tejido duro)
@@ -374,9 +379,10 @@ export function PanelPerfilCriatura({
           </div>
 
           {/* Balance por capa — depende directamente de la composición de
-              arriba, así que va inmediatamente debajo de ella. */}
+              arriba, así que va inmediatamente debajo de ella, separado
+              solo por un divisor. */}
           {componentes.length > 0 && (
-            <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3">
+            <div className="flex flex-col gap-0 pt-3 border-t border-primary/10">
               {LAYERS.map((layer) => {
                 const b = balance.find((x) => x.layer === layer)!;
                 return (
@@ -390,7 +396,7 @@ export function PanelPerfilCriatura({
                 );
               })}
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary/10">
+              <div className="flex items-center justify-between mt-1 pt-2 border-t border-primary/10">
                 <span className="text-micro font-bold text-primary/50">
                   Reactividad: <span className="text-primary/80">{REACTIVIDAD_LABEL[reactividad.nivel]}</span>
                 </span>
@@ -403,7 +409,7 @@ export function PanelPerfilCriatura({
         </div>
 
         {/* Notas libres */}
-        <div className="rounded-xl border border-primary/10 bg-primary/[0.02] p-3 flex flex-col gap-1.5 h-full">
+        <div className="flex flex-col gap-1.5 lg:pl-4 lg:border-l lg:border-primary/10 h-full">
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
             Notas
           </span>
