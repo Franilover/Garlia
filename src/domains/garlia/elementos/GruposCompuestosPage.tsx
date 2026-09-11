@@ -148,7 +148,11 @@ export function GrupoCompuestoPanelFlotante({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
+        tejidoOVetaAbiertoId || celulaOGranoAbiertoId
+          ? "invisible pointer-events-none"
+          : ""
+      }`}
       style={{
         background: "color-mix(in srgb, var(--primary) 35%, transparent)",
         backdropFilter: "blur(8px)",
