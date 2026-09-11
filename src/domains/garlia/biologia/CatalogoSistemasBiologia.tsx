@@ -75,6 +75,14 @@ interface Props {
   abrirOrganismoIdExterno?: string | null;
   /** Se llama tras consumir abrirOrganismoIdExterno, para que el padre limpie su estado. */
   onAbrirOrganismoIdExternoConsumido?: () => void;
+  /**
+   * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
+   * número cada vez que el foco de navegación pasa a OTRO catálogo
+   * hermano (Célula/Tejido u Órgano), sin importar si este catálogo fue
+   * el origen de ese salto — evita paneles fantasma acumulados al
+   * navegar por rutas indirectas entre los 3 catálogos.
+   */
+  forzarCierre?: number;
 }
 
 export function CatalogoSistemasBiologia({
@@ -87,6 +95,7 @@ export function CatalogoSistemasBiologia({
   onAbrirSistemaIdExternoConsumido,
   abrirOrganismoIdExterno,
   onAbrirOrganismoIdExternoConsumido,
+  forzarCierre,
 }: Props) {
   const sistemas = useSistemas();
   const organismos = useOrganismos();
@@ -101,6 +110,15 @@ export function CatalogoSistemasBiologia({
     setNavegandoEntreNiveles(true);
     requestAnimationFrame(() => setNavegandoEntreNiveles(false));
   };
+
+  // Cierre forzado desde BiologiaPage — mismo mecanismo y motivo que
+  // CatalogoTejidosBiologia.forzarCierre.
+  useEffect(() => {
+    if (forzarCierre === undefined) return;
+    setSistemaSeleccionadoId(null);
+    setOrganismoSeleccionadoId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forzarCierre]);
 
   // Navegación controlada desde afuera (breadcrumb de una Célula/Tejido/
   // Órgano) — mismo patrón que CatalogoTejidosBiologia.abrirCelulaIdExterna.

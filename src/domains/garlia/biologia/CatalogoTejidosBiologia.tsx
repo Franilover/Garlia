@@ -79,6 +79,15 @@ interface Props {
   abrirTejidoIdExterno?: string | null;
   /** Se llama tras consumir abrirTejidoIdExterno, para que el padre limpie su estado. */
   onAbrirTejidoIdExternoConsumido?: () => void;
+  /**
+   * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
+   * número cada vez que el foco de navegación pasa a OTRO catálogo
+   * hermano (Sistema/Organismo u Órgano), sin importar si este catálogo
+   * fue el origen de ese salto. Cierra cualquier panel propio que haya
+   * quedado abierto — evita la acumulación de paneles fantasma al
+   * navegar por rutas indirectas entre los 3 catálogos.
+   */
+  forzarCierre?: number;
 }
 
 export function CatalogoTejidosBiologia({
@@ -93,6 +102,7 @@ export function CatalogoTejidosBiologia({
   onAbrirCelulaIdExternaConsumida,
   abrirTejidoIdExterno,
   onAbrirTejidoIdExternoConsumido,
+  forzarCierre,
 }: Props) {
   const celulas = useCelulas();
   const tejidos = useTejidos();
@@ -118,6 +128,18 @@ export function CatalogoTejidosBiologia({
     // cero (click directo en la grilla).
     requestAnimationFrame(() => setNavegandoEntreNiveles(false));
   };
+
+  // Cierre forzado desde BiologiaPage: el foco de navegación pasó a OTRO
+  // catálogo hermano (Sistema/Organismo u Órgano) por una ruta que no
+  // necesariamente pasó por "salir desde acá" — sin esto, el panel de
+  // Célula o Tejido podía quedar abierto de fondo, acumulado con el del
+  // catálogo nuevo (mismo z-[9999], parpadeo y clics bloqueados).
+  useEffect(() => {
+    if (forzarCierre === undefined) return;
+    setCelulaSeleccionadaId(null);
+    setTejidoSeleccionadoId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forzarCierre]);
 
   // Navegación controlada desde afuera (breadcrumb de un Órgano, Sistema u
   // Organismo): al recibir un id nuevo, lo abre acá igual que un click de

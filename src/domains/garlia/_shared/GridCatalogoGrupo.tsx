@@ -64,6 +64,14 @@ type Props =
        * cadena) — mismo patrón que onAbrirSistema.
        */
       onAbrirOrganismo?: (organismoId: string) => void;
+      /**
+       * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
+       * número cada vez que el foco de navegación pasa a OTRO catálogo
+       * hermano (Célula/Tejido o Sistema/Organismo), sin importar si
+       * este grid fue el origen de ese salto — evita paneles fantasma
+       * acumulados al navegar por rutas indirectas entre los 3 catálogos.
+       */
+      forzarCierre?: number;
     }
   | {
       modo: "reaccion";
@@ -97,6 +105,18 @@ export function GridCatalogoGrupo(props: Props) {
     setNavegandoEntreNiveles(true);
     requestAnimationFrame(() => setNavegandoEntreNiveles(false));
   };
+
+  // Cierre forzado desde BiologiaPage: el foco de navegación pasó a OTRO
+  // catálogo hermano (Célula/Tejido o Sistema/Organismo) por una ruta que
+  // no necesariamente pasó por "salir desde acá" — mismo mecanismo y
+  // motivo que CatalogoTejidosBiologia.forzarCierre. Solo aplica en
+  // modo="grupo" (Órgano/Formación); en modo="reaccion" no participa del
+  // breadcrumb de 5 niveles de Biología.
+  useEffect(() => {
+    if (props.modo !== "grupo" || props.forzarCierre === undefined) return;
+    setSeleccionadoId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.modo === "grupo" ? props.forzarCierre : undefined]);
 
   // Navegación controlada desde afuera (breadcrumb Tejido → Órgano): al
   // recibir un id nuevo, lo abre acá igual que un click de tarjeta, y avisa

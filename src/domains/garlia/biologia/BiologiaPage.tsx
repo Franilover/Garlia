@@ -174,6 +174,24 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
   const [sistemaAAbrirId, setSistemaAAbrirId] = useState<string | null>(null);
   const [organismoAAbrirId, setOrganismoAAbrirId] = useState<string | null>(null);
 
+  // Fix (2026-09-11): cada catálogo (Célula/Tejido, Sistema/Organismo,
+  // Órgano) solo cerraba su propio panel cuando ÉL MISMO era el origen de
+  // la navegación saliente — nunca cuando el foco pasaba a otro catálogo
+  // por una ruta indirecta (ej. Célula → Sistema → Órgano → Célula). Eso
+  // dejaba paneles fantasma acumulados con el mismo z-[9999], todos
+  // "vivos" a la vez → parpadeo y clics bloqueados.
+  // Contador de "generación" de navegación: se incrementa en cada salto
+  // cruzado entre catálogos, junto con quién es el destino. Los otros dos
+  // catálogos, al ver que la generación cambió y ellos no son el destino,
+  // cierran su panel local — sin importar la ruta que se tomó para llegar.
+  type CatalogoBiologia = "tejidos" | "sistemas" | "organo";
+  const [navegacion, setNavegacion] = useState<{ gen: number; destino: CatalogoBiologia } | null>(
+    null,
+  );
+  const navegarA = (destino: CatalogoBiologia) => {
+    setNavegacion((prev) => ({ gen: (prev?.gen ?? 0) + 1, destino }));
+  };
+
   async function actualizarOrgano(id: string, cambios: Partial<Organo>) {
     setCatalogoOrganos((prev) => prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)));
     const { error } = await supabase.from("organos").update(cambios).eq("id", id);
@@ -193,13 +211,25 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           compuestos={compuestosCatalogo}
           loadingCompuestos={loadingCompuestos}
           onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          onAbrirOrgano={(id) => setOrganoAAbrirId(id)}
-          onAbrirSistema={(id) => setSistemaAAbrirId(id)}
-          onAbrirOrganismo={(id) => setOrganismoAAbrirId(id)}
+          onAbrirOrgano={(id) => {
+            navegarA("organo");
+            setOrganoAAbrirId(id);
+          }}
+          onAbrirSistema={(id) => {
+            navegarA("sistemas");
+            setSistemaAAbrirId(id);
+          }}
+          onAbrirOrganismo={(id) => {
+            navegarA("sistemas");
+            setOrganismoAAbrirId(id);
+          }}
           abrirCelulaIdExterna={celulaAAbrirId}
           onAbrirCelulaIdExternaConsumida={() => setCelulaAAbrirId(null)}
           abrirTejidoIdExterno={tejidoAAbrirId}
           onAbrirTejidoIdExternoConsumido={() => setTejidoAAbrirId(null)}
+          forzarCierre={
+            navegacion && navegacion.destino !== "tejidos" ? navegacion.gen : undefined
+          }
         />
       </div>
 
@@ -212,13 +242,25 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
       >
         <CatalogoSistemasBiologia
           organos={catalogoOrganos}
-          onAbrirOrgano={(id) => setOrganoAAbrirId(id)}
-          onAbrirCelula={(id) => setCelulaAAbrirId(id)}
-          onAbrirTejido={(id) => setTejidoAAbrirId(id)}
+          onAbrirOrgano={(id) => {
+            navegarA("organo");
+            setOrganoAAbrirId(id);
+          }}
+          onAbrirCelula={(id) => {
+            navegarA("tejidos");
+            setCelulaAAbrirId(id);
+          }}
+          onAbrirTejido={(id) => {
+            navegarA("tejidos");
+            setTejidoAAbrirId(id);
+          }}
           abrirSistemaIdExterno={sistemaAAbrirId}
           onAbrirSistemaIdExternoConsumido={() => setSistemaAAbrirId(null)}
           abrirOrganismoIdExterno={organismoAAbrirId}
           onAbrirOrganismoIdExternoConsumido={() => setOrganismoAAbrirId(null)}
+          forzarCierre={
+            navegacion && navegacion.destino !== "sistemas" ? navegacion.gen : undefined
+          }
         />
       </div>
 
@@ -236,8 +278,17 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
           abrirIdExterno={organoAAbrirId}
           onAbrirIdExternoConsumido={() => setOrganoAAbrirId(null)}
-          onAbrirSistema={(id) => setSistemaAAbrirId(id)}
-          onAbrirOrganismo={(id) => setOrganismoAAbrirId(id)}
+          onAbrirSistema={(id) => {
+            navegarA("sistemas");
+            setSistemaAAbrirId(id);
+          }}
+          onAbrirOrganismo={(id) => {
+            navegarA("sistemas");
+            setOrganismoAAbrirId(id);
+          }}
+          forzarCierre={
+            navegacion && navegacion.destino !== "organo" ? navegacion.gen : undefined
+          }
         />
       </div>
 
