@@ -53,6 +53,7 @@ export function GrupoCompuestoPanelFlotante({
   onAbrirFormacionExterna,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
+  sinAnimacion,
 }: {
   grupo: EntradaCatalogoGrupo;
   /** "organo" resuelve la fórmula vía Tejidos/Células; "formacion" vía Vetas/Granos. */
@@ -92,6 +93,9 @@ export function GrupoCompuestoPanelFlotante({
    * patrón que onAbrirSistemaExterno.
    */
   onAbrirOrganismoExterno?: (organismoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb — suprime la animación de entrada. */
+  sinAnimacion?: boolean;
 }) {
   const tejidos = useOrganoTejidos(tipo === "organo" ? grupo.id : null);
   const vetas = useFormacionVetas(tipo === "formacion" ? grupo.id : null);
@@ -158,7 +162,7 @@ export function GrupoCompuestoPanelFlotante({
         style={{
           background: "var(--bg-main)",
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
         {/* Header: ícono + nombre editable + eliminar + cerrar */}

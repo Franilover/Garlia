@@ -94,10 +94,19 @@ export function CatalogoSistemasBiologia({
   const [sistemaSeleccionadoId, setSistemaSeleccionadoId] = useState<string | null>(null);
   const [organismoSeleccionadoId, setOrganismoSeleccionadoId] = useState<string | null>(null);
 
+  // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
+  // breadcrumb — mismo mecanismo que CatalogoTejidosBiologia.marcarNavegacion.
+  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
+  const marcarNavegacion = () => {
+    setNavegandoEntreNiveles(true);
+    requestAnimationFrame(() => setNavegandoEntreNiveles(false));
+  };
+
   // Navegación controlada desde afuera (breadcrumb de una Célula/Tejido/
   // Órgano) — mismo patrón que CatalogoTejidosBiologia.abrirCelulaIdExterna.
   useEffect(() => {
     if (!abrirSistemaIdExterno) return;
+    marcarNavegacion();
     setOrganismoSeleccionadoId(null);
     setSistemaSeleccionadoId(abrirSistemaIdExterno);
     onAbrirSistemaIdExternoConsumido?.();
@@ -106,6 +115,7 @@ export function CatalogoSistemasBiologia({
 
   useEffect(() => {
     if (!abrirOrganismoIdExterno) return;
+    marcarNavegacion();
     setSistemaSeleccionadoId(null);
     setOrganismoSeleccionadoId(abrirOrganismoIdExterno);
     onAbrirOrganismoIdExternoConsumido?.();
@@ -203,12 +213,14 @@ export function CatalogoSistemasBiologia({
             item={sistemaActivo}
             organos={organos}
             loadingOrganos={loadingOrganos}
+            sinAnimacion={navegandoEntreNiveles}
             onCerrar={() => setSistemaSeleccionadoId(null)}
             onActualizar={actualizarSistema}
             onEliminar={eliminarSistema}
             onAbrirOrgano={
               onAbrirOrgano
                 ? (organoId) => {
+                    marcarNavegacion();
                     setSistemaSeleccionadoId(null);
                     onAbrirOrgano(organoId);
                   }
@@ -217,6 +229,7 @@ export function CatalogoSistemasBiologia({
             onAbrirCelula={
               onAbrirCelula
                 ? (celulaId) => {
+                    marcarNavegacion();
                     setSistemaSeleccionadoId(null);
                     onAbrirCelula(celulaId);
                   }
@@ -225,12 +238,14 @@ export function CatalogoSistemasBiologia({
             onAbrirTejido={
               onAbrirTejido
                 ? (tejidoId) => {
+                    marcarNavegacion();
                     setSistemaSeleccionadoId(null);
                     onAbrirTejido(tejidoId);
                   }
                 : undefined
             }
             onAbrirOrganismo={(organismoId) => {
+              marcarNavegacion();
               setSistemaSeleccionadoId(null);
               setOrganismoSeleccionadoId(organismoId);
             }}
@@ -263,16 +278,19 @@ export function CatalogoSistemasBiologia({
             item={organismoActivo}
             sistemas={sistemas.items}
             loadingSistemas={sistemas.loading}
+            sinAnimacion={navegandoEntreNiveles}
             onCerrar={() => setOrganismoSeleccionadoId(null)}
             onActualizar={actualizarOrganismo}
             onEliminar={eliminarOrganismo}
             onAbrirSistema={(sistemaId) => {
+              marcarNavegacion();
               setOrganismoSeleccionadoId(null);
               setSistemaSeleccionadoId(sistemaId);
             }}
             onAbrirCelula={
               onAbrirCelula
                 ? (celulaId) => {
+                    marcarNavegacion();
                     setOrganismoSeleccionadoId(null);
                     onAbrirCelula(celulaId);
                   }
@@ -281,6 +299,7 @@ export function CatalogoSistemasBiologia({
             onAbrirTejido={
               onAbrirTejido
                 ? (tejidoId) => {
+                    marcarNavegacion();
                     setOrganismoSeleccionadoId(null);
                     onAbrirTejido(tejidoId);
                   }
@@ -289,6 +308,7 @@ export function CatalogoSistemasBiologia({
             onAbrirOrgano={
               onAbrirOrgano
                 ? (organoId) => {
+                    marcarNavegacion();
                     setOrganismoSeleccionadoId(null);
                     onAbrirOrgano(organoId);
                   }
@@ -359,6 +379,7 @@ function PanelEditorSistema({
   onAbrirCelula,
   onAbrirTejido,
   onAbrirOrganismo,
+  sinAnimacion,
 }: {
   item: Sistema;
   organos: Organo[];
@@ -377,6 +398,9 @@ function PanelEditorSistema({
   /** Cierra este panel y abre el editor del Organismo elegido — navegación
    *  hacia arriba (organismo_sistemas, dirección inversa). */
   onAbrirOrganismo?: (organismoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb — suprime la animación de entrada. */
+  sinAnimacion?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -404,7 +428,7 @@ function PanelEditorSistema({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -518,6 +542,7 @@ function PanelEditorOrganismo({
   onAbrirCelula,
   onAbrirTejido,
   onAbrirOrgano,
+  sinAnimacion,
 }: {
   item: Organismo;
   sistemas: Sistema[];
@@ -534,6 +559,9 @@ function PanelEditorOrganismo({
   onAbrirTejido?: (tejidoId: string) => void;
   /** Misma unión transitiva, un nivel más arriba todavía. */
   onAbrirOrgano?: (organoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb — suprime la animación de entrada. */
+  sinAnimacion?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -558,7 +586,7 @@ function PanelEditorOrganismo({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Boxes className="text-primary/50" size={12} />}
@@ -938,7 +966,15 @@ function PickerCatalogoExistente({
 
 // ─── Piezas chicas compartidas (idénticas a CatalogoTejidosBiologia) ──────
 
-function PanelFlotanteBase({ children, onCerrar }: { children: React.ReactNode; onCerrar: () => void }) {
+function PanelFlotanteBase({
+  children,
+  onCerrar,
+  sinAnimacion,
+}: {
+  children: React.ReactNode;
+  onCerrar: () => void;
+  sinAnimacion?: boolean;
+}) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -970,7 +1006,7 @@ function PanelFlotanteBase({ children, onCerrar }: { children: React.ReactNode; 
         style={{
           background: "var(--bg-main)",
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
         onClick={(e) => e.stopPropagation()}
       >

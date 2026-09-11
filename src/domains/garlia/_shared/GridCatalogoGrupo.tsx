@@ -90,11 +90,20 @@ function IconoGrupo({ tipo }: { tipo?: "organo" | "formacion" | "generico" }) {
 export function GridCatalogoGrupo(props: Props) {
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
 
+  // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
+  // breadcrumb — mismo mecanismo que CatalogoTejidosBiologia.marcarNavegacion.
+  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
+  const marcarNavegacion = () => {
+    setNavegandoEntreNiveles(true);
+    requestAnimationFrame(() => setNavegandoEntreNiveles(false));
+  };
+
   // Navegación controlada desde afuera (breadcrumb Tejido → Órgano): al
   // recibir un id nuevo, lo abre acá igual que un click de tarjeta, y avisa
   // al padre para que limpie su estado y no reabra en loop.
   useEffect(() => {
     if (props.modo !== "grupo" || !props.abrirIdExterno) return;
+    marcarNavegacion();
     setSeleccionadoId(props.abrirIdExterno);
     props.onAbrirIdExternoConsumido?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -140,6 +149,7 @@ export function GridCatalogoGrupo(props: Props) {
           grupo={activo as EntradaCatalogoGrupo}
           tipo={props.icono === "formacion" ? "formacion" : "organo"}
           compuestos={props.compuestos}
+          sinAnimacion={navegandoEntreNiveles}
           onCerrar={() => setSeleccionadoId(null)}
           onActualizar={props.onActualizar}
           onEliminar={
@@ -153,17 +163,41 @@ export function GridCatalogoGrupo(props: Props) {
           onAbrirCompuesto={props.onAbrirCompuesto}
           onAbrirOrganoExterno={
             props.icono !== "formacion"
-              ? (organoId) => setSeleccionadoId(organoId)
+              ? (organoId) => {
+                  marcarNavegacion();
+                  setSeleccionadoId(organoId);
+                }
               : undefined
           }
           onAbrirFormacionExterna={
             props.icono === "formacion"
-              ? (formacionId) => setSeleccionadoId(formacionId)
+              ? (formacionId) => {
+                  marcarNavegacion();
+                  setSeleccionadoId(formacionId);
+                }
               : undefined
           }
-          onAbrirSistemaExterno={props.icono !== "formacion" ? props.onAbrirSistema : undefined}
+          onAbrirSistemaExterno={
+            props.icono !== "formacion"
+              ? props.onAbrirSistema
+                ? (sistemaId) => {
+                    marcarNavegacion();
+                    setSeleccionadoId(null);
+                    props.onAbrirSistema!(sistemaId);
+                  }
+                : undefined
+              : undefined
+          }
           onAbrirOrganismoExterno={
-            props.icono !== "formacion" ? props.onAbrirOrganismo : undefined
+            props.icono !== "formacion"
+              ? props.onAbrirOrganismo
+                ? (organismoId) => {
+                    marcarNavegacion();
+                    setSeleccionadoId(null);
+                    props.onAbrirOrganismo!(organismoId);
+                  }
+                : undefined
+              : undefined
           }
         />
       )}

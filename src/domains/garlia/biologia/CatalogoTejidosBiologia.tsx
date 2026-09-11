@@ -100,12 +100,32 @@ export function CatalogoTejidosBiologia({
   const [celulaSeleccionadaId, setCelulaSeleccionadaId] = useState<string | null>(null);
   const [tejidoSeleccionadoId, setTejidoSeleccionadoId] = useState<string | null>(null);
 
+  // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
+  // breadcrumb (Célula → Tejido, Tejido → Célula, o hacia Órgano/Sistema/
+  // Organismo, que viven en OTRO componente): cuando el salto es una
+  // navegación de jerarquía, el panel de destino se abre con la animación
+  // de entrada suprimida por un instante — se re-habilita sola en el
+  // siguiente salto/apertura real. Un salto real "cierra un panel y abre
+  // otro" a nivel de React (son componentes JSX distintos), así que no
+  // hay forma de mantener el mismo nodo DOM vivo sin fusionar los 4
+  // paneles en un solo modal — esto es la solución mínima sin ese
+  // rediseño mayor.
+  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
+  const marcarNavegacion = () => {
+    setNavegandoEntreNiveles(true);
+    // Una sola animación de golpe: se apaga en el próximo tick para no
+    // seguir suprimiendo la del siguiente panel que el usuario abra desde
+    // cero (click directo en la grilla).
+    requestAnimationFrame(() => setNavegandoEntreNiveles(false));
+  };
+
   // Navegación controlada desde afuera (breadcrumb de un Órgano, Sistema u
   // Organismo): al recibir un id nuevo, lo abre acá igual que un click de
   // tarjeta, y avisa al padre para que limpie su estado y no reabra en
   // loop — mismo patrón que GridCatalogoGrupo.abrirIdExterno.
   useEffect(() => {
     if (!abrirCelulaIdExterna) return;
+    marcarNavegacion();
     setTejidoSeleccionadoId(null);
     setCelulaSeleccionadaId(abrirCelulaIdExterna);
     onAbrirCelulaIdExternaConsumida?.();
@@ -114,6 +134,7 @@ export function CatalogoTejidosBiologia({
 
   useEffect(() => {
     if (!abrirTejidoIdExterno) return;
+    marcarNavegacion();
     setCelulaSeleccionadaId(null);
     setTejidoSeleccionadoId(abrirTejidoIdExterno);
     onAbrirTejidoIdExternoConsumido?.();
@@ -150,6 +171,7 @@ export function CatalogoTejidosBiologia({
             item={celulaActiva}
             compuestos={compuestos}
             loadingCompuestos={loadingCompuestos}
+            sinAnimacion={navegandoEntreNiveles}
             onCerrar={() => setCelulaSeleccionadaId(null)}
             onActualizar={celulas.actualizar}
             onEliminar={async (id) => {
@@ -173,12 +195,14 @@ export function CatalogoTejidosBiologia({
                 : undefined
             }
             onAbrirTejido={(tejidoId) => {
+              marcarNavegacion();
               setCelulaSeleccionadaId(null);
               setTejidoSeleccionadoId(tejidoId);
             }}
             onAbrirOrgano={
               onAbrirOrgano
                 ? (organoId) => {
+                    marcarNavegacion();
                     setCelulaSeleccionadaId(null);
                     onAbrirOrgano(organoId);
                   }
@@ -187,6 +211,7 @@ export function CatalogoTejidosBiologia({
             onAbrirSistema={
               onAbrirSistema
                 ? (sistemaId) => {
+                    marcarNavegacion();
                     setCelulaSeleccionadaId(null);
                     onAbrirSistema(sistemaId);
                   }
@@ -195,6 +220,7 @@ export function CatalogoTejidosBiologia({
             onAbrirOrganismo={
               onAbrirOrganismo
                 ? (organismoId) => {
+                    marcarNavegacion();
                     setCelulaSeleccionadaId(null);
                     onAbrirOrganismo(organismoId);
                   }
@@ -231,6 +257,7 @@ export function CatalogoTejidosBiologia({
             loadingCelulas={celulas.loading}
             compuestos={compuestos}
             loadingCompuestos={loadingCompuestos}
+            sinAnimacion={navegandoEntreNiveles}
             onCerrar={() => setTejidoSeleccionadoId(null)}
             onActualizar={tejidos.actualizar}
             onEliminar={async (id) => {
@@ -239,6 +266,7 @@ export function CatalogoTejidosBiologia({
               return res;
             }}
             onAbrirCelula={(celulaId) => {
+              marcarNavegacion();
               setTejidoSeleccionadoId(null);
               setCelulaSeleccionadaId(celulaId);
             }}
@@ -258,6 +286,7 @@ export function CatalogoTejidosBiologia({
             onAbrirOrgano={
               onAbrirOrgano
                 ? (organoId) => {
+                    marcarNavegacion();
                     setTejidoSeleccionadoId(null);
                     onAbrirOrgano(organoId);
                   }
@@ -266,6 +295,7 @@ export function CatalogoTejidosBiologia({
             onAbrirSistema={
               onAbrirSistema
                 ? (sistemaId) => {
+                    marcarNavegacion();
                     setTejidoSeleccionadoId(null);
                     onAbrirSistema(sistemaId);
                   }
@@ -274,6 +304,7 @@ export function CatalogoTejidosBiologia({
             onAbrirOrganismo={
               onAbrirOrganismo
                 ? (organismoId) => {
+                    marcarNavegacion();
                     setTejidoSeleccionadoId(null);
                     onAbrirOrganismo(organismoId);
                   }
@@ -418,6 +449,7 @@ export function PanelEditorCelula({
   onAbrirOrgano,
   onAbrirSistema,
   onAbrirOrganismo,
+  sinAnimacion,
 }: {
   item: Celula;
   compuestos: Compuesto[];
@@ -439,6 +471,10 @@ export function PanelEditorCelula({
   /** Cierra este panel y abre el del Organismo elegido — techo de la
    *  cadena, misma unión transitiva un nivel más arriba todavía. */
   onAbrirOrganismo?: (organismoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb (no un click nuevo desde la grilla) — suprime la
+   *  animación de entrada para evitar el parpadeo "cierra y abre". */
+  sinAnimacion?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -471,7 +507,7 @@ export function PanelEditorCelula({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Beaker className="text-primary/50" size={12} />}
@@ -597,6 +633,7 @@ export function PanelEditorTejido({
   onAbrirOrganismo,
   onCompuestoCreado,
   onAbrirCompuesto,
+  sinAnimacion,
 }: {
   item: Tejido;
   celulas: Celula[];
@@ -619,6 +656,9 @@ export function PanelEditorTejido({
   onAbrirOrganismo?: (organismoId: string) => void;
   onCompuestoCreado?: (c: Compuesto) => void;
   onAbrirCompuesto?: (compuestoId: string) => void;
+  /** true cuando este panel se abrió como salto desde OTRO nivel del
+   *  breadcrumb — suprime la animación de entrada. */
+  sinAnimacion?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -651,7 +691,7 @@ export function PanelEditorTejido({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -974,9 +1014,14 @@ function PickerCatalogoExistente({
 function PanelFlotanteBase({
   children,
   onCerrar,
+  sinAnimacion,
 }: {
   children: React.ReactNode;
   onCerrar: () => void;
+  /** true cuando este panel reemplaza a otro por una navegación de
+   *  breadcrumb (no una apertura nueva) — suprime la animación de entrada
+   *  para no parpadear al saltar entre niveles de la jerarquía. */
+  sinAnimacion?: boolean;
 }) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1009,7 +1054,7 @@ function PanelFlotanteBase({
         style={{
           background: "var(--bg-main)",
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
