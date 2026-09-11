@@ -10,16 +10,16 @@
  * con esta cantidad y este rol" sin necesidad de que el Órgano cuelgue de
  * ningún Sistema catalogado.
  *
- * Fase 8: cache-first vía Dexie + Zustand, mismo patrón que
- * useOrganismoSistemas.ts (organismo_organos y organos ya están en
- * DEXIE_TABLES). El store Zustand (useOrganismoBiologiaStore) evita
- * refetchear/duplicar el fetch cuando dos componentes piden el mismo
- * organismoId al mismo tiempo (ej. EditorCriatura + OrganismoPanelFlotante).
+ * A diferencia de useOrganismoSistemas.ts/useSistemaOrganos.ts (que sí usan
+ * Dexie), `organismo_organos` no está declarada en el esquema Dexie
+ * (AgendaFraniDB) — agregarla es un cambio de infra fuera de este dominio.
+ * Este hook queda Supabase-only + Zustand (cache en memoria entre
+ * componentes), sin caché offline en disco, hasta que se registre la tabla
+ * en el esquema.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
-import { db } from "@/infra/supabase/db";
 
 import {
   CONFIG_ORGANISMO_ORGANOS,
@@ -28,40 +28,6 @@ import {
   type OrganismoOrgano,
 } from "@/domains/garlia/elementos/types";
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
-
-// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
-async function leerVinculosDeDexie(organismoId: string): Promise<OrganismoOrgano[]> {
-  try {
-    if (!db) return [];
-    const rows = await db.organismo_organos
-      .where("organismo_id")
-      .equals(organismoId)
-      .toArray();
-    return rows as unknown as OrganismoOrgano[];
-  } catch {
-    return [];
-  }
-}
-
-async function leerOrganosDeDexie(ids: string[]): Promise<Record<string, Organo>> {
-  const out: Record<string, Organo> = {};
-  if (!db || ids.length === 0) return out;
-  try {
-    const rows = await db.organos.bulkGet(ids);
-    for (const r of rows) if (r) out[(r as unknown as Organo).id] = r as unknown as Organo;
-  } catch {}
-  return out;
-}
-
-async function guardarEnDexie(vinculos: OrganismoOrgano[], organos: Organo[]) {
-  try {
-    if (!db) return;
-    if (vinculos.length) await db.organismo_organos.bulkPut(vinculos as any[]);
-    if (organos.length) await db.organos.bulkPut(organos as any[]);
-  } catch (e) {
-    console.warn("[useOrganismoOrganos] no se pudo guardar en Dexie:", e);
-  }
-}
 
 /** Una fila resuelta: vínculo + Órgano ya cargado, lista para la UI. */
 export interface OrganoDeOrganismo {
@@ -125,22 +91,8 @@ export function useOrganismoOrganos(organismoId: string | null) {
       return;
     }
 
-    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
-    if (!cacheEntry) {
-      const vinculosLocales = await leerVinculosDeDexie(organismoId);
-      if (vinculosLocales.length > 0) {
-        const organoIdsLocales = vinculosLocales.map((v) => v.organo_id);
-        const organosLocales = await leerOrganosDeDexie(organoIdsLocales);
-        setVinculosLocal(vinculosLocales);
-        setOrganosLocal(organosLocales);
-        setOrganosEnStore(organismoId, vinculosLocales, organosLocales);
-        setLoading(false);
-      } else {
-        setLoading(true);
-      }
-    }
+    if (!cacheEntry) setLoading(true);
 
-    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from(CONFIG_ORGANISMO_ORGANOS.tabla)
       .select(CONFIG_ORGANISMO_ORGANOS.select)
@@ -160,7 +112,6 @@ export function useOrganismoOrganos(organismoId: string | null) {
       setOrganosLocal({});
       setOrganosEnStore(organismoId, vinculosResueltos, {});
       setLoading(false);
-      void guardarEnDexie(vinculosResueltos, []);
       return;
     }
 
@@ -176,7 +127,6 @@ export function useOrganismoOrganos(organismoId: string | null) {
     setOrganosLocal(organosPorId);
     setOrganosEnStore(organismoId, vinculosResueltos, organosPorId);
     setLoading(false);
-    void guardarEnDexie(vinculosResueltos, Object.values(organosPorId));
   }, [organismoId, cacheEntry, setOrganosEnStore]);
 
   useEffect(() => {
@@ -229,7 +179,6 @@ export function useOrganismoOrganos(organismoId: string | null) {
       }
       const vinculoTyped = vinculo as unknown as OrganismoOrgano;
       setVinculos((prev) => [...prev, vinculoTyped]);
-      void guardarEnDexie([vinculoTyped], organoResuelto ? [organoResuelto] : []);
       return vinculoTyped;
     },
     [organismoId, organos, setOrganos, setVinculos],
@@ -238,12 +187,7 @@ export function useOrganismoOrganos(organismoId: string | null) {
   /** Editar rol y/o cantidad de una fila. */
   const actualizarVinculo = useCallback(
     async (vinculoId: string, cambios: Partial<Pick<OrganismoOrgano, "rol" | "cantidad">>) => {
-      setVinculos((prev) => {
-        const next = prev.map((v) => (v.id === vinculoId ? { ...v, ...cambios } : v));
-        const actualizado = next.find((v) => v.id === vinculoId);
-        if (actualizado) void guardarEnDexie([actualizado], []);
-        return next;
-      });
+      setVinculos((prev) => prev.map((v) => (v.id === vinculoId ? { ...v, ...cambios } : v)));
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_ORGANOS.tabla)
         .update(cambios)
@@ -257,9 +201,6 @@ export function useOrganismoOrganos(organismoId: string | null) {
   const quitar = useCallback(
     async (vinculoId: string) => {
       setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
-      try {
-        if (db) await db.organismo_organos.delete(vinculoId);
-      } catch {}
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_ORGANOS.tabla)
         .delete()
