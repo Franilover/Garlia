@@ -17,7 +17,7 @@ import { useConfirm } from "@/ui/ConfirmModal";
 
 import { IumVisual } from "./ParticulaVisual";
 import { ORIS_CONFIG, ORIS_FAMILIAS, iumAFilaIum, particulasDeOris, type Oris, type OrisFamilia } from "./types";
-import { useIums } from "./useFisica";
+import { useIumsConParticulas } from "./useIumsConParticulas";
 
 interface Props {
   oris: Oris;
@@ -37,7 +37,7 @@ export function OrisEditor({ oris, onBack, onActualizar, onEliminar, embedded }:
 
   useEffect(() => setLocal(oris), [oris]);
 
-  const { items: iums } = useIums();
+  const { items: iums } = useIumsConParticulas();
   const iumPorId = useMemo(
     () => Object.fromEntries(iums.map((i) => [i.id, iumAFilaIum(i)])),
     [iums],

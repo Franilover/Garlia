@@ -33,9 +33,11 @@ export interface Oris {
   formula: string;
   dominio: string;
   descripcion?: string | null;
-  /** @deprecated Fuente original (jsonb, claves = iums.id). Se conserva en
-   *  Supabase como respaldo de la migración a oris_iums (Fase 3), pero el
-   *  frontend ya no debe escribir acá — usar useOrisConIums() para leer. */
+  /** NO es una columna de Supabase — la tabla "oris" ya no tiene
+   *  iums_composicion (columna jsonb eliminada, Fase 3). Este campo se
+   *  reconstruye en memoria a partir de oris_iums — ver useOrisConIums().
+   *  useOris() (lectura cruda) NO lo devuelve; solo useOrisConIums() lo
+   *  completa. No enviar este campo en insert/update contra "oris". */
   iums_composicion: Record<string, number>;
 }
 
@@ -56,7 +58,9 @@ export const ORIS_IUMS_CONFIG = {
 
 export const ORIS_CONFIG = {
   tabla: "oris",
-  select: "id, orden, nombre, familia, formula, dominio, descripcion, iums_composicion",
+  // iums_composicion ya no es columna de "oris" (Fase 3) — no seleccionar.
+  // useOris() ya no trae composición; usar useOrisConIums() para eso.
+  select: "id, orden, nombre, familia, formula, dominio, descripcion",
 };
 
 /** Adapta un Oris (Supabase) al shape FilaCatalogo usado por las vistas de
@@ -182,19 +186,26 @@ export interface FilaIum extends FilaCatalogo {
   composicion: { particula: string; cantidad: number }[];
 }
 
-/** Fila cruda tal cual vive en Supabase (tabla "iums"). */
+/** Fila de "iums" + composición reconstruida (no es 1:1 con Supabase). */
 export interface Ium {
   id: string;
   orden: number;
   nombre: string;
   detalle: string;
   extra?: string | null;
+  /** NO es columna de Supabase — "iums" ya no tiene composicion (jsonb
+   *  eliminada, Fase 4). Se reconstruye en memoria desde iums_particulas —
+   *  ver useIumsConParticulas(). useIums() (lectura cruda) NO lo completa;
+   *  llega en [] si se usa ese hook directamente. No enviar este campo en
+   *  insert/update contra "iums". */
   composicion: { particula: string; cantidad: number }[];
 }
 
 export const IUMS_CONFIG = {
   tabla: "iums",
-  select: "id, orden, nombre, detalle, extra, composicion",
+  // composicion ya no es columna de "iums" (Fase 4) — no seleccionar.
+  // useIums() ya no trae composición; usar useIumsConParticulas() para eso.
+  select: "id, orden, nombre, detalle, extra",
 };
 
 /** Adapta un Ium (Supabase) al shape FilaIum usado por las vistas de

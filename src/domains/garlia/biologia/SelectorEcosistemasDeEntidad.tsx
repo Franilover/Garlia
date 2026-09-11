@@ -18,6 +18,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import { useEcosistemaFlora } from "@/domains/garlia/biologia/useBiologia";
 
 type Campo = "flora_ids" | "mineral_ids";
 
@@ -29,7 +30,9 @@ export function SelectorEcosistemasDeEntidad({
 }: {
   /** id de la Flora o Mineral que se está editando. */
   entidadId: string;
-  /** Qué array del Ecosistema contiene esta entidad. */
+  /** Qué relación del Ecosistema contiene esta entidad: "flora_ids" vive
+   *  en la tabla puente ecosistema_flora (M:N, normalizada); "mineral_ids"
+   *  sigue siendo un array embebido en Ecosistema. */
   campo: Campo;
   /** Se dispara al clickear el nombre de un ecosistema ya asignado —
    *  recibe también el elemento clickeado como anchor para popovers
@@ -38,32 +41,55 @@ export function SelectorEcosistemasDeEntidad({
   onSelectEcosistema?: (id: string, anchor: HTMLElement) => void;
   label?: string;
 }) {
-  const { ecosistemas, loading, actualizar } = useEcosistemas();
+  const { ecosistemas, loading: loadingEco, actualizar } = useEcosistemas();
+  // Solo se usa cuando campo === "flora_ids" — la relación real vive en
+  // ecosistema_flora (M:N), ecosistemas.flora_ids ya no es columna.
+  const { floraIdsDe, setFloraDeEcosistema, loading: loadingFlora } = useEcosistemaFlora();
+
+  const loading = campo === "flora_ids" ? loadingEco || loadingFlora : loadingEco;
+
+  const idsDe = (ecosistemaId: string): string[] =>
+    campo === "flora_ids"
+      ? floraIdsDe(ecosistemaId)
+      : ((ecosistemas.find((e) => e.id === ecosistemaId)?.[campo] as string[] | undefined) ?? []);
 
   const asignados = useMemo(
-    () => ecosistemas.filter((e) => (e[campo] ?? []).includes(entidadId)),
-    [ecosistemas, campo, entidadId],
+    () => ecosistemas.filter((e) => idsDe(e.id).includes(entidadId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ecosistemas, campo, entidadId, floraIdsDe],
   );
   const disponibles = useMemo(
-    () => ecosistemas.filter((e) => !(e[campo] ?? []).includes(entidadId)),
-    [ecosistemas, campo, entidadId],
+    () => ecosistemas.filter((e) => !idsDe(e.id).includes(entidadId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ecosistemas, campo, entidadId, floraIdsDe],
   );
 
   const agregar = (ecosistemaId: string) => {
     const eco = ecosistemas.find((e) => e.id === ecosistemaId);
     if (!eco) return;
-    const actuales = eco[campo] ?? [];
+    const actuales = idsDe(ecosistemaId);
     if (actuales.includes(entidadId)) return;
-    void actualizar(ecosistemaId, { [campo]: [...actuales, entidadId] } as any);
+    if (campo === "flora_ids") {
+      void setFloraDeEcosistema(ecosistemaId, [...actuales, entidadId]);
+    } else {
+      void actualizar(ecosistemaId, { [campo]: [...actuales, entidadId] } as any);
+    }
   };
 
   const quitar = (ecosistemaId: string) => {
     const eco = ecosistemas.find((e) => e.id === ecosistemaId);
     if (!eco) return;
-    const actuales = eco[campo] ?? [];
-    void actualizar(ecosistemaId, {
-      [campo]: actuales.filter((id) => id !== entidadId),
-    } as any);
+    const actuales = idsDe(ecosistemaId);
+    if (campo === "flora_ids") {
+      void setFloraDeEcosistema(
+        ecosistemaId,
+        actuales.filter((id) => id !== entidadId),
+      );
+    } else {
+      void actualizar(ecosistemaId, {
+        [campo]: actuales.filter((id) => id !== entidadId),
+      } as any);
+    }
   };
 
   return (

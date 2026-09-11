@@ -211,6 +211,9 @@ function PanelCadena({
 
 export function PanelEcosistema({
   ecosistema,
+  floraIds,
+  onChangeFlora,
+  reinoIdsPorBioma,
   cadenas,
   creandoCadena,
   onSave,
@@ -226,6 +229,14 @@ export function PanelEcosistema({
   modoPopover = false,
 }: {
   ecosistema: Ecosistema;
+  /** Flora (por id) que crece/habita en este ecosistema — vive en la
+   *  tabla puente ecosistema_flora (M:N), ya no en Ecosistema. */
+  floraIds: string[];
+  onChangeFlora: (ids: string[]) => void;
+  /** Resuelve los reinos con territorio en un bioma dado (bioma_reinos) —
+   *  usado solo para mostrar el Reino heredado del bioma_id actual, como
+   *  referencia navegable (no editable desde acá). */
+  reinoIdsPorBioma: (biomaId: string) => string[];
   cadenas: CadenaAlimenticia[];
   creandoCadena: boolean;
   onSave: (updates: Partial<Ecosistema>) => void;
@@ -263,14 +274,13 @@ export function PanelEcosistema({
   // ── Barra lateral — Criaturas / Flora / Minerales / Reino, mismo patrón
   // que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). El
   // Reino no vive en el ecosistema directamente: se deriva del bioma_id
-  // (bioma.reino_ids), y esta sección solo lo muestra como referencia
+  // (vía bioma_reinos), y esta sección solo lo muestra como referencia
   // navegable — no es editable desde acá (se edita en el Bioma).
   // Ruta canónica v226: la pertenencia de criaturas a este ecosistema vive
   // en la tabla puente ecosistema_criaturas, no en una columna embebida.
   const { criaturaIdsDe, asignar: asignarCriaturaAEcosistema, desasignar: desasignarCriaturaDeEcosistema } =
     useEcosistemaCriaturas();
   const criaturaIds = criaturaIdsDe(ecosistema.id);
-  const floraIds = ecosistema.flora_ids ?? [];
   const mineralIds = ecosistema.mineral_ids ?? [];
 
   const { criaturas: catalogoCriaturas, loading: loadingCatalogoCriaturas } =
@@ -281,7 +291,7 @@ export function PanelEcosistema({
   const catalogoReinos = useReinosMin();
 
   const biomaActual = biomas.find((b) => b.id === ecosistema.bioma_id);
-  const reinoIdsDelBioma = biomaActual?.reino_ids ?? [];
+  const reinoIdsDelBioma = biomaActual ? reinoIdsPorBioma(biomaActual.id) : [];
   const allReinosEntidad = useMemo(
     () => catalogoReinos.map((r) => ({ id: r.id, nombre: r.nombre })),
     [catalogoReinos],
@@ -292,9 +302,7 @@ export function PanelEcosistema({
       ? asignarCriaturaAEcosistema(id, ecosistema.id)
       : desasignarCriaturaDeEcosistema(id, ecosistema.id);
   const handleToggleFlora = (id: string, add: boolean) =>
-    onSave({
-      flora_ids: add ? [...floraIds, id] : floraIds.filter((x) => x !== id),
-    });
+    onChangeFlora(add ? [...floraIds, id] : floraIds.filter((x) => x !== id));
   const handleToggleMineral = (id: string, add: boolean) =>
     onSave({
       mineral_ids: add
@@ -590,8 +598,8 @@ export function PanelEcosistema({
 
           <div className="mb-4">
             <SelectorFloraMulti
-              ids={ecosistema.flora_ids ?? []}
-              onChange={(ids) => onSave({ flora_ids: ids })}
+              ids={floraIds}
+              onChange={onChangeFlora}
               label="Flora del ecosistema"
             />
           </div>

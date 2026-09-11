@@ -38,12 +38,21 @@ export function useParticulasBase() {
 }
 
 export function useIums() {
-  const { data, setData, loading } = useSupabaseData<Ium>(IUMS_CONFIG.tabla, {
-    select: IUMS_CONFIG.select,
-    order: { campo: "orden" },
-  });
+  // select ya no trae "composicion" (columna eliminada, Fase 4) — se
+  // completa acá con [] para que el shape siga cumpliendo Ium. Para la
+  // composición real, usar useIumsConParticulas().
+  const { data, setData, loading } = useSupabaseData<Omit<Ium, "composicion">>(
+    IUMS_CONFIG.tabla,
+    {
+      select: IUMS_CONFIG.select,
+      order: { campo: "orden" },
+    },
+  );
 
-  const items = useMemo(() => data, [data]);
+  const items = useMemo<Ium[]>(
+    () => data.map((i) => ({ ...i, composicion: [] })),
+    [data],
+  );
 
   return { items, setItems: setData, loading };
 }
@@ -60,12 +69,21 @@ export function useParticulas() {
 }
 
 export function useOris() {
-  const { data, setData, loading } = useSupabaseData<Oris>(ORIS_CONFIG.tabla, {
-    select: ORIS_CONFIG.select,
-    order: { campo: "orden" },
-  });
+  // select ya no trae "iums_composicion" (columna eliminada, Fase 3) — se
+  // completa acá con {} para que el shape siga cumpliendo Oris. Para la
+  // composición real, usar useOrisConIums().
+  const { data, setData, loading } = useSupabaseData<Omit<Oris, "iums_composicion">>(
+    ORIS_CONFIG.tabla,
+    {
+      select: ORIS_CONFIG.select,
+      order: { campo: "orden" },
+    },
+  );
 
-  const items = useMemo(() => data, [data]);
+  const items = useMemo<Oris[]>(
+    () => data.map((o) => ({ ...o, iums_composicion: {} })),
+    [data],
+  );
 
   return { items, setItems: setData, loading };
 }

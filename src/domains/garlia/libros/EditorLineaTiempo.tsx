@@ -4721,7 +4721,7 @@ export function PanelHistoriaMundo({
         const { data } = await supabase
           .from("eventos_mundo")
           .select(
-            "id, titulo, descripcion, dia_absoluto, reino_id, source, personajes_ids, reinos!reino_id(nombre)",
+            "id, titulo, descripcion, dia_absoluto, reino_id, source, reinos!reino_id(nombre), evento_personajes(personaje_id)",
           );
         if (!data || cancelled) return;
         setEventosMundo(
@@ -4735,11 +4735,23 @@ export function PanelHistoriaMundo({
               reinoId: e.reino_id ?? null,
               reinoNombre: reino?.nombre ?? null,
               source: e.source ?? "mundo",
-              personajes_ids: e.personajes_ids ?? [],
+              personajes_ids: Array.isArray(e.evento_personajes)
+                ? e.evento_personajes.map((ep: any) => ep.personaje_id)
+                : [],
             };
           }),
         );
-        const flat = data.map((e: any) => ({ ...e, reinos: undefined }));
+        // Cache local en Dexie: se aplana evento_personajes a personajes_ids
+        // (mismo shape que usaba la columna jsonb eliminada) para no tocar
+        // el resto del código que lee del cache offline.
+        const flat = data.map((e: any) => ({
+          ...e,
+          reinos: undefined,
+          evento_personajes: undefined,
+          personajes_ids: Array.isArray(e.evento_personajes)
+            ? e.evento_personajes.map((ep: any) => ep.personaje_id)
+            : [],
+        }));
         try {
           if (db && (db as any).eventos_mundo)
             await (db as any).eventos_mundo.bulkPut(flat);
@@ -5366,19 +5378,33 @@ export function PanelHistoriaMundo({
 
   // Cambia los personajes vinculados (personajes_ids) de un evento
   // mundo/reino — usado desde el panel flotante de detalle para
-  // añadir/quitar personajes que participan en el evento.
+  // añadir/quitar personajes que participan en el evento. La relación
+  // real vive en evento_personajes (M:N, eventos_mundo.personajes_ids ya
+  // no es columna) — se calcula el diff contra el estado actual y se
+  // aplican solo altas/bajas, mismo criterio que useBiomaReinos().
   const handleEventoMundoPersonajesChange = useCallback(
     async (id: string, personajesIds: string[]) => {
+      const anteriores = eventosMundo.find((e) => e.id === id)?.personajes_ids ?? [];
       setEventosMundo((prev) =>
         prev.map((e) =>
           e.id === id ? { ...e, personajes_ids: personajesIds } : e,
         ),
       );
       try {
-        await supabase
-          .from("eventos_mundo")
-          .update({ personajes_ids: personajesIds } as any)
-          .eq("id", id);
+        const aQuitar = anteriores.filter((pid) => !personajesIds.includes(pid));
+        const aAgregar = personajesIds.filter((pid) => !anteriores.includes(pid));
+        if (aQuitar.length > 0) {
+          await supabase
+            .from("evento_personajes")
+            .delete()
+            .eq("evento_id", id)
+            .in("personaje_id", aQuitar);
+        }
+        if (aAgregar.length > 0) {
+          await supabase
+            .from("evento_personajes")
+            .insert(aAgregar.map((personaje_id) => ({ evento_id: id, personaje_id })));
+        }
       } catch {}
       try {
         if (db && (db as any).eventos_mundo) {
@@ -5390,7 +5416,7 @@ export function PanelHistoriaMundo({
         }
       } catch {}
     },
-    [],
+    [eventosMundo],
   );
 
   const handleEventoMundoFieldChange = useCallback(

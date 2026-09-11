@@ -40,7 +40,13 @@ import { supabase } from "@/infra/supabase/supabase";
 import { CriaturaEditor } from "@/domains/garlia/criaturas/CriaturaEditor";
 import { EcosistemaEditor } from "@/domains/garlia/biologia/EcosistemaEditor";
 import { BiomaEditor } from "@/domains/garlia/biologia/BiomaEditor";
-import { useEcosistemas, useEcosistemaCriaturas, useBiomas } from "@/domains/garlia/biologia/useBiologia";
+import {
+  useEcosistemas,
+  useEcosistemaCriaturas,
+  useEcosistemaFlora,
+  useBiomas,
+  useBiomaReinos,
+} from "@/domains/garlia/biologia/useBiologia";
 import { FloraEditor } from "@/domains/garlia/flora/FloraEditor";
 import { useFlora } from "@/domains/garlia/flora/useFlora";
 import { MineralEditor } from "@/domains/garlia/minerales/MineralEditor";
@@ -149,11 +155,29 @@ export function EntidadesPage({ section, selectedId }: Props) {
   const { data: items, loading: loadingI, addRow: addItem, updateRow: updateItem } =
     useSupabaseData<Item>("items");
   const { ecosistemas, loading: loadingEco, creating: creatingEco, crear: crearEcosistema, actualizar: actualizarEcosistema } = useEcosistemas();
+  // ecosistemas.flora_ids ya no es columna de Supabase (M:N normalizada en
+  // ecosistema_flora) — se reconstruye acá, mismo criterio que
+  // biomasConReinoIds, para no tocar el contrato de ItemsJerarquia /
+  // CriaturasJerarquica (siguen esperando Ecosistema.flora_ids como antes).
+  const { floraIdsDe: floraIdsDeEcosistema, loading: loadingEcosistemaFlora } =
+    useEcosistemaFlora();
+  const ecosistemasConFloraIds = useMemo(
+    () => ecosistemas.map((e) => ({ ...e, flora_ids: floraIdsDeEcosistema(e.id) })),
+    [ecosistemas, floraIdsDeEcosistema],
+  );
   // Ruta canónica v226: pertenencia Ecosistema↔Criatura vía tabla puente,
   // ya no vive en ecosistemas.criatura_ids (columna retirada).
   const { criaturaIdsDe: criaturaIdsDeEcosistema, asignar: asignarCriaturaAEcosistemaBridge } =
     useEcosistemaCriaturas();
   const { biomas, loading: loadingBiomas, creating: creatingBiomas, crear: crearBioma, actualizar: actualizarBioma } = useBiomas();
+  // biomas.reino_ids ya no es columna de Supabase (M:N normalizada en
+  // bioma_reinos) — se reconstruye acá para no tocar el contrato de
+  // GeografiaJerarquica (sigue esperando Bioma.reino_ids como antes).
+  const { reinoIdsDe, setReinosDeBioma, loading: loadingBiomaReinos } = useBiomaReinos();
+  const biomasConReinoIds = useMemo(
+    () => biomas.map((b) => ({ ...b, reino_ids: reinoIdsDe(b.id) })),
+    [biomas, reinoIdsDe],
+  );
   const { flora, loading: loadingFlora, creating: creatingFlora, crear: crearFlora } = useFlora();
   const { minerales, loading: loadingMinerales, creating: creatingMinerales, crear: crearMineral } = useMinerales();
 
@@ -987,7 +1011,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
     <DescargarDatosDropdown
       onDescargarItems={() => descargarDatosItems({ items })}
       onDescargarCriaturas={() =>
-        descargarDatosCriaturas({ criaturas, personajes, ecosistemas, biomas, flora, minerales })
+        descargarDatosCriaturas({ criaturas, personajes, ecosistemas: ecosistemasConFloraIds, biomas: biomasConReinoIds, flora, minerales })
       }
       onDescargarPersonajes={() => descargarDatosReinos({ reinos, ciudades, personajes })}
     />
@@ -1008,8 +1032,8 @@ export function EntidadesPage({ section, selectedId }: Props) {
           loadingFlora={loadingFlora}
           minerales={minerales}
           loadingMinerales={loadingMinerales}
-          ecosistemas={ecosistemas}
-          loadingEcosistemas={loadingEco}
+          ecosistemas={ecosistemasConFloraIds}
+          loadingEcosistemas={loadingEco || loadingEcosistemaFlora}
           onOpenEcosistema={(id) => openEntity("ecosistemas", id)}
           criaturas={criaturas}
           loadingCriaturas={loadingC}
@@ -1026,13 +1050,13 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <CriaturasJerarquica
           criaturas={criaturas}
           personajes={personajes}
-          ecosistemas={ecosistemas}
+          ecosistemas={ecosistemasConFloraIds}
           criaturaIdsDeEcosistema={criaturaIdsDeEcosistema}
-          biomas={biomas}
+          biomas={biomasConReinoIds}
           flora={flora}
           minerales={minerales}
           mostrarPersonajes={mostrarPersonajes}
-          loading={loadingC || loadingP || loadingEco || loadingBiomas}
+          loading={loadingC || loadingP || loadingEco || loadingEcosistemaFlora || loadingBiomas}
           gruposCriaturasPorSubtipo={gruposCriaturasPorSubtipo}
           grupoSeleccionadoId={grupoCriaturaSeleccionadoId}
           onSeleccionarGrupo={setGrupoCriaturaSeleccionadoId}
@@ -1094,9 +1118,9 @@ export function EntidadesPage({ section, selectedId }: Props) {
           reinos={reinos}
           ciudades={ciudades}
           personajes={personajes}
-          biomas={biomas}
+          biomas={biomasConReinoIds}
           mostrarPersonajes={mostrarPersonajes}
-          loading={loadingR || loadingCd || loadingP || loadingBiomas}
+          loading={loadingR || loadingCd || loadingP || loadingBiomas || loadingBiomaReinos}
           onOpen={(section, id) => openEntity(section, id)}
           gruposPersonajesPorSubtipo={gruposPersonajesPorSubtipo}
           grupoSeleccionadoId={grupoPersonajeSeleccionadoId}
@@ -1128,9 +1152,9 @@ export function EntidadesPage({ section, selectedId }: Props) {
             if (data?.id) abrirPanel("personaje", data.id);
           }}
           onAsignarReinoABioma={async (reinoId, biomaId) => {
-            const bioma = biomas.find((b) => b.id === biomaId);
-            if (!bioma || bioma.reino_ids.includes(reinoId)) return;
-            await actualizarBioma(bioma.id, { reino_ids: [...bioma.reino_ids, reinoId] });
+            const actuales = reinoIdsDe(biomaId);
+            if (actuales.includes(reinoId)) return;
+            await setReinosDeBioma(biomaId, [...actuales, reinoId]);
           }}
           onMoverPersonaje={async (personajeId, ciudadId, reinoNombre) => {
             await updatePersonaje(personajeId, {

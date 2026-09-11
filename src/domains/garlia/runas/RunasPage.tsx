@@ -55,10 +55,10 @@ import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
 import {
   useFisicaConceptos,
-  useIums,
   useParticulas,
   useParticulasBase,
 } from "@/domains/garlia/fisica/useFisica";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
 import {
   useOrisConIums,
   sincronizarIumsDeOris,
@@ -387,7 +387,7 @@ function BloqueFisica({
 }) {
   const { items: particulaBase, loading: loadingParticulaBase } = useParticulasBase();
   const { items: particulas, loading: loadingParticulas } = useParticulas();
-  const { items: iums, loading: loadingIums } = useIums();
+  const { items: iums, loading: loadingIums } = useIumsConParticulas();
   const { items: oris, setItems: setOris, loading: loadingOris } = useOrisConIums();
   const { items: conceptos, setItems: setConceptos, loading: loadingConceptos } =
     useFisicaConceptos();

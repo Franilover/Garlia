@@ -29,16 +29,6 @@ export interface Mineral {
   nombre: string;
   imagen_url: string | null;
   descripcion: string;
-  /** @deprecated Legado: un solo compuesto. Se mantiene por compatibilidad. */
-  compuesto_id: string | null;
-  /** @deprecated Legado: composición plana sin estructura. Reemplazada por
-   *  Formaciones (tabla "formaciones" vinculada vía estructura_componentes,
-   *  ver arriba). Se mantiene por compatibilidad con datos viejos aún no
-   *  migrados — ver migración one-shot en useMineralFormacionesProcesos,
-   *  que FASE 7 reescribió para crear vínculos mineral→compuesto directos
-   *  en estructura_componentes en vez de archivar en
-   *  mineral_formaciones_legado (esa tabla queda sin usarse desde acá). */
-  componentes: { compuesto_id: string; tag: string }[];
   notas: string;
   orden: number;
   created_at: string;
@@ -89,10 +79,7 @@ export interface MineralProceso {
 }
 
 export type MineralInput = Partial<
-  Pick<
-    Mineral,
-    "nombre" | "imagen_url" | "descripcion" | "compuesto_id" | "componentes" | "notas" | "orden"
-  >
+  Pick<Mineral, "nombre" | "imagen_url" | "descripcion" | "notas" | "orden">
 >;
 
 export type MineralProcesoInput = Partial<Pick<MineralProceso, "reaccion_id" | "descripcion">>;

@@ -1,7 +1,7 @@
 "use client";
 
 import { PanelBioma } from "@/domains/garlia/biologia/PanelBioma";
-import { useBiomas, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import { useBiomas, useBiomaReinos, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
 import type { Bioma } from "@/domains/garlia/biologia/types";
 
 import { useMundoNavigation } from "@/domains/garlia/_shared/useMundoNavigationStore";
@@ -13,6 +13,7 @@ export function BiomaEditor({ bioma }: { bioma: Bioma }) {
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
   const { actualizar, eliminar } = useBiomas();
+  const { reinoIdsDe, setReinosDeBioma } = useBiomaReinos();
   const { ecosistemas, creating: creandoEcosistema, crear: crearEcosistema, actualizar: actualizarEcosistema } =
     useEcosistemas();
 
@@ -22,6 +23,8 @@ export function BiomaEditor({ bioma }: { bioma: Bioma }) {
     <div className="p-4">
       <PanelBioma
         bioma={bioma}
+        reinoIds={reinoIdsDe(bioma.id)}
+        onChangeReinos={(ids) => void setReinosDeBioma(bioma.id, ids)}
         ecosistemas={ecosistemasDelBioma}
         onSave={(updates) => void actualizar(bioma.id, updates)}
         onDelete={() => {

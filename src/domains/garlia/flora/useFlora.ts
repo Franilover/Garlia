@@ -54,7 +54,6 @@ export function useFlora() {
           nombre,
           imagen_url: null,
           descripcion: "",
-          compuesto_id: null,
           notas: "",
           tipo_organismo: TIPO_ORGANISMO,
         },

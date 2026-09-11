@@ -8,9 +8,13 @@
  *
  * "Órgano" ya NO es una entidad propia: es un GrupoCompuesto con
  * tipo="organo" (ver elementos/types.ts) — se reutiliza el mismo catálogo
- * y editor que "Grupos de compuestos", solo filtrado por tag. Esto evita
- * mantener dos tablas de fórmulas reutilizables ({compuesto_id,cantidad}[])
- * en paralelo.
+ * y editor que "Grupos de compuestos", solo filtrado por tag.
+ *
+ * Flora.compuesto_id / Flora.componentes (jsonb) fueron eliminados de
+ * Supabase — la composición material de la planta vive ahora en
+ * estructura_componentes (padre_tipo='planta', hijo_tipo='organo'|
+ * 'compuesto'), igual que en Minerales — ver minerales/types.ts y
+ * elementos/useUsosCompuesto.ts.
  */
 
 import type { Organo } from "@/domains/garlia/elementos/types";
@@ -20,10 +24,6 @@ export interface Flora {
   nombre: string;
   imagen_url: string | null;
   descripcion: string;
-  /** @deprecated Legado: un solo compuesto. Se mantiene por compatibilidad. */
-  compuesto_id: string | null;
-  /** Composición material de la planta: partes hechas de compuestos distintos */
-  componentes: { compuesto_id: string; tag: string }[];
   notas: string;
   orden: number;
   created_at: string;
@@ -77,10 +77,7 @@ export interface PlantaProceso {
 }
 
 export type FloraInput = Partial<
-  Pick<
-    Flora,
-    "nombre" | "imagen_url" | "descripcion" | "compuesto_id" | "componentes" | "notas" | "orden"
-  >
+  Pick<Flora, "nombre" | "imagen_url" | "descripcion" | "notas" | "orden">
 >;
 
 export type PlantaProcesoInput = Partial<Pick<PlantaProceso, "reaccion_id" | "descripcion" | "orden">>;

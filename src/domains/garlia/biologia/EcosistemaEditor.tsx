@@ -1,7 +1,12 @@
 "use client";
 
 import { PanelEcosistema } from "@/domains/garlia/biologia/PanelEcosistema";
-import { useCadenasAlimenticias, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import {
+  useCadenasAlimenticias,
+  useEcosistemas,
+  useEcosistemaFlora,
+  useBiomaReinos,
+} from "@/domains/garlia/biologia/useBiologia";
 import type { Ecosistema } from "@/domains/garlia/biologia/types";
 
 import { useMundoNavigation } from "@/domains/garlia/_shared/useMundoNavigationStore";
@@ -13,6 +18,8 @@ export function EcosistemaEditor({ ecosistema }: { ecosistema: Ecosistema }) {
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
   const { actualizar, eliminar } = useEcosistemas();
+  const { floraIdsDe, setFloraDeEcosistema } = useEcosistemaFlora();
+  const { reinoIdsDe } = useBiomaReinos();
   const {
     cadenas,
     creating: creandoCadena,
@@ -27,6 +34,9 @@ export function EcosistemaEditor({ ecosistema }: { ecosistema: Ecosistema }) {
     <div className="p-4">
       <PanelEcosistema
         ecosistema={ecosistema}
+        floraIds={floraIdsDe(ecosistema.id)}
+        onChangeFlora={(ids) => void setFloraDeEcosistema(ecosistema.id, ids)}
+        reinoIdsPorBioma={reinoIdsDe}
         cadenas={cadenasDelEcosistema}
         creandoCadena={creandoCadena}
         onSave={(updates) => void actualizar(ecosistema.id, updates)}

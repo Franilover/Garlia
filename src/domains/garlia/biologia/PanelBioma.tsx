@@ -22,6 +22,8 @@ import { useEcosistemas } from "./useBiologia";
 
 export function PanelBioma({
   bioma,
+  reinoIds,
+  onChangeReinos,
   ecosistemas,
   onSave,
   onDelete,
@@ -33,6 +35,10 @@ export function PanelBioma({
   modoPopover = false,
 }: {
   bioma: Bioma;
+  /** Reinos (por id) con territorio en este bioma — vive en la tabla
+   *  puente bioma_reinos (M:N), ya no en Bioma. */
+  reinoIds: string[];
+  onChangeReinos: (ids: string[]) => void;
   /** Ecosistemas cuyo bioma_id apunta a este bioma. */
   ecosistemas: Ecosistema[];
   onSave: (updates: Partial<Bioma>) => void;
@@ -62,10 +68,9 @@ export function PanelBioma({
     onSave({ nombre: nombre.trim() || bioma.nombre, afinidad, descripcion });
   };
 
-  // ── Reinos (M:N vía bioma.reino_ids) — sección de barra lateral, mismo
+  // ── Reinos (M:N vía bioma_reinos) — sección de barra lateral, mismo
   // patrón que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). ──
   const catalogoReinos = useReinosMin();
-  const reinoIds = bioma.reino_ids ?? [];
   const allReinosEntidad = useMemo(
     () => catalogoReinos.map((r) => ({ id: r.id, nombre: r.nombre })),
     [catalogoReinos],
@@ -74,7 +79,7 @@ export function PanelBioma({
     const next = add
       ? [...reinoIds, id]
       : reinoIds.filter((x) => x !== id);
-    onSave({ reino_ids: next });
+    onChangeReinos(next);
   };
 
   // ── Ecosistemas (1:N vía ecosistema.bioma_id) — misma sección Entidad,
@@ -241,8 +246,8 @@ export function PanelBioma({
 
           <div className="mb-4">
             <SelectorReinosMulti
-              ids={bioma.reino_ids ?? []}
-              onChange={(ids) => onSave({ reino_ids: ids })}
+              ids={reinoIds}
+              onChange={onChangeReinos}
               onSelectReino={onSelectReino}
               label="Reinos con territorio en este bioma"
             />

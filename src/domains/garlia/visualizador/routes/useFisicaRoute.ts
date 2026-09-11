@@ -20,7 +20,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { useIums } from "@/domains/garlia/fisica/useFisica";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
 import { useOrisConIums } from "@/domains/garlia/fisica/useOrisConIums";
 import {
   contarLetrasDeIum,
@@ -67,7 +67,7 @@ export interface FisicaRouteState {
 }
 
 export function useFisicaRoute(): FisicaRouteState {
-  const { items: iums, loading: loadingIums } = useIums();
+  const { items: iums, loading: loadingIums } = useIumsConParticulas();
   const { items: oris, loading: loadingOris } = useOrisConIums();
 
   // orisSelId ahora SIEMPRE se fija a un id concreto en cuanto hay datos

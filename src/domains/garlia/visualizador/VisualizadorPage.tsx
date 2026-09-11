@@ -37,7 +37,7 @@ import {
   type FilaIum,
 } from "@/domains/garlia/fisica/types";
 import { useOrisConIums } from "@/domains/garlia/fisica/useOrisConIums";
-import { useIums } from "@/domains/garlia/fisica/useFisica";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
 
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { useMaterialComponentes } from "@/domains/garlia/materiales/useMaterialComponentes";
@@ -3075,7 +3075,7 @@ function VisualizadorPage() {
 
   // ─── Fuentes de datos reales ────────────────────────────────────────────
   const { items: particulas, loading: loadingParticulas } = useParticulasCompletas();
-  const { items: iums } = useIums();
+  const { items: iums } = useIumsConParticulas();
   const { items: oris, loading: loadingOris } = useOrisConIums();
   const { items: materiales, loading: loadingMateriales } = useMateriales();
   const { items: estructuras, loading: loadingEstructuras } = useEstructuras();

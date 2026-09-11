@@ -50,16 +50,23 @@ export interface Bioma {
   descripcion: string;
   /** Afinidad simple con Oris/elementos del mundo (texto libre por ahora). */
   afinidad: string;
-  /** Reinos (por id) que tienen territorio en este bioma — M:N. */
-  reino_ids: string[];
   orden: number;
   created_at: string;
   updated_at: string;
 }
 
-export type BiomaInput = Partial<
-  Pick<Bioma, "nombre" | "descripcion" | "afinidad" | "reino_ids" | "orden">
->;
+export type BiomaInput = Partial<Pick<Bioma, "nombre" | "descripcion" | "afinidad" | "orden">>;
+
+// ─── Bioma ↔ Reino (tabla puente) ──────────────────────────────────────────
+// Reemplaza a la antigua columna embebida `biomas.reino_ids` (jsonb/array,
+// eliminada). Mismo criterio que ecosistema_criaturas: M:N puro, sin PK
+// propia, se lee/escribe directo contra Supabase — ver useBiomaReinos().
+
+/** Fila cruda tal cual vive en Supabase (tabla "bioma_reinos"). */
+export interface BiomaReino {
+  bioma_id: string;
+  reino_id: string;
+}
 
 // ─── Cladística (cladograma / árbol filogenético) ──────────────────────────
 
@@ -99,8 +106,6 @@ export interface Ecosistema {
   bioma_id: string | null;
   clima: string;
   descripcion: string;
-  /** Flora (por id) que crece/habita en este ecosistema. */
-  flora_ids: string[];
   /** Minerales (por id) presentes como recursos de este ecosistema. */
   mineral_ids: string[];
   orden: number;
@@ -109,11 +114,19 @@ export interface Ecosistema {
 }
 
 export type EcosistemaInput = Partial<
-  Pick<
-    Ecosistema,
-    "nombre" | "bioma_id" | "clima" | "descripcion" | "flora_ids" | "mineral_ids" | "orden"
-  >
+  Pick<Ecosistema, "nombre" | "bioma_id" | "clima" | "descripcion" | "mineral_ids" | "orden">
 >;
+
+// ─── Ecosistema ↔ Flora (tabla puente) ─────────────────────────────────────
+// Reemplaza a la antigua columna embebida `ecosistemas.flora_ids` (jsonb/
+// array, eliminada). Mismo criterio que ecosistema_criaturas/bioma_reinos:
+// M:N puro, sin PK propia — ver useEcosistemaFlora().
+
+/** Fila cruda tal cual vive en Supabase (tabla "ecosistema_flora"). */
+export interface EcosistemaFlora {
+  ecosistema_id: string;
+  flora_id: string;
+}
 
 // ─── Ecosistema ↔ Criatura (tabla puente) ──────────────────────────────────
 // Ruta canónica (migración v226) para la relación M:N entre Ecosistema y

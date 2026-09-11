@@ -47,7 +47,7 @@ import { useEntidadVinculoReaccion } from "@/domains/garlia/_shared/useEntidadVi
 import { useFlora } from "./useFlora";
 import { usePlantaOrganosProcesos } from "./usePlantaOrganosProcesos";
 import { type Flora, type PlantaProceso } from "./types";
-import { useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import { useEcosistemas, useEcosistemaFlora } from "@/domains/garlia/biologia/useBiologia";
 import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 
@@ -69,8 +69,10 @@ export function FloraEditorMejorado({
   const { actualizar, eliminar } = useFlora();
   const celulasCatalogo = useCelulas();
   const tejidosCatalogo = useTejidos();
-  const { ecosistemas, loading: loadingEcosistemas, actualizar: actualizarEcosistema } =
-    useEcosistemas();
+  const { ecosistemas, loading: loadingEcosistemas } = useEcosistemas();
+  // ecosistemas.flora_ids ya no es columna — la relación vive en la tabla
+  // puente ecosistema_flora (M:N).
+  const { floraIdsDe, setFloraDeEcosistema } = useEcosistemaFlora();
 
   const [form, setForm] = useState<Flora>(floraProp);
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -112,19 +114,19 @@ export function FloraEditorMejorado({
   } = usePlantaOrganosProcesos(floraProp.id, catalogoOrganos);
 
   // Ecosistemas donde crece esta planta — vínculo inverso: vive en
-  // Ecosistema.flora_ids, no en Flora. Mismo patrón que SeccionEntidad en
+  // ecosistema_flora (M:N), no en Flora. Mismo patrón que SeccionEntidad en
   // EditorCriatura/PanelBioma.
   const ecosistemaIds = useMemo(
-    () => ecosistemas.filter((e) => (e.flora_ids ?? []).includes(form.id)).map((e) => e.id),
-    [ecosistemas, form.id],
+    () => ecosistemas.filter((e) => floraIdsDe(e.id).includes(form.id)).map((e) => e.id),
+    [ecosistemas, form.id, floraIdsDe],
   );
   const handleToggleEcosistema = (ecosistemaId: string, add: boolean) => {
-    const eco = ecosistemas.find((e) => e.id === ecosistemaId);
-    if (!eco) return;
-    const actuales = eco.flora_ids ?? [];
-    void actualizarEcosistema(ecosistemaId, {
-      flora_ids: add ? [...actuales, form.id] : actuales.filter((id) => id !== form.id),
-    });
+    const actuales = floraIdsDe(ecosistemaId);
+    if (add === actuales.includes(form.id)) return;
+    void setFloraDeEcosistema(
+      ecosistemaId,
+      add ? [...actuales, form.id] : actuales.filter((id) => id !== form.id),
+    );
   };
 
   const [tabActiva, setTabActiva] = useState<"composicion" | "organos" | "procesos">(

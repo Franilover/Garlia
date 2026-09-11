@@ -130,38 +130,12 @@ export function useMineralFormacionesProcesos(
   }, [mineralId, loadProcesos]);
 
   // ── Migración one-shot del campo legado `componentes` ──────────────────
-  // Se corre después de la primera carga: si el mineral tiene composición
-  // legado pero todavía no tiene ninguna Formación vinculada, crea un
-  // vínculo directo mineral→compuesto en estructura_componentes por cada
-  // entrada del JSONB legado (FASE 7 — mismo criterio que se usó para
-  // migrar flora.componentes). `tag`, si existe, se preserva como `rol`.
-  // Sigue sin inventar una Formación/fórmula sintética: eso queda como
-  // paso manual aparte, vía useFormacionVetas sobre una Formación creada
-  // a mano.
-  useEffect(() => {
-    if (!mineralId || loadingFormaciones) return;
-    if (formaciones.length > 0) return;
-    const legado = mineralLegado?.componentes;
-    if (!legado || legado.length === 0) return;
-
-    void (async () => {
-      const { error } = await supabase.from("estructura_componentes").insert(
-        legado.map((c) => ({
-          padre_tipo: "mineral",
-          padre_id: mineralId,
-          hijo_tipo: "compuesto",
-          hijo_id: c.compuesto_id,
-          rol: c.tag || null,
-        })),
-      );
-      if (error) {
-        console.error("[useMineralFormacionesProcesos] error migrando componentes legado:", error);
-      }
-    })();
-    // Solo debe dispararse una vez apenas se sabe que no hay formaciones —
-    // no en cada cambio de `formaciones` (evitaría re-disparar en loop).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mineralId, loadingFormaciones]);
+  // Removida: Mineral.componentes (jsonb) ya no existe en Supabase ni en
+  // el tipo Mineral — la migración a estructura_componentes ya se hizo
+  // (ver conteo de filas padre_tipo='mineral' en Supabase) y este shim
+  // quedó sin fuente de datos que migrar. No se reemplaza por lectura de
+  // otra columna JSON (regla arquitectónica: JSONB solo para datos propios
+  // de una entidad, no para relaciones).
 
   // ── CRUD de procesos: solo un evento geológico (descripcion) — el
   // consume/produce vive en la Reacción vinculada 1:1 (ver

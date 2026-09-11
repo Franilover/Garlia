@@ -7,12 +7,14 @@
  * "Criatura → Entidades" del editor de Criatura:
  *   - Ítems: vínculo DIRECTO vía columna `criatura_id` (1 criatura → N items;
  *     acá la criatura es el "dueño"/origen del item).
- *   - Flora / Minerales: NO tienen columna directa a criatura_id — viven en
- *     `Ecosistema.flora_ids` / `Ecosistema.mineral_ids` (jsonb). Se muestran
- *     acá, al mismo nivel que Items, la Flora/Minerales de todo Ecosistema
- *     ligado a esta criatura vía la tabla puente `ecosistema_criaturas`
- *     (ruta canónica v226; solo lectura acá — la edición del vínculo vive
- *     en PanelEcosistema).
+ *   - Minerales: no tienen columna directa a criatura_id — viven en
+ *     `Ecosistema.mineral_ids` (jsonb).
+ *   - Flora: tampoco tiene columna directa — vive en la tabla puente
+ *     `ecosistema_flora` (M:N, ecosistemas.flora_ids ya no es columna).
+ *   Ambas se muestran acá, al mismo nivel que Items, para la Flora/Minerales
+ *   de todo Ecosistema ligado a esta criatura vía la tabla puente
+ *   `ecosistema_criaturas` (ruta canónica v226; solo lectura acá — la
+ *   edición del vínculo vive en PanelEcosistema).
  *
  * Ruta destino:
  *   src/features/editorGarlia/hooks/criaturas/useEntidadesDeCriatura.ts
@@ -63,12 +65,20 @@ export function useEntidadesDeCriatura(criaturaId: string) {
       ]);
 
       const ecosistemaIds = (vinculos ?? []).map((v: any) => v.ecosistema_id as string);
-      const { data: ecosistemas } = ecosistemaIds.length
-        ? await supabase.from("ecosistemas").select("flora_ids, mineral_ids").in("id", ecosistemaIds)
-        : { data: [] as { flora_ids: string[]; mineral_ids: string[] }[] };
+      const [{ data: ecosistemas }, { data: floraVinculos }] = ecosistemaIds.length
+        ? await Promise.all([
+            supabase.from("ecosistemas").select("mineral_ids").in("id", ecosistemaIds),
+            // ecosistemas.flora_ids ya no es columna — la relación vive en
+            // la tabla puente ecosistema_flora (M:N).
+            supabase.from("ecosistema_flora").select("flora_id").in("ecosistema_id", ecosistemaIds),
+          ])
+        : [
+            { data: [] as { mineral_ids: string[] }[] },
+            { data: [] as { flora_id: string }[] },
+          ];
 
       const floraIds = Array.from(
-        new Set((ecosistemas ?? []).flatMap((e: any) => (e.flora_ids ?? []) as string[])),
+        new Set((floraVinculos ?? []).map((f: any) => f.flora_id as string)),
       );
       const mineralIds = Array.from(
         new Set((ecosistemas ?? []).flatMap((e: any) => (e.mineral_ids ?? []) as string[])),

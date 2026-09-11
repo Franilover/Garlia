@@ -16,7 +16,7 @@
  */
 
 import { PanelBioma } from "@/domains/garlia/biologia/PanelBioma";
-import { useBiomas, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import { useBiomas, useBiomaReinos, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
 
 export function BiomaPopoverContent({
   biomaId,
@@ -26,6 +26,7 @@ export function BiomaPopoverContent({
   onClose: () => void;
 }) {
   const { biomas, actualizar, eliminar } = useBiomas();
+  const { reinoIdsDe, setReinosDeBioma } = useBiomaReinos();
   const { ecosistemas } = useEcosistemas();
 
   const bioma = biomas.find((b) => b.id === biomaId);
@@ -36,6 +37,8 @@ export function BiomaPopoverContent({
   return (
     <PanelBioma
       bioma={bioma}
+      reinoIds={reinoIdsDe(bioma.id)}
+      onChangeReinos={(ids) => void setReinosDeBioma(bioma.id, ids)}
       ecosistemas={ecosistemasDelBioma}
       onSave={(updates) => void actualizar(bioma.id, updates)}
       onDelete={() => {
