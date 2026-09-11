@@ -30,6 +30,7 @@ import { PanelEditorTejido, PanelEditorCelula } from "@/domains/garlia/biologia/
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { PanelEditorVeta, PanelEditorGrano } from "@/domains/garlia/fisica/CatalogoVetasFisica";
 import { useCelulasDeUnOrgano } from "@/domains/garlia/elementos/useCelulasDeUnOrgano";
+import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 
 import type { Compuesto } from "./types";
@@ -50,6 +51,8 @@ export function GrupoCompuestoPanelFlotante({
   onAbrirCompuesto,
   onAbrirOrganoExterno,
   onAbrirFormacionExterna,
+  onAbrirSistemaExterno,
+  onAbrirOrganismoExterno,
 }: {
   grupo: EntradaCatalogoGrupo;
   /** "organo" resuelve la fórmula vía Tejidos/Células; "formacion" vía Vetas/Granos. */
@@ -76,6 +79,19 @@ export function GrupoCompuestoPanelFlotante({
    * que onAbrirOrganoExterno.
    */
   onAbrirFormacionExterna?: (formacionId: string) => void;
+  /**
+   * Navegar al Sistema elegido desde el nivel "Sistema" del breadcrumb de
+   * este Órgano (tipo="organo" únicamente) — cierra este modal y delega en
+   * el padre (BiologiaPage) abrir el editor del Sistema, mismo patrón que
+   * onAbrirOrganoExterno.
+   */
+  onAbrirSistemaExterno?: (sistemaId: string) => void;
+  /**
+   * Navegar al Organismo elegido desde el nivel "Organismo" del breadcrumb
+   * de este Órgano (tipo="organo" únicamente, techo de la cadena) — mismo
+   * patrón que onAbrirSistemaExterno.
+   */
+  onAbrirOrganismoExterno?: (organismoId: string) => void;
 }) {
   const tejidos = useOrganoTejidos(tipo === "organo" ? grupo.id : null);
   const vetas = useFormacionVetas(tipo === "formacion" ? grupo.id : null);
@@ -84,6 +100,12 @@ export function GrupoCompuestoPanelFlotante({
   // Órgano (a diferencia de `tejidos.items`, que solo trae la primera
   // Célula por fila) — usada en el nivel "Célula" del breadcrumb.
   const celulasDelOrgano = useCelulasDeUnOrgano(tipo === "organo" ? grupo.id : null);
+  // Sistemas que usan este Órgano y, a partir de esos Sistemas, los
+  // Organismos que los usan — completa los dos niveles de arriba del
+  // breadcrumb (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo).
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(
+    tipo === "organo" ? [grupo.id] : [],
+  );
   const catalogo = useCatalogoTejidos(tipo);
 
   // ── Editor completo del Tejido/Veta propio de una fila de la fórmula —
@@ -203,6 +225,22 @@ export function GrupoCompuestoPanelFlotante({
                   onNavegar: (tejidoId) => setTejidoOVetaAbiertoId(tejidoId),
                 },
                 { label: "Órgano", icono: <Boxes size={10} />, activo: true },
+                {
+                  label: "Sistema",
+                  icono: <Layers size={10} />,
+                  activo: false,
+                  items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+                  loading: sistemasYOrganismos.loading,
+                  onNavegar: onAbrirSistemaExterno,
+                },
+                {
+                  label: "Organismo",
+                  icono: <Boxes size={10} />,
+                  activo: false,
+                  items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+                  loading: sistemasYOrganismos.loading,
+                  onNavegar: onAbrirOrganismoExterno,
+                },
               ]}
             />
           </div>

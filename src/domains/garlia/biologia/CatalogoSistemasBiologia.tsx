@@ -23,7 +23,7 @@
  * Mismo lenguaje visual que CatalogoTejidosBiologia/GridCatalogoGrupo.
  */
 
-import { Boxes, Layers, Plus, Trash2, X, Search } from "lucide-react";
+import { Beaker, Boxes, Layers, Plus, Trash2, X, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -37,6 +37,9 @@ import {
   type SistemaDeOrganismo,
 } from "@/domains/garlia/elementos/useOrganismoSistemas";
 import { useSistemasDeUnOrgano } from "@/domains/garlia/elementos/useSistemasDeUnOrgano";
+import { useComposicionDeUnSistema } from "@/domains/garlia/elementos/useComposicionDeUnSistema";
+import { useOrganismosDeUnSistema } from "@/domains/garlia/elementos/useOrganismosDeUnSistema";
+import { useComposicionDeUnOrganismo } from "@/domains/garlia/elementos/useComposicionDeUnOrganismo";
 import type { Organismo, Organo, Sistema } from "@/domains/garlia/elementos/types";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
 import {
@@ -51,14 +54,63 @@ interface Props {
   /** Navegar al Órgano elegido — el padre (BiologiaPage) decide cómo abrir
    *  su editor, ya que el Órgano vive fuera de este catálogo. */
   onAbrirOrgano?: (organoId: string) => void;
+  /** Navegar a la Célula elegida desde el breadcrumb de 5 niveles
+   *  (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo) — la Célula vive en
+   *  CatalogoTejidosBiologia, fuera de este catálogo, así que el padre
+   *  (BiologiaPage) decide cómo abrir su editor, mismo patrón que
+   *  onAbrirOrgano. */
+  onAbrirCelula?: (celulaId: string) => void;
+  /** Misma idea que onAbrirCelula, un nivel más arriba. */
+  onAbrirTejido?: (tejidoId: string) => void;
+  /**
+   * Id de un Sistema a abrir de forma controlada desde afuera — usado para
+   * navegar hasta acá desde el breadcrumb de una Célula/Tejido/Órgano que
+   * no vive dentro de este catálogo. Cuando cambia, reemplaza la selección
+   * interna (y cierra el panel de Organismo, si había uno abierto).
+   */
+  abrirSistemaIdExterno?: string | null;
+  /** Se llama tras consumir abrirSistemaIdExterno, para que el padre limpie su estado. */
+  onAbrirSistemaIdExternoConsumido?: () => void;
+  /** Mismo mecanismo que abrirSistemaIdExterno, para el catálogo de Organismos. */
+  abrirOrganismoIdExterno?: string | null;
+  /** Se llama tras consumir abrirOrganismoIdExterno, para que el padre limpie su estado. */
+  onAbrirOrganismoIdExternoConsumido?: () => void;
 }
 
-export function CatalogoSistemasBiologia({ organos, loadingOrganos, onAbrirOrgano }: Props) {
+export function CatalogoSistemasBiologia({
+  organos,
+  loadingOrganos,
+  onAbrirOrgano,
+  onAbrirCelula,
+  onAbrirTejido,
+  abrirSistemaIdExterno,
+  onAbrirSistemaIdExternoConsumido,
+  abrirOrganismoIdExterno,
+  onAbrirOrganismoIdExternoConsumido,
+}: Props) {
   const sistemas = useSistemas();
   const organismos = useOrganismos();
 
   const [sistemaSeleccionadoId, setSistemaSeleccionadoId] = useState<string | null>(null);
   const [organismoSeleccionadoId, setOrganismoSeleccionadoId] = useState<string | null>(null);
+
+  // Navegación controlada desde afuera (breadcrumb de una Célula/Tejido/
+  // Órgano) — mismo patrón que CatalogoTejidosBiologia.abrirCelulaIdExterna.
+  useEffect(() => {
+    if (!abrirSistemaIdExterno) return;
+    setOrganismoSeleccionadoId(null);
+    setSistemaSeleccionadoId(abrirSistemaIdExterno);
+    onAbrirSistemaIdExternoConsumido?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirSistemaIdExterno]);
+
+  useEffect(() => {
+    if (!abrirOrganismoIdExterno) return;
+    setSistemaSeleccionadoId(null);
+    setOrganismoSeleccionadoId(abrirOrganismoIdExterno);
+    onAbrirOrganismoIdExternoConsumido?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirOrganismoIdExterno]);
 
   const [creandoSistema, setCreandoSistema] = useState(false);
   const [creandoOrganismo, setCreandoOrganismo] = useState(false);
@@ -162,6 +214,26 @@ export function CatalogoSistemasBiologia({ organos, loadingOrganos, onAbrirOrgan
                   }
                 : undefined
             }
+            onAbrirCelula={
+              onAbrirCelula
+                ? (celulaId) => {
+                    setSistemaSeleccionadoId(null);
+                    onAbrirCelula(celulaId);
+                  }
+                : undefined
+            }
+            onAbrirTejido={
+              onAbrirTejido
+                ? (tejidoId) => {
+                    setSistemaSeleccionadoId(null);
+                    onAbrirTejido(tejidoId);
+                  }
+                : undefined
+            }
+            onAbrirOrganismo={(organismoId) => {
+              setSistemaSeleccionadoId(null);
+              setOrganismoSeleccionadoId(organismoId);
+            }}
           />
         )}
       </div>
@@ -198,6 +270,30 @@ export function CatalogoSistemasBiologia({ organos, loadingOrganos, onAbrirOrgan
               setOrganismoSeleccionadoId(null);
               setSistemaSeleccionadoId(sistemaId);
             }}
+            onAbrirCelula={
+              onAbrirCelula
+                ? (celulaId) => {
+                    setOrganismoSeleccionadoId(null);
+                    onAbrirCelula(celulaId);
+                  }
+                : undefined
+            }
+            onAbrirTejido={
+              onAbrirTejido
+                ? (tejidoId) => {
+                    setOrganismoSeleccionadoId(null);
+                    onAbrirTejido(tejidoId);
+                  }
+                : undefined
+            }
+            onAbrirOrgano={
+              onAbrirOrgano
+                ? (organoId) => {
+                    setOrganismoSeleccionadoId(null);
+                    onAbrirOrgano(organoId);
+                  }
+                : undefined
+            }
           />
         )}
       </div>
@@ -260,6 +356,9 @@ function PanelEditorSistema({
   onActualizar,
   onEliminar,
   onAbrirOrgano,
+  onAbrirCelula,
+  onAbrirTejido,
+  onAbrirOrganismo,
 }: {
   item: Sistema;
   organos: Organo[];
@@ -268,12 +367,24 @@ function PanelEditorSistema({
   onActualizar: (id: string, cambios: Partial<Sistema>) => void;
   onEliminar: (id: string) => Promise<{ ok: boolean; error: unknown }>;
   onAbrirOrgano?: (organoId: string) => void;
+  /** Cierra este panel y abre el editor de la Célula elegida — navegación
+   *  transitiva (Sistema → Órgano → Tejido → Célula, unión de todas las
+   *  Células alcanzables desde cualquier Órgano del Sistema). */
+  onAbrirCelula?: (celulaId: string) => void;
+  /** Cierra este panel y abre el editor del Tejido elegido — misma unión
+   *  transitiva que onAbrirCelula, un nivel más arriba. */
+  onAbrirTejido?: (tejidoId: string) => void;
+  /** Cierra este panel y abre el editor del Organismo elegido — navegación
+   *  hacia arriba (organismo_sistemas, dirección inversa). */
+  onAbrirOrganismo?: (organismoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
 
   const vinculosOrgano = useSistemaOrganos(item.id);
+  const composicion = useComposicionDeUnSistema(item.id);
+  const organismosQueUsanEsteSistema = useOrganismosDeUnSistema(item.id);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -309,6 +420,22 @@ function PanelEditorSistema({
         <BreadcrumbJerarquia
           niveles={[
             {
+              label: "Célula",
+              icono: <Beaker size={10} />,
+              activo: false,
+              items: composicion.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: composicion.loading,
+              onNavegar: onAbrirCelula,
+            },
+            {
+              label: "Tejido",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: composicion.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
+              loading: composicion.loading,
+              onNavegar: onAbrirTejido,
+            },
+            {
               label: "Órgano",
               icono: <Boxes size={10} />,
               activo: false,
@@ -317,6 +444,17 @@ function PanelEditorSistema({
               onNavegar: onAbrirOrgano,
             },
             { label: "Sistema", icono: <Layers size={10} />, activo: true },
+            {
+              label: "Organismo",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: organismosQueUsanEsteSistema.items.map((o) => ({
+                id: o.organismo_id,
+                nombre: o.organismo.nombre,
+              })),
+              loading: organismosQueUsanEsteSistema.loading,
+              onNavegar: onAbrirOrganismo,
+            },
           ]}
         />
       </div>
@@ -377,6 +515,9 @@ function PanelEditorOrganismo({
   onActualizar,
   onEliminar,
   onAbrirSistema,
+  onAbrirCelula,
+  onAbrirTejido,
+  onAbrirOrgano,
 }: {
   item: Organismo;
   sistemas: Sistema[];
@@ -385,12 +526,21 @@ function PanelEditorOrganismo({
   onActualizar: (id: string, cambios: Partial<Organismo>) => void;
   onEliminar: (id: string) => Promise<{ ok: boolean; error: unknown }>;
   onAbrirSistema?: (sistemaId: string) => void;
+  /** Cierra este panel y abre el editor de la Célula elegida — unión
+   *  transitiva de todas las Células alcanzables vía cualquier Sistema de
+   *  este Organismo (Organismo → Sistema → Órgano → Tejido → Célula). */
+  onAbrirCelula?: (celulaId: string) => void;
+  /** Misma unión transitiva que onAbrirCelula, un nivel más arriba. */
+  onAbrirTejido?: (tejidoId: string) => void;
+  /** Misma unión transitiva, un nivel más arriba todavía. */
+  onAbrirOrgano?: (organoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState<string | null>(null);
 
   const vinculosSistema = useOrganismoSistemas(item.id);
+  const composicion = useComposicionDeUnOrganismo(item.id);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -423,6 +573,30 @@ function PanelEditorOrganismo({
       <div className="shrink-0 px-3 pt-2">
         <BreadcrumbJerarquia
           niveles={[
+            {
+              label: "Célula",
+              icono: <Beaker size={10} />,
+              activo: false,
+              items: composicion.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: composicion.loading,
+              onNavegar: onAbrirCelula,
+            },
+            {
+              label: "Tejido",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: composicion.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
+              loading: composicion.loading,
+              onNavegar: onAbrirTejido,
+            },
+            {
+              label: "Órgano",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: composicion.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+              loading: composicion.loading,
+              onNavegar: onAbrirOrgano,
+            },
             {
               label: "Sistema",
               icono: <Layers size={10} />,

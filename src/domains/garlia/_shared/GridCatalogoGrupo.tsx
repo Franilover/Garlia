@@ -51,6 +51,19 @@ type Props =
       abrirIdExterno?: string | null;
       /** Se llama tras consumir abrirIdExterno, para que el padre limpie su estado. */
       onAbrirIdExternoConsumido?: () => void;
+      /**
+       * Navegar al Sistema elegido desde el nivel "Sistema" del breadcrumb
+       * del Órgano (icono="organo" únicamente) — el Sistema vive fuera de
+       * este grid, así que el padre (BiologiaPage) decide cómo abrir su
+       * editor, mismo patrón que onAbrirCompuesto.
+       */
+      onAbrirSistema?: (sistemaId: string) => void;
+      /**
+       * Navegar al Organismo elegido desde el nivel "Organismo" del
+       * breadcrumb del Órgano (icono="organo" únicamente, techo de la
+       * cadena) — mismo patrón que onAbrirSistema.
+       */
+      onAbrirOrganismo?: (organismoId: string) => void;
     }
   | {
       modo: "reaccion";
@@ -147,6 +160,10 @@ export function GridCatalogoGrupo(props: Props) {
             props.icono === "formacion"
               ? (formacionId) => setSeleccionadoId(formacionId)
               : undefined
+          }
+          onAbrirSistemaExterno={props.icono !== "formacion" ? props.onAbrirSistema : undefined}
+          onAbrirOrganismoExterno={
+            props.icono !== "formacion" ? props.onAbrirOrganismo : undefined
           }
         />
       )}

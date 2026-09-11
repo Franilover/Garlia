@@ -163,10 +163,16 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
   // composición de una Célula abre acá su editor completo — mismo patrón
   // que FloraEditor.tsx (setItemAbierto({ tipo: "compuesto", id })).
   const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
-  // Navegación controlada desde el breadcrumb "Tejido → Órgano" de
-  // CatalogoTejidosBiologia — al elegir un Órgano, este id le llega a
-  // GridCatalogoGrupo (abrirIdExterno) para abrir su editor flotante.
+  // Navegación controlada desde el breadcrumb de 5 niveles
+  // (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo): cada catálogo abre
+  // un id que vive en OTRO catálogo pasándolo acá, y el catálogo dueño de
+  // ese id lo consume vía sus props abrirXIdExterno/onAbrirXIdExternoConsumido
+  // — mismo patrón ya usado para organoAAbrirId.
   const [organoAAbrirId, setOrganoAAbrirId] = useState<string | null>(null);
+  const [celulaAAbrirId, setCelulaAAbrirId] = useState<string | null>(null);
+  const [tejidoAAbrirId, setTejidoAAbrirId] = useState<string | null>(null);
+  const [sistemaAAbrirId, setSistemaAAbrirId] = useState<string | null>(null);
+  const [organismoAAbrirId, setOrganismoAAbrirId] = useState<string | null>(null);
 
   async function actualizarOrgano(id: string, cambios: Partial<Organo>) {
     setCatalogoOrganos((prev) => prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)));
@@ -188,6 +194,12 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           loadingCompuestos={loadingCompuestos}
           onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
           onAbrirOrgano={(id) => setOrganoAAbrirId(id)}
+          onAbrirSistema={(id) => setSistemaAAbrirId(id)}
+          onAbrirOrganismo={(id) => setOrganismoAAbrirId(id)}
+          abrirCelulaIdExterna={celulaAAbrirId}
+          onAbrirCelulaIdExternaConsumida={() => setCelulaAAbrirId(null)}
+          abrirTejidoIdExterno={tejidoAAbrirId}
+          onAbrirTejidoIdExternoConsumido={() => setTejidoAAbrirId(null)}
         />
       </div>
 
@@ -201,6 +213,12 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
         <CatalogoSistemasBiologia
           organos={catalogoOrganos}
           onAbrirOrgano={(id) => setOrganoAAbrirId(id)}
+          onAbrirCelula={(id) => setCelulaAAbrirId(id)}
+          onAbrirTejido={(id) => setTejidoAAbrirId(id)}
+          abrirSistemaIdExterno={sistemaAAbrirId}
+          onAbrirSistemaIdExternoConsumido={() => setSistemaAAbrirId(null)}
+          abrirOrganismoIdExterno={organismoAAbrirId}
+          onAbrirOrganismoIdExternoConsumido={() => setOrganismoAAbrirId(null)}
         />
       </div>
 
@@ -218,6 +236,8 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
           abrirIdExterno={organoAAbrirId}
           onAbrirIdExternoConsumido={() => setOrganoAAbrirId(null)}
+          onAbrirSistema={(id) => setSistemaAAbrirId(id)}
+          onAbrirOrganismo={(id) => setOrganismoAAbrirId(id)}
         />
       </div>
 

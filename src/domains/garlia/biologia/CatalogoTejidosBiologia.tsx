@@ -45,6 +45,7 @@ import { useTejidoCompuestos, type CompuestoDeTejido } from "@/domains/garlia/el
 import { useTejidosDeUnaCelula } from "@/domains/garlia/elementos/useTejidosDeUnaCelula";
 import { useOrganosDeUnTejido } from "@/domains/garlia/elementos/useOrganosDeUnTejido";
 import { useOrganosDeUnaCelula } from "@/domains/garlia/elementos/useOrganosDeUnaCelula";
+import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
 import type { Celula, Compuesto, Estructura, Tejido } from "@/domains/garlia/elementos/types";
 import { GridPropiedadesCalculadas } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
@@ -55,10 +56,29 @@ interface Props {
   loadingCompuestos?: boolean;
   onCompuestoCreado?: (c: Compuesto) => void;
   onAbrirCompuesto?: (compuestoId: string) => void;
-  /** Navegar a un Órgano desde el breadcrumb de un Tejido — el padre
-   *  (BiologiaPage/GruposCompuestosPage) decide cómo abrir su editor,
+  /** Navegar a un Órgano desde el breadcrumb de una Célula o un Tejido — el
+   *  padre (BiologiaPage/GruposCompuestosPage) decide cómo abrir su editor,
    *  ya que el Órgano vive fuera de este catálogo (ver GrupoCompuestoPanelFlotante). */
   onAbrirOrgano?: (organoId: string) => void;
+  /** Navegar a un Sistema desde el breadcrumb de una Célula o un Tejido —
+   *  el Sistema vive fuera de este catálogo, en CatalogoSistemasBiologia. */
+  onAbrirSistema?: (sistemaId: string) => void;
+  /** Navegar a un Organismo desde el breadcrumb de una Célula o un Tejido —
+   *  mismo motivo que onAbrirSistema, techo de la cadena. */
+  onAbrirOrganismo?: (organismoId: string) => void;
+  /**
+   * Id de una Célula a abrir de forma controlada desde afuera — usado para
+   * navegar hasta acá desde el breadcrumb de un Órgano/Sistema/Organismo
+   * que no vive dentro de este catálogo. Cuando cambia, reemplaza la
+   * selección interna (y cierra el panel de Tejido, si había uno abierto).
+   */
+  abrirCelulaIdExterna?: string | null;
+  /** Se llama tras consumir abrirCelulaIdExterna, para que el padre limpie su estado. */
+  onAbrirCelulaIdExternaConsumida?: () => void;
+  /** Mismo mecanismo que abrirCelulaIdExterna, para el catálogo de Tejidos. */
+  abrirTejidoIdExterno?: string | null;
+  /** Se llama tras consumir abrirTejidoIdExterno, para que el padre limpie su estado. */
+  onAbrirTejidoIdExternoConsumido?: () => void;
 }
 
 export function CatalogoTejidosBiologia({
@@ -67,12 +87,38 @@ export function CatalogoTejidosBiologia({
   onCompuestoCreado,
   onAbrirCompuesto,
   onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
+  abrirCelulaIdExterna,
+  onAbrirCelulaIdExternaConsumida,
+  abrirTejidoIdExterno,
+  onAbrirTejidoIdExternoConsumido,
 }: Props) {
   const celulas = useCelulas();
   const tejidos = useTejidos();
 
   const [celulaSeleccionadaId, setCelulaSeleccionadaId] = useState<string | null>(null);
   const [tejidoSeleccionadoId, setTejidoSeleccionadoId] = useState<string | null>(null);
+
+  // Navegación controlada desde afuera (breadcrumb de un Órgano, Sistema u
+  // Organismo): al recibir un id nuevo, lo abre acá igual que un click de
+  // tarjeta, y avisa al padre para que limpie su estado y no reabra en
+  // loop — mismo patrón que GridCatalogoGrupo.abrirIdExterno.
+  useEffect(() => {
+    if (!abrirCelulaIdExterna) return;
+    setTejidoSeleccionadoId(null);
+    setCelulaSeleccionadaId(abrirCelulaIdExterna);
+    onAbrirCelulaIdExternaConsumida?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirCelulaIdExterna]);
+
+  useEffect(() => {
+    if (!abrirTejidoIdExterno) return;
+    setCelulaSeleccionadaId(null);
+    setTejidoSeleccionadoId(abrirTejidoIdExterno);
+    onAbrirTejidoIdExternoConsumido?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirTejidoIdExterno]);
 
   const celulaActiva = celulas.items.find((c) => c.id === celulaSeleccionadaId) ?? null;
   const tejidoActivo = tejidos.items.find((t) => t.id === tejidoSeleccionadoId) ?? null;
@@ -138,6 +184,22 @@ export function CatalogoTejidosBiologia({
                   }
                 : undefined
             }
+            onAbrirSistema={
+              onAbrirSistema
+                ? (sistemaId) => {
+                    setCelulaSeleccionadaId(null);
+                    onAbrirSistema(sistemaId);
+                  }
+                : undefined
+            }
+            onAbrirOrganismo={
+              onAbrirOrganismo
+                ? (organismoId) => {
+                    setCelulaSeleccionadaId(null);
+                    onAbrirOrganismo(organismoId);
+                  }
+                : undefined
+            }
           />
         )}
       </div>
@@ -198,6 +260,22 @@ export function CatalogoTejidosBiologia({
                 ? (organoId) => {
                     setTejidoSeleccionadoId(null);
                     onAbrirOrgano(organoId);
+                  }
+                : undefined
+            }
+            onAbrirSistema={
+              onAbrirSistema
+                ? (sistemaId) => {
+                    setTejidoSeleccionadoId(null);
+                    onAbrirSistema(sistemaId);
+                  }
+                : undefined
+            }
+            onAbrirOrganismo={
+              onAbrirOrganismo
+                ? (organismoId) => {
+                    setTejidoSeleccionadoId(null);
+                    onAbrirOrganismo(organismoId);
                   }
                 : undefined
             }
@@ -338,6 +416,8 @@ export function PanelEditorCelula({
   onAbrirCompuesto,
   onAbrirTejido,
   onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
 }: {
   item: Celula;
   compuestos: Compuesto[];
@@ -352,6 +432,13 @@ export function PanelEditorCelula({
   /** Cierra este panel y abre el del Órgano elegido — navegación transitiva
    *  (Célula → Tejido → Órgano, unión de todos los Órganos alcanzables). */
   onAbrirOrgano?: (organoId: string) => void;
+  /** Cierra este panel y abre el del Sistema elegido — navegación
+   *  transitiva un nivel más arriba (unión de todos los Sistemas
+   *  alcanzables vía cualquier Órgano de la Célula). */
+  onAbrirSistema?: (sistemaId: string) => void;
+  /** Cierra este panel y abre el del Organismo elegido — techo de la
+   *  cadena, misma unión transitiva un nivel más arriba todavía. */
+  onAbrirOrganismo?: (organismoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -360,6 +447,11 @@ export function PanelEditorCelula({
   const estructurasDeCelula = useCelulaEstructuras(item.id);
   const tejidosQueUsanEstaCelula = useTejidosDeUnaCelula(item.id);
   const organosQueUsanEstaCelula = useOrganosDeUnaCelula(item.id);
+  const organoIds = useMemo(
+    () => organosQueUsanEstaCelula.items.map((o) => o.id),
+    [organosQueUsanEstaCelula.items],
+  );
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -416,6 +508,22 @@ export function PanelEditorCelula({
               })),
               loading: organosQueUsanEstaCelula.loading,
               onNavegar: onAbrirOrgano,
+            },
+            {
+              label: "Sistema",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirSistema,
+            },
+            {
+              label: "Organismo",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirOrganismo,
             },
           ]}
         />
@@ -485,6 +593,8 @@ export function PanelEditorTejido({
   onEliminar,
   onAbrirCelula,
   onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
   onCompuestoCreado,
   onAbrirCompuesto,
 }: {
@@ -500,6 +610,13 @@ export function PanelEditorTejido({
   onAbrirCelula?: (celulaId: string) => void;
   /** Cierra este panel y abre el del Órgano elegido — navegación hacia arriba. */
   onAbrirOrgano?: (organoId: string) => void;
+  /** Cierra este panel y abre el del Sistema elegido — navegación
+   *  transitiva un nivel más arriba (unión de todos los Sistemas
+   *  alcanzables vía cualquier Órgano de este Tejido). */
+  onAbrirSistema?: (sistemaId: string) => void;
+  /** Cierra este panel y abre el del Organismo elegido — techo de la
+   *  cadena, misma unión transitiva un nivel más arriba todavía. */
+  onAbrirOrganismo?: (organismoId: string) => void;
   onCompuestoCreado?: (c: Compuesto) => void;
   onAbrirCompuesto?: (compuestoId: string) => void;
 }) {
@@ -510,6 +627,11 @@ export function PanelEditorTejido({
   const vinculosCelula = useTejidoCelulas(item.id);
   const vinculosCompuesto = useTejidoCompuestos(item.id);
   const organosQueUsanEsteTejido = useOrganosDeUnTejido(item.id);
+  const organoIds = useMemo(
+    () => organosQueUsanEsteTejido.items.map((v) => v.organo_id),
+    [organosQueUsanEsteTejido.items],
+  );
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -566,6 +688,22 @@ export function PanelEditorTejido({
               })),
               loading: organosQueUsanEsteTejido.loading,
               onNavegar: onAbrirOrgano,
+            },
+            {
+              label: "Sistema",
+              icono: <Layers size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirSistema,
+            },
+            {
+              label: "Organismo",
+              icono: <Boxes size={10} />,
+              activo: false,
+              items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+              loading: sistemasYOrganismos.loading,
+              onNavegar: onAbrirOrganismo,
             },
           ]}
         />
