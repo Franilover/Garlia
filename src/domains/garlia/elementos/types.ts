@@ -1164,7 +1164,7 @@ export const CONFIG_SISTEMAS = {
 export const CONFIG_ORGANISMOS = {
   tabla: "organismos",
   select:
-    "id, nombre, descripcion, notas, tipo_organismo, material_id, imagen_url, componentes, orden, propiedades_calculadas, estado_calculo, calculado_at, organismo_base_id, variante_tipo, sexo_biologico, clado_id, created_at, updated_at",
+    "id, nombre, descripcion, notas, tipo_organismo, material_id, imagen_url, orden, propiedades_calculadas, estado_calculo, calculado_at, organismo_base_id, variante_tipo, sexo_biologico, clado_id, created_at, updated_at",
 };
 
 export const CONFIG_SISTEMA_ORGANOS = {
