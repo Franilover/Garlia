@@ -1,15 +1,33 @@
 /**
  * types.ts — domains/garlia/elementos
  * ───────────────────────────────────────────────────────────────────────────
- * Tipos del sistema de Alquimia/Energías: los 29 Elementos base, sus 3 capas
- * (núcleo, media, externa) y las 11 partículas posibles por capa.
+ * Tipos del sistema de Alquimia/Energías: los Elementos base y sus 3 capas
+ * (núcleo, media, externa).
+ *
+ * ⚠️ DESACTUALIZADO (auditoría 2026-09-12): los nombres de partícula de abajo
+ * (ParticleType/PARTICLE_TYPES, 11 partículas fijas: Masa, Cinética,
+ * Potencial...) describen el modelo ANTERIOR. El motor real en Supabase ya
+ * migró al sistema TASI: 27 partículas canónicas, cada una una secuencia de
+ * 3 letras sobre el alfabeto T/A/S/I (tabla "particulas", columna "formula").
+ * La capa (núcleo/media/externa) de cada partícula ya no es fija por nombre:
+ * se deriva cuantitativamente de sus ejes_fundamentales (estabilidad +
+ * coherencia − dinámica − transformación) y se reparte en tercios exactos
+ * (9 núcleo / 9 media / 9 externa), reemplazando un reparto previo desigual
+ * (5/10/12) sin criterio documentado. ElementoEditor.tsx ya lee la fórmula
+ * A/T/S real desde "particulas"; los tipos de este archivo (ParticleType,
+ * PARTICLE_TYPES, PARTICLE_INITIAL, LAYER_PARTICLES) todavía no — quedan
+ * pendientes de una migración de tipos más amplia (usada también por
+ * ComparadorElementos.tsx, CompuestosPage.tsx, afinidad.ts,
+ * ComposicionQuimicaPanel.tsx, BalanceProcesoPanel.tsx y
+ * useAlquimiaRoute.ts), fuera del alcance de este cambio puntual.
  *
  * Basado en el documento de arquitectura (types.ts / registry.ts del motor
  * de dominio) y en TablaQuimica.py — unificados acá como la fuente única
  * editable desde Supabase (tabla "elementos").
  *
  * Capas guardadas como jsonb: { "Masa": 2, "Potencial": 1, ... } — mismo
- * patrón que patron_trazos (jsonb) en runas/types.ts.
+ * patrón que patron_trazos (jsonb) en runas/types.ts. Este jsonb también
+ * pertenece al modelo anterior; ver nota arriba.
  */
 
 import { Gem, Link2, Scale, Wind, CircleOff } from "lucide-react";
@@ -374,7 +392,14 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
 
   return [
     // ─── Propiedades físicas ────────────────────────────────────────────
-    { clave: "masa_base", label: "Masa", valor: fmt(el.masa_base, 2), descripcion: "Cantidad de masa fundamental del elemento en la escala interna de Garlia.", formula: "Masa = 1.00·Masa(núcleo) + 0.75·Equilibrio(núcleo) + 0.50·Cinética(núcleo)", grupo: G.fisicas },
+    // ⚠️ Fórmula corregida (auditoría 2026-09-12): masa_base ya NO depende
+    // solo de partículas del núcleo. calcular_propiedades_elemento() ahora
+    // suma el peso_masa de TODAS las partículas del elemento (las 3 capas),
+    // ponderado por capa: núcleo pesa 100%, media 40%, externa 15%. Un
+    // elemento con partículas variadas en media/externa puede así tener
+    // masa distinta de otro con igual núcleo — algo que la fórmula anterior
+    // (solo núcleo) no permitía capturar.
+    { clave: "masa_base", label: "Masa", valor: fmt(el.masa_base, 2), descripcion: "Cantidad de masa fundamental del elemento en la escala interna de Garlia.", formula: "Masa = Σ peso_masa(partícula) · factor_capa, factor_capa = 1.00 (núcleo) / 0.40 (media) / 0.15 (externa)", grupo: G.fisicas },
     { clave: "volumen_base", label: "Volumen", valor: fmt(el.volumen_base, 2), descripcion: "Espacio de referencia asociado a la configuración del elemento; no es una magnitud 0–1.", formula: "Volumen base = número total de partículas de la configuración elemental", grupo: G.fisicas },
     { clave: "estabilidad", label: "Estabilidad", valor: fmt(el.estabilidad), proporcion: prop(el.estabilidad), descripcion: "Qué tan resistente es a romperse o transformarse.", formula: "Propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
     { clave: "rigidez", label: "Rigidez", valor: fmt(el.rigidez), proporcion: prop(el.rigidez), descripcion: "Resistencia a deformarse bajo fuerza.", formula: "Propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
