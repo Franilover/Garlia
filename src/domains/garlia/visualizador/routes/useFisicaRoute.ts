@@ -121,7 +121,7 @@ export function useFisicaRoute(): FisicaRouteState {
   );
 
   const letrasIumSel = useMemo(
-    () => (iumSel ? contarLetrasDeIum(iumAFilaIum(iumSel)) : { A: 0, T: 0, S: 0 }),
+    () => (iumSel ? contarLetrasDeIum(iumAFilaIum(iumSel)) : { A: 0, T: 0, S: 0, I: 0 }),
     [iumSel],
   );
 
@@ -131,7 +131,7 @@ export function useFisicaRoute(): FisicaRouteState {
   );
 
   const letrasOrisSel = useMemo(
-    () => (orisSel ? contarLetrasDeOris(orisSel.iums_composicion, iumPorId) : { A: 0, T: 0, S: 0 }),
+    () => (orisSel ? contarLetrasDeOris(orisSel.iums_composicion, iumPorId) : { A: 0, T: 0, S: 0, I: 0 }),
     [orisSel, iumPorId],
   );
 

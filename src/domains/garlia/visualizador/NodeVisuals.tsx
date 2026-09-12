@@ -31,7 +31,7 @@
 
 import React from "react";
 
-export type LetraATS = "A" | "T" | "S";
+export type LetraATS = "A" | "T" | "S" | "I";
 
 export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: string }> = {
   // Fondo subido de 18% → 32% de mezcla: el relleno de las partículas y
@@ -42,15 +42,18 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   A: { bg: "color-mix(in srgb, #22c55e 32%, transparent)", border: "#22c55e", fg: "#15803d" },
   T: { bg: "color-mix(in srgb, #ef4444 32%, transparent)", border: "#ef4444", fg: "#b91c1c" },
   S: { bg: "color-mix(in srgb, #3b82f6 32%, transparent)", border: "#3b82f6", fg: "#1d4ed8" },
+  // I = 4ta letra (Inversa) — mismo criterio de opacidad que las otras 3,
+  // tono distinto (violeta) para no chocar con A/T/S.
+  I: { bg: "color-mix(in srgb, #a855f7 32%, transparent)", border: "#a855f7", fg: "#7e22ce" },
 };
 
 function esLetraATS(c: string): c is LetraATS {
-  return c === "A" || c === "T" || c === "S";
+  return c === "A" || c === "T" || c === "S" || c === "I";
 }
 
-/** Convierte una fórmula tipo "SAT" en su conteo de letras {A, T, S}. */
+/** Convierte una fórmula tipo "SATI" en su conteo de letras {A, T, S, I}. */
 export function contarLetrasNodo(formula: string): Record<LetraATS, number> {
-  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0 };
+  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0, I: 0 };
   for (const c of formula.toUpperCase()) {
     if (esLetraATS(c)) out[c] += 1;
   }
@@ -92,7 +95,7 @@ export function ParticulaNodo({
     .split("")
     .filter(esLetraATS) as LetraATS[];
   const conteo = contarLetrasNodo(formula);
-  const total = conteo.A + conteo.T + conteo.S;
+  const total = conteo.A + conteo.T + conteo.S + conteo.I;
 
   const cx = size / 2;
   const cy = size / 2;
@@ -103,7 +106,7 @@ export function ParticulaNodo({
   // Letra dominante: la más frecuente en la fórmula, para el color de
   // fondo del núcleo. Empate → se usa la primera letra de la fórmula.
   let dominante: LetraATS = letras[0] ?? "A";
-  (["A", "T", "S"] as LetraATS[]).forEach((l) => {
+  (["A", "T", "S", "I"] as LetraATS[]).forEach((l) => {
     if (conteo[l] > conteo[dominante]) dominante = l;
   });
   const colorDominante = LETRA_COLOR[dominante];
@@ -191,7 +194,7 @@ export function CentroGravedadNodo({
             // para todas (antes eran indistinguibles entre sí).
             const conteo = contarLetrasNodo(p.formula);
             let dominante: LetraATS = "A";
-            (["A", "T", "S"] as LetraATS[]).forEach((l) => {
+            (["A", "T", "S", "I"] as LetraATS[]).forEach((l) => {
               if (conteo[l] > conteo[dominante]) dominante = l;
             });
             const color = LETRA_COLOR[dominante];

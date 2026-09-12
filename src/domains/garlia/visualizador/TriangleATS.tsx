@@ -3,28 +3,36 @@
 /**
  * TriangleATS.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * VIS-02 — Espacio Tesis / Antítesis / Síntesis (A/T/S), doc maestro
- * "Garlia_Visualizador_TODOS_LOS_DISENOS", Parte 3.
+ * VIS-02 — Espacio Tesis / Antítesis / Síntesis / Inversa (T/A/S/I), doc
+ * maestro "Garlia_Visualizador_TODOS_LOS_DISENOS", Parte 3.
  *
- * "El triángulo no es el protagonista. El protagonista es el espacio que
- * existe dentro de él." — cada vértice es una letra pura (T, A, S); la
- * posición de una entidad dentro del triángulo representa visualmente su
- * composición A/T/S real.
+ * "El [marco] no es el protagonista. El protagonista es el espacio que
+ * existe dentro de él." — cada vértice es una letra pura (T, A, S, I); la
+ * posición de una entidad dentro de la figura representa visualmente su
+ * composición T/A/S/I real.
+ *
+ * Con la 4ta letra I (ver particulas_base en Supabase — "transformación
+ * inversa: equilibrio que surge del choque A-T"), la figura pasó de
+ * triángulo (3 vértices) a cuadrado (4 vértices) — mismo criterio de
+ * coordenadas baricéntricas generalizado a 4 puntos: la posición es el
+ * promedio de los 4 vértices ponderado por el peso relativo de cada letra.
+ * El nombre del archivo/componente se mantiene por compatibilidad con el
+ * resto del código que ya lo importa.
  *
  * Regla crítica del docx (punto 5): "Frontend NO calcula la posición
- * conceptual. El frontend recibe T, A, S y solo representa la
- * transformación (T,A,S) → posición visual." Este componente NO decide qué
- * significa "mucho T" o "equilibrado" — solo recibe conteos {A,T,S} ya
+ * conceptual. El frontend recibe T, A, S[, I] y solo representa la
+ * transformación → posición visual." Este componente NO decide qué
+ * significa "mucho T" o "equilibrado" — solo recibe conteos {A,T,S,I} ya
  * reales (via contarLetrasDeIum/contarLetrasDeOris/fórmula de partícula,
  * todas funciones de dominio existentes, cero cálculo nuevo) y aplica una
  * transformación puramente geométrica: coordenadas baricéntricas. Esa
- * transformación (T,A,S)→(x,y) sí es "matemática y puramente gráfica"
+ * transformación (T,A,S,I)→(x,y) sí es "matemática y puramente gráfica"
  * (docx, mismo punto), así que vive acá, no en el motor.
  *
  * No es lo mismo que ParticulaVisual (fisica/, reusado en VIS-01/Rutas
  * desde este mismo proyecto: tercios de color con la letra dentro). Este
  * es otro visualizador: un mapa donde CUALQUIER entidad (partícula, IUM u
- * Oris) se posiciona según su propio A/T/S.
+ * Oris) se posiciona según su propio T/A/S/I.
  */
 
 import React, { useMemo, useState } from "react";
@@ -33,6 +41,7 @@ export interface LetrasATS {
   A: number;
   T: number;
   S: number;
+  I: number;
 }
 
 export interface EntidadATS {
@@ -48,32 +57,38 @@ export interface EntidadATS {
 
 const SIZE = 380;
 const PAD = 56;
-// Vértices del triángulo — T arriba, A abajo-izquierda, S abajo-derecha.
-// El orden es arbitrario (el docx no fija una disposición geométrica
-// específica, solo pide que T/A/S sean los 3 vértices), pero se mantiene
-// fijo y consistente en todo el visualizador.
+// Vértices del cuadrado — T arriba, A izquierda, S derecha, I abajo. El
+// orden es arbitrario (el docx no fija una disposición geométrica
+// específica, solo pide que cada letra sea un vértice), pero se mantiene
+// fijo y consistente en todo el visualizador. Antes eran 3 vértices
+// (triángulo); con la 4ta letra I pasa a cuadrado (rombo), manteniendo T
+// arriba / A-S a los costados para no reordenar visualmente lo existente,
+// y agregando I abajo como nuevo cuarto polo.
 const V_T = { x: SIZE / 2, y: PAD };
-const V_A = { x: PAD * 0.55, y: SIZE - PAD * 0.65 };
-const V_S = { x: SIZE - PAD * 0.55, y: SIZE - PAD * 0.65 };
+const V_A = { x: PAD * 0.55, y: SIZE / 2 };
+const V_S = { x: SIZE - PAD * 0.55, y: SIZE / 2 };
+const V_I = { x: SIZE / 2, y: SIZE - PAD * 0.65 };
 
-/** Punto 5 del docx: transformación puramente gráfica (T,A,S) → posición
- *  visual, vía coordenadas baricéntricas. Si las 3 letras son 0 (entidad
- *  sin composición conocida), cae en el centroide — no se inventa un sesgo
- *  hacia ningún vértice que el dato real no respalde. */
+/** Punto 5 del docx: transformación puramente gráfica (T,A,S,I) → posición
+ *  visual, vía coordenadas baricéntricas generalizadas a 4 puntos. Si las
+ *  4 letras son 0 (entidad sin composición conocida), cae en el centroide
+ *  — no se inventa un sesgo hacia ningún vértice que el dato real no
+ *  respalde. */
 function posicionEnTriangulo(letras: LetrasATS): { x: number; y: number } {
-  const total = letras.A + letras.T + letras.S;
+  const total = letras.A + letras.T + letras.S + letras.I;
   if (total <= 0) {
     return {
-      x: (V_T.x + V_A.x + V_S.x) / 3,
-      y: (V_T.y + V_A.y + V_S.y) / 3,
+      x: (V_T.x + V_A.x + V_S.x + V_I.x) / 4,
+      y: (V_T.y + V_A.y + V_S.y + V_I.y) / 4,
     };
   }
   const wT = letras.T / total;
   const wA = letras.A / total;
   const wS = letras.S / total;
+  const wI = letras.I / total;
   return {
-    x: wT * V_T.x + wA * V_A.x + wS * V_S.x,
-    y: wT * V_T.y + wA * V_A.y + wS * V_S.y,
+    x: wT * V_T.x + wA * V_A.x + wS * V_S.x + wI * V_I.x,
+    y: wT * V_T.y + wA * V_A.y + wS * V_S.y + wI * V_I.y,
   };
 }
 
@@ -102,10 +117,10 @@ function separarSolapados<T extends { x: number; y: number }>(
   });
 }
 
-/** Punto 6 del docx: "gradiente espacial — un campo sutil que sugiere tres
- *  regiones de influencia, sin implicar un campo físico real". Tres
- *  gradientes radiales suaves centrados en cada vértice, mezclándose hacia
- *  el centro. */
+/** Punto 6 del docx: "gradiente espacial — un campo sutil que sugiere
+ *  regiones de influencia, sin implicar un campo físico real". Un gradiente
+ *  radial suave por vértice (ahora 4: T/A/S/I), mezclándose hacia el
+ *  centro. */
 function CampoGradiente() {
   return (
     <>
@@ -122,10 +137,15 @@ function CampoGradiente() {
           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.16" />
           <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="ats-grad-i" cx={V_I.x / SIZE} cy={V_I.y / SIZE} r="0.62">
+          <stop offset="0%" stopColor="#a855f7" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+        </radialGradient>
       </defs>
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-t)" />
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-a)" />
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-s)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-t)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-a)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-s)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-i)" />
     </>
   );
 }
@@ -182,24 +202,27 @@ export function TriangleATS({
     >
       <CampoGradiente />
 
-      {/* El triángulo-mapa en sí: un contorno fino, nunca "el protagonista"
+      {/* El cuadrado-mapa en sí: un contorno fino, nunca "el protagonista"
           (docx punto 1) — solo un marco de referencia. */}
       <polygon
-        points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`}
+        points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`}
         fill="none"
         strokeWidth={1.5}
         style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
       />
 
-      {/* Etiquetas de vértice: T / A / S. */}
+      {/* Etiquetas de vértice: T / A / S / I. */}
       <text x={V_T.x} y={V_T.y - 16} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#b91c1c" }}>
         T
       </text>
-      <text x={V_A.x - 14} y={V_A.y + 20} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#15803d" }}>
+      <text x={V_A.x - 16} y={V_A.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#15803d" }}>
         A
       </text>
-      <text x={V_S.x + 14} y={V_S.y + 20} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#1d4ed8" }}>
+      <text x={V_S.x + 16} y={V_S.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#1d4ed8" }}>
         S
+      </text>
+      <text x={V_I.x} y={V_I.y + 22} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#7e22ce" }}>
+        I
       </text>
 
       {/* Componentes superpuestos de la entidad activa (docx punto 4) — se
@@ -208,7 +231,7 @@ export function TriangleATS({
       {posComponentes.map((c, i) => (
         <g key={`${c.label}-${i}`} style={{ transition: "transform 260ms ease, opacity 260ms ease" }}>
           <circle cx={c.x} cy={c.y} r={4} strokeWidth={1} style={{ fill: "color-mix(in srgb, var(--primary) 20%, transparent)", stroke: "color-mix(in srgb, var(--primary) 55%, transparent)" }} />
-          <title>{`${c.label} (${c.letras.A}A ${c.letras.T}T ${c.letras.S}S)`}</title>
+          <title>{`${c.label} (${c.letras.A}A ${c.letras.T}T ${c.letras.S}S ${c.letras.I}I)`}</title>
         </g>
       ))}
 
@@ -230,7 +253,7 @@ export function TriangleATS({
         const isSelected = selectedId === e.id;
         const isHovered = hoverId === e.id;
         const emphasized = isSelected || isHovered;
-        const total = e.letras.A + e.letras.T + e.letras.S;
+        const total = e.letras.A + e.letras.T + e.letras.S + e.letras.I;
         return (
           <g
             key={e.id}
@@ -269,7 +292,7 @@ export function TriangleATS({
             </text>
             {modoCiencia && emphasized ? (
               <text y={emphasized ? -6 : -2} textAnchor="middle" fontSize={8.5} style={{ fill: "var(--primary)", opacity: 0.5 }}>
-                {e.letras.A}A · {e.letras.T}T · {e.letras.S}S
+                {e.letras.A}A · {e.letras.T}T · {e.letras.S}S · {e.letras.I}I
               </text>
             ) : null}
           </g>

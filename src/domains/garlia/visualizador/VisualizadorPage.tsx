@@ -3141,7 +3141,7 @@ function VisualizadorPage() {
           id: i.id,
           label: i.nombre,
           sublabel: `${fila ? particulasDeIum(fila).length : 0} partícula(s)`,
-          letras: fila ? contarLetrasDeIum(fila) : { A: 0, T: 0, S: 0 },
+          letras: fila ? contarLetrasDeIum(fila) : { A: 0, T: 0, S: 0, I: 0 },
           componentes: fila
             ? particulasDeIum(fila).map((p) => ({ label: p.nombre, letras: contarLetrasNodo(p.formula) }))
             : [],
@@ -3199,7 +3199,7 @@ function VisualizadorPage() {
   const [propiedadFormulaSel, setPropiedadFormulaSel] = useState<(typeof propiedadesDerivadas)[number] | null>(null);
 
   const oriSelLetras = useMemo(() => {
-    if (!orisSel) return { A: 0, T: 0, S: 0 };
+    if (!orisSel) return { A: 0, T: 0, S: 0, I: 0 };
     return contarLetrasDeOris(orisSel.iums_composicion, iumPorId);
   }, [orisSel, iumPorId]);
 
@@ -3562,7 +3562,7 @@ function VisualizadorPage() {
                 <div className="mt-8 grid gap-7 lg:grid-cols-[1fr_0.9fr]">
                   <div className="overflow-x-auto rounded-2xl p-7">
                     <div className="flex min-w-[620px] items-center gap-2">
-                      <FlowNode title="Partículas" subtitle="A/T/S" />
+                      <FlowNode title="Partículas" subtitle="T/A/S/I" />
                       <Arrow />
                       <FlowNode
                         title="IUMs"
@@ -3575,14 +3575,14 @@ function VisualizadorPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl p-7">
-                    <p className="text-xs font-black text-primary/80">Equilibrio A/T/S</p>
+                    <p className="text-xs font-black text-primary/80">Equilibrio T/A/S/I</p>
                     <div className="mt-5">
                       <MiniBarChart
-                        values={(["A", "T", "S"] as const).map((letra) => ({
+                        values={(["A", "T", "S", "I"] as const).map((letra) => ({
                           label: letra,
                           value:
-                            oriSelLetras.A + oriSelLetras.T + oriSelLetras.S > 0
-                              ? oriSelLetras[letra] / (oriSelLetras.A + oriSelLetras.T + oriSelLetras.S)
+                            oriSelLetras.A + oriSelLetras.T + oriSelLetras.S + oriSelLetras.I > 0
+                              ? oriSelLetras[letra] / (oriSelLetras.A + oriSelLetras.T + oriSelLetras.S + oriSelLetras.I)
                               : 0,
                         }))}
                       />

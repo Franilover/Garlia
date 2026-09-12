@@ -111,18 +111,18 @@ export interface FilaCatalogo {
   extra?: string;
 }
 
-/** Fila de Partícula Base: además de nombre/detalle, trae su letra A/T/S
+/** Fila de Partícula Base: además de nombre/detalle, trae su letra A/T/S/I
  *  suelta (no una fórmula de 3) para poder dibujar su círculo de un solo
  *  color con ParticulaVisual. */
 export interface FilaParticulaBase extends FilaCatalogo {
-  letra: "A" | "T" | "S";
+  letra: "A" | "T" | "S" | "I";
 }
 
 /** Fila cruda tal cual vive en Supabase (tabla "particulas_base"). */
 export interface ParticulaBase {
   id: string;
   orden: number;
-  letra: "T" | "A" | "S";
+  letra: "T" | "A" | "S" | "I";
   nombre: string;
   detalle: string;
 }
@@ -221,11 +221,13 @@ export function iumAFilaIum(i: Ium): FilaIum {
 }
 
 /**
- * Fórmula A/T/S (3 letras) de cada una de las 11 Partículas de Química —
+ * Fórmula A/T/S/I (3 letras) de cada una de las 11 Partículas de Química —
  * mismo nombre que ParticleType en elementos/types.ts, pero acá es el
  * mapeo hacia el sistema de Física. Refleja la convención actual
  * (T=Tesis/impulso, A=Antítesis/resistencia) ya aplicada en la tabla
  * "particulas" de Supabase — ver migración de convención A↔T.
+ * Incluye ahora la 4ta letra "I" (Inversa: transformación que surge del
+ * choque A-T en vez de T-A) — ver particulas_base en Supabase.
  * Duplicado como constante fija en vez de fetch porque no cambia y evita
  * acoplar este archivo al fetch de useParticulas() solo para dibujar
  * íconos.
@@ -241,7 +243,7 @@ export const PARTICULA_QUIMICA_FORMULA: Record<string, string> = {
   Ciclo: "ASA",
   Entropía: "STA",
   Catálisis: "TAS",
-  Equilibrio: "SSS",
+  Equilibrio: "III",
 };
 
 /** Inicial corta de cada Partícula de Química — para el modo "iniciales"
@@ -261,25 +263,25 @@ export const PARTICULA_INITIAL: Record<string, string> = {
   Equilibrio: "Eq",
 };
 
-/** Conteo de letras A/T/S de una lista de {particula de Química, cantidad}
+/** Conteo de letras A/T/S/I de una lista de {particula de Química, cantidad}
  *  — usado tanto para el Ium (composicion fija) como para el Oris
  *  (iums_composicion → cada Ium aporta su propio conteo × cantidad). */
 export function contarLetrasDeComposicion(
   composicion: { particula: string; cantidad: number }[],
-): { A: number; T: number; S: number } {
-  const out = { A: 0, T: 0, S: 0 };
+): { A: number; T: number; S: number; I: number } {
+  const out = { A: 0, T: 0, S: 0, I: 0 };
   for (const { particula, cantidad } of composicion) {
     const formula = PARTICULA_QUIMICA_FORMULA[particula];
     if (!formula) continue;
     for (const c of formula) {
-      if (c === "A" || c === "T" || c === "S") out[c] += cantidad;
+      if (c === "A" || c === "T" || c === "S" || c === "I") out[c] += cantidad;
     }
   }
   return out;
 }
 
-/** Conteo de letras A/T/S de un Ium por su composición fija. */
-export function contarLetrasDeIum(ium: FilaIum): { A: number; T: number; S: number } {
+/** Conteo de letras A/T/S/I de un Ium por su composición fija. */
+export function contarLetrasDeIum(ium: FilaIum): { A: number; T: number; S: number; I: number } {
   return contarLetrasDeComposicion(ium.composicion);
 }
 
@@ -324,7 +326,7 @@ export function particulasDeOris(
   return out;
 }
 
-/** Conteo de letras A/T/S de un Oris a partir de iums_composicion
+/** Conteo de letras A/T/S/I de un Oris a partir de iums_composicion
  *  ({ [iumId]: cantidad }): cada Ium aporta su propio conteo × cantidad.
  *  Recibe iumPorId (armado desde useIums()) en vez de leer una constante
  *  global, ya que Iums ahora vive en Supabase. */
@@ -335,8 +337,9 @@ export function contarLetrasDeOris(
   A: number;
   T: number;
   S: number;
+  I: number;
 } {
-  const out = { A: 0, T: 0, S: 0 };
+  const out = { A: 0, T: 0, S: 0, I: 0 };
   for (const [iumId, cantidad] of Object.entries(iumsComposicion)) {
     const ium = iumPorId[iumId];
     if (!ium || !cantidad) continue;
@@ -344,6 +347,7 @@ export function contarLetrasDeOris(
     out.A += letras.A * cantidad;
     out.T += letras.T * cantidad;
     out.S += letras.S * cantidad;
+    out.I += letras.I * cantidad;
   }
   return out;
 }

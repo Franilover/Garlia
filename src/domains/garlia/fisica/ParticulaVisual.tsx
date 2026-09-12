@@ -23,7 +23,7 @@
 import React, { useState } from "react";
 import { PARTICULA_INITIAL } from "./types";
 
-export type LetraATS = "A" | "T" | "S";
+export type LetraATS = "A" | "T" | "S" | "I";
 
 export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: string }> = {
   // Paleta sepia/café con distintos valores (claro/medio/oscuro) en vez de
@@ -33,21 +33,26 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   A: { bg: "color-mix(in srgb, #c9a06a 20%, transparent)", border: "#c9a06a", fg: "#f3e6d3" },
   T: { bg: "color-mix(in srgb, #8a5a34 22%, transparent)", border: "#8a5a34", fg: "#f0dfc9" },
   S: { bg: "color-mix(in srgb, #4e3320 24%, transparent)", border: "#4e3320", fg: "#e8d5bd" },
+  // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
+  // sepia que las otras 3, con un valor distinto para diferenciarse de un
+  // vistazo tanto de A (más clara) como de S (más oscura).
+  I: { bg: "color-mix(in srgb, #6b4423 23%, transparent)", border: "#6b4423", fg: "#ecdcc4" },
 };
 
 export const LETRA_NOMBRE: Record<LetraATS, string> = {
   T: "Tesis",
   A: "Antítesis",
   S: "Síntesis",
+  I: "Inversa",
 };
 
 function esLetraATS(c: string): c is LetraATS {
-  return c === "A" || c === "T" || c === "S";
+  return c === "A" || c === "T" || c === "S" || c === "I";
 }
 
-/** Convierte una fórmula tipo "SAT" en su conteo de letras {A, T, S}. */
+/** Convierte una fórmula tipo "SATI" en su conteo de letras {A, T, S, I}. */
 export function contarLetras(formula: string): Record<LetraATS, number> {
-  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0 };
+  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0, I: 0 };
   for (const c of formula.toUpperCase()) {
     if (esLetraATS(c)) out[c] += 1;
   }
@@ -181,7 +186,7 @@ export function LetrasVisual({
   size?: number;
   className?: string;
 }) {
-  const total = conteo.A + conteo.T + conteo.S;
+  const total = conteo.A + conteo.T + conteo.S + conteo.I;
   const cx = size / 2;
   const cy = size / 2;
   const r = size / 2 - 2;
@@ -203,7 +208,7 @@ export function LetrasVisual({
     );
   }
 
-  const orden: LetraATS[] = ["A", "T", "S"];
+  const orden: LetraATS[] = ["A", "T", "S", "I"];
   let anguloActual = -Math.PI / 2;
 
   return (
@@ -250,11 +255,12 @@ export function LetrasVisual({
 
 /** Suma varios conteos de letras en uno solo (ej. varias Partículas de un Ium). */
 export function sumarConteos(...conteos: Record<LetraATS, number>[]): Record<LetraATS, number> {
-  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0 };
+  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0, I: 0 };
   for (const c of conteos) {
     out.A += c.A;
     out.T += c.T;
     out.S += c.S;
+    out.I += c.I;
   }
   return out;
 }
