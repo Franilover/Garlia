@@ -33,7 +33,7 @@ import { useCelulasDeUnOrgano } from "@/domains/garlia/elementos/useCelulasDeUnO
 import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 
-import type { Compuesto, Celula, Grano } from "./types";
+import type { Compuesto } from "./types";
 
 /**
  * Portal propio SOLO para el segundo nivel de anidamiento real (Célula/
@@ -408,11 +408,14 @@ export function GrupoCompuestoPanelFlotante({
   // Editor de Célula/Grano de una fila de la fórmula del Órgano DIRECTO
   // (no anidado dentro de un Tejido/Veta) — mismo mecanismo: reemplaza el
   // contenido del Órgano dentro del mismo marco.
-  const celulaOGranoActivoDirecto =
-    !tejidoOVetaAbiertoId &&
-    (tipo === "organo"
+  const celulaActivaDirecta =
+    !tejidoOVetaAbiertoId && tipo === "organo"
       ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
-      : granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null);
+      : null;
+  const granoActivoDirecto =
+    !tejidoOVetaAbiertoId && tipo === "formacion"
+      ? granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null
+      : null;
 
   let contenidoActivo: React.ReactNode = contenidoOrgano;
 
@@ -460,10 +463,10 @@ export function GrupoCompuestoPanelFlotante({
         }}
       />
     );
-  } else if (celulaOGranoActivoDirecto && tipo === "organo") {
+  } else if (celulaActivaDirecta && tipo === "organo") {
     contenidoActivo = (
       <PanelEditorCelula sinMarco
-        item={celulaOGranoActivoDirecto}
+        item={celulaActivaDirecta}
         compuestos={compuestos}
         onCerrar={() => setCelulaOGranoAbiertoId(null)}
         onActualizar={celulasCatalogo.actualizar}
@@ -483,10 +486,10 @@ export function GrupoCompuestoPanelFlotante({
         }}
       />
     );
-  } else if (celulaOGranoActivoDirecto && tipo === "formacion") {
+  } else if (granoActivoDirecto && tipo === "formacion") {
     contenidoActivo = (
       <PanelEditorGrano sinMarco
-        item={celulaOGranoActivoDirecto}
+        item={granoActivoDirecto}
         compuestos={compuestos}
         onCerrar={() => setCelulaOGranoAbiertoId(null)}
         onActualizar={granosCatalogo.actualizar}
@@ -534,68 +537,69 @@ export function GrupoCompuestoPanelFlotante({
   // del panel de Tejido/Veta que ya reemplazó el contenido de arriba — acá
   // sí hay dos niveles simultáneos genuinos (Tejido de fondo, Célula
   // encima), así que la Célula sí necesita su propio marco flotante.
-  const celulaOGranoAnidadaEnTejido =
-    tejidoOVetaAbiertoId &&
-    (tipo === "organo"
+  const celulaAnidadaEnTejido =
+    tejidoOVetaAbiertoId && tipo === "organo"
       ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
-      : granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null);
+      : null;
+  const granoAnidadoEnVeta =
+    tejidoOVetaAbiertoId && tipo === "formacion"
+      ? granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null
+      : null;
 
-  const editoresAnidados = celulaOGranoAnidadaEnTejido ? (
-    tipo === "organo" ? (
-      <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
-        <PanelEditorCelula
-          item={celulaOGranoAnidadaEnTejido as Celula}
-          compuestos={compuestos}
-          onCerrar={() => setCelulaOGranoAbiertoId(null)}
-          onActualizar={celulasCatalogo.actualizar}
-          onEliminar={celulasCatalogo.eliminar}
-          onAbrirCompuesto={
-            onAbrirCompuesto
-              ? (compuestoId) => {
-                  setCelulaOGranoAbiertoId(null);
-                  setTejidoOVetaAbiertoId(null);
-                  onCerrar();
-                  onAbrirCompuesto(compuestoId);
-                }
-              : undefined
-          }
-          onAbrirTejido={(tejidoId) => {
-            setCelulaOGranoAbiertoId(null);
-            setTejidoOVetaAbiertoId(tejidoId);
-          }}
-        />
-      </MiniPortalAnidado>
-    ) : (
-      <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
-        <PanelEditorGrano
-          item={celulaOGranoAnidadaEnTejido as Grano}
-          compuestos={compuestos}
-          onCerrar={() => setCelulaOGranoAbiertoId(null)}
-          onActualizar={granosCatalogo.actualizar}
-          onEliminar={granosCatalogo.eliminar}
-          onAbrirCompuesto={
-            onAbrirCompuesto
-              ? (compuestoId) => {
-                  setCelulaOGranoAbiertoId(null);
-                  setTejidoOVetaAbiertoId(null);
-                  onCerrar();
-                  onAbrirCompuesto(compuestoId);
-                }
-              : undefined
-          }
-          onAbrirVeta={(vetaId) => {
-            setCelulaOGranoAbiertoId(null);
-            setTejidoOVetaAbiertoId(vetaId);
-          }}
-          onAbrirFormacion={(formacionId) => {
-            setCelulaOGranoAbiertoId(null);
-            setTejidoOVetaAbiertoId(null);
-            onCerrar();
-            onAbrirFormacionExterna?.(formacionId);
-          }}
-        />
-      </MiniPortalAnidado>
-    )
+  const editoresAnidados = celulaAnidadaEnTejido ? (
+    <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
+      <PanelEditorCelula
+        item={celulaAnidadaEnTejido}
+        compuestos={compuestos}
+        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onActualizar={celulasCatalogo.actualizar}
+        onEliminar={celulasCatalogo.eliminar}
+        onAbrirCompuesto={
+          onAbrirCompuesto
+            ? (compuestoId) => {
+                setCelulaOGranoAbiertoId(null);
+                setTejidoOVetaAbiertoId(null);
+                onCerrar();
+                onAbrirCompuesto(compuestoId);
+              }
+            : undefined
+        }
+        onAbrirTejido={(tejidoId) => {
+          setCelulaOGranoAbiertoId(null);
+          setTejidoOVetaAbiertoId(tejidoId);
+        }}
+      />
+    </MiniPortalAnidado>
+  ) : granoAnidadoEnVeta ? (
+    <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
+      <PanelEditorGrano
+        item={granoAnidadoEnVeta}
+        compuestos={compuestos}
+        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onActualizar={granosCatalogo.actualizar}
+        onEliminar={granosCatalogo.eliminar}
+        onAbrirCompuesto={
+          onAbrirCompuesto
+            ? (compuestoId) => {
+                setCelulaOGranoAbiertoId(null);
+                setTejidoOVetaAbiertoId(null);
+                onCerrar();
+                onAbrirCompuesto(compuestoId);
+              }
+            : undefined
+        }
+        onAbrirVeta={(vetaId) => {
+          setCelulaOGranoAbiertoId(null);
+          setTejidoOVetaAbiertoId(vetaId);
+        }}
+        onAbrirFormacion={(formacionId) => {
+          setCelulaOGranoAbiertoId(null);
+          setTejidoOVetaAbiertoId(null);
+          onCerrar();
+          onAbrirFormacionExterna?.(formacionId);
+        }}
+      />
+    </MiniPortalAnidado>
   ) : null;
 
   if (sinPortalPropio) {
