@@ -1,15 +1,17 @@
 /**
  * types.ts — domains/garlia/fisica
  * ───────────────────────────────────────────────────────────────────────────
- * Tipos del sistema de Física/Energías: los 9 Oris (fuerzas cósmicas) y los
- * bloques de conceptos (Vacío/Garin/Eterium, Manifestaciones, etc).
+ * Tipos del sistema de Física/Energías: los Oris (fuerzas cósmicas — 10 en
+ * el catálogo actual, no 9) y los bloques de conceptos (Vacío/Garin/Eterium,
+ * Manifestaciones, etc).
  *
  * Tablas propias en Supabase — "oris" y "fisica_conceptos" — separadas por
  * completo de "elementos" (Tabla Química/Alquímica), aunque comparten la
  * misma jerarquía conceptual (Partícula Base → Partículas → Ium → Oris).
  * Partículas Base / Partículas / Iums son catálogos fijos (no cambian, no
  * tienen CRUD propio) y viven como constantes acá mismo — mismo criterio
- * que PARTICLE_TYPES en elementos/types.ts.
+ * que PARTICLE_TYPES en elementos/types.ts (27 partículas TASI reales,
+ * sincronizado 2026-09-12).
  */
 
 import { Atom, Beaker, Sparkle } from "lucide-react";
@@ -221,20 +223,20 @@ export function iumAFilaIum(i: Ium): FilaIum {
 }
 
 /**
- * Fórmula A/T/S/I (3 letras) de cada una de las 11 Partículas de Química —
- * mismo nombre que ParticleType en elementos/types.ts, pero acá es el
- * mapeo hacia el sistema de Física. Refleja la convención actual
- * (T=Tesis/impulso, A=Antítesis/resistencia) ya aplicada en la tabla
- * "particulas" de Supabase — ver migración de convención A↔T.
- * Incluye ahora la 4ta letra "I" (Inversa: transformación que surge del
- * choque A-T en vez de T-A) — ver particulas_base en Supabase.
+ * Fórmula T/A/S/I (3 letras) de cada una de las 27 Partículas canónicas —
+ * mismo nombre que ParticleType en elementos/types.ts. Sincronizado
+ * 2026-09-12 directamente contra particulas.formula en Supabase (antes solo
+ * cubría 11 de las 27 partículas reales, y el comentario original hablaba
+ * de una convención "T=Tesis/A=Antítesis" que ya no está vigente — ver
+ * contexto_humano.concepto="TASI (T/A/S/I)" para el significado actual:
+ * T=dinámica, A=masa/constitución, S=emisión (Eterium), I=recepción (Garin)).
  * Duplicado como constante fija en vez de fetch porque no cambia y evita
  * acoplar este archivo al fetch de useParticulas() solo para dibujar
- * íconos.
+ * íconos. Si se agregan partículas nuevas en Supabase, actualizar aquí.
  */
 export const PARTICULA_QUIMICA_FORMULA: Record<string, string> = {
-  Masa: "TTT",
-  Cinética: "AAA",
+  Masa: "AAA",
+  Cinética: "TTT",
   Potencial: "ATT",
   Información: "TAA",
   Voluntad: "AAT",
@@ -244,23 +246,56 @@ export const PARTICULA_QUIMICA_FORMULA: Record<string, string> = {
   Entropía: "STA",
   Catálisis: "TAS",
   Equilibrio: "III",
+  Interacción: "ATS",
+  Adaptación: "AII",
+  Integración: "IIT",
+  Emisión: "SSS",
+  Proyección: "ASS",
+  Propagación: "SST",
+  Reserva: "AAI",
+  Filtración: "AIS",
+  Canalización: "AIT",
+  Resonancia: "ASI",
+  Absorción: "ATI",
+  Concentración: "IIS",
+  Difusión: "ISS",
+  Conducción: "IST",
+  Inducción: "ITS",
+  Estímulo: "ITT",
 };
 
-/** Inicial corta de cada Partícula de Química — para el modo "iniciales"
- *  de IumVisual (mismo criterio que PARTICLE_INITIAL en elementos/types.ts):
- *  cada círculo muestra la letra de su Partícula en vez de sus 3 tercios A/T/S. */
+/** Inicial corta de cada Partícula — para el modo "iniciales" de IumVisual
+ *  (mismo criterio que PARTICLE_INITIAL en elementos/types.ts, con las
+ *  mismas 27 entradas sincronizadas 2026-09-12): cada círculo muestra la
+ *  letra/abreviatura de su Partícula en vez de sus 3 tercios T/A/S/I. */
 export const PARTICULA_INITIAL: Record<string, string> = {
   Masa: "M",
-  Cinética: "C",
+  Cinética: "Ci",
   Potencial: "P",
-  Información: "I",
+  Información: "Inf",
   Voluntad: "V",
   Percepción: "Pc",
-  Transición: "T",
+  Transición: "Tr",
   Ciclo: "Cl",
-  Entropía: "E",
+  Entropía: "En",
   Catálisis: "Ct",
   Equilibrio: "Eq",
+  Interacción: "Int",
+  Adaptación: "Ad",
+  Integración: "Ig",
+  Emisión: "Em",
+  Proyección: "Pr",
+  Propagación: "Pg",
+  Reserva: "Rs",
+  Filtración: "Fl",
+  Canalización: "Cn",
+  Resonancia: "Rn",
+  Absorción: "Ab",
+  Concentración: "Cc",
+  Difusión: "Di",
+  Conducción: "Cd",
+  Inducción: "Id",
+  Estímulo: "Es",
 };
 
 /** Conteo de letras A/T/S/I de una lista de {particula de Química, cantidad}

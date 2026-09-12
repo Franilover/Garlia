@@ -7,9 +7,10 @@
  * (núcleo/media/externa) → Elemento.
  *
  * Ruta distinta de la perspectiva FÍSICA (useFisicaRoute.ts, Partícula A/T/S
- * → IUM → Oris). Comparten el vocabulario de 11 Partículas de Química
- * (PARTICLE_TYPES / PARTICULA_QUIMICA_FORMULA) pero NO son la misma cadena —
- * ver PerspectivaSwitcher.tsx, que evita que se rendericen fusionadas.
+ * → IUM → Oris). Comparten el vocabulario de las 27 Partículas TASI
+ * canónicas (PARTICLE_TYPES / PARTICULA_QUIMICA_FORMULA, sincronizado
+ * 2026-09-12) pero NO son la misma cadena — ver PerspectivaSwitcher.tsx,
+ * que evita que se rendericen fusionadas.
  *
  * Cero matemática nueva: reusa tal cual
  *   - useElementos() (elementos/useElementos.ts)

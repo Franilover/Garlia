@@ -4,30 +4,30 @@
  * Tipos del sistema de Alquimia/Energías: los Elementos base y sus 3 capas
  * (núcleo, media, externa).
  *
- * ⚠️ DESACTUALIZADO (auditoría 2026-09-12): los nombres de partícula de abajo
- * (ParticleType/PARTICLE_TYPES, 11 partículas fijas: Masa, Cinética,
- * Potencial...) describen el modelo ANTERIOR. El motor real en Supabase ya
- * migró al sistema TASI: 27 partículas canónicas, cada una una secuencia de
- * 3 letras sobre el alfabeto T/A/S/I (tabla "particulas", columna "formula").
- * La capa (núcleo/media/externa) de cada partícula ya no es fija por nombre:
- * se deriva cuantitativamente de sus ejes_fundamentales (estabilidad +
- * coherencia − dinámica − transformación) y se reparte en tercios exactos
- * (9 núcleo / 9 media / 9 externa), reemplazando un reparto previo desigual
- * (5/10/12) sin criterio documentado. ElementoEditor.tsx ya lee la fórmula
- * A/T/S real desde "particulas"; los tipos de este archivo (ParticleType,
- * PARTICLE_TYPES, PARTICLE_INITIAL, LAYER_PARTICLES) todavía no — quedan
- * pendientes de una migración de tipos más amplia (usada también por
- * ComparadorElementos.tsx, CompuestosPage.tsx, afinidad.ts,
- * ComposicionQuimicaPanel.tsx, BalanceProcesoPanel.tsx y
- * useAlquimiaRoute.ts), fuera del alcance de este cambio puntual.
+ * MIGRADO 2026-09-12: ParticleType/PARTICLE_TYPES/PARTICLE_INITIAL/
+ * LAYER_PARTICLES ahora cubren las 27 partículas TASI reales (antes solo
+ * 11), sincronizadas contra particulas.formula y particulas.capa_canonica
+ * en Supabase. El reparto de capas es 9 núcleo / 9 media / 9 externa,
+ * derivado cuantitativamente de ejes_fundamentales (estabilidad +
+ * coherencia − dinámica − transformación) — reemplaza tanto el conjunto
+ * viejo de 11 nombres como las asignaciones de capa que tenía (algunas
+ * incorrectas, ej. Cinética listada en núcleo cuando su capa real es
+ * externa). ElementoEditor.tsx ya leía la fórmula T/A/S/I real desde
+ * "particulas"; con este cambio los tipos de este archivo quedan
+ * consistentes con esa misma fuente. Los consumidores de estos tipos
+ * (ComparadorElementos.tsx, CompuestosPage.tsx, afinidad.ts,
+ * ComposicionQuimicaPanel.tsx, BalanceProcesoPanel.tsx,
+ * useAlquimiaRoute.ts) no necesitan cambios de código: siguen iterando
+ * sobre PARTICLE_TYPES/LAYER_PARTICLES genéricamente, ahora con más
+ * entradas. Si Supabase agrega partículas nuevas, actualizar aquí y en el
+ * espejo de fisica/types.ts (PARTICULA_QUIMICA_FORMULA/PARTICULA_INITIAL).
  *
  * Basado en el documento de arquitectura (types.ts / registry.ts del motor
  * de dominio) y en TablaQuimica.py — unificados acá como la fuente única
  * editable desde Supabase (tabla "elementos").
  *
  * Capas guardadas como jsonb: { "Masa": 2, "Potencial": 1, ... } — mismo
- * patrón que patron_trazos (jsonb) en runas/types.ts. Este jsonb también
- * pertenece al modelo anterior; ver nota arriba.
+ * patrón que patron_trazos (jsonb) en runas/types.ts.
  */
 
 import { Gem, Link2, Scale, Wind, CircleOff } from "lucide-react";
@@ -43,7 +43,23 @@ export type ParticleType =
   | "Ciclo"
   | "Entropía"
   | "Catálisis"
-  | "Equilibrio";
+  | "Equilibrio"
+  | "Interacción"
+  | "Adaptación"
+  | "Integración"
+  | "Emisión"
+  | "Proyección"
+  | "Propagación"
+  | "Reserva"
+  | "Filtración"
+  | "Canalización"
+  | "Resonancia"
+  | "Absorción"
+  | "Concentración"
+  | "Difusión"
+  | "Conducción"
+  | "Inducción"
+  | "Estímulo";
 
 export const PARTICLE_TYPES: ParticleType[] = [
   "Masa",
@@ -57,21 +73,55 @@ export const PARTICLE_TYPES: ParticleType[] = [
   "Entropía",
   "Catálisis",
   "Equilibrio",
+  "Interacción",
+  "Adaptación",
+  "Integración",
+  "Emisión",
+  "Proyección",
+  "Propagación",
+  "Reserva",
+  "Filtración",
+  "Canalización",
+  "Resonancia",
+  "Absorción",
+  "Concentración",
+  "Difusión",
+  "Conducción",
+  "Inducción",
+  "Estímulo",
 ];
 
-/** Inicial usada como abreviatura corta en las tarjetas (ej. "2M 1P"). */
+/** Inicial usada como abreviatura corta en las tarjetas (ej. "2M 1P").
+ *  Regenerado 2026-09-12 para las 27 partículas TASI reales (antes solo
+ *  cubría 11) — iniciales de 1-3 letras elegidas para no colisionar entre sí. */
 export const PARTICLE_INITIAL: Record<ParticleType, string> = {
   Masa: "M",
-  Cinética: "C",
+  Cinética: "Ci",
   Potencial: "P",
-  Información: "I",
+  Información: "Inf",
   Voluntad: "V",
   Percepción: "Pc",
-  Transición: "T",
+  Transición: "Tr",
   Ciclo: "Cl",
-  Entropía: "E",
+  Entropía: "En",
   Catálisis: "Ct",
   Equilibrio: "Eq",
+  Interacción: "Int",
+  Adaptación: "Ad",
+  Integración: "Ig",
+  Emisión: "Em",
+  Proyección: "Pr",
+  Propagación: "Pg",
+  Reserva: "Rs",
+  Filtración: "Fl",
+  Canalización: "Cn",
+  Resonancia: "Rn",
+  Absorción: "Ab",
+  Concentración: "Cc",
+  Difusión: "Di",
+  Conducción: "Cd",
+  Inducción: "Id",
+  Estímulo: "Es",
 };
 
 export type LayerName = "nucleo" | "media" | "externa";
@@ -91,10 +141,45 @@ export const LAYER_LABEL: Record<LayerName, string> = {
  * Se usa para que el editor/creador de elementos solo ofrezca, en cada
  * capa, las partículas que realmente le corresponden — no las 11 sueltas.
  */
+/** Capa canónica de cada partícula, sincronizada 2026-09-12 con
+ *  particulas.capa_canonica (reparto 9/9/9 derivado de ejes_fundamentales).
+ *  Reemplaza el mapeo anterior de 11 partículas con asignaciones
+ *  desactualizadas (ej. Cinética estaba listada en núcleo; su capa
+ *  canónica real es externa). */
 export const LAYER_PARTICLES: Record<LayerName, ParticleType[]> = {
-  nucleo: ["Masa", "Cinética", "Equilibrio"],
-  media: ["Potencial", "Información", "Ciclo", "Entropía"],
-  externa: ["Voluntad", "Percepción", "Transición", "Catálisis"],
+  nucleo: [
+    "Masa",
+    "Información",
+    "Ciclo",
+    "Equilibrio",
+    "Adaptación",
+    "Reserva",
+    "Filtración",
+    "Resonancia",
+    "Concentración",
+  ],
+  media: [
+    "Voluntad",
+    "Entropía",
+    "Catálisis",
+    "Interacción",
+    "Integración",
+    "Proyección",
+    "Canalización",
+    "Absorción",
+    "Difusión",
+  ],
+  externa: [
+    "Cinética",
+    "Potencial",
+    "Percepción",
+    "Transición",
+    "Emisión",
+    "Propagación",
+    "Conducción",
+    "Inducción",
+    "Estímulo",
+  ],
 };
 
 export type ParticleMap = Partial<Record<ParticleType, number>>;
