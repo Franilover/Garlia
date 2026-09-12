@@ -266,7 +266,7 @@ export function ElementoEditor({
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto">
+      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto overflow-x-hidden">
         {/* Propiedades físicas + Sitios de enlace (izquierda, apiladas) +
             Núcleo/Media/Externa apiladas verticalmente + átomo gráfico
             (derecha) — 2 columnas. Reemplaza al bloque de selectores
@@ -307,7 +307,7 @@ export function ElementoEditor({
               </div>
             </div>
 
-            <div className="grid grid-cols-[auto_minmax(6.5rem,auto)] gap-2 items-stretch justify-start">
+            <div className="grid grid-cols-[auto_13.5rem] gap-2 items-stretch justify-start">
               {/* Visualización tipo átomo real: núcleo + capas orbitales,
                   con las partículas propias del mundo (Masa, Cinética,
                   Voluntad…) en vez de protones/neutrones/electrones
@@ -319,7 +319,14 @@ export function ElementoEditor({
                   className angosto). */}
               <AtomoVisual elemento={local} />
 
-              <div className="flex flex-col gap-2 shrink-0">
+              {/* Ancho fijo (13.5rem, ya no "minmax(6.5rem, auto)"): con 9
+                  partículas por capa (sistema TASI, 2026-09-12) una lista
+                  de 1 columna se volvía muy larga y el track "auto" sin
+                  techo empujaba el ancho del panel flotante, generando
+                  scroll horizontal. Cada capa ahora se pinta en grid 3×3
+                  (orden por columna: 1,4,7 / 2,5,8 / 3,6,9 — layout pedido
+                  explícitamente) para crecer en alto, no en ancho. */}
+              <div className="flex flex-col gap-2 shrink-0 w-[13.5rem]">
                 {(["nucleo", "media", "externa"] as LayerName[]).map((layer, i) => (
                   <div
                     key={layer}
@@ -329,16 +336,19 @@ export function ElementoEditor({
                       {LAYER_LABEL[layer]}
                     </span>
                     <div className="border-t border-primary/10" />
-                    <div className="flex flex-col items-stretch gap-1">
+                    {/* grid-flow-col: llena columna por columna (1,4,7 en
+                        la 1ª columna, 2,5,8 en la 2ª, 3,6,9 en la 3ª) —
+                        3 filas × 3 columnas, en vez de 1 columna de 9. */}
+                    <div className="grid grid-cols-3 grid-flow-col grid-rows-3 gap-x-1.5 gap-y-1">
                       {LAYER_PARTICLES[layer].map((particle) => {
                         const value = local[layer]?.[particle] ?? 0;
                         return (
                           <div
                             key={particle}
-                            className="flex items-center justify-between gap-1.5 px-1 py-1"
+                            className="flex items-center justify-between gap-1 px-1 py-1 min-w-0"
                             title={particle}
                           >
-                            <span className="text-xs font-bold text-primary/60 whitespace-nowrap">
+                            <span className="text-xs font-bold text-primary/60 truncate">
                               {particle}
                             </span>
                             <input
@@ -349,7 +359,7 @@ export function ElementoEditor({
                                 setLayerValue(layer, particle, Math.max(0, Number(e.target.value)))
                               }
                               onBlur={() => persist({ [layer]: local[layer] } as Partial<Elemento>)}
-                              className="w-6 shrink-0 text-center bg-transparent text-sm font-black text-primary outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              className="w-5 shrink-0 text-center bg-transparent text-sm font-black text-primary outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             />
                           </div>
                         );
