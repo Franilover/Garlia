@@ -44,34 +44,30 @@ type Props =
       icono?: "organo" | "formacion" | "generico";
       /**
        * Id de un item de este catálogo a abrir de forma controlada desde
-       * afuera — usado para navegar hasta acá desde el breadcrumb
-       * "Tejido → Órgano" de un PanelEditorTejido que no vive dentro de
-       * este grid. Cuando cambia, reemplaza la selección interna.
+       * afuera — usado por Física para navegar hasta acá desde el
+       * breadcrumb "Veta → Formación" / "Grano → Formación" de
+       * CatalogoVetasFisica, que no vive dentro de este grid. Solo tiene
+       * efecto en el modo NO controlado (ver seleccionadoId/onSeleccionar
+       * abajo) — Biología ya no lo usa, navega directamente vía
+       * onSeleccionar desde el padre.
        */
       abrirIdExterno?: string | null;
       /** Se llama tras consumir abrirIdExterno, para que el padre limpie su estado. */
       onAbrirIdExternoConsumido?: () => void;
       /**
-       * Navegar al Sistema elegido desde el nivel "Sistema" del breadcrumb
-       * del Órgano (icono="organo" únicamente) — el Sistema vive fuera de
-       * este grid, así que el padre (BiologiaPage) decide cómo abrir su
-       * editor, mismo patrón que onAbrirCompuesto.
+       * Este grid pasó a ser "controlado" para el caso de Biología
+       * (icono="organo"): en vez de manejar su propia selección y montar
+       * GrupoCompuestoPanelFlotante acá adentro, recibe seleccionadoId/
+       * onSeleccionar del padre (BiologiaPage), que monta el editor en un
+       * shell único compartido con los otros 4 niveles del breadcrumb —
+       * ver PanelFlotanteShellBiologia en BiologiaPage.tsx. Física
+       * (icono="formacion") sigue sin pasar estos props: para ese caso el
+       * grid conserva su comportamiento no-controlado de siempre (estado
+       * interno + panel propio con su propio portal, más abrirIdExterno
+       * arriba para la navegación cruzada con Vetas/Granos).
        */
-      onAbrirSistema?: (sistemaId: string) => void;
-      /**
-       * Navegar al Organismo elegido desde el nivel "Organismo" del
-       * breadcrumb del Órgano (icono="organo" únicamente, techo de la
-       * cadena) — mismo patrón que onAbrirSistema.
-       */
-      onAbrirOrganismo?: (organismoId: string) => void;
-      /**
-       * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
-       * número cada vez que el foco de navegación pasa a OTRO catálogo
-       * hermano (Célula/Tejido o Sistema/Organismo), sin importar si
-       * este grid fue el origen de ese salto — evita paneles fantasma
-       * acumulados al navegar por rutas indirectas entre los 3 catálogos.
-       */
-      forzarCierre?: number;
+      seleccionadoId?: string | null;
+      onSeleccionar?: (id: string | null) => void;
     }
   | {
       modo: "reaccion";
@@ -96,43 +92,43 @@ function IconoGrupo({ tipo }: { tipo?: "organo" | "formacion" | "generico" }) {
  * nombre, click abre el detalle completo en un panel flotante centrado).
  */
 export function GridCatalogoGrupo(props: Props) {
-  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
+  // Controlado (Biología, icono="organo"): selección y apertura del panel
+  // viven en el padre (BiologiaPage) — ver comentario de seleccionadoId/
+  // onSeleccionar en Props. No controlado (Física, y cualquier otro uso
+  // futuro): este grid mantiene su comportamiento de siempre.
+  const esControlado = props.modo === "grupo" && props.onSeleccionar !== undefined;
+  const [seleccionadoIdInterno, setSeleccionadoIdInterno] = useState<string | null>(null);
+  const seleccionadoId =
+    props.modo === "grupo" && esControlado ? props.seleccionadoId ?? null : seleccionadoIdInterno;
+  const setSeleccionadoId = (id: string | null) => {
+    if (props.modo === "grupo" && esControlado) {
+      props.onSeleccionar!(id);
+    } else {
+      setSeleccionadoIdInterno(id);
+    }
+  };
 
   // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
-  // breadcrumb — mismo mecanismo que CatalogoTejidosBiologia.marcarNavegacion.
+  // breadcrumb — solo relevante en el modo NO controlado (Física); en el
+  // modo controlado esto lo maneja el padre (BiologiaPage.navegandoEntreNiveles).
   const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
   const marcarNavegacion = () => {
     setNavegandoEntreNiveles(true);
     requestAnimationFrame(() => setNavegandoEntreNiveles(false));
   };
 
-  // Cierre forzado desde BiologiaPage: el foco de navegación pasó a OTRO
-  // catálogo hermano (Célula/Tejido o Sistema/Organismo) por una ruta que
-  // no necesariamente pasó por "salir desde acá" — mismo mecanismo y
-  // motivo que CatalogoTejidosBiologia.forzarCierre. Solo aplica en
-  // modo="grupo" (Órgano/Formación); en modo="reaccion" no participa del
-  // breadcrumb de 5 niveles de Biología.
+  // Navegación controlada desde afuera (breadcrumb "Veta → Formación" /
+  // "Grano → Formación" de CatalogoVetasFisica) — solo aplica en el modo
+  // NO controlado (Física); Biología ya no pasa abrirIdExterno.
   useEffect(() => {
-    if (props.modo !== "grupo" || props.forzarCierre === undefined) return;
-    setSeleccionadoId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.modo === "grupo" ? props.forzarCierre : undefined]);
-
-  // Navegación controlada desde afuera (breadcrumb Tejido → Órgano): al
-  // recibir un id nuevo, lo abre acá igual que un click de tarjeta, y avisa
-  // al padre para que limpie su estado y no reabra en loop.
-  useEffect(() => {
-    if (props.modo !== "grupo" || !props.abrirIdExterno) return;
+    if (props.modo !== "grupo" || esControlado || !props.abrirIdExterno) return;
     marcarNavegacion();
-    setSeleccionadoId(props.abrirIdExterno);
+    setSeleccionadoIdInterno(props.abrirIdExterno);
     props.onAbrirIdExternoConsumido?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modo === "grupo" ? props.abrirIdExterno : null]);
 
-  const activo =
-    props.modo === "grupo"
-      ? props.items.find((i) => i.id === seleccionadoId) ?? null
-      : props.items.find((i) => i.id === seleccionadoId) ?? null;
+  const activo = props.items.find((i) => i.id === seleccionadoId) ?? null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -164,7 +160,11 @@ export function GridCatalogoGrupo(props: Props) {
         </div>
       )}
 
-      {activo && props.modo === "grupo" && (
+      {/* En modo controlado (Biología) el editor NO se monta acá — el
+         padre (BiologiaPage) lo monta dentro de su shell compartido
+         (PanelFlotanteShellBiologia), ver PanelEditorActivoBiologia. Este
+         grid solo pinta las tarjetas y reporta selección. */}
+      {activo && props.modo === "grupo" && !esControlado && (
         <GrupoCompuestoPanelFlotante
           grupo={activo as EntradaCatalogoGrupo}
           tipo={props.icono === "formacion" ? "formacion" : "organo"}
@@ -195,28 +195,6 @@ export function GridCatalogoGrupo(props: Props) {
                   marcarNavegacion();
                   setSeleccionadoId(formacionId);
                 }
-              : undefined
-          }
-          onAbrirSistemaExterno={
-            props.icono !== "formacion"
-              ? props.onAbrirSistema
-                ? (sistemaId) => {
-                    marcarNavegacion();
-                    setSeleccionadoId(null);
-                    props.onAbrirSistema!(sistemaId);
-                  }
-                : undefined
-              : undefined
-          }
-          onAbrirOrganismoExterno={
-            props.icono !== "formacion"
-              ? props.onAbrirOrganismo
-                ? (organismoId) => {
-                    marcarNavegacion();
-                    setSeleccionadoId(null);
-                    props.onAbrirOrganismo!(organismoId);
-                  }
-                : undefined
               : undefined
           }
         />

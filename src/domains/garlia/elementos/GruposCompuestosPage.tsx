@@ -54,6 +54,7 @@ export function GrupoCompuestoPanelFlotante({
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
   sinAnimacion,
+  sinPortalPropio,
 }: {
   grupo: EntradaCatalogoGrupo;
   /** "organo" resuelve la fórmula vía Tejidos/Células; "formacion" vía Vetas/Granos. */
@@ -96,6 +97,16 @@ export function GrupoCompuestoPanelFlotante({
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb — suprime la animación de entrada. */
   sinAnimacion?: boolean;
+  /**
+   * true para que este panel no monte su propio createPortal/backdrop —
+   * en su lugar, un shell compartido (ver PanelFlotanteShellBiologia en
+   * BiologiaPage.tsx) provee un único portal para los 3 catálogos
+   * hermanos de Biología (Célula/Tejido, Sistema/Organismo, Órgano),
+   * eliminando el parpadeo al saltar entre ellos. Solo tiene efecto
+   * cuando tipo="organo" (uso en Biología) — Física sigue usando el
+   * portal propio, sin cambios.
+   */
+  sinPortalPropio?: boolean;
 }) {
   const tejidos = useOrganoTejidos(tipo === "organo" ? grupo.id : null);
   const vetas = useFormacionVetas(tipo === "formacion" ? grupo.id : null);
@@ -132,6 +143,7 @@ export function GrupoCompuestoPanelFlotante({
   const vetasCatalogo = useVetas();
 
   useEffect(() => {
+    if (sinPortalPropio) return; // el shell externo ya maneja Escape + scroll lock
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
     };
@@ -142,25 +154,11 @@ export function GrupoCompuestoPanelFlotante({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onCerrar]);
+  }, [onCerrar, sinPortalPropio]);
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
-        tejidoOVetaAbiertoId || celulaOGranoAbiertoId
-          ? "invisible pointer-events-none"
-          : ""
-      }`}
-      style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
-    >
+  // Contenido de la caja blanca (header + body) — se reutiliza tanto en el
+  // modo con portal propio como en el modo "shell externo".
+  const cajaInterna = (
       <div
         className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         style={{
@@ -349,7 +347,13 @@ export function GrupoCompuestoPanelFlotante({
           </div>
         </div>
       </div>
+  );
 
+  // Editores anidados (Tejido/Veta y Célula/Grano de una fila) — se
+  // renderizan por fuera de cajaInterna en ambos modos, para poder
+  // superponerse por encima de ella (mismo comportamiento de siempre).
+  const editoresAnidados = (
+    <>
       {/* Editor completo del Tejido/Veta de una fila — encima de este panel
          (mismo z-index base, PanelFlotanteBase se encarga de superponerse). */}
       {tejidoOVetaAbiertoId && tipo === "organo" && (
@@ -495,6 +499,37 @@ export function GrupoCompuestoPanelFlotante({
           );
         })()
       )}
+    </>
+  );
+
+  if (sinPortalPropio) {
+    return (
+      <>
+        {cajaInterna}
+        {editoresAnidados}
+      </>
+    );
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
+        tejidoOVetaAbiertoId || celulaOGranoAbiertoId
+          ? "invisible pointer-events-none"
+          : ""
+      }`}
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      {cajaInterna}
+      {editoresAnidados}
     </div>,
     document.body,
   );

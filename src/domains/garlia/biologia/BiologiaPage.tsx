@@ -17,6 +17,7 @@
 
 import { Download, Loader2, Upload, X } from "lucide-react";
 import React, { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { GridCatalogoGrupo } from "@/domains/garlia/_shared/GridCatalogoGrupo";
@@ -28,11 +29,12 @@ import { useTejidos } from "@/domains/garlia/elementos/useTejidos";
 import { useSistemas } from "@/domains/garlia/elementos/useSistemas";
 import { useOrganismos } from "@/domains/garlia/elementos/useOrganismos";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
-import type { Organo } from "@/domains/garlia/elementos/types";
+import type { Organo, Sistema, Organismo, Celula, Tejido, Compuesto } from "@/domains/garlia/elementos/types";
 
 import { CladisticaPage } from "./CladisticaPage";
-import { CatalogoTejidosBiologia } from "./CatalogoTejidosBiologia";
-import { CatalogoSistemasBiologia } from "./CatalogoSistemasBiologia";
+import { CatalogoTejidosBiologia, PanelEditorCelula, PanelEditorTejido } from "./CatalogoTejidosBiologia";
+import { CatalogoSistemasBiologia, PanelEditorSistema, PanelEditorOrganismo } from "./CatalogoSistemasBiologia";
+import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { useClados } from "./useBiologia";
 import type { Clado } from "./types";
 
@@ -129,6 +131,227 @@ function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): Imp
 }
 
 /**
+ * Shell compartido de los 3 catálogos hermanos de Biología (Tejidos/
+ * Células, Sistemas/Organismos, Órgano) — un único createPortal con un
+ * único backdrop y un único z-[9999]. Antes, cada catálogo montaba su
+ * propio PanelFlotanteBase/portal: al saltar entre catálogos hermanos
+ * (ej. Célula → Sistema), React desmontaba un nodo DOM y montaba otro
+ * (componentes JSX distintos, cada uno con su propia animación de
+ * entrada), lo que se veía como un parpadeo "cierra y abre". Este shell
+ * resuelve eso siendo el ÚNICO nodo DOM del backdrop/marco — los
+ * catálogos, con sinPortalPropio=true, solo devuelven su caja interna
+ * (header + contenido) como children de este shell, así el nodo raíz del
+ * marco nunca se desmonta al cambiar de catálogo activo.
+ */
+function PanelFlotanteShellBiologia({
+  children,
+  onCerrar,
+}: {
+  children: React.ReactNode;
+  onCerrar: () => void;
+}) {
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * Decide, según panelActivo.tipo, cuál de los 5 editores de nivel raíz
+ * renderizar dentro del shell — ver comentario de panelActivo en
+ * BiologiaCatalogos. Cada editor recibe exactamente las mismas props que
+ * recibía antes (item/onActualizar/onEliminar/onAbrirX), solo que ahora
+ * "item" se busca acá según panelActivo.id en vez de vivir en un useState
+ * local del catálogo dueño.
+ */
+function PanelEditorActivoBiologia({
+  panelActivo,
+  sinAnimacion,
+  celulas,
+  onActualizarCelula,
+  onEliminarCelula,
+  tejidos,
+  loadingTejidos,
+  onActualizarTejido,
+  onEliminarTejido,
+  sistemas,
+  loadingSistemas,
+  onActualizarSistema,
+  onEliminarSistema,
+  organismos,
+  onActualizarOrganismo,
+  onEliminarOrganismo,
+  organos,
+  onActualizarOrgano,
+  compuestos,
+  loadingCompuestos,
+  onCerrar,
+  onAbrirCompuesto,
+  onAbrirCelula,
+  onAbrirTejido,
+  onAbrirOrgano,
+  onAbrirSistema,
+  onAbrirOrganismo,
+}: {
+  panelActivo: { tipo: "celula" | "tejido" | "organo" | "sistema" | "organismo"; id: string };
+  sinAnimacion: boolean;
+  celulas: Celula[];
+  onActualizarCelula: (id: string, cambios: Partial<Celula>) => void;
+  onEliminarCelula: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  tejidos: Tejido[];
+  loadingTejidos?: boolean;
+  onActualizarTejido: (id: string, cambios: Partial<Tejido>) => void;
+  onEliminarTejido: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  sistemas: Sistema[];
+  loadingSistemas?: boolean;
+  onActualizarSistema: (id: string, cambios: Partial<Sistema>) => void;
+  onEliminarSistema: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  organismos: Organismo[];
+  onActualizarOrganismo: (id: string, cambios: Partial<Organismo>) => void;
+  onEliminarOrganismo: (id: string) => Promise<{ ok: boolean; error: unknown }>;
+  organos: Organo[];
+  onActualizarOrgano: (id: string, cambios: Partial<Organo>) => void;
+  compuestos: Compuesto[];
+  loadingCompuestos?: boolean;
+  onCerrar: () => void;
+  onAbrirCompuesto: (compuestoId: string) => void;
+  onAbrirCelula: (id: string) => void;
+  onAbrirTejido: (id: string) => void;
+  onAbrirOrgano: (id: string) => void;
+  onAbrirSistema: (id: string) => void;
+  onAbrirOrganismo: (id: string) => void;
+}) {
+  if (panelActivo.tipo === "celula") {
+    const item = celulas.find((c) => c.id === panelActivo.id);
+    if (!item) return null;
+    return (
+      <PanelEditorCelula
+        item={item}
+        compuestos={compuestos}
+        loadingCompuestos={loadingCompuestos}
+        sinAnimacion={sinAnimacion}
+        onCerrar={onCerrar}
+        onActualizar={onActualizarCelula}
+        onEliminar={onEliminarCelula}
+        onAbrirCompuesto={onAbrirCompuesto}
+        onAbrirTejido={onAbrirTejido}
+        onAbrirOrgano={onAbrirOrgano}
+        onAbrirSistema={onAbrirSistema}
+        onAbrirOrganismo={onAbrirOrganismo}
+      />
+    );
+  }
+
+  if (panelActivo.tipo === "tejido") {
+    const item = tejidos.find((t) => t.id === panelActivo.id);
+    if (!item) return null;
+    return (
+      <PanelEditorTejido
+        item={item}
+        celulas={celulas}
+        loadingCelulas={false}
+        compuestos={compuestos}
+        loadingCompuestos={loadingCompuestos}
+        sinAnimacion={sinAnimacion}
+        onCerrar={onCerrar}
+        onActualizar={onActualizarTejido}
+        onEliminar={onEliminarTejido}
+        onAbrirCelula={onAbrirCelula}
+        onAbrirCompuesto={onAbrirCompuesto}
+        onAbrirOrgano={onAbrirOrgano}
+        onAbrirSistema={onAbrirSistema}
+        onAbrirOrganismo={onAbrirOrganismo}
+      />
+    );
+  }
+
+  if (panelActivo.tipo === "sistema") {
+    const item = sistemas.find((s) => s.id === panelActivo.id);
+    if (!item) return null;
+    return (
+      <PanelEditorSistema
+        item={item}
+        organos={organos}
+        loadingOrganos={false}
+        sinAnimacion={sinAnimacion}
+        onCerrar={onCerrar}
+        onActualizar={onActualizarSistema}
+        onEliminar={onEliminarSistema}
+        onAbrirOrgano={onAbrirOrgano}
+        onAbrirCelula={onAbrirCelula}
+        onAbrirTejido={onAbrirTejido}
+        onAbrirOrganismo={onAbrirOrganismo}
+      />
+    );
+  }
+
+  if (panelActivo.tipo === "organismo") {
+    const item = organismos.find((o) => o.id === panelActivo.id);
+    if (!item) return null;
+    return (
+      <PanelEditorOrganismo
+        item={item}
+        sistemas={sistemas}
+        loadingSistemas={loadingSistemas}
+        sinAnimacion={sinAnimacion}
+        onCerrar={onCerrar}
+        onActualizar={onActualizarOrganismo}
+        onEliminar={onEliminarOrganismo}
+        onAbrirSistema={onAbrirSistema}
+        onAbrirCelula={onAbrirCelula}
+        onAbrirTejido={onAbrirTejido}
+        onAbrirOrgano={onAbrirOrgano}
+      />
+    );
+  }
+
+  // panelActivo.tipo === "organo"
+  const item = organos.find((o) => o.id === panelActivo.id);
+  if (!item) return null;
+  return (
+    <GrupoCompuestoPanelFlotante
+      grupo={item}
+      tipo="organo"
+      compuestos={compuestos}
+      sinAnimacion={sinAnimacion}
+      onCerrar={onCerrar}
+      onActualizar={onActualizarOrgano}
+      onAbrirCompuesto={onAbrirCompuesto}
+      onAbrirOrganoExterno={onAbrirOrgano}
+      onAbrirSistemaExterno={onAbrirSistema}
+      onAbrirOrganismoExterno={onAbrirOrganismo}
+      sinPortalPropio
+    />
+  );
+}
+
+/**
  * Catálogos de Biología (Células vía Tejidos, Tejidos, Sistemas, Órganos)
  * — sin Cladística, que ahora se muestra aparte vía BiologiaCladograma
  * (ver más abajo) para poder ubicarla en otro lugar del layout general
@@ -149,48 +372,116 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
   const { items: compuestosCatalogo, setItems: setCompuestosCatalogo, loading: loadingCompuestos } = useCompuestosConElementos();
   const { items: elementosCatalogo } = useElementos();
 
-  // ── Conteos para decidir el ancho proporcional de cada columna acá
-  // abajo (mismo patrón que FilaAsimetrica/TodasLasBasesView) — no se usa
-  // el resto de lo que devuelven estos hooks acá, cada subcatálogo sigue
-  // haciendo su propio fetch/render vía CatalogoTejidosBiologia/
-  // CatalogoSistemasBiologia.
-  const { items: celulasParaConteo } = useCelulas();
-  const { items: tejidosParaConteo } = useTejidos();
-  const { items: sistemasParaConteo } = useSistemas();
-  const { items: organismosParaConteo } = useOrganismos();
+  // ── Catálogos de los 4 niveles restantes de la jerarquía — antes vivían
+  // dentro de CatalogoTejidosBiologia/CatalogoSistemasBiologia (cada uno
+  // hacía su propio fetch), pero al pasar esos componentes a "controlados"
+  // (ver panelActivo abajo) el estado y el fetch de datos también subió
+  // acá, porque PanelEditorActivoBiologia necesita los mismos items/
+  // actualizar/eliminar para poder montar el editor dentro del shell.
+  const celulas = useCelulas();
+  const tejidos = useTejidos();
+  const sistemas = useSistemas();
+  const organismos = useOrganismos();
+
+  const [creandoSistema, setCreandoSistema] = useState(false);
+  const [creandoOrganismo, setCreandoOrganismo] = useState(false);
+
+  async function crearSistema() {
+    setCreandoSistema(true);
+    try {
+      const { data: nuevo, error } = await supabase
+        .from("sistemas")
+        .insert([{ nombre: "Nuevo sistema" }])
+        .select()
+        .single();
+      if (!error && nuevo) {
+        sistemas.setItems((prev) => [...prev, nuevo as Sistema]);
+      }
+    } finally {
+      setCreandoSistema(false);
+    }
+  }
+
+  async function crearOrganismo() {
+    setCreandoOrganismo(true);
+    try {
+      const { data: nuevo, error } = await supabase
+        .from("organismos")
+        .insert([{ nombre: "Nuevo organismo" }])
+        .select()
+        .single();
+      if (!error && nuevo) {
+        organismos.setItems((prev) => [...prev, nuevo as Organismo]);
+      }
+    } finally {
+      setCreandoOrganismo(false);
+    }
+  }
+
+  async function actualizarSistema(id: string, cambios: Partial<Sistema>) {
+    sistemas.setItems((prev) => prev.map((s) => (s.id === id ? { ...s, ...cambios } : s)));
+    const { error } = await supabase.from("sistemas").update(cambios).eq("id", id);
+    if (error) console.error("[BiologiaPage] error actualizando sistema:", error);
+  }
+
+  async function actualizarOrganismo(id: string, cambios: Partial<Organismo>) {
+    organismos.setItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
+    const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
+    if (error) console.error("[BiologiaPage] error actualizando organismo:", error);
+  }
+
+  async function eliminarSistema(id: string): Promise<{ ok: boolean; error: unknown }> {
+    const { error } = await supabase.from("sistemas").delete().eq("id", id);
+    if (error) return { ok: false, error };
+    sistemas.setItems((prev) => prev.filter((s) => s.id !== id));
+    return { ok: true, error: null };
+  }
+
+  async function eliminarOrganismo(id: string): Promise<{ ok: boolean; error: unknown }> {
+    const { error } = await supabase.from("organismos").delete().eq("id", id);
+    if (error) return { ok: false, error };
+    organismos.setItems((prev) => prev.filter((o) => o.id !== id));
+    return { ok: true, error: null };
+  }
 
   // Click en un Compuesto de matriz (Tejido) o en un Compuesto de la
   // composición de una Célula abre acá su editor completo — mismo patrón
   // que FloraEditor.tsx (setItemAbierto({ tipo: "compuesto", id })).
   const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
-  // Navegación controlada desde el breadcrumb de 5 niveles
-  // (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo): cada catálogo abre
-  // un id que vive en OTRO catálogo pasándolo acá, y el catálogo dueño de
-  // ese id lo consume vía sus props abrirXIdExterno/onAbrirXIdExternoConsumido
-  // — mismo patrón ya usado para organoAAbrirId.
-  const [organoAAbrirId, setOrganoAAbrirId] = useState<string | null>(null);
-  const [celulaAAbrirId, setCelulaAAbrirId] = useState<string | null>(null);
-  const [tejidoAAbrirId, setTejidoAAbrirId] = useState<string | null>(null);
-  const [sistemaAAbrirId, setSistemaAAbrirId] = useState<string | null>(null);
-  const [organismoAAbrirId, setOrganismoAAbrirId] = useState<string | null>(null);
 
-  // Fix (2026-09-11): cada catálogo (Célula/Tejido, Sistema/Organismo,
-  // Órgano) solo cerraba su propio panel cuando ÉL MISMO era el origen de
-  // la navegación saliente — nunca cuando el foco pasaba a otro catálogo
-  // por una ruta indirecta (ej. Célula → Sistema → Órgano → Célula). Eso
-  // dejaba paneles fantasma acumulados con el mismo z-[9999], todos
-  // "vivos" a la vez → parpadeo y clics bloqueados.
-  // Contador de "generación" de navegación: se incrementa en cada salto
-  // cruzado entre catálogos, junto con quién es el destino. Los otros dos
-  // catálogos, al ver que la generación cambió y ellos no son el destino,
-  // cierran su panel local — sin importar la ruta que se tomó para llegar.
-  type CatalogoBiologia = "tejidos" | "sistemas" | "organo";
-  const [navegacion, setNavegacion] = useState<{ gen: number; destino: CatalogoBiologia } | null>(
+  // Fix (2026-09-11): el breadcrumb de 5 niveles (Célula ⇄ Tejido ⇄
+  // Órgano ⇄ Sistema ⇄ Organismo) tenía un solo panel "activo" a la vez,
+  // pero repartido en 5 useState distintos (uno por nivel) dentro de 3
+  // componentes hermanos separados (CatalogoTejidosBiologia,
+  // CatalogoSistemasBiologia, GridCatalogoGrupo). Cada uno montaba su
+  // propio createPortal — al saltar entre catálogos hermanos (ej.
+  // Célula → Sistema), React desmontaba un nodo DOM y montaba otro
+  // (componentes JSX distintos con su propia animación de entrada), lo
+  // que se veía como un parpadeo "cierra y abre" del fondo del modal.
+  //
+  // Ahora hay un ÚNICO estado acá arriba: qué panel de nivel raíz está
+  // abierto (si hay alguno). Los 3 catálogos pasaron a ser "controlados"
+  // (reciben seleccionadoId/onSeleccionar por props, ya no tienen su
+  // propio useState de selección) y un solo PanelFlotanteShellBiologia
+  // monta el editor correspondiente — un único nodo de portal/backdrop
+  // que nunca se desmonta al cambiar de tipo de panel.
+  type TipoPanelBiologia = "celula" | "tejido" | "organo" | "sistema" | "organismo";
+  const [panelActivo, setPanelActivo] = useState<{ tipo: TipoPanelBiologia; id: string } | null>(
     null,
   );
-  const navegarA = (destino: CatalogoBiologia) => {
-    setNavegacion((prev) => ({ gen: (prev?.gen ?? 0) + 1, destino }));
+  // true cuando la apertura actual vino de un salto de breadcrumb (no un
+  // click nuevo en la grilla) — suprime la animación de entrada del panel
+  // para no parpadear al saltar entre niveles de la jerarquía. Se apaga
+  // solo en el siguiente tick, igual que antes.
+  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
+  const abrirPanel = (tipo: TipoPanelBiologia, id: string, esNavegacion = false) => {
+    if (esNavegacion) {
+      setNavegandoEntreNiveles(true);
+      requestAnimationFrame(() => setNavegandoEntreNiveles(false));
+    }
+    setPanelActivo({ tipo, id });
   };
+  const cerrarPanel = () => setPanelActivo(null);
 
   async function actualizarOrgano(id: string, cambios: Partial<Organo>) {
     setCatalogoOrganos((prev) => prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)));
@@ -203,64 +494,38 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
       <div
         className="p-2.5 min-w-[220px]"
         style={{
-          flexGrow: Math.max(celulasParaConteo.length + tejidosParaConteo.length, 1),
+          flexGrow: Math.max(celulas.items.length + tejidos.items.length, 1),
           flexBasis: 0,
         }}
       >
         <CatalogoTejidosBiologia
-          compuestos={compuestosCatalogo}
-          loadingCompuestos={loadingCompuestos}
-          onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          onAbrirOrgano={(id) => {
-            navegarA("organo");
-            setOrganoAAbrirId(id);
-          }}
-          onAbrirSistema={(id) => {
-            navegarA("sistemas");
-            setSistemaAAbrirId(id);
-          }}
-          onAbrirOrganismo={(id) => {
-            navegarA("sistemas");
-            setOrganismoAAbrirId(id);
-          }}
-          abrirCelulaIdExterna={celulaAAbrirId}
-          onAbrirCelulaIdExternaConsumida={() => setCelulaAAbrirId(null)}
-          abrirTejidoIdExterno={tejidoAAbrirId}
-          onAbrirTejidoIdExternoConsumido={() => setTejidoAAbrirId(null)}
-          forzarCierre={
-            navegacion && navegacion.destino !== "tejidos" ? navegacion.gen : undefined
-          }
+          celulas={celulas.items}
+          loadingCelulas={celulas.loading}
+          tejidos={tejidos.items}
+          loadingTejidos={tejidos.loading}
+          celulaSeleccionadaId={panelActivo?.tipo === "celula" ? panelActivo.id : null}
+          onSeleccionarCelula={(id) => (id ? abrirPanel("celula", id) : cerrarPanel())}
+          tejidoSeleccionadoId={panelActivo?.tipo === "tejido" ? panelActivo.id : null}
+          onSeleccionarTejido={(id) => (id ? abrirPanel("tejido", id) : cerrarPanel())}
         />
       </div>
 
       <div
         className="p-2.5 min-w-[220px]"
         style={{
-          flexGrow: Math.max(sistemasParaConteo.length + organismosParaConteo.length, 1),
+          flexGrow: Math.max(sistemas.items.length + organismos.items.length, 1),
           flexBasis: 0,
         }}
       >
         <CatalogoSistemasBiologia
-          organos={catalogoOrganos}
-          onAbrirOrgano={(id) => {
-            navegarA("organo");
-            setOrganoAAbrirId(id);
-          }}
-          onAbrirCelula={(id) => {
-            navegarA("tejidos");
-            setCelulaAAbrirId(id);
-          }}
-          onAbrirTejido={(id) => {
-            navegarA("tejidos");
-            setTejidoAAbrirId(id);
-          }}
-          abrirSistemaIdExterno={sistemaAAbrirId}
-          onAbrirSistemaIdExternoConsumido={() => setSistemaAAbrirId(null)}
-          abrirOrganismoIdExterno={organismoAAbrirId}
-          onAbrirOrganismoIdExternoConsumido={() => setOrganismoAAbrirId(null)}
-          forzarCierre={
-            navegacion && navegacion.destino !== "sistemas" ? navegacion.gen : undefined
-          }
+          sistemas={sistemas.items}
+          loadingSistemas={sistemas.loading}
+          organismos={organismos.items}
+          loadingOrganismos={organismos.loading}
+          sistemaSeleccionadoId={panelActivo?.tipo === "sistema" ? panelActivo.id : null}
+          onSeleccionarSistema={(id) => (id ? abrirPanel("sistema", id) : cerrarPanel())}
+          organismoSeleccionadoId={panelActivo?.tipo === "organismo" ? panelActivo.id : null}
+          onSeleccionarOrganismo={(id) => (id ? abrirPanel("organismo", id) : cerrarPanel())}
         />
       </div>
 
@@ -276,21 +541,76 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           compuestos={compuestosCatalogo}
           onActualizar={actualizarOrgano}
           onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          abrirIdExterno={organoAAbrirId}
-          onAbrirIdExternoConsumido={() => setOrganoAAbrirId(null)}
-          onAbrirSistema={(id) => {
-            navegarA("sistemas");
-            setSistemaAAbrirId(id);
-          }}
-          onAbrirOrganismo={(id) => {
-            navegarA("sistemas");
-            setOrganismoAAbrirId(id);
-          }}
-          forzarCierre={
-            navegacion && navegacion.destino !== "organo" ? navegacion.gen : undefined
-          }
+          seleccionadoId={panelActivo?.tipo === "organo" ? panelActivo.id : null}
+          onSeleccionar={(id) => (id ? abrirPanel("organo", id) : cerrarPanel())}
         />
       </div>
+
+      {/* Shell único para los 5 niveles del breadcrumb de Biología — ver
+         comentario de panelActivo arriba. Un solo createPortal/backdrop
+         que nunca se desmonta al saltar entre niveles: solo cambia cuál
+         editor recibe como children, así no hay parpadeo del fondo del
+         modal. Cada PanelEditorX de acá adentro navega a otro nivel
+         llamando a abrirPanel (con esNavegacion=true para suprimir la
+         animación de entrada) en vez de manejar su propio estado. */}
+      {panelActivo && (
+        <PanelFlotanteShellBiologia onCerrar={cerrarPanel}>
+          <PanelEditorActivoBiologia
+            panelActivo={panelActivo}
+            sinAnimacion={navegandoEntreNiveles}
+            celulas={celulas.items}
+            onActualizarCelula={celulas.actualizar}
+            onEliminarCelula={async (id) => {
+              const res = await celulas.eliminar(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            tejidos={tejidos.items}
+            loadingTejidos={tejidos.loading}
+            onActualizarTejido={tejidos.actualizar}
+            onEliminarTejido={async (id) => {
+              const res = await tejidos.eliminar(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            sistemas={sistemas.items}
+            loadingSistemas={sistemas.loading}
+            onActualizarSistema={actualizarSistema}
+            onEliminarSistema={async (id) => {
+              const res = await eliminarSistema(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            organismos={organismos.items}
+            onActualizarOrganismo={actualizarOrganismo}
+            onEliminarOrganismo={async (id) => {
+              const res = await eliminarOrganismo(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            organos={catalogoOrganos}
+            onActualizarOrgano={actualizarOrgano}
+            compuestos={compuestosCatalogo}
+            loadingCompuestos={loadingCompuestos}
+            onCerrar={cerrarPanel}
+            onAbrirCompuesto={(id) => {
+              // Cierra el panel activo antes de subir el id: si no,
+              // CompuestoPanelFlotante (montado por el padre, portal
+              // aparte) queda apilado ENCIMA de este — mismo z-[9999]
+              // fijo en ambos, así que un tercer nivel abierto desde el
+              // Compuesto podía terminar tapado por el panel que seguía
+              // vivo de fondo.
+              cerrarPanel();
+              setCompuestoAbiertoId(id);
+            }}
+            onAbrirCelula={(id) => abrirPanel("celula", id, true)}
+            onAbrirTejido={(id) => abrirPanel("tejido", id, true)}
+            onAbrirOrgano={(id) => abrirPanel("organo", id, true)}
+            onAbrirSistema={(id) => abrirPanel("sistema", id, true)}
+            onAbrirOrganismo={(id) => abrirPanel("organismo", id, true)}
+          />
+        </PanelFlotanteShellBiologia>
+      )}
 
       {compuestoAbiertoId &&
         (() => {

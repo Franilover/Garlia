@@ -30,11 +30,8 @@
 
 import { Beaker, Boxes, Layers, Plus, Trash2, X, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { useConfirm } from "@/ui/ConfirmModal";
-import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
-import { useTejidos } from "@/domains/garlia/elementos/useTejidos";
 import {
   useEstructuraComposicion,
   type CompuestoDeEstructura,
@@ -52,288 +49,78 @@ import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
 import { PillCatalogoItem } from "@/domains/garlia/_shared/PillCatalogoItem";
 
 interface Props {
-  compuestos: Compuesto[];
-  loadingCompuestos?: boolean;
-  onCompuestoCreado?: (c: Compuesto) => void;
-  onAbrirCompuesto?: (compuestoId: string) => void;
-  /** Navegar a un Órgano desde el breadcrumb de una Célula o un Tejido — el
-   *  padre (BiologiaPage/GruposCompuestosPage) decide cómo abrir su editor,
-   *  ya que el Órgano vive fuera de este catálogo (ver GrupoCompuestoPanelFlotante). */
-  onAbrirOrgano?: (organoId: string) => void;
-  /** Navegar a un Sistema desde el breadcrumb de una Célula o un Tejido —
-   *  el Sistema vive fuera de este catálogo, en CatalogoSistemasBiologia. */
-  onAbrirSistema?: (sistemaId: string) => void;
-  /** Navegar a un Organismo desde el breadcrumb de una Célula o un Tejido —
-   *  mismo motivo que onAbrirSistema, techo de la cadena. */
-  onAbrirOrganismo?: (organismoId: string) => void;
   /**
-   * Id de una Célula a abrir de forma controlada desde afuera — usado para
-   * navegar hasta acá desde el breadcrumb de un Órgano/Sistema/Organismo
-   * que no vive dentro de este catálogo. Cuando cambia, reemplaza la
-   * selección interna (y cierra el panel de Tejido, si había uno abierto).
+   * Este catálogo pasó a ser controlado (2026-09-11): ya no maneja su
+   * propia selección, ni su propio fetch, ni monta el editor
+   * (PanelEditorCelula/PanelEditorTejido) — todo eso ahora vive en
+   * BiologiaPage.tsx (hooks useCelulas/useTejidos subidos al padre +
+   * PanelFlotanteShellBiologia), para eliminar el parpadeo al saltar
+   * entre este catálogo y sus hermanos (Sistemas/Organismos, Órgano), y
+   * para no duplicar el fetch de datos con el que usa el shell.
+   * Este componente solo pinta las 2 grillas y reporta selección.
    */
-  abrirCelulaIdExterna?: string | null;
-  /** Se llama tras consumir abrirCelulaIdExterna, para que el padre limpie su estado. */
-  onAbrirCelulaIdExternaConsumida?: () => void;
-  /** Mismo mecanismo que abrirCelulaIdExterna, para el catálogo de Tejidos. */
-  abrirTejidoIdExterno?: string | null;
-  /** Se llama tras consumir abrirTejidoIdExterno, para que el padre limpie su estado. */
-  onAbrirTejidoIdExternoConsumido?: () => void;
-  /**
-   * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
-   * número cada vez que el foco de navegación pasa a OTRO catálogo
-   * hermano (Sistema/Organismo u Órgano), sin importar si este catálogo
-   * fue el origen de ese salto. Cierra cualquier panel propio que haya
-   * quedado abierto — evita la acumulación de paneles fantasma al
-   * navegar por rutas indirectas entre los 3 catálogos.
-   */
-  forzarCierre?: number;
+  celulas: Celula[];
+  loadingCelulas?: boolean;
+  tejidos: Tejido[];
+  loadingTejidos?: boolean;
+  celulaSeleccionadaId: string | null;
+  onSeleccionarCelula: (id: string | null) => void;
+  tejidoSeleccionadoId: string | null;
+  onSeleccionarTejido: (id: string | null) => void;
 }
 
 export function CatalogoTejidosBiologia({
-  compuestos,
-  loadingCompuestos,
-  onCompuestoCreado,
-  onAbrirCompuesto,
-  onAbrirOrgano,
-  onAbrirSistema,
-  onAbrirOrganismo,
-  abrirCelulaIdExterna,
-  onAbrirCelulaIdExternaConsumida,
-  abrirTejidoIdExterno,
-  onAbrirTejidoIdExternoConsumido,
-  forzarCierre,
+  celulas,
+  loadingCelulas,
+  tejidos,
+  loadingTejidos,
+  celulaSeleccionadaId,
+  onSeleccionarCelula,
+  tejidoSeleccionadoId,
+  onSeleccionarTejido,
 }: Props) {
-  const celulas = useCelulas();
-  const tejidos = useTejidos();
-
-  const [celulaSeleccionadaId, setCelulaSeleccionadaId] = useState<string | null>(null);
-  const [tejidoSeleccionadoId, setTejidoSeleccionadoId] = useState<string | null>(null);
-
-  // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
-  // breadcrumb (Célula → Tejido, Tejido → Célula, o hacia Órgano/Sistema/
-  // Organismo, que viven en OTRO componente): cuando el salto es una
-  // navegación de jerarquía, el panel de destino se abre con la animación
-  // de entrada suprimida por un instante — se re-habilita sola en el
-  // siguiente salto/apertura real. Un salto real "cierra un panel y abre
-  // otro" a nivel de React (son componentes JSX distintos), así que no
-  // hay forma de mantener el mismo nodo DOM vivo sin fusionar los 4
-  // paneles en un solo modal — esto es la solución mínima sin ese
-  // rediseño mayor.
-  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
-  const marcarNavegacion = () => {
-    setNavegandoEntreNiveles(true);
-    // Una sola animación de golpe: se apaga en el próximo tick para no
-    // seguir suprimiendo la del siguiente panel que el usuario abra desde
-    // cero (click directo en la grilla).
-    requestAnimationFrame(() => setNavegandoEntreNiveles(false));
-  };
-
-  // Cierre forzado desde BiologiaPage: el foco de navegación pasó a OTRO
-  // catálogo hermano (Sistema/Organismo u Órgano) por una ruta que no
-  // necesariamente pasó por "salir desde acá" — sin esto, el panel de
-  // Célula o Tejido podía quedar abierto de fondo, acumulado con el del
-  // catálogo nuevo (mismo z-[9999], parpadeo y clics bloqueados).
-  useEffect(() => {
-    if (forzarCierre === undefined) return;
-    setCelulaSeleccionadaId(null);
-    setTejidoSeleccionadoId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forzarCierre]);
-
-  // Navegación controlada desde afuera (breadcrumb de un Órgano, Sistema u
-  // Organismo): al recibir un id nuevo, lo abre acá igual que un click de
-  // tarjeta, y avisa al padre para que limpie su estado y no reabra en
-  // loop — mismo patrón que GridCatalogoGrupo.abrirIdExterno.
-  useEffect(() => {
-    if (!abrirCelulaIdExterna) return;
-    marcarNavegacion();
-    setTejidoSeleccionadoId(null);
-    setCelulaSeleccionadaId(abrirCelulaIdExterna);
-    onAbrirCelulaIdExternaConsumida?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abrirCelulaIdExterna]);
-
-  useEffect(() => {
-    if (!abrirTejidoIdExterno) return;
-    marcarNavegacion();
-    setCelulaSeleccionadaId(null);
-    setTejidoSeleccionadoId(abrirTejidoIdExterno);
-    onAbrirTejidoIdExternoConsumido?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abrirTejidoIdExterno]);
-
-  const celulaActiva = celulas.items.find((c) => c.id === celulaSeleccionadaId) ?? null;
-  const tejidoActivo = tejidos.items.find((t) => t.id === tejidoSeleccionadoId) ?? null;
-
   return (
     <div className="flex flex-wrap gap-4">
       {/* ── Células ────────────────────────────────────────────────────── */}
       <div
         className="flex flex-col gap-2 min-w-[220px]"
-        style={{ flexGrow: Math.max(celulas.items.length, 1), flexBasis: 0 }}
+        style={{ flexGrow: Math.max(celulas.length, 1), flexBasis: 0 }}
       >
         <div className="flex items-center justify-between">
           <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
-            Células · {celulas.items.length}
+            Células · {celulas.length}
           </p>
         </div>
 
         <GridSimple
-          items={celulas.items}
-          loading={celulas.loading}
+          items={celulas}
+          loading={!!loadingCelulas}
           icono={<Beaker size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={celulaSeleccionadaId}
-          onSeleccionar={setCelulaSeleccionadaId}
+          onSeleccionar={onSeleccionarCelula}
           labelVacio="células"
         />
-
-        {celulaActiva && (
-          <PanelEditorCelula
-            item={celulaActiva}
-            compuestos={compuestos}
-            loadingCompuestos={loadingCompuestos}
-            sinAnimacion={navegandoEntreNiveles}
-            onCerrar={() => setCelulaSeleccionadaId(null)}
-            onActualizar={celulas.actualizar}
-            onEliminar={async (id) => {
-              const res = await celulas.eliminar(id);
-              if (res.ok) setCelulaSeleccionadaId(null);
-              return res;
-            }}
-            onCompuestoCreado={onCompuestoCreado}
-            onAbrirCompuesto={
-              onAbrirCompuesto
-                ? (compuestoId) => {
-                    // Cierra este panel de Célula antes de subir el id: si
-                    // no, CompuestoPanelFlotante (montado por el padre,
-                    // portal aparte) queda apilado ENCIMA de este — mismo
-                    // z-[9999] fijo en ambos, así que un tercer nivel
-                    // abierto desde el Compuesto podía terminar tapado por
-                    // este panel de Célula que seguía vivo de fondo.
-                    setCelulaSeleccionadaId(null);
-                    onAbrirCompuesto(compuestoId);
-                  }
-                : undefined
-            }
-            onAbrirTejido={(tejidoId) => {
-              marcarNavegacion();
-              setCelulaSeleccionadaId(null);
-              setTejidoSeleccionadoId(tejidoId);
-            }}
-            onAbrirOrgano={
-              onAbrirOrgano
-                ? (organoId) => {
-                    marcarNavegacion();
-                    setCelulaSeleccionadaId(null);
-                    onAbrirOrgano(organoId);
-                  }
-                : undefined
-            }
-            onAbrirSistema={
-              onAbrirSistema
-                ? (sistemaId) => {
-                    marcarNavegacion();
-                    setCelulaSeleccionadaId(null);
-                    onAbrirSistema(sistemaId);
-                  }
-                : undefined
-            }
-            onAbrirOrganismo={
-              onAbrirOrganismo
-                ? (organismoId) => {
-                    marcarNavegacion();
-                    setCelulaSeleccionadaId(null);
-                    onAbrirOrganismo(organismoId);
-                  }
-                : undefined
-            }
-          />
-        )}
       </div>
 
       {/* ── Tejidos ────────────────────────────────────────────────────── */}
       <div
         className="flex flex-col gap-2 min-w-[220px]"
-        style={{ flexGrow: Math.max(tejidos.items.length, 1), flexBasis: 0 }}
+        style={{ flexGrow: Math.max(tejidos.length, 1), flexBasis: 0 }}
       >
         <div className="flex items-center justify-between">
           <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
-            Tejidos · {tejidos.items.length}
+            Tejidos · {tejidos.length}
           </p>
         </div>
 
         <GridSimple
-          items={tejidos.items}
-          loading={tejidos.loading}
+          items={tejidos}
+          loading={!!loadingTejidos}
           icono={<Layers size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={tejidoSeleccionadoId}
-          onSeleccionar={setTejidoSeleccionadoId}
+          onSeleccionar={onSeleccionarTejido}
           labelVacio="tejidos"
         />
-
-        {tejidoActivo && (
-          <PanelEditorTejido
-            item={tejidoActivo}
-            celulas={celulas.items}
-            loadingCelulas={celulas.loading}
-            compuestos={compuestos}
-            loadingCompuestos={loadingCompuestos}
-            sinAnimacion={navegandoEntreNiveles}
-            onCerrar={() => setTejidoSeleccionadoId(null)}
-            onActualizar={tejidos.actualizar}
-            onEliminar={async (id) => {
-              const res = await tejidos.eliminar(id);
-              if (res.ok) setTejidoSeleccionadoId(null);
-              return res;
-            }}
-            onAbrirCelula={(celulaId) => {
-              marcarNavegacion();
-              setTejidoSeleccionadoId(null);
-              setCelulaSeleccionadaId(celulaId);
-            }}
-            onCompuestoCreado={onCompuestoCreado}
-            onAbrirCompuesto={
-              onAbrirCompuesto
-                ? (compuestoId) => {
-                    // Mismo motivo que en PanelEditorCelula arriba: cerrar
-                    // este panel de Tejido antes de subir el id evita que
-                    // quede apilado bajo/con CompuestoPanelFlotante (mismo
-                    // z-[9999] fijo, portal aparte montado por el padre).
-                    setTejidoSeleccionadoId(null);
-                    onAbrirCompuesto(compuestoId);
-                  }
-                : undefined
-            }
-            onAbrirOrgano={
-              onAbrirOrgano
-                ? (organoId) => {
-                    marcarNavegacion();
-                    setTejidoSeleccionadoId(null);
-                    onAbrirOrgano(organoId);
-                  }
-                : undefined
-            }
-            onAbrirSistema={
-              onAbrirSistema
-                ? (sistemaId) => {
-                    marcarNavegacion();
-                    setTejidoSeleccionadoId(null);
-                    onAbrirSistema(sistemaId);
-                  }
-                : undefined
-            }
-            onAbrirOrganismo={
-              onAbrirOrganismo
-                ? (organismoId) => {
-                    marcarNavegacion();
-                    setTejidoSeleccionadoId(null);
-                    onAbrirOrganismo(organismoId);
-                  }
-                : undefined
-            }
-          />
-        )}
       </div>
     </div>
   );
@@ -529,7 +316,7 @@ export function PanelEditorCelula({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Beaker className="text-primary/50" size={12} />}
@@ -713,7 +500,7 @@ export function PanelEditorTejido({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -1033,57 +820,37 @@ function PickerCatalogoExistente({
 
 // ─── Piezas chicas compartidas ──────────────────────────────────────────────
 
+/**
+ * Caja blanca interna del panel — el portal/backdrop/Escape/scroll-lock
+ * ahora vive UNA sola vez en PanelFlotanteShellBiologia (BiologiaPage.tsx),
+ * compartido entre los 5 niveles del breadcrumb de Biología. Antes cada
+ * PanelEditorX de acá montaba su propio createPortal con el mismo
+ * z-[9999]: al saltar entre catálogos hermanos, React desmontaba un nodo
+ * DOM y montaba otro (componentes JSX distintos), lo que se veía como un
+ * parpadeo "cierra y abre" del fondo del modal.
+ */
 function PanelFlotanteBase({
   children,
-  onCerrar,
   sinAnimacion,
 }: {
   children: React.ReactNode;
-  onCerrar: () => void;
   /** true cuando este panel reemplaza a otro por una navegación de
    *  breadcrumb (no una apertura nueva) — suprime la animación de entrada
    *  para no parpadear al saltar entre niveles de la jerarquía. */
   sinAnimacion?: boolean;
 }) {
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onCerrar]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
+  return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
       style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
+        background: "var(--bg-main)",
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>,
-    document.body,
+      {children}
+    </div>
   );
 }
 

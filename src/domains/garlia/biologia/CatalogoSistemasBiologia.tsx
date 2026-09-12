@@ -24,13 +24,9 @@
  */
 
 import { Beaker, Boxes, Layers, Plus, Trash2, X, Search } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useMemo, useState } from "react";
 
 import { useConfirm } from "@/ui/ConfirmModal";
-import { supabase } from "@/infra/supabase/supabase";
-import { useSistemas } from "@/domains/garlia/elementos/useSistemas";
-import { useOrganismos } from "@/domains/garlia/elementos/useOrganismos";
 import { useSistemaOrganos, type OrganoDeSistema } from "@/domains/garlia/elementos/useSistemaOrganos";
 import {
   useOrganismoSistemas,
@@ -49,291 +45,76 @@ import {
 import { PillCatalogoItem } from "@/domains/garlia/_shared/PillCatalogoItem";
 
 interface Props {
-  organos: Organo[];
-  loadingOrganos?: boolean;
-  /** Navegar al Órgano elegido — el padre (BiologiaPage) decide cómo abrir
-   *  su editor, ya que el Órgano vive fuera de este catálogo. */
-  onAbrirOrgano?: (organoId: string) => void;
-  /** Navegar a la Célula elegida desde el breadcrumb de 5 niveles
-   *  (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo) — la Célula vive en
-   *  CatalogoTejidosBiologia, fuera de este catálogo, así que el padre
-   *  (BiologiaPage) decide cómo abrir su editor, mismo patrón que
-   *  onAbrirOrgano. */
-  onAbrirCelula?: (celulaId: string) => void;
-  /** Misma idea que onAbrirCelula, un nivel más arriba. */
-  onAbrirTejido?: (tejidoId: string) => void;
   /**
-   * Id de un Sistema a abrir de forma controlada desde afuera — usado para
-   * navegar hasta acá desde el breadcrumb de una Célula/Tejido/Órgano que
-   * no vive dentro de este catálogo. Cuando cambia, reemplaza la selección
-   * interna (y cierra el panel de Organismo, si había uno abierto).
+   * Este catálogo pasó a ser controlado (2026-09-11) — ver comentario
+   * equivalente en CatalogoTejidosBiologia. Ya no maneja su propia
+   * selección/fetch de Sistemas/Organismos ni monta el editor: eso ahora
+   * vive en BiologiaPage.tsx (hooks useSistemas/useOrganismos subidos al
+   * padre + PanelFlotanteShellBiologia). Este componente solo pinta las 2
+   * grillas y reporta selección.
    */
-  abrirSistemaIdExterno?: string | null;
-  /** Se llama tras consumir abrirSistemaIdExterno, para que el padre limpie su estado. */
-  onAbrirSistemaIdExternoConsumido?: () => void;
-  /** Mismo mecanismo que abrirSistemaIdExterno, para el catálogo de Organismos. */
-  abrirOrganismoIdExterno?: string | null;
-  /** Se llama tras consumir abrirOrganismoIdExterno, para que el padre limpie su estado. */
-  onAbrirOrganismoIdExternoConsumido?: () => void;
-  /**
-   * Señal de cierre forzado: el padre (BiologiaPage) incrementa este
-   * número cada vez que el foco de navegación pasa a OTRO catálogo
-   * hermano (Célula/Tejido u Órgano), sin importar si este catálogo fue
-   * el origen de ese salto — evita paneles fantasma acumulados al
-   * navegar por rutas indirectas entre los 3 catálogos.
-   */
-  forzarCierre?: number;
+  sistemas: Sistema[];
+  loadingSistemas?: boolean;
+  organismos: Organismo[];
+  loadingOrganismos?: boolean;
+  sistemaSeleccionadoId: string | null;
+  onSeleccionarSistema: (id: string | null) => void;
+  organismoSeleccionadoId: string | null;
+  onSeleccionarOrganismo: (id: string | null) => void;
 }
 
 export function CatalogoSistemasBiologia({
-  organos,
-  loadingOrganos,
-  onAbrirOrgano,
-  onAbrirCelula,
-  onAbrirTejido,
-  abrirSistemaIdExterno,
-  onAbrirSistemaIdExternoConsumido,
-  abrirOrganismoIdExterno,
-  onAbrirOrganismoIdExternoConsumido,
-  forzarCierre,
+  sistemas,
+  loadingSistemas,
+  organismos,
+  loadingOrganismos,
+  sistemaSeleccionadoId,
+  onSeleccionarSistema,
+  organismoSeleccionadoId,
+  onSeleccionarOrganismo,
 }: Props) {
-  const sistemas = useSistemas();
-  const organismos = useOrganismos();
-
-  const [sistemaSeleccionadoId, setSistemaSeleccionadoId] = useState<string | null>(null);
-  const [organismoSeleccionadoId, setOrganismoSeleccionadoId] = useState<string | null>(null);
-
-  // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
-  // breadcrumb — mismo mecanismo que CatalogoTejidosBiologia.marcarNavegacion.
-  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
-  const marcarNavegacion = () => {
-    setNavegandoEntreNiveles(true);
-    requestAnimationFrame(() => setNavegandoEntreNiveles(false));
-  };
-
-  // Cierre forzado desde BiologiaPage — mismo mecanismo y motivo que
-  // CatalogoTejidosBiologia.forzarCierre.
-  useEffect(() => {
-    if (forzarCierre === undefined) return;
-    setSistemaSeleccionadoId(null);
-    setOrganismoSeleccionadoId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forzarCierre]);
-
-  // Navegación controlada desde afuera (breadcrumb de una Célula/Tejido/
-  // Órgano) — mismo patrón que CatalogoTejidosBiologia.abrirCelulaIdExterna.
-  useEffect(() => {
-    if (!abrirSistemaIdExterno) return;
-    marcarNavegacion();
-    setOrganismoSeleccionadoId(null);
-    setSistemaSeleccionadoId(abrirSistemaIdExterno);
-    onAbrirSistemaIdExternoConsumido?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abrirSistemaIdExterno]);
-
-  useEffect(() => {
-    if (!abrirOrganismoIdExterno) return;
-    marcarNavegacion();
-    setSistemaSeleccionadoId(null);
-    setOrganismoSeleccionadoId(abrirOrganismoIdExterno);
-    onAbrirOrganismoIdExternoConsumido?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abrirOrganismoIdExterno]);
-
-  const [creandoSistema, setCreandoSistema] = useState(false);
-  const [creandoOrganismo, setCreandoOrganismo] = useState(false);
-
-  const sistemaActivo = sistemas.items.find((s) => s.id === sistemaSeleccionadoId) ?? null;
-  const organismoActivo = organismos.items.find((o) => o.id === organismoSeleccionadoId) ?? null;
-
-  async function crearSistema() {
-    setCreandoSistema(true);
-    try {
-      const { data: nuevo, error } = await supabase
-        .from("sistemas")
-        .insert([{ nombre: "Nuevo sistema" }])
-        .select()
-        .single();
-      if (!error && nuevo) {
-        sistemas.setItems((prev) => [...prev, nuevo as Sistema]);
-      }
-    } finally {
-      setCreandoSistema(false);
-    }
-  }
-
-  async function crearOrganismo() {
-    setCreandoOrganismo(true);
-    try {
-      const { data: nuevo, error } = await supabase
-        .from("organismos")
-        .insert([{ nombre: "Nuevo organismo" }])
-        .select()
-        .single();
-      if (!error && nuevo) {
-        organismos.setItems((prev) => [...prev, nuevo as Organismo]);
-      }
-    } finally {
-      setCreandoOrganismo(false);
-    }
-  }
-
-  async function actualizarSistema(id: string, cambios: Partial<Sistema>) {
-    sistemas.setItems((prev) => prev.map((s) => (s.id === id ? { ...s, ...cambios } : s)));
-    const { error } = await supabase.from("sistemas").update(cambios).eq("id", id);
-    if (error) console.error("[CatalogoSistemasBiologia] error actualizando sistema:", error);
-  }
-
-  async function actualizarOrganismo(id: string, cambios: Partial<Organismo>) {
-    organismos.setItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
-    const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
-    if (error) console.error("[CatalogoSistemasBiologia] error actualizando organismo:", error);
-  }
-
-  async function eliminarSistema(id: string): Promise<{ ok: boolean; error: unknown }> {
-    const { error } = await supabase.from("sistemas").delete().eq("id", id);
-    if (error) return { ok: false, error };
-    sistemas.setItems((prev) => prev.filter((s) => s.id !== id));
-    return { ok: true, error: null };
-  }
-
-  async function eliminarOrganismo(id: string): Promise<{ ok: boolean; error: unknown }> {
-    const { error } = await supabase.from("organismos").delete().eq("id", id);
-    if (error) return { ok: false, error };
-    organismos.setItems((prev) => prev.filter((o) => o.id !== id));
-    return { ok: true, error: null };
-  }
-
   return (
     <div className="flex flex-wrap gap-4">
       {/* ── Sistemas ───────────────────────────────────────────────────── */}
       <div
         className="flex flex-col gap-2 min-w-[220px]"
-        style={{ flexGrow: Math.max(sistemas.items.length, 1), flexBasis: 0 }}
+        style={{ flexGrow: Math.max(sistemas.length, 1), flexBasis: 0 }}
       >
         <div className="flex items-center justify-between">
           <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
-            Sistemas · {sistemas.items.length}
+            Sistemas · {sistemas.length}
           </p>
         </div>
 
         <GridSimple
-          items={sistemas.items}
-          loading={sistemas.loading}
+          items={sistemas}
+          loading={!!loadingSistemas}
           icono={<Layers size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={sistemaSeleccionadoId}
-          onSeleccionar={setSistemaSeleccionadoId}
+          onSeleccionar={onSeleccionarSistema}
           labelVacio="sistemas"
         />
-
-        {sistemaActivo && (
-          <PanelEditorSistema
-            item={sistemaActivo}
-            organos={organos}
-            loadingOrganos={loadingOrganos}
-            sinAnimacion={navegandoEntreNiveles}
-            onCerrar={() => setSistemaSeleccionadoId(null)}
-            onActualizar={actualizarSistema}
-            onEliminar={eliminarSistema}
-            onAbrirOrgano={
-              onAbrirOrgano
-                ? (organoId) => {
-                    marcarNavegacion();
-                    setSistemaSeleccionadoId(null);
-                    onAbrirOrgano(organoId);
-                  }
-                : undefined
-            }
-            onAbrirCelula={
-              onAbrirCelula
-                ? (celulaId) => {
-                    marcarNavegacion();
-                    setSistemaSeleccionadoId(null);
-                    onAbrirCelula(celulaId);
-                  }
-                : undefined
-            }
-            onAbrirTejido={
-              onAbrirTejido
-                ? (tejidoId) => {
-                    marcarNavegacion();
-                    setSistemaSeleccionadoId(null);
-                    onAbrirTejido(tejidoId);
-                  }
-                : undefined
-            }
-            onAbrirOrganismo={(organismoId) => {
-              marcarNavegacion();
-              setSistemaSeleccionadoId(null);
-              setOrganismoSeleccionadoId(organismoId);
-            }}
-          />
-        )}
       </div>
 
       {/* ── Organismos ─────────────────────────────────────────────────── */}
       <div
         className="flex flex-col gap-2 min-w-[220px]"
-        style={{ flexGrow: Math.max(organismos.items.length, 1), flexBasis: 0 }}
+        style={{ flexGrow: Math.max(organismos.length, 1), flexBasis: 0 }}
       >
         <div className="flex items-center justify-between">
           <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50">
-            Organismos · {organismos.items.length}
+            Organismos · {organismos.length}
           </p>
         </div>
 
         <GridSimple
-          items={organismos.items}
-          loading={organismos.loading}
+          items={organismos}
+          loading={!!loadingOrganismos}
           icono={<Boxes size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={organismoSeleccionadoId}
-          onSeleccionar={setOrganismoSeleccionadoId}
+          onSeleccionar={onSeleccionarOrganismo}
           labelVacio="organismos"
         />
-
-        {organismoActivo && (
-          <PanelEditorOrganismo
-            item={organismoActivo}
-            sistemas={sistemas.items}
-            loadingSistemas={sistemas.loading}
-            sinAnimacion={navegandoEntreNiveles}
-            onCerrar={() => setOrganismoSeleccionadoId(null)}
-            onActualizar={actualizarOrganismo}
-            onEliminar={eliminarOrganismo}
-            onAbrirSistema={(sistemaId) => {
-              marcarNavegacion();
-              setOrganismoSeleccionadoId(null);
-              setSistemaSeleccionadoId(sistemaId);
-            }}
-            onAbrirCelula={
-              onAbrirCelula
-                ? (celulaId) => {
-                    marcarNavegacion();
-                    setOrganismoSeleccionadoId(null);
-                    onAbrirCelula(celulaId);
-                  }
-                : undefined
-            }
-            onAbrirTejido={
-              onAbrirTejido
-                ? (tejidoId) => {
-                    marcarNavegacion();
-                    setOrganismoSeleccionadoId(null);
-                    onAbrirTejido(tejidoId);
-                  }
-                : undefined
-            }
-            onAbrirOrgano={
-              onAbrirOrgano
-                ? (organoId) => {
-                    marcarNavegacion();
-                    setOrganismoSeleccionadoId(null);
-                    onAbrirOrgano(organoId);
-                  }
-                : undefined
-            }
-          />
-        )}
       </div>
     </div>
   );
@@ -386,7 +167,7 @@ function GridSimple<T extends { id: string; nombre: string }>({
 // ─── Panel Sistema: nombre, descripción, notas, Órganos (M:N vía
 // sistema_organos — SIN rol/proporción, pertenencia simple) ───────────────
 
-function PanelEditorSistema({
+export function PanelEditorSistema({
   item,
   organos,
   loadingOrganos,
@@ -446,7 +227,7 @@ function PanelEditorSistema({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -549,7 +330,7 @@ function PanelEditorSistema({
 // ─── Panel Organismo: nombre, descripción, notas, Sistemas (M:N vía
 // organismo_sistemas — CON proporción, igual que organo_tejidos) ──────────
 
-function PanelEditorOrganismo({
+export function PanelEditorOrganismo({
   item,
   sistemas,
   loadingSistemas,
@@ -604,7 +385,7 @@ function PanelEditorOrganismo({
   }
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar} sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Boxes className="text-primary/50" size={12} />}
@@ -984,54 +765,30 @@ function PickerCatalogoExistente({
 
 // ─── Piezas chicas compartidas (idénticas a CatalogoTejidosBiologia) ──────
 
+/**
+ * Caja blanca interna del panel — ver comentario equivalente en
+ * CatalogoTejidosBiologia.PanelFlotanteBase: el portal/backdrop ahora
+ * vive UNA sola vez en PanelFlotanteShellBiologia (BiologiaPage.tsx).
+ */
 function PanelFlotanteBase({
   children,
-  onCerrar,
   sinAnimacion,
 }: {
   children: React.ReactNode;
-  onCerrar: () => void;
   sinAnimacion?: boolean;
 }) {
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onCerrar]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
+  return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
       style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
+        background: "var(--bg-main)",
+        border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
       }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
-      <div
-        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>,
-    document.body,
+      {children}
+    </div>
   );
 }
 
