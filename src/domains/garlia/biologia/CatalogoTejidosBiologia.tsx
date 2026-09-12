@@ -285,6 +285,9 @@ export function PanelEditorCelula({
    *  breadcrumb (no un click nuevo desde la grilla) — suprime la
    *  animación de entrada para evitar el parpadeo "cierra y abre". */
   sinAnimacion?: boolean;
+  /** Suprime el marco/borde del panel flotante — usado cuando el panel se
+   *  embebe dentro de otro contenedor que ya provee su propio marco. */
+  sinMarco?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
