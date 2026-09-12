@@ -396,10 +396,14 @@ export function GrupoCompuestoPanelFlotante({
   // vez de apilarse como un modal nuevo encima). El editor de Célula/Grano
   // que cuelga de una fila de ESE Tejido/Veta (si el usuario navega un
   // nivel más adentro) sí necesita su propio mini-portal — ver más abajo.
-  const tejidoOVetaActivo =
+  const tejidoActivo =
     tipo === "organo"
       ? tejidosCatalogo.items.find((t) => t.id === tejidoOVetaAbiertoId) ?? null
-      : vetasCatalogo.items.find((v) => v.id === tejidoOVetaAbiertoId) ?? null;
+      : null;
+  const vetaActiva =
+    tipo === "formacion"
+      ? vetasCatalogo.items.find((v) => v.id === tejidoOVetaAbiertoId) ?? null
+      : null;
 
   // Editor de Célula/Grano de una fila de la fórmula del Órgano DIRECTO
   // (no anidado dentro de un Tejido/Veta) — mismo mecanismo: reemplaza el
@@ -412,10 +416,10 @@ export function GrupoCompuestoPanelFlotante({
 
   let contenidoActivo: React.ReactNode = contenidoOrgano;
 
-  if (tejidoOVetaActivo && tipo === "organo") {
+  if (tejidoActivo && tipo === "organo") {
     contenidoActivo = (
       <PanelEditorTejido sinMarco
-        item={tejidoOVetaActivo}
+        item={tejidoActivo}
         celulas={celulasCatalogo.items}
         loadingCelulas={celulasCatalogo.loading}
         compuestos={compuestos}
@@ -439,10 +443,10 @@ export function GrupoCompuestoPanelFlotante({
         }
       />
     );
-  } else if (tejidoOVetaActivo && tipo === "formacion") {
+  } else if (vetaActiva && tipo === "formacion") {
     contenidoActivo = (
       <PanelEditorVeta sinMarco
-        item={tejidoOVetaActivo}
+        item={vetaActiva}
         granos={granosCatalogo.items}
         loadingGranos={granosCatalogo.loading}
         onCerrar={() => setTejidoOVetaAbiertoId(null)}
