@@ -33,18 +33,16 @@ import { useCelulasDeUnOrgano } from "@/domains/garlia/elementos/useCelulasDeUnO
 import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 
-import type { Compuesto } from "./types";
+import type { Compuesto, Celula, Grano } from "./types";
 
 /**
- * Portal propio para el editor anidado (Tejido/Veta o Célula/Grano de una
- * fila) — SIEMPRE monta su propio createPortal+backdrop, sin importar si
- * el padre (GrupoCompuestoPanelFlotante) está en modo sinPortalPropio o
- * no. Antes esta superposición dependía del backdrop del propio Órgano
- * (se volvía invisible/pointer-events-none cuando había un anidado
- * abierto, dejando "asomar" el anidado por encima) — pero en modo
- * sinPortalPropio el Órgano ya no tiene ningún backdrop propio que
- * ocultar, así que el anidado se apilaba plano al lado en vez de encima.
- * Este wrapper resuelve eso siendo independiente del modo del padre.
+ * Portal propio SOLO para el segundo nivel de anidamiento real (Célula/
+ * Grano abierto DESDE ADENTRO del panel de Tejido/Veta) — ahí sí hay dos
+ * niveles simultáneos genuinos y necesita su propio marco flotante encima.
+ * El primer nivel (Tejido/Veta o Célula/Grano abiertos directo desde la
+ * fórmula del Órgano) ya NO usa este portal: reemplaza el contenido de
+ * cajaInterna en el mismo marco de siempre, para no verse como "otro
+ * modal" — ver el bloque de abajo que arma `contenidoActivo`.
  */
 function MiniPortalAnidado({
   children,
@@ -67,8 +65,7 @@ function MiniPortalAnidado({
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
       style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(4px)",
       }}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onCerrar();
@@ -203,15 +200,15 @@ export function GrupoCompuestoPanelFlotante({
 
   // Contenido de la caja blanca (header + body) — se reutiliza tanto en el
   // modo con portal propio como en el modo "shell externo".
-  const cajaInterna = (
-      <div
-        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
-      >
+  // Contenido propio del Órgano/Formación (header + fórmula + función/notas)
+  // — se muestra dentro del marco cuando NO hay Tejido/Célula (o Veta/
+  // Grano) de una fila abierto; si hay uno abierto, el marco muestra ESE
+  // editor en su lugar (ver cajaInterna más abajo) en vez de apilar un
+  // modal nuevo encima con su propio marco — mismo mecanismo que el shell
+  // de BiologiaPage.tsx para los 5 niveles raíz, aplicado acá para este
+  // nivel de anidamiento (Órgano ⇄ su Tejido/Célula de una fila).
+  const contenidoOrgano = (
+      <>
         {/* Header: ícono + nombre editable + eliminar + cerrar */}
         <div
           className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
@@ -391,169 +388,211 @@ export function GrupoCompuestoPanelFlotante({
             </div>
           </div>
         </div>
+      </>
+  );
+
+  // Editor de Tejido/Veta de una fila de la fórmula — reemplaza el
+  // contenido del Órgano DENTRO DEL MISMO marco cuando está abierto (en
+  // vez de apilarse como un modal nuevo encima). El editor de Célula/Grano
+  // que cuelga de una fila de ESE Tejido/Veta (si el usuario navega un
+  // nivel más adentro) sí necesita su propio mini-portal — ver más abajo.
+  const tejidoOVetaActivo =
+    tipo === "organo"
+      ? tejidosCatalogo.items.find((t) => t.id === tejidoOVetaAbiertoId) ?? null
+      : vetasCatalogo.items.find((v) => v.id === tejidoOVetaAbiertoId) ?? null;
+
+  // Editor de Célula/Grano de una fila de la fórmula del Órgano DIRECTO
+  // (no anidado dentro de un Tejido/Veta) — mismo mecanismo: reemplaza el
+  // contenido del Órgano dentro del mismo marco.
+  const celulaOGranoActivoDirecto =
+    !tejidoOVetaAbiertoId &&
+    (tipo === "organo"
+      ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
+      : granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null);
+
+  let contenidoActivo: React.ReactNode = contenidoOrgano;
+
+  if (tejidoOVetaActivo && tipo === "organo") {
+    contenidoActivo = (
+      <PanelEditorTejido sinMarco
+        item={tejidoOVetaActivo}
+        celulas={celulasCatalogo.items}
+        loadingCelulas={celulasCatalogo.loading}
+        compuestos={compuestos}
+        onCerrar={() => setTejidoOVetaAbiertoId(null)}
+        onActualizar={tejidosCatalogo.actualizar}
+        onEliminar={tejidosCatalogo.eliminar}
+        onAbrirCelula={(celulaId) => setCelulaOGranoAbiertoId(celulaId)}
+        onAbrirOrgano={(organoId) => {
+          setTejidoOVetaAbiertoId(null);
+          onCerrar();
+          onAbrirOrganoExterno?.(organoId);
+        }}
+        onAbrirCompuesto={
+          onAbrirCompuesto
+            ? (compuestoId) => {
+                setTejidoOVetaAbiertoId(null);
+                onCerrar();
+                onAbrirCompuesto(compuestoId);
+              }
+            : undefined
+        }
+      />
+    );
+  } else if (tejidoOVetaActivo && tipo === "formacion") {
+    contenidoActivo = (
+      <PanelEditorVeta sinMarco
+        item={tejidoOVetaActivo}
+        granos={granosCatalogo.items}
+        loadingGranos={granosCatalogo.loading}
+        onCerrar={() => setTejidoOVetaAbiertoId(null)}
+        onActualizar={vetasCatalogo.actualizar}
+        onEliminar={vetasCatalogo.eliminar}
+        onAbrirGrano={(granoId) => setCelulaOGranoAbiertoId(granoId)}
+        onAbrirFormacion={(formacionId) => {
+          setTejidoOVetaAbiertoId(null);
+          onCerrar();
+          onAbrirFormacionExterna?.(formacionId);
+        }}
+      />
+    );
+  } else if (celulaOGranoActivoDirecto && tipo === "organo") {
+    contenidoActivo = (
+      <PanelEditorCelula sinMarco
+        item={celulaOGranoActivoDirecto}
+        compuestos={compuestos}
+        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onActualizar={celulasCatalogo.actualizar}
+        onEliminar={celulasCatalogo.eliminar}
+        onAbrirCompuesto={
+          onAbrirCompuesto
+            ? (compuestoId) => {
+                setCelulaOGranoAbiertoId(null);
+                onCerrar();
+                onAbrirCompuesto(compuestoId);
+              }
+            : undefined
+        }
+        onAbrirTejido={(tejidoId) => {
+          setCelulaOGranoAbiertoId(null);
+          setTejidoOVetaAbiertoId(tejidoId);
+        }}
+      />
+    );
+  } else if (celulaOGranoActivoDirecto && tipo === "formacion") {
+    contenidoActivo = (
+      <PanelEditorGrano sinMarco
+        item={celulaOGranoActivoDirecto}
+        compuestos={compuestos}
+        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onActualizar={granosCatalogo.actualizar}
+        onEliminar={granosCatalogo.eliminar}
+        onAbrirCompuesto={
+          onAbrirCompuesto
+            ? (compuestoId) => {
+                setCelulaOGranoAbiertoId(null);
+                onCerrar();
+                onAbrirCompuesto(compuestoId);
+              }
+            : undefined
+        }
+        onAbrirVeta={(vetaId) => {
+          setCelulaOGranoAbiertoId(null);
+          setTejidoOVetaAbiertoId(vetaId);
+        }}
+        onAbrirFormacion={(formacionId) => {
+          setCelulaOGranoAbiertoId(null);
+          onCerrar();
+          onAbrirFormacionExterna?.(formacionId);
+        }}
+      />
+    );
+  }
+
+  // Marco blanco compartido — SIEMPRE el mismo nodo, sin importar qué
+  // nivel (Órgano, Tejido/Veta, o Célula/Grano directo) esté activo. Solo
+  // cambia `contenidoActivo` adentro — así nunca se ve como "otro modal
+  // apilado", es el mismo panel reemplazando su contenido.
+  const cajaInterna = (
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: sinAnimacion ? "none" : "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        {contenidoActivo}
       </div>
   );
 
-  // Editores anidados (Tejido/Veta y Célula/Grano de una fila) — se
-  // renderizan por fuera de cajaInterna en ambos modos, para poder
-  // superponerse por encima de ella (mismo comportamiento de siempre).
-  const editoresAnidados = (
-    <>
-      {/* Editor completo del Tejido/Veta de una fila — encima de este panel
-         (mismo z-index base, PanelFlotanteBase se encarga de superponerse). */}
-      {tejidoOVetaAbiertoId && tipo === "organo" && (
-        (() => {
-          const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === tejidoOVetaAbiertoId);
-          if (!tejidoActivo) return null;
-          return (
-            <MiniPortalAnidado onCerrar={() => setTejidoOVetaAbiertoId(null)}>
-              <PanelEditorTejido
-                item={tejidoActivo}
-                celulas={celulasCatalogo.items}
-                loadingCelulas={celulasCatalogo.loading}
-                compuestos={compuestos}
-                onCerrar={() => setTejidoOVetaAbiertoId(null)}
-                onActualizar={tejidosCatalogo.actualizar}
-                onEliminar={tejidosCatalogo.eliminar}
-                onAbrirCelula={(celulaId) => setCelulaOGranoAbiertoId(celulaId)}
-                onAbrirOrgano={(organoId) => {
-                  // El Tejido puede ser usado por OTRO Órgano distinto al que
-                  // este panel ya tiene abierto — cerramos todo este modal y
-                  // dejamos que el padre (BiologiaPage) abra el Órgano elegido.
-                  setTejidoOVetaAbiertoId(null);
-                  onCerrar();
-                  onAbrirOrganoExterno?.(organoId);
-                }}
-                onAbrirCompuesto={
-                  onAbrirCompuesto
-                    ? (compuestoId) => {
-                        // Igual que con onAbrirOrgano arriba: sin cerrar
-                        // este panel de Tejido (y el propio Órgano/Formación
-                        // que lo contiene), CompuestoPanelFlotante quedaba
-                        // apilado con el mismo z-[9999] fijo — un tercer
-                        // nivel abierto desde ahí podía tapar o ser tapado.
-                        setTejidoOVetaAbiertoId(null);
-                        onCerrar();
-                        onAbrirCompuesto(compuestoId);
-                      }
-                    : undefined
-                }
-              />
-            </MiniPortalAnidado>
-          );
-        })()
-      )}
-      {tejidoOVetaAbiertoId && tipo === "formacion" && (
-        (() => {
-          const vetaActiva = vetasCatalogo.items.find((v) => v.id === tejidoOVetaAbiertoId);
-          if (!vetaActiva) return null;
-          return (
-            <MiniPortalAnidado onCerrar={() => setTejidoOVetaAbiertoId(null)}>
-              <PanelEditorVeta
-                item={vetaActiva}
-                granos={granosCatalogo.items}
-                loadingGranos={granosCatalogo.loading}
-                onCerrar={() => setTejidoOVetaAbiertoId(null)}
-                onActualizar={vetasCatalogo.actualizar}
-                onEliminar={vetasCatalogo.eliminar}
-                onAbrirGrano={(granoId) => setCelulaOGranoAbiertoId(granoId)}
-                onAbrirFormacion={(formacionId) => {
-                  // La Veta puede ser usada por OTRA Formación distinta a la
-                  // que este panel ya tiene abierto — cerramos todo este
-                  // modal y dejamos que el padre (FisicaPage) abra la
-                  // Formación elegida.
-                  setTejidoOVetaAbiertoId(null);
-                  onCerrar();
-                  onAbrirFormacionExterna?.(formacionId);
-                }}
-              />
-            </MiniPortalAnidado>
-          );
-        })()
-      )}
+  // Segundo nivel de anidamiento real: Célula/Grano abierto DESDE ADENTRO
+  // del panel de Tejido/Veta que ya reemplazó el contenido de arriba — acá
+  // sí hay dos niveles simultáneos genuinos (Tejido de fondo, Célula
+  // encima), así que la Célula sí necesita su propio marco flotante.
+  const celulaOGranoAnidadaEnTejido =
+    tejidoOVetaAbiertoId &&
+    (tipo === "organo"
+      ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
+      : granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null);
 
-      {/* Editor completo de la Célula/Grano que compone una fila — abierto
-         desde "hecho de: [Célula]" en la fórmula, o desde adentro del panel
-         de Tejido/Veta de arriba. El Compuesto se elige/edita adentro de
-         ESTE panel (SelectorCompuesto), no en la fórmula ni en el Tejido. */}
-      {celulaOGranoAbiertoId && tipo === "organo" && (
-        (() => {
-          const celulaActiva = celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId);
-          if (!celulaActiva) return null;
-          return (
-            <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
-              <PanelEditorCelula
-                item={celulaActiva}
-                compuestos={compuestos}
-                onCerrar={() => setCelulaOGranoAbiertoId(null)}
-                onActualizar={celulasCatalogo.actualizar}
-                onEliminar={celulasCatalogo.eliminar}
-                onAbrirCompuesto={
-                  onAbrirCompuesto
-                    ? (compuestoId) => {
-                        // Mismo motivo que onAbrirOrgano/onAbrirFormacion en
-                        // los paneles de arriba: cerrar Célula + el propio
-                        // Órgano antes de subir el id evita quedar apilado
-                        // con CompuestoPanelFlotante (mismo z-[9999] fijo).
-                        setCelulaOGranoAbiertoId(null);
-                        onCerrar();
-                        onAbrirCompuesto(compuestoId);
-                      }
-                    : undefined
-                }
-                onAbrirTejido={(tejidoId) => {
+  const editoresAnidados = celulaOGranoAnidadaEnTejido ? (
+    tipo === "organo" ? (
+      <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
+        <PanelEditorCelula
+          item={celulaOGranoAnidadaEnTejido as Celula}
+          compuestos={compuestos}
+          onCerrar={() => setCelulaOGranoAbiertoId(null)}
+          onActualizar={celulasCatalogo.actualizar}
+          onEliminar={celulasCatalogo.eliminar}
+          onAbrirCompuesto={
+            onAbrirCompuesto
+              ? (compuestoId) => {
                   setCelulaOGranoAbiertoId(null);
-                  setTejidoOVetaAbiertoId(tejidoId);
-                }}
-              />
-            </MiniPortalAnidado>
-          );
-        })()
-      )}
-      {celulaOGranoAbiertoId && tipo === "formacion" && (
-        (() => {
-          const granoActivo = granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId);
-          if (!granoActivo) return null;
-          return (
-            <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
-              <PanelEditorGrano
-                item={granoActivo}
-                compuestos={compuestos}
-                onCerrar={() => setCelulaOGranoAbiertoId(null)}
-                onActualizar={granosCatalogo.actualizar}
-                onEliminar={granosCatalogo.eliminar}
-                onAbrirCompuesto={
-                  onAbrirCompuesto
-                    ? (compuestoId) => {
-                        // Mismo motivo que arriba: cerrar Grano + la propia
-                        // Formación antes de subir el id evita quedar
-                        // apilado con CompuestoPanelFlotante.
-                        setCelulaOGranoAbiertoId(null);
-                        onCerrar();
-                        onAbrirCompuesto(compuestoId);
-                      }
-                    : undefined
-                }
-                onAbrirVeta={(vetaId) => {
-                  setCelulaOGranoAbiertoId(null);
-                  setTejidoOVetaAbiertoId(vetaId);
-                }}
-                onAbrirFormacion={(formacionId) => {
-                  // El Grano puede ser alcanzado por Vetas de OTRA Formación
-                  // distinta a la que este panel ya tiene abierto — cerramos
-                  // todo este modal y dejamos que el padre (FisicaPage) abra
-                  // la Formación elegida.
-                  setCelulaOGranoAbiertoId(null);
+                  setTejidoOVetaAbiertoId(null);
                   onCerrar();
-                  onAbrirFormacionExterna?.(formacionId);
-                }}
-              />
-            </MiniPortalAnidado>
-          );
-        })()
-      )}
-    </>
-  );
+                  onAbrirCompuesto(compuestoId);
+                }
+              : undefined
+          }
+          onAbrirTejido={(tejidoId) => {
+            setCelulaOGranoAbiertoId(null);
+            setTejidoOVetaAbiertoId(tejidoId);
+          }}
+        />
+      </MiniPortalAnidado>
+    ) : (
+      <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
+        <PanelEditorGrano
+          item={celulaOGranoAnidadaEnTejido as Grano}
+          compuestos={compuestos}
+          onCerrar={() => setCelulaOGranoAbiertoId(null)}
+          onActualizar={granosCatalogo.actualizar}
+          onEliminar={granosCatalogo.eliminar}
+          onAbrirCompuesto={
+            onAbrirCompuesto
+              ? (compuestoId) => {
+                  setCelulaOGranoAbiertoId(null);
+                  setTejidoOVetaAbiertoId(null);
+                  onCerrar();
+                  onAbrirCompuesto(compuestoId);
+                }
+              : undefined
+          }
+          onAbrirVeta={(vetaId) => {
+            setCelulaOGranoAbiertoId(null);
+            setTejidoOVetaAbiertoId(vetaId);
+          }}
+          onAbrirFormacion={(formacionId) => {
+            setCelulaOGranoAbiertoId(null);
+            setTejidoOVetaAbiertoId(null);
+            onCerrar();
+            onAbrirFormacionExterna?.(formacionId);
+          }}
+        />
+      </MiniPortalAnidado>
+    )
+  ) : null;
 
   if (sinPortalPropio) {
     return (
@@ -568,11 +607,7 @@ export function GrupoCompuestoPanelFlotante({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
-        tejidoOVetaAbiertoId || celulaOGranoAbiertoId
-          ? "invisible pointer-events-none"
-          : ""
-      }`}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
       style={{
         background: "color-mix(in srgb, var(--primary) 35%, transparent)",
         backdropFilter: "blur(8px)",

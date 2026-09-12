@@ -259,6 +259,7 @@ export function PanelEditorCelula({
   onAbrirSistema,
   onAbrirOrganismo,
   sinAnimacion,
+  sinMarco,
 }: {
   item: Celula;
   compuestos: Compuesto[];
@@ -316,7 +317,7 @@ export function PanelEditorCelula({
   }
 
   return (
-    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Beaker className="text-primary/50" size={12} />}
@@ -443,6 +444,7 @@ export function PanelEditorTejido({
   onCompuestoCreado,
   onAbrirCompuesto,
   sinAnimacion,
+  sinMarco,
 }: {
   item: Tejido;
   celulas: Celula[];
@@ -468,6 +470,8 @@ export function PanelEditorTejido({
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb — suprime la animación de entrada. */
   sinAnimacion?: boolean;
+  /** ver PanelFlotanteBase.sinMarco. */
+  sinMarco?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -500,7 +504,7 @@ export function PanelEditorTejido({
   }
 
   return (
-    <PanelFlotanteBase sinAnimacion={sinAnimacion}>
+    <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -832,13 +836,25 @@ function PickerCatalogoExistente({
 function PanelFlotanteBase({
   children,
   sinAnimacion,
+  sinMarco,
 }: {
   children: React.ReactNode;
   /** true cuando este panel reemplaza a otro por una navegación de
    *  breadcrumb (no una apertura nueva) — suprime la animación de entrada
    *  para no parpadear al saltar entre niveles de la jerarquía. */
   sinAnimacion?: boolean;
+  /**
+   * true para NO montar el marco blanco propio (w-full h-full max-w-6xl…)
+   * — usado cuando este editor reemplaza el contenido de OTRO marco ya
+   * existente (ver GrupoCompuestoPanelFlotante en GruposCompuestosPage.tsx,
+   * que muestra el Tejido/Célula de una fila DENTRO del mismo marco del
+   * Órgano, en vez de apilar un panel nuevo encima). Solo devuelve
+   * children (header + body) tal cual.
+   */
+  sinMarco?: boolean;
 }) {
+  if (sinMarco) return <>{children}</>;
+
   return (
     <div
       className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"

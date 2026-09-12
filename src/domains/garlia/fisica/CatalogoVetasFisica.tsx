@@ -257,6 +257,7 @@ export function PanelEditorGrano({
   onAbrirCompuesto,
   onAbrirVeta,
   onAbrirFormacion,
+  sinMarco,
 }: {
   item: Grano;
   compuestos: Compuesto[];
@@ -272,6 +273,8 @@ export function PanelEditorGrano({
    *  transitiva (Grano → Veta → Formación, unión de todas las Formaciones
    *  alcanzables). */
   onAbrirFormacion?: (formacionId: string) => void;
+  /** ver PanelFlotanteBase.sinMarco. */
+  sinMarco?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -361,7 +364,7 @@ export function PanelEditorGrano({
   const compuestosUsados = new Set(vinculos.map((v) => v.compuesto_id));
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Gem className="text-primary/50" size={12} />}
@@ -605,6 +608,7 @@ export function PanelEditorVeta({
   onEliminar,
   onAbrirGrano,
   onAbrirFormacion,
+  sinMarco,
 }: {
   item: Veta;
   granos: Grano[];
@@ -616,6 +620,8 @@ export function PanelEditorVeta({
   onAbrirGrano?: (granoId: string) => void;
   /** Cierra este panel y abre el de la Formación elegida — navegación hacia arriba. */
   onAbrirFormacion?: (formacionId: string) => void;
+  /** ver PanelFlotanteBase.sinMarco. */
+  sinMarco?: boolean;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [eliminando, setEliminando] = useState(false);
@@ -701,7 +707,7 @@ export function PanelEditorVeta({
   const granosUsados = new Set(vinculos.map((v) => v.grano_id));
 
   return (
-    <PanelFlotanteBase onCerrar={onCerrar}>
+    <PanelFlotanteBase onCerrar={onCerrar} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
         icono={<Layers className="text-primary/50" size={12} />}
@@ -959,11 +965,20 @@ function SelectorGranoParaAgregar({
 function PanelFlotanteBase({
   children,
   onCerrar,
+  sinMarco,
 }: {
   children: React.ReactNode;
   onCerrar: () => void;
+  /**
+   * true para NO montar el marco blanco propio ni el portal/backdrop —
+   * usado cuando este editor (Veta/Grano de una fila) reemplaza el
+   * contenido del marco de una Formación en vez de apilarse encima —
+   * ver GrupoCompuestoPanelFlotante en GruposCompuestosPage.tsx.
+   */
+  sinMarco?: boolean;
 }) {
   useEffect(() => {
+    if (sinMarco) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
     };
@@ -974,7 +989,9 @@ function PanelFlotanteBase({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onCerrar]);
+  }, [onCerrar, sinMarco]);
+
+  if (sinMarco) return <>{children}</>;
 
   if (typeof document === "undefined") return null;
 
