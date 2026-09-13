@@ -72,9 +72,9 @@ const PAD = 56;
 // original y I como 4to vértice agregado después) — ahora los 4 forman 2
 // ejes de opuestos reales en vez de 3 vértices + 1 añadido.
 const V_T = { x: SIZE / 2, y: PAD };
-const V_A = { x: SIZE / 2, y: SIZE - PAD * 0.65 };
-const V_S = { x: PAD * 0.55, y: SIZE / 2 };
-const V_I = { x: SIZE - PAD * 0.55, y: SIZE / 2 };
+const V_A = { x: SIZE / 2, y: SIZE - PAD };
+const V_S = { x: PAD, y: SIZE / 2 };
+const V_I = { x: SIZE - PAD, y: SIZE / 2 };
 
 /** Punto 5 del docx: transformación puramente gráfica (T,A,S,I) → posición
  *  visual, vía coordenadas baricéntricas generalizadas a 4 puntos. Si las
