@@ -99,6 +99,7 @@ import { TriangleATS, type EntidadATS } from "./TriangleATS";
 // que se creó de cero para VIS-01). Mismo dato de entrada (formula), solo
 // cambia qué SVG dibuja.
 import { ParticulaVisual, IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
+import { MapaUniversalSection } from "./MapaUniversalSection";
 
 // SectionKey: se mantienen las 15 keys viejas (ya tienen render implementado
 // más abajo, active === "...") y se agregan keys nuevas para los VIS que
@@ -228,7 +229,7 @@ const navGroups: NavGroup[] = [
   {
     group: "Atlas / Sandbox",
     items: [
-      { key: "mapaUniversal", label: "Mapa Universal", visId: "VIS-15", icon: <GitBranch size={15} />, implementado: false },
+      { key: "mapaUniversal", label: "Mapa Universal", visId: "VIS-15", icon: <GitBranch size={15} />, implementado: true },
       { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: false },
     ],
   },
@@ -3692,12 +3693,13 @@ function VisualizadorPage() {
 
             {active === "elEnlace" ? <EnlaceSection /> : null}
 
+            {active === "mapaUniversal" ? <MapaUniversalSection /> : null}
+
             {(
               [
                 ["comparacion", "VIS-18", "Comparación"],
                 ["propagacion", "VIS-06", "Propagación"],
                 ["tiempo", "VIS-16", "Tiempo"],
-                ["mapaUniversal", "VIS-15", "Mapa Universal"],
                 ["laboratorio", "VIS-17", "Laboratorio"],
                 ["celulasTejido", "VIS-11", "Células → Tejido"],
                 ["tejidoOrgano", "VIS-12", "Tejido → Órgano"],
