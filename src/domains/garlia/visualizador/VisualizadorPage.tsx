@@ -90,7 +90,7 @@ import { contarLetrasNodo } from "./NodeVisuals";
 // ParticulaVisual/IumVisual desde fisica/: reusar el visor real en vez de
 // mantener un dibujo propio (ElementoNodo) en NodeVisuals.tsx.
 import { AtomoVisual } from "@/domains/garlia/elementos/ElementoEditor";
-import { TriangleATS, type EntidadATS } from "./TriangleATS";
+import { TriangleATS, HexagonoATS, type EntidadATS, type EntidadEjes } from "./TriangleATS";
 // Componente "de afuera" del visualizador (fisica/), el diseño original de
 // Partícula con letras dentro de tercios de color — pedido explícito de
 // reusarlo en la tab Rutas en vez de ParticulaNodo (el círculo sin letras
@@ -429,147 +429,6 @@ function BarraDivergente({ label, value, max }: { label: string; value: number; 
         )}
       </div>
     </div>
-  );
-}
-
-/** VIS-02 (partículas) — figura de 6 lados para comparar los 6 ejes
- *  fundamentales reales (particulas.ejes_fundamentales) de una o más
- *  partículas a la vez: Dinámica / Coherencia / Estabilidad / Información /
- *  Interacción / Transformación. Mismo criterio que TriangleATS: el
- *  frontend no calcula nada conceptual, solo proyecta 6 valores ya reales
- *  sobre 6 ejes dispuestos a 60° uno de otro (hexágono regular). Soporta
- *  más de una serie superpuesta (semi-transparente) para "comparar" varias
- *  partículas en el mismo gráfico, tal como se pidió. */
-const EJES_HEXAGONO = [
-  "dinamica",
-  "coherencia",
-  "estabilidad",
-  "informacion",
-  "interaccion",
-  "transformacion",
-] as const;
-
-const EJES_HEXAGONO_LABELS: Record<(typeof EJES_HEXAGONO)[number], string> = {
-  dinamica: "Dinámica",
-  coherencia: "Coherencia",
-  estabilidad: "Estabilidad",
-  informacion: "Información",
-  interaccion: "Interacción",
-  transformacion: "Transformación",
-};
-
-export interface SerieHexagono {
-  id: string;
-  label: string;
-  valores: Partial<Record<(typeof EJES_HEXAGONO)[number], number>>;
-  color: string;
-}
-
-function HexagonoEjes({
-  series,
-  size = 320,
-}: {
-  series: SerieHexagono[];
-  size?: number;
-}) {
-  const PAD = 46;
-  const cx = size / 2;
-  const cy = size / 2;
-  const radio = size / 2 - PAD;
-
-  // Máximo absoluto real entre todas las series (nunca inventado) para que
-  // la escala del hexágono refleje el rango de datos existente — mismo
-  // criterio que ya usa BarraDivergente para sus barras divergentes.
-  const max = Math.max(
-    1,
-    ...series.flatMap((s) => EJES_HEXAGONO.map((eje) => Math.abs(s.valores[eje] ?? 0))),
-  );
-
-  // Vértice del hexágono para el eje `i` (0..5), empezando arriba y en
-  // sentido horario — geometría pura, ningún significado agregado.
-  const vertice = (i: number, r: number) => {
-    const angle = -Math.PI / 2 + (i * Math.PI * 2) / 6;
-    return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
-  };
-
-  const anillos = [0.25, 0.5, 0.75, 1];
-
-  const puntosSerie = (s: SerieHexagono) =>
-    EJES_HEXAGONO.map((eje, i) => {
-      const v = s.valores[eje] ?? 0;
-      // Divergente: valores negativos se proyectan hacia adentro del
-      // centro en vez de recortarse a 0, igual que BarraDivergente.
-      const pct = Math.max(-1, Math.min(1, v / max));
-      const r = Math.max(0, (pct + 1) / 2) * radio;
-      return vertice(i, r);
-    });
-
-  return (
-    <svg viewBox={`0 0 ${size} ${size}`} width="100%" height="auto" role="img" aria-label="Comparación de ejes fundamentales">
-      {/* Anillos de referencia + ejes radiales */}
-      {anillos.map((f) => {
-        const pts = EJES_HEXAGONO.map((_, i) => vertice(i, f * radio));
-        return (
-          <polygon
-            key={f}
-            points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
-            fill="none"
-            strokeWidth={1}
-            style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-          />
-        );
-      })}
-      {EJES_HEXAGONO.map((_, i) => {
-        const p = vertice(i, radio);
-        return (
-          <line
-            key={i}
-            x1={cx}
-            y1={cy}
-            x2={p.x}
-            y2={p.y}
-            strokeWidth={1}
-            style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-          />
-        );
-      })}
-
-      {/* Series (una o más, superpuestas para comparar) */}
-      {series.map((s) => {
-        const pts = puntosSerie(s);
-        return (
-          <g key={s.id}>
-            <polygon
-              points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
-              style={{ fill: `color-mix(in srgb, ${s.color} 22%, transparent)`, stroke: s.color }}
-              strokeWidth={2}
-            />
-            {pts.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r={3} style={{ fill: s.color }} />
-            ))}
-          </g>
-        );
-      })}
-
-      {/* Etiquetas de eje */}
-      {EJES_HEXAGONO.map((eje, i) => {
-        const p = vertice(i, radio + 20);
-        return (
-          <text
-            key={eje}
-            x={p.x}
-            y={p.y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={10}
-            fontWeight={800}
-            style={{ fill: "var(--primary)", opacity: 0.55 }}
-          >
-            {EJES_HEXAGONO_LABELS[eje]}
-          </text>
-        );
-      })}
-    </svg>
   );
 }
 
@@ -3289,11 +3148,29 @@ function VisualizadorPage() {
 
   const atsEntidadActiva = entidadesATS.find((e) => e.id === atsSelId) ?? null;
 
-  // Comparación en el hexágono de ejes fundamentales: además de la
-  // partícula activa (seleccionada en el mapa T/A/S/I), se puede elegir
-  // una segunda partícula para superponer y comparar los 6 ejes reales
-  // en la misma figura — pedido explícito del usuario ("para compararlos").
-  const [atsCompararId, setAtsCompararId] = useState<string | null>(null);
+  // Toggle "Partículas" (T/A/S/I, TriangleATS) vs "Propiedades" (los 6
+  // ejes fundamentales reales, HexagonoATS) — pedido explícito del
+  // usuario: mismo patrón que TriangleATS, mostrando TODAS las entidades
+  // a la vez posicionadas por sus 6 ejes, no una sola con barras.
+  const [modoATS, setModoATS] = useState<"particulas" | "propiedades">("particulas");
+
+  // Todas las partículas con ejes_fundamentales reales, listas para
+  // HexagonoATS — mismo criterio que entidadesATS: nunca se calcula nada
+  // conceptual acá, solo se resuelve el shape que pide el componente.
+  const entidadesEjes: EntidadEjes[] = useMemo(
+    () =>
+      particulas
+        .filter((p) => !!p.ejes_fundamentales)
+        .map((p) => ({
+          id: p.id,
+          label: p.nombre,
+          sublabel: p.formula,
+          ejes: p.ejes_fundamentales!,
+        })),
+    [particulas],
+  );
+
+  const ejesEntidadActiva = entidadesEjes.find((e) => e.id === atsSelId) ?? null;
 
   useEffect(() => {
     if (!orisSel && oris.length > 0) setOrisSel(oris[0]);
@@ -3393,7 +3270,7 @@ function VisualizadorPage() {
                     protagonista es el espacio que existe dentro de él"),
                     con el selector de partícula anterior movido a un panel
                     lateral de detalle en vez de encabezar la sección. */}
-                <div className="mb-5 flex flex-wrap items-center gap-2">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
                   {(
                     [
                       ["particulas", "Partículas"],
@@ -3418,10 +3295,49 @@ function VisualizadorPage() {
                   </span>
                 </div>
 
+                {/* Toggle de modo de figura: T/A/S/I (TriangleATS, rombo de
+                    4 lados) vs los 6 ejes fundamentales reales (HexagonoATS,
+                    figura de 6 lados) — mismo espacio, todas las entidades a
+                    la vez, distinto conjunto de ejes. Solo aplica a nivel
+                    Partículas, que es donde existen ejes_fundamentales. */}
+                {nivelATS === "particulas" ? (
+                  <div className="mb-5 flex flex-wrap items-center gap-2">
+                    {(
+                      [
+                        ["particulas", "T / A / S / I"],
+                        ["propiedades", "Ejes fundamentales"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setModoATS(key)}
+                        className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                          modoATS === key
+                            ? "border-accent/60 bg-accent/10 text-accent"
+                            : "border-primary/12 text-primary/35 hover:border-primary/25"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
                 <div className="grid gap-7 lg:grid-cols-[1.35fr_0.65fr]">
                   <div className="rounded-2xl p-7">
                     {(nivelATS === "particulas" && loadingParticulas) || (nivelATS === "oris" && loadingOris) ? (
                       <LoadingRow />
+                    ) : nivelATS === "particulas" && modoATS === "propiedades" ? (
+                      entidadesEjes.length === 0 ? (
+                        <EmptyRow>Sin partículas con ejes_fundamentales.</EmptyRow>
+                      ) : (
+                        <HexagonoATS
+                          entidades={entidadesEjes}
+                          selectedId={atsSelId}
+                          onSelect={setAtsSelId}
+                          modoCiencia
+                        />
+                      )
                     ) : entidadesATS.length === 0 ? (
                       <EmptyRow>Sin entidades para este nivel.</EmptyRow>
                     ) : (
@@ -3436,7 +3352,39 @@ function VisualizadorPage() {
 
                   <div className="space-y-5">
                     <div className="rounded-2xl p-7">
-                      {atsEntidadActiva ? (
+                      {nivelATS === "particulas" && modoATS === "propiedades" ? (
+                        ejesEntidadActiva ? (
+                          <div className="flex flex-col items-center text-center">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+                              Partícula
+                            </p>
+                            <p className="mt-1 text-2xl font-black text-primary/85">{ejesEntidadActiva.label}</p>
+                            {ejesEntidadActiva.sublabel ? (
+                              <p className="mt-1 text-xs font-bold text-primary/40">{ejesEntidadActiva.sublabel}</p>
+                            ) : null}
+                            <div className="my-3 h-6 border-l border-dashed border-primary/20" />
+                            <div className="grid w-full grid-cols-2 gap-3 text-center">
+                              {(
+                                [
+                                  ["dinamica", "Dinámica"],
+                                  ["coherencia", "Coherencia"],
+                                  ["estabilidad", "Estabilidad"],
+                                  ["informacion", "Información"],
+                                  ["interaccion", "Interacción"],
+                                  ["transformacion", "Transformación"],
+                                ] as const
+                              ).map(([clave, label]) => (
+                                <div key={clave} className="rounded-xl border border-primary/10 p-3">
+                                  <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">{label}</p>
+                                  <p className="mt-1 text-base font-black text-primary/75">{ejesEntidadActiva.ejes[clave]}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <EmptyRow>Elegí una partícula en el mapa.</EmptyRow>
+                        )
+                      ) : atsEntidadActiva ? (
                         <div className="flex flex-col items-center text-center">
                           <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
                             {nivelATS === "particulas" ? "Partícula" : nivelATS === "ium" ? "IUM" : "Oris"}
@@ -3463,99 +3411,6 @@ function VisualizadorPage() {
                       ) : (
                         <EmptyRow>Elegí una entidad en el mapa.</EmptyRow>
                       )}
-                    </div>
-
-                    <div className="rounded-2xl p-7">
-                      <p className="text-xs font-black text-primary/80">Ejes fundamentales</p>
-                      <p className="text-[10px] text-primary/35">Valores reales de particulas.ejes_fundamentales</p>
-                      {nivelATS !== "particulas" ? (
-                        <EmptyRow>Solo disponible a nivel Partículas.</EmptyRow>
-                      ) : (() => {
-                        const p = particulas.find((x) => x.id === atsSelId) ?? null;
-                        if (!p?.ejes_fundamentales) {
-                          return <EmptyRow>Sin ejes fundamentales para esta partícula.</EmptyRow>;
-                        }
-                        const comparar = atsCompararId
-                          ? particulas.find((x) => x.id === atsCompararId) ?? null
-                          : null;
-
-                        const series: SerieHexagono[] = [
-                          {
-                            id: p.id,
-                            label: p.nombre,
-                            valores: p.ejes_fundamentales,
-                            color: "#3b82f6",
-                          },
-                        ];
-                        if (comparar?.ejes_fundamentales) {
-                          series.push({
-                            id: comparar.id,
-                            label: comparar.nombre,
-                            valores: comparar.ejes_fundamentales,
-                            color: "#ef4444",
-                          });
-                        }
-
-                        return (
-                          <div className="mt-4 space-y-5">
-                            {/* Selector para comparar contra otra partícula */}
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-primary/35">
-                                Comparar con
-                              </span>
-                              <select
-                                value={atsCompararId ?? ""}
-                                onChange={(e) => setAtsCompararId(e.target.value || null)}
-                                className="rounded-full border border-primary/12 bg-transparent px-3 py-1 text-[11px] font-bold text-primary/70 outline-none"
-                              >
-                                <option value="">— ninguna —</option>
-                                {particulas
-                                  .filter((pp) => pp.id !== p.id && pp.ejes_fundamentales)
-                                  .map((pp) => (
-                                    <option key={pp.id} value={pp.id}>
-                                      {pp.nombre}
-                                    </option>
-                                  ))}
-                              </select>
-                            </div>
-
-                            {/* Leyenda de series */}
-                            <div className="flex flex-wrap gap-3">
-                              {series.map((s) => (
-                                <span key={s.id} className="flex items-center gap-1.5 text-[10px] font-bold text-primary/55">
-                                  <span
-                                    className="inline-block h-2.5 w-2.5 rounded-full"
-                                    style={{ backgroundColor: s.color }}
-                                  />
-                                  {s.label}
-                                </span>
-                              ))}
-                            </div>
-
-                            <HexagonoEjes series={series} />
-
-                            <div className="space-y-4 border-t border-primary/10 pt-4">
-                              {(
-                                [
-                                  ["dinamica", "Dinámica"],
-                                  ["coherencia", "Coherencia"],
-                                  ["estabilidad", "Estabilidad"],
-                                  ["informacion", "Información"],
-                                  ["interaccion", "Interacción"],
-                                  ["transformacion", "Transformación"],
-                                ] as const
-                              ).map(([clave, label]) => {
-                                const valores = particulas
-                                  .map((pp) => pp.ejes_fundamentales?.[clave])
-                                  .filter((v): v is number => typeof v === "number");
-                                const max = Math.max(1, ...valores.map((v) => Math.abs(v)));
-                                const v = p.ejes_fundamentales?.[clave] ?? 0;
-                                return <BarraDivergente key={clave} label={label} value={v} max={max} />;
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
                     </div>
                   </div>
                 </div>

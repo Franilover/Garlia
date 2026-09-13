@@ -308,3 +308,275 @@ export function TriangleATS({
     </svg>
   );
 }
+
+// ─── HexagonoATS — mismo lenguaje visual que TriangleATS, pero para los 6
+// "ejes fundamentales" reales (particulas.ejes_fundamentales) en vez de
+// T/A/S/I. Mismo criterio que arriba: el frontend NO calcula nada
+// conceptual, solo proyecta 6 valores ya reales sobre 6 vértices de un
+// hexágono regular vía coordenadas baricéntricas generalizadas — misma
+// función matemática que posicionEnTriangulo, generalizada a N vértices —
+// y reusa exactamente el mismo patrón de interacción (hover/selección,
+// separación de solapados, modoCiencia) para que se sienta como "la misma
+// pantalla, otro conjunto de ejes", tal como pidió el usuario ("igual que
+// se muestran todas en TriangleATS, mostrar todas en un rombo de 6 lados").
+
+export type EjesSeisD = {
+  dinamica: number;
+  coherencia: number;
+  estabilidad: number;
+  informacion: number;
+  interaccion: number;
+  transformacion: number;
+};
+
+export interface EntidadEjes {
+  id: string;
+  label: string;
+  sublabel?: string;
+  ejes: EjesSeisD;
+}
+
+const EJES_HEX_ORDEN: (keyof EjesSeisD)[] = [
+  "dinamica",
+  "coherencia",
+  "estabilidad",
+  "informacion",
+  "interaccion",
+  "transformacion",
+];
+
+const EJES_HEX_LABELS: Record<keyof EjesSeisD, string> = {
+  dinamica: "Dinámica",
+  coherencia: "Coherencia",
+  estabilidad: "Estabilidad",
+  informacion: "Información",
+  interaccion: "Interacción",
+  transformacion: "Transformación",
+};
+
+// Mismo color por eje que el resto del visualizador usa para T/A/S/I —
+// acá son 6 tonos distintos solo para diferenciar visualmente cada vértice
+// en el gradiente y las etiquetas, sin implicar ningún significado nuevo.
+const EJES_HEX_COLOR: Record<keyof EjesSeisD, string> = {
+  dinamica: "#ef4444",
+  coherencia: "#f59e0b",
+  estabilidad: "#22c55e",
+  informacion: "#06b6d4",
+  interaccion: "#3b82f6",
+  transformacion: "#a855f7",
+};
+
+const HEX_SIZE = 380;
+const HEX_PAD = 64;
+const HEX_CX = HEX_SIZE / 2;
+const HEX_CY = HEX_SIZE / 2;
+const HEX_RADIO = HEX_SIZE / 2 - HEX_PAD;
+
+/** Vértice `i` (0..5) del hexágono regular, empezando arriba y en sentido
+ *  horario — misma idea que V_T/V_A/V_S/V_I pero generada, no a mano,
+ *  porque son 6 puntos en vez de 4. */
+function verticeHexagono(i: number, r: number = HEX_RADIO) {
+  const angle = -Math.PI / 2 + (i * Math.PI * 2) / EJES_HEX_ORDEN.length;
+  return { x: HEX_CX + Math.cos(angle) * r, y: HEX_CY + Math.sin(angle) * r };
+}
+
+const VERTICES_HEX = EJES_HEX_ORDEN.map((_, i) => verticeHexagono(i));
+
+/** Generalización de posicionEnTriangulo a N vértices: coordenadas
+ *  baricéntricas con pesos = valores reales normalizados. Divergente, como
+ *  BarraDivergente — un eje en 0 no tira hacia su vértice, uno negativo se
+ *  resta del promedio en vez de recortarse. Si todos son 0, cae en el
+ *  centro geométrico exacto (ningún sesgo inventado). */
+function posicionEnHexagono(ejes: EjesSeisD, max: number): { x: number; y: number } {
+  const valores = EJES_HEX_ORDEN.map((k) => ejes[k] ?? 0);
+  const totalAbs = valores.reduce((acc, v) => acc + Math.abs(v), 0);
+  if (totalAbs <= 0 || max <= 0) {
+    return { x: HEX_CX, y: HEX_CY };
+  }
+  let x = HEX_CX;
+  let y = HEX_CY;
+  valores.forEach((v, i) => {
+    const pct = Math.max(-1, Math.min(1, v / max));
+    const vert = VERTICES_HEX[i];
+    // Cada eje empuja desde el centro hacia su vértice proporcional a su
+    // valor (positivo) o en sentido contrario (negativo) — analogía directa
+    // de cómo BarraDivergente separa hacia un lado u otro del cero.
+    x += pct * (vert.x - HEX_CX);
+    y += pct * (vert.y - HEX_CY);
+  });
+  // Promedio: com N ejes empujando, se normaliza por N para no salirse
+  // sistemáticamente del hexágono cuando varios ejes están al máximo a la
+  // vez — mismo espíritu que dividir por `total` en posicionEnTriangulo.
+  const n = EJES_HEX_ORDEN.length;
+  return {
+    x: HEX_CX + (x - HEX_CX) / n,
+    y: HEX_CY + (y - HEX_CY) / n,
+  };
+}
+
+function CampoGradienteHexagono() {
+  return (
+    <>
+      <defs>
+        {EJES_HEX_ORDEN.map((k, i) => {
+          const v = VERTICES_HEX[i];
+          return (
+            <radialGradient key={k} id={`hex-grad-${k}`} cx={v.x / HEX_SIZE} cy={v.y / HEX_SIZE} r="0.55">
+              <stop offset="0%" stopColor={EJES_HEX_COLOR[k]} stopOpacity="0.14" />
+              <stop offset="100%" stopColor={EJES_HEX_COLOR[k]} stopOpacity="0" />
+            </radialGradient>
+          );
+        })}
+      </defs>
+      {EJES_HEX_ORDEN.map((k) => (
+        <polygon key={k} points={VERTICES_HEX.map((v) => `${v.x},${v.y}`).join(" ")} fill={`url(#hex-grad-${k})`} />
+      ))}
+    </>
+  );
+}
+
+export interface HexagonoATSProps {
+  /** Todas las entidades a mostrar a la vez, ya resueltas con sus 6 ejes
+   *  reales — nunca calculado acá, mismo criterio que TriangleATS. */
+  entidades: EntidadEjes[];
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+  modoCiencia?: boolean;
+  className?: string;
+}
+
+export function HexagonoATS({
+  entidades,
+  selectedId = null,
+  onSelect,
+  modoCiencia = false,
+  className,
+}: HexagonoATSProps) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
+
+  // Máximo absoluto real entre todas las entidades — mismo criterio que ya
+  // usaba BarraDivergente: la escala refleja el rango de datos existente,
+  // nunca un número inventado.
+  const max = useMemo(
+    () =>
+      Math.max(
+        1,
+        ...entidades.flatMap((e) => EJES_HEX_ORDEN.map((k) => Math.abs(e.ejes[k] ?? 0))),
+      ),
+    [entidades],
+  );
+
+  const posiciones = useMemo(() => {
+    const base = entidades.map((e) => ({ id: e.id, ...posicionEnHexagono(e.ejes, max) }));
+    const separadas = separarSolapados(base, 16);
+    return new Map(separadas.map((p) => [p.id, { x: p.x, y: p.y }]));
+  }, [entidades, max]);
+
+  const anillos = [0.25, 0.5, 0.75, 1];
+
+  return (
+    <svg
+      viewBox={`0 0 ${HEX_SIZE} ${HEX_SIZE}`}
+      width="100%"
+      height="auto"
+      role="img"
+      aria-label="Mapa de ejes fundamentales"
+      className={className}
+    >
+      <CampoGradienteHexagono />
+
+      {/* Anillos de referencia (25/50/75/100%) + ejes radiales — ayudan a
+          leer la escala, mismo espíritu que la línea central de
+          BarraDivergente. */}
+      {anillos.map((f) => (
+        <polygon
+          key={f}
+          points={VERTICES_HEX.map((v) => `${HEX_CX + (v.x - HEX_CX) * f},${HEX_CY + (v.y - HEX_CY) * f}`).join(" ")}
+          fill="none"
+          strokeWidth={f === 1 ? 1.5 : 1}
+          style={{ stroke: f === 1 ? "color-mix(in srgb, var(--primary) 30%, transparent)" : "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+        />
+      ))}
+      {VERTICES_HEX.map((v, i) => (
+        <line
+          key={i}
+          x1={HEX_CX}
+          y1={HEX_CY}
+          x2={v.x}
+          y2={v.y}
+          strokeWidth={1}
+          style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+        />
+      ))}
+
+      {/* Etiquetas de vértice: los 6 ejes. */}
+      {EJES_HEX_ORDEN.map((k, i) => {
+        const v = verticeHexagono(i, HEX_RADIO + 22);
+        return (
+          <text
+            key={k}
+            x={v.x}
+            y={v.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={11}
+            fontWeight={900}
+            style={{ fill: EJES_HEX_COLOR[k] }}
+          >
+            {EJES_HEX_LABELS[k]}
+          </text>
+        );
+      })}
+
+      {/* Núcleo de cada entidad — mismo patrón que TriangleATS: la activa
+          (hover o seleccionada) se pinta al final para quedar arriba. */}
+      {[...entidades]
+        .sort((a, b) => {
+          const aActiva = a.id === hoverId || a.id === selectedId ? 1 : 0;
+          const bActiva = b.id === hoverId || b.id === selectedId ? 1 : 0;
+          return aActiva - bActiva;
+        })
+        .map((e) => {
+          const pos = posiciones.get(e.id)!;
+          const isSelected = selectedId === e.id;
+          const isHovered = hoverId === e.id;
+          const emphasized = isSelected || isHovered;
+          const totalAbs = EJES_HEX_ORDEN.reduce((acc, k) => acc + Math.abs(e.ejes[k] ?? 0), 0);
+          return (
+            <g
+              key={e.id}
+              transform={`translate(${pos.x}, ${pos.y})`}
+              onMouseEnter={() => setHoverId(e.id)}
+              onMouseLeave={() => setHoverId(null)}
+              onClick={() => onSelect?.(e.id)}
+              style={{ cursor: onSelect ? "pointer" : "default", transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+            >
+              <circle
+                r={emphasized ? 7 : 5.5}
+                strokeWidth={emphasized ? 2 : 1.5}
+                style={{
+                  fill: totalAbs > 0 ? "color-mix(in srgb, var(--accent) 55%, var(--primary))" : "color-mix(in srgb, var(--primary) 25%, transparent)",
+                  stroke: emphasized ? "var(--accent)" : "color-mix(in srgb, var(--primary) 60%, transparent)",
+                  transition: "r 200ms ease, stroke 150ms ease",
+                }}
+              />
+              <text
+                y={emphasized ? -18 : -14}
+                textAnchor="middle"
+                fontSize={emphasized ? 11 : 9.5}
+                fontWeight={emphasized ? 900 : 700}
+                style={{ fill: "var(--primary)", opacity: emphasized ? 0.95 : 0.55, transition: "opacity 150ms ease, font-size 150ms ease" }}
+              >
+                {e.label}
+              </text>
+              {modoCiencia && emphasized ? (
+                <text y={emphasized ? -6 : -2} textAnchor="middle" fontSize={8} style={{ fill: "var(--primary)", opacity: 0.5 }}>
+                  {EJES_HEX_ORDEN.map((k) => `${e.ejes[k] ?? 0}`).join(" · ")}
+                </text>
+              ) : null}
+            </g>
+          );
+        })}
+    </svg>
+  );
+}
