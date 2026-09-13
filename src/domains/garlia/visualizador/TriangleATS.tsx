@@ -19,6 +19,14 @@
  * El nombre del archivo/componente se mantiene por compatibilidad con el
  * resto del código que ya lo importa.
  *
+ * Disposición de vértices (pedido explícito): cada eje del cuadrado
+ * enfrenta un par de opuestos real, no un orden arbitrario —
+ *   - Eje vertical: T (movimiento) arriba ↔ A (quietud/lo físico) abajo.
+ *   - Eje horizontal: S (emitir) izquierda ↔ I (recibir) derecha.
+ * Antes I se agregó como un 4to vértice suelto (abajo, con T/A/S en su
+ * disposición original de triángulo) sin relación de oposición con los
+ * otros 3 — ahora los 4 forman 2 ejes de opuestos.
+ *
  * Regla crítica del docx (punto 5): "Frontend NO calcula la posición
  * conceptual. El frontend recibe T, A, S[, I] y solo representa la
  * transformación → posición visual." Este componente NO decide qué
@@ -57,17 +65,16 @@ export interface EntidadATS {
 
 const SIZE = 380;
 const PAD = 56;
-// Vértices del cuadrado — T arriba, A izquierda, S derecha, I abajo. El
-// orden es arbitrario (el docx no fija una disposición geométrica
-// específica, solo pide que cada letra sea un vértice), pero se mantiene
-// fijo y consistente en todo el visualizador. Antes eran 3 vértices
-// (triángulo); con la 4ta letra I pasa a cuadrado (rombo), manteniendo T
-// arriba / A-S a los costados para no reordenar visualmente lo existente,
-// y agregando I abajo como nuevo cuarto polo.
+// Vértices del cuadrado — pares opuestos enfrentados en cada eje, como
+// pidió el usuario: T (movimiento) arriba / A (quietud, lo físico) abajo
+// en el eje vertical; S (emitir) izquierda / I (recibir) derecha en el eje
+// horizontal. Antes I estaba abajo (cuadrado con T/A/S en el borde
+// original y I como 4to vértice agregado después) — ahora los 4 forman 2
+// ejes de opuestos reales en vez de 3 vértices + 1 añadido.
 const V_T = { x: SIZE / 2, y: PAD };
-const V_A = { x: PAD * 0.55, y: SIZE / 2 };
-const V_S = { x: SIZE - PAD * 0.55, y: SIZE / 2 };
-const V_I = { x: SIZE / 2, y: SIZE - PAD * 0.65 };
+const V_A = { x: SIZE / 2, y: SIZE - PAD * 0.65 };
+const V_S = { x: PAD * 0.55, y: SIZE / 2 };
+const V_I = { x: SIZE - PAD * 0.55, y: SIZE / 2 };
 
 /** Punto 5 del docx: transformación puramente gráfica (T,A,S,I) → posición
  *  visual, vía coordenadas baricéntricas generalizadas a 4 puntos. Si las
@@ -215,13 +222,13 @@ export function TriangleATS({
       <text x={V_T.x} y={V_T.y - 16} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#b91c1c" }}>
         T
       </text>
-      <text x={V_A.x - 16} y={V_A.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#15803d" }}>
+      <text x={V_A.x} y={V_A.y + 22} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#15803d" }}>
         A
       </text>
-      <text x={V_S.x + 16} y={V_S.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#1d4ed8" }}>
+      <text x={V_S.x - 16} y={V_S.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#1d4ed8" }}>
         S
       </text>
-      <text x={V_I.x} y={V_I.y + 22} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#7e22ce" }}>
+      <text x={V_I.x + 16} y={V_I.y + 4} textAnchor="middle" fontSize={13} fontWeight={900} style={{ fill: "#7e22ce" }}>
         I
       </text>
 
