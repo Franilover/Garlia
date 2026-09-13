@@ -320,15 +320,18 @@ export interface Elemento {
   propiedades_emergentes?: Record<string, unknown> | null;
   validacion_fisica?: Record<string, unknown> | null;
   estado_configuracion?: Record<string, unknown> | null;
-  valencia_fuente?: string | null;
-  sitios_enlace_externos?: number | null;
+  // "valencia_fuente", "sitios_enlace_externos", "capacidad_enlace_bruta",
+  // "disponibilidad_sitios" y "capacidad_externa_enlace" removidas
+  // (2026-09-12): ninguna existe en la tabla real "elementos" de Supabase —
+  // pedirlas en el select hacía fallar el fetch ENTERO con 400/42703 en
+  // cada carga (PostgREST no devuelve resultado parcial), tumbando
+  // useElementos() de punta a punta y dejando la UI mostrando
+  // indefinidamente el último dato cacheado en Dexie. Mismo patrón que el
+  // bug ya documentado arriba con "es_catalizador".
   disponibilidad_enlace?: number | null;
   selectividad_enlace?: number | null;
-  capacidad_enlace_bruta?: number | null;
   sitios_enlace?: Record<string, unknown> | null;
   afinidad_enlace?: number | null;
-  disponibilidad_sitios?: number | null;
-  capacidad_externa_enlace?: number | null;
   carga_q_norm?: number | null;
 }
 
@@ -345,6 +348,13 @@ export const CONFIG = {
   // opcional (`?? false` / `el?.es_catalizador`), así que la feature de
   // "catalizador" queda deshabilitada (todo se comporta como no-
   // catalizador) sin romper tipos ni el resto del fetch.
+  //
+  // "valencia_fuente", "sitios_enlace_externos", "capacidad_enlace_bruta",
+  // "disponibilidad_sitios" y "capacidad_externa_enlace" removidas del
+  // select (2026-09-12): ninguna existe en la tabla real "elementos" de
+  // Supabase — pedirlas hacía fallar el select ENTERO con 400/42703 en
+  // cada carga, tumbando useElementos() de punta a punta. Ver comentario
+  // completo junto a la interfaz Elemento más arriba.
   select:
     "id, numero_atomico, nombre, simbolo, familia, es_noble, notas, nucleo, media, externa, " +
     "created_at, updated_at, carga_q, catalisis_total, transicion_total, balance_ct, " +
@@ -357,9 +367,9 @@ export const CONFIG = {
     "propiedades_emergentes, validacion_fisica, masa_base, estabilidad, rigidez, flexibilidad, " +
     "capacidad_transformacion, estado_configuracion, dureza, conductividad, transparencia, " +
     "interaccion, valencia_estructural, capacidad_enlace, polaridad_estructural, " +
-    "saturacion_enlace, valencia_fuente, sitios_enlace_externos, disponibilidad_enlace, " +
-    "selectividad_enlace, capacidad_enlace_bruta, sitios_enlace, afinidad_enlace, " +
-    "disponibilidad_sitios, capacidad_externa_enlace, carga_q_norm, dinamismo_particular, " +
+    "saturacion_enlace, disponibilidad_enlace, " +
+    "selectividad_enlace, sitios_enlace, afinidad_enlace, " +
+    "carga_q_norm, dinamismo_particular, " +
     "volumen_base",
 };
 
@@ -514,21 +524,20 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
 
     // ─── Enlaces ────────────────────────────────────────────────────────
     { clave: "valencia_estructural", label: "Valencia estructural", valor: fmt(el.valencia_estructural, 0), descripcion: "Cantidad de enlaces que puede sostener estructuralmente.", formula: "Valencia = mín(ocupación, capacidad externa − ocupación, capacidad externa / 2)", grupo: G.enlaces },
-    { clave: "valencia_fuente", label: "Fuente de valencia", valor: el.valencia_fuente ?? null, descripcion: "De dónde se derivó la valencia estructural (qué regla/capa la determinó).", grupo: G.enlaces },
+    // "valencia_fuente", "sitios_enlace_externos", "capacidad_enlace_bruta",
+    // "disponibilidad_sitios" y "capacidad_externa_enlace" removidas de esta
+    // lista (2026-09-12) junto con el select — ver comentario en CONFIG.select.
     { clave: "capacidad_enlace", label: "Capacidad de enlace", valor: fmt(el.capacidad_enlace), proporcion: prop(el.capacidad_enlace), descripcion: "Qué tan disponible está para formar enlaces nuevos.", formula: "Cap. de enlace = valencia / (capacidad externa / 2)", grupo: G.enlaces },
     { clave: "afinidad_enlace", label: "Afinidad de enlace", valor: fmt(el.afinidad_enlace), proporcion: prop(el.afinidad_enlace), descripcion: "Qué tan bien conecta el elemento con otros al formar enlaces.", formula: "Afinidad de enlace = (afinidad de enlace + interacción del elemento) / 2", grupo: G.enlaces },
     { clave: "polaridad_estructural", label: "Polaridad estructural", valor: fmt(el.polaridad_estructural), proporcion: prop(el.polaridad_estructural), descripcion: "Desbalance direccional de su estructura de enlace.", formula: "Polaridad = |2 · saturación externa − 1|", grupo: G.enlaces },
     { clave: "saturacion_enlace", label: "Saturación de enlace", valor: fmt(el.saturacion_enlace), proporcion: prop(el.saturacion_enlace), descripcion: "Qué tan cerca está de agotar su capacidad de enlace.", formula: "Saturación de enlace = sitios de enlace usados / sitios de enlace disponibles", grupo: G.enlaces },
     { clave: "selectividad_enlace", label: "Selectividad de enlace", valor: fmt(el.selectividad_enlace), proporcion: prop(el.selectividad_enlace), descripcion: "Qué tan exigente es el elemento al aceptar enlaces nuevos.", grupo: G.enlaces },
-    { clave: "disponibilidad_sitios", label: "Sitios disponibles", valor: fmt(el.disponibilidad_sitios), proporcion: prop(el.disponibilidad_sitios), descripcion: "Proporción de sitios de enlace todavía libres para nuevos enlaces.", grupo: G.enlaces },
-    { clave: "sitios_enlace_externos", label: "Sitios de enlace externos", valor: fmt(el.sitios_enlace_externos, 0), descripcion: "Cantidad de sitios de enlace disponibles en la capa externa.", grupo: G.enlaces },
 
     // ─── Capacidad externa ──────────────────────────────────────────────
     { clave: "capacidad_externa", label: "Capacidad externa", valor: fmt(el.capacidad_externa, 0), descripcion: "Cupo total de la capa externa para partículas de Voluntad/Percepción/Transición/Catálisis.", grupo: G.capacidadExterna },
     { clave: "ocupacion_externa", label: "Ocupación externa", valor: fmt(el.ocupacion_externa, 0), descripcion: "Cuánto de la capacidad externa está ocupado actualmente.", grupo: G.capacidadExterna },
     { clave: "capacidad_externa_restante", label: "Capacidad externa restante", valor: fmt(el.capacidad_externa_restante, 0), descripcion: "Cupo de la capa externa que todavía queda libre.", grupo: G.capacidadExterna },
     { clave: "saturacion_externa", label: "Saturación externa", valor: fmt(el.saturacion_externa), proporcion: prop(el.saturacion_externa), descripcion: "Qué tan llena está la capa externa — en 100% determina si el elemento es Noble.", formula: "Saturación externa = ocupación externa / capacidad externa", grupo: G.capacidadExterna },
-    { clave: "capacidad_externa_enlace", label: "Capacidad externa de enlace", valor: fmt(el.capacidad_externa_enlace), proporcion: prop(el.capacidad_externa_enlace), descripcion: "Qué tan preparada está la capa externa para sostener enlaces nuevos.", grupo: G.capacidadExterna },
 
     // ─── Sin familia definida: totales globales de catálisis/transición
     // que alimentan el régimen estructural (balance_ct), no encajan en
