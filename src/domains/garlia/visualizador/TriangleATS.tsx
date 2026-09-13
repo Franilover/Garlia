@@ -383,35 +383,32 @@ function verticeHexagono(i: number, r: number = HEX_RADIO) {
 const VERTICES_HEX = EJES_HEX_ORDEN.map((_, i) => verticeHexagono(i));
 
 /** Generalización de posicionEnTriangulo a N vértices: coordenadas
- *  baricéntricas con pesos = valores reales normalizados. Divergente, como
- *  BarraDivergente — un eje en 0 no tira hacia su vértice, uno negativo se
- *  resta del promedio en vez de recortarse. Si todos son 0, cae en el
+ *  baricéntricas con pesos = valores reales normalizados (mismo criterio
+ *  que la versión de 4 vértices: se pondera por el peso RELATIVO de cada
+ *  eje sobre el total de esta entidad, no por una fracción fija de un
+ *  máximo global — así una partícula dominante en 1-2 ejes queda lejos
+ *  del centro en vez de diluirse entre los 6). Divergente: un eje
+ *  negativo resta en vez de recortarse a 0. Si todos son 0, cae en el
  *  centro geométrico exacto (ningún sesgo inventado). */
-function posicionEnHexagono(ejes: EjesSeisD, max: number): { x: number; y: number } {
+function posicionEnHexagono(ejes: EjesSeisD): { x: number; y: number } {
   const valores = EJES_HEX_ORDEN.map((k) => ejes[k] ?? 0);
   const totalAbs = valores.reduce((acc, v) => acc + Math.abs(v), 0);
-  if (totalAbs <= 0 || max <= 0) {
+  if (totalAbs <= 0) {
     return { x: HEX_CX, y: HEX_CY };
   }
   let x = HEX_CX;
   let y = HEX_CY;
   valores.forEach((v, i) => {
-    const pct = Math.max(-1, Math.min(1, v / max));
+    // Peso relativo de este eje sobre el total ABSOLUTO de la propia
+    // entidad (no sobre un máximo global) — mismo espíritu que wT/wA/wS/wI
+    // en posicionEnTriangulo. Un eje negativo empuja en sentido contrario
+    // a su vértice, con la misma magnitud relativa.
+    const peso = v / totalAbs;
     const vert = VERTICES_HEX[i];
-    // Cada eje empuja desde el centro hacia su vértice proporcional a su
-    // valor (positivo) o en sentido contrario (negativo) — analogía directa
-    // de cómo BarraDivergente separa hacia un lado u otro del cero.
-    x += pct * (vert.x - HEX_CX);
-    y += pct * (vert.y - HEX_CY);
+    x += peso * (vert.x - HEX_CX);
+    y += peso * (vert.y - HEX_CY);
   });
-  // Promedio: com N ejes empujando, se normaliza por N para no salirse
-  // sistemáticamente del hexágono cuando varios ejes están al máximo a la
-  // vez — mismo espíritu que dividir por `total` en posicionEnTriangulo.
-  const n = EJES_HEX_ORDEN.length;
-  return {
-    x: HEX_CX + (x - HEX_CX) / n,
-    y: HEX_CY + (y - HEX_CY) / n,
-  };
+  return { x, y };
 }
 
 function CampoGradienteHexagono() {
@@ -454,23 +451,11 @@ export function HexagonoATS({
 }: HexagonoATSProps) {
   const [hoverId, setHoverId] = useState<string | null>(null);
 
-  // Máximo absoluto real entre todas las entidades — mismo criterio que ya
-  // usaba BarraDivergente: la escala refleja el rango de datos existente,
-  // nunca un número inventado.
-  const max = useMemo(
-    () =>
-      Math.max(
-        1,
-        ...entidades.flatMap((e) => EJES_HEX_ORDEN.map((k) => Math.abs(e.ejes[k] ?? 0))),
-      ),
-    [entidades],
-  );
-
   const posiciones = useMemo(() => {
-    const base = entidades.map((e) => ({ id: e.id, ...posicionEnHexagono(e.ejes, max) }));
+    const base = entidades.map((e) => ({ id: e.id, ...posicionEnHexagono(e.ejes) }));
     const separadas = separarSolapados(base, 16);
     return new Map(separadas.map((p) => [p.id, { x: p.x, y: p.y }]));
-  }, [entidades, max]);
+  }, [entidades]);
 
   const anillos = [0.25, 0.5, 0.75, 1];
 
