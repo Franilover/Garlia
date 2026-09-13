@@ -18,6 +18,7 @@ import {
 } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
 import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
+import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -659,7 +660,21 @@ function MaterialPill({ material, selected, onClick }: { material: Material; sel
  * vive dentro de cada bloque (Componentes/Estructuras) con su propio
  * guardado inmediato, no con un botón "Guardar" global.
  */
-function MaterialEditorFlotante({ material, onClose }: { material: Material; onClose: () => void }) {
+export function MaterialEditorFlotante({
+  material,
+  onClose,
+  breadcrumbNiveles,
+}: {
+  material: Material;
+  onClose: () => void;
+  /** Niveles del breadcrumb superior (BreadcrumbJerarquia) a mostrar arriba
+   *  del header cuando este panel se abre DESDE otro nivel (ej. Compuesto)
+   *  — ej. "Elemento > Compuesto > Material" con Material activo. Si se
+   *  omite (uso normal desde MaterialesPage, sin venir de otro nivel), no
+   *  se muestra breadcrumb — mismo criterio que ElementoEditor/
+   *  CompuestoEditor, que solo lo muestran cuando aplica. */
+  breadcrumbNiveles?: NivelBreadcrumb[];
+}) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -722,6 +737,12 @@ function MaterialEditorFlotante({ material, onClose }: { material: Material; onC
             <X size={16} />
           </button>
         </div>
+
+        {breadcrumbNiveles && (
+          <div className="shrink-0 px-3 pt-2">
+            <BreadcrumbJerarquia niveles={breadcrumbNiveles} />
+          </div>
+        )}
 
         <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
           <MaterialDetail material={material} />

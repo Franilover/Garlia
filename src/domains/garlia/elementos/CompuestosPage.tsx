@@ -15,6 +15,7 @@
 import {
   Atom,
   Beaker,
+  Box,
   ChevronLeft,
   Combine,
   Download,
@@ -72,6 +73,8 @@ import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
+import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
+import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
 import { useOrganos } from "./useOrganos";
 import { useFormaciones } from "./useFormaciones";
 import { useTejidos } from "./useTejidos";
@@ -966,6 +969,8 @@ function CompuestoEditor({
   onAbrirTejidoOVeta,
   elementoAbierto: elementoAbiertoProp,
   onElementoAbiertoChange,
+  materialAbiertoId: materialAbiertoIdProp,
+  onMaterialAbiertoIdChange,
 }: {
   compuesto: Compuesto;
   elementos: Elemento[];
@@ -1011,6 +1016,12 @@ function CompuestoEditor({
    *  granoOCelulaAbierto. */
   elementoAbierto?: string | null;
   onElementoAbiertoChange?: (id: string | null) => void;
+  /** Controlado opcionalmente desde CompuestoPanelFlotante, mismo patrón
+   *  exacto que elementoAbierto — el breadcrumb del header (Compuesto ⇄
+   *  Material) necesita el mismo estado que abre el sub-panel de Material
+   *  acá abajo. */
+  materialAbiertoId?: string | null;
+  onMaterialAbiertoIdChange?: (id: string | null) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
@@ -1037,6 +1048,19 @@ function CompuestoEditor({
   const granoOCelulaAbierto =
     granoOCelulaAbiertoProp !== undefined ? granoOCelulaAbiertoProp : granoOCelulaAbiertoLocal;
   const setGranoOCelulaAbierto = onGranoOCelulaAbiertoChange ?? setGranoOCelulaAbiertoLocal;
+
+  // Sub-panel de Material abierto desde el nivel "Material" del breadcrumb
+  // Elemento > Compuesto > Material — mismo patrón exacto que
+  // elementoAbierto/granoOCelulaAbierto: controlable desde
+  // CompuestoPanelFlotante (dueño real del breadcrumb de header) para que
+  // ambos compartan el mismo estado; si no se pasa, cae a estado interno
+  // (uso standalone, sin breadcrumb en header).
+  const [materialAbiertoIdLocal, setMaterialAbiertoIdLocal] = useState<string | null>(null);
+  const materialAbiertoId =
+    materialAbiertoIdProp !== undefined ? materialAbiertoIdProp : materialAbiertoIdLocal;
+  const setMaterialAbiertoId = onMaterialAbiertoIdChange ?? setMaterialAbiertoIdLocal;
+  const { items: materialesDelCompuesto } = useMaterialesDeCompuesto(compuesto.id);
+  const materialAbierto = materialesDelCompuesto.find((m) => m.id === materialAbiertoId) ?? null;
 
   // useTagsCatalogo/useCompuestoTags (Naturaleza/Oris/Uso) se sacaron de
   // acá: alimentaban solo SelectorTagsCompuesto, que ya no se renderiza en
@@ -1336,6 +1360,30 @@ function CompuestoEditor({
         />
       )}
 
+      {/* Sub-panel del Material elegido desde el nivel "Material" del
+         breadcrumb — mismo patrón apilado que ElementoPanelFlotante arriba.
+         Le pasamos el breadcrumb completo (Elemento > Compuesto > Material,
+         con Material activo) para que se sienta como bajar un nivel más,
+         no como abrir una pantalla desconectada. */}
+      {materialAbierto && (
+        <MaterialEditorFlotante
+          material={materialAbierto}
+          onClose={() => setMaterialAbiertoId(null)}
+          breadcrumbNiveles={[
+            { label: "Elemento", icono: <Atom size={10} />, activo: false },
+            {
+              label: "Compuesto",
+              icono: <Package size={10} />,
+              activo: false,
+              items: [{ id: compuesto.id, nombre: compuesto.nombre }],
+              loading: false,
+              onNavegar: () => setMaterialAbiertoId(null),
+            },
+            { label: "Material", icono: <Box size={10} />, activo: true },
+          ]}
+        />
+      )}
+
       {/* Sub-panel del Grano/Célula elegido desde "Compone" — mismo editor
          completo que usan Física/Biología (PanelEditorGrano/PanelEditorCelula),
          apilado encima de este panel de Compuesto. */}
@@ -1473,6 +1521,11 @@ export function CompuestoPanelFlotante({
   // y clickear un elemento en el cuerpo (ElementoPanelFlotante embebido)
   // compartan el mismo estado en vez de dos paneles independientes.
   const [elementoAbierto, setElementoAbierto] = useState<string | null>(null);
+  // Mismo motivo/patrón exacto que elementoAbierto: el breadcrumb de este
+  // header (nivel "Material") necesita controlar el mismo estado que abre
+  // MaterialEditorFlotante dentro de CompuestoEditor.
+  const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
+  const { items: materialesDelCompuesto } = useMaterialesDeCompuesto(compuesto.id);
   // Destino del salto Célula→Órgano / Grano→Formación desde el breadcrumb
   // interno de PanelEditorCelula/PanelEditorGrano (ver onAbrirOrganoOFormacion
   // en CompuestoEditor). Requiere los catálogos de Órganos/Formaciones —
@@ -1491,6 +1544,7 @@ export function CompuestoPanelFlotante({
     setOrganoOFormacionAbierto(null);
     setTejidoOVetaAbierto(null);
     setElementoAbierto(null);
+    setMaterialAbiertoId(null);
   }, [compuesto.id]);
   // granosDeCompuesto/celulasDeCompuesto quitados: solo alimentaban los
   // niveles Grano/Célula del breadcrumb de este header, que ahora es
@@ -1522,7 +1576,7 @@ export function CompuestoPanelFlotante({
   return createPortal(
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
-        granoOCelulaAbierto || organoOFormacionAbierto || tejidoOVetaAbierto || elementoAbierto
+        granoOCelulaAbierto || organoOFormacionAbierto || tejidoOVetaAbierto || elementoAbierto || materialAbiertoId
           ? "invisible pointer-events-none"
           : ""
       }`}
@@ -1632,6 +1686,20 @@ export function CompuestoPanelFlotante({
                 onNavegar: setElementoAbierto,
               },
               { label: "Compuesto", icono: <Package size={10} />, activo: true },
+              {
+                label: "Material",
+                icono: <Box size={10} />,
+                activo: false,
+                // Materiales que usan ESTE compuesto como componente (vía
+                // material_componentes) — dirección "hacia arriba", mismo
+                // sentido que "Elemento" es "hacia abajo" desde acá. Ver
+                // useMaterialesDeCompuesto (camino inverso de
+                // useMaterialComponentes, mismo patrón que
+                // useCompuestoRoute resuelve compuesto → su Estructura).
+                items: materialesDelCompuesto.map((m) => ({ id: m.id, nombre: m.nombre })),
+                loading: false,
+                onNavegar: setMaterialAbiertoId,
+              },
             ]}
           />
         </div>
@@ -1659,6 +1727,8 @@ export function CompuestoPanelFlotante({
             onAbrirTejidoOVeta={setTejidoOVetaAbierto}
             elementoAbierto={elementoAbierto}
             onElementoAbiertoChange={setElementoAbierto}
+            materialAbiertoId={materialAbiertoId}
+            onMaterialAbiertoIdChange={setMaterialAbiertoId}
           />
         </div>
       </div>
