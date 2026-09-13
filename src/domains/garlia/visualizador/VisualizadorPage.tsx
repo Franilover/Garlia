@@ -2,10 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Atom,
   BarChart3,
   ChevronRight,
   CircleDot,
   FlaskConical,
+  Gauge,
   GitBranch,
   Layers3,
   Orbit,
@@ -133,39 +135,30 @@ type NavGroup = {
   items: { key: SectionKey; label: string; visId: string; icon: React.ReactNode; implementado: boolean }[];
 };
 
-// ─── Rediseño de sidebar por DOMINIO (pedido explícito, 2026-09-13):
-// agrupación final en 3 bloques —
-//   - "Gráficos": las 4 vistas visuales/diagramáticas puras (Mapa Universal,
-//     Triángulo A/T/S, Compatibilidad→Enlace, El Enlace) + su propio
-//     subgrupo "Oris" (Oris vive en Gráficos, no mezclado con Runas).
-//   - "Lab": todo "General/Dinámica" (Interacción/Proceso/Comparación/
-//     Propagación/Tiempo/Información) + Laboratorio + Runas.
-//   - "Biología": igual que antes, sin cambios.
+// ─── Rediseño de sidebar por DOMINIO (pedido explícito): en vez de agrupar
+// por categoría del docx (Constitución/Relaciones/Propiedades Físicas/...),
+// se agrupa por la ENTIDAD real sobre la que opera cada sección — así
+// "Energía de Enlace"/"Compatibilidad→Enlace"/"El Enlace" quedan juntas
+// bajo "Enlace" en vez de repartidas en 3 categorías distintas.
 //
-// "Materiales" (Perfil físico de Material VIS-21, Material → Estructura
-// VIS-10) se RETIRA del sidebar a pedido explícito: sus datos ya se
-// muestran completos en el panel flotante correspondiente (mismo criterio
-// que "elementos_ruta"/"compuestos_ruta", retirados antes por la misma
-// razón — ver comentario más abajo). El código de "material"/"structure"
-// (SectionKey, bloques `active === "..."`) NO se borró, solo se sacó de
-// navGroups.
+// El criterio de a qué dominio pertenece cada item es el DATO real que
+// consume esa sección (verificado leyendo cada bloque `active === "..."`),
+// no lo que sugiere el label:
+//   - "Perfil Reactivo" y "Carga Eléctrica" leen `compuestos` (compuesto.
+//     carga, propiedades_calculadas de Compuesto) → van en Compuestos, NO
+//     en Enlace, aunque conceptualmente hablen de electricidad/reactividad.
+//   - "Perfil físico de Material" y "Material → Estructura" son las únicas
+//     que leen `materiales` → Materiales.
+//   - Interacción/Proceso/Comparación no pertenecen a una sola entidad
+//     (cruzan varias) → dominio "General / Dinámica" a propósito.
+//
+// Oris/Runas/Física, Atlas/Sandbox y Biología quedan IGUAL que antes (fuera
+// de este rediseño) — se decide después a qué nivel entran.
 const navGroups: NavGroup[] = [
   {
-    group: "Gráficos",
+    group: "Química",
     items: [
-      { key: "mapaUniversal", label: "Mapa Universal", visId: "VIS-15", icon: <GitBranch size={15} />, implementado: true },
       { key: "ats", label: "Triángulo A/T/S", visId: "VIS-02", icon: <Orbit size={15} />, implementado: true },
-      { key: "compatibilidad", label: "Compatibilidad → Enlace", visId: "VIS-04", icon: <Waypoints size={15} />, implementado: true },
-      { key: "elEnlace", label: "El Enlace", visId: "VIS-19", icon: <Waypoints size={15} />, implementado: true },
-      // "energy" (VIS-23 "Energía de Enlace") retirado (pedido explícito):
-      // era código duplicado — mostraba MedidorEnergia sobre el mismo dato
-      // (compuestos.energia_enlace), mismo gauge y mismo rango que ya vive
-      // en la ficha "Compuesto" de la pestaña Química, sin ninguna
-      // interacción ni recorte propio que justificara una sección aparte.
-      // Ese gauge sigue ahí — este item solo repetía la misma vista para
-      // varios compuestos a la vez, cosa que el selector de Química ya
-      // permite recorriendo uno por uno.
-      //
       // "elementos_ruta" (VIS-01 "Elementos") y "compuestos_ruta" (VIS-01
       // "Compuestos") retirados del nav (pedido explícito, 2026-08-30): la
       // edición de Elemento/Compuesto ahora se maneja enteramente desde los
@@ -180,18 +173,32 @@ const navGroups: NavGroup[] = [
       // ambos leen el mismo compuesto ya seleccionado en "Compuestos", así
       // que ahora viven directamente en el Inspector (panel de 280px) de
       // esa vista, en vez de ser una sección aparte con su propio selector.
-      { key: "oris_ruta", label: "Oris", visId: "VIS-01", icon: <CircleDot size={15} />, implementado: true },
-      // "oris" (VIS-08, flujo simple Partículas→IUMs→Oris→Éterium) quedó
-      // fuera de la sidebar a pedido explícito: "oris_ruta" (RutasSection
-      // perspectiva="fisica", la ruta física completa) es la vista mejor
-      // valorada de las dos y estaban duplicando la misma entidad Oris en
-      // el menú. El código de "oris" NO se borró (sigue en SectionKey y en
-      // su bloque `active === "oris"` más abajo) por si se retoma después
-      // — solo se sacó de navGroups para que no aparezca dos veces.
     ],
   },
   {
-    group: "Lab",
+    group: "Materiales",
+    items: [
+      { key: "material", label: "Perfil físico de Material", visId: "VIS-21", icon: <Gauge size={15} />, implementado: true },
+      { key: "structure", label: "Material → Estructura", visId: "VIS-10", icon: <Atom size={15} />, implementado: true },
+    ],
+  },
+  {
+    group: "Enlace",
+    items: [
+      { key: "compatibilidad", label: "Compatibilidad → Enlace", visId: "VIS-04", icon: <Waypoints size={15} />, implementado: true },
+      { key: "elEnlace", label: "El Enlace", visId: "VIS-19", icon: <Waypoints size={15} />, implementado: true },
+      // "energy" (VIS-23 "Energía de Enlace") retirado (pedido explícito):
+      // era código duplicado — mostraba MedidorEnergia sobre el mismo dato
+      // (compuestos.energia_enlace), mismo gauge y mismo rango que ya vive
+      // en la ficha "Compuesto" de la pestaña Química, sin ninguna
+      // interacción ni recorte propio que justificara una sección aparte.
+      // Ese gauge sigue ahí — este item solo repetía la misma vista para
+      // varios compuestos a la vez, cosa que el selector de Química ya
+      // permite recorriendo uno por uno.
+    ],
+  },
+  {
+    group: "General / Dinámica",
     items: [
       { key: "interaccion", label: "Interacción", visId: "VIS-05", icon: <Play size={15} />, implementado: true },
       { key: "process", label: "Proceso: Entrada→Transf.→Salida", visId: "VIS-25", icon: <Workflow size={15} />, implementado: true },
@@ -201,8 +208,29 @@ const navGroups: NavGroup[] = [
       { key: "propagacion", label: "Propagación", visId: "VIS-06", icon: <Radio size={15} />, implementado: false },
       { key: "tiempo", label: "Tiempo", visId: "VIS-16", icon: <Radio size={15} />, implementado: false },
       { key: "information", label: "Información (sin dato)", visId: "VIS-PENDIENTE-INFO", icon: <Radio size={15} />, implementado: false },
-      { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: false },
+    ],
+  },
+  // ─── Sin tocar todavía (fuera de este rediseño por dominio, pendiente de
+  // decidir a qué nivel entran — ver conversación) ──────────────────────────
+  {
+    group: "Oris / Runas",
+    items: [
+      // "oris" (VIS-08, flujo simple Partículas→IUMs→Oris→Éterium) quedó
+      // fuera de la sidebar a pedido explícito: "oris_ruta" (RutasSection
+      // perspectiva="fisica", la ruta física completa) es la vista mejor
+      // valorada de las dos y estaban duplicando la misma entidad Oris en
+      // el menú. El código de "oris" NO se borró (sigue en SectionKey y en
+      // su bloque `active === "oris"` más abajo) por si se retoma después
+      // — solo se sacó de navGroups para que no aparezca dos veces.
+      { key: "oris_ruta", label: "Oris", visId: "VIS-01", icon: <GitBranch size={15} />, implementado: true },
       { key: "runas", label: "Runa → Mecanismo → Fenómeno", visId: "VIS-09", icon: <CircleDot size={15} />, implementado: true },
+    ],
+  },
+  {
+    group: "Atlas / Sandbox",
+    items: [
+      { key: "mapaUniversal", label: "Mapa Universal", visId: "VIS-15", icon: <GitBranch size={15} />, implementado: true },
+      { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: false },
     ],
   },
   {
@@ -3299,8 +3327,8 @@ function VisualizadorPage() {
                             <p className="mt-1 text-xs font-bold text-primary/40">{atsEntidadActiva.sublabel}</p>
                           ) : null}
                           <div className="my-3 h-6 border-l border-dashed border-primary/20" />
-                          <div className="grid w-full grid-cols-3 gap-3 text-center">
-                            {(["A", "T", "S"] as const).map((letra) => (
+                          <div className="grid w-full grid-cols-4 gap-3 text-center">
+                            {(["A", "T", "S", "I"] as const).map((letra) => (
                               <div key={letra} className="rounded-xl border border-primary/10 p-4">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">{letra}</p>
                                 <p className="mt-1 text-lg font-black text-primary/75">{atsEntidadActiva.letras[letra]}</p>
