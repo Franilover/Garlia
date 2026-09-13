@@ -149,10 +149,10 @@ function CampoGradiente() {
           <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
         </radialGradient>
       </defs>
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-t)" />
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-a)" />
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-s)" />
-      <polygon points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-i)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_I.x},${V_I.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-t)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_I.x},${V_I.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-a)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_I.x},${V_I.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-s)" />
+      <polygon points={`${V_T.x},${V_T.y} ${V_I.x},${V_I.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`} fill="url(#ats-grad-i)" />
     </>
   );
 }
@@ -212,7 +212,7 @@ export function TriangleATS({
       {/* El cuadrado-mapa en sí: un contorno fino, nunca "el protagonista"
           (docx punto 1) — solo un marco de referencia. */}
       <polygon
-        points={`${V_T.x},${V_T.y} ${V_A.x},${V_A.y} ${V_I.x},${V_I.y} ${V_S.x},${V_S.y}`}
+        points={`${V_T.x},${V_T.y} ${V_I.x},${V_I.y} ${V_A.x},${V_A.y} ${V_S.x},${V_S.y}`}
         fill="none"
         strokeWidth={1.5}
         style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
