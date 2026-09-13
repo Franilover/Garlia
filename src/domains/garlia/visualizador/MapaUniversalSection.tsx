@@ -31,7 +31,7 @@
  */
 
 import React, { useMemo, useState } from "react";
-import { ChevronRight, GitBranch, Sparkles } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -108,18 +108,10 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
  *  selector arriba del árbol activo. */
 type RamaCanonica = "fisica" | "alquimia" | "libres";
 
-const RAMAS: { key: RamaCanonica; label: string; resumen: string }[] = [
-  { key: "fisica", label: "TASI → IUM → Oris", resumen: "Partículas agrupadas en IUMs, IUMs agrupados en Oris." },
-  {
-    key: "alquimia",
-    label: "TASI → Capas → Elemento",
-    resumen: "Partículas distribuidas en Núcleo/Media/Externa de un Elemento.",
-  },
-  {
-    key: "libres",
-    label: "TASI libres → Garin/Éterium",
-    resumen: "Partículas sin agrupar: se disipan como Garin (recepción) o Éterium (emisión).",
-  },
+const RAMAS: { key: RamaCanonica; label: string }[] = [
+  { key: "fisica", label: "TASI → IUM → Oris" },
+  { key: "alquimia", label: "TASI → Capas → Elemento" },
+  { key: "libres", label: "TASI libres → Garin/Éterium" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -457,12 +449,6 @@ function RamaLibres() {
           <FlowNode title="Éterium" subtitle="polo de emisión (S)" />
         </div>
       </div>
-      <div className="mt-6 rounded-2xl border border-dashed border-primary/15 p-6 text-xs leading-5 text-primary/45">
-        Diagrama conceptual — Garin y Éterium hoy viven como texto en{" "}
-        <code className="text-primary/60">fisica_conceptos</code> (bloque Vacío/Garin/Eterium), no como una
-        tabla con filas propias de partículas libres. No se inventan valores numéricos ni un catálogo que
-        todavía no existe en Supabase, así que estos nodos no abren ningún editor.
-      </div>
     </>
   );
 }
@@ -473,26 +459,12 @@ export function MapaUniversalSection() {
 
   return (
     <>
-      <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/35">
-        <GitBranch size={13} />
-        <span>Atlas · flujo canónico</span>
-      </div>
-      <p className="mb-5 max-w-2xl text-xs leading-5 text-primary/45">
-        Las 27 Partículas TASI (base compartida) se agrupan en el mundo por tres caminos distintos. En la
-        rama Alquimia, click en el nombre del Elemento o de un Compuesto abre su editor real.
-      </p>
-
       <RamaSelector active={rama} onSelect={setRama} />
 
       <div className="mt-6">
         {rama === "fisica" ? <RamaFisica route={fisicaRoute} /> : null}
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
-      </div>
-
-      <div className="mt-8 flex items-start gap-2 rounded-2xl border border-primary/10 p-5 text-[11px] leading-5 text-primary/40">
-        <Sparkles size={14} className="mt-0.5 shrink-0 text-primary/30" />
-        <span>{RAMAS.find((r) => r.key === rama)?.resumen}</span>
       </div>
     </>
   );
