@@ -101,6 +101,8 @@ function VisualFlowNode({
   tone = "default",
   selected = false,
   particulas,
+  detalle,
+  extra,
   onFocus,
 }: {
   title: string;
@@ -110,6 +112,12 @@ function VisualFlowNode({
   /** Partículas reales (expandidas) a graficar en el popover — IumVisual
    *  arma el círculo proporcional A/T/S/I a partir de esta lista. */
   particulas: { nombre: string; formula: string }[];
+  /** Texto principal (composición/fórmula), igual que fila.detalle en
+   *  BasesItemCard — ej. dominio del Oris o descripción del IUM. */
+  detalle?: string | null;
+  /** Texto secundario, igual que fila.extra en BasesItemCard — ej.
+   *  familia del Oris. */
+  extra?: string | null;
   /** Además de abrir el popover, fija el foco (ej. IUM activo del Trace). */
   onFocus?: () => void;
 }) {
@@ -129,11 +137,18 @@ function VisualFlowNode({
           setAnchor((actual) => (actual ? null : nodeRef.current));
         }}
       />
-      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={260} maxHeight={280}>
-        <div className="flex flex-col items-center gap-2 p-1">
-          <IumVisual particulas={particulas} size={140} />
-          <p className="text-xs font-black uppercase tracking-wide text-primary text-center">{title}</p>
-          {subtitle ? <p className="text-[11px] text-primary/40 text-center">{subtitle}</p> : null}
+      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={420} maxHeight={340}>
+        {/* Mismo layout de dos columnas que BasesItemCard (conVisual): gráfico
+            a la izquierda, nombre + detalle + extra a la derecha. */}
+        <div className="flex flex-row gap-3">
+          <div className="shrink-0 flex items-center justify-center w-[140px]">
+            <IumVisual particulas={particulas} size={140} />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-xs font-black uppercase tracking-wide text-primary">{title}</p>
+            {detalle ? <p className="text-xs text-primary/70 leading-relaxed">{detalle}</p> : null}
+            {extra ? <p className="text-xs text-primary/40 leading-relaxed">{extra}</p> : null}
+          </div>
         </div>
       </PopoverFlotante>
     </>
@@ -262,6 +277,8 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
                         selected={esFoco}
                         onFocus={() => setIumSelId(iumId)}
                         particulas={esFoco ? particulasDelIumSel : particulasDeIum(ium)}
+                        detalle={ium.detalle}
+                        extra={ium.extra}
                       />
                     );
                   })
@@ -274,6 +291,8 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
                 tone="accent"
                 selected
                 particulas={particulasDelOrisSel}
+                detalle={orisSel?.dominio || orisSel?.formula}
+                extra={orisSel?.familia}
               />
               <Arrow />
               <FlowNode title="Éterium" subtitle={orisSel?.familia} />
