@@ -432,6 +432,147 @@ function BarraDivergente({ label, value, max }: { label: string; value: number; 
   );
 }
 
+/** VIS-02 (partículas) — figura de 6 lados para comparar los 6 ejes
+ *  fundamentales reales (particulas.ejes_fundamentales) de una o más
+ *  partículas a la vez: Dinámica / Coherencia / Estabilidad / Información /
+ *  Interacción / Transformación. Mismo criterio que TriangleATS: el
+ *  frontend no calcula nada conceptual, solo proyecta 6 valores ya reales
+ *  sobre 6 ejes dispuestos a 60° uno de otro (hexágono regular). Soporta
+ *  más de una serie superpuesta (semi-transparente) para "comparar" varias
+ *  partículas en el mismo gráfico, tal como se pidió. */
+const EJES_HEXAGONO = [
+  "dinamica",
+  "coherencia",
+  "estabilidad",
+  "informacion",
+  "interaccion",
+  "transformacion",
+] as const;
+
+const EJES_HEXAGONO_LABELS: Record<(typeof EJES_HEXAGONO)[number], string> = {
+  dinamica: "Dinámica",
+  coherencia: "Coherencia",
+  estabilidad: "Estabilidad",
+  informacion: "Información",
+  interaccion: "Interacción",
+  transformacion: "Transformación",
+};
+
+export interface SerieHexagono {
+  id: string;
+  label: string;
+  valores: Partial<Record<(typeof EJES_HEXAGONO)[number], number>>;
+  color: string;
+}
+
+function HexagonoEjes({
+  series,
+  size = 320,
+}: {
+  series: SerieHexagono[];
+  size?: number;
+}) {
+  const PAD = 46;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radio = size / 2 - PAD;
+
+  // Máximo absoluto real entre todas las series (nunca inventado) para que
+  // la escala del hexágono refleje el rango de datos existente — mismo
+  // criterio que ya usa BarraDivergente para sus barras divergentes.
+  const max = Math.max(
+    1,
+    ...series.flatMap((s) => EJES_HEXAGONO.map((eje) => Math.abs(s.valores[eje] ?? 0))),
+  );
+
+  // Vértice del hexágono para el eje `i` (0..5), empezando arriba y en
+  // sentido horario — geometría pura, ningún significado agregado.
+  const vertice = (i: number, r: number) => {
+    const angle = -Math.PI / 2 + (i * Math.PI * 2) / 6;
+    return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
+  };
+
+  const anillos = [0.25, 0.5, 0.75, 1];
+
+  const puntosSerie = (s: SerieHexagono) =>
+    EJES_HEXAGONO.map((eje, i) => {
+      const v = s.valores[eje] ?? 0;
+      // Divergente: valores negativos se proyectan hacia adentro del
+      // centro en vez de recortarse a 0, igual que BarraDivergente.
+      const pct = Math.max(-1, Math.min(1, v / max));
+      const r = Math.max(0, (pct + 1) / 2) * radio;
+      return vertice(i, r);
+    });
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width="100%" height="auto" role="img" aria-label="Comparación de ejes fundamentales">
+      {/* Anillos de referencia + ejes radiales */}
+      {anillos.map((f) => {
+        const pts = EJES_HEXAGONO.map((_, i) => vertice(i, f * radio));
+        return (
+          <polygon
+            key={f}
+            points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
+            fill="none"
+            strokeWidth={1}
+            style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+          />
+        );
+      })}
+      {EJES_HEXAGONO.map((_, i) => {
+        const p = vertice(i, radio);
+        return (
+          <line
+            key={i}
+            x1={cx}
+            y1={cy}
+            x2={p.x}
+            y2={p.y}
+            strokeWidth={1}
+            style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
+          />
+        );
+      })}
+
+      {/* Series (una o más, superpuestas para comparar) */}
+      {series.map((s) => {
+        const pts = puntosSerie(s);
+        return (
+          <g key={s.id}>
+            <polygon
+              points={pts.map((p) => `${p.x},${p.y}`).join(" ")}
+              style={{ fill: `color-mix(in srgb, ${s.color} 22%, transparent)`, stroke: s.color }}
+              strokeWidth={2}
+            />
+            {pts.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r={3} style={{ fill: s.color }} />
+            ))}
+          </g>
+        );
+      })}
+
+      {/* Etiquetas de eje */}
+      {EJES_HEXAGONO.map((eje, i) => {
+        const p = vertice(i, radio + 20);
+        return (
+          <text
+            key={eje}
+            x={p.x}
+            y={p.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fontWeight={800}
+            style={{ fill: "var(--primary)", opacity: 0.55 }}
+          >
+            {EJES_HEXAGONO_LABELS[eje]}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
 /** Selector horizontal de "chips" para elegir una entidad real de un
  *  catálogo — mismo patrón repetido en Material/Estructura/Reactividad/
  *  Oris/Runas/Proceso: evita reimplementar un <select> feo por sección y
@@ -3148,6 +3289,12 @@ function VisualizadorPage() {
 
   const atsEntidadActiva = entidadesATS.find((e) => e.id === atsSelId) ?? null;
 
+  // Comparación en el hexágono de ejes fundamentales: además de la
+  // partícula activa (seleccionada en el mapa T/A/S/I), se puede elegir
+  // una segunda partícula para superponer y comparar los 6 ejes reales
+  // en la misma figura — pedido explícito del usuario ("para compararlos").
+  const [atsCompararId, setAtsCompararId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!orisSel && oris.length > 0) setOrisSel(oris[0]);
   }, [oris, orisSel]);
@@ -3325,28 +3472,88 @@ function VisualizadorPage() {
                         <EmptyRow>Solo disponible a nivel Partículas.</EmptyRow>
                       ) : (() => {
                         const p = particulas.find((x) => x.id === atsSelId) ?? null;
-                        return p?.ejes_fundamentales ? (
-                          <div className="mt-4 space-y-4">
-                            {(
-                              [
-                                ["dinamica", "Dinámica"],
-                                ["coherencia", "Coherencia"],
-                                ["estabilidad", "Estabilidad"],
-                                ["informacion", "Información"],
-                                ["interaccion", "Interacción"],
-                                ["transformacion", "Transformación"],
-                              ] as const
-                            ).map(([clave, label]) => {
-                              const valores = particulas
-                                .map((pp) => pp.ejes_fundamentales?.[clave])
-                                .filter((v): v is number => typeof v === "number");
-                              const max = Math.max(1, ...valores.map((v) => Math.abs(v)));
-                              const v = p.ejes_fundamentales?.[clave] ?? 0;
-                              return <BarraDivergente key={clave} label={label} value={v} max={max} />;
-                            })}
+                        if (!p?.ejes_fundamentales) {
+                          return <EmptyRow>Sin ejes fundamentales para esta partícula.</EmptyRow>;
+                        }
+                        const comparar = atsCompararId
+                          ? particulas.find((x) => x.id === atsCompararId) ?? null
+                          : null;
+
+                        const series: SerieHexagono[] = [
+                          {
+                            id: p.id,
+                            label: p.nombre,
+                            valores: p.ejes_fundamentales,
+                            color: "#3b82f6",
+                          },
+                        ];
+                        if (comparar?.ejes_fundamentales) {
+                          series.push({
+                            id: comparar.id,
+                            label: comparar.nombre,
+                            valores: comparar.ejes_fundamentales,
+                            color: "#ef4444",
+                          });
+                        }
+
+                        return (
+                          <div className="mt-4 space-y-5">
+                            {/* Selector para comparar contra otra partícula */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+                                Comparar con
+                              </span>
+                              <select
+                                value={atsCompararId ?? ""}
+                                onChange={(e) => setAtsCompararId(e.target.value || null)}
+                                className="rounded-full border border-primary/12 bg-transparent px-3 py-1 text-[11px] font-bold text-primary/70 outline-none"
+                              >
+                                <option value="">— ninguna —</option>
+                                {particulas
+                                  .filter((pp) => pp.id !== p.id && pp.ejes_fundamentales)
+                                  .map((pp) => (
+                                    <option key={pp.id} value={pp.id}>
+                                      {pp.nombre}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+
+                            {/* Leyenda de series */}
+                            <div className="flex flex-wrap gap-3">
+                              {series.map((s) => (
+                                <span key={s.id} className="flex items-center gap-1.5 text-[10px] font-bold text-primary/55">
+                                  <span
+                                    className="inline-block h-2.5 w-2.5 rounded-full"
+                                    style={{ backgroundColor: s.color }}
+                                  />
+                                  {s.label}
+                                </span>
+                              ))}
+                            </div>
+
+                            <HexagonoEjes series={series} />
+
+                            <div className="space-y-4 border-t border-primary/10 pt-4">
+                              {(
+                                [
+                                  ["dinamica", "Dinámica"],
+                                  ["coherencia", "Coherencia"],
+                                  ["estabilidad", "Estabilidad"],
+                                  ["informacion", "Información"],
+                                  ["interaccion", "Interacción"],
+                                  ["transformacion", "Transformación"],
+                                ] as const
+                              ).map(([clave, label]) => {
+                                const valores = particulas
+                                  .map((pp) => pp.ejes_fundamentales?.[clave])
+                                  .filter((v): v is number => typeof v === "number");
+                                const max = Math.max(1, ...valores.map((v) => Math.abs(v)));
+                                const v = p.ejes_fundamentales?.[clave] ?? 0;
+                                return <BarraDivergente key={clave} label={label} value={v} max={max} />;
+                              })}
+                            </div>
                           </div>
-                        ) : (
-                          <EmptyRow>Sin ejes fundamentales para esta partícula.</EmptyRow>
                         );
                       })()}
                     </div>
