@@ -2024,6 +2024,39 @@ class AgendaFraniDB extends Dexie {
     this.version(45).stores({
       map_tile_terrain: "tile_id",
     });
+
+    // ─── v46: barrido de 6 huecos encontrados al auditar CADA useSupabaseData
+    // del proyecto contra DEXIE_TABLES (motivado por reporte de carga lenta
+    // en Mapa Universal/Oris — VIS-15/VIS-01) — mismo síntoma que v38-v41:
+    // useSupabaseData ya es cache-first, pero una tabla sin fila acá nunca
+    // tiene cache local, así que cada apertura de esa vista espera el
+    // round-trip completo a Supabase (hasta FETCH_TIMEOUT_MS) en vez de
+    // pintar al instante desde Dexie.
+    //
+    //   - iums_particulas: la causa directa reportada. Fase 4 del rediseño
+    //     1.0 (useIumsConParticulas.ts, composición real de un IUM) — quedó
+    //     fuera del barrido de v34 pese a ser la misma fase que oris_iums,
+    //     que sí entró ahí. Consumida por Mapa Universal (VIS-15) y Oris
+    //     (VIS-01) vía useFisicaRoute → useIumsConParticulas.
+    //   - estado_proyecto (panel de auditoría, useEstadoProyecto.ts): solo
+    //     lectura, nunca escribe desde el frontend.
+    //   - geometria_variables, leyes_geometricas (useGeometriaCatalogo.ts):
+    //     catálogo poblado por migración, solo lectura desde acá.
+    //   - estructura_subcomponentes, estructura_uniones
+    //     (useEstructuraCapas.ts): SÍ son editables, pero con insert/update
+    //     directo a Supabase dentro del propio hook (no pasan por el
+    //     addRow/updateRow genérico de este archivo) — se cachean para
+    //     lectura igual que el resto, pero NO entran en OFFLINE_WRITABLE
+    //     más abajo porque ese set solo tiene sentido para tablas que usan
+    //     el mecanismo genérico de escritura offline.
+    this.version(46).stores({
+      iums_particulas: "id, ium_id, particula_id",
+      estado_proyecto: "id, clave",
+      geometria_variables: "id, clave",
+      leyes_geometricas: "id, clave",
+      estructura_subcomponentes: "id, estructura_id",
+      estructura_uniones: "id, estructura_id",
+    });
   }
 }
 

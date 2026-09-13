@@ -109,6 +109,13 @@ const DEXIE_TABLES = new Set([
   "compuesto_elementos",
   "oris_iums",
   "fenomenos",
+  // ─── v46: iums_particulas — composición real de un IUM (qué Partículas y
+  // en qué cantidad, ver useIumsConParticulas.ts). Es la misma Fase 4 del
+  // rediseño 1.0 que oris_iums (Fase 3), pero se quedó fuera de este
+  // barrido hasta ahora — sin cache local, Mapa Universal/Oris esperaban
+  // el round-trip completo a Supabase en cada carga. Ver v46 en
+  // infra/supabase/db.ts.
+  "iums_particulas",
   // ─── Fases 4-7 del rediseño 1.0 — ver v35 en infra/supabase/db.ts ────────
   "estructura_componentes",
   "organismos",
@@ -223,6 +230,9 @@ const OFFLINE_WRITABLE = new Set([
   "compuesto_elementos",
   "oris_iums",
   "fenomenos",
+  // ─── v46: iums_particulas (ver comentario en DEXIE_TABLES más arriba y
+  // v46 en infra/supabase/db.ts) ───────────────────────────────────────────
+  "iums_particulas",
   // ─── Fases 4-7 del rediseño 1.0 (ver v35 en infra/supabase/db.ts) ───────────
   "estructura_componentes",
   "organismos",
