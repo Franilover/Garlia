@@ -116,6 +116,25 @@ const DEXIE_TABLES = new Set([
   // el round-trip completo a Supabase en cada carga. Ver v46 en
   // infra/supabase/db.ts.
   "iums_particulas",
+  // ─── v46 (cont.): resto del barrido — estado_proyecto (solo lectura,
+  // useEstadoProyecto.ts), geometria_variables/leyes_geometricas (catálogo
+  // poblado por migración, solo lectura, useGeometriaCatalogo.ts) y
+  // estructura_subcomponentes/estructura_uniones (editables, pero con
+  // insert/update directo dentro de useEstructuraCapas.ts — se cachean
+  // para lectura igual que el resto; NO entran en OFFLINE_WRITABLE porque
+  // ese set es solo para tablas que usan el addRow/updateRow genérico de
+  // este archivo). Ver v46 en infra/supabase/db.ts para el detalle
+  // completo de cada una.
+  "estado_proyecto",
+  "geometria_variables",
+  "leyes_geometricas",
+  "estructura_subcomponentes",
+  "estructura_uniones",
+  // ─── v47: propiedades_derivadas (visualizador/useVisualizadorData.ts) —
+  // catálogo de fórmulas reales para la sección "Fórmulas" del
+  // Visualizador. Solo lectura, nunca se escribe desde el frontend — no
+  // entra en OFFLINE_WRITABLE. Ver v47 en infra/supabase/db.ts.
+  "propiedades_derivadas",
   // ─── Fases 4-7 del rediseño 1.0 — ver v35 en infra/supabase/db.ts ────────
   "estructura_componentes",
   "organismos",

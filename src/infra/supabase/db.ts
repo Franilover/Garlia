@@ -2057,6 +2057,28 @@ class AgendaFraniDB extends Dexie {
       estructura_subcomponentes: "id, estructura_id",
       estructura_uniones: "id, estructura_id",
     });
+
+    // ─── v47: propiedades_derivadas (visualizador/useVisualizadorData.ts,
+    // usePropiedadesDerivadas) — catálogo de fórmulas/dependencias reales
+    // que alimenta la sección "Fórmulas" del Visualizador. Encontrado en
+    // una segunda pasada de auditoría más exhaustiva tras v46 (esta vez
+    // grepeando useSupabaseData<Tipo>("string-literal") además de
+    // CONFIG.tabla, que es como se llama acá — no importa un CONFIG desde
+    // types.ts). Mismo síntoma que el resto de este barrido: sin fila acá,
+    // esa sección esperaba el round-trip completo a Supabase en vez de
+    // pintar al instante desde Dexie.
+    //
+    // NO se agrega "valores_propiedades_derivadas" (la otra tabla de ese
+    // mismo archivo, useValoresDerivadosDeEntidad): a propósito NO pasa por
+    // useSupabaseData — es un fetch directo con embed de PostgREST por
+    // combinación (entidad_tipo, entidad_id) elegida dinámicamente por el
+    // usuario, documentado en el propio hook como "no tiene sentido
+    // cachear cada combinación en Dexie". Forzarla acá sin cambiar el hook
+    // no tendría efecto (seguiría sin pasar por Dexie) y encima
+    // malinterpretaría esa decisión de diseño como un hueco.
+    this.version(47).stores({
+      propiedades_derivadas: "id, clave",
+    });
   }
 }
 
