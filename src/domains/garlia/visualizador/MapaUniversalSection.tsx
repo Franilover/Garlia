@@ -12,25 +12,28 @@
  *   Rama 3 (libres):   Partículas T/A/S/I sin agrupar en Ium/capa → Garin/Éterium
  *
  * Interactividad real (pedido explícito):
- *   - Click en un IUM del Oris activo (rama Física) lo fija como foco del
- *     Trace — no abre editor propio: IUM/Oris no tienen panel flotante en
- *     el código real, solo un editor embebido en la página Física (fuera
- *     de alcance de este cambio, a pedido explícito).
+ *   - Click en un IUM del Oris activo (rama Física) fija su foco en el
+ *     Trace Y abre un popover flotante con su gráfico A/T/S real
+ *     (IumVisual) — mismo componente y mismo patrón que usa BasesItemCard
+ *     en FisicaPage. No abre editor: IUM no tiene panel de edición propio
+ *     en el código real, solo el gráfico de solo-lectura.
+ *   - Click en el Oris activo abre el mismo popover con su propio gráfico
+ *     A/T/S (agregando las Partículas de todos sus IUMs).
  *   - Click en el NOMBRE del Elemento activo (rama Alquimia) abre
  *     ElementoPanelFlotante real — el mismo modal de edición que usa
  *     /elementos, con guardado real a Supabase (tabla "elementos").
  *   - Click en un Compuesto-hermano (rama Alquimia) abre CompuestoPanelFlotante
  *     real — mismo modal de edición que usa /elementos, con guardado real
  *     a Supabase (tabla "compuestos" + "compuesto_elementos").
- *   - Ambos paneles se reusan tal cual existen hoy (ElementosPage.tsx /
- *     CompuestosPage.tsx) — no se reimplementa edición nueva acá, solo se
- *     les da los datos y los mutadores reales (mismo patrón de
- *     ElementosSection.tsx: onActualizar solo toca estado local en
- *     memoria, ElementoEditor/CompuestoEditor persisten a Supabase por su
- *     cuenta con debounce propio).
+ *   - Ambos paneles de Alquimia se reusan tal cual existen hoy
+ *     (ElementosPage.tsx / CompuestosPage.tsx) — no se reimplementa edición
+ *     nueva acá, solo se les da los datos y los mutadores reales (mismo
+ *     patrón de ElementosSection.tsx: onActualizar solo toca estado local
+ *     en memoria, ElementoEditor/CompuestoEditor persisten a Supabase por
+ *     su cuenta con debounce propio).
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -40,6 +43,9 @@ import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompues
 import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
+import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+import { IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
+import { particulasDeIum } from "@/domains/garlia/fisica/types";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
@@ -49,13 +55,7 @@ import { TraceView, type TraceStep } from "./TraceView";
 // No se importan desde VisualizadorPage.tsx para no crear un ciclo de
 // módulos ni acoplar esta sección a ese archivo.
 
-function FlowNode({
-  title,
-  subtitle,
-  tone = "default",
-  onClick,
-  selected = false,
-}: {
+const FlowNode = React.forwardRef<HTMLElement, {
   title: string;
   subtitle?: string;
   tone?: "default" | "accent";
@@ -63,10 +63,11 @@ function FlowNode({
   /** Nodo actualmente centrado en la cadena — borde marcado para distinguir
    *  "esto es lo que estoy viendo" de "esto es clickeable pero no es el foco". */
   selected?: boolean;
-}) {
+}>(function FlowNode({ title, subtitle, tone = "default", onClick, selected = false }, ref) {
   const Comp: any = onClick ? "button" : "div";
   return (
     <Comp
+      ref={ref}
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={`min-w-[128px] rounded-xl border px-4 py-4 text-left transition-colors ${
@@ -81,10 +82,62 @@ function FlowNode({
       {subtitle ? <p className="mt-1.5 text-[11px] leading-4 text-primary/40">{subtitle}</p> : null}
     </Comp>
   );
-}
+});
 
 function Arrow() {
   return <ChevronRight className="shrink-0 text-primary/25" size={20} />;
+}
+
+/**
+ * Igual que un FlowNode clickeable, pero el click abre un popover flotante
+ * con el gráfico A/T/S real (IumVisual) arriba del nombre/subtítulo —
+ * mismo componente y mismo patrón visual que usa BasesItemCard en
+ * FisicaPage para IUMs y Oris (círculo de Partículas orbitando un centro).
+ * No abre ningún editor: solo muestra el gráfico, como pidió el usuario.
+ */
+function VisualFlowNode({
+  title,
+  subtitle,
+  tone = "default",
+  selected = false,
+  particulas,
+  onFocus,
+}: {
+  title: string;
+  subtitle?: string;
+  tone?: "default" | "accent";
+  selected?: boolean;
+  /** Partículas reales (expandidas) a graficar en el popover — IumVisual
+   *  arma el círculo proporcional A/T/S/I a partir de esta lista. */
+  particulas: { nombre: string; formula: string }[];
+  /** Además de abrir el popover, fija el foco (ej. IUM activo del Trace). */
+  onFocus?: () => void;
+}) {
+  const nodeRef = useRef<HTMLElement | null>(null);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  return (
+    <>
+      <FlowNode
+        ref={nodeRef}
+        title={title}
+        subtitle={subtitle}
+        tone={tone}
+        selected={selected || !!anchor}
+        onClick={() => {
+          onFocus?.();
+          setAnchor((actual) => (actual ? null : nodeRef.current));
+        }}
+      />
+      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={260} maxHeight={280}>
+        <div className="flex flex-col items-center gap-2 p-1">
+          <IumVisual particulas={particulas} size={140} />
+          <p className="text-xs font-black uppercase tracking-wide text-primary text-center">{title}</p>
+          {subtitle ? <p className="text-[11px] text-primary/40 text-center">{subtitle}</p> : null}
+        </div>
+      </PopoverFlotante>
+    </>
+  );
 }
 
 function LoadingRow() {
@@ -140,12 +193,15 @@ function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r
 // aplanado a un solo FlowNode por nivel — acá el protagonista es la CADENA
 // entre las 3 rutas, no el detalle visual de cada nivel.
 //
-// IUM y Oris no tienen panel flotante propio en el código real (solo un
-// editor embebido en FisicaPage) — a pedido explícito, el click acá solo
-// fija cuál IUM es el foco del Trace, sin abrir ningún editor.
+// IUM y Oris no tienen panel flotante de EDICIÓN propio en el código real
+// (solo un editor embebido en FisicaPage) — pero sí tienen su gráfico A/T/S
+// (IumVisual), igual que en BasesItemCard de FisicaPage. Acá el click en un
+// nodo IUM/Oris abre ese mismo gráfico en un popover flotante (solo
+// lectura, sin editor) además de fijar el foco del Trace de abajo.
 
 function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
-  const { oris, orisSel, setOrisSelId, iumPorId, setIumSelId, iumSel } = route;
+  const { oris, orisSel, setOrisSelId, iumPorId, setIumSelId, iumSel, particulasDelIumSel, particulasDelOrisSel } =
+    route;
 
   const iumIdsDelOris = orisSel ? Object.keys(orisSel.iums_composicion) : [];
   const iumFocoId = iumSel?.id ?? iumIdsDelOris[0] ?? null;
@@ -188,8 +244,9 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
               <FlowNode title="Partículas" subtitle="T/A/S/I" />
               <Arrow />
               {/* Cada IUM del Oris activo es su propio nodo clickeable —
-                  clickearlo fija el foco del Trace de abajo (no abre
-                  editor: IUM no tiene panel flotante propio). */}
+                  clickearlo fija el foco del Trace de abajo Y abre su
+                  gráfico A/T/S (IumVisual) en un popover, igual que en
+                  FisicaPage. */}
               <div className="flex flex-col gap-2">
                 {iumIdsDelOris.length === 0 ? (
                   <FlowNode title="IUMs" subtitle="sin IUMs registrados" />
@@ -197,19 +254,27 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
                   iumIdsDelOris.map((iumId) => {
                     const ium = iumPorId[iumId];
                     if (!ium) return null;
+                    const esFoco = iumFocoId === iumId;
                     return (
-                      <FlowNode
+                      <VisualFlowNode
                         key={iumId}
                         title={ium.nombre}
-                        selected={iumFocoId === iumId}
-                        onClick={() => setIumSelId(iumId)}
+                        selected={esFoco}
+                        onFocus={() => setIumSelId(iumId)}
+                        particulas={esFoco ? particulasDelIumSel : particulasDeIum(ium)}
                       />
                     );
                   })
                 )}
               </div>
               <Arrow />
-              <FlowNode title={orisSel?.nombre ?? "Oris"} subtitle={orisSel?.dominio} tone="accent" selected />
+              <VisualFlowNode
+                title={orisSel?.nombre ?? "Oris"}
+                subtitle={orisSel?.dominio}
+                tone="accent"
+                selected
+                particulas={particulasDelOrisSel}
+              />
               <Arrow />
               <FlowNode title="Éterium" subtitle={orisSel?.familia} />
             </div>
