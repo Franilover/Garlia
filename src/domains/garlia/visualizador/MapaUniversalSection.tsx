@@ -179,9 +179,9 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "arbol";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
-  { key: "fisica", label: "TASI → IUM → Oris" },
-  { key: "alquimia", label: "TASI → Capas → Elemento" },
-  { key: "libres", label: "TASI libres → Garin/Éterium" },
+  { key: "fisica", label: "Polaridades → TASI → IUM → Oris" },
+  { key: "alquimia", label: "Polaridades → TASI → Capas → Elemento" },
+  { key: "libres", label: "Polaridades → TASI libres → Garin/Éterium" },
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
   { key: "matriz", label: "Matriz de Polaridades (+/−)" },
   { key: "arbol", label: "Árbol de Partículas" },
@@ -228,6 +228,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
   const iumFoco = iumFocoId ? iumPorId[iumFocoId] : null;
 
   const traceSteps: TraceStep[] = [
+    { id: "t-polaridad", levelLabel: "Polaridades", title: "+ / −", subtitle: "movimiento / oposición-resistencia-nada" },
     { id: "t-tasi", levelLabel: "TASI (base)", title: "Partículas A/T/S/I", subtitle: "27 combinaciones canónicas" },
     {
       id: "t-ium",
@@ -260,7 +261,9 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
           </select>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
-            <div className="flex min-w-[720px] items-center gap-2">
+            <div className="flex min-w-[840px] items-center gap-2">
+              <FlowNode title="Polaridades" subtitle="+ / −" />
+              <Arrow />
               <FlowNode title="Partículas" subtitle="T/A/S/I" />
               <Arrow />
               {/* Cada IUM del Oris activo es su propio nodo clickeable —
@@ -398,6 +401,7 @@ function RamaAlquimia() {
   }
 
   const traceSteps: TraceStep[] = [
+    { id: "t-polaridad", levelLabel: "Polaridades", title: "+ / −", subtitle: "movimiento / oposición-resistencia-nada" },
     { id: "t-tasi", levelLabel: "TASI (base)", title: "Partículas de Química", subtitle: "distribuidas en 3 capas" },
     {
       id: "t-capas",
@@ -440,7 +444,9 @@ function RamaAlquimia() {
           </select>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
-            <div className="flex min-w-[820px] items-center gap-2">
+            <div className="flex min-w-[940px] items-center gap-2">
+              <FlowNode title="Polaridades" subtitle="+ / −" />
+              <Arrow />
               <FlowNode title="Partículas" subtitle="T/A/S/I" />
               <Arrow />
               <div className="flex flex-col gap-2">
@@ -531,6 +537,8 @@ function RamaLibres() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 overflow-x-auto rounded-2xl p-7">
+        <FlowNode title="Polaridades" subtitle="+ / −" />
+        <Arrow />
         <FlowNode title="Partículas T/A/S/I" subtitle="sin agrupar en IUM ni capa" />
         <Arrow />
         <div className="flex flex-col gap-2">
