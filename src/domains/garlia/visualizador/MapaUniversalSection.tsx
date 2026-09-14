@@ -40,6 +40,7 @@ import { supabase } from "@/infra/supabase/supabase";
 
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
+import { useCompuestoEstabilidad, type CompuestoEstabilidadRow } from "@/domains/garlia/elementos/useCompuestoEstabilidad";
 import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
@@ -176,7 +177,7 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "radar";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "radar" | "causal";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "TASI → IUM → Oris" },
@@ -185,6 +186,7 @@ const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
   { key: "matriz", label: "Matriz de Polaridades (T/A/S/I)" },
   { key: "radar", label: "Radar de Elemento" },
+  { key: "causal", label: "¿Por qué es estable? (Compuesto)" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -1138,6 +1140,171 @@ function RamaRadar() {
   );
 }
 
+// ─── Rama 7: "¿Por qué es estable?" — desglose causal de un Compuesto ──────
+// Dato real: tabla auxiliar "compuesto_estabilidad" (useCompuestoEstabilidad,
+// ya usada por CompuestosPage.tsx para su tarjeta "Análisis estructural") —
+// no todos los Compuestos tienen esta fila (77/90 al momento del comentario
+// original del hook). El propio jsonb "validacion" de "compuestos" trae la
+// fórmula literal aplicada por el trigger de Supabase:
+//   estabilidad_v6_formula = "S=0.50K+0.40Q-0.10T-0.05C"
+// K = calidad_enlaces, Q = compatibilidad, T = tension, C =
+// complejidad_estructural — mismas 4 columnas de compuesto_estabilidad,
+// mismo orden y mismos coeficientes que ya interpreta
+// propiedadesDeEstabilidadDetalle() en CompuestosPage.tsx (grupo "Análisis
+// estructural"). Acá se muestra como medidor causal: barra total de
+// Estabilidad arriba, y abajo una barra por factor con su aporte real
+// (coeficiente × valor, con signo) en vez de solo su valor crudo — así se ve
+// qué EMPUJA y qué RESTA, no solo la lista de números.
+
+const ESTABILIDAD_FACTORES: {
+  clave: keyof Pick<CompuestoEstabilidadRow, "calidad_enlaces" | "compatibilidad" | "tension" | "complejidad_estructural">;
+  letra: string;
+  label: string;
+  coeficiente: number;
+  descripcion: string;
+}[] = [
+  { clave: "calidad_enlaces", letra: "K", label: "Calidad de enlaces", coeficiente: 0.5, descripcion: "Qué tan buenos (compatibles y estables) son los enlaces formados." },
+  { clave: "compatibilidad", letra: "Q", label: "Compatibilidad", coeficiente: 0.4, descripcion: "Qué tan bien encajan entre sí los componentes que lo forman." },
+  { clave: "tension", letra: "T", label: "Tensión", coeficiente: -0.1, descripcion: "Cuánto desbalance/estrés hay entre los enlaces del compuesto." },
+  { clave: "complejidad_estructural", letra: "C", label: "Complejidad estructural", coeficiente: -0.05, descripcion: "Qué tan compleja es la estructura de enlaces del compuesto." },
+];
+
+function BarraCausal({
+  label,
+  letra,
+  valor,
+  aporte,
+  positivo,
+}: {
+  label: string;
+  letra: string;
+  valor: number | null;
+  aporte: number | null;
+  positivo: boolean;
+}) {
+  const pct = valor == null ? 0 : Math.max(0, Math.min(1, valor)) * 100;
+  const color = positivo ? "#c9a06a" : "#4e3320";
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs font-black text-primary/75">
+          <span className="mr-1.5 text-primary/35">{letra}</span>
+          {label}
+        </p>
+        <p className="text-[11px] font-bold text-primary/40">
+          {valor == null ? "—" : valor.toFixed(3)}
+          {aporte != null ? (
+            <span className="ml-1.5" style={{ color }}>
+              {aporte >= 0 ? "+" : ""}
+              {aporte.toFixed(3)}
+            </span>
+          ) : null}
+        </p>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-primary/[0.06]">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function RamaCausal() {
+  const { items: compuestos, loading: loadingCompuestos } = useCompuestosConElementos();
+  const [compuestoId, setCompuestoId] = useState<string | null>(null);
+
+  const compuesto = useMemo(
+    () => (compuestoId ? compuestos.find((c) => c.id === compuestoId) ?? null : compuestos[0] ?? null),
+    [compuestos, compuestoId],
+  );
+
+  const { item: detalle, loading: loadingDetalle } = useCompuestoEstabilidad(compuesto?.id ?? null);
+
+  const aportes = useMemo(() => {
+    if (!detalle) return null;
+    return ESTABILIDAD_FACTORES.map((f) => {
+      const valor = detalle[f.clave];
+      const aporte = valor == null ? null : f.coeficiente * valor;
+      return { ...f, valor, aporte };
+    });
+  }, [detalle]);
+
+  const estabilidadTotal = compuesto?.estabilidad ?? null;
+
+  return (
+    <>
+      {loadingCompuestos ? <LoadingRow /> : compuestos.length === 0 ? <EmptyRow>No hay Compuestos cargados en Supabase todavía.</EmptyRow> : null}
+      {!loadingCompuestos && compuestos.length > 0 ? (
+        <>
+          <select
+            value={compuesto?.id ?? ""}
+            onChange={(e) => setCompuestoId(e.target.value || null)}
+            className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+          >
+            {compuestos.map((c) => (
+              <option key={c.id} value={c.id} className="bg-[var(--bg-main)] text-primary">
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+
+          <div className="mt-5 rounded-2xl p-6">
+            <div className="mb-1 flex items-baseline justify-between">
+              <p className="text-sm font-black text-primary/85">Estabilidad</p>
+              <p className="text-lg font-black text-primary/90">
+                {estabilidadTotal == null ? "—" : estabilidadTotal.toFixed(3)}
+              </p>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-primary/[0.06]">
+              <div
+                className="h-full rounded-full bg-primary/70"
+                style={{ width: `${estabilidadTotal == null ? 0 : Math.max(0, Math.min(1, estabilidadTotal)) * 100}%` }}
+              />
+            </div>
+
+            {loadingDetalle ? (
+              <div className="mt-5">
+                <LoadingRow />
+              </div>
+            ) : !detalle ? (
+              <div className="mt-5">
+                <EmptyRow>
+                  Este Compuesto todavía no tiene fila de análisis estructural
+                  (tabla "compuesto_estabilidad") — no todos los Compuestos la
+                  tienen calculada.
+                </EmptyRow>
+              </div>
+            ) : (
+              <>
+                <p className="mb-3 mt-6 text-[10px] font-black uppercase tracking-wide text-primary/35">
+                  S = 0.50·K + 0.40·Q − 0.10·T − 0.05·C
+                </p>
+                <div className="flex flex-col gap-4">
+                  {aportes?.map((f) => (
+                    <BarraCausal
+                      key={f.clave}
+                      label={f.label}
+                      letra={f.letra}
+                      valor={f.valor}
+                      aporte={f.aporte}
+                      positivo={f.coeficiente > 0}
+                    />
+                  ))}
+                </div>
+                {detalle.clasificacion ? (
+                  <p className="mt-5 text-xs leading-relaxed text-primary/40">
+                    Clasificación: <span className="font-bold text-primary/60">{detalle.clasificacion}</span>
+                    {detalle.confianza != null ? ` · confianza ${detalle.confianza.toFixed(2)}` : ""}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -1153,6 +1320,7 @@ export function MapaUniversalSection() {
         {rama === "polaridades" ? <RamaPolaridades /> : null}
         {rama === "matriz" ? <RamaMatriz /> : null}
         {rama === "radar" ? <RamaRadar /> : null}
+        {rama === "causal" ? <RamaCausal /> : null}
       </div>
     </>
   );
