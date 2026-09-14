@@ -45,7 +45,7 @@ import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
-import { IumVisual, ParticulaVisual } from "@/domains/garlia/fisica/ParticulaVisual";
+import { IumVisual, ParticulaVisual, LETRA_COLOR, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
 import { particulasDeIum, particulaBaseAFilaCatalogo, type FilaParticulaBase } from "@/domains/garlia/fisica/types";
 import { useParticulasBase } from "@/domains/garlia/fisica/useFisica";
 
@@ -177,16 +177,17 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "radar" | "causal";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "radar" | "causal" | "arbol";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "TASI → IUM → Oris" },
   { key: "alquimia", label: "TASI → Capas → Elemento" },
   { key: "libres", label: "TASI libres → Garin/Éterium" },
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
-  { key: "matriz", label: "Matriz de Polaridades (T/A/S/I)" },
+  { key: "matriz", label: "Matriz de Polaridades (+/−)" },
   { key: "radar", label: "Radar de Elemento" },
   { key: "causal", label: "¿Por qué es estable? (Compuesto)" },
+  { key: "arbol", label: "Árbol de Partículas" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -719,14 +720,20 @@ function RamaPolaridades() {
   );
 }
 
-// ─── Rama 5: Matriz de Polaridades — cuadrante T/A/S/I ─────────────────────
+// ─── Rama 5: Matriz de Polaridades — cuadrante +/− → T/A/S/I ───────────────
 // Dato real: tabla "particulas_base" (4 filas, letras T/A/S/I) — el propio
 // detalle de la fila "I" en Supabase la describe como "equilibrio que surge
 // del choque A-T en vez de T-A", y la de "S" como "lo que surge del choque
-// entre T y A": el sistema real es de 2 polos (T=impulso, A=inercia) cuyas
-// 4 combinaciones ordenadas dan las 4 Partículas Base:
-//   T+T → T (Tesis pura)      A+A → A (Antítesis pura)
-//   T→A (choque T-A) → S      A→T (choque A-T) → I
+// entre T y A": el sistema real es de 2 polos cuyas 4 combinaciones
+// ordenadas dan las 4 Partículas Base. Los 2 polos base son + (movimiento/
+// impulso) y − (oposición, resistencia, o nada) — T/A en Supabase son la
+// letra RESULTANTE de cada polo puro, no el polo en sí (T = Tesis =
+// "impulso, voluntad, lo que empuja" = manifestación de +; A = Antítesis =
+// "inercia, resistencia, lo que limita" = manifestación de −). La matriz
+// se pinta con los polos +/− (lo que el usuario mueve/elige) y cada
+// cuadrante resuelve a su letra T/A/S/I real:
+//   + + → T (Tesis: + puro)          − − → A (Antítesis: − puro)
+//   + → − (choque +/−) → S           − → + (choque −/+) → I
 // Se muestra como cuadrícula 2×2 (fila = primer polo, columna = segundo
 // polo) en vez de la cadena lineal de las otras ramas, porque acá lo que
 // importa es la posición relativa, no una jerarquía descendente. Click en
@@ -736,14 +743,29 @@ function RamaPolaridades() {
 // múltiples tercios; se muestra su propio círculo de un color, igual que
 // BasesItemCard en FisicaPage).
 
-const MATRIZ_POLOS = ["T", "A"] as const;
+type PoloBase = "+" | "-";
 
-/** Letra base resultante de combinar (filaPolo, colPolo) — mismo mapeo que
- *  describe fisica_conceptos / particulas_base.detalle en Supabase. */
-function letraDeCuadrante(filaPolo: "T" | "A", colPolo: "T" | "A"): "T" | "A" | "S" | "I" {
-  if (filaPolo === "T" && colPolo === "T") return "T";
-  if (filaPolo === "A" && colPolo === "A") return "A";
-  if (filaPolo === "T" && colPolo === "A") return "S";
+const MATRIZ_POLOS: PoloBase[] = ["+", "-"];
+
+const POLO_LABEL: Record<PoloBase, string> = {
+  "+": "+ (movimiento)",
+  "-": "− (oposición / resistencia / nada)",
+};
+
+/** + se manifiesta como T (Tesis: impulso/voluntad), − como A (Antítesis:
+ *  inercia/resistencia) — mismo mapeo que describe particulas_base.detalle
+ *  en Supabase. */
+function letraDePolo(polo: PoloBase): "T" | "A" {
+  return polo === "+" ? "T" : "A";
+}
+
+/** Letra base resultante de combinar (filaPolo, colPolo). */
+function letraDeCuadrante(filaPolo: PoloBase, colPolo: PoloBase): "T" | "A" | "S" | "I" {
+  const a = letraDePolo(filaPolo);
+  const b = letraDePolo(colPolo);
+  if (a === "T" && b === "T") return "T";
+  if (a === "A" && b === "A") return "A";
+  if (a === "T" && b === "A") return "S";
   return "I"; // A → T
 }
 
@@ -754,8 +776,8 @@ function MatrizCuadrante({
   selected,
   onSelect,
 }: {
-  filaPolo: "T" | "A";
-  colPolo: "T" | "A";
+  filaPolo: PoloBase;
+  colPolo: PoloBase;
   base: FilaParticulaBase | null;
   selected: boolean;
   onSelect: () => void;
@@ -781,7 +803,7 @@ function MatrizCuadrante({
         <p className="text-xs font-black text-primary/80">{base?.nombre ?? letra}</p>
         <p className="text-[10px] text-primary/35">
           {filaPolo}
-          {colPolo === "T" ? "→T" : "→A"}
+          {colPolo}
         </p>
       </button>
       <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={320} maxHeight={240}>
@@ -797,7 +819,7 @@ function MatrizCuadrante({
               <p className="text-xs text-primary/70 leading-relaxed">{base.detalle}</p>
             ) : null}
             <p className="text-xs text-primary/40 leading-relaxed">
-              Combinación: {filaPolo} + {colPolo}
+              Combinación de polos: {filaPolo} {colPolo} (letra {letra})
             </p>
           </div>
         </div>
@@ -824,8 +846,8 @@ function RamaMatriz() {
   }, [basesRaw, letraFocoId]);
 
   const traceSteps: TraceStep[] = [
-    { id: "t-polo1", levelLabel: "Primer polo", title: "T (impulso) / A (inercia)" },
-    { id: "t-polo2", levelLabel: "Segundo polo", title: "T (impulso) / A (inercia)" },
+    { id: "t-polo1", levelLabel: "Primer polo", title: "+ (movimiento) / − (oposición, resistencia o nada)" },
+    { id: "t-polo2", levelLabel: "Segundo polo", title: "+ (movimiento) / − (oposición, resistencia o nada)" },
     {
       id: "t-base",
       levelLabel: "Partícula Base",
@@ -884,9 +906,10 @@ function RamaMatriz() {
             </div>
 
             <p className="max-w-xs text-xs leading-relaxed text-primary/40">
-              Filas y columnas son el mismo par de polos (T = impulso, A = inercia). La diagonal
-              (T+T, A+A) da las Partículas Base puras; las 2 combinaciones cruzadas dan S
-              (choque T→A) e I (choque A→T) — el equilibrio inverso.
+              Filas y columnas son el mismo par de polos: <span className="font-bold text-primary/60">+</span> (movimiento) y{" "}
+              <span className="font-bold text-primary/60">−</span> (oposición, resistencia o nada). La diagonal (++, −−) da
+              las Partículas Base puras (Tesis/Antítesis); las 2 combinaciones cruzadas dan Síntesis (choque +→−) e I
+              (choque −→+, el equilibrio inverso).
             </p>
           </div>
 
@@ -1305,6 +1328,197 @@ function RamaCausal() {
   );
 }
 
+// ─── Rama 8: Árbol de Partículas — árbol + red, no jerarquía estricta ──────
+// Dato real: "particulas.formula" (27 filas, ya usadas en toda la app vía
+// useParticulasCompletas/useParticulas) — cada Partícula tiene una fórmula
+// real de 3 letras A/T/S/I. Se agrupa cada una bajo su PRIMERA letra (dato
+// real de la fórmula, no una jerarquía inventada) como 4 "raíces" T/A/S/I,
+// mismas 4 Partículas Base que arma RamaMatriz arriba. Pero una Partícula
+// como "TST" (Transición) no es solo "hija de T": comparte letras con las
+// otras 3 raíces también — así que además de la línea a su raíz principal
+// (árbol), se dibujan líneas finas hacia las OTRAS raíces cuya letra
+// también aparece en su fórmula (red), con opacidad según cuántas letras
+// comparte. Esto es exactamente lo que pedía el documento ("TST no debería
+// sentirse simplemente como hija de T"): la fórmula real ya trae ese dato,
+// no hace falta inventar afinidades.
+
+const ARBOL_LETRAS: LetraATS[] = ["T", "A", "S", "I"];
+
+/** Cuenta cuántas veces aparece cada letra de ARBOL_LETRAS en una fórmula
+ *  de 3 caracteres — usado tanto para la raíz principal (primera letra)
+ *  como para las conexiones secundarias (letras que también aparecen). */
+function letrasEnFormula(formula: string): Record<LetraATS, number> {
+  const out: Record<LetraATS, number> = { A: 0, T: 0, S: 0, I: 0 };
+  for (const c of formula.toUpperCase()) {
+    if (c === "A" || c === "T" || c === "S" || c === "I") out[c as LetraATS] += 1;
+  }
+  return out;
+}
+
+function RamaArbol() {
+  const { items: particulas, loading } = useParticulasCompletas();
+  const [particulaFocoId, setParticulaFocoId] = useState<string | null>(null);
+
+  const cx = 300;
+  const cy = 230;
+  const rRaiz = 60;
+  const rHoja = 190;
+
+  const posRaiz: Record<LetraATS, { x: number; y: number }> = useMemo(() => {
+    const out = {} as Record<LetraATS, { x: number; y: number }>;
+    ARBOL_LETRAS.forEach((l, i) => {
+      const a = (2 * Math.PI * i) / 4 - Math.PI / 2;
+      out[l] = { x: cx + Math.cos(a) * rRaiz, y: cy + Math.sin(a) * rRaiz };
+    });
+    return out;
+  }, []);
+
+  // Hojas agrupadas por raíz principal (primera letra de su fórmula),
+  // distribuidas en un arco propio alrededor de esa raíz — no en un único
+  // círculo global, para que se lea "racimo por raíz" en vez de "anillo
+  // parejo". Dato real: primera letra de particulas.formula.
+  const hojasPorRaiz = useMemo(() => {
+    const out: Record<LetraATS, typeof particulas> = { T: [], A: [], S: [], I: [] };
+    for (const p of particulas) {
+      const primera = p.formula?.[0]?.toUpperCase();
+      if (primera === "A" || primera === "T" || primera === "S" || primera === "I") {
+        out[primera].push(p);
+      }
+    }
+    return out;
+  }, [particulas]);
+
+  const posHoja = useMemo(() => {
+    const out: Record<string, { x: number; y: number }> = {};
+    ARBOL_LETRAS.forEach((raiz, ri) => {
+      const grupo = hojasPorRaiz[raiz];
+      const anguloBase = (2 * Math.PI * ri) / 4 - Math.PI / 2;
+      const arco = (Math.PI * 2) / 4 - 0.35; // deja aire entre racimos
+      grupo.forEach((p, i) => {
+        const t = grupo.length > 1 ? i / (grupo.length - 1) - 0.5 : 0;
+        const a = anguloBase + t * arco;
+        out[p.id] = { x: cx + Math.cos(a) * rHoja, y: cy + Math.sin(a) * rHoja };
+      });
+    });
+    return out;
+  }, [hojasPorRaiz]);
+
+  const particulaFoco = particulas.find((p) => p.id === particulaFocoId) ?? null;
+
+  return (
+    <>
+      {loading ? <LoadingRow /> : particulas.length === 0 ? <EmptyRow>No hay Partículas cargadas en Supabase todavía.</EmptyRow> : null}
+      {!loading && particulas.length > 0 ? (
+        <>
+          <p className="mb-3 text-xs leading-relaxed text-primary/40">
+            Cada Partícula cuelga (línea gruesa) de la raíz de su primera letra. Las líneas finas
+            hacia las otras raíces muestran las demás letras que también aparecen en su fórmula —
+            una Partícula como Transición (TST) no es solo "hija de T": también carga S.
+          </p>
+          <div className="overflow-x-auto rounded-2xl p-4">
+            <svg width="100%" viewBox="0 0 600 460" className="min-w-[560px]">
+              {/* Red: líneas finas de cada hoja hacia raíces secundarias
+                  (letras de su fórmula distintas de la raíz principal). */}
+              {particulas.map((p) => {
+                const pos = posHoja[p.id];
+                if (!pos) return null;
+                const primera = p.formula?.[0]?.toUpperCase() as LetraATS;
+                const conteo = letrasEnFormula(p.formula ?? "");
+                return ARBOL_LETRAS.filter((l) => l !== primera && conteo[l] > 0).map((l) => (
+                  <line
+                    key={`${p.id}-${l}`}
+                    x1={pos.x}
+                    y1={pos.y}
+                    x2={posRaiz[l].x}
+                    y2={posRaiz[l].y}
+                    className="stroke-primary/10"
+                    strokeWidth={0.75}
+                  />
+                ));
+              })}
+
+              {/* Árbol: línea gruesa de cada hoja a su raíz principal. */}
+              {particulas.map((p) => {
+                const pos = posHoja[p.id];
+                if (!pos) return null;
+                const primera = p.formula?.[0]?.toUpperCase() as LetraATS;
+                return (
+                  <line
+                    key={`tronco-${p.id}`}
+                    x1={pos.x}
+                    y1={pos.y}
+                    x2={posRaiz[primera].x}
+                    y2={posRaiz[primera].y}
+                    className="stroke-primary/25"
+                    strokeWidth={1.25}
+                  />
+                );
+              })}
+
+              {/* Hojas: 27 Partículas reales, clickeables. */}
+              {particulas.map((p) => {
+                const pos = posHoja[p.id];
+                if (!pos) return null;
+                return (
+                  <g
+                    key={p.id}
+                    transform={`translate(${pos.x - 15}, ${pos.y - 15})`}
+                    onClick={() => setParticulaFocoId(p.id)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <foreignObject x={0} y={0} width={30} height={30}>
+                      <ParticulaVisual formula={p.formula} size={30} />
+                    </foreignObject>
+                    <title>{`${p.nombre} (${p.formula})`}</title>
+                  </g>
+                );
+              })}
+
+              {/* Raíces: las 4 letras base, en el centro. */}
+              {ARBOL_LETRAS.map((l) => {
+                const pos = posRaiz[l];
+                const color = LETRA_COLOR[l];
+                return (
+                  <g key={l} transform={`translate(${pos.x - 22}, ${pos.y - 22})`}>
+                    <circle
+                      cx={22}
+                      cy={22}
+                      r={22}
+                      strokeWidth={1.5}
+                      style={{ fill: color.bg, stroke: color.border }}
+                    />
+                    <text
+                      x={22}
+                      y={22}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={18}
+                      fontWeight={900}
+                      style={{ fill: color.fg }}
+                    >
+                      {l}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {particulaFoco ? (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-primary/10 p-4">
+              <ParticulaVisual formula={particulaFoco.formula} size={64} />
+              <div>
+                <p className="text-sm font-black text-primary/85">{particulaFoco.nombre}</p>
+                <p className="text-xs text-primary/45">Fórmula {particulaFoco.formula}</p>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -1321,6 +1535,7 @@ export function MapaUniversalSection() {
         {rama === "matriz" ? <RamaMatriz /> : null}
         {rama === "radar" ? <RamaRadar /> : null}
         {rama === "causal" ? <RamaCausal /> : null}
+        {rama === "arbol" ? <RamaArbol /> : null}
       </div>
     </>
   );
