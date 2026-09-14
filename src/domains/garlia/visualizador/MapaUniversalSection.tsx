@@ -45,7 +45,8 @@ import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage"
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { IumVisual, ParticulaVisual } from "@/domains/garlia/fisica/ParticulaVisual";
-import { particulasDeIum } from "@/domains/garlia/fisica/types";
+import { particulasDeIum, particulaBaseAFilaCatalogo, type FilaParticulaBase } from "@/domains/garlia/fisica/types";
+import { useParticulasBase } from "@/domains/garlia/fisica/useFisica";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
@@ -175,13 +176,14 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "TASI → IUM → Oris" },
   { key: "alquimia", label: "TASI → Capas → Elemento" },
   { key: "libres", label: "TASI libres → Garin/Éterium" },
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
+  { key: "matriz", label: "Matriz de Polaridades (T/A/S/I)" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -714,6 +716,186 @@ function RamaPolaridades() {
   );
 }
 
+// ─── Rama 5: Matriz de Polaridades — cuadrante T/A/S/I ─────────────────────
+// Dato real: tabla "particulas_base" (4 filas, letras T/A/S/I) — el propio
+// detalle de la fila "I" en Supabase la describe como "equilibrio que surge
+// del choque A-T en vez de T-A", y la de "S" como "lo que surge del choque
+// entre T y A": el sistema real es de 2 polos (T=impulso, A=inercia) cuyas
+// 4 combinaciones ordenadas dan las 4 Partículas Base:
+//   T+T → T (Tesis pura)      A+A → A (Antítesis pura)
+//   T→A (choque T-A) → S      A→T (choque A-T) → I
+// Se muestra como cuadrícula 2×2 (fila = primer polo, columna = segundo
+// polo) en vez de la cadena lineal de las otras ramas, porque acá lo que
+// importa es la posición relativa, no una jerarquía descendente. Click en
+// un cuadrante abre el mismo popover con el nombre/detalle real de esa
+// Partícula Base — sin gráfico A/T/S porque una Partícula Base es una
+// letra suelta, no una fórmula de 3 (no aplica ParticulaVisual con
+// múltiples tercios; se muestra su propio círculo de un color, igual que
+// BasesItemCard en FisicaPage).
+
+const MATRIZ_POLOS = ["T", "A"] as const;
+
+/** Letra base resultante de combinar (filaPolo, colPolo) — mismo mapeo que
+ *  describe fisica_conceptos / particulas_base.detalle en Supabase. */
+function letraDeCuadrante(filaPolo: "T" | "A", colPolo: "T" | "A"): "T" | "A" | "S" | "I" {
+  if (filaPolo === "T" && colPolo === "T") return "T";
+  if (filaPolo === "A" && colPolo === "A") return "A";
+  if (filaPolo === "T" && colPolo === "A") return "S";
+  return "I"; // A → T
+}
+
+function MatrizCuadrante({
+  filaPolo,
+  colPolo,
+  base,
+  selected,
+  onSelect,
+}: {
+  filaPolo: "T" | "A";
+  colPolo: "T" | "A";
+  base: FilaParticulaBase | null;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const letra = letraDeCuadrante(filaPolo, colPolo);
+  const nodeRef = useRef<HTMLElement | null>(null);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  return (
+    <>
+      <button
+        ref={nodeRef as any}
+        type="button"
+        onClick={() => {
+          onSelect();
+          setAnchor((actual) => (actual ? null : nodeRef.current));
+        }}
+        className={`flex flex-col items-center justify-center gap-1.5 aspect-square rounded-xl border px-3 py-3 transition-colors ${
+          selected || anchor ? "border-primary/50" : "border-primary/10 hover:border-primary/30"
+        }`}
+      >
+        <ParticulaVisual formula={letra} size={56} />
+        <p className="text-xs font-black text-primary/80">{base?.nombre ?? letra}</p>
+        <p className="text-[10px] text-primary/35">
+          {filaPolo}
+          {colPolo === "T" ? "→T" : "→A"}
+        </p>
+      </button>
+      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={320} maxHeight={240}>
+        <div className="flex flex-row gap-3">
+          <div className="shrink-0 flex items-center justify-center w-[90px]">
+            <ParticulaVisual formula={letra} size={90} />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-xs font-black uppercase tracking-wide text-primary">
+              {base?.nombre ?? letra}
+            </p>
+            {base?.detalle ? (
+              <p className="text-xs text-primary/70 leading-relaxed">{base.detalle}</p>
+            ) : null}
+            <p className="text-xs text-primary/40 leading-relaxed">
+              Combinación: {filaPolo} + {colPolo}
+            </p>
+          </div>
+        </div>
+      </PopoverFlotante>
+    </>
+  );
+}
+
+function RamaMatriz() {
+  const { items: basesRaw, loading } = useParticulasBase();
+  const [letraFocoId, setLetraFocoId] = useState<string | null>(null);
+
+  const basePorLetra = useMemo(() => {
+    const out: Partial<Record<"T" | "A" | "S" | "I", FilaParticulaBase & { id: string }>> = {};
+    for (const b of basesRaw) {
+      out[b.letra] = { ...particulaBaseAFilaCatalogo(b), letra: b.letra, id: b.id } as any;
+    }
+    return out;
+  }, [basesRaw]);
+
+  const letraFoco = useMemo(() => {
+    const b = basesRaw.find((x) => x.id === letraFocoId);
+    return b ? particulaBaseAFilaCatalogo(b) : null;
+  }, [basesRaw, letraFocoId]);
+
+  const traceSteps: TraceStep[] = [
+    { id: "t-polo1", levelLabel: "Primer polo", title: "T (impulso) / A (inercia)" },
+    { id: "t-polo2", levelLabel: "Segundo polo", title: "T (impulso) / A (inercia)" },
+    {
+      id: "t-base",
+      levelLabel: "Partícula Base",
+      title: letraFoco?.nombre ?? null,
+      subtitle: letraFoco?.detalle ?? undefined,
+    },
+  ];
+
+  return (
+    <>
+      {loading ? <LoadingRow /> : basesRaw.length === 0 ? <EmptyRow>No hay Partículas Base cargadas en Supabase todavía.</EmptyRow> : null}
+      {!loading && basesRaw.length > 0 ? (
+        <>
+          <div className="flex flex-col items-start gap-4 rounded-2xl p-6 sm:flex-row sm:items-center sm:gap-8">
+            <div className="flex items-center gap-3">
+              {/* Rótulo de columnas */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-6" />
+                {MATRIZ_POLOS.map((c) => (
+                  <div key={c} className="flex h-[92px] w-6 items-center justify-center text-[10px] font-black text-primary/40">
+                    {c}
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2 pl-0">
+                  {MATRIZ_POLOS.map((c) => (
+                    <div key={c} className="flex w-[92px] items-center justify-center text-[10px] font-black text-primary/40">
+                      segundo polo: {c}
+                    </div>
+                  ))}
+                </div>
+                {MATRIZ_POLOS.map((filaPolo) => (
+                  <div key={filaPolo} className="flex gap-2">
+                    {MATRIZ_POLOS.map((colPolo) => {
+                      const letra = letraDeCuadrante(filaPolo, colPolo);
+                      const base = basePorLetra[letra] ?? null;
+                      return (
+                        <div key={colPolo} className="w-[92px]">
+                          <MatrizCuadrante
+                            filaPolo={filaPolo}
+                            colPolo={colPolo}
+                            base={base as any}
+                            selected={letraFoco?.letra === letra}
+                            onSelect={() => {
+                              const row = basesRaw.find((b) => b.letra === letra);
+                              setLetraFocoId(row?.id ?? null);
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <p className="max-w-xs text-xs leading-relaxed text-primary/40">
+              Filas y columnas son el mismo par de polos (T = impulso, A = inercia). La diagonal
+              (T+T, A+A) da las Partículas Base puras; las 2 combinaciones cruzadas dan S
+              (choque T→A) e I (choque A→T) — el equilibrio inverso.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <TraceView steps={traceSteps} />
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -727,6 +909,7 @@ export function MapaUniversalSection() {
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
         {rama === "polaridades" ? <RamaPolaridades /> : null}
+        {rama === "matriz" ? <RamaMatriz /> : null}
       </div>
     </>
   );
