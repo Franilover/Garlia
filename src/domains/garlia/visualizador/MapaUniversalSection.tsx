@@ -176,7 +176,7 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "radar";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "TASI → IUM → Oris" },
@@ -184,6 +184,7 @@ const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "libres", label: "TASI libres → Garin/Éterium" },
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
   { key: "matriz", label: "Matriz de Polaridades (T/A/S/I)" },
+  { key: "radar", label: "Radar de Elemento" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -896,6 +897,247 @@ function RamaMatriz() {
   );
 }
 
+// ─── Rama 6: Radar de Elemento — comparación de hasta 2 elementos ──────────
+// Dato real: 5 columnas ya calculadas por el trigger de Supabase en
+// "elementos" (masa_base, dinamismo_particular, estabilidad,
+// capacidad_enlace, polaridad_estructural) — mismo origen que
+// useElementos() usa en el resto del código (RamaAlquimia arriba). No hay
+// tabla ni columna nueva: se normaliza cada una a 0–1 sobre el rango real
+// observado en el catálogo completo (67 elementos al momento de escribir
+// esto) para poder dibujarlas en el mismo radar — estabilidad,
+// capacidad_enlace y polaridad_estructural ya viven en 0–1 en Supabase;
+// masa_base y dinamismo_particular no tienen techo conceptual fijo, así
+// que se normalizan min–max sobre el catálogo cargado (mismo criterio que
+// "no inventar una proporción falsa" documentado en FilaStatCards de
+// VisualizadorPage.tsx, pero acá SÍ hace falta 0–1 porque el radar es
+// comparativo entre elementos, no un número aislado).
+//
+// El polígono en sí reusa el cálculo geométrico de RadarPerfilReactivo
+// (@deprecated en VisualizadorPage.tsx) — ejes, anillos y proyección
+// punto-en-eje idénticos — extendido para dibujar 1 o 2 series superpuestas
+// en vez de una sola, ya que el pedido es comparar 2 Elementos.
+
+const RADAR_EJES = [
+  { clave: "masa_base", label: "Masa" },
+  { clave: "dinamismo_particular", label: "Dinamismo" },
+  { clave: "estabilidad", label: "Estabilidad" },
+  { clave: "capacidad_enlace", label: "Enlace" },
+  { clave: "polaridad_estructural", label: "Polaridad" },
+] as const;
+
+type RadarEjeClave = (typeof RADAR_EJES)[number]["clave"];
+
+/** Colores de serie — mismo criterio sepia del resto de Física (tonos, no
+ *  matices), pero acá se necesitan 2 series distinguibles a la vez: se usa
+ *  el tono claro para la primera y el oscuro para la segunda, coherente con
+ *  LETRA_COLOR (A claro / S oscuro) sin introducir una paleta nueva. */
+const RADAR_SERIE_COLOR = [
+  { stroke: "#c9a06a", fill: "color-mix(in srgb, #c9a06a 18%, transparent)", punto: "#c9a06a" },
+  { stroke: "#4e3320", fill: "color-mix(in srgb, #4e3320 18%, transparent)", punto: "#4e3320" },
+];
+
+/** Min/max real de cada eje sobre el catálogo cargado — usado para
+ *  normalizar masa_base y dinamismo_particular (sin techo fijo). Las 3
+ *  columnas ya 0–1 (estabilidad/capacidad_enlace/polaridad_estructural) se
+ *  clampan igual por seguridad ante datos fuera de rango. */
+function rangosRadar(elementos: Elemento[]): Record<RadarEjeClave, { min: number; max: number }> {
+  const out = {} as Record<RadarEjeClave, { min: number; max: number }>;
+  for (const eje of RADAR_EJES) {
+    const valores = elementos
+      .map((e) => e[eje.clave])
+      .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+    const min = valores.length > 0 ? Math.min(...valores) : 0;
+    const max = valores.length > 0 ? Math.max(...valores) : 1;
+    out[eje.clave] = { min, max: max > min ? max : min + 1 };
+  }
+  return out;
+}
+
+function normalizarValorRadar(valor: number | null | undefined, rango: { min: number; max: number }): number {
+  if (valor == null || !Number.isFinite(valor)) return 0;
+  return Math.max(0, Math.min(1, (valor - rango.min) / (rango.max - rango.min)));
+}
+
+/** Radar multi-serie: mismo cálculo geométrico que RadarPerfilReactivo
+ *  (VisualizadorPage.tsx) — ejes/anillos/proyección punto-en-eje — pero
+ *  acepta 1 o 2 series superpuestas con relleno translúcido para comparar
+ *  dos Elementos de un vistazo. */
+function RadarElementos({
+  series,
+}: {
+  series: { nombre: string; color: (typeof RADAR_SERIE_COLOR)[number]; valores: number[] }[];
+}) {
+  const cx = 300;
+  const cy = 240;
+  const R = 150;
+  const n = RADAR_EJES.length;
+
+  const puntoEnEje = (i: number, frac: number) => {
+    const a = (2 * Math.PI * i) / n - Math.PI / 2;
+    return { x: cx + Math.cos(a) * R * frac, y: cy + Math.sin(a) * R * frac };
+  };
+
+  const anillos = [0.25, 0.5, 0.75, 1].map((frac) =>
+    Array.from({ length: n }, (_, i) => puntoEnEje(i, frac))
+      .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+      .join(" "),
+  );
+
+  const ejes = Array.from({ length: n }, (_, i) => puntoEnEje(i, 1));
+
+  const etiquetas = RADAR_EJES.map((eje, i) => {
+    const a = (2 * Math.PI * i) / n - Math.PI / 2;
+    const ca = Math.cos(a);
+    const lx = cx + ca * (R + 42);
+    const ly = cy + Math.sin(a) * (R + 42);
+    const anchor: "start" | "middle" | "end" = Math.abs(ca) < 0.3 ? "middle" : ca > 0 ? "start" : "end";
+    return { ...eje, lx, ly, anchor };
+  });
+
+  const maxLy = Math.max(...etiquetas.map((e) => e.ly)) + 16;
+  const minLy = Math.min(...etiquetas.map((e) => e.ly)) - 16;
+  const viewH = Math.max(maxLy, cy + R + 16) - Math.min(0, minLy);
+
+  return (
+    <svg width="100%" viewBox={`0 0 600 ${Math.ceil(viewH)}`} role="img" className="text-primary">
+      <title>Radar comparativo de Elementos</title>
+      <desc>
+        {series
+          .map((s) => `${s.nombre}: ${RADAR_EJES.map((e, i) => `${e.label} ${s.valores[i].toFixed(2)}`).join(", ")}`)
+          .join(" · ")}
+      </desc>
+      {anillos.map((pts, idx) => (
+        <polygon key={idx} points={pts} fill="none" className="stroke-primary/15" strokeWidth="0.5" />
+      ))}
+      {ejes.map((p, i) => (
+        <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} className="stroke-primary/15" strokeWidth="0.5" />
+      ))}
+      {series.map((s, si) => {
+        const puntos = s.valores.map((v, i) => puntoEnEje(i, Math.max(0, Math.min(1, v))));
+        const poligono = puntos.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+        return (
+          <g key={si}>
+            <polygon points={poligono} style={{ fill: s.color.fill, stroke: s.color.stroke }} strokeWidth="1.5" />
+            {puntos.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r="3.5" style={{ fill: s.color.punto }} />
+            ))}
+          </g>
+        );
+      })}
+      {etiquetas.map((e, i) => (
+        <text
+          key={i}
+          x={e.lx}
+          y={e.ly}
+          textAnchor={e.anchor}
+          dominantBaseline="central"
+          fontSize="13"
+          fontWeight={700}
+          className="fill-primary/70"
+        >
+          {e.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+function RamaRadar() {
+  const { items: elementos, loading } = useElementos();
+  const [elementoAId, setElementoAId] = useState<string | null>(null);
+  const [elementoBId, setElementoBId] = useState<string | null>(null);
+
+  const rangos = useMemo(() => rangosRadar(elementos), [elementos]);
+
+  const elementoA = useMemo(
+    () => (elementoAId ? elementos.find((e) => e.id === elementoAId) ?? null : elementos[0] ?? null),
+    [elementos, elementoAId],
+  );
+  const elementoB = useMemo(
+    () => (elementoBId ? elementos.find((e) => e.id === elementoBId) ?? null : null),
+    [elementos, elementoBId],
+  );
+
+  function valoresDe(el: Elemento): number[] {
+    return RADAR_EJES.map((eje) => normalizarValorRadar(el[eje.clave], rangos[eje.clave]));
+  }
+
+  const series = useMemo(() => {
+    const out: { nombre: string; color: (typeof RADAR_SERIE_COLOR)[number]; valores: number[] }[] = [];
+    if (elementoA) out.push({ nombre: `${elementoA.simbolo} · ${elementoA.nombre}`, color: RADAR_SERIE_COLOR[0], valores: valoresDe(elementoA) });
+    if (elementoB) out.push({ nombre: `${elementoB.simbolo} · ${elementoB.nombre}`, color: RADAR_SERIE_COLOR[1], valores: valoresDe(elementoB) });
+    return out;
+  }, [elementoA, elementoB, rangos]);
+
+  return (
+    <>
+      {loading ? <LoadingRow /> : elementos.length === 0 ? <EmptyRow>No hay Elementos cargados en Supabase todavía.</EmptyRow> : null}
+      {!loading && elementos.length > 0 ? (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={elementoA?.id ?? ""}
+              onChange={(e) => setElementoAId(e.target.value || null)}
+              className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+            >
+              {elementos.map((el) => (
+                <option key={el.id} value={el.id} className="bg-[var(--bg-main)] text-primary">
+                  {el.simbolo} · {el.nombre}
+                </option>
+              ))}
+            </select>
+
+            <span className="text-[10px] font-black uppercase tracking-wide text-primary/30">vs</span>
+
+            <select
+              value={elementoB?.id ?? ""}
+              onChange={(e) => setElementoBId(e.target.value || null)}
+              className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+            >
+              <option value="" className="bg-[var(--bg-main)] text-primary">
+                (sin comparar)
+              </option>
+              {elementos
+                .filter((el) => el.id !== elementoA?.id)
+                .map((el) => (
+                  <option key={el.id} value={el.id} className="bg-[var(--bg-main)] text-primary">
+                    {el.simbolo} · {el.nombre}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-start gap-6 rounded-2xl p-6">
+            <div className="min-w-[300px] flex-1">
+              <RadarElementos series={series} />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {series.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: s.color.punto }}
+                  />
+                  <p className="text-xs font-black text-primary/80">{s.nombre}</p>
+                </div>
+              ))}
+              <div className="mt-1 flex flex-col gap-1">
+                {RADAR_EJES.map((eje, i) => (
+                  <p key={eje.clave} className="text-[11px] text-primary/40">
+                    {eje.label}:{" "}
+                    {series.map((s) => s.valores[i].toFixed(2)).join(" · ")}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -910,6 +1152,7 @@ export function MapaUniversalSection() {
         {rama === "libres" ? <RamaLibres /> : null}
         {rama === "polaridades" ? <RamaPolaridades /> : null}
         {rama === "matriz" ? <RamaMatriz /> : null}
+        {rama === "radar" ? <RamaRadar /> : null}
       </div>
     </>
   );
