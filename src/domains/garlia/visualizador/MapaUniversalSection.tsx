@@ -44,11 +44,12 @@ import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
-import { IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
+import { IumVisual, ParticulaVisual } from "@/domains/garlia/fisica/ParticulaVisual";
 import { particulasDeIum } from "@/domains/garlia/fisica/types";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
+import { useParticulasCompletas } from "./useVisualizadorData";
 import { TraceView, type TraceStep } from "./TraceView";
 
 // ─── Primitivas locales (mismo lenguaje visual que VisualizadorPage) ───────
@@ -174,12 +175,13 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
 
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "TASI → IUM → Oris" },
   { key: "alquimia", label: "TASI → Capas → Elemento" },
   { key: "libres", label: "TASI libres → Garin/Éterium" },
+  { key: "polaridades", label: "Polaridades → TASI → Partículas" },
 ];
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
@@ -537,6 +539,181 @@ function RamaLibres() {
   );
 }
 
+// ─── Rama 4: Polaridades — Polaridad → TASI → Partículas ───────────────────
+// Dato real: "particulas.vector_neto" (suma A=+1/T=-1/S=0 sobre la fórmula
+// de 3 letras, ver fisica/types.ts) trae la polaridad neta de cada una de
+// las 27 Partículas canónicas — ya vive en Supabase, no se calcula nada
+// nuevo acá. Se agrupan las 27 en 3 polaridades (Positiva/Neutra/Negativa)
+// según el signo de vector_neto y se listan sus Partículas reales debajo de
+// cada una. Click en una Partícula abre su gráfico A/T/S real
+// (ParticulaVisual) en un popover flotante — mismo patrón visual que
+// VisualFlowNode/IumVisual usa en la rama Física, pero acá el círculo es el
+// de una Partícula individual (3 tercios fijos), no el de un Ium/Oris
+// (arcos proporcionales u orbital).
+
+type PolaridadClave = "positiva" | "neutra" | "negativa";
+
+const POLARIDAD_LABEL: Record<PolaridadClave, string> = {
+  positiva: "Positiva (+)",
+  neutra: "Neutra (0)",
+  negativa: "Negativa (−)",
+};
+
+const POLARIDAD_DETALLE: Record<PolaridadClave, string> = {
+  positiva: "vector_neto > 0 — dominancia de A (Antítesis/masa-constitución)",
+  neutra: "vector_neto = 0 — A/T equilibrados en la fórmula",
+  negativa: "vector_neto < 0 — dominancia de T (Tesis/dinámica)",
+};
+
+function polaridadDeVector(vectorNeto: number | null | undefined): PolaridadClave {
+  const v = vectorNeto ?? 0;
+  if (v > 0) return "positiva";
+  if (v < 0) return "negativa";
+  return "neutra";
+}
+
+/** Igual que VisualFlowNode, pero el popover grafica UNA Partícula (3
+ *  tercios fijos vía ParticulaVisual) en vez del círculo orbital de un
+ *  Ium/Oris — no reusa VisualFlowNode porque ese componente está atado a
+ *  IumVisual (recibe una lista de partículas, no una fórmula única). */
+function ParticulaFlowNode({
+  nombre,
+  formula,
+  vectorNeto,
+  selected,
+  onFocus,
+}: {
+  nombre: string;
+  formula: string;
+  vectorNeto: number | null | undefined;
+  selected?: boolean;
+  onFocus?: () => void;
+}) {
+  const nodeRef = useRef<HTMLElement | null>(null);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+
+  return (
+    <>
+      <FlowNode
+        ref={nodeRef}
+        title={nombre}
+        subtitle={formula}
+        selected={selected || !!anchor}
+        onClick={() => {
+          onFocus?.();
+          setAnchor((actual) => (actual ? null : nodeRef.current));
+        }}
+      />
+      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={340} maxHeight={260}>
+        <div className="flex flex-row gap-3">
+          <div className="shrink-0 flex items-center justify-center w-[110px]">
+            <ParticulaVisual formula={formula} size={110} />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-xs font-black uppercase tracking-wide text-primary">{nombre}</p>
+            <p className="text-xs text-primary/70 leading-relaxed">Fórmula {formula}</p>
+            <p className="text-xs text-primary/40 leading-relaxed">
+              Vector neto: {vectorNeto ?? 0} · {POLARIDAD_LABEL[polaridadDeVector(vectorNeto)]}
+            </p>
+          </div>
+        </div>
+      </PopoverFlotante>
+    </>
+  );
+}
+
+function RamaPolaridades() {
+  const { items: particulas, loading } = useParticulasCompletas();
+  const [polaridadSel, setPolaridadSel] = useState<PolaridadClave | null>(null);
+  const [particulaFocoId, setParticulaFocoId] = useState<string | null>(null);
+
+  const grupos = useMemo(() => {
+    const out: Record<PolaridadClave, typeof particulas> = { positiva: [], neutra: [], negativa: [] };
+    for (const p of particulas) {
+      out[polaridadDeVector(p.vector_neto)].push(p);
+    }
+    return out;
+  }, [particulas]);
+
+  const ordenPolaridades: PolaridadClave[] = ["positiva", "neutra", "negativa"];
+  const polaridadActiva = polaridadSel ?? (grupos.positiva.length > 0 ? "positiva" : ordenPolaridades.find((k) => grupos[k].length > 0) ?? null);
+  const particulasActivas = polaridadActiva ? grupos[polaridadActiva] : [];
+  const particulaFoco = particulasActivas.find((p) => p.id === particulaFocoId) ?? particulasActivas[0] ?? null;
+
+  const traceSteps: TraceStep[] = [
+    {
+      id: "t-polaridad",
+      levelLabel: "Polaridad",
+      title: polaridadActiva ? POLARIDAD_LABEL[polaridadActiva] : null,
+      subtitle: polaridadActiva ? `${particulasActivas.length} partícula(s)` : undefined,
+    },
+    { id: "t-tasi", levelLabel: "TASI (base)", title: "Fórmula A/T/S", subtitle: "3 letras por partícula" },
+    {
+      id: "t-particula",
+      levelLabel: "Partícula",
+      title: particulaFoco?.nombre ?? null,
+      subtitle: particulaFoco ? `${particulaFoco.formula} · vector ${particulaFoco.vector_neto ?? 0}` : undefined,
+    },
+  ];
+
+  return (
+    <>
+      {loading ? <LoadingRow /> : particulas.length === 0 ? <EmptyRow>No hay Partículas cargadas en Supabase todavía.</EmptyRow> : null}
+      {!loading && particulas.length > 0 ? (
+        <>
+          <div className="overflow-x-auto rounded-2xl p-6">
+            <div className="flex min-w-[820px] items-center gap-2">
+              {/* Nivel 1: Polaridades — 3 nodos clickeables, seleccionan el
+                  grupo activo (mismo patrón que el <select> de Elemento en
+                  RamaAlquimia, pero como nodos del árbol). */}
+              <div className="flex flex-col gap-2">
+                {ordenPolaridades.map((k) => (
+                  <FlowNode
+                    key={k}
+                    title={POLARIDAD_LABEL[k]}
+                    subtitle={`${grupos[k].length} partícula(s)`}
+                    tone="accent"
+                    selected={polaridadActiva === k}
+                    onClick={() => {
+                      setPolaridadSel(k);
+                      setParticulaFocoId(null);
+                    }}
+                  />
+                ))}
+              </div>
+              <Arrow />
+              <FlowNode title="TASI" subtitle={polaridadActiva ? POLARIDAD_DETALLE[polaridadActiva] : "A/T/S"} />
+              <Arrow />
+              {/* Nivel 3: Partículas reales del grupo activo — click abre su
+                  gráfico A/T/S real y fija el foco del Trace. */}
+              <div className="flex flex-wrap gap-2 max-w-[420px]">
+                {particulasActivas.length === 0 ? (
+                  <FlowNode title="Sin partículas" subtitle="ninguna en esta polaridad" />
+                ) : (
+                  particulasActivas.map((p) => (
+                    <ParticulaFlowNode
+                      key={p.id}
+                      nombre={p.nombre}
+                      formula={p.formula}
+                      vectorNeto={p.vector_neto}
+                      selected={particulaFoco?.id === p.id}
+                      onFocus={() => setParticulaFocoId(p.id)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <TraceView steps={traceSteps} />
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -549,6 +726,7 @@ export function MapaUniversalSection() {
         {rama === "fisica" ? <RamaFisica route={fisicaRoute} /> : null}
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
+        {rama === "polaridades" ? <RamaPolaridades /> : null}
       </div>
     </>
   );
