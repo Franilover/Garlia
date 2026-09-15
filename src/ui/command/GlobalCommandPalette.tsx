@@ -95,8 +95,8 @@ interface LibroPublico {
   estado?: string;
 }
 
-// Lo que el usuario tiene desbloqueado en su página personal (/garlia/personal)
-// o en el mapa (/garlia/mapa)
+// Lo que el usuario tiene desbloqueado en su página de cuenta (/garlia/universo/cuenta)
+// o en el mapa (/garlia/universo/mapa)
 interface DescubrimientoPersonal {
   entidad_id: string;
   tipo: "personaje" | "criatura" | "item" | "reino" | "ciudad";
@@ -836,8 +836,8 @@ export function GlobalCommandPalette() {
   // DESBLOQUEADO — mismo patrón de "buzón" que goEntity: si la página destino
   // ya está montada despachamos directo, si no dejamos la solicitud en
   // sessionStorage para que la consuma apenas monte.
-  // Personajes/criaturas/items abren en /garlia/personal.
-  // Reinos/ciudades abren en /garlia/mapa.
+  // Personajes/criaturas/items abren en /garlia/universo/cuenta.
+  // Reinos/ciudades abren en /garlia/universo/mapa.
   const goUnlockedEntity = useCallback(
     (
       tipo: "personaje" | "criatura" | "item" | "reino" | "ciudad",
@@ -846,7 +846,7 @@ export function GlobalCommandPalette() {
     ) => {
       setOpen(false);
       const esMapa = tipo === "reino" || tipo === "ciudad";
-      const destino = esMapa ? "/garlia/mapa" : "/garlia/personal";
+      const destino = esMapa ? "/garlia/universo/mapa" : "/garlia/universo/cuenta";
       const eventName = esMapa ? "mapa-open-entity" : "personal-open-entity";
       const storageKey = esMapa
         ? "mapa-pending-open-entity"
@@ -895,7 +895,7 @@ export function GlobalCommandPalette() {
       description: "Explora el mundo",
       icon: Compass,
       keywords: ["mapa", "mundo", "garlia", "explorar"],
-      action: () => go("/garlia/mapa"),
+      action: () => go("/garlia/universo/mapa"),
       group: "Navegar",
     },
     {
@@ -994,7 +994,7 @@ export function GlobalCommandPalette() {
           label: "Mi personaje",
           icon: CircleUser,
           keywords: ["mi personaje", "perfil"],
-          action: () => go("/garlia/personal"),
+          action: () => go("/garlia/universo/cuenta"),
           group: "Navegar",
         },
         {

@@ -11,7 +11,7 @@ import { CATEGORIAS_DESCUBRIMIENTOS, TODOS_LOS_TIPOS } from "./types";
 import { useDescubrimientosPublicados } from "./useDescubrimientosPublicados";
 
 /**
- * Página pública /garlia/biblioteca/descubrimientos.
+ * Página pública /garlia/universo/descubrimientos.
  *
  * Sin tabs de categoría: se listan TODAS las entidades publicadas juntas,
  * sin importar su tipo (criatura, elemento, material, reino...), en una

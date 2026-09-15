@@ -10,7 +10,7 @@ import { teoriasQueries } from "./queries";
 import { useTeorias } from "./useTeorias";
 
 /**
- * Página pública /garlia/biblioteca/teorias.
+ * Página pública /garlia/universo/teorias.
  *
  * Cualquier usuario logueado puede publicar una teoría (título + texto
  * libre, ver sql/teorias.sql). Cada card muestra el autor. El botón de

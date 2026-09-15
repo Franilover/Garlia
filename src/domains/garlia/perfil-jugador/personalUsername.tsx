@@ -249,7 +249,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
         </p>
         <Link
           className="font-serif italic text-micro flex items-center gap-1.5 hover:opacity-70"
-          href="/garlia/personal"
+          href="/garlia/universo/cuenta"
           style={{ color: "var(--primary)" }}
         >
           ← Volver a mi perfil
@@ -926,7 +926,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       {/* Botón volver */}
       <Link
         className="fixed top-4 left-4 z-[100] flex items-center justify-center w-9 h-9 transition-all hover:scale-110"
-        href="/garlia/personal"
+        href="/garlia/universo/cuenta"
         style={{
           background: "var(--bg-menu)",
           borderRadius: "50%",

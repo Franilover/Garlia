@@ -4,8 +4,8 @@
  * MapaSection
  * ───────────────────────────────────────────────────────────────────────────
  * Toda la edición del mapa vive acá adentro, dentro de editorGarlia — nada
- * de esto toca la ruta pública (/garlia/mapa), que se renderiza siempre en
- * modo solo-lectura (ver src/app/(public)/garlia/mapa/page.tsx).
+ * de esto toca la ruta pública (/garlia/universo/mapa), que se renderiza siempre en
+ * modo solo-lectura (ver src/app/(public)/garlia/universo/mapa/page.tsx).
  *
  * Un solo componente, sin pasos intermedios: MapaInteractivo con
  * allowEdit=true ya trae fondo + tiles + reinos juntos desde el primer

@@ -2739,7 +2739,7 @@ export default function Personal({ datos: datosProp }: PersonalProps) {
                                   }),
                                 );
                               } catch {}
-                              router.push(`/garlia/mapa`);
+                              router.push(`/garlia/universo/mapa`);
                             }}
                             onMouseEnter={(e) => {
                               (

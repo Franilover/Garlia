@@ -1851,7 +1851,7 @@ export default function MapaInteractivo({
 }: {
   /**
    * Habilita la UI y lógica de edición (botón "Editar Mapa", drag de
-   * markers, guardado, etc). El mapa público (/garlia/mapa) SIEMPRE la
+   * markers, guardado, etc). El mapa público (/garlia/universo/mapa) SIEMPRE la
    * pasa en false — la edición vive únicamente en editorGarlia
    * (ver MapaSection), que renderiza este mismo componente con
    * allowEdit=true.

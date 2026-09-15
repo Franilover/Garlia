@@ -2,7 +2,6 @@
 import { AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
-  CircleUser,
   Clock,
   Flower2,
   PenTool,
@@ -45,7 +44,7 @@ import { useGotoHotkeys } from "@/hooks/ui/useGotoHotkeys";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
-import { ICONO_BIBLIOTECA } from "@/domains/garlia/biblioteca/public/secciones";
+import { ICONO_UNIVERSO } from "@/domains/garlia/universo/public/secciones";
 
 
 // ── Shared types ─────────────────────────────────────────────────────────────
@@ -585,7 +584,6 @@ const Navbar = () => {
   const isGarliaeditor = currentPath?.startsWith("/myself/garlia") ?? false;
   const isGarlia = currentPath?.startsWith("/garlia") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
-  const personalIsActive = currentPath === "/garlia/personal";
 
   useEffect(() => {
     setAdminSubmenuOpen(isGarliaeditor);
@@ -649,78 +647,49 @@ const Navbar = () => {
   const isRunas = currentPath?.startsWith("/garlia/runas") ?? false;
   const isAventura = currentPath?.startsWith("/garlia/aventura") ?? false;
 
-  // ── Biblioteca (usuarios con cuenta) ──────────────────────────────────────
-  // Sección pública de sólo lectura: acá se van a exponer los elementos
-  // compuestos / gráficos que marquemos como públicos. NO muestra nada del
-  // panel admin (/myself/*) — cada página de biblioteca consulta sólo data
-  // marcada como pública. Requiere sesión iniciada; los admins también la
-  // ven para poder revisarla (si en algún momento se quiere ocultar para
-  // ellos, cambiar `user` por `user && !isAdmin` acá abajo).
-  const isBiblioteca = currentPath?.startsWith("/garlia/biblioteca") ?? false;
+  // ── Universo (antes "Biblioteca"; usuarios con cuenta) ────────────────────
+  // Sección pública de sólo lectura con varias sub-secciones como tabs:
+  // Descubrimientos, Teorías, Libros (de conocimiento), Mapa y Cuenta.
+  // "Mapa" y "Cuenta" antes eran ítems propios del navbar — ahora viven
+  // como tabs dentro de /garlia/universo, así que ya no tienen entrada
+  // separada acá. NO muestra nada del panel admin (/myself/*) — cada
+  // página de universo consulta sólo data marcada como pública. Requiere
+  // sesión iniciada; los admins también la ven para poder revisarla (si
+  // en algún momento se quiere ocultar para ellos, cambiar `user` por
+  // `user && !isAdmin` acá abajo).
+  const isUniverso = currentPath?.startsWith("/garlia/universo") ?? false;
 
-  const bibliotecaLink: NavLinkDef[] = user
+  const universoLink: NavLinkDef[] = user
     ? [
         {
-          href: "/garlia/biblioteca",
-          label: "Biblioteca",
-          icon: ICONO_BIBLIOTECA,
-          active: isBiblioteca,
+          href: user ? "/garlia/universo/cuenta" : "/auth/login",
+          label: "Universo",
+          icon: ICONO_UNIVERSO,
+          active: isUniverso,
         },
       ]
     : [];
 
   const garliaLinks: NavLinkDef[] = [
     {
-      href: user ? "/garlia/personal" : "/auth/login",
-      label: "Cuenta",
-      icon: CircleUser,
-      active: personalIsActive,
-    },
-    ...(user
-      ? [
-          {
-            href: "/garlia/mapa",
-            label: "Mapa",
-            icon: Compass,
-            active: currentPath?.startsWith("/garlia/mapa") ?? false,
-          },
-        ]
-      : []),
-    {
       href: "/garlia/libros",
       label: "Libros",
       icon: BookText,
       active: currentPath?.startsWith("/garlia/libros") ?? false,
     },
-    ...bibliotecaLink,
+    ...universoLink,
   ];
 
   // Versión mobile: mismos links que garliaLinks (Aventura y Runas ocultos
   // acá también — ver arriba).
   const mobileGarliaLinks: NavLinkDef[] = [
     {
-      href: user ? "/garlia/personal" : "/auth/login",
-      label: "Cuenta",
-      icon: CircleUser,
-      active: personalIsActive,
-    },
-    ...(user
-      ? [
-          {
-            href: "/garlia/mapa",
-            label: "Mapa",
-            icon: Compass,
-            active: currentPath?.startsWith("/garlia/mapa") ?? false,
-          },
-        ]
-      : []),
-    {
       href: "/garlia/libros",
       label: "Libros",
       icon: BookText,
       active: currentPath?.startsWith("/garlia/libros") ?? false,
     },
-    ...bibliotecaLink,
+    ...universoLink,
   ];
 
   // aventuraSubLinks queda sin uso ahora que "Aventura" no aparece en
