@@ -1,8 +1,12 @@
+import LibrosConocimientoPage from "@/domains/garlia/libros-conocimiento/LibrosConocimientoPage";
 import PaginaUniversoPlantilla from "@/domains/garlia/universo/public/PaginaUniversoPlantilla";
 
 export default function Page() {
-  // Placeholder por ahora: esta sección son los "libros de conocimiento"
-  // (distinto de /garlia/libros). El contenido público se enchufa como
-  // children cuando exista.
-  return <PaginaUniversoPlantilla slug="libros" />;
+  // "Libros de conocimiento" (distinto de /garlia/libros, la biblioteca
+  // de historia/aventura con capítulos). Ver domains/garlia/libros-conocimiento.
+  return (
+    <PaginaUniversoPlantilla slug="libros">
+      <LibrosConocimientoPage />
+    </PaginaUniversoPlantilla>
+  );
 }
