@@ -2,7 +2,6 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 
-import { Btn } from "@/ui/Buttons";
 import { SmartImage } from "@/ui/SmartImage";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -20,9 +19,10 @@ import { useDescubrimientosPublicados } from "./useDescubrimientosPublicados";
  * su categoría (para diferenciarlas visualmente cuando no tienen imagen),
  * pero ya no hay botones para filtrar por categoría.
  *
- * Admins ven además un botón "Publicar descubrimiento" que abre el
- * formulario (título, descripción, tipo, entidad, fecha, reino/ciudad
- * opcionales) y, sobre cada card ya publicada, acciones de editar/quitar.
+ * Admins ven además una card "Añadir" (mismo porte que las demás, con un
+ * + al centro) como primer elemento de la grilla, que abre el formulario
+ * (título, descripción, tipo, entidad, fecha, reino/ciudad opcionales) y,
+ * sobre cada card ya publicada, acciones de editar/quitar.
  *
  * "Novedades" ya no vive acá — si se necesita, se linkea aparte.
  */
@@ -43,18 +43,11 @@ export default function DescubrimientosPage() {
 
   return (
     <div>
-      {isAdmin && (
-        <div className="flex items-center justify-end pb-3 mb-3">
-          <Btn icon={<Plus size={14} />} size="sm" onClick={abrirNuevo}>
-            Publicar descubrimiento
-          </Btn>
-        </div>
-      )}
-
       <TodosGrid
         key={refreshKey}
         isAdmin={isAdmin}
         perfilId={user?.id ?? null}
+        onAgregar={abrirNuevo}
         onEditar={(item) => {
           setEditando({
             id: item.id,
@@ -91,10 +84,12 @@ function iconoDeTipo(tipo: string) {
 function TodosGrid({
   isAdmin,
   perfilId,
+  onAgregar,
   onEditar,
 }: {
   isAdmin: boolean;
   perfilId: string | null;
+  onAgregar: () => void;
   onEditar: (item: any) => void;
 }) {
   const { items, loading } = useDescubrimientosPublicados(TODOS_LOS_TIPOS, {
@@ -114,7 +109,7 @@ function TodosGrid({
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isAdmin) {
     return (
       <p
         className="text-micro font-bold uppercase tracking-widest py-10 text-center"
@@ -138,6 +133,31 @@ function TodosGrid({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+      {isAdmin && (
+        <button
+          aria-label="Publicar descubrimiento"
+          type="button"
+          className="relative flex flex-col items-center justify-center gap-1.5 p-2 aspect-square transition-colors"
+          style={{
+            borderRadius: "var(--radius-btn)",
+            border:
+              "var(--border-width) dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+          onClick={onAgregar}
+        >
+          <Plus
+            size={22}
+            style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+          />
+          <span
+            className="text-micro font-black uppercase tracking-tight"
+            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+          >
+            Añadir
+          </span>
+        </button>
+      )}
       {items.map((item) => {
         const Icon = iconoDeTipo(item.tipo_entidad);
         return (
