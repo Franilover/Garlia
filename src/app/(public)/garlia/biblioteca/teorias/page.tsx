@@ -1,7 +1,10 @@
 import PaginaBibliotecaPlantilla from "@/domains/garlia/biblioteca/public/PaginaBibliotecaPlantilla";
+import TeoriasPage from "@/domains/garlia/teorias/TeoriasPage";
 
 export default function Page() {
-  // Plantilla vacía por ahora: el contenido público de "teorias"
-  // se enchufa como children cuando exista.
-  return <PaginaBibliotecaPlantilla slug="teorias" />;
+  return (
+    <PaginaBibliotecaPlantilla slug="teorias">
+      <TeoriasPage />
+    </PaginaBibliotecaPlantilla>
+  );
 }
