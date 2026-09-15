@@ -6,7 +6,10 @@ export default function Page() {
   // editorGarlia (ver MapaSection dentro del panel admin).
   return (
     <PaginaUniversoPlantilla slug="mapa" fullBleed>
-      <MapaInteractivo allowEdit={false} />
+      {/* 38px = alto de la tab bar fija que dibuja PaginaUniversoPlantilla
+          en modo fullBleed (ver pt-[38px] ahí) — sin este offset el mapa
+          (fixed inset-0) queda tapado detrás de esa barra. */}
+      <MapaInteractivo allowEdit={false} topOffset={38} />
     </PaginaUniversoPlantilla>
   );
 }

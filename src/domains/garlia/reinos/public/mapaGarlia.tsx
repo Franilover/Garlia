@@ -559,36 +559,60 @@ function SidebarReinosDescubiertos({
 }) {
   return (
     <div
-      className="absolute left-0 top-0 bottom-0 z-40 w-40 sm:w-48 overflow-y-auto"
+      className="absolute left-4 top-4 bottom-4 z-40 w-36 sm:w-44 flex flex-col overflow-hidden"
       style={{
         background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
-        borderRight:
-          "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+        borderRadius: "2px",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
         backdropFilter: "blur(10px)",
       }}
     >
       <p
-        className="px-3 pt-3 pb-2 text-micro font-black uppercase tracking-widest"
-        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+        className="px-3 pt-3 pb-2 text-micro font-black uppercase shrink-0"
+        style={{
+          color: "var(--accent)",
+          letterSpacing: "0.12em",
+          borderBottom:
+            "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          marginBottom: "0.25rem",
+        }}
       >
         Reinos
       </p>
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-0.5 px-1.5 pb-1.5 overflow-y-auto">
         {items.map(({ reino, area }) => (
           <button
             key={reino.id}
             type="button"
-            className="flex items-center gap-2 px-3 py-2 text-left transition-colors hover:opacity-80"
-            style={{ color: "var(--foreground)" }}
+            className="flex items-center gap-2 px-2 py-1.5 text-left transition-colors group"
+            style={{
+              color: "color-mix(in srgb, var(--foreground) 85%, transparent)",
+              borderRadius: "2px",
+            }}
             title={`Ir a ${reino.nombre}`}
-            onClick={() => onSelect(area)}
+            onClick={(e) => {
+              e.currentTarget.style.background =
+                "color-mix(in srgb, var(--primary) 12%, transparent)";
+              onSelect(area);
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background =
+                "color-mix(in srgb, var(--primary) 8%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
             <Crown
-              size={13}
-              className="shrink-0"
-              style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
+              size={12}
+              className="shrink-0 transition-colors"
+              style={{ color: "color-mix(in srgb, var(--accent) 65%, transparent)" }}
             />
-            <span className="text-micro font-semibold uppercase tracking-wide truncate">
+            <span
+              className="text-micro font-semibold uppercase truncate"
+              style={{ letterSpacing: "0.04em" }}
+            >
               {reino.nombre}
             </span>
           </button>
@@ -1909,6 +1933,7 @@ export default function MapaInteractivo({
   allowEdit = false,
   initialEditReinoId = null,
   onExitReino,
+  topOffset = 0,
 }: {
   /**
    * Habilita la UI y lógica de edición (botón "Editar Mapa", drag de
@@ -1933,6 +1958,16 @@ export default function MapaInteractivo({
    * en vez de mostrar un segundo botón de volver propio.
    */
   onExitReino?: () => void;
+  /**
+   * Alto en px que este componente debe dejar libre arriba (además de
+   * `top-0`) antes de empezar a dibujar el canvas/UI flotante. El
+   * wrapper es `fixed inset-0`, así que por defecto arranca pegado al
+   * borde del viewport — en /garlia/universo/mapa eso queda tapado por
+   * la tab bar fija de PaginaUniversoPlantilla (fullBleed, ~38px). Se
+   * pasa en 0 (default) en /garlia/mapa y en el editor admin
+   * (MapaSection), que no tienen esa barra encima.
+   */
+  topOffset?: number;
 }) {
   const isAdminAccount = useIsAdmin();
   // Aun siendo admin, sin allowEdit no hay edición: esto es lo que saca
@@ -3629,7 +3664,7 @@ export default function MapaInteractivo({
     return (
       <div
         className="fixed inset-0 md:left-[68px]"
-        style={{ background: fondoColor || "var(--bg-main)" }}
+        style={{ top: topOffset, background: fondoColor || "var(--bg-main)" }}
       />
     );
 
@@ -3637,6 +3672,7 @@ export default function MapaInteractivo({
     <div
       className="fixed inset-0 flex overflow-hidden md:left-[68px]"
       style={{
+        top: topOffset,
         background: fondoColor || "var(--bg-main)",
         transition: "background 0.5s ease",
       }}
