@@ -13,7 +13,10 @@ import type {
  * Solo lectura — pensado para las páginas públicas de Biblioteca >
  * Descubrimientos.
  */
-export function useDescubrimientosPublicados(tipos: TipoEntidadPublicable[]) {
+export function useDescubrimientosPublicados(
+  tipos: TipoEntidadPublicable[],
+  opciones?: { esAdmin?: boolean; perfilId?: string | null },
+) {
   const [items, setItems] = useState<EntidadDescubribleResuelta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,8 @@ export function useDescubrimientosPublicados(tipos: TipoEntidadPublicable[]) {
   // renders en la práctica), pero por las dudas se usa join como key de
   // efecto para no depender de la identidad del array.
   const tiposKey = tipos.join(",");
+  const esAdmin = opciones?.esAdmin ?? false;
+  const perfilId = opciones?.perfilId ?? null;
 
   useEffect(() => {
     let mounted = true;
@@ -29,7 +34,7 @@ export function useDescubrimientosPublicados(tipos: TipoEntidadPublicable[]) {
     setError(null);
 
     descubrimientosQueries
-      .listPublicados(tipos)
+      .listPublicados(tipos, { esAdmin, perfilId })
       .then((data) => {
         if (mounted) setItems(data);
       })
@@ -44,7 +49,7 @@ export function useDescubrimientosPublicados(tipos: TipoEntidadPublicable[]) {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tiposKey]);
+  }, [tiposKey, esAdmin, perfilId]);
 
   return { items, loading, error };
 }

@@ -27,7 +27,10 @@ import { useDescubrimientosPublicados } from "./useDescubrimientosPublicados";
  * "Novedades" ya no vive acá — si se necesita, se linkea aparte.
  */
 export default function DescubrimientosPage() {
-  const { isAdmin } = useAuth() as { isAdmin: boolean };
+  const { isAdmin, user } = useAuth() as {
+    isAdmin: boolean;
+    user: { id: string } | null;
+  };
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<any>(null);
@@ -51,6 +54,7 @@ export default function DescubrimientosPage() {
       <TodosGrid
         key={refreshKey}
         isAdmin={isAdmin}
+        perfilId={user?.id ?? null}
         onEditar={(item) => {
           setEditando({
             id: item.id,
@@ -86,12 +90,17 @@ function iconoDeTipo(tipo: string) {
 
 function TodosGrid({
   isAdmin,
+  perfilId,
   onEditar,
 }: {
   isAdmin: boolean;
+  perfilId: string | null;
   onEditar: (item: any) => void;
 }) {
-  const { items, loading } = useDescubrimientosPublicados(TODOS_LOS_TIPOS);
+  const { items, loading } = useDescubrimientosPublicados(TODOS_LOS_TIPOS, {
+    esAdmin: isAdmin,
+    perfilId,
+  });
   const [borrandoId, setBorrandoId] = useState<string | null>(null);
 
   if (loading) {

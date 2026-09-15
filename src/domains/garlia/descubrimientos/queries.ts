@@ -96,8 +96,9 @@ export const descubrimientosQueries = {
    */
   listPublicados: async (
     tipos: TipoEntidadPublicable[],
+    opciones?: { esAdmin?: boolean; perfilId?: string | null },
   ): Promise<EntidadDescubribleResuelta[]> => {
-    const { data: puentes, error } = await supabase
+    const { data: puentesRaw, error } = await supabase
       .from("descubrimientos_publicos")
       .select(
         "id, tipo_entidad, entidad_id, publicado_por, created_at, titulo, descripcion, fecha, reino_id, ciudad_id",
@@ -105,10 +106,44 @@ export const descubrimientosQueries = {
       .in("tipo_entidad", tipos)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    if (!puentes || puentes.length === 0) return [];
+    if (!puentesRaw || puentesRaw.length === 0) return [];
+
+    // Los que tienen reino_id solo se muestran a quien ya descubrió ese
+    // reino en el mapa (tabla descubrimientos_reinos). Los admins ven todo
+    // (necesitan poder editar/quitar publicaciones sin haber jugado el
+    // mapa). Los que no tienen reino_id son públicos para cualquiera.
+    let puentes = puentesRaw as DescubrimientoPublico[];
+    const esAdmin = opciones?.esAdmin ?? false;
+    if (!esAdmin) {
+      const perfilId = opciones?.perfilId ?? null;
+      const reinosIdsInvolucrados = Array.from(
+        new Set(
+          puentes
+            .map((p) => p.reino_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+
+      let reinosDescubiertos = new Set<string>();
+      if (perfilId && reinosIdsInvolucrados.length > 0) {
+        const { data: descubiertos, error: errDescubiertos } = await supabase
+          .from("descubrimientos_reinos")
+          .select("reino_id")
+          .eq("perfil_id", perfilId)
+          .in("reino_id", reinosIdsInvolucrados);
+        if (errDescubiertos) throw errDescubiertos;
+        reinosDescubiertos = new Set(
+          (descubiertos ?? []).map((r: any) => r.reino_id),
+        );
+      }
+
+      puentes = puentes.filter(
+        (p) => !p.reino_id || reinosDescubiertos.has(p.reino_id),
+      );
+    }
 
     const porTipo = new Map<TipoEntidadPublicable, DescubrimientoPublico[]>();
-    for (const p of puentes as DescubrimientoPublico[]) {
+    for (const p of puentes) {
       const lista = porTipo.get(p.tipo_entidad) ?? [];
       lista.push(p);
       porTipo.set(p.tipo_entidad, lista);
