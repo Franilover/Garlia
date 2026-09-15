@@ -46,6 +46,10 @@ import { useGotoHotkeys } from "@/hooks/ui/useGotoHotkeys";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
+import {
+  ICONO_BIBLIOTECA,
+  SECCIONES_BIBLIOTECA,
+} from "@/domains/garlia/biblioteca/public/secciones";
 
 
 // ── Shared types ─────────────────────────────────────────────────────────────
@@ -649,6 +653,35 @@ const Navbar = () => {
   const isRunas = currentPath?.startsWith("/garlia/runas") ?? false;
   const isAventura = currentPath?.startsWith("/garlia/aventura") ?? false;
 
+  // ── Biblioteca (usuarios con cuenta) ──────────────────────────────────────
+  // Sección pública de sólo lectura: acá se van a exponer los elementos
+  // compuestos / gráficos que marquemos como públicos. NO muestra nada del
+  // panel admin (/myself/*) — cada página de biblioteca consulta sólo data
+  // marcada como pública. Requiere sesión iniciada; los admins también la
+  // ven para poder revisarla (si en algún momento se quiere ocultar para
+  // ellos, cambiar `user` por `user && !isAdmin` acá abajo).
+  const isBiblioteca = currentPath?.startsWith("/garlia/biblioteca") ?? false;
+
+  const bibliotecaSubLinks: NavLinkDef[] = SECCIONES_BIBLIOTECA.map(
+    ({ href, titulo, icon }) => ({
+      href,
+      label: titulo,
+      icon,
+      active: currentPath?.startsWith(href) ?? false,
+    }),
+  );
+
+  const bibliotecaLink: NavLinkDef[] = user
+    ? [
+        {
+          href: "/garlia/biblioteca",
+          label: "Biblioteca",
+          icon: ICONO_BIBLIOTECA,
+          active: isBiblioteca,
+        },
+      ]
+    : [];
+
   const garliaLinks: NavLinkDef[] = [
     {
       href: user ? "/garlia/personal" : "/auth/login",
@@ -672,6 +705,7 @@ const Navbar = () => {
       icon: BookText,
       active: currentPath?.startsWith("/garlia/libros") ?? false,
     },
+    ...bibliotecaLink,
   ];
 
   // Versión mobile: mismos links que garliaLinks (Aventura y Runas ocultos
@@ -699,6 +733,7 @@ const Navbar = () => {
       icon: BookText,
       active: currentPath?.startsWith("/garlia/libros") ?? false,
     },
+    ...bibliotecaLink,
   ];
 
   // aventuraSubLinks queda sin uso ahora que "Aventura" no aparece en
@@ -1192,6 +1227,13 @@ const Navbar = () => {
                   href={href}
                   icon={icon}
                   label={label}
+                  // "Biblioteca" despliega sus secciones en el flyout lateral;
+                  // el resto navega directo como siempre.
+                  subLinks={
+                    href === "/garlia/biblioteca"
+                      ? bibliotecaSubLinks
+                      : undefined
+                  }
                   onClose={closeAll}
                 />
               ))}
@@ -1470,7 +1512,13 @@ const Navbar = () => {
                       // "Aventura" agrupa Runas debajo en un panel flotante
                       // (mismo patrón que cualquier otro ítem con subLinks);
                       // el resto navega directo como siempre.
-                      subLinks={href === "/garlia/aventura" ? aventuraSubLinks : undefined}
+                      subLinks={
+                        href === "/garlia/aventura"
+                          ? aventuraSubLinks
+                          : href === "/garlia/biblioteca"
+                            ? bibliotecaSubLinks
+                            : undefined
+                      }
                       onClose={closeAll}
                       onToggle={() => mobileToggle(href)}
                     />
