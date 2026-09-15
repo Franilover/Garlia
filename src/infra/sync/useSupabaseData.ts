@@ -515,10 +515,20 @@ export function useSupabaseData<T = any>(
     const hasLocalData = localData.length > 0;
     if (isStale()) return;
 
+    // Ya había datos en memoria (de un fetch anterior a Supabase, no
+    // necesariamente de Dexie — ej. vistas como v_perfil_reactivo_material,
+    // que no tienen cache local): esto es una REVALIDACIÓN, no una carga
+    // inicial. No hay que volver a poner loading=true acá, o cada refetch
+    // en segundo plano (visibilitychange, reconexión de canal, evento
+    // realtime) hace parpadear/ocultar de golpe cualquier bloque de UI que
+    // condicione su render en `loading` (ver propiedadesDePerfilReactivo en
+    // MaterialesPage.tsx) aunque el dato previo siga siendo válido.
+    const yaTeniaDatosEnMemoria = data.length > 0;
+
     if (hasLocalData) {
       setData(localData);
       setLoading(false);
-    } else {
+    } else if (!yaTeniaDatosEnMemoria) {
       setLoading(true);
     }
 
