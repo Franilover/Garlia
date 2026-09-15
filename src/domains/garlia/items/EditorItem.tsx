@@ -29,6 +29,7 @@ import { RichEditor } from "@/editor/lexical";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { PanelReglasDnd } from "@/domains/garlia/items/PanelReglasDnd";
 import { PanelFisicaObjeto } from "@/domains/garlia/items/PanelFisicaObjeto";
+import { MaterialesPropiedadesFisicasItem } from "@/domains/garlia/items/MaterialesPropiedadesFisicasItem";
 import { itemsQueries } from "@/domains/garlia/items/queries";
 import { PickerImagenItemBtn } from "@/domains/garlia/items/PickerImagenItemBtn";
 import { SelectorGrupoUnico } from "@/domains/garlia/items/SelectorGrupoUnico";
@@ -384,20 +385,28 @@ export function EditorItem({
           </div>
         </div>
 
-        {/* Descripción — bloque propio a todo el ancho, misma tarjeta que
-            el resto de secciones. */}
-        <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
-          <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Descripción
-          </label>
-          <RichEditor
-            minHeight="12.5rem"
-            placeholder="Qué es, qué hace, su historia…"
-            value={form.descripcion ?? ""}
-            wikiEntities={entities}
-            onChange={(v) => setForm((f: Item) => ({ ...f, descripcion: v }))}
-            onWikilinkNavigate={onWikilink}
-          />
+        {/* Descripción + Propiedades físicas de los materiales — misma fila,
+            mismo ancho cada una. La segunda es el bloque pedido: propiedades
+            físicas (propiedades_calculadas) de cada Material que compone el
+            objeto, material por material — distinto de "Física del objeto"
+            de arriba, que muestra el agregado ya derivado del objeto
+            entero. Ver MaterialesPropiedadesFisicasItem.tsx. */}
+        <div className="grid grid-cols-2 gap-3 items-start">
+          <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
+            <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Descripción
+            </label>
+            <RichEditor
+              minHeight="12.5rem"
+              placeholder="Qué es, qué hace, su historia…"
+              value={form.descripcion ?? ""}
+              wikiEntities={entities}
+              onChange={(v) => setForm((f: Item) => ({ ...f, descripcion: v }))}
+              onWikilinkNavigate={onWikilink}
+            />
+          </div>
+
+          <MaterialesPropiedadesFisicasItem itemId={item.id} />
         </div>
       </div>
 
