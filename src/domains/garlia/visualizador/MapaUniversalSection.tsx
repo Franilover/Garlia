@@ -34,6 +34,7 @@
  */
 
 import React, { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronRight } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -175,6 +176,25 @@ function EmptyRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Slot de la columna derecha — las ramas declaran su dropdown propio
+ *  (Oris, Elemento, …) donde les queda natural en el JSX, y este portal lo
+ *  teletransporta a la barra lateral. Así cada rama sigue siendo dueña de
+ *  su estado y no hace falta subirlo a MapaUniversalSection. Si no hay
+ *  slot montado (render aislado en tests), cae al render in-place. */
+const SelectorSlotContext = React.createContext<HTMLElement | null>(null);
+
+function SelectorSlot({ label, children }: { label: string; children: React.ReactNode }) {
+  const slot = React.useContext(SelectorSlotContext);
+  const contenido = (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-black uppercase tracking-wide text-primary/40">{label}</span>
+      {children}
+    </div>
+  );
+  if (!slot) return contenido;
+  return createPortal(contenido, slot);
+}
+
 /** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
 type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" | "arbol";
@@ -190,13 +210,13 @@ const RAMAS: { key: RamaCanonica; label: string }[] = [
 
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-col gap-1.5">
       {RAMAS.map((r) => (
         <button
           key={r.key}
           type="button"
           onClick={() => onSelect(r.key)}
-          className={`rounded-full border px-3.5 py-2 text-xs font-black transition-colors ${
+          className={`rounded-lg border px-3 py-2 text-left text-[11px] font-black leading-snug transition-colors ${
             active === r.key
               ? "border-primary/40 text-primary/90"
               : "border-primary/10 text-primary/50 hover:border-primary/25 hover:text-primary/75"
@@ -232,13 +252,14 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
       {route.loading ? <LoadingRow /> : route.empty ? <EmptyRow>No hay Oris cargados en Supabase todavía.</EmptyRow> : null}
       {!route.loading && oris.length > 0 ? (
         <>
+          <SelectorSlot label="Oris">
           <select
             value={orisSel?.id ?? ""}
             onChange={(e) => {
               setOrisSelId(e.target.value || null);
               setIumSelId(null);
             }}
-            className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-[11px] font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
           >
             {oris.map((o) => (
               <option key={o.id} value={o.id} className="bg-[var(--bg-main)] text-primary">
@@ -246,6 +267,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
               </option>
             ))}
           </select>
+          </SelectorSlot>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
             <div className="flex min-w-[840px] items-center gap-2">
@@ -397,13 +419,14 @@ function RamaAlquimia() {
       {loading ? <LoadingRow /> : elementos.length === 0 ? <EmptyRow>No hay Elementos cargados en Supabase todavía.</EmptyRow> : null}
       {!loading && elementos.length > 0 ? (
         <>
+          <SelectorSlot label="Elemento">
           <select
             value={elementoSel?.id ?? ""}
             onChange={(e) => {
               setElementoSelId(e.target.value || null);
               setCompuestoFocoId(null);
             }}
-            className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-[11px] font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
           >
             {elementos.map((e) => (
               <option key={e.id} value={e.id} className="bg-[var(--bg-main)] text-primary">
@@ -411,6 +434,7 @@ function RamaAlquimia() {
               </option>
             ))}
           </select>
+          </SelectorSlot>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
             <div className="flex min-w-[1120px] items-center gap-2">
@@ -1067,11 +1091,15 @@ export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
 
-  return (
-    <>
-      <RamaSelector active={rama} onSelect={setRama} />
+  // El slot vive en la columna derecha; se guarda en state (no en ref) para
+  // forzar un re-render cuando el nodo ya existe y el portal pueda montarse.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
-      <div className="mt-6">
+  return (
+    <SelectorSlotContext.Provider value={slot}>
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+      {/* Columna izquierda: el gráfico, que se lleva todo el ancho sobrante. */}
+      <div className="min-w-0 flex-1 order-2 lg:order-1">
         {rama === "fisica" ? <RamaFisica route={fisicaRoute} /> : null}
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
@@ -1079,6 +1107,19 @@ export function MapaUniversalSection() {
         {rama === "matriz" ? <RamaMatriz /> : null}
         {rama === "arbol" ? <RamaArbol /> : null}
       </div>
-    </>
+
+      {/* Columna derecha: controles. Arriba el tipo de flujo, abajo el
+          dropdown que pida la rama activa (via SelectorSlot). */}
+      <aside className="order-1 w-full shrink-0 lg:order-2 lg:w-60 lg:sticky lg:top-4">
+        <div className="flex flex-col gap-4 rounded-2xl border border-primary/10 p-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wide text-primary/40">Flujo</span>
+            <RamaSelector active={rama} onSelect={setRama} />
+          </div>
+          <div ref={setSlot} className="flex flex-col gap-4 empty:hidden" />
+        </div>
+      </aside>
+    </div>
+    </SelectorSlotContext.Provider>
   );
 }
