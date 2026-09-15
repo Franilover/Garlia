@@ -31,7 +31,7 @@ export function BibliotecaTabBar() {
 
   return (
     <nav
-      className="flex items-stretch gap-1.5 w-full"
+      className="flex items-stretch gap-1 w-full"
       aria-label="Secciones de la biblioteca"
     >
       {SECCIONES_BIBLIOTECA.map(({ href, slug, titulo, icon: Icon }) => {
@@ -43,20 +43,21 @@ export function BibliotecaTabBar() {
             title={titulo}
             aria-label={titulo}
             aria-current={active ? "page" : undefined}
-            className="flex items-center justify-center gap-2 flex-1 px-3 transition-all"
+            className="flex items-center justify-center gap-1.5 flex-1 px-2 transition-all"
             style={{
-              height: 34,
+              height: 24,
               borderRadius: "var(--radius-btn)",
-              background: active
-                ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                : "transparent",
+              background: "transparent",
+              borderBottom: active
+                ? "1.5px solid var(--primary)"
+                : "1.5px solid transparent",
               color: active
                 ? "var(--primary)"
-                : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                : "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
           >
-            <Icon size={14} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
-            <span className="hidden sm:inline text-micro font-black uppercase tracking-wider truncate">
+            <Icon size={12} strokeWidth={active ? 2.25 : 1.75} className="shrink-0" />
+            <span className="hidden sm:inline text-micro font-bold uppercase tracking-wide truncate">
               {titulo}
             </span>
           </Link>
