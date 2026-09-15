@@ -184,9 +184,11 @@ const SelectorSlotContext = React.createContext<HTMLElement | null>(null);
 function SelectorSlot({ label, children }: { label: string; children: React.ReactNode }) {
   const slot = React.useContext(SelectorSlotContext);
   const contenido = (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-black uppercase tracking-wide text-primary/40">{label}</span>
-      {children}
+    <div>
+      <span className="flex w-full items-center justify-between gap-2 py-2 text-left text-[10px] font-black uppercase tracking-widest text-primary/30">
+        {label}
+      </span>
+      <div className="mb-2 pl-1">{children}</div>
     </div>
   );
   if (!slot) return contenido;
@@ -203,18 +205,21 @@ const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "libres", label: "Energías" },
 ];
 
+// Mismo lenguaje visual que la sidebar real de VisualizadorPage (navGroups):
+// label de grupo en mayúsculas/10px/tracking-widest, ítems como botones
+// planos sin borde ni fondo — nada de card. Acá no hace falta acordeón
+// (un solo grupo, 3 ítems), pero sí el mismo peso tipográfico para que se
+// sienta la misma sidebar y no un widget aparte.
 function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r: RamaCanonica) => void }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="space-y-1.5">
       {RAMAS.map((r) => (
         <button
           key={r.key}
           type="button"
           onClick={() => onSelect(r.key)}
-          className={`rounded-lg border px-3 py-2 text-left text-[11px] font-black leading-snug transition-colors ${
-            active === r.key
-              ? "border-primary/40 text-primary/90"
-              : "border-primary/10 text-primary/50 hover:border-primary/25 hover:text-primary/75"
+          className={`flex w-full items-center gap-2 py-1.5 text-left text-xs transition-colors ${
+            active === r.key ? "font-black text-primary/90" : "font-medium text-primary/45 hover:text-primary/70"
           }`}
         >
           {r.label}
@@ -559,9 +564,13 @@ export function MapaUniversalSection() {
 
   return (
     <SelectorSlotContext.Provider value={slot}>
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+    {/* Mismo grid que la sidebar real de VisualizadorPage
+        (lg:grid-cols-[150px_minmax(0,1fr)]) — acá invertido en orden de
+        columnas (gráfico primero) pero mismo ancho, mismo sticky, y la
+        sidebar sin card ni borde propio, solo tipografía. */}
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_150px]">
       {/* Columna izquierda: el gráfico, que se lleva todo el ancho sobrante. */}
-      <div className="min-w-0 flex-1 order-2 lg:order-1">
+      <div className="min-w-0 order-2 lg:order-1">
         {rama === "fisica" ? <RamaFisica route={fisicaRoute} /> : null}
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
@@ -569,14 +578,18 @@ export function MapaUniversalSection() {
 
       {/* Columna derecha: controles. Arriba el tipo de flujo, abajo el
           dropdown que pida la rama activa (via SelectorSlot). */}
-      <aside className="order-1 w-full shrink-0 lg:order-2 lg:w-60 lg:sticky lg:top-4">
-        <div className="flex flex-col gap-4 rounded-2xl border border-primary/10 p-4">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wide text-primary/40">Flujo</span>
-            <RamaSelector active={rama} onSelect={setRama} />
+      <aside className="order-1 p-0 lg:order-2 lg:sticky lg:top-6 lg:self-start">
+        <nav className="space-y-1">
+          <div>
+            <span className="flex w-full items-center justify-between gap-2 py-2 text-left text-[10px] font-black uppercase tracking-widest text-primary/30">
+              Flujo
+            </span>
+            <div className="mb-2 space-y-1.5 pl-1">
+              <RamaSelector active={rama} onSelect={setRama} />
+            </div>
           </div>
-          <div ref={setSlot} className="flex flex-col gap-4 empty:hidden" />
-        </div>
+          <div ref={setSlot} className="space-y-1.5 pl-1 empty:hidden" />
+        </nav>
       </aside>
     </div>
     </SelectorSlotContext.Provider>
