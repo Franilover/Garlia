@@ -8,7 +8,7 @@
  * como ya existen en los hooks de ruta reales — cero cálculo nuevo acá.
  *
  *   Rama 1 (Física):   TASI → IUM → Oris → Éterium
- *   Rama 2 (Alquimia): TASI → Núcleo / Media / Externa → Elemento → Compuesto
+ *   Rama 2 (Alquimia): TASI → Núcleo / Media / Externa → Elemento → Compuesto → Material
  *   Rama 3 (libres):   Partículas T/A/S/I sin agrupar en Ium/capa → Garin/Éterium
  *
  * Interactividad real (pedido explícito):
@@ -47,6 +47,8 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { IumVisual, ParticulaVisual, LETRA_COLOR, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
 import { particulasDeIum, particulaBaseAFilaCatalogo, type FilaParticulaBase } from "@/domains/garlia/fisica/types";
 import { useParticulasBase } from "@/domains/garlia/fisica/useFisica";
+
+import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
@@ -179,7 +181,7 @@ type RamaCanonica = "fisica" | "alquimia" | "libres" | "polaridades" | "matriz" 
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "Polaridades → TASI → IUM → Oris" },
-  { key: "alquimia", label: "Polaridades → TASI → Capas → Elemento" },
+  { key: "alquimia", label: "Polaridades → TASI → Capas → Elemento → Material" },
   { key: "libres", label: "Polaridades → TASI libres → Garin/Éterium" },
   { key: "polaridades", label: "Polaridades → TASI → Partículas" },
   { key: "matriz", label: "Matriz de Polaridades (+/−)" },
@@ -297,7 +299,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
   );
 }
 
-// ─── Rama 2: Alquimia — TASI → Núcleo/Media/Externa → Elemento → Compuesto ─
+// ─── Rama 2: Alquimia — TASI → Capas → Elemento → Compuesto → Material ────
 // Trae su propio useElementos()/useCompuestosConElementos() (en vez de
 // useAlquimiaRoute/useCompuestoRoute) porque necesita setItems real para
 // pasarle onActualizar/onEliminar a los paneles flotantes — mismo patrón
@@ -346,6 +348,13 @@ function RamaAlquimia() {
     () => compuestosDelElemento.find((c) => c.id === compuestoFocoId) ?? compuestosDelElemento[0] ?? null,
     [compuestosDelElemento, compuestoFocoId],
   );
+
+  // Materiales reales que usan el Compuesto en foco como componente
+  // (material_componentes.componente_tipo = "compuesto") — mismo hook que
+  // alimenta el breadcrumb Elemento > Compuesto > Material del panel de
+  // Compuesto. Solo lectura: Material no tiene panel flotante propio.
+  const { items: materialesDelCompuesto, loading: loadingMateriales } =
+    useMaterialesDeCompuesto(compuestoFoco?.id ?? null);
 
   const elementoAbierto = elementoAbiertoId ? elementos.find((e) => e.id === elementoAbiertoId) ?? null : null;
   const compuestoAbierto = compuestoAbiertoId ? compuestos.find((c) => c.id === compuestoAbiertoId) ?? null : null;
@@ -404,7 +413,7 @@ function RamaAlquimia() {
           </select>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
-            <div className="flex min-w-[940px] items-center gap-2">
+            <div className="flex min-w-[1120px] items-center gap-2">
               <FlowNode title="Polaridades" subtitle="+ / −" />
               <Arrow />
               <FlowNode title="Partículas" subtitle="T/A/S/I" />
@@ -443,6 +452,21 @@ function RamaAlquimia() {
                         setCompuestoAbiertoId(c.id);
                       }}
                     />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              {/* Materiales que usan el Compuesto en foco como componente.
+                  Nodo de solo lectura — Material no tiene panel flotante
+                  propio en el código real. */}
+              <div className="flex flex-col gap-2">
+                {loadingMateriales ? (
+                  <FlowNode title="Materiales" subtitle="cargando…" />
+                ) : materialesDelCompuesto.length === 0 ? (
+                  <FlowNode title="Sin material" subtitle="no forma parte de ninguno" />
+                ) : (
+                  materialesDelCompuesto.slice(0, 6).map((m) => (
+                    <FlowNode key={m.id} title={m.nombre} subtitle={m.tipo_material ?? undefined} />
                   ))
                 )}
               </div>
