@@ -7,8 +7,8 @@
  * un solo árbol navegable, mostrando las 3 ramas del flujo canónico tal
  * como ya existen en los hooks de ruta reales — cero cálculo nuevo acá.
  *
- *   Rama 1 (Física):   TASI → IUM → Oris → Éterium
- *   Rama 2 (Alquimia): TASI → Núcleo / Media / Externa → Elemento → Compuesto → Material
+ *   Rama 1 (Física):   TASI → IUM → Oris
+ *   Rama 2 (Alquimia): TASI → Elemento → Compuesto → Material
  *   Rama 3 (libres):   Partículas T/A/S/I sin agrupar en Ium/capa → Garin/Éterium
  *
  * Interactividad real (pedido explícito):
@@ -288,7 +288,7 @@ function RamaSelector({ active, onSelect }: { active: RamaCanonica; onSelect: (r
   );
 }
 
-// ─── Rama 1: Física — TASI → IUM → Oris → Éterium ──────────────────────────
+// ─── Rama 1: Física — TASI → IUM → Oris ───────────────────────────────────
 // Mismo dato que RutasSection perspectiva="fisica" (useFisicaRoute), pero
 // aplanado a un solo FlowNode por nivel — acá el protagonista es la CADENA
 // entre las 3 rutas, no el detalle visual de cada nivel.
@@ -368,8 +368,6 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
                 detalle={orisSel?.dominio || orisSel?.formula}
                 extra={orisSel?.familia}
               />
-              <Arrow />
-              <FlowNode title="Éterium" subtitle={orisSel?.familia} />
             </div>
           </div>
         </>
@@ -378,7 +376,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
   );
 }
 
-// ─── Rama 2: Alquimia — TASI → Capas → Elemento → Compuesto → Material ────
+// ─── Rama 2: Alquimia — TASI → Elemento → Compuesto → Material ────────────
 // Trae su propio useElementos()/useCompuestosConElementos() (en vez de
 // useAlquimiaRoute/useCompuestoRoute) porque necesita setItems real para
 // pasarle onActualizar/onEliminar a los paneles flotantes — mismo patrón
@@ -407,15 +405,10 @@ function RamaAlquimia() {
     [elementos, elementoSelId],
   );
 
-  const capas = useMemo(() => {
-    if (!elementoSel) return [];
-    return (["nucleo", "media", "externa"] as const).map((capa) => {
-      const mapa = elementoSel[capa] ?? {};
-      const total = Object.values(mapa).reduce((acc: number, v) => acc + (typeof v === "number" ? v : 0), 0);
-      const label = capa === "nucleo" ? "Núcleo" : capa === "media" ? "Media" : "Externa";
-      return { capa, label, total };
-    });
-  }, [elementoSel]);
+  // Bloque de Núcleo/Media/Externa retirado del flujo a pedido explícito
+  // (2026-09-14) — TASI pasa directo a Elemento. Los datos de capas
+  // siguen viviendo en Elemento (nucleo/media/externa) por si se
+  // necesitan en otra vista; acá ya no se calculan ni se muestran.
 
   // Compuestos reales que usan el Elemento activo como componente.
   const compuestosDelElemento = useMemo(() => {
@@ -494,14 +487,8 @@ function RamaAlquimia() {
           </SelectorSlot>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
-            <div className="flex min-w-[1120px] items-center gap-2">
+            <div className="flex min-w-[900px] items-center gap-2">
               <PolaridadTasiArranque />
-              <Arrow />
-              <div className="flex flex-col gap-2">
-                {capas.map((c) => (
-                  <FlowNode key={c.capa} title={c.label} subtitle={`${c.total} partícula(s)`} />
-                ))}
-              </div>
               <Arrow />
               {/* Click en el NOMBRE del Elemento abre su editor real
                   (ElementoPanelFlotante) — igual que en /elementos. */}
