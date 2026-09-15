@@ -2072,11 +2072,6 @@ function RutasSection({ perspectiva }: { perspectiva: Perspectiva }) {
           title: ium.nombre,
           subtitle: `${fisicaRoute.particulasDelIumSel.length} partícula(s)`,
           visual: <IumVisual particulas={fisicaRoute.particulasDelIumSel} size={40} />,
-          fields: [
-            { label: "A", value: fisicaRoute.letrasIumSel.A },
-            { label: "T", value: fisicaRoute.letrasIumSel.T },
-            { label: "S", value: fisicaRoute.letrasIumSel.S },
-          ],
         };
       }
       const o = fisicaRoute.orisSel;
@@ -2087,14 +2082,9 @@ function RutasSection({ perspectiva }: { perspectiva: Perspectiva }) {
         subtitle: `${o.familia} · ${o.dominio}`,
         note: o.descripcion ?? null,
         // Gráfico quitado a pedido — el Inspector del Oris en Rutas ahora
-        // es solo texto (título/subtítulo/campos), sin el CentroGravedadNodo.
-        fields: [
-          { label: "Fórmula", value: o.formula },
-          { label: "A", value: fisicaRoute.letrasOrisSel.A },
-          { label: "T", value: fisicaRoute.letrasOrisSel.T },
-          { label: "S", value: fisicaRoute.letrasOrisSel.S },
-          { label: "IUMs distintos", value: Object.keys(o.iums_composicion).length },
-        ],
+        // es solo texto (título/subtítulo), sin el CentroGravedadNodo.
+        // Bloque de campos (Fórmula/A/T/S/IUMs distintos) retirado a pedido
+        // explícito (2026-09-14).
       };
     }
     // Elemento: mismo criterio que el Oris en Física (línea de arriba) —
