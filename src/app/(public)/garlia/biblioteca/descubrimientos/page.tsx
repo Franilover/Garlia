@@ -1,7 +1,10 @@
 import PaginaBibliotecaPlantilla from "@/domains/garlia/biblioteca/public/PaginaBibliotecaPlantilla";
+import DescubrimientosPage from "@/domains/garlia/descubrimientos/DescubrimientosPage";
 
 export default function Page() {
-  // Plantilla vacía por ahora: el contenido público de "descubrimientos"
-  // se enchufa como children cuando exista.
-  return <PaginaBibliotecaPlantilla slug="descubrimientos" />;
+  return (
+    <PaginaBibliotecaPlantilla slug="descubrimientos">
+      <DescubrimientosPage />
+    </PaginaBibliotecaPlantilla>
+  );
 }
