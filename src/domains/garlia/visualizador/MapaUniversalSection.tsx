@@ -51,7 +51,6 @@ import { useParticulasBase } from "@/domains/garlia/fisica/useFisica";
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
 import { useParticulasCompletas } from "./useVisualizadorData";
-import { TraceView, type TraceStep } from "./TraceView";
 
 // ─── Primitivas locales (mismo lenguaje visual que VisualizadorPage) ───────
 // No se importan desde VisualizadorPage.tsx para no crear un ciclo de
@@ -225,20 +224,6 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
 
   const iumIdsDelOris = orisSel ? Object.keys(orisSel.iums_composicion) : [];
   const iumFocoId = iumSel?.id ?? iumIdsDelOris[0] ?? null;
-  const iumFoco = iumFocoId ? iumPorId[iumFocoId] : null;
-
-  const traceSteps: TraceStep[] = [
-    { id: "t-polaridad", levelLabel: "Polaridades", title: "+ / −", subtitle: "movimiento / oposición-resistencia-nada" },
-    { id: "t-tasi", levelLabel: "TASI (base)", title: "Partículas A/T/S/I", subtitle: "27 combinaciones canónicas" },
-    {
-      id: "t-ium",
-      levelLabel: "IUM",
-      title: iumFoco?.nombre ?? null,
-      subtitle: orisSel ? `${iumIdsDelOris.length} IUM(s) distintos` : undefined,
-    },
-    { id: "t-oris", levelLabel: "Oris", title: orisSel?.nombre ?? null, subtitle: orisSel?.dominio ?? undefined },
-    { id: "t-eterium", levelLabel: "Éterium", title: orisSel ? orisSel.familia : null, subtitle: "Manifestación final" },
-  ];
 
   return (
     <>
@@ -305,10 +290,6 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
               <Arrow />
               <FlowNode title="Éterium" subtitle={orisSel?.familia} />
             </div>
-          </div>
-
-          <div className="mt-6">
-            <TraceView steps={traceSteps} />
           </div>
         </>
       ) : null}
@@ -400,27 +381,6 @@ function RamaAlquimia() {
     }
   }
 
-  const traceSteps: TraceStep[] = [
-    { id: "t-polaridad", levelLabel: "Polaridades", title: "+ / −", subtitle: "movimiento / oposición-resistencia-nada" },
-    { id: "t-tasi", levelLabel: "TASI (base)", title: "Partículas de Química", subtitle: "distribuidas en 3 capas" },
-    {
-      id: "t-capas",
-      levelLabel: "Núcleo / Media / Externa",
-      title: capas.length > 0 ? capas.map((c) => `${c.label}: ${c.total}`).join(" · ") : null,
-    },
-    {
-      id: "t-elemento",
-      levelLabel: "Elemento",
-      title: elementoSel ? `${elementoSel.simbolo} · ${elementoSel.nombre}` : null,
-    },
-    {
-      id: "t-compuesto",
-      levelLabel: "Compuesto",
-      title: compuestoFoco?.nombre ?? null,
-      subtitle: compuestosDelElemento.length > 1 ? `1 de ${compuestosDelElemento.length}` : undefined,
-    },
-  ];
-
   const loading = loadingElementos || loadingCompuestos;
 
   return (
@@ -487,10 +447,6 @@ function RamaAlquimia() {
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="mt-6">
-            <TraceView steps={traceSteps} />
           </div>
         </>
       ) : null}
@@ -651,22 +607,6 @@ function RamaPolaridades() {
   const particulasActivas = polaridadActiva ? grupos[polaridadActiva] : [];
   const particulaFoco = particulasActivas.find((p) => p.id === particulaFocoId) ?? particulasActivas[0] ?? null;
 
-  const traceSteps: TraceStep[] = [
-    {
-      id: "t-polaridad",
-      levelLabel: "Polaridad",
-      title: polaridadActiva ? POLARIDAD_LABEL[polaridadActiva] : null,
-      subtitle: polaridadActiva ? `${particulasActivas.length} partícula(s)` : undefined,
-    },
-    { id: "t-tasi", levelLabel: "TASI (base)", title: "Fórmula A/T/S", subtitle: "3 letras por partícula" },
-    {
-      id: "t-particula",
-      levelLabel: "Partícula",
-      title: particulaFoco?.nombre ?? null,
-      subtitle: particulaFoco ? `${particulaFoco.formula} · vector ${particulaFoco.vector_neto ?? 0}` : undefined,
-    },
-  ];
-
   return (
     <>
       {loading ? <LoadingRow /> : particulas.length === 0 ? <EmptyRow>No hay Partículas cargadas en Supabase todavía.</EmptyRow> : null}
@@ -714,10 +654,6 @@ function RamaPolaridades() {
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="mt-6">
-            <TraceView steps={traceSteps} />
           </div>
         </>
       ) : null}
@@ -850,17 +786,6 @@ function RamaMatriz() {
     return b ? particulaBaseAFilaCatalogo(b) : null;
   }, [basesRaw, letraFocoId]);
 
-  const traceSteps: TraceStep[] = [
-    { id: "t-polo1", levelLabel: "Primer polo", title: "+ (movimiento) / − (oposición, resistencia o nada)" },
-    { id: "t-polo2", levelLabel: "Segundo polo", title: "+ (movimiento) / − (oposición, resistencia o nada)" },
-    {
-      id: "t-base",
-      levelLabel: "Partícula Base",
-      title: letraFoco?.nombre ?? null,
-      subtitle: letraFoco?.detalle ?? undefined,
-    },
-  ];
-
   return (
     <>
       {loading ? <LoadingRow /> : basesRaw.length === 0 ? <EmptyRow>No hay Partículas Base cargadas en Supabase todavía.</EmptyRow> : null}
@@ -917,16 +842,11 @@ function RamaMatriz() {
               (choque −→+, el equilibrio inverso).
             </p>
           </div>
-
-          <div className="mt-6">
-            <TraceView steps={traceSteps} />
-          </div>
         </>
       ) : null}
     </>
   );
 }
-
 
 // ─── Rama 8: Árbol de Partículas — árbol + red, no jerarquía estricta ──────
 // Dato real: "particulas.formula" (27 filas, ya usadas en toda la app vía
