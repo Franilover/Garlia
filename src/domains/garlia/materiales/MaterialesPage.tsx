@@ -27,7 +27,7 @@ import { useMaterialComponentes } from "./useMaterialComponentes";
 import { useMaterialEstructuras } from "./useMaterialEstructuras";
 import { useMateriales } from "./useMateriales";
 import { usePerfilReactivoMaterial } from "./usePerfilReactivoMaterial";
-import type { PerfilReactivoMaterial, Material, MaterialComponente, MaterialEstructura } from "./types";
+import type { PerfilReactivoMaterial, Material, MaterialEstructura } from "./types";
 
 /** Etiqueta legible para el origen de una propiedad física (ver
  *  documentacion_sistema "Fuente por propiedad en Material v187", orden
@@ -107,111 +107,38 @@ function propiedadesDePerfilReactivo(
 }
 
 /**
- * Fila editable de un componente ya vinculado (material_componentes).
- * Mismo criterio que FilaMaterial en items/SelectorMaterialesItem.tsx:
- * estado local propio para los inputs numéricos, se persiste recién en
- * onBlur y solo si el valor final es válido, para no disparar constraints
- * de Supabase con valores intermedios (ej. cantidad = 0 mientras se
- * retipea el campo).
+ * Fila de un componente ya vinculado (material_componentes) — solo
+ * lectura del nombre + quitar. Ya no se editan cantidad/unidad/rol desde
+ * acá: auditoría real (2026-09-15) confirmó que en los 38 materiales
+ * existentes esos 3 campos son siempre la misma constante
+ * (cantidad=1, unidad="unidad", rol="composicion_base") y ningún material
+ * usa hoy más de un componente — no reflejan ninguna decisión real del
+ * usuario, solo agregaban fricción a un caso que en la práctica es
+ * "elegí el compuesto y ya". useMaterialComponentes.agregar() sigue
+ * mandando esos mismos valores por defecto al crear la fila, así que el
+ * dato en Supabase no cambia, solo se deja de pedir en el editor.
+ * Si en el futuro se quiere soportar mezclas/aleaciones reales con
+ * proporciones distintas, conviene un modo "avanzado" aparte en vez de
+ * revivir estos inputs acá.
  */
 function FilaComponente({
-  fila,
   nombreComponente,
-  onActualizar,
   onEliminar,
 }: {
-  fila: MaterialComponente;
   nombreComponente: string;
-  onActualizar: (
-    cambios: Partial<Pick<MaterialComponente, "cantidad" | "proporcion_min" | "proporcion_max" | "unidad" | "rol">>,
-  ) => void;
   onEliminar: () => void;
 }) {
-  const [cantidadTexto, setCantidadTexto] = useState(String(fila.cantidad));
-  const [rolTexto, setRolTexto] = useState(fila.rol ?? "");
-  const [unidadTexto, setUnidadTexto] = useState(fila.unidad ?? "");
-
-  const cantidadGuardada = String(fila.cantidad);
-  const rolGuardado = fila.rol ?? "";
-  const unidadGuardada = fila.unidad ?? "";
-
-  function commitCantidad() {
-    const n = Number(cantidadTexto);
-    if (cantidadTexto.trim() === "" || Number.isNaN(n) || n <= 0) {
-      setCantidadTexto(cantidadGuardada);
-      return;
-    }
-    if (n !== fila.cantidad) onActualizar({ cantidad: n });
-  }
-
-  function commitRol() {
-    const v = rolTexto.trim();
-    if (v !== rolGuardado) onActualizar({ rol: v === "" ? null : v });
-  }
-
-  function commitUnidad() {
-    const v = unidadTexto.trim();
-    if (v !== unidadGuardada) onActualizar({ unidad: v === "" ? null : v });
-  }
-
   return (
-    <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-micro font-bold text-primary/70 truncate">{nombreComponente}</span>
-        <button
-          type="button"
-          onClick={onEliminar}
-          title="Quitar componente"
-          className="shrink-0 rounded-md p-1 text-primary/25 hover:text-red-500 hover:bg-red-500/8 transition-all"
-        >
-          <Trash2 size={12} />
-        </button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-1 text-micro font-bold text-primary/40">
-          Cant.
-          <input
-            className="w-12 bg-transparent px-0 py-0.5 text-xs font-bold text-primary outline-none border-0 border-b border-primary/15 focus:border-primary/40 transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            min={0}
-            step="any"
-            type="number"
-            value={cantidadTexto}
-            onChange={(e) => setCantidadTexto(e.target.value)}
-            onBlur={commitCantidad}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-          />
-        </label>
-        <label className="flex items-center gap-1 text-micro font-bold text-primary/40">
-          Unidad
-          <input
-            className="w-14 bg-transparent px-0 py-0.5 text-xs font-bold text-primary outline-none border-0 border-b border-primary/15 focus:border-primary/40 transition-colors"
-            placeholder="—"
-            type="text"
-            value={unidadTexto}
-            onChange={(e) => setUnidadTexto(e.target.value)}
-            onBlur={commitUnidad}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-          />
-        </label>
-        <label className="flex items-center gap-1 text-micro font-bold text-primary/40">
-          Rol
-          <input
-            className="w-20 bg-transparent px-0 py-0.5 text-xs font-bold text-primary outline-none border-0 border-b border-primary/15 focus:border-primary/40 transition-colors"
-            placeholder="—"
-            type="text"
-            value={rolTexto}
-            onChange={(e) => setRolTexto(e.target.value)}
-            onBlur={commitRol}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            }}
-          />
-        </label>
-      </div>
+    <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border border-primary/10">
+      <span className="text-micro font-bold text-primary/70 truncate">{nombreComponente}</span>
+      <button
+        type="button"
+        onClick={onEliminar}
+        title="Quitar componente"
+        className="shrink-0 rounded-md p-1 text-primary/25 hover:text-red-500 hover:bg-red-500/8 transition-all"
+      >
+        <Trash2 size={12} />
+      </button>
     </div>
   );
 }
@@ -337,7 +264,6 @@ function MaterialDetail({ material }: { material: Material }) {
     items: componentes,
     loading: loadingComponentes,
     agregar: agregarComponente,
-    actualizar: actualizarComponente,
     eliminar: eliminarComponente,
   } = useMaterialComponentes(material.id);
   const {
@@ -521,11 +447,9 @@ function MaterialDetail({ material }: { material: Material }) {
                   return (
                     <FilaComponente
                       key={componente.id}
-                      fila={componente}
                       nombreComponente={
                         compuesto?.nombre ?? `${componente.componente_tipo} · ${componente.componente_id.slice(0, 8)}`
                       }
-                      onActualizar={(cambios) => actualizarComponente(componente.id, cambios)}
                       onEliminar={() =>
                         handleEliminarComponente(
                           componente.id,
