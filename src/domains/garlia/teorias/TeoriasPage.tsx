@@ -39,12 +39,6 @@ export default function TeoriasPage() {
 
   return (
     <div>
-      {user && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 mb-3">
-          <BotonPublicarTeoria onClick={() => setModalOpen(true)} />
-        </div>
-      )}
-
       {loading ? (
         <p
           className="text-micro font-bold uppercase tracking-widest py-8 text-center"
@@ -52,7 +46,7 @@ export default function TeoriasPage() {
         >
           Cargando…
         </p>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !user ? (
         <p
           className="text-micro font-bold uppercase tracking-widest py-10 text-center"
           style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
@@ -61,6 +55,7 @@ export default function TeoriasPage() {
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {user && <BotonPublicarTeoria onClick={() => setModalOpen(true)} />}
           {items.map((item) => {
             const puedeBorrar = isAdmin || item.autor_id === user?.id;
             return (
