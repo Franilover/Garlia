@@ -1,8 +1,9 @@
 import {
+  BookMarked,
   CircleUser,
   Compass,
   Lightbulb,
-  Sparkles,
+  Sprout,
   Telescope,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -54,7 +55,7 @@ export const SECCIONES_UNIVERSO: SeccionUniverso[] = [
     href: "/garlia/universo/libros",
     titulo: "Libros",
     descripcion: "Libros de conocimiento liberados al público.",
-    icon: Sparkles,
+    icon: BookMarked,
     pageKey: "biblioteca_libros",
   },
   {
@@ -75,7 +76,7 @@ export const SECCIONES_UNIVERSO: SeccionUniverso[] = [
   },
 ];
 
-export const ICONO_UNIVERSO = Sparkles;
+export const ICONO_UNIVERSO = Sprout;
 
 export function getSeccionUniverso(slug: string) {
   return SECCIONES_UNIVERSO.find((s) => s.slug === slug);

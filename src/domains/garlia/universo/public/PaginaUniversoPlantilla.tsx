@@ -43,17 +43,20 @@ export default function PaginaUniversoPlantilla({
 
   if (fullBleed) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="relative h-full">
         <div
-          className="flex items-center justify-between gap-3 px-3 md:px-4 py-2"
+          className="fixed left-0 right-0 top-0 md:left-[68px] flex items-center justify-between gap-3 px-3 md:px-4 py-2 z-[1200]"
           style={{
+            background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
             borderBottom:
               "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
           <UniversoTabBar />
         </div>
-        <div className="flex-1 min-h-0">
+        <div className="h-full pt-[38px]">
           {!seccion ? (
             <p
               className="text-micro font-bold uppercase tracking-widest py-8 text-center"
