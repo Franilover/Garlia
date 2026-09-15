@@ -9,7 +9,7 @@
  *
  *   Rama 1 (Física):   TASI → IUM → Oris
  *   Rama 2 (Alquimia): TASI → Elemento → Compuesto → Material
- *   Rama 3 (libres):   Partículas T/A/S/I sin agrupar en Ium/capa → Garin/Éterium
+ *   Rama 3 (Energías):  Polos (+/−) → S/I → Garin/Éterium
  *
  * Interactividad real (pedido explícito):
  *   - Click en un IUM del Oris activo (rama Física) fija su foco en el
@@ -573,19 +573,29 @@ function RamaAlquimia() {
   );
 }
 
-// ─── Rama 3: Partículas libres → Garin / Éterium ───────────────────────────
-// No hay tabla propia para "partículas sin agrupar" — es un estado
-// conceptual (ver fisica_conceptos, bloque "Vacío/Garin/Eterium"), no una
-// entidad con filas propias. Se muestra como diagrama conceptual fijo, sin
+// ─── Rama 3: Energías — Polos (+/−) → S/I → Garin / Éterium ────────────────
+// No hay tabla propia para este flujo — es un estado conceptual (ver
+// fisica_conceptos, bloque "Vacío/Garin/Eterium"), no una entidad con
+// filas propias. Se muestra como diagrama conceptual fijo, sin
 // interacción real posible porque no hay ningún id al que navegar.
+// Recorte a pedido explícito (2026-09-14): de las 4 letras T/A/S/I solo
+// S/I participan de este tramo — T/A quedan fuera del diagrama porque acá
+// solo importa el par que resuelve en Garin (I, recepción) / Éterium (S,
+// emisión).
 
 function RamaLibres() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 overflow-x-auto rounded-2xl p-7">
-        <PolaridadTasiArranque />
+        <div className="flex flex-col gap-2">
+          <PoloCirculo signo="+" />
+          <PoloCirculo signo="-" />
+        </div>
         <Arrow />
-        <FlowNode title="Sin agrupar" subtitle="ninguna en IUM ni capa" />
+        <div className="flex flex-col gap-2">
+          <LetraCirculo letra="S" />
+          <LetraCirculo letra="I" />
+        </div>
         <Arrow />
         <div className="flex flex-col gap-2">
           <FlowNode title="Garin" subtitle="polo de recepción (I)" />
