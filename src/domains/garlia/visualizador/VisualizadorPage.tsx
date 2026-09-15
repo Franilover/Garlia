@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleDot,
   FlaskConical,
+  Beaker,
   GitBranch,
   Layers3,
   Orbit,
@@ -68,6 +69,7 @@ import {
 // Nueva sección "rutas" (no toca las 12 secciones existentes arriba).
 import { StructureCanvas, type CanvasColumn, type CanvasEdge } from "./StructureCanvas";
 import { Inspector, type InspectorEntity } from "./Inspector";
+import { SandboxPage } from "@/domains/garlia/sandbox/SandboxPage";
 import { TraceView, type TraceStep } from "./TraceView";
 import { type Perspectiva } from "./PerspectivaSwitcher";
 import { useEnlaceRoute, type EnlaceResuelto } from "./routes/useEnlaceRoute";
@@ -126,7 +128,8 @@ type SectionKey =
   | "celulasTejido" // VIS-11
   | "tejidoOrgano" // VIS-12
   | "organoOrganismo" // VIS-13
-  | "organismoReinoMundo"; // VIS-14
+  | "organismoReinoMundo" // VIS-14
+  | "sandbox"; // ex-tab de nivel superior en RunasPage, movida acá a "Lab"
 
 type NavGroup = {
   group: string;
@@ -203,6 +206,12 @@ const navGroups: NavGroup[] = [
       { key: "information", label: "Información (sin dato)", visId: "VIS-PENDIENTE-INFO", icon: <Radio size={15} />, implementado: false },
       { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: false },
       { key: "runas", label: "Runa → Mecanismo → Fenómeno", visId: "VIS-09", icon: <CircleDot size={15} />, implementado: true },
+      // Sandbox: entorno experimental aislado (crear simulación, entidades,
+      // disparar eventos, Play/Pause/Step/Reset) — antes tab de nivel
+      // superior junto a Runas/Química en RunasPage.tsx, movido acá a
+      // "Lab" a pedido explícito (2026-09-14). Mismo componente
+      // (SandboxPage), sin cambios en su lógica interna.
+      { key: "sandbox", label: "Sandbox", visId: "VIS-17-SANDBOX", icon: <Beaker size={15} />, implementado: true },
     ],
   },
   {
@@ -3718,6 +3727,8 @@ function VisualizadorPage() {
             {active === "elEnlace" ? <EnlaceSection /> : null}
 
             {active === "mapaUniversal" ? <MapaUniversalSection /> : null}
+
+            {active === "sandbox" ? <SandboxPage /> : null}
 
             {(
               [

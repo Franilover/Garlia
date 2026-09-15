@@ -13,12 +13,10 @@
 
 import {
   Atom,
-  Beaker,
   BarChart3,
   Maximize2,
   Plus,
   ScrollText,
-  Sparkles,
   Waypoints,
   X,
 } from "lucide-react";
@@ -47,9 +45,7 @@ import { useGranos } from "@/domains/garlia/elementos/useGranos";
 import { useVetas } from "@/domains/garlia/elementos/useVetas";
 import { useFormaciones } from "@/domains/garlia/elementos/useFormaciones";
 import { FilaAsimetrica } from "@/domains/garlia/_shared/FilaAsimetrica";
-import { SandboxPage } from "@/domains/garlia/sandbox/SandboxPage";
 import VisualizadorPage from "@/domains/garlia/visualizador/VisualizadorPage";
-import { LogicaSistemaPage } from "./LogicaSistemaPage";
 import { FisicaPage, BloqueFisicaMinerales } from "@/domains/garlia/fisica/FisicaPage";
 import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
@@ -710,17 +706,17 @@ function BloqueEnsayoConSubBloques({
   );
 }
 
-// ─── Toggle "Runas" / "Tabla" / "Física" / "Biología" / "Sandbox" / "Lógica" ─
+// ─── Toggle "Runas" / "Tabla" / "Física" / "Biología" / "Visualizador" ──────
 // Runas: el bloque de herramientas de runas (probador, lista, config), sin
 // ensayo. Tabla: grid de Elementos (Tabla Química/Alquímica) + detalle,
 // solo si se pasan props de elementos. Física: grid de Oris + catálogos
 // fijos + conceptos, y al final los Subsistemas de Magia (chips que abren
 // en modal flotante) — ver BloqueFisica más abajo. Biología:
-// taxonomía/ecosistemas/perfiles. Sandbox: entorno experimental aislado
-// (crear simulación, entidades, disparar eventos, Play/Pause/Step/Reset) —
-// ver domains/garlia/sandbox/SandboxPage.tsx. Lógica: mapa de capas del
-// sistema entero en lenguaje humano, leído de documentacion_sistema — ver
-// LogicaSistemaPage.tsx.
+// taxonomía/ecosistemas/perfiles. Visualizador: capa de presentación
+// experimental — Sandbox vive ahora ahí adentro, como sección de la
+// categoría "Lab" (ver VisualizadorPage.tsx), y "Lógica" (mapa de capas
+// del sistema en lenguaje humano, LogicaSistemaPage.tsx) se retiró de
+// este toggle a pedido explícito (2026-09-14).
 // SeccionMagia se importa (y persiste) desde useMagiaSeccionStore.ts —
 // arriba, junto al resto de imports del store.
 
@@ -733,9 +729,7 @@ function BloqueEnsayoConSubBloques({
 const SECCIONES_MAGIA: { key: SeccionMagia; label: string; Icon: React.ElementType }[] = [
   { key: "runas", label: "Runas", Icon: Waypoints },
   { key: "tabla", label: "Química", Icon: Atom },
-  { key: "sandbox", label: "Sandbox", Icon: Beaker },
   { key: "visualizador", label: "Visualizador", Icon: BarChart3 },
-  { key: "logica", label: "Lógica", Icon: Sparkles },
 ];
 
 function SelectorSeccionMagia({
@@ -1060,17 +1054,9 @@ export function RunasPage({
             <BiologiaCladograma onSelectCriatura={(id) => abrirPanel("criatura", id)} />
           </div>
         </div>
-      ) : seccionMagia === "sandbox" ? (
-        <div className="mt-4">
-          <SandboxPage />
-        </div>
       ) : seccionMagia === "visualizador" ? (
         <div className="mt-4">
           <VisualizadorPage />
-        </div>
-      ) : seccionMagia === "logica" ? (
-        <div className="mt-4">
-          <LogicaSistemaPage />
         </div>
       ) : (
         <div className="mt-4 flex flex-col lg:flex-row gap-6">
