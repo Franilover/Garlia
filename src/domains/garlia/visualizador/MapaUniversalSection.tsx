@@ -8,7 +8,7 @@
  * como ya existen en los hooks de ruta reales — cero cálculo nuevo acá.
  *
  *   Rama 1 (Física):   TASI → IUM → Oris
- *   Rama 2 (Alquimia): TASI → Elemento → Compuesto → Material
+ *   Rama 2 (Alquimia): TASI → Elemento → Compuesto → Material → Estructura
  *   Rama 3 (Energías):  Polos (+/−) → S/I → Garin/Éterium
  *
  * Interactividad real (pedido explícito):
@@ -41,6 +41,7 @@ import { supabase } from "@/infra/supabase/supabase";
 
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
+import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
 import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
@@ -49,6 +50,7 @@ import { IumVisual, LETRA_COLOR, type LetraATS } from "@/domains/garlia/fisica/P
 import { particulasDeIum } from "@/domains/garlia/fisica/types";
 
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
+import { useMaterialEstructuras } from "@/domains/garlia/materiales/useMaterialEstructuras";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
@@ -376,7 +378,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
   );
 }
 
-// ─── Rama 2: Alquimia — TASI → Elemento → Compuesto → Material ────────────
+// ─── Rama 2: Alquimia — TASI → Elemento → Compuesto → Material → Estructura
 // Trae su propio useElementos()/useCompuestosConElementos() (en vez de
 // useAlquimiaRoute/useCompuestoRoute) porque necesita setItems real para
 // pasarle onActualizar/onEliminar a los paneles flotantes — mismo patrón
@@ -394,6 +396,7 @@ function RamaAlquimia() {
 
   const [elementoSelId, setElementoSelId] = useState<string | null>(null);
   const [compuestoFocoId, setCompuestoFocoId] = useState<string | null>(null);
+  const [materialFocoId, setMaterialFocoId] = useState<string | null>(null);
 
   // Paneles flotantes abiertos — null = cerrado. Solo uno a la vez, mismo
   // criterio que ElementosPage/CompuestosPage (un solo modal centrado).
@@ -427,6 +430,25 @@ function RamaAlquimia() {
   // Compuesto. Solo lectura: Material no tiene panel flotante propio.
   const { items: materialesDelCompuesto, loading: loadingMateriales } =
     useMaterialesDeCompuesto(compuestoFoco?.id ?? null);
+
+  const materialFoco = useMemo(
+    () => materialesDelCompuesto.find((m) => m.id === materialFocoId) ?? materialesDelCompuesto[0] ?? null,
+    [materialesDelCompuesto, materialFocoId],
+  );
+
+  // Estructuras reales que resultan del Material en foco (material_estructuras
+  // — el vínculo nace del lado Material, no de Compuesto ni Estructura, así
+  // que se resuelve igual que useMaterialesDeCompuesto: filas puente +
+  // catálogo). Cierra la cadena Compuesto → Material → Estructura.
+  const { items: vinculosEstructura, loading: loadingVinculosEstructura } = useMaterialEstructuras(
+    materialFoco?.id ?? null,
+  );
+  const { items: estructurasCatalogo, loading: loadingEstructurasCatalogo } = useEstructuras();
+  const estructurasDelMaterial = useMemo(() => {
+    const idsVinculados = new Set(vinculosEstructura.map((v) => v.estructura_id));
+    return estructurasCatalogo.filter((e) => idsVinculados.has(e.id));
+  }, [vinculosEstructura, estructurasCatalogo]);
+  const loadingEstructuras = loadingVinculosEstructura || loadingEstructurasCatalogo;
 
   const elementoAbierto = elementoAbiertoId ? elementos.find((e) => e.id === elementoAbiertoId) ?? null : null;
   const compuestoAbierto = compuestoAbiertoId ? compuestos.find((c) => c.id === compuestoAbiertoId) ?? null : null;
@@ -475,6 +497,7 @@ function RamaAlquimia() {
             onChange={(e) => {
               setElementoSelId(e.target.value || null);
               setCompuestoFocoId(null);
+              setMaterialFocoId(null);
             }}
             className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-[11px] font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
           >
@@ -487,7 +510,7 @@ function RamaAlquimia() {
           </SelectorSlot>
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
-            <div className="flex min-w-[900px] items-center gap-2">
+            <div className="flex min-w-[1220px] items-center gap-2">
               <PolaridadTasiArranque />
               <Arrow />
               {/* Click en el NOMBRE del Elemento abre su editor real
@@ -516,6 +539,7 @@ function RamaAlquimia() {
                       onClick={() => {
                         setCompuestoFocoId(c.id);
                         setCompuestoAbiertoId(c.id);
+                        setMaterialFocoId(null);
                       }}
                     />
                   ))
@@ -523,16 +547,39 @@ function RamaAlquimia() {
               </div>
               <Arrow />
               {/* Materiales que usan el Compuesto en foco como componente.
-                  Nodo de solo lectura — Material no tiene panel flotante
-                  propio en el código real. */}
-              <div className="flex flex-col gap-2">
+                  Click fija el foco (misma idea que Elemento→Compuesto de
+                  arriba) para resolver sus Estructuras a la derecha —
+                  Material no tiene panel flotante propio, así que no abre
+                  ningún editor. */}
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
                 {loadingMateriales ? (
                   <FlowNode title="Materiales" subtitle="cargando…" />
                 ) : materialesDelCompuesto.length === 0 ? (
                   <FlowNode title="Sin material" subtitle="no forma parte de ninguno" />
                 ) : (
-                  materialesDelCompuesto.slice(0, 6).map((m) => (
-                    <FlowNode key={m.id} title={m.nombre} subtitle={m.tipo_material ?? undefined} />
+                  materialesDelCompuesto.map((m) => (
+                    <FlowNode
+                      key={m.id}
+                      title={m.nombre}
+                      subtitle={m.tipo_material ?? undefined}
+                      selected={materialFoco?.id === m.id}
+                      onClick={() => setMaterialFocoId(m.id)}
+                    />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              {/* Estructuras reales que resultan del Material en foco
+                  (material_estructuras) — cierra Compuesto → Material →
+                  Estructura. Solo lectura, mismo criterio que Material. */}
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingEstructuras ? (
+                  <FlowNode title="Estructuras" subtitle="cargando…" />
+                ) : estructurasDelMaterial.length === 0 ? (
+                  <FlowNode title="Sin estructura" subtitle="aún no genera ninguna" />
+                ) : (
+                  estructurasDelMaterial.map((e) => (
+                    <FlowNode key={e.id} title={e.nombre} subtitle={e.tipo ?? undefined} />
                   ))
                 )}
               </div>
