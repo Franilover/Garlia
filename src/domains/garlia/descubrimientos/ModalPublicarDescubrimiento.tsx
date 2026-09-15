@@ -48,12 +48,12 @@ const FORM_VACIO: DescubrimientoInput = {
 
 /**
  * Formulario admin para publicar (o editar) un descubrimiento en
- * Biblioteca > Descubrimientos: título, descripción, tipo de entidad,
+ * Universo > Descubrimientos: título, descripción, tipo de entidad,
  * cuál entidad puntual, fecha y reino/ciudad opcionales.
  *
  * Guarda directamente contra `descubrimientos_publicos` — no toca la
  * entidad original (criatura/elemento/etc), solo crea/edita la fila
- * puente que la hace visible en la Biblioteca pública.
+ * puente que la hace visible en el Universo público.
  */
 export function ModalPublicarDescubrimiento({
   open,
@@ -153,60 +153,64 @@ export function ModalPublicarDescubrimiento({
 
   return (
     <Modal
-      maxWidth="max-w-lg"
+      maxWidth="max-w-3xl"
       open={open}
-      subtitle="Biblioteca › Descubrimientos"
+      subtitle="Universo › Descubrimientos"
       title={editando ? "Editar descubrimiento" : "Publicar descubrimiento"}
       onClose={onClose}
     >
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Input
           label="Nombre / Título"
-          placeholder="Cómo se va a mostrar en la Biblioteca"
+          placeholder="Cómo se va a mostrar en el Universo"
           value={form.titulo}
           onChange={(e) =>
             setForm((f) => ({ ...f, titulo: e.target.value }))
           }
         />
 
-        <Textarea
-          label="Descripción"
-          placeholder="Opcional — si se deja vacío, se usa la descripción de la entidad original"
-          rows={3}
-          value={form.descripcion}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, descripcion: e.target.value }))
-          }
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <ComboSelector
+            allowNone={false}
+            items={TODOS_LOS_TIPOS.map((t) => ({
+              id: t,
+              label: LABEL_POR_TIPO[t],
+            }))}
+            label="Tipo"
+            mode="single"
+            value={form.tipo_entidad}
+            onChange={(v) =>
+              setForm((f) => ({
+                ...f,
+                tipo_entidad: (v as TipoEntidadPublicable) ?? f.tipo_entidad,
+                entidad_id: "",
+              }))
+            }
+          />
 
-        <ComboSelector
-          allowNone={false}
-          items={TODOS_LOS_TIPOS.map((t) => ({
-            id: t,
-            label: LABEL_POR_TIPO[t],
-          }))}
-          label="Tipo"
-          mode="single"
-          value={form.tipo_entidad}
-          onChange={(v) =>
-            setForm((f) => ({
-              ...f,
-              tipo_entidad: (v as TipoEntidadPublicable) ?? f.tipo_entidad,
-              entidad_id: "",
-            }))
-          }
-        />
+          <ComboSelector
+            allowNone={false}
+            items={entidades.map((e) => ({ id: e.id, label: e.nombre }))}
+            label={LABEL_POR_TIPO[form.tipo_entidad]}
+            loading={loadingEntidades}
+            mode="single"
+            placeholder="Elegir cuál…"
+            value={form.entidad_id || null}
+            onChange={(v) => setForm((f) => ({ ...f, entidad_id: v ?? "" }))}
+          />
+        </div>
 
-        <ComboSelector
-          allowNone={false}
-          items={entidades.map((e) => ({ id: e.id, label: e.nombre }))}
-          label={LABEL_POR_TIPO[form.tipo_entidad]}
-          loading={loadingEntidades}
-          mode="single"
-          placeholder="Elegir cuál…"
-          value={form.entidad_id || null}
-          onChange={(v) => setForm((f) => ({ ...f, entidad_id: v ?? "" }))}
-        />
+        <div className="sm:col-span-2">
+          <Textarea
+            label="Descripción"
+            placeholder="Opcional — si se deja vacío, se usa la descripción de la entidad original"
+            rows={3}
+            value={form.descripcion}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, descripcion: e.target.value }))
+            }
+          />
+        </div>
 
         <div className="space-y-1.5">
           <label className="text-micro font-black text-primary/40 uppercase tracking-widest block">
@@ -222,34 +226,38 @@ export function ModalPublicarDescubrimiento({
           />
         </div>
 
-        <ComboSelector
-          allowNone
-          items={reinosMin.map((r) => ({ id: r.id, label: r.nombre }))}
-          label="Reino"
-          mode="single"
-          noneLabel="Sin reino"
-          placeholder="Opcional"
-          value={form.reino_id}
-          onChange={(v) => setForm((f) => ({ ...f, reino_id: v }))}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <ComboSelector
+            allowNone
+            items={reinosMin.map((r) => ({ id: r.id, label: r.nombre }))}
+            label="Reino"
+            mode="single"
+            noneLabel="Sin reino"
+            placeholder="Opcional"
+            value={form.reino_id}
+            onChange={(v) => setForm((f) => ({ ...f, reino_id: v }))}
+          />
 
-        <ComboSelector
-          allowNone
-          items={ciudadesFiltradas.map((c) => ({ id: c.id, label: c.nombre }))}
-          label="Ciudad"
-          mode="single"
-          noneLabel="Sin ciudad"
-          placeholder="Opcional"
-          value={form.ciudad_id}
-          onChange={(v) => setForm((f) => ({ ...f, ciudad_id: v }))}
-        />
+          <ComboSelector
+            allowNone
+            items={ciudadesFiltradas.map((c) => ({ id: c.id, label: c.nombre }))}
+            label="Ciudad"
+            mode="single"
+            noneLabel="Sin ciudad"
+            placeholder="Opcional"
+            value={form.ciudad_id}
+            onChange={(v) => setForm((f) => ({ ...f, ciudad_id: v }))}
+          />
+        </div>
 
         {error && (
-          <p className="text-micro font-bold text-red-500">{error}</p>
+          <p className="sm:col-span-2 text-micro font-bold text-red-500">
+            {error}
+          </p>
         )}
 
         <Btn
-          fullWidth
+          className="sm:col-span-2 mt-1"
           disabled={!puedeGuardar}
           icon={<Sparkles size={14} />}
           loading={saving}

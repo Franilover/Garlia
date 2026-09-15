@@ -19,7 +19,7 @@ interface Props {
 const FORM_VACIO: TeoriaInput = { titulo: "", contenido: "" };
 
 /**
- * Formulario público para publicar una teoría en Biblioteca > Teorías:
+ * Formulario público para publicar una teoría en Universo > Teorías:
  * solo título + texto libre. Cualquier usuario logueado puede publicar
  * (ver sql/teorias.sql) — a diferencia de Descubrimientos, esto no es un
  * panel de admin.
@@ -55,24 +55,37 @@ export function ModalPublicarTeoria({ open, onClose, onSaved }: Props) {
 
   return (
     <Modal
-      maxWidth="max-w-lg"
+      maxWidth="max-w-2xl"
       open={open}
-      subtitle="Biblioteca › Teorías"
+      subtitle="Universo › Teorías"
       title="Publicar teoría"
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <Input
-          label="Título"
-          placeholder="Cómo se va a mostrar en la Biblioteca"
-          value={form.titulo}
-          onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-        />
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1">
+            <Input
+              label="Título"
+              placeholder="Cómo se va a mostrar en el Universo"
+              value={form.titulo}
+              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+            />
+          </div>
+          <Btn
+            className="w-full sm:w-auto shrink-0"
+            disabled={!puedeGuardar}
+            icon={<Sparkles size={14} />}
+            loading={saving}
+            onClick={handleGuardar}
+          >
+            Publicar
+          </Btn>
+        </div>
 
         <Textarea
           label="Teoría"
           placeholder="Desarrolla tu teoría acá…"
-          rows={6}
+          rows={5}
           value={form.contenido}
           onChange={(e) =>
             setForm((f) => ({ ...f, contenido: e.target.value }))
@@ -80,16 +93,6 @@ export function ModalPublicarTeoria({ open, onClose, onSaved }: Props) {
         />
 
         {error && <p className="text-micro font-bold text-red-500">{error}</p>}
-
-        <Btn
-          fullWidth
-          disabled={!puedeGuardar}
-          icon={<Sparkles size={14} />}
-          loading={saving}
-          onClick={handleGuardar}
-        >
-          Publicar
-        </Btn>
       </div>
     </Modal>
   );
