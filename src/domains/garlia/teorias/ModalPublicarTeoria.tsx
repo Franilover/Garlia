@@ -57,7 +57,6 @@ export function ModalPublicarTeoria({ open, onClose, onSaved }: Props) {
     <Modal
       maxWidth="max-w-2xl"
       open={open}
-      subtitle="Universo › Teorías"
       title="Publicar teoría"
       onClose={onClose}
     >
@@ -66,7 +65,6 @@ export function ModalPublicarTeoria({ open, onClose, onSaved }: Props) {
           <div className="flex-1">
             <Input
               label="Título"
-              placeholder="Cómo se va a mostrar en el Universo"
               value={form.titulo}
               onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
             />
@@ -84,7 +82,6 @@ export function ModalPublicarTeoria({ open, onClose, onSaved }: Props) {
 
         <Textarea
           label="Teoría"
-          placeholder="Desarrolla tu teoría acá…"
           rows={5}
           value={form.contenido}
           onChange={(e) =>
