@@ -3,13 +3,19 @@
 /**
  * MapaUniversalSection.tsx — VIS-15 "Mapa Universal".
  * ───────────────────────────────────────────────────────────────────────────
- * Vista de Atlas que NO reemplaza a Física/Alquimia/Química: las conecta en
- * un solo árbol navegable, mostrando las 3 ramas del flujo canónico tal
- * como ya existen en los hooks de ruta reales — cero cálculo nuevo acá.
+ * Vista de Atlas que NO reemplaza a Física/Alquimia/Química/Biología: las
+ * conecta en un solo árbol navegable, mostrando las 4 ramas del flujo
+ * canónico tal como ya existen en los hooks de ruta reales — cero cálculo
+ * nuevo acá.
  *
- *   Rama 1 (Física):   TASI → IUM → Oris
- *   Rama 2 (Alquimia): TASI → Elemento → Compuesto → Material → Estructura
+ *   Rama 1 (Física):    TASI → IUM → Oris
+ *   Rama 2 (Alquimia):  TASI → Elemento → Compuesto → Material → Estructura
  *   Rama 3 (Energías):  Polos (+/−) → S/I → Garin/Éterium
+ *   Rama 4 (Biología):  Célula → Tejido → Órgano → Sistema → Organismo →
+ *                       Criatura (techo de la cadena biológica real en
+ *                       Supabase; criatura_organismos está vacía al
+ *                       2026-09-14, así que el último tramo hoy no
+ *                       muestra datos — no es un bug de este archivo).
  *
  * Interactividad real (pedido explícito):
  *   - Click en un IUM del Oris activo (rama Física) fija su foco en el
@@ -51,6 +57,13 @@ import { particulasDeIum } from "@/domains/garlia/fisica/types";
 
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
 import { useMaterialEstructuras } from "@/domains/garlia/materiales/useMaterialEstructuras";
+
+import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
+import { useTejidosDeUnaCelula } from "@/domains/garlia/elementos/useTejidosDeUnaCelula";
+import { useOrganosDeUnTejido } from "@/domains/garlia/elementos/useOrganosDeUnTejido";
+import { useSistemasDeUnOrgano } from "@/domains/garlia/elementos/useSistemasDeUnOrgano";
+import { useOrganismosDeUnSistema } from "@/domains/garlia/elementos/useOrganismosDeUnSistema";
+import { useCriaturasDeUnOrganismo } from "@/domains/garlia/elementos/useCriaturasDeUnOrganismo";
 
 import { useFisicaRoute } from "./routes/useFisicaRoute";
 import { useAlquimiaRoute } from "./routes/useAlquimiaRoute";
@@ -256,14 +269,15 @@ function SelectorSlot({ label, children }: { label: string; children: React.Reac
   return createPortal(contenido, slot);
 }
 
-/** Las 3 ramas del flujo canónico — nombre + resumen corto, mostrado como
+/** Las 4 ramas del flujo canónico — nombre + resumen corto, mostrado como
  *  selector arriba del árbol activo. */
-type RamaCanonica = "fisica" | "alquimia" | "libres";
+type RamaCanonica = "fisica" | "alquimia" | "libres" | "biologia";
 
 const RAMAS: { key: RamaCanonica; label: string }[] = [
   { key: "fisica", label: "Oris" },
   { key: "alquimia", label: "Materiales" },
   { key: "libres", label: "Energías" },
+  { key: "biologia", label: "Biología" },
 ];
 
 // Mismo lenguaje visual que la sidebar real de VisualizadorPage (navGroups):
@@ -653,6 +667,207 @@ function RamaLibres() {
   );
 }
 
+// ─── Rama 4: Biología — Célula → Tejido → Órgano → Sistema → Organismo →
+// Criatura ────────────────────────────────────────────────────────────────
+// Techo de la cadena biológica real en Supabase (documentado en el propio
+// código: useOrganismosDeUnSistema.ts, useCriaturaOrganismos.ts). Cada
+// salto usa el hook "¿quién me usa?" correspondiente (dirección inversa
+// del catálogo→puente que ya expone cada nivel), mismo criterio que
+// useMaterialesDeCompuesto en la rama Alquimia: se navega hacia arriba
+// fijando un foco por nivel, sin recalcular nada que Supabase no calcule
+// ya. Selecciona la primera Célula del catálogo por defecto (no hay
+// concepto de "polaridad/TASI" en Biología, así que esta rama no usa
+// PolaridadTasiArranque — arranca directo del catálogo de Células).
+function RamaBiologia() {
+  const { items: celulas, loading: loadingCelulas } = useCelulas();
+
+  const [celulaSelId, setCelulaSelId] = useState<string | null>(null);
+  const [tejidoFocoId, setTejidoFocoId] = useState<string | null>(null);
+  const [organoFocoId, setOrganoFocoId] = useState<string | null>(null);
+  const [sistemaFocoId, setSistemaFocoId] = useState<string | null>(null);
+  const [organismoFocoId, setOrganismoFocoId] = useState<string | null>(null);
+
+  const celulaSel = useMemo(
+    () => (celulaSelId ? celulas.find((c) => c.id === celulaSelId) ?? null : celulas[0] ?? null),
+    [celulas, celulaSelId],
+  );
+
+  const { items: tejidosDeCelula, loading: loadingTejidos } = useTejidosDeUnaCelula(
+    celulaSel?.id ?? null,
+  );
+  const tejidoFoco = useMemo(
+    () => tejidosDeCelula.find((t) => t.tejido_id === tejidoFocoId) ?? tejidosDeCelula[0] ?? null,
+    [tejidosDeCelula, tejidoFocoId],
+  );
+
+  const { items: organosDeTejido, loading: loadingOrganos } = useOrganosDeUnTejido(
+    tejidoFoco?.tejido_id ?? null,
+  );
+  const organoFoco = useMemo(
+    () => organosDeTejido.find((o) => o.organo_id === organoFocoId) ?? organosDeTejido[0] ?? null,
+    [organosDeTejido, organoFocoId],
+  );
+
+  const { items: sistemasDeOrgano, loading: loadingSistemas } = useSistemasDeUnOrgano(
+    organoFoco?.organo_id ?? null,
+  );
+  const sistemaFoco = useMemo(
+    () => sistemasDeOrgano.find((s) => s.sistema_id === sistemaFocoId) ?? sistemasDeOrgano[0] ?? null,
+    [sistemasDeOrgano, sistemaFocoId],
+  );
+
+  const { items: organismosDeSistema, loading: loadingOrganismos } = useOrganismosDeUnSistema(
+    sistemaFoco?.sistema_id ?? null,
+  );
+  const organismoFoco = useMemo(
+    () =>
+      organismosDeSistema.find((o) => o.organismo_id === organismoFocoId) ??
+      organismosDeSistema[0] ??
+      null,
+    [organismosDeSistema, organismoFocoId],
+  );
+
+  // Techo de la cadena — ver nota de cabecera: criatura_organismos está
+  // vacía hoy, así que esta columna típicamente mostrará "Sin criatura"
+  // hasta que se cargue esa tabla en Supabase.
+  const { items: criaturasDeOrganismo, loading: loadingCriaturas } = useCriaturasDeUnOrganismo(
+    organismoFoco?.organismo_id ?? null,
+  );
+
+  return (
+    <>
+      {loadingCelulas ? <LoadingRow /> : celulas.length === 0 ? <EmptyRow>No hay Células cargadas en Supabase todavía.</EmptyRow> : null}
+      {!loadingCelulas && celulas.length > 0 ? (
+        <>
+          <SelectorSlot label="Célula">
+          <select
+            value={celulaSel?.id ?? ""}
+            onChange={(e) => {
+              setCelulaSelId(e.target.value || null);
+              setTejidoFocoId(null);
+              setOrganoFocoId(null);
+              setSistemaFocoId(null);
+              setOrganismoFocoId(null);
+            }}
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-[11px] font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+          >
+            {celulas.map((c) => (
+              <option key={c.id} value={c.id} className="bg-[var(--bg-main)] text-primary">
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+          </SelectorSlot>
+
+          <div className="mt-5 overflow-x-auto rounded-2xl p-6">
+            <div className="flex min-w-[1320px] items-center gap-2">
+              <FlowNode title={celulaSel?.nombre ?? "Célula"} subtitle={celulaSel?.funcion ?? undefined} tone="accent" selected />
+              <Arrow />
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingTejidos ? (
+                  <FlowNode title="Tejidos" subtitle="cargando…" />
+                ) : tejidosDeCelula.length === 0 ? (
+                  <FlowNode title="Sin tejido" subtitle="no forma parte de ninguno" />
+                ) : (
+                  tejidosDeCelula.map((t) => (
+                    <FlowNode
+                      key={t.vinculo_id}
+                      title={t.tejido.nombre}
+                      subtitle={t.rol ?? undefined}
+                      selected={tejidoFoco?.tejido_id === t.tejido_id}
+                      onClick={() => {
+                        setTejidoFocoId(t.tejido_id);
+                        setOrganoFocoId(null);
+                        setSistemaFocoId(null);
+                        setOrganismoFocoId(null);
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingOrganos ? (
+                  <FlowNode title="Órganos" subtitle="cargando…" />
+                ) : organosDeTejido.length === 0 ? (
+                  <FlowNode title="Sin órgano" subtitle="no forma parte de ninguno" />
+                ) : (
+                  organosDeTejido.map((o) => (
+                    <FlowNode
+                      key={o.vinculo_id}
+                      title={o.organo.nombre}
+                      subtitle={o.organo.funcion ?? undefined}
+                      selected={organoFoco?.organo_id === o.organo_id}
+                      onClick={() => {
+                        setOrganoFocoId(o.organo_id);
+                        setSistemaFocoId(null);
+                        setOrganismoFocoId(null);
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingSistemas ? (
+                  <FlowNode title="Sistemas" subtitle="cargando…" />
+                ) : sistemasDeOrgano.length === 0 ? (
+                  <FlowNode title="Sin sistema" subtitle="no forma parte de ninguno" />
+                ) : (
+                  sistemasDeOrgano.map((s) => (
+                    <FlowNode
+                      key={s.vinculo_id}
+                      title={s.sistema.nombre}
+                      subtitle={s.sistema.descripcion ?? undefined}
+                      selected={sistemaFoco?.sistema_id === s.sistema_id}
+                      onClick={() => {
+                        setSistemaFocoId(s.sistema_id);
+                        setOrganismoFocoId(null);
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingOrganismos ? (
+                  <FlowNode title="Organismos" subtitle="cargando…" />
+                ) : organismosDeSistema.length === 0 ? (
+                  <FlowNode title="Sin organismo" subtitle="no forma parte de ninguno" />
+                ) : (
+                  organismosDeSistema.map((o) => (
+                    <FlowNode
+                      key={o.vinculo_id}
+                      title={o.organismo.nombre}
+                      subtitle={o.organismo.tipo_organismo ?? undefined}
+                      selected={organismoFoco?.organismo_id === o.organismo_id}
+                      onClick={() => setOrganismoFocoId(o.organismo_id)}
+                    />
+                  ))
+                )}
+              </div>
+              <Arrow />
+              {/* Techo de la cadena — ver nota de cabecera sobre
+                  criatura_organismos vacía. */}
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
+                {loadingCriaturas ? (
+                  <FlowNode title="Criaturas" subtitle="cargando…" />
+                ) : criaturasDeOrganismo.length === 0 ? (
+                  <FlowNode title="Sin criatura" subtitle="aún no vinculada" />
+                ) : (
+                  criaturasDeOrganismo.map((c) => (
+                    <FlowNode key={c.vinculo_id} title={c.criatura.nombre} />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function MapaUniversalSection() {
   const [rama, setRama] = useState<RamaCanonica>("fisica");
   const fisicaRoute = useFisicaRoute();
@@ -673,6 +888,7 @@ export function MapaUniversalSection() {
         {rama === "fisica" ? <RamaFisica route={fisicaRoute} /> : null}
         {rama === "alquimia" ? <RamaAlquimia /> : null}
         {rama === "libres" ? <RamaLibres /> : null}
+        {rama === "biologia" ? <RamaBiologia /> : null}
       </div>
 
       {/* Columna derecha: controles. Arriba el tipo de flujo, abajo el
