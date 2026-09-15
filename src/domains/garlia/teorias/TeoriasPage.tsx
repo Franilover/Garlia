@@ -39,9 +39,11 @@ export default function TeoriasPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-end mb-3">
-        <BotonPublicarTeoria onClick={() => setModalOpen(true)} />
-      </div>
+      {user && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 mb-3">
+          <BotonPublicarTeoria onClick={() => setModalOpen(true)} />
+        </div>
+      )}
 
       {loading ? (
         <p
