@@ -23,6 +23,7 @@ import {
   Trees,
   Paintbrush,
   Eraser,
+  Crown,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,7 @@ import {
   TERRAIN_COLORS,
   TERRAIN_COLOR_HEX,
 } from "@/domains/garlia/_shared/UnifiedTileCanvas";
-import { TileCanvasView } from "@/domains/garlia/_shared/TileCanvasView";
+import { TileCanvasView, type TileCanvasViewHandle } from "@/domains/garlia/_shared/TileCanvasView";
 import { ModalDetalle } from "@/domains/garlia/perfil-jugador/PersonalComponents";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { useIsAdmin } from "@/domains/plataforma/auth/useIsAdmin";
@@ -534,6 +535,66 @@ function Toast({
       )}
       {message}
     </MotionDiv>
+  );
+}
+
+// ─── Sidebar de reinos descubiertos (mapa público) ─────────────────────────────
+// Barra fija a la izquierda del canvas con la lista de reinos que el
+// usuario ya descubrió y que tienen un área vinculada en el mapa. Click en
+// un ítem → zoom/centrado sobre esa área (ver focusOnArea en
+// useTileCanvasEngine.ts), sin cambiar de vista ni abrir el panel de
+// detalle — es puramente navegación de cámara.
+//
+// position:absolute (no hermano flex) por el mismo motivo que el resto de
+// la UI flotante de esta vista: el contenedor del canvas nunca debe
+// cambiar de tamaño al aparecer/desaparecer esta barra, o el
+// ResizeObserver del motor de tiles dispara un resize y se ve un
+// parpadeo/recentrado.
+function SidebarReinosDescubiertos({
+  items,
+  onSelect,
+}: {
+  items: { reino: any; area: BaseArea }[];
+  onSelect: (area: BaseArea) => void;
+}) {
+  return (
+    <div
+      className="absolute left-0 top-0 bottom-0 z-40 w-40 sm:w-48 overflow-y-auto"
+      style={{
+        background: "color-mix(in srgb, var(--bg-menu) 90%, transparent)",
+        borderRight:
+          "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <p
+        className="px-3 pt-3 pb-2 text-micro font-black uppercase tracking-widest"
+        style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+      >
+        Reinos
+      </p>
+      <div className="flex flex-col">
+        {items.map(({ reino, area }) => (
+          <button
+            key={reino.id}
+            type="button"
+            className="flex items-center gap-2 px-3 py-2 text-left transition-colors hover:opacity-80"
+            style={{ color: "var(--foreground)" }}
+            title={`Ir a ${reino.nombre}`}
+            onClick={() => onSelect(area)}
+          >
+            <Crown
+              size={13}
+              className="shrink-0"
+              style={{ color: "color-mix(in srgb, var(--accent) 70%, transparent)" }}
+            />
+            <span className="text-micro font-semibold uppercase tracking-wide truncate">
+              {reino.nombre}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1898,6 +1959,11 @@ export default function MapaInteractivo({
 
   const [detallesReino, setDetallesReino] = useState<any[]>([]);
   const [vistaActual, setVistaActual] = useState<"global" | "reino">("global");
+  // Ref al canvas de solo-lectura (mapa público) — permite centrar/zoomear
+  // la cámara sobre el área de un reino desde la barra lateral de reinos
+  // descubiertos (ver <SidebarReinosDescubiertos /> más abajo), sin pasar
+  // por click/selección normal del canvas.
+  const tileCanvasRef = useRef<TileCanvasViewHandle>(null);
   const [reinoSeleccionado, setReinoSeleccionado] = useState<any>(null);
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<any>(null);
   const [editMode, setEditMode] = useState(false);
@@ -3490,6 +3556,18 @@ export default function MapaInteractivo({
   // por ciudad_id — se sacaron junto con ReinoTileCanvas, su único
   // consumidor. Ver nota en reinos/components/ReinoTileCanvas.tsx.)
 
+  // ── Reinos descubiertos, para la barra lateral del mapa público ─────────
+  // Solo reinos que el usuario ya desbloqueó (o todos, si es admin) Y que
+  // tienen un área vinculada en el mapa — sin área no hay a dónde hacer
+  // zoom, así que no tendría sentido listarlos acá (siguen viendo su pin
+  // normal en el mapa, si corresponde). Se ordena por nombre para que la
+  // lista no salte de orden cuando cambian los datos.
+  const reinosDescubiertosConArea = reinos
+    .filter((r) => isAdmin || reinosDesbloqueados.has(r.id))
+    .map((r) => ({ reino: r, area: areas.find((a) => a.reino_id === r.id) ?? null }))
+    .filter((x): x is { reino: any; area: BaseArea } => x.area !== null)
+    .sort((a, b) => (a.reino.nombre ?? "").localeCompare(b.reino.nombre ?? ""));
+
   // hiddenMarkers: para usuarios son los marcadores no desbloqueados (se muestran en niebla)
   const hiddenMarkers =
     vistaActual === "global"
@@ -3592,6 +3670,12 @@ export default function MapaInteractivo({
           panel, y el ResizeObserver del motor de tiles no dispara ningún
           resize (que antes producía el flash negro / recentrado). */}
       <div className="relative flex-1 min-h-0 overflow-hidden w-full pb-14 md:pb-0">
+        {!editMode && vistaActual === "global" && reinosDescubiertosConArea.length > 0 && (
+          <SidebarReinosDescubiertos
+            items={reinosDescubiertosConArea}
+            onSelect={(area) => tileCanvasRef.current?.focusOnArea(area)}
+          />
+        )}
         {isAdmin && (
           <div
             className="absolute z-70 flex gap-2"
@@ -3901,6 +3985,7 @@ export default function MapaInteractivo({
               // ── Modo lectura: TileCanvasView, sin código de edición en el
               // bundle (drag de vértices, dibujo, papelera, etc.). ─────────
               <TileCanvasView
+                ref={tileCanvasRef}
                 areas={areasParaMostrar}
                 className="absolute inset-0"
                 fondoColor={fondoColor}

@@ -572,6 +572,70 @@ export function useTileCanvasEngine<
     return { col, row, x: (ux - col) * 100, y: (uy - row) * 100 };
   }, []);
 
+  // ── Centrar cámara sobre un área ──────────────────────────────────────────
+  // Usado por la barra lateral de reinos descubiertos (lista → click → zoom
+  // al área vinculada a ese reino en el mapa mundial). Calcula el bounding
+  // box del área en unidades de tile continuas (col + x/100, ver
+  // toTileUnits), lo pasa a píxeles de "mundo a escala 1" multiplicando por
+  // tileSize, y centra la cámara (camRef) en el centro de ese bbox con un
+  // scale que lo deje bien encuadrado en el viewport actual (con margen).
+  // No anima — el motor solo lee camRef en cada frame, así que un cambio
+  // instantáneo ya se ve como un "salto" al punto; si más adelante se quiere
+  // una transición suave, se puede interpolar camRef en varios frames desde
+  // afuera sin tocar esta función.
+  const focusOnArea = useCallback(
+    (area: BaseArea, opts: { padding?: number; maxScale?: number } = {}) => {
+      const container = containerRef.current;
+      if (!container || area.puntos.length === 0) return;
+      const { padding = 80, maxScale = 2.5 } = opts;
+
+      // Bounding box del área en unidades de tile continuas → px de mundo.
+      let minUx = Infinity, maxUx = -Infinity, minUy = Infinity, maxUy = -Infinity;
+      for (const p of area.puntos) {
+        const { ux, uy } = toTileUnits(p);
+        if (ux < minUx) minUx = ux;
+        if (ux > maxUx) maxUx = ux;
+        if (uy < minUy) minUy = uy;
+        if (uy > maxUy) maxUy = uy;
+      }
+      // Área circular: "puntos" es [centro, puntoDeRadio] — el radio real es
+      // la distancia entre ambos, no el bbox de esos dos puntos nomás.
+      if (area.tipo === "circulo" && area.puntos.length >= 2) {
+        const c = toTileUnits(area.puntos[0]);
+        const r = toTileUnits(area.puntos[1]);
+        const radius = Math.hypot(r.ux - c.ux, r.uy - c.uy);
+        minUx = c.ux - radius;
+        maxUx = c.ux + radius;
+        minUy = c.uy - radius;
+        maxUy = c.uy + radius;
+      }
+
+      const bboxWpx = (maxUx - minUx) * tileSize;
+      const bboxHpx = (maxUy - minUy) * tileSize;
+      const centerXpx = ((minUx + maxUx) / 2) * tileSize;
+      const centerYpx = ((minUy + maxUy) / 2) * tileSize;
+
+      const rect = container.getBoundingClientRect();
+      const vw = rect.width * renderScaleRef.current;
+      const vh = rect.height * renderScaleRef.current;
+
+      // Escala que deja el área completa visible con margen, sin pasar de
+      // maxScale (para no terminar pegado a un punto sin contexto si el
+      // área es muy chica) ni bajar del mínimo permitido por zoomAt (0.1).
+      const scaleX = bboxWpx > 0 ? (vw - padding * 2) / bboxWpx : maxScale;
+      const scaleY = bboxHpx > 0 ? (vh - padding * 2) / bboxHpx : maxScale;
+      const scale = Math.max(0.1, Math.min(maxScale, scaleX, scaleY));
+
+      camRef.current = {
+        scale,
+        x: vw / 2 - centerXpx * scale,
+        y: vh / 2 - centerYpx * scale,
+      };
+      markDirty();
+    },
+    [toTileUnits, tileSize, markDirty],
+  );
+
   // Mismo umbral que el draw loop (ver CIUDAD_ZOOM_CERCANO_TS reusada más
   // abajo): una ciudad que no se está dibujando (de lejos, fuera de
   // editMode) no debe registrar hits — sin esto, un click en esa zona
@@ -1238,6 +1302,7 @@ export function useTileCanvasEngine<
     findTileAt,
     toTileUnits,
     fromTileUnits,
+    focusOnArea,
     isPointInArea,
     findMarkerAt,
     zoomAt,

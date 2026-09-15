@@ -15,7 +15,15 @@
  *
  * Para edición, usar UnifiedTileCanvas con editMode=true (o el futuro
  * EditableTileCanvas, que compone lo mismo con una API más chica).
+ *
+ * Expone un ref imperativo (TileCanvasViewHandle) con `focusOnArea`, usado
+ * por la barra lateral de reinos descubiertos del mapa público: al hacer
+ * click en un reino de la lista, el padre llama
+ * `ref.current.focusOnArea(area)` para centrar/zoomear la cámara sobre el
+ * área vinculada a ese reino sin cambiar de vista.
  */
+
+import { forwardRef, useImperativeHandle } from "react";
 
 import { useTileCanvasEngine } from "./useTileCanvasEngine";
 import { useTileCanvasGestures } from "./useTileCanvasGestures";
@@ -55,22 +63,34 @@ interface TileCanvasViewProps<
   className?: string;
 }
 
-export function TileCanvasView<
+/** Métodos imperativos expuestos vía ref — por ahora solo el zoom-a-área
+ * que usa la barra lateral de reinos descubiertos (ver mapaGarlia.tsx). */
+export interface TileCanvasViewHandle {
+  focusOnArea: (
+    area: BaseArea,
+    opts?: { padding?: number; maxScale?: number },
+  ) => void;
+}
+
+function TileCanvasViewInner<
   TTile extends BaseTile,
   TMarker extends BaseMarker,
->({
-  tiles,
-  markers,
-  hiddenMarkers = [],
-  tileSize = 1024,
-  fondoColor,
-  onMarkerClick,
-  areas = [],
-  onAreaClick,
-  terrain = [],
-  onMapClick,
-  className,
-}: TileCanvasViewProps<TTile, TMarker>) {
+>(
+  {
+    tiles,
+    markers,
+    hiddenMarkers = [],
+    tileSize = 1024,
+    fondoColor,
+    onMarkerClick,
+    areas = [],
+    onAreaClick,
+    terrain = [],
+    onMapClick,
+    className,
+  }: TileCanvasViewProps<TTile, TMarker>,
+  ref: React.Ref<TileCanvasViewHandle>,
+) {
   // ── Motor compartido: cámara, coordenadas, composición de tiles, render loop ──
   // editMode siempre false acá: el motor nunca dibuja grilla fantasma,
   // papelera, ni vértices de área editables — esas ramas del render loop
@@ -93,7 +113,9 @@ export function TileCanvasView<
     ghostHover: null,
     terrain,
   });
-  const { canvasRef, containerRef, zoomIn, zoomOut } = engine;
+  const { canvasRef, containerRef, zoomIn, zoomOut, focusOnArea } = engine;
+
+  useImperativeHandle(ref, () => ({ focusOnArea }), [focusOnArea]);
 
   // ── Único orquestador de gestos, sin `editing` (null) → nunca evalúa ni
   // importa una sola línea de lógica de edición. ───────────────────────────
@@ -153,6 +175,19 @@ export function TileCanvasView<
     </div>
   );
 }
+
+// forwardRef + genéricos: forwardRef no soporta bien funciones genéricas de
+// forma nativa, así que casteamos el tipo del resultado. El comportamiento
+// (y el chequeo de props en cada call-site) es el mismo que si fuera una
+// función genérica común.
+export const TileCanvasView = forwardRef(TileCanvasViewInner) as <
+  TTile extends BaseTile,
+  TMarker extends BaseMarker,
+>(
+  props: TileCanvasViewProps<TTile, TMarker> & {
+    ref?: React.Ref<TileCanvasViewHandle>;
+  },
+) => ReturnType<typeof TileCanvasViewInner>;
 
 // Ref constante, estable entre renders — el motor solo LEE drawCursorRef acá
 // (nunca hay dibujo en curso en modo lectura), así que no hace falta un
