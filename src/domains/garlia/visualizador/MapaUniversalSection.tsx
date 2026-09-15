@@ -45,7 +45,7 @@ import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
-import { IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
+import { IumVisual, LETRA_COLOR, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
 import { particulasDeIum } from "@/domains/garlia/fisica/types";
 
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
@@ -88,6 +88,65 @@ const FlowNode = React.forwardRef<HTMLElement, {
 
 function Arrow() {
   return <ChevronRight className="shrink-0 text-primary/25" size={20} />;
+}
+
+/** Círculo pequeño para un polo (+/−) — mismo lenguaje visual (borde +
+ *  relleno tenue) que ParticulaVisual, pero sin letra A/T/S adentro:
+ *  el signo es el contenido. */
+function PoloCirculo({ signo }: { signo: "+" | "-" }) {
+  return (
+    <div
+      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 text-xl font-black"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        color: "var(--primary)",
+      }}
+    >
+      {signo}
+    </div>
+  );
+}
+
+/** Círculo pequeño para una letra T/A/S/I — reusa LETRA_COLOR (misma
+ *  paleta sepia que ParticulaVisual/IumVisual) para que se lea como la
+ *  misma familia visual que el resto de Física. */
+function LetraCirculo({ letra }: { letra: LetraATS }) {
+  const color = LETRA_COLOR[letra];
+  return (
+    <div
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 text-sm font-black"
+      style={{ background: color.bg, borderColor: color.border, color: color.fg }}
+    >
+      {letra}
+    </div>
+  );
+}
+
+/**
+ * Arranque común de las 3 ramas: en vez de dos FlowNode rectangulares
+ * ("Polaridades" y "Partículas" como texto), esto dibuja el par de polos
+ * (+)/(−) a la izquierda y, a partir de ahí, las 4 letras T/A/S/I en sus
+ * propios círculos — mismo lenguaje visual que ParticulaVisual/IumVisual
+ * (círculos con LETRA_COLOR) en vez de cajas de texto. De ahí en más
+ * sigue el flujo normal de FlowNode/Arrow de cada rama.
+ */
+function PolaridadTasiArranque() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2">
+        <PoloCirculo signo="+" />
+        <PoloCirculo signo="-" />
+      </div>
+      <Arrow />
+      <div className="grid grid-cols-2 gap-2">
+        <LetraCirculo letra="T" />
+        <LetraCirculo letra="A" />
+        <LetraCirculo letra="S" />
+        <LetraCirculo letra="I" />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -271,9 +330,7 @@ function RamaFisica({ route }: { route: ReturnType<typeof useFisicaRoute> }) {
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
             <div className="flex min-w-[840px] items-center gap-2">
-              <FlowNode title="Polaridades" subtitle="+ / −" />
-              <Arrow />
-              <FlowNode title="Partículas" subtitle="T/A/S/I" />
+              <PolaridadTasiArranque />
               <Arrow />
               {/* Cada IUM del Oris activo es su propio nodo clickeable —
                   clickearlo fija el foco del Trace de abajo Y abre su
@@ -438,9 +495,7 @@ function RamaAlquimia() {
 
           <div className="mt-5 overflow-x-auto rounded-2xl p-6">
             <div className="flex min-w-[1120px] items-center gap-2">
-              <FlowNode title="Polaridades" subtitle="+ / −" />
-              <Arrow />
-              <FlowNode title="Partículas" subtitle="T/A/S/I" />
+              <PolaridadTasiArranque />
               <Arrow />
               <div className="flex flex-col gap-2">
                 {capas.map((c) => (
@@ -541,9 +596,9 @@ function RamaLibres() {
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 overflow-x-auto rounded-2xl p-7">
-        <FlowNode title="Polaridades" subtitle="+ / −" />
+        <PolaridadTasiArranque />
         <Arrow />
-        <FlowNode title="Partículas T/A/S/I" subtitle="sin agrupar en IUM ni capa" />
+        <FlowNode title="Sin agrupar" subtitle="ninguna en IUM ni capa" />
         <Arrow />
         <div className="flex flex-col gap-2">
           <FlowNode title="Garin" subtitle="polo de recepción (I)" />
