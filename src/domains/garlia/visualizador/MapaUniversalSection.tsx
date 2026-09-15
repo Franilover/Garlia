@@ -503,11 +503,11 @@ function RamaAlquimia() {
               {/* Compuestos-hermanos: click en el nombre abre su editor
                   real (CompuestoPanelFlotante); el nodo también queda
                   marcado como foco del Trace de abajo. */}
-              <div className="flex flex-col gap-2">
+              <div className="flex max-h-[420px] flex-col gap-2 overflow-y-auto pr-1">
                 {compuestosDelElemento.length === 0 ? (
                   <FlowNode title="Sin compuesto" subtitle="aún no forma parte de ninguno" />
                 ) : (
-                  compuestosDelElemento.slice(0, 6).map((c) => (
+                  compuestosDelElemento.map((c) => (
                     <FlowNode
                       key={c.id}
                       title={c.nombre}
