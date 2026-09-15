@@ -29,7 +29,6 @@ import {
   Shirt,
   Upload,
   Wand2,
-  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -46,10 +45,7 @@ import { useGotoHotkeys } from "@/hooks/ui/useGotoHotkeys";
 import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useAuth } from "@/providers/AuthProvider";
 import { useTheme, ThemeSelector } from "@/providers/ThemeProvider";
-import {
-  ICONO_BIBLIOTECA,
-  SECCIONES_BIBLIOTECA,
-} from "@/domains/garlia/biblioteca/public/secciones";
+import { ICONO_BIBLIOTECA } from "@/domains/garlia/biblioteca/public/secciones";
 
 
 // ── Shared types ─────────────────────────────────────────────────────────────
@@ -662,15 +658,6 @@ const Navbar = () => {
   // ellos, cambiar `user` por `user && !isAdmin` acá abajo).
   const isBiblioteca = currentPath?.startsWith("/garlia/biblioteca") ?? false;
 
-  const bibliotecaSubLinks: NavLinkDef[] = SECCIONES_BIBLIOTECA.map(
-    ({ href, titulo, icon }) => ({
-      href,
-      label: titulo,
-      icon,
-      active: currentPath?.startsWith(href) ?? false,
-    }),
-  );
-
   const bibliotecaLink: NavLinkDef[] = user
     ? [
         {
@@ -864,13 +851,6 @@ const Navbar = () => {
         mundoSection !== null &&
         MAGIA_SECTIONS.has(mundoSection),
       onSelect: () => mundoSelectSection("runas"),
-    },
-    {
-      key: "auditoria",
-      label: "Auditoría",
-      icon: ClipboardCheck,
-      active: isGarliaeditor && mundoSection === "auditoria",
-      onSelect: () => mundoSelectSection("auditoria"),
     },
     { key: "div-2", divider: true },
     {
@@ -1227,13 +1207,6 @@ const Navbar = () => {
                   href={href}
                   icon={icon}
                   label={label}
-                  // "Biblioteca" despliega sus secciones en el flyout lateral;
-                  // el resto navega directo como siempre.
-                  subLinks={
-                    href === "/garlia/biblioteca"
-                      ? bibliotecaSubLinks
-                      : undefined
-                  }
                   onClose={closeAll}
                 />
               ))}
@@ -1513,11 +1486,7 @@ const Navbar = () => {
                       // (mismo patrón que cualquier otro ítem con subLinks);
                       // el resto navega directo como siempre.
                       subLinks={
-                        href === "/garlia/aventura"
-                          ? aventuraSubLinks
-                          : href === "/garlia/biblioteca"
-                            ? bibliotecaSubLinks
-                            : undefined
+                        href === "/garlia/aventura" ? aventuraSubLinks : undefined
                       }
                       onClose={closeAll}
                       onToggle={() => mobileToggle(href)}
