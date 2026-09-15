@@ -1,9 +1,12 @@
 import { supabase } from "@/infra/supabase/supabase";
 
-import type {
-  DescubrimientoPublico,
-  EntidadDescubribleResuelta,
-  TipoEntidadPublicable,
+import {
+  TABLA_POR_TIPO,
+  type DescubrimientoInput,
+  type DescubrimientoPublico,
+  type EntidadDescubribleResuelta,
+  type EntidadMin,
+  type TipoEntidadPublicable,
 } from "./types";
 
 /**
@@ -16,7 +19,6 @@ import type {
 const RESOLVER: Record<
   TipoEntidadPublicable,
   {
-    tabla: string;
     columnas: string;
     nombre: (row: any) => string;
     descripcion: (row: any) => string | null;
@@ -24,63 +26,54 @@ const RESOLVER: Record<
   }
 > = {
   criatura: {
-    tabla: "criaturas",
     columnas: "id, nombre, descripcion, imagen_url",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.descripcion ?? null,
     imagen: (r) => r.imagen_url ?? null,
   },
   elemento: {
-    tabla: "elementos",
-    columnas: "id, nombre, descripcion",
+    columnas: "id, nombre, notas",
     nombre: (r) => r.nombre,
-    descripcion: (r) => r.descripcion ?? null,
+    descripcion: (r) => r.notas ?? null,
     imagen: () => null,
   },
   compuesto: {
-    tabla: "compuestos",
-    columnas: "id, nombre, descripcion",
+    columnas: "id, nombre, notas",
     nombre: (r) => r.nombre,
-    descripcion: (r) => r.descripcion ?? null,
+    descripcion: (r) => r.notas ?? null,
     imagen: () => null,
   },
   particula: {
-    tabla: "particulas",
-    columnas: "id, nombre, descripcion",
+    columnas: "id, nombre, extra",
     nombre: (r) => r.nombre,
-    descripcion: (r) => r.descripcion ?? null,
+    descripcion: (r) => r.extra ?? null,
     imagen: () => null,
   },
   material: {
-    tabla: "materiales",
     columnas: "id, nombre, descripcion",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.descripcion ?? null,
     imagen: () => null,
   },
   item: {
-    tabla: "items",
     columnas: "id, nombre, descripcion, imagen_url",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.descripcion ?? null,
     imagen: (r) => r.imagen_url ?? null,
   },
   ecosistema: {
-    tabla: "ecosistemas",
     columnas: "id, nombre, descripcion",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.descripcion ?? null,
     imagen: () => null,
   },
   bioma: {
-    tabla: "biomas",
     columnas: "id, nombre, descripcion",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.descripcion ?? null,
     imagen: () => null,
   },
   reino: {
-    tabla: "reinos",
     columnas: "id, nombre, geografia, mapa_url",
     nombre: (r) => r.nombre,
     descripcion: (r) => r.geografia ?? null,
@@ -95,13 +88,20 @@ export const descubrimientosQueries = {
    * (no un JOIN dinámico — Supabase/PostgREST no soporta FK genéricas),
    * así que si se piden varios `tipos` (ej. la categoría "Química")
    * se agrupan y se dispara una query por tabla distinta.
+   *
+   * El título/descripción mostrados priorizan lo que el admin escribió a
+   * mano en la tabla puente (titulo/descripcion) por sobre los campos de
+   * la entidad original — así el "descubrimiento" puede tener su propio
+   * ángulo narrativo sin editar la entidad real.
    */
   listPublicados: async (
     tipos: TipoEntidadPublicable[],
   ): Promise<EntidadDescubribleResuelta[]> => {
     const { data: puentes, error } = await supabase
       .from("descubrimientos_publicos")
-      .select("id, tipo_entidad, entidad_id, publicado_por, created_at")
+      .select(
+        "id, tipo_entidad, entidad_id, publicado_por, created_at, titulo, descripcion, fecha, reino_id, ciudad_id",
+      )
       .in("tipo_entidad", tipos)
       .order("created_at", { ascending: false });
     if (error) throw error;
@@ -118,9 +118,10 @@ export const descubrimientosQueries = {
 
     for (const [tipo, filas] of porTipo) {
       const cfg = RESOLVER[tipo];
+      const tabla = TABLA_POR_TIPO[tipo];
       const ids = filas.map((f) => f.entidad_id);
       const { data: entidades, error: errEntidades } = await supabase
-        .from(cfg.tabla)
+        .from(tabla)
         .select(cfg.columnas)
         .in("id", ids);
       if (errEntidades) throw errEntidades;
@@ -138,10 +139,13 @@ export const descubrimientosQueries = {
           id: f.id,
           tipo_entidad: f.tipo_entidad,
           entidad_id: f.entidad_id,
-          nombre: cfg.nombre(row),
-          descripcion: cfg.descripcion(row),
+          nombre: f.titulo?.trim() || cfg.nombre(row),
+          descripcion: f.descripcion?.trim() || cfg.descripcion(row),
           imagen_url: cfg.imagen(row),
           created_at: f.created_at,
+          fecha: f.fecha,
+          reino_id: f.reino_id,
+          ciudad_id: f.ciudad_id,
         });
       }
     }
@@ -162,6 +166,63 @@ export const descubrimientosQueries = {
       .eq("tipo_entidad", tipo);
     if (error) throw error;
     return new Set((data ?? []).map((r) => r.entidad_id));
+  },
+
+  /**
+   * Lista mínima (id, nombre) de las entidades reales de un tipo dado, para
+   * poblar el selector "qué entidad publicar" del formulario del admin.
+   */
+  listEntidadesDeTipo: async (
+    tipo: TipoEntidadPublicable,
+  ): Promise<EntidadMin[]> => {
+    const tabla = TABLA_POR_TIPO[tipo];
+    const { data, error } = await supabase
+      .from(tabla)
+      .select("id, nombre")
+      .order("nombre");
+    if (error) throw error;
+    return (data ?? []) as EntidadMin[];
+  },
+
+  /** Crea una nueva publicación en Biblioteca > Descubrimientos. */
+  crear: async (input: DescubrimientoInput) => {
+    const { data: auth } = await supabase.auth.getUser();
+    const { error } = await supabase.from("descubrimientos_publicos").insert({
+      tipo_entidad: input.tipo_entidad,
+      entidad_id: input.entidad_id,
+      titulo: input.titulo || null,
+      descripcion: input.descripcion || null,
+      fecha: input.fecha,
+      reino_id: input.reino_id,
+      ciudad_id: input.ciudad_id,
+      publicado_por: auth.user?.id ?? null,
+    });
+    if (error) throw error;
+  },
+
+  /** Edita una publicación existente (por id de descubrimientos_publicos). */
+  actualizar: async (id: string, input: DescubrimientoInput) => {
+    const { error } = await supabase
+      .from("descubrimientos_publicos")
+      .update({
+        tipo_entidad: input.tipo_entidad,
+        entidad_id: input.entidad_id,
+        titulo: input.titulo || null,
+        descripcion: input.descripcion || null,
+        fecha: input.fecha,
+        reino_id: input.reino_id,
+        ciudad_id: input.ciudad_id,
+      })
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  eliminar: async (id: string) => {
+    const { error } = await supabase
+      .from("descubrimientos_publicos")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
   },
 
   publicar: async (tipo: TipoEntidadPublicable, entidadId: string) => {

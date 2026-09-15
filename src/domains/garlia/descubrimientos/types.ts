@@ -39,13 +39,6 @@ export interface CategoriaDescubrimiento {
   tipos: TipoEntidadPublicable[];
 }
 
-/**
- * Categorías pedidas: Criaturas, Elementos/Compuestos/Partículas,
- * Materiales, Objetos (= tabla "items"), Ecosistemas, Biomas, Reinos.
- * "Noticias" NO es una categoría de esta lista — es su propia sección
- * (ver domains/garlia/descubrimientos/novedades.ts), porque no pasa por
- * descubrimientos_publicos: son posts propios, no "otra entidad publicada".
- */
 export const CATEGORIAS_DESCUBRIMIENTOS: CategoriaDescubrimiento[] = [
   { slug: "criaturas", titulo: "Criaturas", icon: Cat, tipos: ["criatura"] },
   {
@@ -72,8 +65,40 @@ export function getCategoriaDescubrimiento(slug: string) {
   return CATEGORIAS_DESCUBRIMIENTOS.find((c) => c.slug === slug);
 }
 
+/** Nombre de tabla real en Supabase para cada tipo_entidad. */
+export const TABLA_POR_TIPO: Record<TipoEntidadPublicable, string> = {
+  criatura: "criaturas",
+  elemento: "elementos",
+  compuesto: "compuestos",
+  particula: "particulas",
+  material: "materiales",
+  item: "items",
+  ecosistema: "ecosistemas",
+  bioma: "biomas",
+  reino: "reinos",
+};
+
+/** Etiqueta legible de cada tipo_entidad, para el selector de tipo del formulario. */
+export const LABEL_POR_TIPO: Record<TipoEntidadPublicable, string> = {
+  criatura: "Criatura",
+  elemento: "Elemento",
+  compuesto: "Compuesto",
+  particula: "Partícula",
+  material: "Material",
+  item: "Objeto",
+  ecosistema: "Ecosistema",
+  bioma: "Bioma",
+  reino: "Reino",
+};
+
+export const TODOS_LOS_TIPOS: TipoEntidadPublicable[] = Object.keys(
+  TABLA_POR_TIPO,
+) as TipoEntidadPublicable[];
+
 /**
- * Fila cruda de la tabla puente `descubrimientos_publicos`.
+ * Fila cruda de la tabla puente `descubrimientos_publicos`, incluyendo la
+ * metadata que el admin completa a mano al publicar (título, descripción,
+ * fecha, reino/ciudad opcionales).
  */
 export interface DescubrimientoPublico {
   id: string;
@@ -81,11 +106,33 @@ export interface DescubrimientoPublico {
   entidad_id: string;
   publicado_por: string | null;
   created_at: string;
+  titulo: string | null;
+  descripcion: string | null;
+  fecha: string | null;
+  reino_id: string | null;
+  ciudad_id: string | null;
+}
+
+/** Payload para crear/editar un descubrimiento desde el formulario admin. */
+export interface DescubrimientoInput {
+  tipo_entidad: TipoEntidadPublicable;
+  entidad_id: string;
+  titulo: string;
+  descripcion: string;
+  fecha: string | null; // yyyy-mm-dd o null
+  reino_id: string | null;
+  ciudad_id: string | null;
+}
+
+/** Opción mínima para el selector "qué entidad publicar" del formulario. */
+export interface EntidadMin {
+  id: string;
+  nombre: string;
 }
 
 /**
  * Forma normalizada de una entidad ya resuelta (join hecho en el hook de
- * lectura, ver useDescubrimientosPublicos) — lo mínimo que necesita
+ * lectura, ver useDescubrimientosPublicados) — lo mínimo que necesita
  * cualquier card de listado, sin importar de qué tabla vino.
  */
 export interface EntidadDescubribleResuelta {
@@ -96,4 +143,7 @@ export interface EntidadDescubribleResuelta {
   descripcion: string | null;
   imagen_url: string | null;
   created_at: string;
+  fecha: string | null;
+  reino_id: string | null;
+  ciudad_id: string | null;
 }
