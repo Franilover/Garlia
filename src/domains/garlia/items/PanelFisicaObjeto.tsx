@@ -111,7 +111,14 @@ export function PanelFisicaObjeto({
   const [editandoComposicion, setEditandoComposicion] = useState(false);
 
   const propiedades = propiedadesFisicas ?? {};
-  const estado = estadoFisico ?? (propiedades.estado as string | undefined) ?? "sin_materiales";
+  // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y
+  // propiedades_fisicas.estado ("calculable" | "sin_materiales" |
+  // "incompleto_geometria") son dos vocabularios distintos que responden
+  // preguntas distintas (¿corrió el motor? vs. ¿hay datos suficientes?).
+  // Para decidir qué mostrar acá, la fuente de verdad es SIEMPRE
+  // propiedades.estado — nunca estadoFisico, que puede valer "calculado"
+  // sin que eso signifique "calculable" en este vocabulario.
+  const estado = (propiedades.estado as string | undefined) ?? estadoFisico ?? "sin_materiales";
   const esCalculable = estado === "calculable";
   const fuente = propiedades.fuente_fisica;
 
