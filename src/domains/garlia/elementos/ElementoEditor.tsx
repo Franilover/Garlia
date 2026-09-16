@@ -19,7 +19,6 @@ import { supabase } from "@/infra/supabase/supabase";
 import { useConfirm } from "@/ui/ConfirmModal";
 
 import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
-import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 import { type SaveStatus } from "@/ui/saveStatus";
 
@@ -60,12 +59,14 @@ interface Props {
    *  propia barra para evitar la barra duplicada. Si no se pasa, este
    *  editor sigue mostrando su propia barra (uso standalone). */
   onHeaderControlsChange?: OnHeaderControlsChange;
-  /** Catálogo de compuestos — usado para calcular compuestosQueLoUsan, que
-   *  alimenta el nivel "Compuesto" del breadcrumb de arriba (ya no hay
-   *  columna de lista visible; la navegación vive en el breadcrumb). */
+  /** Catálogo de compuestos — usado para calcular compuestosQueLoUsan
+   *  (columna "Usado en compuestos" del cuerpo). El breadcrumb de 4
+   *  niveles vive en ElementoPanelFlotante, no acá. */
   compuestos?: Compuesto[];
-  /** Navega al panel flotante de un Compuesto donde se usa este elemento,
-   *  elegido desde el popover del nivel "Compuesto" en el breadcrumb. */
+  /** Ya no se invoca desde este archivo: el salto Elemento→Compuesto vive
+   *  en el breadcrumb de ElementoPanelFlotante (que ya tiene su propio
+   *  callback para eso), no en el breadcrumb interno que este editor tenía
+   *  antes. Se deja declarada por compatibilidad de firma con el caller. */
   onNavigateCompuesto?: (compuestoId: string) => void;
 }
 
@@ -240,30 +241,13 @@ export function ElementoEditor({
       <ConfirmModal />
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
-      {/* Breadcrumb Elemento › Compuesto — mismo componente y patrón que
-          Célula/Tejido/Órgano (BreadcrumbJerarquia), y mismo orden y
-          niveles que el breadcrumb de CompuestoPanelFlotante (de menor a
-          mayor: el Elemento es lo micro, el Compuesto se forma de
-          elementos). Parado en Elemento, clickear "Compuesto" abre un
-          popover con los compuestos que usan este elemento
-          (compuestosQueLoUsan, ya calculado más abajo para la columna de
-          la derecha) y navega vía onNavigateCompuesto — mismo callback que
-          ya usa esa columna, ver ElementoPanelFlotante. */}
-      <div className="shrink-0 px-2.5 pt-2">
-        <BreadcrumbJerarquia
-          niveles={[
-            { label: "Elemento", icono: <Atom size={10} />, activo: true },
-            {
-              label: "Compuesto",
-              icono: <Package size={10} />,
-              activo: false,
-              items: compuestosQueLoUsan.map((c) => ({ id: c.id, nombre: c.nombre })),
-              loading: false,
-              onNavegar: onNavigateCompuesto,
-            },
-          ]}
-        />
-      </div>
+      {/* El breadcrumb Elemento › Compuesto que vivía acá se quitó: quedaba
+          duplicado con el de 4 niveles (Elemento › Compuesto › Materiales ›
+          Objetos) que ya dibuja ElementoPanelFlotante, único caller de
+          este editor (ver ElementosPage.tsx) — se veían dos barras
+          apiladas, una vieja y una nueva. compuestosQueLoUsan sigue
+          calculándose más abajo, usado por la columna "Usado en
+          compuestos" del cuerpo; no se tocó esa parte. */}
 
       {/* Body */}
       <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto overflow-x-hidden">

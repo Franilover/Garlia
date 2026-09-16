@@ -76,6 +76,8 @@ import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPa
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
 import { useObjetosDeMaterial } from "@/domains/garlia/materiales/useObjetosDeMaterial";
+import { CONFIG_ITEM_MATERIALES, type ItemMaterial } from "@/domains/garlia/items/types";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { useOrganos } from "./useOrganos";
 import { useTejidos } from "./useTejidos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
@@ -1506,6 +1508,59 @@ export function CompuestoPanelFlotante({
   // MaterialEditorFlotante dentro de CompuestoEditor.
   const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
   const { items: materialesDelCompuesto } = useMaterialesDeCompuesto(compuesto.id);
+  // Nivel "Objeto" del breadcrumb de acá abajo — un salto más allá de
+  // "Material", mismo patrón indirecto (tabla puente + filtro por ids ya
+  // resueltos) que objetosQueLoUsan en ElementosPage.tsx. No se usa
+  // useObjetosDeMaterial (toma un solo materialId) porque acá puede haber
+  // varios materiales a la vez.
+  const { data: vinculosItemMaterialDelCompuesto } = useSupabaseData<ItemMaterial>(
+    CONFIG_ITEM_MATERIALES.tabla,
+    { select: CONFIG_ITEM_MATERIALES.select },
+  );
+  const idsObjetosDelCompuesto = useMemo(() => {
+    const idsMateriales = new Set(materialesDelCompuesto.map((m) => m.id));
+    return Array.from(
+      new Set(
+        vinculosItemMaterialDelCompuesto
+          .filter((v) => idsMateriales.has(v.material_id))
+          .map((v) => v.item_id),
+      ),
+    );
+  }, [vinculosItemMaterialDelCompuesto, materialesDelCompuesto]);
+  const [objetosDelCompuesto, setObjetosDelCompuesto] = useState<
+    { id: string; nombre: string }[]
+  >([]);
+  const [loadingObjetosDelCompuesto, setLoadingObjetosDelCompuesto] = useState(false);
+  useEffect(() => {
+    let cancelado = false;
+    if (idsObjetosDelCompuesto.length === 0) {
+      setObjetosDelCompuesto([]);
+      return;
+    }
+    setLoadingObjetosDelCompuesto(true);
+    supabase
+      .from("items")
+      .select("id, nombre")
+      .in("id", idsObjetosDelCompuesto)
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) {
+          console.error("[CompuestoPanelFlotante] error cargando objetos:", error);
+          setObjetosDelCompuesto([]);
+        } else {
+          setObjetosDelCompuesto((data as { id: string; nombre: string }[] | null) ?? []);
+        }
+        setLoadingObjetosDelCompuesto(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [idsObjetosDelCompuesto]);
+  // Item no tiene panel apilable propio — usePanelFlotante reemplaza en vez
+  // de apilar (mismo motivo/patrón que abrirPanelGlobalDesdeObjeto de
+  // CompuestoEditor más abajo). Clic en "Objeto" cierra este panel entero
+  // (onCerrar) y deja solo el panel global del Item.
+  const abrirPanelGlobalDesdeCompuesto = usePanelFlotante((s) => s.abrir);
   // Destino del salto Célula→Órgano desde el breadcrumb interno de
   // PanelEditorCelula (ver onAbrirOrgano en CompuestoEditor). Requiere el
   // catálogo de Órganos — GrupoCompuestoPanelFlotante resuelve el resto de
@@ -1671,6 +1726,25 @@ export function CompuestoPanelFlotante({
                 items: materialesDelCompuesto.map((m) => ({ id: m.id, nombre: m.nombre })),
                 loading: false,
                 onNavegar: setMaterialAbiertoId,
+              },
+              {
+                label: "Objeto",
+                icono: <Dices size={10} />,
+                activo: false,
+                // Objetos que usan alguno de los materiales de este
+                // compuesto en su composición (item_materiales) — un salto
+                // más allá de "Material", mismo criterio que el resto de
+                // la cadena.
+                items: objetosDelCompuesto,
+                loading: loadingObjetosDelCompuesto,
+                // Item no tiene panel apilable propio: cerramos este panel
+                // entero (onCerrar) y dejamos solo el panel global del
+                // Item — mismo criterio "uno solo a la vez" que el resto
+                // de la cadena.
+                onNavegar: (id) => {
+                  onCerrar();
+                  abrirPanelGlobalDesdeCompuesto("item", id);
+                },
               },
             ]}
           />
