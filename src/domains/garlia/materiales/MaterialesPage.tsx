@@ -1,15 +1,17 @@
 "use client";
 
 import {
+  Atom,
   Box,
   ChevronRight,
   Loader2,
+  Package,
   Plus,
   Save,
   Trash2,
   X,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -278,7 +280,28 @@ function FilaEstructura({
   );
 }
 
-function MaterialDetail({ material }: { material: Material }) {
+function MaterialDetail({
+  material,
+  compuestoAbiertoId: compuestoAbiertoIdProp,
+  onCompuestoAbiertoIdChange,
+  onComponentesCargados,
+}: {
+  material: Material;
+  /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
+   *  mismo estado para que el nivel "Compuesto" del breadcrumb superior
+   *  (Elemento › Compuesto › Materiales) navegue al mismo sub-panel que
+   *  abre "hecho de: [Compuesto]" acá abajo — mismo patrón exacto que
+   *  elementoAbierto/materialAbiertoId en CompuestoEditor. Si no se pasa,
+   *  este componente usa su propio estado interno (uso standalone dentro
+   *  de un breadcrumb sin nivel Compuesto todavía resuelto). */
+  compuestoAbiertoId?: string | null;
+  onCompuestoAbiertoIdChange?: (id: string | null) => void;
+  /** Notifica al caller (MaterialEditorFlotante) qué compuestos son
+   *  componentes de este material, ya resueltos contra el catálogo — para
+   *  que arme el nivel "Compuesto" del breadcrumb superior sin duplicar el
+   *  fetch de useMaterialComponentes/useCompuestosConElementos acá. */
+  onComponentesCargados?: (compuestos: { id: string; nombre: string }[]) => void;
+}) {
   const { confirm, ConfirmModal } = useConfirm();
   const {
     items: componentes,
@@ -305,7 +328,29 @@ function MaterialDetail({ material }: { material: Material }) {
   // el mismo CompuestoPanelFlotante que usa Química/Ítems/Minerales, con
   // su propio breadcrumb interno (Elemento › Compuesto › Material), así
   // que desde acá se puede seguir bajando hasta el Elemento que lo forma.
-  const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
+  const [compuestoAbiertoIdLocal, setCompuestoAbiertoIdLocal] = useState<string | null>(null);
+  const compuestoAbiertoId =
+    compuestoAbiertoIdProp !== undefined ? compuestoAbiertoIdProp : compuestoAbiertoIdLocal;
+  const setCompuestoAbiertoId = onCompuestoAbiertoIdChange ?? setCompuestoAbiertoIdLocal;
+
+  // Compuestos que son componentes de ESTE material (dirección "hacia
+  // abajo", mismo sentido que useMaterialesDeCompuesto resuelve el camino
+  // inverso) — es la lista con la que MaterialEditorFlotante arma el nivel
+  // "Compuesto" del breadcrumb superior cuando este panel se abre
+  // standalone (sin venir ya de un Compuesto).
+  const compuestosDelMaterial = useMemo(
+    () =>
+      componentes
+        .filter((c) => c.componente_tipo === "compuesto")
+        .map((c) => compuestos.find((comp) => comp.id === c.componente_id))
+        .filter((c): c is NonNullable<typeof c> => !!c),
+    [componentes, compuestos],
+  );
+
+  useEffect(() => {
+    onComponentesCargados?.(compuestosDelMaterial.map((c) => ({ id: c.id, nombre: c.nombre })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compuestosDelMaterial]);
   const [agregandoEstructura, setAgregandoEstructura] = useState(false);
   const [agregandoEstructuraId, setAgregandoEstructuraId] = useState<string | null>(null);
   const [guardandoEstructura, setGuardandoEstructura] = useState(false);
@@ -650,6 +695,20 @@ export function MaterialEditorFlotante({
    *  CompuestoEditor, que solo lo muestran cuando aplica. */
   breadcrumbNiveles?: NivelBreadcrumb[];
 }) {
+  // Compuesto abierto desde el nivel "Compuesto" del breadcrumb propio
+  // (cuando este panel se abre standalone, sin breadcrumbNiveles pasado
+  // desde afuera) — mismo estado que MaterialDetail necesita para que
+  // clickear un compuesto del breadcrumb y clickear "hecho de:
+  // [Compuesto]" en Componentes abran el mismo sub-panel en vez de dos
+  // paneles independientes.
+  const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
+  // Compuestos vinculados a este material, reportados por MaterialDetail
+  // una vez resueltos contra el catálogo — alimenta el nivel "Compuesto"
+  // del breadcrumb propio (ver onComponentesCargados más abajo).
+  const [compuestosDelMaterial, setCompuestosDelMaterial] = useState<
+    { id: string; nombre: string }[]
+  >([]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -664,6 +723,29 @@ export function MaterialEditorFlotante({
   }, [onClose]);
 
   if (typeof document === "undefined") return null;
+
+  // Si el caller ya pasó un breadcrumb (uso desde Compuesto/Elemento), se
+  // respeta tal cual. Si no (uso standalone desde MaterialesPage), se arma
+  // acá el mismo "Elemento > Compuesto > Materiales" con Materiales activo
+  // — mismo patrón/labels/orden que CompuestoEditor arma para el caso
+  // inverso (ver CompuestosPage.tsx → MaterialEditorFlotante). El nivel
+  // "Elemento" no tiene lista propia todavía (un material no resuelve
+  // elementos directamente, solo a través de sus compuestos), así que
+  // queda sin items — clickearlo mostraría "Sin vínculos", igual que
+  // cualquier nivel del breadcrumb sin datos aplicables.
+  const breadcrumbAUsar: NivelBreadcrumb[] =
+    breadcrumbNiveles ?? [
+      { label: "Elemento", icono: <Atom size={10} />, activo: false, items: [], loading: false },
+      {
+        label: "Compuesto",
+        icono: <Package size={10} />,
+        activo: false,
+        items: compuestosDelMaterial,
+        loading: false,
+        onNavegar: setCompuestoAbiertoId,
+      },
+      { label: "Materiales", icono: <Box size={10} />, activo: true },
+    ];
 
   return createPortal(
     <div
@@ -713,14 +795,17 @@ export function MaterialEditorFlotante({
           </button>
         </div>
 
-        {breadcrumbNiveles && (
-          <div className="shrink-0 px-3 pt-2">
-            <BreadcrumbJerarquia niveles={breadcrumbNiveles} />
-          </div>
-        )}
+        <div className="shrink-0 px-3 pt-2">
+          <BreadcrumbJerarquia niveles={breadcrumbAUsar} />
+        </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
-          <MaterialDetail material={material} />
+          <MaterialDetail
+            material={material}
+            compuestoAbiertoId={compuestoAbiertoId}
+            onCompuestoAbiertoIdChange={setCompuestoAbiertoId}
+            onComponentesCargados={setCompuestosDelMaterial}
+          />
         </div>
       </div>
     </div>,

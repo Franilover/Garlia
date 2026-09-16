@@ -12,15 +12,16 @@
  * scroll (en vez de tabs que muestran una sección a la vez).
  */
 
-import { Atom, Download, Loader2, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { Atom, Box, Download, Loader2, Package, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
 
-import { CompuestosPage } from "./CompuestosPage";
-import { MaterialesPage } from "../materiales/MaterialesPage";
+import { CompuestosPage, CompuestoPanelFlotante } from "./CompuestosPage";
+import { MaterialesPage, MaterialEditorFlotante } from "../materiales/MaterialesPage";
+import { BreadcrumbJerarquia, type NivelBreadcrumb } from "../biologia/BreadcrumbJerarquia";
 
 import EstructurasPage from "./EstructurasPage";
 import ProcesosPage from "./ProcesosPage";
@@ -35,6 +36,8 @@ import {
 import { useReacciones } from "./useReacciones";
 import { useEstructuras } from "./useEstructuras";
 import { useMateriales } from "../materiales/useMateriales";
+import { CONFIG_MATERIAL_COMPONENTES, type MaterialComponente } from "../materiales/types";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { useFormasGeometricas } from "./useGeometriaCatalogo";
 import { ListaFormas } from "../fisica/GeometriasPage";
 import { useProcesos } from "./useProcesos";
@@ -319,6 +322,53 @@ export function ElementoPanelFlotante({
   onNavigateCompuesto?: (compuestoId: string) => void;
 }) {
   const [headerControls, setHeaderControls] = useState<EditorHeaderControls | null>(null);
+  // Compuesto abierto desde el nivel "Compuesto" de la barra superior
+  // (Elementos › Compuestos › Materiales) — mismo patrón exacto que el
+  // breadcrumb interno de CompuestoEditor: navegar acá abre el mismo
+  // CompuestoPanelFlotante que "Usado en compuestos" ya abre más abajo en
+  // ElementoEditor (vía onNavigateCompuesto).
+  const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
+  // Material abierto desde el nivel "Materiales" de la misma barra
+  // superior — un salto directo Elemento → Material, sin tener que pasar
+  // primero por el sub-panel de Compuesto.
+  const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
+
+  // Catálogo de Materiales — useSupabaseData cachea vía Dexie, así que
+  // instanciarlo acá no repite fetch si ya se cargó en Materiales/Química
+  // (mismo criterio documentado para celulasCatalogo en CompuestoEditor).
+  const { items: materiales } = useMateriales();
+
+  // Compuestos donde se usa este elemento — mismo cálculo que
+  // compuestosQueLoUsan en ElementoEditor, para poblar el nivel
+  // "Compuestos" de la barra superior sin duplicar el fetch acá.
+  const compuestosQueLoUsan = useMemo(
+    () =>
+      (compuestos ?? []).filter((c) =>
+        (c.componentes ?? []).some((comp) => comp.elemento_id === elemento.id),
+      ),
+    [compuestos, elemento.id],
+  );
+
+  // Materiales hechos con alguno de esos compuestos — nivel "Materiales"
+  // de la barra superior, un salto más allá de "Usado en compuestos".
+  // Mismo patrón que useMaterialesDeCompuesto.ts (camino inverso vía la
+  // tabla puente material_componentes), pero para varios compuestos a la
+  // vez en vez de uno solo — no se creó un hook nuevo para esto porque acá
+  // ya se necesitan ambas fuentes (materiales.items + vínculos crudos) sin
+  // el wrapper de "un solo compuestoId".
+  const { data: vinculosMaterialCompuesto } = useSupabaseData<MaterialComponente>(
+    CONFIG_MATERIAL_COMPONENTES.tabla,
+    { select: CONFIG_MATERIAL_COMPONENTES.select },
+  );
+  const materialesQueLoUsan = useMemo(() => {
+    const idsCompuestos = new Set(compuestosQueLoUsan.map((c) => c.id));
+    const idsMateriales = new Set(
+      vinculosMaterialCompuesto
+        .filter((v) => v.componente_tipo === "compuesto" && idsCompuestos.has(v.componente_id))
+        .map((v) => v.material_id),
+    );
+    return materiales.filter((m) => idsMateriales.has(m.id));
+  }, [vinculosMaterialCompuesto, compuestosQueLoUsan, materiales]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -337,7 +387,9 @@ export function ElementoPanelFlotante({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
+        compuestoAbiertoId || materialAbiertoId ? "invisible pointer-events-none" : ""
+      }`}
       style={{
         background: "color-mix(in srgb, var(--primary) 35%, transparent)",
         backdropFilter: "blur(8px)",
@@ -412,6 +464,38 @@ export function ElementoPanelFlotante({
           </button>
         </div>
 
+        {/* Barra superior Elementos > Compuestos > Materiales — mismo
+            componente y mismo espíritu que el breadcrumb interno de
+            CompuestoEditor (Elemento > Compuesto > Material), pero acá
+            arriba del todo porque este es el primer nivel de la cadena:
+            "Elementos" activo, "Compuestos" navega a los compuestos que
+            usan este elemento (mismo cálculo que "Usado en compuestos" en
+            ElementoEditor), "Materiales" salta directo a los materiales
+            hechos con alguno de esos compuestos. */}
+        <div className="shrink-0 px-3 pt-2">
+          <BreadcrumbJerarquia
+            niveles={[
+              { label: "Elementos", icono: <Atom size={10} />, activo: true },
+              {
+                label: "Compuestos",
+                icono: <Package size={10} />,
+                activo: false,
+                items: compuestosQueLoUsan.map((c) => ({ id: c.id, nombre: c.nombre })),
+                loading: false,
+                onNavegar: setCompuestoAbiertoId,
+              },
+              {
+                label: "Materiales",
+                icono: <Box size={10} />,
+                activo: false,
+                items: materialesQueLoUsan.map((m) => ({ id: m.id, nombre: m.nombre })),
+                loading: false,
+                onNavegar: setMaterialAbiertoId,
+              },
+            ]}
+          />
+        </div>
+
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ElementoEditor
             key={elemento.id}
@@ -428,10 +512,53 @@ export function ElementoPanelFlotante({
             }
             onHeaderControlsChange={setHeaderControls}
             compuestos={compuestos}
-            onNavigateCompuesto={onNavigateCompuesto}
+            onNavigateCompuesto={
+              onNavigateCompuesto
+                ? (compuestoId) => onNavigateCompuesto(compuestoId)
+                : setCompuestoAbiertoId
+            }
           />
         </div>
       </div>
+
+      {/* Sub-panel del Compuesto elegido desde el nivel "Compuestos" de la
+         barra superior (o desde "Usado en compuestos" si el caller no pasa
+         su propio onNavigateCompuesto) — mismo CompuestoPanelFlotante que
+         usa el resto del catálogo, apilado encima de este panel. */}
+      {compuestoAbiertoId &&
+        (() => {
+          const compuestoActivo = (compuestos ?? []).find((c) => c.id === compuestoAbiertoId);
+          if (!compuestoActivo) return null;
+          return (
+            <CompuestoPanelFlotante
+              compuesto={compuestoActivo}
+              elementos={todosLosElementos}
+              todosLosCompuestos={compuestos ?? []}
+              onCerrar={() => setCompuestoAbiertoId(null)}
+              // El catálogo de compuestos llega acá de solo lectura (prop
+              // "compuestos", sin setter) — mismo caso ya resuelto en
+              // MaterialEditorFlotante → CompuestoPanelFlotante (ver ese
+              // archivo): los campos editables del compuesto siguen
+              // persistiendo en Supabase igual (CompuestoEditor.persist
+              // no depende de este callback), solo no se refleja en este
+              // array local hasta que el catálogo se vuelva a cargar.
+              onActualizar={() => {}}
+            />
+          );
+        })()}
+
+      {/* Sub-panel del Material elegido desde el nivel "Materiales" de la
+         barra superior — mismo MaterialEditorFlotante que usa el resto del
+         catálogo, con su propio breadcrumb standalone (Elemento > Compuesto
+         > Materiales) para seguir navegando desde ahí. */}
+      {materialAbiertoId &&
+        (() => {
+          const materialActivo = materiales.find((m) => m.id === materialAbiertoId);
+          if (!materialActivo) return null;
+          return (
+            <MaterialEditorFlotante material={materialActivo} onClose={() => setMaterialAbiertoId(null)} />
+          );
+        })()}
     </div>,
     document.body,
   );
