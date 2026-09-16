@@ -20,7 +20,7 @@
  */
 
 
-import { Bug, Dices, Package, X } from "lucide-react";
+import { Box, Bug, Dices, Package, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
@@ -29,6 +29,10 @@ import { RichEditor } from "@/editor/lexical";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { PanelReglasDnd } from "@/domains/garlia/items/PanelReglasDnd";
 import { PanelFisicaObjeto } from "@/domains/garlia/items/PanelFisicaObjeto";
+import { useItemMateriales } from "@/domains/garlia/items/useItemMateriales";
+import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
+import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
+import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { itemsQueries } from "@/domains/garlia/items/queries";
 import { PickerImagenItemBtn } from "@/domains/garlia/items/PickerImagenItemBtn";
 import { SelectorGrupoUnico } from "@/domains/garlia/items/SelectorGrupoUnico";
@@ -142,6 +146,27 @@ export function EditorItem({
     }
   };
 
+  // Nivel "Materiales" del breadcrumb superior (Objeto > Materiales) —
+  // mismo par de hooks que ya usa PanelFisicaObjeto para su propia sección
+  // "Materiales" (composicion = item_materiales de este item vía
+  // useItemMateriales, materialesCatalogo = catálogo completo id+nombre
+  // vía useMateriales). No se comparte instancia con PanelFisicaObjeto —
+  // son hooks de datos (useSupabaseData por debajo), no estado local, así
+  // que pedirlos dos veces no duplica writes ni genera desincronización.
+  const { items: composicionParaBreadcrumb } = useItemMateriales(item.id);
+  const { items: materialesCatalogo } = useMateriales();
+  const materialesDelObjeto = composicionParaBreadcrumb
+    .map((c) => materialesCatalogo.find((m) => m.id === c.material_id))
+    .filter((m): m is NonNullable<typeof m> => !!m);
+  // Sub-panel de Material abierto desde el nivel "Materiales" del
+  // breadcrumb — mismo patrón exacto que compuestoAbierto/elementoAbierto
+  // en ElementoEditor/CompuestoEditor (Química): estado local simple, sin
+  // controlar desde el caller porque EditorItem no tiene un breadcrumb de
+  // header propio en un padre (a diferencia de CompuestoPanelFlotante).
+  const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
+  const materialAbierto =
+    materialesCatalogo.find((m) => m.id === materialAbiertoId) ?? null;
+
   const field =
     (k: keyof Item) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -224,6 +249,34 @@ export function EditorItem({
           propia barra — evita la duplicación. Si se usa standalone, se
           sigue mostrando igual que siempre. */}
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
+
+      {/* Breadcrumb Objeto › Materiales — mismo componente y mismo
+          espíritu que el resto de la cadena Elemento/Compuesto/Material
+          (ver ElementoEditor.tsx, CompuestosPage.tsx, MaterialesPage.tsx).
+          Este editor no tenía barra propia hasta ahora porque no había
+          ningún salto de navegación que ofrecer desde acá; ahora que la
+          composición de materiales del objeto ya se resuelve para
+          PanelFisicaObjeto, se reutiliza para dar el mismo nivel de
+          navegación que ya existe en Elemento/Compuesto/Material. Clic en
+          "Materiales" abre MaterialEditorFlotante con su propio breadcrumb
+          de 4 niveles (Elemento › Compuesto › Material › Objeto), que ya
+          incluye el salto de vuelta hacia acá. */}
+      <div className="shrink-0 px-2.5 pt-2">
+        <BreadcrumbJerarquia
+          niveles={[
+            { label: "Objeto", icono: <Dices size={10} />, activo: true },
+            {
+              label: "Materiales",
+              icono: <Box size={10} />,
+              activo: false,
+              items: materialesDelObjeto.map((m) => ({ id: m.id, nombre: m.nombre })),
+              loading: false,
+              onNavegar: setMaterialAbiertoId,
+            },
+          ]}
+        />
+      </div>
+
 
       {/* ── Content ───────────────────────────────────────────────────────
           Misma distribución que ElementoEditor/CompuestoEditor (Química):
@@ -389,11 +442,15 @@ export function EditorItem({
           onAbrirItem={(it) => setEditandoCompuestoId(it.tipo === "compuesto" ? it.id : null)}
         />
       )}
+      {materialAbierto && (
+        <MaterialEditorFlotante
+          material={materialAbierto}
+          onClose={() => setMaterialAbiertoId(null)}
+        />
+      )}
     </div>
   );
 }
-
-// ─── Modal de reglas D&D ────────────────────────────────────────────────────
 // Antes vivía inline en el cuerpo del editor; ahora se accede desde el botón
 // de dado junto al nombre, así el editor queda enfocado en lore/descripción
 // y las reglas mecánicas (D&D) quedan en un modal aparte.
