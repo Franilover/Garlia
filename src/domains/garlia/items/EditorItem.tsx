@@ -20,7 +20,7 @@
  */
 
 
-import { Box, Bug, Dices, Package, X } from "lucide-react";
+import { Atom, Box, Bug, Dices, Package, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
@@ -44,7 +44,10 @@ import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompues
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useReacciones } from "@/domains/garlia/elementos/useReacciones";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
+import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { ReaccionPanelFlotante } from "@/domains/garlia/elementos/ReaccionesPage";
+import { CONFIG_MATERIAL_COMPONENTES, type MaterialComponente } from "@/domains/garlia/materiales/types";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { useItemHabilidadesReaccion } from "@/domains/garlia/_shared/useItemHabilidadesReaccion";
 
 import { SelectorImagen } from "@/domains/garlia/_shared/UIComponents";
@@ -91,7 +94,7 @@ export function EditorItem({
   // Catálogo de criaturas para el selector "Criatura" (origen del ítem)
   const { criaturas: allCriaturas, loading: loadingCriaturas } = useCriaturasCatalogo();
   // Catálogo de elementos/compuestos — mismo patrón que Flora/Mineral
-  const { items: elementos } = useElementos();
+  const { items: elementos, setItems: setElementos } = useElementos();
   const { items: compuestos, setItems: setCompuestos } = useCompuestosConElementos();
 
   // Habilidades del item = N Reacciones del catálogo global de Química,
@@ -146,23 +149,59 @@ export function EditorItem({
     }
   };
 
-  // Nivel "Materiales" del breadcrumb superior (Objeto > Materiales) —
-  // mismo par de hooks que ya usa PanelFisicaObjeto para su propia sección
-  // "Materiales" (composicion = item_materiales de este item vía
-  // useItemMateriales, materialesCatalogo = catálogo completo id+nombre
-  // vía useMateriales). No se comparte instancia con PanelFisicaObjeto —
-  // son hooks de datos (useSupabaseData por debajo), no estado local, así
-  // que pedirlos dos veces no duplica writes ni genera desincronización.
+  // Cadena completa del breadcrumb superior: Elemento › Compuesto ›
+  // Materiales › Objeto (mismo espíritu y mismos 2 saltos indirectos que ya
+  // existen en el sentido contrario dentro de ElementoPanelFlotante —
+  // ElementosPage.tsx, "objetosQueLoUsan" — pero acá arrancando desde el
+  // Objeto en vez de terminar en él):
+  //   Objeto → Materiales: composicion (item_materiales de este item) +
+  //     materialesCatalogo, igual que ya usa PanelFisicaObjeto.
+  //   Materiales → Compuestos: material_componentes filtrado por
+  //     componente_tipo === "compuesto" y por los ids de esos materiales —
+  //     mismo patrón que useMaterialComponentes.ts pero para varios
+  //     materiales a la vez (por eso se usa useSupabaseData directo en vez
+  //     del wrapper de un solo materialId, igual que ya hace
+  //     materialesQueLoUsan en ElementosPage.tsx).
+  //   Compuestos → Elementos: cada Compuesto de useCompuestosConElementos()
+  //     ya trae .componentes: [{elemento_id, cantidad}] — no hace falta
+  //     ningún fetch nuevo para este último salto.
   const { items: composicionParaBreadcrumb } = useItemMateriales(item.id);
   const { items: materialesCatalogo } = useMateriales();
   const materialesDelObjeto = composicionParaBreadcrumb
     .map((c) => materialesCatalogo.find((m) => m.id === c.material_id))
     .filter((m): m is NonNullable<typeof m> => !!m);
-  // Sub-panel de Material abierto desde el nivel "Materiales" del
-  // breadcrumb — mismo patrón exacto que compuestoAbierto/elementoAbierto
-  // en ElementoEditor/CompuestoEditor (Química): estado local simple, sin
-  // controlar desde el caller porque EditorItem no tiene un breadcrumb de
-  // header propio en un padre (a diferencia de CompuestoPanelFlotante).
+
+  const { data: vinculosMaterialCompuesto } = useSupabaseData<MaterialComponente>(
+    CONFIG_MATERIAL_COMPONENTES.tabla,
+    { select: CONFIG_MATERIAL_COMPONENTES.select },
+  );
+  const compuestosDeMaterialesDelObjeto = (() => {
+    const idsMateriales = new Set(materialesDelObjeto.map((m) => m.id));
+    const idsCompuestos = new Set(
+      vinculosMaterialCompuesto
+        .filter((v) => v.componente_tipo === "compuesto" && idsMateriales.has(v.material_id))
+        .map((v) => v.componente_id),
+    );
+    return compuestos.filter((c) => idsCompuestos.has(c.id));
+  })();
+
+  const elementosDeCompuestosDelObjeto = (() => {
+    const idsElementos = new Set(
+      compuestosDeMaterialesDelObjeto.flatMap((c) =>
+        (c.componentes ?? []).map((comp) => comp.elemento_id),
+      ),
+    );
+    return elementos.filter((e) => idsElementos.has(e.id));
+  })();
+
+  // Sub-panel de Elemento abierto desde el nivel "Elemento" del breadcrumb
+  // — mismo patrón que materialAbiertoId de abajo.
+  const [elementoAbiertoId, setElementoAbiertoId] = useState<string | null>(null);
+  const elementoAbierto = elementos.find((e) => e.id === elementoAbiertoId) ?? null;
+  // Sub-panel de Compuesto abierto desde el nivel "Compuesto" del
+  // breadcrumb — reutiliza el mismo estado que ya abre CompuestoPanelFlotante
+  // desde "Usado en compuestos"/Reacciones más abajo (editandoCompuestoId),
+  // en vez de crear un segundo estado paralelo para el mismo panel.
   const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
   const materialAbierto =
     materialesCatalogo.find((m) => m.id === materialAbiertoId) ?? null;
@@ -250,21 +289,34 @@ export function EditorItem({
           sigue mostrando igual que siempre. */}
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
-      {/* Breadcrumb Objeto › Materiales — mismo componente y mismo
-          espíritu que el resto de la cadena Elemento/Compuesto/Material
-          (ver ElementoEditor.tsx, CompuestosPage.tsx, MaterialesPage.tsx).
-          Este editor no tenía barra propia hasta ahora porque no había
-          ningún salto de navegación que ofrecer desde acá; ahora que la
-          composición de materiales del objeto ya se resuelve para
-          PanelFisicaObjeto, se reutiliza para dar el mismo nivel de
-          navegación que ya existe en Elemento/Compuesto/Material. Clic en
-          "Materiales" abre MaterialEditorFlotante con su propio breadcrumb
-          de 4 niveles (Elemento › Compuesto › Material › Objeto), que ya
-          incluye el salto de vuelta hacia acá. */}
+      {/* Breadcrumb Elemento › Compuesto › Materiales › Objeto — mismo
+          componente y mismo espíritu que el resto de la cadena (ver
+          ElementoEditor.tsx, CompuestosPage.tsx, MaterialesPage.tsx,
+          ElementosPage.tsx). "Objeto" es este editor (activo); "Materiales"
+          son los materiales de su composición real (item_materiales);
+          "Compuesto" son los compuestos que forman esos materiales
+          (material_componentes); "Elemento" son los elementos que forman
+          esos compuestos (compuesto.componentes) — misma cadena de 2 saltos
+          indirectos que ya existe al revés en ElementoPanelFlotante. */}
       <div className="shrink-0 px-2.5 pt-2">
         <BreadcrumbJerarquia
           niveles={[
-            { label: "Objeto", icono: <Dices size={10} />, activo: true },
+            {
+              label: "Elemento",
+              icono: <Atom size={10} />,
+              activo: false,
+              items: elementosDeCompuestosDelObjeto.map((e) => ({ id: e.id, nombre: e.nombre })),
+              loading: false,
+              onNavegar: setElementoAbiertoId,
+            },
+            {
+              label: "Compuesto",
+              icono: <Package size={10} />,
+              activo: false,
+              items: compuestosDeMaterialesDelObjeto.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: false,
+              onNavegar: setEditandoCompuestoId,
+            },
             {
               label: "Materiales",
               icono: <Box size={10} />,
@@ -273,6 +325,7 @@ export function EditorItem({
               loading: false,
               onNavegar: setMaterialAbiertoId,
             },
+            { label: "Objeto", icono: <Dices size={10} />, activo: true },
           ]}
         />
       </div>
@@ -442,6 +495,22 @@ export function EditorItem({
           onAbrirItem={(it) => setEditandoCompuestoId(it.tipo === "compuesto" ? it.id : null)}
         />
       )}
+      {elementoAbierto && (
+        <ElementoPanelFlotante
+          elemento={elementoAbierto}
+          todosLosElementos={elementos}
+          onCerrar={() => setElementoAbiertoId(null)}
+          onActualizar={(id, cambios) =>
+            setElementos((prev) => prev.map((e) => (e.id === id ? { ...e, ...cambios } : e)))
+          }
+          compuestos={compuestos}
+          onNavigateCompuesto={(compuestoId) => {
+            setElementoAbiertoId(null);
+            setEditandoCompuestoId(compuestoId);
+          }}
+        />
+      )}
+
       {materialAbierto && (
         <MaterialEditorFlotante
           material={materialAbierto}
