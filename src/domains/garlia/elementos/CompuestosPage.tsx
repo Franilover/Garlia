@@ -18,6 +18,7 @@ import {
   Box,
   ChevronLeft,
   Combine,
+  Dices,
   Download,
   Loader2,
   Package,
@@ -72,7 +73,9 @@ import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas"
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
+import { useObjetosDeMaterial } from "@/domains/garlia/materiales/useObjetosDeMaterial";
 import { useOrganos } from "./useOrganos";
 import { useTejidos } from "./useTejidos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
@@ -1050,6 +1053,19 @@ function CompuestoEditor({
   const setMaterialAbiertoId = onMaterialAbiertoIdChange ?? setMaterialAbiertoIdLocal;
   const { items: materialesDelCompuesto } = useMaterialesDeCompuesto(compuesto.id);
   const materialAbierto = materialesDelCompuesto.find((m) => m.id === materialAbiertoId) ?? null;
+  // Nivel "Objeto" del breadcrumb que se le pasa a MaterialEditorFlotante
+  // más abajo (Elemento > Compuesto > Material > Objeto) — mismo hook que
+  // usa el fallback standalone de MaterialEditorFlotante, para no duplicar
+  // la lógica de resolver item_materiales → items.
+  const { items: objetosDelMaterialAbierto, loading: loadingObjetosDelMaterialAbierto } =
+    useObjetosDeMaterial(materialAbiertoId);
+  // Item no tiene panel flotante apilable propio — usePanelFlotante
+  // reemplaza en vez de apilar (ver usePanelFlotanteStore.ts), a propósito:
+  // clic en "Objeto" cierra toda esta cadena de paneles (setMaterialAbiertoId
+  // null, que a su vez no cierra el de Compuesto/Elemento por sí solo, así
+  // que además hay que subir el cierre completo — ver onNavegar abajo) y
+  // deja solo el panel global del Item visible.
+  const abrirPanelGlobalDesdeObjeto = usePanelFlotante((s) => s.abrir);
 
   // useTagsCatalogo/useCompuestoTags (Naturaleza/Oris/Uso) se sacaron de
   // acá: alimentaban solo SelectorTagsCompuesto, que ya no se renderiza en
@@ -1368,6 +1384,23 @@ function CompuestoEditor({
               onNavegar: () => setMaterialAbiertoId(null),
             },
             { label: "Material", icono: <Box size={10} />, activo: true },
+            {
+              label: "Objeto",
+              icono: <Dices size={10} />,
+              activo: false,
+              items: objetosDelMaterialAbierto,
+              loading: loadingObjetosDelMaterialAbierto,
+              // Item no tiene panel apilable propio: cerramos toda la
+              // cadena de paneles (Compuesto → Material) con onBack, igual
+              // que hace el X de CompuestoPanelFlotante, y dejamos solo el
+              // panel global del Item — mismo criterio "uno solo a la vez"
+              // que el fallback standalone de MaterialEditorFlotante.
+              onNavegar: (id) => {
+                setMaterialAbiertoId(null);
+                onBack();
+                abrirPanelGlobalDesdeObjeto("item", id);
+              },
+            },
           ]}
         />
       )}

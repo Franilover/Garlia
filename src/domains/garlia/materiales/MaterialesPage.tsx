@@ -4,6 +4,7 @@ import {
   Atom,
   Box,
   ChevronRight,
+  Dices,
   Loader2,
   Package,
   Plus,
@@ -24,6 +25,7 @@ import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -32,6 +34,7 @@ import { supabase } from "@/infra/supabase/supabase";
 import { useMaterialComponentes } from "./useMaterialComponentes";
 import { useMaterialEstructuras } from "./useMaterialEstructuras";
 import { useMateriales } from "./useMateriales";
+import { useObjetosDeMaterial } from "./useObjetosDeMaterial";
 import { usePerfilReactivoMaterial } from "./usePerfilReactivoMaterial";
 import type { PerfilReactivoMaterial, Material, MaterialEstructura } from "./types";
 
@@ -727,6 +730,16 @@ export function MaterialEditorFlotante({
   const [elementosDeLosCompuestos, setElementosDeLosCompuestos] = useState<
     { id: string; nombre: string }[]
   >([]);
+  // Objeto: a diferencia de Elemento/Compuesto (paneles propios apilados
+  // sobre este), Item no tiene un panel flotante apilable propio — solo
+  // existe usePanelFlotante, global y "reemplaza en vez de apilar" (ver
+  // usePanelFlotanteStore.ts). Se usa tal cual, a propósito: clic en un
+  // Objeto del breadcrumb cierra ESTE panel (onClose) y abre el panel
+  // global del Item, para que quede uno solo visible a la vez — no dos
+  // superpuestos con el mismo z-index.
+  const abrirPanelGlobal = usePanelFlotante((s) => s.abrir);
+  const { items: objetosDelMaterial, loading: loadingObjetosDelMaterial } =
+    useObjetosDeMaterial(material.id);
   // Catálogos completos, necesarios para resolver el objeto Elemento/
   // Compuesto real al abrir el sub-panel correspondiente (los estados de
   // arriba solo guardan {id, nombre} para el breadcrumb).
@@ -748,14 +761,18 @@ export function MaterialEditorFlotante({
 
   if (typeof document === "undefined") return null;
 
-  // Si el caller ya pasó un breadcrumb (uso desde Compuesto/Elemento), se
-  // respeta tal cual. Si no (uso standalone desde MaterialesPage), se arma
-  // acá el mismo "Elemento > Compuesto > Materiales" con Materiales activo
-  // — mismo patrón/labels/orden que CompuestoEditor arma para el caso
-  // inverso (ver CompuestosPage.tsx → MaterialEditorFlotante). El nivel
-  // "Elemento" lista los elementos de la composición de los compuestos de
-  // arriba (elementosDeLosCompuestos) — no elementos "del material" en sí,
-  // que no es una relación que exista directamente.
+  // Si el caller ya pasó un breadcrumb (uso desde Compuesto/Elemento/
+  // Objeto), se respeta tal cual. Si no (uso standalone desde
+  // MaterialesPage), se arma acá "Elemento > Compuesto > Material >
+  // Objeto" con Material activo — mismo patrón/labels/orden que
+  // CompuestoEditor arma para el caso inverso (ver CompuestosPage.tsx →
+  // MaterialEditorFlotante). El nivel "Elemento" lista los elementos de la
+  // composición de los compuestos de arriba (elementosDeLosCompuestos) —
+  // no elementos "del material" en sí, que no es una relación que exista
+  // directamente. El nivel "Objeto" lista los objetos que usan ESTE
+  // material en su composición física (item_materiales, ver
+  // useObjetosDeMaterial) — dirección "hacia arriba", mismo sentido que
+  // "Compuesto" es "hacia arriba" desde acá.
   const breadcrumbAUsar: NivelBreadcrumb[] =
     breadcrumbNiveles ?? [
       {
@@ -774,7 +791,18 @@ export function MaterialEditorFlotante({
         loading: false,
         onNavegar: setCompuestoAbiertoId,
       },
-      { label: "Materiales", icono: <Box size={10} />, activo: true },
+      { label: "Material", icono: <Box size={10} />, activo: true },
+      {
+        label: "Objeto",
+        icono: <Dices size={10} />,
+        activo: false,
+        items: objetosDelMaterial,
+        loading: loadingObjetosDelMaterial,
+        onNavegar: (id) => {
+          onClose();
+          abrirPanelGlobal("item", id);
+        },
+      },
     ];
 
   return createPortal(

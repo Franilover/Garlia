@@ -12,7 +12,7 @@
  * scroll (en vez de tabs que muestran una sección a la vez).
  */
 
-import { Atom, Box, Download, Loader2, Package, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { Atom, Box, Dices, Download, Loader2, Package, Plus, Save, Trash2, Upload, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -37,6 +37,8 @@ import { useReacciones } from "./useReacciones";
 import { useEstructuras } from "./useEstructuras";
 import { useMateriales } from "../materiales/useMateriales";
 import { CONFIG_MATERIAL_COMPONENTES, type MaterialComponente } from "../materiales/types";
+import { CONFIG_ITEM_MATERIALES, type ItemMaterial } from "../items/types";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { useFormasGeometricas } from "./useGeometriaCatalogo";
 import { ListaFormas } from "../fisica/GeometriasPage";
@@ -370,6 +372,60 @@ export function ElementoPanelFlotante({
     return materiales.filter((m) => idsMateriales.has(m.id));
   }, [vinculosMaterialCompuesto, compuestosQueLoUsan, materiales]);
 
+  // Objetos que usan alguno de esos materiales en su composición — nivel
+  // "Objetos" de la barra superior, un salto más allá de "Materiales".
+  // Mismo patrón indirecto que materialesQueLoUsan de arriba (tabla puente
+  // + filtro por ids ya resueltos), pero sobre item_materiales en vez de
+  // material_componentes, y sin catálogo de Items cacheado (no existe un
+  // useItems() en este paquete) — se resuelve id+nombre con un fetch
+  // puntual, igual que useObjetosDeMaterial.ts.
+  const { data: vinculosItemMaterial } = useSupabaseData<ItemMaterial>(
+    CONFIG_ITEM_MATERIALES.tabla,
+    { select: CONFIG_ITEM_MATERIALES.select },
+  );
+  const idsObjetosQueLoUsan = useMemo(() => {
+    const idsMateriales = new Set(materialesQueLoUsan.map((m) => m.id));
+    return Array.from(
+      new Set(
+        vinculosItemMaterial
+          .filter((v) => idsMateriales.has(v.material_id))
+          .map((v) => v.item_id),
+      ),
+    );
+  }, [vinculosItemMaterial, materialesQueLoUsan]);
+  const [objetosQueLoUsan, setObjetosQueLoUsan] = useState<{ id: string; nombre: string }[]>([]);
+  const [loadingObjetosQueLoUsan, setLoadingObjetosQueLoUsan] = useState(false);
+  useEffect(() => {
+    let cancelado = false;
+    if (idsObjetosQueLoUsan.length === 0) {
+      setObjetosQueLoUsan([]);
+      return;
+    }
+    setLoadingObjetosQueLoUsan(true);
+    supabase
+      .from("items")
+      .select("id, nombre")
+      .in("id", idsObjetosQueLoUsan)
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) {
+          console.error("[ElementoPanelFlotante] error cargando objetos:", error);
+          setObjetosQueLoUsan([]);
+        } else {
+          setObjetosQueLoUsan((data as { id: string; nombre: string }[] | null) ?? []);
+        }
+        setLoadingObjetosQueLoUsan(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [idsObjetosQueLoUsan]);
+  // Item no tiene panel apilable propio — usePanelFlotante reemplaza en vez
+  // de apilar (ver usePanelFlotanteStore.ts). Clic en "Objetos" cierra este
+  // panel entero (onCerrar, igual que hace el nivel Objeto en
+  // MaterialEditorFlotante) y deja solo el panel global del Item.
+  const abrirPanelGlobalDesdeElemento = usePanelFlotante((s) => s.abrir);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -464,14 +520,18 @@ export function ElementoPanelFlotante({
           </button>
         </div>
 
-        {/* Barra superior Elementos > Compuestos > Materiales — mismo
-            componente y mismo espíritu que el breadcrumb interno de
-            CompuestoEditor (Elemento > Compuesto > Material), pero acá
-            arriba del todo porque este es el primer nivel de la cadena:
-            "Elementos" activo, "Compuestos" navega a los compuestos que
-            usan este elemento (mismo cálculo que "Usado en compuestos" en
-            ElementoEditor), "Materiales" salta directo a los materiales
-            hechos con alguno de esos compuestos. */}
+        {/* Barra superior Elementos > Compuestos > Materiales > Objetos —
+            mismo componente y mismo espíritu que el breadcrumb interno de
+            CompuestoEditor (Elemento > Compuesto > Material > Objeto), pero
+            acá arriba del todo porque este es el primer nivel de la
+            cadena: "Elementos" activo, "Compuestos" navega a los compuestos
+            que usan este elemento (mismo cálculo que "Usado en compuestos"
+            en ElementoEditor), "Materiales" salta directo a los materiales
+            hechos con alguno de esos compuestos, "Objetos" un salto más
+            allá: los objetos que usan alguno de esos materiales en su
+            composición (item_materiales). "Objetos" cierra este panel del
+            todo y abre el panel global del Item (no hay ItemPanelFlotante
+            apilable — ver usePanelFlotanteStore.ts). */}
         <div className="shrink-0 px-3 pt-2">
           <BreadcrumbJerarquia
             niveles={[
@@ -491,6 +551,17 @@ export function ElementoPanelFlotante({
                 items: materialesQueLoUsan.map((m) => ({ id: m.id, nombre: m.nombre })),
                 loading: false,
                 onNavegar: setMaterialAbiertoId,
+              },
+              {
+                label: "Objetos",
+                icono: <Dices size={10} />,
+                activo: false,
+                items: objetosQueLoUsan,
+                loading: loadingObjetosQueLoUsan,
+                onNavegar: (id) => {
+                  onCerrar();
+                  abrirPanelGlobalDesdeElemento("item", id);
+                },
               },
             ]}
           />
