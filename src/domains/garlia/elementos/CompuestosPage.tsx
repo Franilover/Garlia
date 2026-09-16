@@ -1717,7 +1717,6 @@ export function CompuestoPanelFlotante({
           return (
             <GrupoCompuestoPanelFlotante
               grupo={organoActivo as unknown as EntradaCatalogoGrupo}
-              tipo="organo"
               compuestos={todosLosCompuestos}
               onCerrar={() => setOrganoAbierto(null)}
               onActualizar={(id, cambios) =>

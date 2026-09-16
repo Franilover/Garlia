@@ -337,7 +337,6 @@ function PanelEditorActivoBiologia({
   return (
     <GrupoCompuestoPanelFlotante
       grupo={item}
-      tipo="organo"
       compuestos={compuestos}
       sinAnimacion={sinAnimacion}
       onCerrar={onCerrar}
