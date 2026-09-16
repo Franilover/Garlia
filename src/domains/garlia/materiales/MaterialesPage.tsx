@@ -22,10 +22,12 @@ import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompues
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
+import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
+import { supabase } from "@/infra/supabase/supabase";
 
 import { useMaterialComponentes } from "./useMaterialComponentes";
 import { useMaterialEstructuras } from "./useMaterialEstructuras";
@@ -285,6 +287,7 @@ function MaterialDetail({
   compuestoAbiertoId: compuestoAbiertoIdProp,
   onCompuestoAbiertoIdChange,
   onComponentesCargados,
+  onElementosCargados,
 }: {
   material: Material;
   /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
@@ -301,6 +304,12 @@ function MaterialDetail({
    *  que arme el nivel "Compuesto" del breadcrumb superior sin duplicar el
    *  fetch de useMaterialComponentes/useCompuestosConElementos acá. */
   onComponentesCargados?: (compuestos: { id: string; nombre: string }[]) => void;
+  /** Notifica al caller (MaterialEditorFlotante) qué elementos forman los
+   *  compuestos vinculados a este material — no son "elementos del
+   *  material" (un material no tiene esa relación directa), sino los
+   *  elementos de la composición de cada compuesto de arriba, para el
+   *  nivel "Elemento" del breadcrumb superior. */
+  onElementosCargados?: (elementos: { id: string; nombre: string }[]) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const {
@@ -351,6 +360,31 @@ function MaterialDetail({
     onComponentesCargados?.(compuestosDelMaterial.map((c) => ({ id: c.id, nombre: c.nombre })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compuestosDelMaterial]);
+
+  // Elementos que forman los compuestos vinculados a este material — NO
+  // son "elementos del material" (esa relación no existe directamente),
+  // sino la composición (compuesto.componentes) de cada compuesto de
+  // compuestosDelMaterial, deduplicada por id. Alimenta el nivel
+  // "Elemento" del breadcrumb superior en MaterialEditorFlotante.
+  const elementosDeLosCompuestos = useMemo(() => {
+    const vistos = new Set<string>();
+    const acc: typeof elementos = [];
+    for (const c of compuestosDelMaterial) {
+      for (const comp of c.componentes ?? []) {
+        if (vistos.has(comp.elemento_id)) continue;
+        const el = elementos.find((e) => e.id === comp.elemento_id);
+        if (!el) continue;
+        vistos.add(el.id);
+        acc.push(el);
+      }
+    }
+    return acc;
+  }, [compuestosDelMaterial, elementos]);
+
+  useEffect(() => {
+    onElementosCargados?.(elementosDeLosCompuestos.map((e) => ({ id: e.id, nombre: e.nombre })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elementosDeLosCompuestos]);
   const [agregandoEstructura, setAgregandoEstructura] = useState(false);
   const [agregandoEstructuraId, setAgregandoEstructuraId] = useState<string | null>(null);
   const [guardandoEstructura, setGuardandoEstructura] = useState(false);
@@ -618,29 +652,6 @@ function MaterialDetail({
         </div>
       </div>
 
-      {/* Panel del Compuesto abierto desde "Componentes" — mismo
-          CompuestoPanelFlotante que usa Química/Ítems/Minerales. Trae su
-          propio breadcrumb interno (Elemento › Compuesto › Material), así
-          que desde acá se puede seguir navegando hasta el Elemento que lo
-          forma, igual que ya se puede ir de Elemento/Compuesto hacia este
-          Material. */}
-      {compuestoAbiertoId &&
-        (() => {
-          const compuestoActivo = compuestos.find((c) => c.id === compuestoAbiertoId);
-          if (!compuestoActivo) return null;
-          return (
-            <CompuestoPanelFlotante
-              compuesto={compuestoActivo}
-              elementos={elementos}
-              todosLosCompuestos={compuestos}
-              onCerrar={() => setCompuestoAbiertoId(null)}
-              onActualizar={(id, cambios) =>
-                setCompuestos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
-              }
-            />
-          );
-        })()}
-
       <ConfirmModal />
     </div>
   );
@@ -708,6 +719,19 @@ export function MaterialEditorFlotante({
   const [compuestosDelMaterial, setCompuestosDelMaterial] = useState<
     { id: string; nombre: string }[]
   >([]);
+  // Elemento abierto desde el nivel "Elemento" del breadcrumb propio — NO
+  // son elementos "del material" (esa relación no existe directamente),
+  // sino los elementos que forman los compuestos de compuestosDelMaterial
+  // (ver elementosDeLosCompuestos/onElementosCargados en MaterialDetail).
+  const [elementoAbiertoId, setElementoAbiertoId] = useState<string | null>(null);
+  const [elementosDeLosCompuestos, setElementosDeLosCompuestos] = useState<
+    { id: string; nombre: string }[]
+  >([]);
+  // Catálogos completos, necesarios para resolver el objeto Elemento/
+  // Compuesto real al abrir el sub-panel correspondiente (los estados de
+  // arriba solo guardan {id, nombre} para el breadcrumb).
+  const { items: elementosCatalogo } = useElementos();
+  const { items: compuestosCatalogo, setItems: setCompuestosCatalogo } = useCompuestosConElementos();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -729,13 +753,19 @@ export function MaterialEditorFlotante({
   // acá el mismo "Elemento > Compuesto > Materiales" con Materiales activo
   // — mismo patrón/labels/orden que CompuestoEditor arma para el caso
   // inverso (ver CompuestosPage.tsx → MaterialEditorFlotante). El nivel
-  // "Elemento" no tiene lista propia todavía (un material no resuelve
-  // elementos directamente, solo a través de sus compuestos), así que
-  // queda sin items — clickearlo mostraría "Sin vínculos", igual que
-  // cualquier nivel del breadcrumb sin datos aplicables.
+  // "Elemento" lista los elementos de la composición de los compuestos de
+  // arriba (elementosDeLosCompuestos) — no elementos "del material" en sí,
+  // que no es una relación que exista directamente.
   const breadcrumbAUsar: NivelBreadcrumb[] =
     breadcrumbNiveles ?? [
-      { label: "Elemento", icono: <Atom size={10} />, activo: false, items: [], loading: false },
+      {
+        label: "Elemento",
+        icono: <Atom size={10} />,
+        activo: false,
+        items: elementosDeLosCompuestos,
+        loading: false,
+        onNavegar: setElementoAbiertoId,
+      },
       {
         label: "Compuesto",
         icono: <Package size={10} />,
@@ -805,9 +835,67 @@ export function MaterialEditorFlotante({
             compuestoAbiertoId={compuestoAbiertoId}
             onCompuestoAbiertoIdChange={setCompuestoAbiertoId}
             onComponentesCargados={setCompuestosDelMaterial}
+            onElementosCargados={setElementosDeLosCompuestos}
           />
         </div>
       </div>
+
+      {/* Sub-panel del Elemento elegido desde el nivel "Elemento" del
+         breadcrumb propio — mismo ElementoPanelFlotante que usa el resto
+         del catálogo. */}
+      {elementoAbiertoId &&
+        (() => {
+          const elementoActivo = elementosCatalogo.find((e) => e.id === elementoAbiertoId);
+          if (!elementoActivo) return null;
+          return (
+            <ElementoPanelFlotante
+              elemento={elementoActivo}
+              todosLosElementos={elementosCatalogo}
+              onCerrar={() => setElementoAbiertoId(null)}
+              onActualizar={async (id, cambios) => {
+                // Mismo patrón que CompuestoPanelFlotante al editar un
+                // Elemento embebido: persiste directo, no hay setter local
+                // de elementosCatalogo más allá de este hook cacheado.
+                try {
+                  const { error } = await supabase.from("elementos").update(cambios).eq("id", id);
+                  if (error) throw error;
+                } catch (e) {
+                  console.error("[MaterialEditorFlotante] error guardando elemento:", e);
+                }
+              }}
+              compuestos={compuestosCatalogo}
+              onNavigateCompuesto={(compuestoId) => {
+                setElementoAbiertoId(null);
+                setCompuestoAbiertoId(compuestoId);
+              }}
+            />
+          );
+        })()}
+
+      {/* Sub-panel del Compuesto abierto desde "Componentes" — mismo
+          CompuestoPanelFlotante que usa Química/Ítems/Minerales. Trae su
+          propio breadcrumb interno (Elemento › Compuesto › Material), así
+          que desde acá se puede seguir navegando hasta el Elemento que lo
+          forma, igual que ya se puede ir de Elemento/Compuesto hacia este
+          Material. */}
+      {compuestoAbiertoId &&
+        (() => {
+          const compuestoActivo = compuestosCatalogo.find((c) => c.id === compuestoAbiertoId);
+          if (!compuestoActivo) return null;
+          return (
+            <CompuestoPanelFlotante
+              compuesto={compuestoActivo}
+              elementos={elementosCatalogo}
+              todosLosCompuestos={compuestosCatalogo}
+              onCerrar={() => setCompuestoAbiertoId(null)}
+              onActualizar={(id, cambios) =>
+                setCompuestosCatalogo((prev) =>
+                  prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)),
+                )
+              }
+            />
+          );
+        })()}
     </div>,
     document.body,
   );
