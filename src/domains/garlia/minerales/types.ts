@@ -2,18 +2,12 @@
  * types.ts (Minerales)
  * ───────────────────────────────────────────────────────────────────────────
  * Entidad plana (mismo molde que Flora/Item/Ecosistema): nombre, imagen,
- * descripción, notas. Ahora extendida con el mismo patrón que Flora:
- * - Formaciones: partes del mineral con fórmula propia (veta, inclusión,
- *   capa, núcleo, superficie, cristal…). "Formación" es una fila real de la
- *   tabla propia "formaciones" (ver elementos/types.ts), vinculada N:N vía
- *   estructura_componentes (padre_tipo='mineral', hijo_tipo='formacion' —
- *   FASE 7, mismo patrón que planta_organos→organo en Flora; la tabla
- *   dedicada mineral_formaciones sigue existiendo sin usarse, limpieza en
- *   Fase 8). Esto permite reutilizar la misma formación entre varios
- *   minerales, e incluso compartirla con la Estructura de Items. Una
- *   Formación ya NO tiene columna `componentes` inline: su fórmula vive dos
- *   niveles más abajo, vía formacion_vetas→Veta→Grano→Compuesto (ver
- *   useFormacionVetas).
+ * descripción, notas.
+ *
+ * NOTA: la sección de Formaciones (partes del mineral con fórmula propia
+ * vía Veta/Grano/Compuesto) fue removida junto con toda la lógica de
+ * Granos/Vetas/Formación del proyecto — decisión explícita del usuario.
+ *
  * - Procesos: eventos geológicos de formación/transformación
  *   (cristalización, oxidación, metamorfismo…) con consume/produce —
  *   mismo shape que PlantaProceso, pero SIN orden/secuencia: a diferencia
@@ -21,8 +15,6 @@
  *   no tienen un orden narrativo único (puede oxidarse sin metamorfizar,
  *   o al revés), así que no hay drag-and-drop ni columna `orden`.
  */
-
-import type { Formacion } from "@/domains/garlia/elementos/types";
 
 export interface Mineral {
   id: string;
@@ -33,32 +25,6 @@ export interface Mineral {
   orden: number;
   created_at: string;
   updated_at: string;
-}
-
-/**
- * @deprecated FASE 7: el vínculo N:N Mineral↔Formación ya no se lee de la
- * tabla dedicada "mineral_formaciones" (fila descripta acá) sino de
- * estructura_componentes (padre_tipo='mineral', hijo_tipo='formacion') —
- * ver useMineralFormacionesProcesos / useEntidadVinculosGrupo. Sin
- * consumidores en el código; se deja documentado, no se borra (mismo
- * criterio de coexistencia no-destructiva del resto de las fases).
- */
-export interface MineralFormacionVinculo {
-  id: string;
-  mineral_id: string;
-  /** FK a formaciones.id (nombre de columna histórico). */
-  grupo_compuesto_id: string;
-  created_at: string;
-}
-
-/**
- * Vista combinada usada por la UI: el vínculo puente + los datos de la
- * Formacion ya resueltos — mismo espíritu que PlantaOrganoResuelto en
- * Flora. `vinculo_id` es el id de la fila puente (MineralFormacionVinculo.id),
- * necesario para desvincular sin borrar la formación del catálogo.
- */
-export interface MineralFormacion extends Formacion {
-  vinculo_id: string;
 }
 
 /**

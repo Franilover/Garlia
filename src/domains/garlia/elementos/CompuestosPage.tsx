@@ -66,9 +66,7 @@ import {
   type CompuestoElementoProporcion,
   type CompuestoEstabilidadRow,
 } from "./useCompuestoEstabilidad";
-import { useGranos } from "./useGranos";
 import { useCelulas } from "./useCelulas";
-import { PanelEditorGrano, PanelEditorVeta } from "@/domains/garlia/fisica/CatalogoVetasFisica";
 import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
@@ -76,9 +74,7 @@ import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
 import { useMaterialesDeCompuesto } from "@/domains/garlia/materiales/useMaterialesDeCompuesto";
 import { useOrganos } from "./useOrganos";
-import { useFormaciones } from "./useFormaciones";
 import { useTejidos } from "./useTejidos";
-import { useVetas } from "./useVetas";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 import { InfoFormulasPopover } from "./InfoFormulasPopover";
 
@@ -963,10 +959,10 @@ function CompuestoEditor({
   onHeaderControlsChange,
   onActualizarElemento,
   onNavigateCompuesto,
-  granoOCelulaAbierto: granoOCelulaAbiertoProp,
-  onGranoOCelulaAbiertoChange,
-  onAbrirOrganoOFormacion,
-  onAbrirTejidoOVeta,
+  celulaAbierta: celulaAbiertaProp,
+  onCelulaAbiertaChange,
+  onAbrirOrgano,
+  onAbrirTejido,
   elementoAbierto: elementoAbiertoProp,
   onElementoAbiertoChange,
   materialAbiertoId: materialAbiertoIdProp,
@@ -991,29 +987,27 @@ function CompuestoEditor({
    *  Opcional: si no se pasa, esa lista queda como referencia sin navegar. */
   onNavigateCompuesto?: (compuestoId: string) => void;
   /** Controlado opcionalmente desde CompuestoPanelFlotante, que necesita el
-   *  mismo estado para que el breadcrumb del header (Grano/Célula ⇄
-   *  Compuesto) navegue al mismo sub-panel que abre "Compone" en el
-   *  cuerpo. Si no se pasa, el editor usa su propio estado interno
-   *  (uso standalone, sin breadcrumb en header). */
-  granoOCelulaAbierto?: { tipo: "grano" | "celula"; id: string } | null;
-  onGranoOCelulaAbiertoChange?: (v: { tipo: "grano" | "celula"; id: string } | null) => void;
-  /** Salto Compuesto → Célula/Grano → Órgano/Formación (breadcrumb interno
-   *  de PanelEditorCelula/PanelEditorGrano). Antes este salto no hacía
-   *  nada porque no se pasaban onAbrirOrgano/onAbrirFormacion — bug
-   *  reportado ("Hoja → Célula X → Órgano no funciona"). Cierra el
-   *  sub-panel de Grano/Célula y delega en CompuestoPanelFlotante, que
-   *  tiene el catálogo de Órganos/Formaciones para resolver el registro. */
-  onAbrirOrganoOFormacion?: (v: { tipo: "organo" | "formacion"; id: string }) => void;
-  /** Salto Compuesto → Célula/Grano → Tejido/Veta (breadcrumb interno de
-   *  PanelEditorCelula/PanelEditorGrano, nivel intermedio, no el destino
-   *  final Órgano/Formación). Mismo patrón que onAbrirOrganoOFormacion. */
-  onAbrirTejidoOVeta?: (v: { tipo: "tejido" | "veta"; id: string }) => void;
+   *  mismo estado para que el breadcrumb del header (Célula ⇄ Compuesto)
+   *  navegue al mismo sub-panel que abre "Compone" en el cuerpo. Si no se
+   *  pasa, el editor usa su propio estado interno (uso standalone, sin
+   *  breadcrumb en header). */
+  celulaAbierta?: string | null;
+  onCelulaAbiertaChange?: (id: string | null) => void;
+  /** Salto Compuesto → Célula → Órgano (breadcrumb interno de
+   *  PanelEditorCelula). Cierra el sub-panel de Célula y delega en
+   *  CompuestoPanelFlotante, que tiene el catálogo de Órganos para
+   *  resolver el registro. */
+  onAbrirOrgano?: (organoId: string) => void;
+  /** Salto Compuesto → Célula → Tejido (breadcrumb interno de
+   *  PanelEditorCelula, nivel intermedio, no el destino final Órgano).
+   *  Mismo patrón que onAbrirOrgano. */
+  onAbrirTejido?: (tejidoId: string) => void;
   /** Controlado opcionalmente desde CompuestoPanelFlotante, que necesita el
    *  mismo estado para que el breadcrumb del header (Compuesto ⇄ Elemento)
    *  abra el mismo ElementoPanelFlotante que ya abre "Compone" en el
    *  cuerpo. Si no se pasa, el editor usa su propio estado interno (uso
    *  standalone, sin breadcrumb en header) — mismo patrón exacto que
-   *  granoOCelulaAbierto. */
+   *  celulaAbierta. */
   elementoAbierto?: string | null;
   onElementoAbiertoChange?: (id: string | null) => void;
   /** Controlado opcionalmente desde CompuestoPanelFlotante, mismo patrón
@@ -1036,22 +1030,17 @@ function CompuestoEditor({
   const editandoElementoId =
     elementoAbiertoProp !== undefined ? elementoAbiertoProp : editandoElementoIdLocal;
   const setEditandoElementoId = onElementoAbiertoChange ?? setEditandoElementoIdLocal;
-  // Sub-panel anidado del Grano/Célula elegido desde SeUsaEnGranoOCelulaBloque
-  // o desde el breadcrumb del header — mismo patrón que editandoElementoId,
-  // pero apunta a una de dos entidades distintas según qué rama se
-  // clickeó. Controlable desde afuera (ver props) para que
-  // CompuestoPanelFlotante pueda disparar la misma navegación desde su
-  // breadcrumb de header.
-  const [granoOCelulaAbiertoLocal, setGranoOCelulaAbiertoLocal] = useState<
-    { tipo: "grano" | "celula"; id: string } | null
-  >(null);
-  const granoOCelulaAbierto =
-    granoOCelulaAbiertoProp !== undefined ? granoOCelulaAbiertoProp : granoOCelulaAbiertoLocal;
-  const setGranoOCelulaAbierto = onGranoOCelulaAbiertoChange ?? setGranoOCelulaAbiertoLocal;
+  // Sub-panel anidado de la Célula elegida desde SeUsaEnCelulaBloque o desde
+  // el breadcrumb del header — mismo patrón que editandoElementoId.
+  // Controlable desde afuera (ver props) para que CompuestoPanelFlotante
+  // pueda disparar la misma navegación desde su breadcrumb de header.
+  const [celulaAbiertaLocal, setCelulaAbiertaLocal] = useState<string | null>(null);
+  const celulaAbierta = celulaAbiertaProp !== undefined ? celulaAbiertaProp : celulaAbiertaLocal;
+  const setCelulaAbierta = onCelulaAbiertaChange ?? setCelulaAbiertaLocal;
 
   // Sub-panel de Material abierto desde el nivel "Material" del breadcrumb
   // Elemento > Compuesto > Material — mismo patrón exacto que
-  // elementoAbierto/granoOCelulaAbierto: controlable desde
+  // elementoAbierto/celulaAbierta: controlable desde
   // CompuestoPanelFlotante (dueño real del breadcrumb de header) para que
   // ambos compartan el mismo estado; si no se pasa, cae a estado interno
   // (uso standalone, sin breadcrumb en header).
@@ -1069,12 +1058,11 @@ function CompuestoEditor({
   // useUsosCompuesto (bloque "Usado en Item/Mineral/Flora") también se
   // sacó de acá: era informativo, de solo lectura, sobre otras entidades
   // del catálogo — no datos propios de Química.
-  // Catálogos globales de Grano/Célula — solo para tener sus handlers
+  // Catálogo global de Célula — solo para tener sus handlers
   // actualizar/eliminar disponibles cuando se abre el sub-panel de arriba;
-  // useSupabaseData cachea vía Dexie, así que instanciarlos acá no repite
-  // fetch si ya se cargaron en Física/Biología. Mismo criterio que
-  // CatalogoVetasFisica/CatalogoTejidosBiologia.
-  const granosCatalogo = useGranos();
+  // useSupabaseData cachea vía Dexie, así que instanciarlo acá no repite
+  // fetch si ya se cargó en Biología. Mismo criterio que
+  // CatalogoTejidosBiologia.
   const celulasCatalogo = useCelulas();
 
   // Propiedades físicas calculadas por Supabase (masa, estabilidad, rigidez,
@@ -1384,79 +1372,41 @@ function CompuestoEditor({
         />
       )}
 
-      {/* Sub-panel del Grano/Célula elegido desde "Compone" — mismo editor
-         completo que usan Física/Biología (PanelEditorGrano/PanelEditorCelula),
-         apilado encima de este panel de Compuesto. */}
-      {granoOCelulaAbierto?.tipo === "grano" &&
+      {/* Sub-panel de la Célula elegida desde "Compone" — mismo editor
+         completo que usa Biología (PanelEditorCelula), apilado encima de
+         este panel de Compuesto. */}
+      {celulaAbierta &&
         (() => {
-          const granoActivo = granosCatalogo.items.find((g) => g.id === granoOCelulaAbierto.id);
-          if (!granoActivo) return null;
-          return (
-            <PanelEditorGrano
-              item={granoActivo}
-              compuestos={todosLosCompuestos}
-              onCerrar={() => setGranoOCelulaAbierto(null)}
-              onActualizar={granosCatalogo.actualizar}
-              onEliminar={granosCatalogo.eliminar}
-              onAbrirCompuesto={
-                onNavigateCompuesto
-                  ? (compuestoId) => {
-                      setGranoOCelulaAbierto(null);
-                      onNavigateCompuesto(compuestoId);
-                    }
-                  : undefined
-              }
-              onAbrirFormacion={
-                onAbrirOrganoOFormacion
-                  ? (formacionId) => {
-                      setGranoOCelulaAbierto(null);
-                      onAbrirOrganoOFormacion({ tipo: "formacion", id: formacionId });
-                    }
-                  : undefined
-              }
-              onAbrirVeta={
-                onAbrirTejidoOVeta
-                  ? (vetaId) => {
-                      setGranoOCelulaAbierto(null);
-                      onAbrirTejidoOVeta({ tipo: "veta", id: vetaId });
-                    }
-                  : undefined
-              }
-            />
-          );
-        })()}
-      {granoOCelulaAbierto?.tipo === "celula" &&
-        (() => {
-          const celulaActiva = celulasCatalogo.items.find((c) => c.id === granoOCelulaAbierto.id);
+          const celulaActiva = celulasCatalogo.items.find((c) => c.id === celulaAbierta);
           if (!celulaActiva) return null;
           return (
             <PanelEditorCelula
               item={celulaActiva}
               compuestos={todosLosCompuestos}
-              onCerrar={() => setGranoOCelulaAbierto(null)}
+              onCerrar={() => setCelulaAbierta(null)}
               onActualizar={celulasCatalogo.actualizar}
               onEliminar={celulasCatalogo.eliminar}
               onAbrirCompuesto={
                 onNavigateCompuesto
                   ? (compuestoId) => {
-                      setGranoOCelulaAbierto(null);
+                      setCelulaAbierta(null);
                       onNavigateCompuesto(compuestoId);
                     }
                   : undefined
               }
               onAbrirOrgano={
-                onAbrirOrganoOFormacion
+                onAbrirOrgano
                   ? (organoId) => {
-                      setGranoOCelulaAbierto(null);
-                      onAbrirOrganoOFormacion({ tipo: "organo", id: organoId });
+                      setCelulaAbierta(null);
+                      onAbrirOrgano(organoId);
                     }
                   : undefined
               }
               onAbrirTejido={
-                onAbrirTejidoOVeta
+                onAbrirTejido
                   ? (tejidoId) => {
-                      setGranoOCelulaAbierto(null);
-                      onAbrirTejidoOVeta({ tipo: "tejido", id: tejidoId });
+                      setCelulaAbierta(null);
+                      onAbrirTejido(tejidoId);
                     }
                   : undefined
               }
@@ -1496,27 +1446,24 @@ export function CompuestoPanelFlotante({
   const [headerControls, setHeaderControls] = useState<EditorHeaderControls | null>(null);
   // Levantado desde CompuestoEditor para que el breadcrumb de acá (header)
   // y el bloque "Compone" del cuerpo compartan el mismo sub-panel — clic en
-  // cualquiera de los dos abre el mismo PanelEditorGrano/PanelEditorCelula.
+  // cualquiera de los dos abre el mismo PanelEditorCelula.
   // Además de controlar qué sub-panel abrir, este estado se usa más abajo
   // para OCULTAR (no desmontar) este panel de Compuesto mientras el
-  // sub-panel está abierto: PanelEditorGrano/PanelEditorCelula usan el
-  // mismo z-[9999] fijo (createPortal a document.body, igual que este
-  // panel y el resto de la cadena Grano⇄Veta⇄Formación /
-  // Célula⇄Tejido⇄Órgano), así que sin esto quedaban dos portales al mismo
-  // nivel apilados por orden de montaje en vez de por jerarquía real —
-  // tapando paneles al abrir un tercer nivel desde ahí. Ocultar en vez de
-  // desmontar preserva el estado del editor de Compuesto (nombre sin
-  // guardar, etc.) para cuando el usuario vuelve.
+  // sub-panel está abierto: PanelEditorCelula usa el mismo z-[9999] fijo
+  // (createPortal a document.body, igual que este panel y el resto de la
+  // cadena Célula⇄Tejido⇄Órgano), así que sin esto quedaban dos portales
+  // al mismo nivel apilados por orden de montaje en vez de por jerarquía
+  // real — tapando paneles al abrir un tercer nivel desde ahí. Ocultar en
+  // vez de desmontar preserva el estado del editor de Compuesto (nombre
+  // sin guardar, etc.) para cuando el usuario vuelve.
   //
   // CompuestoPanelFlotante tampoco se remonta al navegar entre compuestos
   // (el caller no le pasa key={compuesto.id}), así que hay que resetear
   // este estado a mano cuando cambia compuesto.id — si no, queda
-  // apuntando al Grano/Célula del compuesto ANTERIOR (ver useEffect abajo).
-  const [granoOCelulaAbierto, setGranoOCelulaAbierto] = useState<
-    { tipo: "grano" | "celula"; id: string } | null
-  >(null);
+  // apuntando a la Célula del compuesto ANTERIOR (ver useEffect abajo).
+  const [celulaAbierta, setCelulaAbierta] = useState<string | null>(null);
   // Levantado desde CompuestoEditor (mismo motivo/patrón exacto que
-  // granoOCelulaAbierto): el breadcrumb de este header también necesita
+  // celulaAbierta): el breadcrumb de este header también necesita
   // controlar qué Elemento se abre, para que clickear "Elemento" desde acá
   // y clickear un elemento en el cuerpo (ElementoPanelFlotante embebido)
   // compartan el mismo estado en vez de dos paneles independientes.
@@ -1526,37 +1473,29 @@ export function CompuestoPanelFlotante({
   // MaterialEditorFlotante dentro de CompuestoEditor.
   const [materialAbiertoId, setMaterialAbiertoId] = useState<string | null>(null);
   const { items: materialesDelCompuesto } = useMaterialesDeCompuesto(compuesto.id);
-  // Destino del salto Célula→Órgano / Grano→Formación desde el breadcrumb
-  // interno de PanelEditorCelula/PanelEditorGrano (ver onAbrirOrganoOFormacion
-  // en CompuestoEditor). Requiere los catálogos de Órganos/Formaciones —
-  // GrupoCompuestoPanelFlotante resuelve el resto de su árbol solo.
-  const [organoOFormacionAbierto, setOrganoOFormacionAbierto] = useState<
-    { tipo: "organo" | "formacion"; id: string } | null
-  >(null);
-  // Destino del salto Célula→Tejido / Grano→Veta (nivel intermedio, no el
-  // Órgano/Formación final) — mismo motivo que organoOFormacionAbierto:
-  // antes no se pasaba onAbrirTejido/onAbrirVeta desde acá.
-  const [tejidoOVetaAbierto, setTejidoOVetaAbierto] = useState<
-    { tipo: "tejido" | "veta"; id: string } | null
-  >(null);
+  // Destino del salto Célula→Órgano desde el breadcrumb interno de
+  // PanelEditorCelula (ver onAbrirOrgano en CompuestoEditor). Requiere el
+  // catálogo de Órganos — GrupoCompuestoPanelFlotante resuelve el resto de
+  // su árbol solo.
+  const [organoAbierto, setOrganoAbierto] = useState<string | null>(null);
+  // Destino del salto Célula→Tejido (nivel intermedio, no el Órgano
+  // final) — mismo motivo que organoAbierto: antes no se pasaba
+  // onAbrirTejido desde acá.
+  const [tejidoAbierto, setTejidoAbierto] = useState<string | null>(null);
   useEffect(() => {
-    setGranoOCelulaAbierto(null);
-    setOrganoOFormacionAbierto(null);
-    setTejidoOVetaAbierto(null);
+    setCelulaAbierta(null);
+    setOrganoAbierto(null);
+    setTejidoAbierto(null);
     setElementoAbierto(null);
     setMaterialAbiertoId(null);
   }, [compuesto.id]);
-  // granosDeCompuesto/celulasDeCompuesto quitados: solo alimentaban los
-  // niveles Grano/Célula del breadcrumb de este header, que ahora es
-  // Elemento›Compuesto — granoOCelulaAbierto (abajo) sigue vivo porque
-  // controla el sub-panel del bloque "Compone" en el cuerpo, sin relación
-  // con el header.
+  // celulasDeCompuesto quitado: solo alimentaba el nivel Célula del
+  // breadcrumb de este header, que ahora es Elemento›Compuesto —
+  // celulaAbierta (abajo) sigue vivo porque controla el sub-panel del
+  // bloque "Compone" en el cuerpo, sin relación con el header.
   const organosCatalogo = useOrganos();
-  const formacionesCatalogo = useFormaciones();
   const tejidosCatalogo = useTejidos();
-  const vetasCatalogoNivel2 = useVetas();
   const celulasCatalogoNivel2 = useCelulas();
-  const granosCatalogoNivel2 = useGranos();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1576,7 +1515,7 @@ export function CompuestoPanelFlotante({
   return createPortal(
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 ${
-        granoOCelulaAbierto || organoOFormacionAbierto || tejidoOVetaAbierto || elementoAbierto || materialAbiertoId
+        celulaAbierta || organoAbierto || tejidoAbierto || elementoAbierto || materialAbiertoId
           ? "invisible pointer-events-none"
           : ""
       }`}
@@ -1721,10 +1660,10 @@ export function CompuestoPanelFlotante({
             }
             onHeaderControlsChange={setHeaderControls}
             onNavigateCompuesto={onNavigateCompuesto}
-            granoOCelulaAbierto={granoOCelulaAbierto}
-            onGranoOCelulaAbiertoChange={setGranoOCelulaAbierto}
-            onAbrirOrganoOFormacion={setOrganoOFormacionAbierto}
-            onAbrirTejidoOVeta={setTejidoOVetaAbierto}
+            celulaAbierta={celulaAbierta}
+            onCelulaAbiertaChange={setCelulaAbierta}
+            onAbrirOrgano={setOrganoAbierto}
+            onAbrirTejido={setTejidoAbierto}
             elementoAbierto={elementoAbierto}
             onElementoAbiertoChange={setElementoAbierto}
             materialAbiertoId={materialAbiertoId}
@@ -1771,18 +1710,16 @@ export function CompuestoPanelFlotante({
           );
         })()}
 
-      {organoOFormacionAbierto?.tipo === "organo" &&
+      {organoAbierto &&
         (() => {
-          const organoActivo = organosCatalogo.items.find(
-            (o) => o.id === organoOFormacionAbierto.id,
-          );
+          const organoActivo = organosCatalogo.items.find((o) => o.id === organoAbierto);
           if (!organoActivo) return null;
           return (
             <GrupoCompuestoPanelFlotante
               grupo={organoActivo as unknown as EntradaCatalogoGrupo}
               tipo="organo"
               compuestos={todosLosCompuestos}
-              onCerrar={() => setOrganoOFormacionAbierto(null)}
+              onCerrar={() => setOrganoAbierto(null)}
               onActualizar={(id, cambios) =>
                 organosCatalogo.setItems((items) =>
                   items.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
@@ -1791,35 +1728,7 @@ export function CompuestoPanelFlotante({
               onAbrirCompuesto={
                 onNavigateCompuesto
                   ? (compuestoId) => {
-                      setOrganoOFormacionAbierto(null);
-                      onNavigateCompuesto(compuestoId);
-                    }
-                  : undefined
-              }
-            />
-          );
-        })()}
-      {organoOFormacionAbierto?.tipo === "formacion" &&
-        (() => {
-          const formacionActiva = formacionesCatalogo.items.find(
-            (f) => f.id === organoOFormacionAbierto.id,
-          );
-          if (!formacionActiva) return null;
-          return (
-            <GrupoCompuestoPanelFlotante
-              grupo={formacionActiva as unknown as EntradaCatalogoGrupo}
-              tipo="formacion"
-              compuestos={todosLosCompuestos}
-              onCerrar={() => setOrganoOFormacionAbierto(null)}
-              onActualizar={(id, cambios) =>
-                formacionesCatalogo.setItems((items) =>
-                  items.map((f) => (f.id === id ? { ...f, ...cambios } : f)),
-                )
-              }
-              onAbrirCompuesto={
-                onNavigateCompuesto
-                  ? (compuestoId) => {
-                      setOrganoOFormacionAbierto(null);
+                      setOrganoAbierto(null);
                       onNavigateCompuesto(compuestoId);
                     }
                   : undefined
@@ -1828,16 +1737,15 @@ export function CompuestoPanelFlotante({
           );
         })()}
 
-      {/* Panel del Tejido/Veta abierto desde el breadcrumb intermedio
-         "Célula → Tejido" / "Grano → Veta" — mismo editor único que usan
-         Física/Biología (PanelEditorTejido/PanelEditorVeta), apilado al
-         mismo nivel que organoOFormacionAbierto (ambos ocultan este panel
-         de Compuesto mientras están abiertos). Desde acá también se puede
-         seguir subiendo a Órgano/Formación, o volver a bajar a
-         Célula/Grano — reutiliza los mismos estados de arriba. */}
-      {tejidoOVetaAbierto?.tipo === "tejido" &&
+      {/* Panel del Tejido abierto desde el breadcrumb intermedio
+         "Célula → Tejido" — mismo editor único que usa Biología
+         (PanelEditorTejido), apilado al mismo nivel que organoAbierto
+         (ambos ocultan este panel de Compuesto mientras están abiertos).
+         Desde acá también se puede seguir subiendo a Órgano, o volver a
+         bajar a Célula — reutiliza los mismos estados de arriba. */}
+      {tejidoAbierto &&
         (() => {
-          const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === tejidoOVetaAbierto.id);
+          const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === tejidoAbierto);
           if (!tejidoActivo) return null;
           return (
             <PanelEditorTejido
@@ -1845,47 +1753,24 @@ export function CompuestoPanelFlotante({
               celulas={celulasCatalogoNivel2.items}
               loadingCelulas={celulasCatalogoNivel2.loading}
               compuestos={todosLosCompuestos}
-              onCerrar={() => setTejidoOVetaAbierto(null)}
+              onCerrar={() => setTejidoAbierto(null)}
               onActualizar={tejidosCatalogo.actualizar}
               onEliminar={tejidosCatalogo.eliminar}
               onAbrirCompuesto={
                 onNavigateCompuesto
                   ? (compuestoId) => {
-                      setTejidoOVetaAbierto(null);
+                      setTejidoAbierto(null);
                       onNavigateCompuesto(compuestoId);
                     }
                   : undefined
               }
               onAbrirCelula={(celulaId) => {
-                setTejidoOVetaAbierto(null);
-                setGranoOCelulaAbierto({ tipo: "celula", id: celulaId });
+                setTejidoAbierto(null);
+                setCelulaAbierta(celulaId);
               }}
               onAbrirOrgano={(organoId) => {
-                setTejidoOVetaAbierto(null);
-                setOrganoOFormacionAbierto({ tipo: "organo", id: organoId });
-              }}
-            />
-          );
-        })()}
-      {tejidoOVetaAbierto?.tipo === "veta" &&
-        (() => {
-          const vetaActiva = vetasCatalogoNivel2.items.find((v) => v.id === tejidoOVetaAbierto.id);
-          if (!vetaActiva) return null;
-          return (
-            <PanelEditorVeta
-              item={vetaActiva}
-              granos={granosCatalogoNivel2.items}
-              loadingGranos={granosCatalogoNivel2.loading}
-              onCerrar={() => setTejidoOVetaAbierto(null)}
-              onActualizar={vetasCatalogoNivel2.actualizar}
-              onEliminar={vetasCatalogoNivel2.eliminar}
-              onAbrirGrano={(granoId) => {
-                setTejidoOVetaAbierto(null);
-                setGranoOCelulaAbierto({ tipo: "grano", id: granoId });
-              }}
-              onAbrirFormacion={(formacionId) => {
-                setTejidoOVetaAbierto(null);
-                setOrganoOFormacionAbierto({ tipo: "formacion", id: formacionId });
+                setTejidoAbierto(null);
+                setOrganoAbierto(organoId);
               }}
             />
           );

@@ -3,16 +3,20 @@
 /**
  * AfinidadEntreEntidadesPanel.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * "¿Con qué otro mineral/planta se complementa este?" — reusa
+ * "¿Con qué otra planta se complementa esta?" — reusa
  * ordenarPorAfinidadDeMezclas (afinidad.ts) sobre la mezcla agregada de
- * TODAS las Formaciones/Órganos de cada entidad del catálogo
+ * TODOS los Órganos de cada entidad del catálogo
  * (useMezclasAfinidadCatalogo), mismo criterio de "complementa/compite/
  * saturado/estable" que ya existe para Compuestos sueltos — acá aplicado
- * cruzando Mineral↔Flora↔Mineral, porque ambos comparten el mismo
- * lenguaje `{compuesto_id, cantidad}[]`.
+ * cruzando Flora↔Flora, porque comparten el mismo lenguaje
+ * `{compuesto_id, cantidad}[]`.
  *
  * Solo muestra los "complementa" (top N) — es una sugerencia de diseño,
  * no un listado exhaustivo de todas las relaciones.
+ *
+ * NOTA: el lado Mineral (vía Formaciones/Vetas/Granos) fue removido junto
+ * con toda la lógica de Granos/Vetas/Formación del proyecto — decisión
+ * explícita del usuario. Sin consumidores activos actualmente.
  */
 
 import { Sparkles } from "lucide-react";
@@ -23,7 +27,6 @@ import type { Compuesto, Elemento } from "@/domains/garlia/elementos/types";
 import { useMezclasAfinidadCatalogo, type EntidadConMezcla } from "./useMezclasAfinidadCatalogo";
 
 const TIPO_ICONO: Record<EntidadConMezcla["tipo"], string> = {
-  mineral: "Mineral",
   flora: "Flora",
 };
 
@@ -38,9 +41,9 @@ export function AfinidadEntreEntidadesPanel({
   /** Id de la entidad actual (Mineral o Flora), para excluirse a sí misma. */
   entidadId: string;
   nombreEntidad: string;
-  /** Mezcla agregada actual (todas sus Formaciones/Órganos juntos) — se
-   *  recalcula en vivo desde lo que ya está editado en pantalla, no desde
-   *  lo último guardado en la DB. */
+  /** Mezcla agregada actual (todos sus Órganos juntos) — se recalcula en
+   *  vivo desde lo que ya está editado en pantalla, no desde lo último
+   *  guardado en la DB. */
   mezcla: ComponenteCompuestoEnMezcla[];
   compuestos: Compuesto[];
   elementos: Elemento[];

@@ -4,9 +4,9 @@
  * SeccionGruposVinculados.tsx
  * ───────────────────────────────────────────────────────────────────────────
  * Bloque completo "título + botón agregar + lista" para una relación N:N con
- * un catálogo propio (Órganos, Formaciones — ver useEntidadVinculosGrupo).
- * Pensado para insertarse directo en un editor (ej. EditorItem) sin repetir
- * el fontanería de abrir/cerrar el popover y armar cada tarjeta.
+ * un catálogo propio (Órganos — ver useEntidadVinculosGrupo). Pensado para
+ * insertarse directo en un editor (ej. FloraEditor) sin repetir el
+ * fontanería de abrir/cerrar el popover y armar cada tarjeta.
  *
  * Dos caminos desde el botón "+":
  *   - "Crear nuevo": crea un registro vacío en el catálogo, lo vincula, y
@@ -18,6 +18,13 @@
  *     de texto — clickear una tarjeta la vincula. Las tarjetas de "Usar"
  *     son de solo selección (no hay onAbrirGrupo en esa vista); para
  *     editar el contenido hay que abrir su panel flotante una vez vinculada.
+ *
+ * NOTA (limpieza Grano/Veta/Formación): este bloque también servía a
+ * Formaciones de Minerales/Items (prop tipo="formacion"). Esa rama fue
+ * removida junto con toda la lógica de Granos/Vetas/Formación del
+ * proyecto — decisión explícita del usuario. El único consumidor real
+ * (FloraEditor.tsx) siempre usaba el default "organo", así que el prop
+ * `tipo` fue quitado por completo.
  */
 
 import { Plus, Search, X, type LucideIcon } from "lucide-react";
@@ -32,7 +39,6 @@ import type {
 export function SeccionGruposVinculados({
   titulo,
   descripcion,
-  tipo = "organo",
   items,
   catalogo,
   loading,
@@ -50,23 +56,18 @@ export function SeccionGruposVinculados({
   titulo: string;
   descripcion?: string;
   icono: LucideIcon;
-  /** "organo" resuelve la fórmula vía Tejidos/Células; "formacion" vía
-   *  Vetas/Granos — se reenvía tal cual a TarjetaFormacionOrgano. Default
-   *  "organo" por compatibilidad con los llamadores existentes de Flora/
-   *  Criaturas; Minerales/Items deben pasar "formacion" explícitamente. */
-  tipo?: "organo" | "formacion";
   items: GrupoVinculadoResuelto[];
-  /** Catálogo completo del propio módulo (Órganos, Formaciones…) para el picker "usar existente". */
+  /** Catálogo completo del propio módulo (Órganos…) para el picker "usar existente". */
   catalogo: EntradaCatalogoGrupo[];
   loading?: boolean;
   /** Crea un registro vacío + lo vincula — el llamador es responsable de
-   *  abrir el panel flotante con el id devuelto (ver EditorItem.tsx). */
+   *  abrir el panel flotante con el id devuelto (ver FloraEditor.tsx). */
   onCrearNuevo: () => void | Promise<{ id: string } | null>;
   onUsarExistente: (grupoCompuestoId: string) => void;
   onDelete: (vinculoId: string) => void;
-  /** Abre el editor de la Célula/Grano de una fila de la fórmula — se
-   *  reenvía tal cual a TarjetaFormacionOrgano. */
-  onAbrirCelula?: (celulaOGranoId: string) => void;
+  /** Abre el editor de la Célula de una fila de la fórmula — se reenvía
+   *  tal cual a TarjetaFormacionOrgano. */
+  onAbrirCelula?: (celulaId: string) => void;
   onAbrirGrupo?: (grupoId: string) => void;
   placeholderNombre?: string;
   placeholderNotas?: string;
@@ -158,7 +159,6 @@ export function SeccionGruposVinculados({
             <TarjetaFormacionOrgano
               key={item.vinculo_id}
               item={item}
-              tipo={tipo}
               onDelete={() => onDelete(item.vinculo_id)}
               onAbrirCelula={onAbrirCelula}
               onAbrirGrupo={onAbrirGrupo}
@@ -172,7 +172,6 @@ export function SeccionGruposVinculados({
       {pickerAbierto && (
         <PickerUsarExistente
           titulo={titulo}
-          tipo={tipo}
           disponibles={disponibles}
           labelBuscar={labelBuscar}
           onElegir={(id) => {
@@ -195,15 +194,12 @@ export function SeccionGruposVinculados({
  */
 function PickerUsarExistente({
   titulo,
-  tipo,
   disponibles,
   labelBuscar,
   onElegir,
   onClose,
 }: {
   titulo: string;
-  /** Reenviado tal cual a TarjetaFormacionOrgano en cada tarjeta del picker. */
-  tipo: "organo" | "formacion";
   disponibles: EntradaCatalogoGrupo[];
   labelBuscar: string;
   onElegir: (id: string) => void;
@@ -268,7 +264,6 @@ function PickerUsarExistente({
                   <div className="pointer-events-none">
                     <TarjetaFormacionOrgano
                       item={{ ...g, vinculo_id: g.id } as GrupoVinculadoResuelto}
-                      tipo={tipo}
                     />
                   </div>
                 </button>

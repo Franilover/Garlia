@@ -4,19 +4,16 @@
  * MineralEditor.tsx
  * ───────────────────────────────────────────────────────────────────────────
  * Editor de una entidad Mineral: nombre, imagen, descripción rica y
- * ecosistemas — mismo molde visual que FloraEditor.tsx — más Formaciones y
- * Procesos:
- *
- * - Formaciones: partes del mineral con fórmula propia, nombre libre (ej:
- *   "Veta", "Inclusión de cuarzo"…). Reemplaza la antigua composición plana
- *   de un solo nivel (`Mineral.componentes`), que se migra automáticamente
- *   a una Formación la primera vez que se abre este editor (ver
- *   useMineralFormacionesProcesos).
+ * ecosistemas — mismo molde visual que FloraEditor.tsx — más Procesos:
  *
  * - Procesos: eventos geológicos de formación/transformación, nombre libre
  *   (ej: "Cristalización", "Oxidación"…) con consume/produce — mismo shape
  *   que los Procesos de Flora, pero sin orden/secuencia: los procesos
  *   geológicos de un mineral no tienen un orden narrativo único.
+ *
+ * NOTA: la sección de Formaciones (partes del mineral con fórmula propia
+ * vía Veta/Grano/Compuesto) fue removida junto con toda la lógica de
+ * Granos/Vetas/Formación del proyecto — decisión explícita del usuario.
  *
  * Reutiliza SelectorFormulaOrgano y SelectorConsumeProduce de Flora tal cual
  * (son genéricos, sin nada específico de planta).
@@ -31,13 +28,8 @@ import { type SaveStatus } from "@/ui/saveStatus";
 
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
-import { useFormaciones } from "@/domains/garlia/elementos/useFormaciones";
 import { useReacciones } from "@/domains/garlia/elementos/useReacciones";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
-import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
-import { useGranos } from "@/domains/garlia/elementos/useGranos";
-import { useVetas } from "@/domains/garlia/elementos/useVetas";
-import { PanelEditorGrano, PanelEditorVeta } from "@/domains/garlia/fisica/CatalogoVetasFisica";
 import { type Compuesto, type Elemento, type Reaccion } from "@/domains/garlia/elementos/types";
 import { SelectorImagen } from "@/domains/garlia/_shared/UIComponents";
 import { EditorHeaderBar } from "@/domains/garlia/_shared/EditorHeaderBar";
@@ -66,7 +58,6 @@ export function MineralEditor({
 }) {
   const { items: elementos } = useElementos();
   const { items: compuestos, setItems: setCompuestos } = useCompuestosConElementos();
-  const { items: catalogoFormaciones, setItems: setCatalogoFormaciones } = useFormaciones();
   const { items: reacciones, setItems: setReacciones } = useReacciones();
   const { actualizar, eliminar } = useMinerales();
   const { ecosistemas, loading: loadingEcosistemas, actualizar: actualizarEcosistema } =
@@ -75,23 +66,6 @@ export function MineralEditor({
   const [form, setForm] = useState<Mineral>(mineralProp);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
-  // Panel flotante de la Formación abierta al clickear su nombre en la
-  // tarjeta — vista completa fuera de la tarjeta inline.
-  const [editandoFormacionId, setEditandoFormacionId] = useState<string | null>(null);
-  // Panel flotante del Grano abierto al clickear "hecho de: [Grano]" en la
-  // fila de la fórmula (ver SeccionGruposVinculados → TarjetaFormacionOrgano
-  // → SelectorFormulaTejidos) — la cadena real es Veta→Grano→Compuesto, así
-  // que este click abre el Grano, no el Compuesto directo.
-  const [editandoGranoId, setEditandoGranoId] = useState<string | null>(null);
-  // Panel flotante de la Veta abierta desde el breadcrumb "Grano → Veta"
-  // dentro de PanelEditorGrano (ver onAbrirVeta abajo) — antes ese salto no
-  // hacía nada porque no se pasaba el callback. Mismo patrón que
-  // editandoGranoId/editandoFormacionId: cierra el panel de origen y abre
-  // este, apilado en el mismo nivel (no hay jerarquía real entre ellos, uno
-  // reemplaza al otro).
-  const [editandoVetaId, setEditandoVetaId] = useState<string | null>(null);
-  const granosCatalogo = useGranos();
-  const vetasCatalogo = useVetas();
   // Popover flotante de ecosistema — mismo patrón que el chip de Ecosistema
   // en CriaturasJerarquica/GeografiaJerarquica (PopoverFlotante anclado al
   // elemento clickeado, sin navegar a pantalla completa).
@@ -120,24 +94,16 @@ export function MineralEditor({
     });
   };
 
-  // Catálogo de Formaciones: tabla real "formaciones" (catálogo propio,
-  // compartido entre todos los minerales y también con Estructura de
-  // Items), separada de "organos" que usan Flora/Criaturas. Ya no tiene
-  // `componentes` inline: la fórmula vive vía Vetas/Granos.
-
-  // Formaciones y procesos
+  // Procesos geológicos del mineral (mineral_reacciones) — ver
+  // useMineralFormacionesProcesos.ts. La parte de Formaciones que este hook
+  // manejaba antes fue removida junto con Grano/Veta/Formación.
   const {
-    formaciones,
     procesos,
-    loading: loadingFormacionesProcesos,
-    crearFormacion,
-    vincularFormacionExistente,
-    actualizarFormacion,
-    eliminarFormacion,
+    loading: loadingProcesos,
     crearProceso,
     actualizarProceso,
     eliminarProceso,
-  } = useMineralFormacionesProcesos(mineralProp.id, catalogoFormaciones, form);
+  } = useMineralFormacionesProcesos(mineralProp.id);
 
   const [tabActiva] = useState<"info">("info");
 
@@ -261,79 +227,6 @@ export function MineralEditor({
           }
         />
       )}
-
-      {/* Click en el nombre de una Formación en la tarjeta abre este panel
-          — vista completa fuera de la tarjeta inline, útil cuando la
-          Formación está vinculada a muchos minerales/items y se quiere
-          editar desde un solo lugar. */}
-      {editandoFormacionId && (
-        <GrupoCompuestoPanelFlotante
-          grupo={catalogoFormaciones.find((f) => f.id === editandoFormacionId)!}
-          tipo="formacion"
-          compuestos={compuestos}
-          onCerrar={() => setEditandoFormacionId(null)}
-          onActualizar={(id, cambios) => {
-            setCatalogoFormaciones((prev) =>
-              prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)),
-            );
-            void actualizarFormacion(id, cambios);
-          }}
-          onAbrirCompuesto={setEditandoCompuestoId}
-        />
-      )}
-
-      {/* Click en "hecho de: [Grano]" en la fila de fórmula de una Veta
-          abre este panel — la cadena real es Veta→Grano→Compuesto, así que
-          esto abre el Grano (donde vive compuesto_id), no el Compuesto. */}
-      {editandoGranoId &&
-        (() => {
-          const granoActivo = granosCatalogo.items.find((g) => g.id === editandoGranoId);
-          if (!granoActivo) return null;
-          return (
-            <PanelEditorGrano
-              item={granoActivo}
-              compuestos={compuestos}
-              onCerrar={() => setEditandoGranoId(null)}
-              onActualizar={granosCatalogo.actualizar}
-              onEliminar={granosCatalogo.eliminar}
-              onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirVeta={(vetaId) => {
-                setEditandoGranoId(null);
-                setEditandoVetaId(vetaId);
-              }}
-              onAbrirFormacion={(formacionId) => {
-                setEditandoGranoId(null);
-                setEditandoFormacionId(formacionId);
-              }}
-            />
-          );
-        })()}
-
-      {/* Panel flotante de la Veta abierta desde "Grano → Veta" — mismo
-          patrón que el Grano de arriba: cierra su origen y se apila acá. */}
-      {editandoVetaId &&
-        (() => {
-          const vetaActiva = vetasCatalogo.items.find((v) => v.id === editandoVetaId);
-          if (!vetaActiva) return null;
-          return (
-            <PanelEditorVeta
-              item={vetaActiva}
-              granos={granosCatalogo.items}
-              loadingGranos={granosCatalogo.loading}
-              onCerrar={() => setEditandoVetaId(null)}
-              onActualizar={vetasCatalogo.actualizar}
-              onEliminar={vetasCatalogo.eliminar}
-              onAbrirGrano={(granoId) => {
-                setEditandoVetaId(null);
-                setEditandoGranoId(granoId);
-              }}
-              onAbrirFormacion={(formacionId) => {
-                setEditandoVetaId(null);
-                setEditandoFormacionId(formacionId);
-              }}
-            />
-          );
-        })()}
 
       {ecosistemaAbierto && (
         <PopoverFlotante

@@ -3,47 +3,27 @@
 /**
  * useMineralFormacionesProcesos.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Hook para CRUD de Formaciones y Procesos de un mineral. Mismo molde que
+ * Hook para CRUD de Procesos de un mineral. Mismo molde que
  * usePlantaOrganosProcesos.ts (ver ese archivo para el razonamiento
- * completo sobre el patrón de vínculo N:N) — el CRUD del vínculo N:N de
- * Formaciones ya no se reimplementa a mano acá, delega directo a
- * useEntidadVinculosGrupo, instanciado con padreTipo="mineral" contra el
- * catálogo real "formaciones" vía estructura_componentes — FASE 7,
- * reemplaza la tabla dedicada "mineral_formaciones" (sigue existiendo sin
- * usarse, limpieza en Fase 8). Dos diferencias deliberadas frente a Flora:
+ * completo sobre el patrón de vínculo N:N).
+ *
+ * NOTA: la parte de Formaciones (catálogo "formaciones", vínculo N:N vía
+ * estructura_componentes, fórmula vía Granos/Vetas) fue removida junto con
+ * toda la lógica de Granos/Vetas/Formación del proyecto — decisión
+ * explícita del usuario. Este hook ahora solo maneja Procesos
+ * (mineral_reacciones), que es independiente y no se toca.
  *
  * - Sin `orden`/reordenarProcesos: a diferencia del ciclo de vida de una
  *   planta, los procesos geológicos de un mineral no tienen una secuencia
  *   narrativa única (puede oxidarse sin metamorfizar, o al revés), así que
  *   no hay drag-and-drop ni columna `orden` que persistir.
- *
- * - migrarComponentesLegado: el campo plano `Mineral.componentes`
- *   (composición sin estructura, pre-Formaciones) se migra una sola vez la
- *   primera vez que se cargan formaciones para un mineral que aún no tiene
- *   ninguna. FASE 7: ya NO se archiva aparte en "mineral_formaciones_legado"
- *   (esa tabla sigue existiendo sin usarse, limpieza en Fase 8) — en vez de
- *   eso crea directo un vínculo mineral→compuesto en estructura_componentes
- *   por cada entrada del JSONB legado (mismo criterio que se usó para migrar
- *   flora.componentes en Fase 7), preservando `tag` como `rol` cuando existe.
- *   Sigue sin crear una Formación real: ese ensamblaje con fórmula vía
- *   Vetas/Granos queda como paso manual aparte.
- *
- * Formaciones: catálogo propio — tabla real "formaciones" (separada de
- * "organos", que usan Flora/Criaturas; compartida con Estructura de
- * Items), vinculado N:N vía estructura_componentes (padre_tipo='mineral',
- * hijo_tipo='formacion' para el catálogo, hijo_tipo='compuesto' para la
- * migración legado) — el nombre/función/notas viven en la Formación, la
- * fórmula vive más abajo vía formacion_vetas, no acá.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import { db } from "@/infra/supabase/db";
 
-import type { Formacion } from "@/domains/garlia/elementos/types";
-import { useEntidadVinculosGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
-
-import type { Mineral, MineralFormacion, MineralProceso, MineralProcesoInput } from "./types";
+import type { MineralProceso, MineralProcesoInput } from "./types";
 
 // ── Cache-first para mineral_reacciones (Fase 8): mismo patrón que
 // useSistemaOrganos.ts — Dexie filtrado por mineral_id, luego revalidar.
@@ -69,32 +49,7 @@ async function guardarProcesosEnDexie(procesos: MineralProceso[]) {
   }
 }
 
-export function useMineralFormacionesProcesos(
-  mineralId: string,
-  catalogoFormaciones: Formacion[],
-  mineralLegado?: Mineral | null,
-) {
-  const {
-    items: formaciones,
-    loading: loadingFormaciones,
-    crearYVincular: crearFormacionVinculo,
-    vincularExistente: vincularFormacionExistente,
-    actualizar: actualizarFormacion,
-    desvincular: eliminarFormacion,
-    load: loadFormaciones,
-  } = useEntidadVinculosGrupo({
-    entidadId: mineralId,
-    padreTipo: "mineral",
-    tablaCatalogo: "formaciones",
-    hijoTipo: "formacion",
-    catalogo: catalogoFormaciones,
-  });
-
-  // crearYVincular acepta un nombre opcional; Formaciones se crean vacías
-  // (mismo comportamiento que antes, solo se renombra el wrapper para
-  // mantener el nombre de export `crearFormacion` que usa MineralEditor).
-  const crearFormacion = useCallback(() => crearFormacionVinculo(""), [crearFormacionVinculo]);
-
+export function useMineralFormacionesProcesos(mineralId: string) {
   const [procesos, setProcesos] = useState<MineralProceso[]>([]);
   const [loadingProcesos, setLoadingProcesos] = useState(true);
 
@@ -128,14 +83,6 @@ export function useMineralFormacionesProcesos(
   useEffect(() => {
     if (mineralId) void loadProcesos();
   }, [mineralId, loadProcesos]);
-
-  // ── Migración one-shot del campo legado `componentes` ──────────────────
-  // Removida: Mineral.componentes (jsonb) ya no existe en Supabase ni en
-  // el tipo Mineral — la migración a estructura_componentes ya se hizo
-  // (ver conteo de filas padre_tipo='mineral' en Supabase) y este shim
-  // quedó sin fuente de datos que migrar. No se reemplaza por lectura de
-  // otra columna JSON (regla arquitectónica: JSONB solo para datos propios
-  // de una entidad, no para relaciones).
 
   // ── CRUD de procesos: solo un evento geológico (descripcion) — el
   // consume/produce vive en la Reacción vinculada 1:1 (ver
@@ -178,21 +125,11 @@ export function useMineralFormacionesProcesos(
   }, []);
 
   return {
-    formaciones: formaciones as MineralFormacion[],
     procesos,
-    loading: loadingFormaciones || loadingProcesos,
-    // Formaciones
-    crearFormacion,
-    vincularFormacionExistente,
-    actualizarFormacion,
-    eliminarFormacion,
-    // Procesos
+    loading: loadingProcesos,
     crearProceso,
     actualizarProceso,
     eliminarProceso,
-    // Reload
-    load: useCallback(async () => {
-      await Promise.all([loadFormaciones(), loadProcesos()]);
-    }, [loadFormaciones, loadProcesos]),
+    load: loadProcesos,
   };
 }

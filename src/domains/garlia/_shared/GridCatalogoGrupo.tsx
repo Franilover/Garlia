@@ -3,26 +3,34 @@
 /**
  * GridCatalogoGrupo.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Grid de tarjetas clickeables sobre un catálogo global (Organo, Formacion,
- * o Reaccion/Proceso — todos comparten el shape GrupoCompuesto/Reaccion),
+ * Grid de tarjetas clickeables sobre un catálogo global (Organo, o
+ * Reaccion/Proceso — todos comparten el shape GrupoCompuesto/Reaccion),
  * cada una abriendo su editor flotante completo — GrupoCompuestoPanelFlotante
  * o ReaccionPanelFlotante, los mismos "editores propios" que ya usa Química
  * (GruposCompuestosPage/ReaccionesPage) e Items.
  *
- * Nace del rediseño de Biología (tabs Órganos/Procesos) y Física (grids de
- * Formaciones/Habilidades debajo de Subsistemas): en vez de triplicar el
- * mismo grid+card+popover en cada lugar, un solo componente parametrizado
- * por `modo` ("grupo" | "reaccion").
+ * Nace del rediseño de Biología (tabs Órganos/Procesos): en vez de
+ * triplicar el mismo grid+card+popover en cada lugar, un solo componente
+ * parametrizado por `modo` ("grupo" | "reaccion").
  *
  * A diferencia de GruposCompuestosPage/ReaccionesPage (que además ofrecen
  * crear/eliminar desde ahí), esta vista es de solo navegación + edición del
  * contenido existente — crear registros nuevos en el catálogo global sigue
  * siendo responsabilidad de Química, para no duplicar ese flujo en 3
  * lugares distintos.
+ *
+ * NOTA (limpieza Grano/Veta/Formación): este grid también servía a Física
+ * (icono="formacion", con navegación cruzada vía abrirIdExterno desde el
+ * breadcrumb "Veta → Formación" / "Grano → Formación" de
+ * CatalogoVetasFisica). Esa rama, junto con toda la lógica de
+ * Granos/Vetas/Formación del proyecto, fue removida — decisión explícita
+ * del usuario. El único consumidor real (BiologiaPage, icono="organo",
+ * modo controlado) no usaba `abrirIdExterno`, así que ese prop y la rama
+ * "formacion" fueron quitados por completo.
  */
 
-import { Boxes, Gem, Sprout, FlaskConical } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import { Boxes, Sprout, FlaskConical } from "lucide-react";
+import React, { useState } from "react";
 
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { ReaccionPanelFlotante } from "@/domains/garlia/elementos/ReaccionesPage";
@@ -39,32 +47,15 @@ type Props =
       onActualizar: (id: string, cambios: Partial<EntradaCatalogoGrupo>) => void;
       onEliminar?: (id: string) => void;
       onAbrirCompuesto?: (compuestoId: string) => void;
-      /** Ícono de tarjeta Y qué cadena de composición resolver en el panel
-       *  flotante (organo→tejidos/células, formacion→vetas/granos). */
-      icono?: "organo" | "formacion" | "generico";
-      /**
-       * Id de un item de este catálogo a abrir de forma controlada desde
-       * afuera — usado por Física para navegar hasta acá desde el
-       * breadcrumb "Veta → Formación" / "Grano → Formación" de
-       * CatalogoVetasFisica, que no vive dentro de este grid. Solo tiene
-       * efecto en el modo NO controlado (ver seleccionadoId/onSeleccionar
-       * abajo) — Biología ya no lo usa, navega directamente vía
-       * onSeleccionar desde el padre.
-       */
-      abrirIdExterno?: string | null;
-      /** Se llama tras consumir abrirIdExterno, para que el padre limpie su estado. */
-      onAbrirIdExternoConsumido?: () => void;
+      /** Ícono de tarjeta. */
+      icono?: "organo" | "generico";
       /**
        * Este grid pasó a ser "controlado" para el caso de Biología
        * (icono="organo"): en vez de manejar su propia selección y montar
        * GrupoCompuestoPanelFlotante acá adentro, recibe seleccionadoId/
        * onSeleccionar del padre (BiologiaPage), que monta el editor en un
        * shell único compartido con los otros 4 niveles del breadcrumb —
-       * ver PanelFlotanteShellBiologia en BiologiaPage.tsx. Física
-       * (icono="formacion") sigue sin pasar estos props: para ese caso el
-       * grid conserva su comportamiento no-controlado de siempre (estado
-       * interno + panel propio con su propio portal, más abrirIdExterno
-       * arriba para la navegación cruzada con Vetas/Granos).
+       * ver PanelFlotanteShellBiologia en BiologiaPage.tsx.
        */
       seleccionadoId?: string | null;
       onSeleccionar?: (id: string | null) => void;
@@ -80,9 +71,8 @@ type Props =
       onAbrirItem?: (item: { tipo: "elemento" | "compuesto"; id: string }) => void;
     };
 
-function IconoGrupo({ tipo }: { tipo?: "organo" | "formacion" | "generico" }) {
+function IconoGrupo({ tipo }: { tipo?: "organo" | "generico" }) {
   if (tipo === "organo") return <Sprout size={12} className="text-primary/40 shrink-0" />;
-  if (tipo === "formacion") return <Gem size={12} className="text-primary/40 shrink-0" />;
   return <Boxes size={12} className="text-primary/40 shrink-0" />;
 }
 
@@ -94,8 +84,8 @@ function IconoGrupo({ tipo }: { tipo?: "organo" | "formacion" | "generico" }) {
 export function GridCatalogoGrupo(props: Props) {
   // Controlado (Biología, icono="organo"): selección y apertura del panel
   // viven en el padre (BiologiaPage) — ver comentario de seleccionadoId/
-  // onSeleccionar en Props. No controlado (Física, y cualquier otro uso
-  // futuro): este grid mantiene su comportamiento de siempre.
+  // onSeleccionar en Props. No controlado: este grid mantiene su
+  // comportamiento propio (estado interno + panel con su propio portal).
   const esControlado = props.modo === "grupo" && props.onSeleccionar !== undefined;
   const [seleccionadoIdInterno, setSeleccionadoIdInterno] = useState<string | null>(null);
   const seleccionadoId =
@@ -109,24 +99,13 @@ export function GridCatalogoGrupo(props: Props) {
   };
 
   // Evita el parpadeo "cierra-y-abre" al saltar entre niveles del
-  // breadcrumb — solo relevante en el modo NO controlado (Física); en el
-  // modo controlado esto lo maneja el padre (BiologiaPage.navegandoEntreNiveles).
+  // breadcrumb en el modo NO controlado; en el modo controlado esto lo
+  // maneja el padre (BiologiaPage.navegandoEntreNiveles).
   const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
   const marcarNavegacion = () => {
     setNavegandoEntreNiveles(true);
     requestAnimationFrame(() => setNavegandoEntreNiveles(false));
   };
-
-  // Navegación controlada desde afuera (breadcrumb "Veta → Formación" /
-  // "Grano → Formación" de CatalogoVetasFisica) — solo aplica en el modo
-  // NO controlado (Física); Biología ya no pasa abrirIdExterno.
-  useEffect(() => {
-    if (props.modo !== "grupo" || esControlado || !props.abrirIdExterno) return;
-    marcarNavegacion();
-    setSeleccionadoIdInterno(props.abrirIdExterno);
-    props.onAbrirIdExternoConsumido?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.modo === "grupo" ? props.abrirIdExterno : null]);
 
   const activo = props.items.find((i) => i.id === seleccionadoId) ?? null;
 
@@ -167,7 +146,6 @@ export function GridCatalogoGrupo(props: Props) {
       {activo && props.modo === "grupo" && !esControlado && (
         <GrupoCompuestoPanelFlotante
           grupo={activo as EntradaCatalogoGrupo}
-          tipo={props.icono === "formacion" ? "formacion" : "organo"}
           compuestos={props.compuestos}
           sinAnimacion={navegandoEntreNiveles}
           onCerrar={() => setSeleccionadoId(null)}
@@ -181,22 +159,10 @@ export function GridCatalogoGrupo(props: Props) {
               : undefined
           }
           onAbrirCompuesto={props.onAbrirCompuesto}
-          onAbrirOrganoExterno={
-            props.icono !== "formacion"
-              ? (organoId) => {
-                  marcarNavegacion();
-                  setSeleccionadoId(organoId);
-                }
-              : undefined
-          }
-          onAbrirFormacionExterna={
-            props.icono === "formacion"
-              ? (formacionId) => {
-                  marcarNavegacion();
-                  setSeleccionadoId(formacionId);
-                }
-              : undefined
-          }
+          onAbrirOrganoExterno={(organoId) => {
+            marcarNavegacion();
+            setSeleccionadoId(organoId);
+          }}
         />
       )}
 

@@ -6,29 +6,30 @@
  * Ya NO existe la sub-sección de página "Grupos de compuestos" (la tabla
  * "grupos_compuestos" fue eliminada de Supabase hace tiempo). Este archivo
  * solo sobrevive por GrupoCompuestoPanelFlotante: el modal genérico de
- * edición de un Órgano o Formación ya vinculado — nombre, función, fórmula
- * (vía SelectorFormulaTejidos + useOrganoTejidos/useFormacionVetas) y
- * notas — que reutilizan MineralEditor, EditorItem, EditorCriatura,
- * FloraEditor, BiologiaPage y GridCatalogoGrupo. Recibe el registro por
- * props (grupo, onActualizar, onEliminar) y resuelve su propia
- * composición internamente según `tipo`.
+ * edición de un Órgano ya vinculado — nombre, función, fórmula (vía
+ * SelectorFormulaTejidos + useOrganoTejidos) y notas — que reutilizan
+ * MineralEditor, EditorItem, EditorCriatura, FloraEditor, BiologiaPage y
+ * GridCatalogoGrupo. Recibe el registro por props (grupo, onActualizar,
+ * onEliminar) y resuelve su propia composición internamente.
+ *
+ * NOTA: este componente manejaba antes dos catálogos hermanos, Órgano y
+ * Formación (parametrizado por `tipo`), con Formación resolviendo su
+ * fórmula vía Vetas/Granos. Formación/Veta/Grano fueron removidos por
+ * completo del proyecto — decisión explícita del usuario — así que este
+ * panel ya solo maneja Órgano, y el prop `tipo` desapareció.
  */
 
-import { Boxes, Beaker, Layers, Gem, Trash2, X } from "lucide-react";
+import { Boxes, Beaker, Layers, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { SelectorFormulaTejidos, type FilaFormulaTejido } from "@/domains/garlia/_shared/SelectorFormulaTejidos";
 import { useOrganoTejidos } from "@/domains/garlia/elementos/useOrganoTejidos";
-import { useFormacionVetas } from "@/domains/garlia/elementos/useFormacionVetas";
 import { useCatalogoTejidos } from "@/domains/garlia/elementos/useCatalogoTejidos";
 import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
 import { useTejidos } from "@/domains/garlia/elementos/useTejidos";
-import { useGranos } from "@/domains/garlia/elementos/useGranos";
-import { useVetas } from "@/domains/garlia/elementos/useVetas";
 import { PanelEditorTejido, PanelEditorCelula } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
-import { PanelEditorVeta, PanelEditorGrano } from "@/domains/garlia/fisica/CatalogoVetasFisica";
 import { useCelulasDeUnOrgano } from "@/domains/garlia/elementos/useCelulasDeUnOrgano";
 import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
@@ -36,13 +37,13 @@ import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVi
 import type { Compuesto } from "./types";
 
 /**
- * Portal propio SOLO para el segundo nivel de anidamiento real (Célula/
- * Grano abierto DESDE ADENTRO del panel de Tejido/Veta) — ahí sí hay dos
- * niveles simultáneos genuinos y necesita su propio marco flotante encima.
- * El primer nivel (Tejido/Veta o Célula/Grano abiertos directo desde la
- * fórmula del Órgano) ya NO usa este portal: reemplaza el contenido de
- * cajaInterna en el mismo marco de siempre, para no verse como "otro
- * modal" — ver el bloque de abajo que arma `contenidoActivo`.
+ * Portal propio SOLO para el segundo nivel de anidamiento real (Célula
+ * abierta DESDE ADENTRO del panel de Tejido) — ahí sí hay dos niveles
+ * simultáneos genuinos y necesita su propio marco flotante encima. El
+ * primer nivel (Tejido o Célula abiertos directo desde la fórmula del
+ * Órgano) ya NO usa este portal: reemplaza el contenido de cajaInterna en
+ * el mismo marco de siempre, para no verse como "otro modal" — ver el
+ * bloque de abajo que arma `contenidoActivo`.
  */
 function MiniPortalAnidado({
   children,
@@ -78,29 +79,25 @@ function MiniPortalAnidado({
 }
 
 /**
- * Panel flotante centrado del detalle de un Órgano/Formación — mismo
- * comportamiento visual que ElementoPanelFlotante/CompuestoPanelFlotante en
+ * Panel flotante centrado del detalle de un Órgano — mismo comportamiento
+ * visual que ElementoPanelFlotante/CompuestoPanelFlotante en
  * ElementosPage.tsx: modal centrado con backdrop blur, cierra con click en
  * el backdrop, Escape, o el botón X.
  */
 export function GrupoCompuestoPanelFlotante({
   grupo,
-  tipo = "organo",
   compuestos,
   onCerrar,
   onActualizar,
   onEliminar,
   onAbrirCompuesto,
   onAbrirOrganoExterno,
-  onAbrirFormacionExterna,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
   sinAnimacion,
   sinPortalPropio,
 }: {
   grupo: EntradaCatalogoGrupo;
-  /** "organo" resuelve la fórmula vía Tejidos/Células; "formacion" vía Vetas/Granos. */
-  tipo?: "organo" | "formacion";
   compuestos: Compuesto[];
   onCerrar: () => void;
   onActualizar: (id: string, cambios: Partial<EntradaCatalogoGrupo>) => void;
@@ -115,25 +112,15 @@ export function GrupoCompuestoPanelFlotante({
    */
   onAbrirOrganoExterno?: (organoId: string) => void;
   /**
-   * Navegar a OTRA Formación desde el breadcrumb "Veta → Formación" /
-   * "Grano → Formación" dentro del PanelEditorVeta/PanelEditorGrano
-   * anidado — esa Veta/Grano puede pertenecer a una Formación distinta a
-   * la que este panel muestra. Cierra este modal y delega en el padre
-   * (FisicaPage) abrir el editor de la Formación elegida, mismo patrón
-   * que onAbrirOrganoExterno.
-   */
-  onAbrirFormacionExterna?: (formacionId: string) => void;
-  /**
    * Navegar al Sistema elegido desde el nivel "Sistema" del breadcrumb de
-   * este Órgano (tipo="organo" únicamente) — cierra este modal y delega en
-   * el padre (BiologiaPage) abrir el editor del Sistema, mismo patrón que
-   * onAbrirOrganoExterno.
+   * este Órgano — cierra este modal y delega en el padre (BiologiaPage)
+   * abrir el editor del Sistema, mismo patrón que onAbrirOrganoExterno.
    */
   onAbrirSistemaExterno?: (sistemaId: string) => void;
   /**
    * Navegar al Organismo elegido desde el nivel "Organismo" del breadcrumb
-   * de este Órgano (tipo="organo" únicamente, techo de la cadena) — mismo
-   * patrón que onAbrirSistemaExterno.
+   * de este Órgano (techo de la cadena) — mismo patrón que
+   * onAbrirSistemaExterno.
    */
   onAbrirOrganismoExterno?: (organismoId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
@@ -144,45 +131,37 @@ export function GrupoCompuestoPanelFlotante({
    * en su lugar, un shell compartido (ver PanelFlotanteShellBiologia en
    * BiologiaPage.tsx) provee un único portal para los 3 catálogos
    * hermanos de Biología (Célula/Tejido, Sistema/Organismo, Órgano),
-   * eliminando el parpadeo al saltar entre ellos. Solo tiene efecto
-   * cuando tipo="organo" (uso en Biología) — Física sigue usando el
-   * portal propio, sin cambios.
+   * eliminando el parpadeo al saltar entre ellos.
    */
   sinPortalPropio?: boolean;
 }) {
-  const tejidos = useOrganoTejidos(tipo === "organo" ? grupo.id : null);
-  const vetas = useFormacionVetas(tipo === "formacion" ? grupo.id : null);
-  const formula = tipo === "organo" ? tejidos : vetas;
+  const tejidos = useOrganoTejidos(grupo.id);
+  const formula = tejidos;
   // Unión transitiva de TODAS las Células de TODOS los Tejidos de este
   // Órgano (a diferencia de `tejidos.items`, que solo trae la primera
   // Célula por fila) — usada en el nivel "Célula" del breadcrumb.
-  const celulasDelOrgano = useCelulasDeUnOrgano(tipo === "organo" ? grupo.id : null);
+  const celulasDelOrgano = useCelulasDeUnOrgano(grupo.id);
   // Sistemas que usan este Órgano y, a partir de esos Sistemas, los
   // Organismos que los usan — completa los dos niveles de arriba del
   // breadcrumb (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo).
-  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(
-    tipo === "organo" ? [grupo.id] : [],
-  );
-  const catalogo = useCatalogoTejidos(tipo);
+  const sistemasYOrganismos = useSistemasYOrganismosDeOrganos([grupo.id]);
+  const catalogo = useCatalogoTejidos();
 
-  // ── Editor completo del Tejido/Veta propio de una fila de la fórmula —
-  // mismo panel que Biología > Catálogo de Tejidos / Física > Catálogo de
-  // Vetas (ver CatalogoTejidosBiologia.tsx / CatalogoVetasFisica.tsx),
+  // ── Editor completo del Tejido propio de una fila de la fórmula — mismo
+  // panel que Biología > Catálogo de Tejidos (ver CatalogoTejidosBiologia.tsx),
   // reutilizado acá para no duplicar el editor. Solo se instancian los
-  // catálogos globales (useCelulas/useTejidos o useGranos/useVetas) cuando
-  // el panel está realmente abierto. ────────────────────────────────────
-  const [tejidoOVetaAbiertoId, setTejidoOVetaAbiertoId] = useState<string | null>(null);
-  // Editor de la Célula/Grano que compone una fila — abierto directo desde
+  // catálogos globales (useCelulas/useTejidos) cuando el panel está
+  // realmente abierto. ───────────────────────────────────────────────────
+  const [tejidoAbiertoId, setTejidoAbiertoId] = useState<string | null>(null);
+  // Editor de la Célula que compone una fila — abierto directo desde
   // "hecho de: [Célula]" en SelectorFormulaTejidos (cadena real
   // Tejido→Célula→Compuesto), o desde adentro de PanelEditorTejido al
-  // navegar Tejido→Célula. Mismo shape de estado que tejidoOVetaAbiertoId,
-  // pero apunta a Célula/Grano — panel independiente, no reemplaza al de
-  // arriba (pueden estar los dos abiertos: Tejido debajo, Célula encima). ─
-  const [celulaOGranoAbiertoId, setCelulaOGranoAbiertoId] = useState<string | null>(null);
+  // navegar Tejido→Célula. Mismo shape de estado que tejidoAbiertoId, pero
+  // apunta a Célula — panel independiente, no reemplaza al de arriba
+  // (pueden estar los dos abiertos: Tejido debajo, Célula encima). ───────
+  const [celulaAbiertaId, setCelulaAbiertaId] = useState<string | null>(null);
   const celulasCatalogo = useCelulas();
   const tejidosCatalogo = useTejidos();
-  const granosCatalogo = useGranos();
-  const vetasCatalogo = useVetas();
 
   useEffect(() => {
     if (sinPortalPropio) return; // el shell externo ya maneja Escape + scroll lock
@@ -199,14 +178,14 @@ export function GrupoCompuestoPanelFlotante({
   }, [onCerrar, sinPortalPropio]);
 
   // Contenido de la caja blanca (header + body) — se reutiliza tanto en el
-  // modo con portal propio como en el modo "shell externo".
-  // Contenido propio del Órgano/Formación (header + fórmula + función/notas)
-  // — se muestra dentro del marco cuando NO hay Tejido/Célula (o Veta/
-  // Grano) de una fila abierto; si hay uno abierto, el marco muestra ESE
-  // editor en su lugar (ver cajaInterna más abajo) en vez de apilar un
-  // modal nuevo encima con su propio marco — mismo mecanismo que el shell
-  // de BiologiaPage.tsx para los 5 niveles raíz, aplicado acá para este
-  // nivel de anidamiento (Órgano ⇄ su Tejido/Célula de una fila).
+  // modo con portal propio como en el modo "shell externo". Contenido
+  // propio del Órgano (header + fórmula + función/notas) — se muestra
+  // dentro del marco cuando NO hay Tejido/Célula de una fila abierto; si
+  // hay uno abierto, el marco muestra ESE editor en su lugar (ver
+  // cajaInterna más abajo) en vez de apilar un modal nuevo encima con su
+  // propio marco — mismo mecanismo que el shell de BiologiaPage.tsx para
+  // los 5 niveles raíz, aplicado acá para este nivel de anidamiento
+  // (Órgano ⇄ su Tejido/Célula de una fila).
   const contenidoOrgano = (
       <>
         {/* Header: ícono + nombre editable + eliminar + cerrar */}
@@ -228,7 +207,7 @@ export function GrupoCompuestoPanelFlotante({
           </div>
           <input
             className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-            placeholder="Nombre (ej: Hoja, Veta de cuarzo)…"
+            placeholder="Nombre (ej: Hoja)…"
             value={grupo.nombre ?? ""}
             onChange={(e) => onActualizar(grupo.id, { nombre: e.target.value })}
           />
@@ -252,84 +231,45 @@ export function GrupoCompuestoPanelFlotante({
           </button>
         </div>
 
-        {tipo === "organo" && (
-          <div className="shrink-0 px-3 pt-2">
-            <BreadcrumbJerarquia
-              niveles={[
-                {
-                  label: "Célula",
-                  icono: <Beaker size={10} />,
-                  activo: false,
-                  items: celulasDelOrgano.items.map((c) => ({ id: c.id, nombre: c.nombre })),
-                  loading: celulasDelOrgano.loading,
-                  onNavegar: (celulaId) => setCelulaOGranoAbiertoId(celulaId),
-                },
-                {
-                  label: "Tejido",
-                  icono: <Layers size={10} />,
-                  activo: false,
-                  items: tejidos.items.map((f) => ({ id: f.tejido_id, nombre: f.nombre })),
-                  loading: tejidos.loading,
-                  onNavegar: (tejidoId) => setTejidoOVetaAbiertoId(tejidoId),
-                },
-                { label: "Órgano", icono: <Boxes size={10} />, activo: true },
-                {
-                  label: "Sistema",
-                  icono: <Layers size={10} />,
-                  activo: false,
-                  items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
-                  loading: sistemasYOrganismos.loading,
-                  onNavegar: onAbrirSistemaExterno,
-                },
-                {
-                  label: "Organismo",
-                  icono: <Boxes size={10} />,
-                  activo: false,
-                  items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
-                  loading: sistemasYOrganismos.loading,
-                  onNavegar: onAbrirOrganismoExterno,
-                },
-              ]}
-            />
-          </div>
-        )}
-
-        {tipo === "formacion" && (
-          <div className="shrink-0 px-3 pt-2">
-            <BreadcrumbJerarquia
-              niveles={[
-                {
-                  label: "Grano",
-                  icono: <Gem size={10} />,
-                  activo: false,
-                  items: Array.from(
-                    new Map(
-                      vetas.items
-                        .map((v) => {
-                          const item = v as typeof v & { grano_id?: string; catalogo_nombre?: string };
-                          return item.grano_id ? [item.grano_id, { id: item.grano_id, nombre: item.catalogo_nombre ?? "" }] : null;
-                        })
-                        .filter((entry): entry is [string, { id: string; nombre: string }] => entry !== null)
-                    ).values()
-                  ),
-                  loading: vetas.loading,
-                  onNavegar: (granoId) => setCelulaOGranoAbiertoId(granoId),
-                },
-                {
-                  label: "Veta",
-                  icono: <Layers size={10} />,
-                  activo: false,
-                  items: Array.from(
-                    new Map(vetas.items.map((v) => [v.veta_id, { id: v.veta_id, nombre: v.nombre }])).values()
-                  ),
-                  loading: vetas.loading,
-                  onNavegar: (vetaId) => setTejidoOVetaAbiertoId(vetaId),
-                },
-                { label: "Formación", icono: <Boxes size={10} />, activo: true },
-              ]}
-            />
-          </div>
-        )}
+        <div className="shrink-0 px-3 pt-2">
+          <BreadcrumbJerarquia
+            niveles={[
+              {
+                label: "Célula",
+                icono: <Beaker size={10} />,
+                activo: false,
+                items: celulasDelOrgano.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+                loading: celulasDelOrgano.loading,
+                onNavegar: (celulaId) => setCelulaAbiertaId(celulaId),
+              },
+              {
+                label: "Tejido",
+                icono: <Layers size={10} />,
+                activo: false,
+                items: tejidos.items.map((f) => ({ id: f.tejido_id, nombre: f.nombre })),
+                loading: tejidos.loading,
+                onNavegar: (tejidoId) => setTejidoAbiertoId(tejidoId),
+              },
+              { label: "Órgano", icono: <Boxes size={10} />, activo: true },
+              {
+                label: "Sistema",
+                icono: <Layers size={10} />,
+                activo: false,
+                items: sistemasYOrganismos.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+                loading: sistemasYOrganismos.loading,
+                onNavegar: onAbrirSistemaExterno,
+              },
+              {
+                label: "Organismo",
+                icono: <Boxes size={10} />,
+                activo: false,
+                items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+                loading: sistemasYOrganismos.loading,
+                onNavegar: onAbrirOrganismoExterno,
+              },
+            ]}
+          />
+        </div>
 
         {/* Contenido: dos columnas — izquierda composición (fórmula),
             derecha texto (función + notas). Header ya tiene el título. */}
@@ -349,13 +289,13 @@ export function GrupoCompuestoPanelFlotante({
                   onCrearYVincular={(nombre) => void formula.crearYVincular(nombre)}
                   catalogoDisponible={catalogo.items}
                   loadingCatalogo={catalogo.loading}
-                  labelCatalogo={tipo === "organo" ? "Tejido" : "Veta"}
+                  labelCatalogo="Tejido"
                   onActualizarProporcion={(vinculoId, proporcion) =>
                     void formula.actualizarProporcion(vinculoId, proporcion)
                   }
                   onQuitar={(vinculoId) => void formula.quitarCompuesto(vinculoId)}
-                  onAbrirCelula={(celulaOGranoId) => setCelulaOGranoAbiertoId(celulaOGranoId)}
-                  onAbrirTejido={(tejidoOVetaId) => setTejidoOVetaAbiertoId(tejidoOVetaId)}
+                  onAbrirCelula={(celulaId) => setCelulaAbiertaId(celulaId)}
+                  onAbrirTejido={(tejidoId) => setTejidoAbiertoId(tejidoId)}
                 />
               )}
             </div>
@@ -391,54 +331,42 @@ export function GrupoCompuestoPanelFlotante({
       </>
   );
 
-  // Editor de Tejido/Veta de una fila de la fórmula — reemplaza el
-  // contenido del Órgano DENTRO DEL MISMO marco cuando está abierto (en
-  // vez de apilarse como un modal nuevo encima). El editor de Célula/Grano
-  // que cuelga de una fila de ESE Tejido/Veta (si el usuario navega un
-  // nivel más adentro) sí necesita su propio mini-portal — ver más abajo.
-  const tejidoActivo =
-    tipo === "organo"
-      ? tejidosCatalogo.items.find((t) => t.id === tejidoOVetaAbiertoId) ?? null
-      : null;
-  const vetaActiva =
-    tipo === "formacion"
-      ? vetasCatalogo.items.find((v) => v.id === tejidoOVetaAbiertoId) ?? null
-      : null;
+  // Editor de Tejido de una fila de la fórmula — reemplaza el contenido
+  // del Órgano DENTRO DEL MISMO marco cuando está abierto (en vez de
+  // apilarse como un modal nuevo encima). El editor de Célula que cuelga
+  // de una fila de ESE Tejido (si el usuario navega un nivel más adentro)
+  // sí necesita su propio mini-portal — ver más abajo.
+  const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === tejidoAbiertoId) ?? null;
 
-  // Editor de Célula/Grano de una fila de la fórmula del Órgano DIRECTO
-  // (no anidado dentro de un Tejido/Veta) — mismo mecanismo: reemplaza el
+  // Editor de Célula de una fila de la fórmula del Órgano DIRECTO (no
+  // anidado dentro de un Tejido) — mismo mecanismo: reemplaza el
   // contenido del Órgano dentro del mismo marco.
-  const celulaActivaDirecta =
-    !tejidoOVetaAbiertoId && tipo === "organo"
-      ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
-      : null;
-  const granoActivoDirecto =
-    !tejidoOVetaAbiertoId && tipo === "formacion"
-      ? granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null
-      : null;
+  const celulaActivaDirecta = !tejidoAbiertoId
+    ? celulasCatalogo.items.find((c) => c.id === celulaAbiertaId) ?? null
+    : null;
 
   let contenidoActivo: React.ReactNode = contenidoOrgano;
 
-  if (tejidoActivo && tipo === "organo") {
+  if (tejidoActivo) {
     contenidoActivo = (
       <PanelEditorTejido sinMarco
         item={tejidoActivo}
         celulas={celulasCatalogo.items}
         loadingCelulas={celulasCatalogo.loading}
         compuestos={compuestos}
-        onCerrar={() => setTejidoOVetaAbiertoId(null)}
+        onCerrar={() => setTejidoAbiertoId(null)}
         onActualizar={tejidosCatalogo.actualizar}
         onEliminar={tejidosCatalogo.eliminar}
-        onAbrirCelula={(celulaId) => setCelulaOGranoAbiertoId(celulaId)}
+        onAbrirCelula={(celulaId) => setCelulaAbiertaId(celulaId)}
         onAbrirOrgano={(organoId) => {
-          setTejidoOVetaAbiertoId(null);
+          setTejidoAbiertoId(null);
           onCerrar();
           onAbrirOrganoExterno?.(organoId);
         }}
         onAbrirCompuesto={
           onAbrirCompuesto
             ? (compuestoId) => {
-                setTejidoOVetaAbiertoId(null);
+                setTejidoAbiertoId(null);
                 onCerrar();
                 onAbrirCompuesto(compuestoId);
               }
@@ -446,79 +374,34 @@ export function GrupoCompuestoPanelFlotante({
         }
       />
     );
-  } else if (vetaActiva && tipo === "formacion") {
-    contenidoActivo = (
-      <PanelEditorVeta sinMarco
-        item={vetaActiva}
-        granos={granosCatalogo.items}
-        loadingGranos={granosCatalogo.loading}
-        onCerrar={() => setTejidoOVetaAbiertoId(null)}
-        onActualizar={vetasCatalogo.actualizar}
-        onEliminar={vetasCatalogo.eliminar}
-        onAbrirGrano={(granoId) => setCelulaOGranoAbiertoId(granoId)}
-        onAbrirFormacion={(formacionId) => {
-          setTejidoOVetaAbiertoId(null);
-          onCerrar();
-          onAbrirFormacionExterna?.(formacionId);
-        }}
-      />
-    );
-  } else if (celulaActivaDirecta && tipo === "organo") {
+  } else if (celulaActivaDirecta) {
     contenidoActivo = (
       <PanelEditorCelula sinMarco
         item={celulaActivaDirecta}
         compuestos={compuestos}
-        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onCerrar={() => setCelulaAbiertaId(null)}
         onActualizar={celulasCatalogo.actualizar}
         onEliminar={celulasCatalogo.eliminar}
         onAbrirCompuesto={
           onAbrirCompuesto
             ? (compuestoId) => {
-                setCelulaOGranoAbiertoId(null);
+                setCelulaAbiertaId(null);
                 onCerrar();
                 onAbrirCompuesto(compuestoId);
               }
             : undefined
         }
         onAbrirTejido={(tejidoId) => {
-          setCelulaOGranoAbiertoId(null);
-          setTejidoOVetaAbiertoId(tejidoId);
-        }}
-      />
-    );
-  } else if (granoActivoDirecto && tipo === "formacion") {
-    contenidoActivo = (
-      <PanelEditorGrano sinMarco
-        item={granoActivoDirecto}
-        compuestos={compuestos}
-        onCerrar={() => setCelulaOGranoAbiertoId(null)}
-        onActualizar={granosCatalogo.actualizar}
-        onEliminar={granosCatalogo.eliminar}
-        onAbrirCompuesto={
-          onAbrirCompuesto
-            ? (compuestoId) => {
-                setCelulaOGranoAbiertoId(null);
-                onCerrar();
-                onAbrirCompuesto(compuestoId);
-              }
-            : undefined
-        }
-        onAbrirVeta={(vetaId) => {
-          setCelulaOGranoAbiertoId(null);
-          setTejidoOVetaAbiertoId(vetaId);
-        }}
-        onAbrirFormacion={(formacionId) => {
-          setCelulaOGranoAbiertoId(null);
-          onCerrar();
-          onAbrirFormacionExterna?.(formacionId);
+          setCelulaAbiertaId(null);
+          setTejidoAbiertoId(tejidoId);
         }}
       />
     );
   }
 
   // Marco blanco compartido — SIEMPRE el mismo nodo, sin importar qué
-  // nivel (Órgano, Tejido/Veta, o Célula/Grano directo) esté activo. Solo
-  // cambia `contenidoActivo` adentro — así nunca se ve como "otro modal
+  // nivel (Órgano, Tejido, o Célula directo) esté activo. Solo cambia
+  // `contenidoActivo` adentro — así nunca se ve como "otro modal
   // apilado", es el mismo panel reemplazando su contenido.
   const cajaInterna = (
       <div
@@ -533,70 +416,35 @@ export function GrupoCompuestoPanelFlotante({
       </div>
   );
 
-  // Segundo nivel de anidamiento real: Célula/Grano abierto DESDE ADENTRO
-  // del panel de Tejido/Veta que ya reemplazó el contenido de arriba — acá
-  // sí hay dos niveles simultáneos genuinos (Tejido de fondo, Célula
-  // encima), así que la Célula sí necesita su propio marco flotante.
-  const celulaAnidadaEnTejido =
-    tejidoOVetaAbiertoId && tipo === "organo"
-      ? celulasCatalogo.items.find((c) => c.id === celulaOGranoAbiertoId) ?? null
-      : null;
-  const granoAnidadoEnVeta =
-    tejidoOVetaAbiertoId && tipo === "formacion"
-      ? granosCatalogo.items.find((g) => g.id === celulaOGranoAbiertoId) ?? null
-      : null;
+  // Segundo nivel de anidamiento real: Célula abierta DESDE ADENTRO del
+  // panel de Tejido que ya reemplazó el contenido de arriba — acá sí hay
+  // dos niveles simultáneos genuinos (Tejido de fondo, Célula encima), así
+  // que la Célula sí necesita su propio marco flotante.
+  const celulaAnidadaEnTejido = tejidoAbiertoId
+    ? celulasCatalogo.items.find((c) => c.id === celulaAbiertaId) ?? null
+    : null;
 
   const editoresAnidados = celulaAnidadaEnTejido ? (
-    <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
+    <MiniPortalAnidado onCerrar={() => setCelulaAbiertaId(null)}>
       <PanelEditorCelula
         item={celulaAnidadaEnTejido}
         compuestos={compuestos}
-        onCerrar={() => setCelulaOGranoAbiertoId(null)}
+        onCerrar={() => setCelulaAbiertaId(null)}
         onActualizar={celulasCatalogo.actualizar}
         onEliminar={celulasCatalogo.eliminar}
         onAbrirCompuesto={
           onAbrirCompuesto
             ? (compuestoId) => {
-                setCelulaOGranoAbiertoId(null);
-                setTejidoOVetaAbiertoId(null);
+                setCelulaAbiertaId(null);
+                setTejidoAbiertoId(null);
                 onCerrar();
                 onAbrirCompuesto(compuestoId);
               }
             : undefined
         }
         onAbrirTejido={(tejidoId) => {
-          setCelulaOGranoAbiertoId(null);
-          setTejidoOVetaAbiertoId(tejidoId);
-        }}
-      />
-    </MiniPortalAnidado>
-  ) : granoAnidadoEnVeta ? (
-    <MiniPortalAnidado onCerrar={() => setCelulaOGranoAbiertoId(null)}>
-      <PanelEditorGrano
-        item={granoAnidadoEnVeta}
-        compuestos={compuestos}
-        onCerrar={() => setCelulaOGranoAbiertoId(null)}
-        onActualizar={granosCatalogo.actualizar}
-        onEliminar={granosCatalogo.eliminar}
-        onAbrirCompuesto={
-          onAbrirCompuesto
-            ? (compuestoId) => {
-                setCelulaOGranoAbiertoId(null);
-                setTejidoOVetaAbiertoId(null);
-                onCerrar();
-                onAbrirCompuesto(compuestoId);
-              }
-            : undefined
-        }
-        onAbrirVeta={(vetaId) => {
-          setCelulaOGranoAbiertoId(null);
-          setTejidoOVetaAbiertoId(vetaId);
-        }}
-        onAbrirFormacion={(formacionId) => {
-          setCelulaOGranoAbiertoId(null);
-          setTejidoOVetaAbiertoId(null);
-          onCerrar();
-          onAbrirFormacionExterna?.(formacionId);
+          setCelulaAbiertaId(null);
+          setTejidoAbiertoId(tejidoId);
         }}
       />
     </MiniPortalAnidado>

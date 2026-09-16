@@ -39,15 +39,9 @@ import { supabase } from "@/infra/supabase/supabase";
 
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
-import { useFormaciones } from "@/domains/garlia/elementos/useFormaciones";
 import { useReacciones } from "@/domains/garlia/elementos/useReacciones";
 import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
-import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { ReaccionPanelFlotante } from "@/domains/garlia/elementos/ReaccionesPage";
-import { useGranos } from "@/domains/garlia/elementos/useGranos";
-import { useVetas } from "@/domains/garlia/elementos/useVetas";
-import { PanelEditorGrano, PanelEditorVeta } from "@/domains/garlia/fisica/CatalogoVetasFisica";
-import { useEntidadVinculosGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 import { useItemHabilidadesReaccion } from "@/domains/garlia/_shared/useItemHabilidadesReaccion";
 
 import { SelectorImagen } from "@/domains/garlia/_shared/UIComponents";
@@ -88,17 +82,7 @@ export function EditorItem({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [showModalDnd, setShowModalDnd] = useState(false);
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
-  const [editandoGrupoId, setEditandoGrupoId] = useState<string | null>(null);
   const [editandoReaccionId, setEditandoReaccionId] = useState<string | null>(null);
-  // Panel del Grano abierto al clickear "hecho de: [Grano]" en la fila de
-  // fórmula de una Veta (Formación → Veta → Grano → Compuesto). Ver misma
-  // nota en MineralEditor.tsx.
-  const [editandoGranoId, setEditandoGranoId] = useState<string | null>(null);
-  // Panel de la Veta abierta desde "Grano → Veta" dentro de PanelEditorGrano
-  // (ver onAbrirVeta abajo) — mismo patrón que editandoGranoId.
-  const [editandoVetaId, setEditandoVetaId] = useState<string | null>(null);
-  const granosCatalogo = useGranos();
-  const vetasCatalogo = useVetas();
   const { onWikilink } = useWikilink();
 
   // Catálogo de criaturas para el selector "Criatura" (origen del ítem)
@@ -106,24 +90,6 @@ export function EditorItem({
   // Catálogo de elementos/compuestos — mismo patrón que Flora/Mineral
   const { items: elementos } = useElementos();
   const { items: compuestos, setItems: setCompuestos } = useCompuestosConElementos();
-
-  // Catálogo propio de Formaciones — Estructura del item usa el MISMO
-  // catálogo (tabla real "formaciones") que Formaciones de Minerales. Un
-  // item y un mineral pueden compartir la misma Formación (ej. "Cristal de
-  // Cuarzo" como parte de una espada y como formación mineral), y editarla
-  // en cualquiera de los dos lugares actualiza a ambos. FASE 7: el vínculo
-  // vive en estructura_componentes (padre_tipo='item', hijo_tipo='formacion'),
-  // reemplaza la tabla dedicada item_estructura (sigue existiendo sin
-  // usarse, limpieza en Fase 8).
-  const { items: catalogoEstructura, setItems: setCatalogoEstructura } = useFormaciones();
-
-  const estructura = useEntidadVinculosGrupo({
-    entidadId: item.id,
-    padreTipo: "item",
-    tablaCatalogo: "formaciones",
-    hijoTipo: "formacion",
-    catalogo: catalogoEstructura,
-  });
 
   // Habilidades del item = N Reacciones del catálogo global de Química,
   // vinculadas N:N vía la tabla puente item_habilidades (item_id,
@@ -134,21 +100,6 @@ export function EditorItem({
     itemId: item.id,
     catalogo: reacciones,
   });
-
-  function onGrupoCompuestoActualizadoLocal(id: string, updates: any) {
-    setCatalogoEstructura((prev) => prev.map((g) => (g.id === id ? { ...g, ...updates } : g)));
-  }
-
-  // Persistencia directa de la Formación en catálogo — usada por el
-  // panel flotante (GrupoCompuestoPanelFlotante), que no sabe a qué
-  // relación (estructura/habilidad) pertenece el grupo que edita.
-  async function persistirGrupoCompuesto(id: string, cambios: any) {
-    onGrupoCompuestoActualizadoLocal(id, cambios);
-    const { error } = await supabase.from("formaciones").update(cambios).eq("id", id);
-    if (error) {
-      console.error("[EditorItem] error guardando formación:", error);
-    }
-  }
 
   function onReaccionActualizadaLocal(id: string, updates: any) {
     setReacciones((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));
@@ -430,70 +381,6 @@ export function EditorItem({
           }
         />
       )}
-
-      {editandoGrupoId && (
-        <GrupoCompuestoPanelFlotante
-          grupo={catalogoEstructura.find((g) => g.id === editandoGrupoId)!}
-          tipo="formacion"
-          compuestos={compuestos}
-          onCerrar={() => setEditandoGrupoId(null)}
-          onActualizar={persistirGrupoCompuesto}
-          onAbrirCompuesto={setEditandoCompuestoId}
-        />
-      )}
-
-      {/* Click en "hecho de: [Grano]" en la fila de fórmula de una Veta —
-          la cadena real es Veta→Grano→Compuesto, así que esto abre el
-          Grano (donde vive compuesto_id), no el Compuesto directo. */}
-      {editandoGranoId &&
-        (() => {
-          const granoActivo = granosCatalogo.items.find((g) => g.id === editandoGranoId);
-          if (!granoActivo) return null;
-          return (
-            <PanelEditorGrano
-              item={granoActivo}
-              compuestos={compuestos}
-              onCerrar={() => setEditandoGranoId(null)}
-              onActualizar={granosCatalogo.actualizar}
-              onEliminar={granosCatalogo.eliminar}
-              onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirVeta={(vetaId) => {
-                setEditandoGranoId(null);
-                setEditandoVetaId(vetaId);
-              }}
-              onAbrirFormacion={(formacionId) => {
-                setEditandoGranoId(null);
-                setEditandoGrupoId(formacionId);
-              }}
-            />
-          );
-        })()}
-
-      {/* Panel de la Veta abierta desde "Grano → Veta" — se apila igual
-          que el Grano de arriba. */}
-      {editandoVetaId &&
-        (() => {
-          const vetaActiva = vetasCatalogo.items.find((v) => v.id === editandoVetaId);
-          if (!vetaActiva) return null;
-          return (
-            <PanelEditorVeta
-              item={vetaActiva}
-              granos={granosCatalogo.items}
-              loadingGranos={granosCatalogo.loading}
-              onCerrar={() => setEditandoVetaId(null)}
-              onActualizar={vetasCatalogo.actualizar}
-              onEliminar={vetasCatalogo.eliminar}
-              onAbrirGrano={(granoId) => {
-                setEditandoVetaId(null);
-                setEditandoGranoId(granoId);
-              }}
-              onAbrirFormacion={(formacionId) => {
-                setEditandoVetaId(null);
-                setEditandoGrupoId(formacionId);
-              }}
-            />
-          );
-        })()}
 
       {editandoReaccionId && (
         <ReaccionPanelFlotante

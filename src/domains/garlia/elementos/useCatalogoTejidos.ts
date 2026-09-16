@@ -3,20 +3,23 @@
 /**
  * useCatalogoTejidos.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Lista TODOS los Tejidos (u opcionalmente Vetas, según `tipo`) que ya
- * existen en Supabase, sin filtrar por Órgano/Formación — a diferencia de
- * useOrganoTejidos/useFormacionVetas, que solo resuelven la fórmula de UNA
- * entidad puntual.
+ * Lista TODOS los Tejidos que ya existen en Supabase, sin filtrar por
+ * Órgano — a diferencia de useOrganoTejidos, que solo resuelve la fórmula
+ * de UN Órgano puntual.
  *
  * Existe para alimentar el picker "Usar existente" de SelectorFormulaTejidos:
  * antes, la única forma de agregar una fila a la fórmula era crear una
  * Célula+Tejido nuevos desde cero (ver nota en useOrganoTejidos.ts). Este
- * hook expone el catálogo completo para poder reutilizar un Tejido/Veta ya
- * creado en otro Órgano/Formación, vinculándolo directo sin duplicar datos.
+ * hook expone el catálogo completo para poder reutilizar un Tejido ya
+ * creado en otro Órgano, vinculándolo directo sin duplicar datos.
  *
- * Devuelve cada fila con su Compuesto resuelto (vía Célula/Grano) para que
- * el picker pueda mostrar "Tejido X — hecho de Compuesto Y" sin fetches
- * adicionales.
+ * Un Tejido se compone de Células vía tabla puente M:N `tejido_celulas`
+ * (Tejido.celula_id quedó deprecated/null tras esa migración — ver
+ * types.ts). Este hook resuelve, por picker, la PRIMERA Célula de cada
+ * Tejido como representativa (mismo criterio simplificado que ya usaba
+ * este picker antes de la migración a M:N), para poder mostrar
+ * "Tejido X — hecho de Compuesto Y" sin fetches adicionales; el editor
+ * completo (PanelEditorTejido) sí resuelve la lista completa de Células.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -25,64 +28,72 @@ import { db } from "@/infra/supabase/db";
 
 import {
   CONFIG_CELULAS,
-  CONFIG_GRANOS,
   CONFIG_TEJIDOS,
-  CONFIG_VETAS,
+  CONFIG_TEJIDO_CELULAS,
   type Celula,
-  type Grano,
   type Tejido,
-  type Veta,
+  type TejidoCelula,
 } from "@/domains/garlia/elementos/types";
 
+/** Una entrada del catálogo, ya resuelta contra su primera Célula — mismo
+ *  shape mínimo que necesita el picker (nombre + compuesto_id). */
+export interface EntradaCatalogoTejido {
+  id: string;
+  nombre: string;
+  funcion: string | null;
+  notas: string | null;
+  /** Id de la primera Célula vinculada (vía tejido_celulas) — el nivel que
+   *  guarda compuesto_id. Null si el Tejido todavía no tiene ninguna. */
+  catalogo_id: string | null;
+  compuesto_id: string | null;
+}
+
 // ── Cache-first: catálogo completo, sin filtrar por entidad puntual ───────
-// Mismo espíritu que useOrganoTejidos/useFormacionVetas: pintar de Dexie de
-// inmediato y revalidar contra Supabase en segundo plano.
+// Mismo espíritu que useOrganoTejidos: pintar de Dexie de inmediato y
+// revalidar contra Supabase en segundo plano.
 function resolverDesdeTablas(
-  tejidos: (Tejido | Veta)[],
-  catalogoPorId: Record<string, Celula | Grano>,
-  fkCampo: string,
+  tejidos: Tejido[],
+  vinculosPorTejido: Record<string, TejidoCelula[]>,
+  celulasPorId: Record<string, Celula>,
 ): EntradaCatalogoTejido[] {
   return tejidos.map((t) => {
-    const catalogoId = (t as unknown as Record<string, unknown>)[fkCampo] as string | null;
-    const catalogo = catalogoId ? catalogoPorId[catalogoId] : undefined;
+    const primerVinculo = vinculosPorTejido[t.id]?.[0];
+    const celula = primerVinculo ? celulasPorId[primerVinculo.celula_id] : undefined;
     return {
       id: t.id,
       nombre: t.nombre,
       funcion: t.funcion,
       notas: t.notas,
-      catalogo_id: catalogoId,
-      compuesto_id: catalogo?.compuesto_id ?? null,
+      catalogo_id: primerVinculo?.celula_id ?? null,
+      compuesto_id: celula?.compuesto_id ?? null,
     };
   });
 }
 
-async function leerDeDexie(
-  tipo: "organo" | "formacion",
-): Promise<EntradaCatalogoTejido[]> {
+function agruparPorTejido(vinculos: TejidoCelula[]): Record<string, TejidoCelula[]> {
+  const out: Record<string, TejidoCelula[]> = {};
+  for (const v of vinculos) (out[v.tejido_id] ??= []).push(v);
+  return out;
+}
+
+async function leerDeDexie(): Promise<EntradaCatalogoTejido[]> {
   try {
     if (!db) return [];
-    const fkCampo = tipo === "organo" ? "celula_id" : "grano_id";
-    const tejidos = (
-      tipo === "organo" ? await db.tejidos.toArray() : await db.vetas.toArray()
-    ) as unknown as (Tejido | Veta)[];
+    const tejidos = (await db.tejidos.toArray()) as unknown as Tejido[];
     if (tejidos.length === 0) return [];
 
-    const catalogoIds = tejidos
-      .map((t) => (t as unknown as Record<string, unknown>)[fkCampo])
-      .filter((id): id is string => typeof id === "string");
+    const vinculos = (await db.tejido_celulas.toArray()) as unknown as TejidoCelula[];
+    const vinculosPorTejido = agruparPorTejido(vinculos);
 
-    let catalogoPorId: Record<string, Celula | Grano> = {};
-    if (catalogoIds.length > 0) {
-      const rows = (
-        tipo === "organo"
-          ? await db.celulas.bulkGet(catalogoIds)
-          : await db.granos.bulkGet(catalogoIds)
-      ) as unknown as (Celula | Grano | undefined)[];
-      catalogoPorId = {};
-      for (const c of rows) if (c) catalogoPorId[c.id] = c;
+    const celulaIds = Array.from(new Set(vinculos.map((v) => v.celula_id)));
+    let celulasPorId: Record<string, Celula> = {};
+    if (celulaIds.length > 0) {
+      const rows = (await db.celulas.bulkGet(celulaIds)) as unknown as (Celula | undefined)[];
+      celulasPorId = {};
+      for (const c of rows) if (c) celulasPorId[c.id] = c;
     }
 
-    return resolverDesdeTablas(tejidos, catalogoPorId, fkCampo).sort((a, b) =>
+    return resolverDesdeTablas(tejidos, vinculosPorTejido, celulasPorId).sort((a, b) =>
       a.nombre.localeCompare(b.nombre),
     );
   } catch {
@@ -90,44 +101,24 @@ async function leerDeDexie(
   }
 }
 
-async function guardarEnDexie(
-  tipo: "organo" | "formacion",
-  tejidos: (Tejido | Veta)[],
-  catalogo: (Celula | Grano)[],
-) {
+async function guardarEnDexie(tejidos: Tejido[], vinculos: TejidoCelula[], celulas: Celula[]) {
   try {
     if (!db) return;
-    if (tipo === "organo") {
-      if (tejidos.length) await db.tejidos.bulkPut(tejidos as any[]);
-      if (catalogo.length) await db.celulas.bulkPut(catalogo as any[]);
-    } else {
-      if (tejidos.length) await db.vetas.bulkPut(tejidos as any[]);
-      if (catalogo.length) await db.granos.bulkPut(catalogo as any[]);
-    }
+    if (tejidos.length) await db.tejidos.bulkPut(tejidos as any[]);
+    if (vinculos.length) await db.tejido_celulas.bulkPut(vinculos as any[]);
+    if (celulas.length) await db.celulas.bulkPut(celulas as any[]);
   } catch (e) {
     console.warn("[useCatalogoTejidos] no se pudo guardar en Dexie:", e);
   }
 }
 
-/** Una entrada del catálogo, ya resuelta contra su Célula/Grano — mismo
- *  shape mínimo que necesita el picker (nombre + compuesto_id). */
-export interface EntradaCatalogoTejido {
-  id: string;
-  nombre: string;
-  funcion: string | null;
-  notas: string | null;
-  /** Id de la Célula (Tejido) o Grano (Veta) — el nivel que guarda compuesto_id. */
-  catalogo_id: string | null;
-  compuesto_id: string | null;
-}
-
-export function useCatalogoTejidos(tipo: "organo" | "formacion" = "organo") {
+export function useCatalogoTejidos() {
   const [items, setItems] = useState<EntradaCatalogoTejido[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
-    const itemsLocales = await leerDeDexie(tipo);
+    const itemsLocales = await leerDeDexie();
     if (itemsLocales.length > 0) {
       setItems(itemsLocales);
       setLoading(false);
@@ -136,13 +127,9 @@ export function useCatalogoTejidos(tipo: "organo" | "formacion" = "organo") {
     }
 
     // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
-    const configTejido = tipo === "organo" ? CONFIG_TEJIDOS : CONFIG_VETAS;
-    const configCatalogo = tipo === "organo" ? CONFIG_CELULAS : CONFIG_GRANOS;
-    const fkCampo = tipo === "organo" ? "celula_id" : "grano_id";
-
     const { data: tejidoData, error: tejidoError } = await supabase
-      .from(configTejido.tabla)
-      .select(configTejido.select)
+      .from(CONFIG_TEJIDOS.tabla)
+      .select(CONFIG_TEJIDOS.select)
       .order("nombre", { ascending: true });
 
     if (tejidoError || !tejidoData) {
@@ -151,29 +138,37 @@ export function useCatalogoTejidos(tipo: "organo" | "formacion" = "organo") {
       return;
     }
 
-    const tejidos = tejidoData as unknown as (Tejido | Veta)[];
+    const tejidos = tejidoData as unknown as Tejido[];
+    const tejidoIds = tejidos.map((t) => t.id);
 
-    const catalogoIds = tejidos
-      .map((t) => (t as unknown as Record<string, unknown>)[fkCampo])
-      .filter((id): id is string => typeof id === "string");
+    let vinculos: TejidoCelula[] = [];
+    if (tejidoIds.length > 0) {
+      const { data: vinculoData } = await supabase
+        .from(CONFIG_TEJIDO_CELULAS.tabla)
+        .select(CONFIG_TEJIDO_CELULAS.select)
+        .in("tejido_id", tejidoIds);
+      vinculos = (vinculoData ?? []) as unknown as TejidoCelula[];
+    }
+    const vinculosPorTejido = agruparPorTejido(vinculos);
 
-    let catalogoDatos: (Celula | Grano)[] = [];
-    let catalogoPorId: Record<string, Celula | Grano> = {};
-    if (catalogoIds.length > 0) {
-      const { data: catalogoData } = await supabase
-        .from(configCatalogo.tabla)
-        .select(configCatalogo.select)
-        .in("id", catalogoIds);
+    const celulaIds = Array.from(new Set(vinculos.map((v) => v.celula_id)));
+    let celulaDatos: Celula[] = [];
+    let celulasPorId: Record<string, Celula> = {};
+    if (celulaIds.length > 0) {
+      const { data: celulaData } = await supabase
+        .from(CONFIG_CELULAS.tabla)
+        .select(CONFIG_CELULAS.select)
+        .in("id", celulaIds);
 
-      catalogoDatos = (catalogoData ?? []) as unknown as (Celula | Grano)[];
-      catalogoPorId = {};
-      for (const c of catalogoDatos) catalogoPorId[c.id] = c;
+      celulaDatos = (celulaData ?? []) as unknown as Celula[];
+      celulasPorId = {};
+      for (const c of celulaDatos) celulasPorId[c.id] = c;
     }
 
-    setItems(resolverDesdeTablas(tejidos, catalogoPorId, fkCampo));
+    setItems(resolverDesdeTablas(tejidos, vinculosPorTejido, celulasPorId));
     setLoading(false);
-    void guardarEnDexie(tipo, tejidos, catalogoDatos);
-  }, [tipo]);
+    void guardarEnDexie(tejidos, vinculos, celulaDatos);
+  }, []);
 
   useEffect(() => {
     void load();

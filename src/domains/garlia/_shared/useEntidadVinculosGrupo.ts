@@ -15,11 +15,11 @@
  * estructura_componentes(padre_tipo=padreTipo, padre_id=entidadId,
  * hijo_tipo=hijoTipo, hijo_id=<id del catálogo>). El propio backend valida
  * con un trigger que padre_tipo/hijo_tipo sean un par permitido y que los
- * ids existan en la tabla correcta — mismo blindaje que ya tiene
- * Grano↔Veta, no hace falta reimplementarlo acá.
+ * ids existan en la tabla correcta.
  *
- * `tablaCatalogo` sigue siendo la tabla real del catálogo compartido
- * ("formaciones" u "organos") — eso no cambió, solo la tabla puente.
+ * `tablaCatalogo` sigue siendo la tabla real del catálogo ("organos") —
+ * eso no cambió, solo la tabla puente. (Antes también servía a "formaciones"
+ * — removido junto con Grano/Veta/Formación del proyecto.)
  *
  * FASE 7 (cont.) — antes pegaba directo a `supabase`, sin cache local ni
  * cola offline. Ahora pasa por useSupabaseData("estructura_componentes"),
@@ -37,12 +37,12 @@
  * usePlantaOrganosProcesos.ts, useMineralFormacionesProcesos.ts).
  *
  * Uso:
- *   const formaciones = useEntidadVinculosGrupo({
+ *   const estructura = useEntidadVinculosGrupo({
  *     entidadId: item.id,
  *     padreTipo: "item",
- *     tablaCatalogo: "formaciones",
- *     hijoTipo: "formacion",
- *     catalogo: catalogoFormaciones, // useFormaciones().items
+ *     tablaCatalogo: "organos",
+ *     hijoTipo: "organo",
+ *     catalogo: catalogoOrganos, // useOrganos().items — mismo catálogo que usa Formación
  *   });
  */
 
@@ -52,20 +52,16 @@ import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 
 import type { EntidadCatalogoGrupoBase } from "@/domains/garlia/elementos/types";
 
-/** Shape mínimo compartido por Organo y Formacion — tipado contra la base
- *  común (EntidadCatalogoGrupoBase) en vez de una unión (Organo | Formacion),
- *  que TypeScript no deja `extends`-ear de forma confiable (perdía `id` en
- *  GrupoVinculadoResuelto — ver build error). Sigue aceptando indistintamente
- *  filas de Organo o de Formacion en runtime, porque ambas son
- *  estructuralmente esa misma base. */
+/** Shape mínimo de Organo — tipado contra la base común
+ *  (EntidadCatalogoGrupoBase; antes también la usaba Formacion, removida
+ *  junto con Grano/Veta). */
 export type EntradaCatalogoGrupo = EntidadCatalogoGrupoBase;
 
-/** Padres válidos hoy contra el catálogo formacion/organo (no incluye
- *  veta/grano/compuesto — esos tienen su propio hook, useFormacionVetas). */
+/** Padres válidos hoy contra el catálogo organo. */
 export type PadreTipoEntidad = "item" | "mineral" | "criatura" | "planta";
 
-/** Hijos válidos: los dos catálogos que consume este hook. */
-export type HijoTipoCatalogo = "formacion" | "organo";
+/** Hijo válido: el único catálogo que consume este hook. */
+export type HijoTipoCatalogo = "organo";
 
 /** Fila cruda de estructura_componentes, ya con el par padre/hijo fijo. */
 interface VinculoEstructura {
@@ -146,15 +142,14 @@ export function useEntidadVinculosGrupo({
   }, [vinculos, catalogo]);
 
   // ── Crear un registro nuevo en tablaCatalogo + vincularlo ──────────────
-  // Ya no lleva `componentes` — un Organo/Formacion nuevo nace vacío
-  // (solo nombre) y su composición se arma después, por separado, vía
-  // useOrganoTejidos/useFormacionVetas sobre el id ya creado.
+  // Ya no lleva `componentes` — un Organo nuevo nace vacío (solo nombre) y
+  // su composición se arma después, por separado, vía useOrganoTejidos
+  // sobre el id ya creado.
   //
-  // El catálogo (tablaCatalogo: "organos"/"formaciones") sigue creándose
-  // directo contra supabase, no vía useSupabaseData — este hook solo recibe
-  // el catálogo ya cargado por el padre (useOrganos/useFormaciones), no lo
-  // gestiona. Solo el vínculo en estructura_componentes pasa por addRow
-  // (con su cache/cola offline).
+  // El catálogo (tablaCatalogo: "organos") sigue creándose directo contra
+  // supabase, no vía useSupabaseData — este hook solo recibe el catálogo ya
+  // cargado por el padre (useOrganos), no lo gestiona. Solo el vínculo en
+  // estructura_componentes pasa por addRow (con su cache/cola offline).
   const crearYVincular = useCallback(
     async (nombre: string = "") => {
       const { data: nuevoGrupo, error: errorGrupo } = await supabase

@@ -823,28 +823,24 @@ export interface GrupoCompuesto {
   updated_at?: string;
 }
 
-// ─── Órganos / Formaciones: catálogo propio, SEPARADO ──────────────────────
-// Pasaron por 3 etapas: GrupoCompuesto tipo="organo"/"formacion" → tabla
-// unificada "estructuras_ensambladas" → hoy, dos tablas reales separadas
-// "organos" y "formaciones", cada una con su propia jerarquía de
-// composición debajo (ver Célula/Tejido y Grano/Veta más abajo). Ya NO
-// tienen columna `componentes`: un Órgano/Formación es solo catálogo
-// (nombre, función, notas) — la fórmula de compuestos vive varios niveles
-// más abajo, resuelta vía la tabla puente organo_tejidos/formacion_vetas.
+// ─── Órganos: catálogo propio ───────────────────────────────────────────
+// Pasaron por 3 etapas: GrupoCompuesto tipo="organo" → tabla unificada
+// "estructuras_ensambladas" → hoy, tabla real "organos", con su propia
+// jerarquía de composición debajo (ver Célula/Tejido más abajo). Ya NO
+// tiene columna `componentes`: un Órgano es solo catálogo (nombre, función,
+// notas) — la fórmula de compuestos vive varios niveles más abajo, resuelta
+// vía la tabla puente organo_tejidos.
 //
-// Se vinculan N:N a plantas (planta_organos), minerales
-// (mineral_formaciones), items (item_estructura) y criaturas
-// (criatura_organos) — todas esas tablas puente siguen usando la columna
-// `grupo_compuesto_id` por compatibilidad histórica, aunque hoy apunte a
-// organos.id o formaciones.id según el caso (no a una tabla
-// "grupos_compuestos", que ya no existe).
+// Se vincula N:N a plantas (planta_organos), items (item_estructura) y
+// criaturas (criatura_organos) — todas esas tablas puente siguen usando la
+// columna `grupo_compuesto_id` por compatibilidad histórica, aunque hoy
+// apunte a organos.id (no a una tabla "grupos_compuestos", que ya no
+// existe).
 //
-// Organo y Formacion son estructuralmente idénticos — ambos extienden esta
-// base en vez de repetir los campos, así el código compartido (ver
-// useEntidadVinculosGrupo.ts, SeccionGruposVinculados.tsx) puede tipar
-// contra la base sin recurrir a un tipo unión (`Organo | Formacion`), que
-// TypeScript no deja `extends`-ear de forma confiable y termina "perdiendo"
-// campos como `id` en el tipo resultante.
+// NOTA: Formacion (catálogo hermano de Organo, usado para minerales/Vetas/
+// Granos) fue removido junto con toda la lógica de Granos/Vetas/Formación
+// del proyecto — decisión explícita del usuario. EntidadCatalogoGrupoBase
+// se mantiene como base de Organo (antes también la usaba Formacion).
 export interface EntidadCatalogoGrupoBase {
   id: string;
   nombre: string;
@@ -856,15 +852,8 @@ export interface EntidadCatalogoGrupoBase {
 
 export interface Organo extends EntidadCatalogoGrupoBase {}
 
-export interface Formacion extends EntidadCatalogoGrupoBase {}
-
 export const CONFIG_ORGANOS = {
   tabla: "organos",
-  select: "id, nombre, funcion, notas, created_at, updated_at",
-};
-
-export const CONFIG_FORMACIONES = {
-  tabla: "formaciones",
   select: "id, nombre, funcion, notas, created_at, updated_at",
 };
 
@@ -1340,86 +1329,11 @@ export const CONFIG_ORGANISMO_ORGANOS = {
   select: "id, organismo_id, organo_id, rol, cantidad, created_at",
 };
 
-// ─── Granos / Vetas: composición de una Formación (minerales) ────────────
-// Espejo inerte de Célula/Tejido: Formacion → formacion_vetas → Veta →
-// (estructura_componentes) → Grano → (estructura_componentes) → Compuesto.
-//
-// FASE 4: compuesto_id y grano_id son FK legadas 1:1, YA NO usadas desde el
-// frontend (ver useFormacionVetas.ts) — la composición real N:M vive en
-// estructura_componentes. Se mantienen en el tipo solo porque la columna
-// todavía existe en Supabase (limpieza pendiente para Fase 8); no escribir
-// en ellas desde código nuevo.
-export interface Grano {
-  id: string;
-  nombre: string;
-  /** @deprecated Fase 4 — usar estructura_componentes (padre=grano, hijo=compuesto). */
-  compuesto_id: string | null;
-  estructura: unknown;
-  funcion: string | null;
-  notas: string | null;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface Veta {
-  id: string;
-  nombre: string;
-  /** @deprecated Fase 4 — usar estructura_componentes (padre=veta, hijo=grano). */
-  grano_id: string | null;
-  estructura: unknown;
-  funcion: string | null;
-  notas: string | null;
-  created_at: string;
-  updated_at?: string;
-}
-
-/** Fila puente formacion_vetas: vincula una Veta a una Formación con una proporción libre. */
-export interface FormacionVeta {
-  id: string;
-  formacion_id: string;
-  veta_id: string;
-  proporcion: string | null;
-  created_at: string;
-}
-
-export const CONFIG_GRANOS = {
-  tabla: "granos",
-  select: "id, nombre, compuesto_id, estructura, funcion, notas, created_at, updated_at",
-};
-
-export const CONFIG_VETAS = {
-  tabla: "vetas",
-  select: "id, nombre, grano_id, estructura, funcion, notas, created_at, updated_at",
-};
-
-// ─── estructura_componentes: relación N:M genérica de composición ────────
-// Reemplaza los FK singulares grano.compuesto_id y veta.grano_id.
-// Diseñada para reutilizarse en Fase 7 (unificación transversal) — mismo
-// patrón para cualquier "X está compuesto de Y con proporción Z".
-// Combinaciones válidas hoy (constraint CHECK en Supabase):
-//   padre_tipo='veta'  + hijo_tipo='grano'
-//   padre_tipo='grano' + hijo_tipo='compuesto'
-// (Formacion<-Veta sigue viviendo en formacion_vetas, no se toca acá.)
-export type EstructuraPadreTipo = "veta" | "grano";
-export type EstructuraHijoTipo = "grano" | "compuesto";
-
-export interface EstructuraComponente {
-  id: string;
-  padre_tipo: EstructuraPadreTipo;
-  padre_id: string;
-  hijo_tipo: EstructuraHijoTipo;
-  hijo_id: string;
-  cantidad: number | null;
-  proporcion: number | null;
-  unidad: string | null;
-  rol: string | null;
-  created_at: string;
-}
-
-export const CONFIG_ESTRUCTURA_COMPONENTES = {
-  tabla: "estructura_componentes",
-  select: "id, padre_tipo, padre_id, hijo_tipo, hijo_id, cantidad, proporcion, unidad, rol, created_at",
-};
+// NOTA: Granos/Vetas (composición de una Formación en minerales) y la
+// tabla estructura_componentes (relación N:M padre_tipo/hijo_tipo 'veta'|
+// 'grano'|'compuesto' que los vinculaba) fueron removidos junto con toda
+// la lógica de Granos/Vetas/Formación del proyecto — decisión explícita
+// del usuario.
 
 // ─── Procesos/Reacciones: recetas reutilizables de consume/produce ────────
 // Catálogo propio (tabla real "reacciones", separada de

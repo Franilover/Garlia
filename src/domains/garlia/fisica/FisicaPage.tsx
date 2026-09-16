@@ -46,16 +46,8 @@ import {
   type Particula,
   type ParticulaBase,
 } from "./types";
-import type { Formacion } from "@/domains/garlia/elementos/types";
 import { PanelEditorSubsistema } from "@/domains/garlia/runas/BloqueSubsistemasMagia";
 import type { SubsistemaMagia } from "@/domains/garlia/runas/useSubsistemasMagia";
-
-import { GridCatalogoGrupo } from "@/domains/garlia/_shared/GridCatalogoGrupo";
-import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
-import { useElementos } from "@/domains/garlia/elementos/useElementos";
-import { useFormaciones } from "@/domains/garlia/elementos/useFormaciones";
-import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
-import { CatalogoVetasFisica } from "./CatalogoVetasFisica";
 
 /** Adapta un SubsistemaMagia al shape FilaCatalogo — vive acá (no en
  *  types.ts de física) para no acoplar ese módulo al dominio "runas". */
@@ -445,100 +437,6 @@ function TodasLasBasesView({
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-/**
- * "Física · minerales": Subsistemas ya no va acá (ver la fila de 5 en
- * TodasLasBasesView) — solo Granos, Vetas y Formaciones, la jerarquía de
- * composición mineral de Física. Extraído de TodasLasBasesView para que
- * RunasPage pueda ubicarlo en su propia columna del layout general
- * (junto a BiologiaCatalogos), separado de la fila de catálogos base.
- */
-export function BloqueFisicaMinerales({
-  onSelectCriatura,
-}: {
-  onSelectCriatura?: (id: string) => void;
-}) {
-  // Formaciones = tabla real "formaciones" (mismo catálogo que Minerales e
-  // Items). Ya no tiene columna `componentes` — la fórmula vive vía
-  // Vetas/Granos. (El catálogo "reacciones" ya no se renderiza acá como
-  // "Habilidades" — es la misma tabla que Química → Tabla → Reacciones y
-  // Biología → Procesos, así que se dejó un único render global en
-  // Tabla→Reacciones para evitar 3 fetches/estados desincronizados del
-  // mismo dato.) Self-contained, mismo espíritu que el resto de Física:
-  // trae sus propios datos acá en vez de subirlos como props hasta RunasPage.
-  const { items: catalogoFormaciones, setItems: setCatalogoFormaciones } = useFormaciones();
-  const { items: compuestosCatalogo, setItems: setCompuestosCatalogo } = useCompuestosConElementos();
-  const { items: elementosCatalogo } = useElementos();
-
-  // Click en un Compuesto (desde Granos/Vetas o Formaciones)
-  // abre acá su editor completo — mismo patrón que BiologiaPage/FloraEditor.
-  const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
-  // Navegación controlada desde el breadcrumb "Veta → Formación" / "Grano →
-  // Formación" de CatalogoVetasFisica — al elegir una Formación, este id le
-  // llega a GridCatalogoGrupo (abrirIdExterno) para abrir su editor
-  // flotante, mismo patrón que organoAAbrirId en BiologiaPage.
-  const [formacionAAbrirId, setFormacionAAbrirId] = useState<string | null>(null);
-
-  async function actualizarFormacion(id: string, cambios: Partial<Formacion>) {
-    setCatalogoFormaciones((prev) => prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)));
-    const { error } = await supabase.from("formaciones").update(cambios).eq("id", id);
-    if (error) console.error("[FisicaPage] error guardando formación:", error);
-  }
-
-  return (
-    <div className="flex flex-col gap-4 p-2.5">
-      {/* Granos y Vetas — catálogo global de composición, mismo patrón que
-          CatalogoTejidosBiologia en Biología: dos grids navegables con
-          editor propio, arriba de Formaciones (que se arman a partir de
-          Vetas vía formacion_vetas, ver useFormacionVetas.ts). */}
-      <div className="flex flex-col gap-2">
-        <CatalogoVetasFisica
-          compuestos={compuestosCatalogo}
-          onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          onAbrirFormacion={(id) => setFormacionAAbrirId(id)}
-        />
-      </div>
-
-      {/* Formaciones — catálogo global, mismo patrón que los bloques de
-          arriba pero usando el editor flotante completo
-          (GrupoCompuestoPanelFlotante) en vez del popover liviano de
-          BasesItemCard, ya que acá el contenido (fórmula de compuestos)
-          es más rico. */}
-      <div className="flex flex-col gap-2 pt-2 border-t border-primary/10">
-        <GridCatalogoGrupo
-          modo="grupo"
-          titulo="Formaciones"
-          icono="formacion"
-          items={catalogoFormaciones}
-          compuestos={compuestosCatalogo}
-          onActualizar={actualizarFormacion}
-          onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          abrirIdExterno={formacionAAbrirId}
-          onAbrirIdExternoConsumido={() => setFormacionAAbrirId(null)}
-        />
-      </div>
-
-      {compuestoAbiertoId &&
-        (() => {
-          const compuesto = compuestosCatalogo.find((c) => c.id === compuestoAbiertoId);
-          if (!compuesto) return null;
-          return (
-            <CompuestoPanelFlotante
-              compuesto={compuesto}
-              elementos={elementosCatalogo}
-              todosLosCompuestos={compuestosCatalogo}
-              onCerrar={() => setCompuestoAbiertoId(null)}
-              onActualizar={(id, cambios) =>
-                setCompuestosCatalogo((prev) =>
-                  prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)),
-                )
-              }
-            />
-          );
-        })()}
     </div>
   );
 }
