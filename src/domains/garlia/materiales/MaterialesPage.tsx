@@ -16,8 +16,10 @@ import {
   propiedadesCalculadasGenerico,
   TarjetaPropiedadesFisicas,
 } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
-import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
+import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
+import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
+import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPage";
 import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
@@ -124,13 +126,30 @@ function propiedadesDePerfilReactivo(
 function FilaComponente({
   nombreComponente,
   onEliminar,
+  onAbrir,
 }: {
   nombreComponente: string;
   onEliminar: () => void;
+  /** Abre el editor completo del Compuesto que compone este material
+   *  (mismo patrón que "Componentes" en CompuestoEditor abriendo Elemento)
+   *  — si se omite (componente sin catálogo resuelto), el nombre se
+   *  muestra como texto plano, no clickeable. */
+  onAbrir?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md border border-primary/10">
-      <span className="text-micro font-bold text-primary/70 truncate">{nombreComponente}</span>
+      {onAbrir ? (
+        <button
+          type="button"
+          onClick={onAbrir}
+          title="Abrir en el editor"
+          className="min-w-0 flex-1 text-left truncate text-micro font-bold text-primary/70 hover:text-accent hover:underline cursor-pointer"
+        >
+          {nombreComponente}
+        </button>
+      ) : (
+        <span className="text-micro font-bold text-primary/70 truncate">{nombreComponente}</span>
+      )}
       <button
         type="button"
         onClick={onEliminar}
@@ -140,6 +159,7 @@ function FilaComponente({
         <Trash2 size={12} />
       </button>
     </div>
+
   );
 }
 
@@ -273,13 +293,19 @@ function MaterialDetail({ material }: { material: Material }) {
     actualizar: actualizarEstructura,
     eliminar: eliminarEstructura,
   } = useMaterialEstructuras(material.id);
-  const { items: compuestos, loading: loadingCompuestos } = useCompuestos();
+  const { items: compuestos, setItems: setCompuestos, loading: loadingCompuestos } = useCompuestosConElementos();
+  const { items: elementos } = useElementos();
   const { items: estructurasCatalogo, loading: loadingEstructurasCatalogo } = useEstructuras();
   const { item: perfilReactivo, loading: loadingPerfilReactivo } = usePerfilReactivoMaterial(material.id);
 
   const [agregandoComponente, setAgregandoComponente] = useState(false);
   const [agregandoCompuestoId, setAgregandoCompuestoId] = useState<string | null>(null);
   const [guardandoComponente, setGuardandoComponente] = useState(false);
+  // Compuesto abierto desde "hecho de: [Compuesto]" en Componentes — abre
+  // el mismo CompuestoPanelFlotante que usa Química/Ítems/Minerales, con
+  // su propio breadcrumb interno (Elemento › Compuesto › Material), así
+  // que desde acá se puede seguir bajando hasta el Elemento que lo forma.
+  const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
   const [agregandoEstructura, setAgregandoEstructura] = useState(false);
   const [agregandoEstructuraId, setAgregandoEstructuraId] = useState<string | null>(null);
   const [guardandoEstructura, setGuardandoEstructura] = useState(false);
@@ -450,6 +476,7 @@ function MaterialDetail({ material }: { material: Material }) {
                       nombreComponente={
                         compuesto?.nombre ?? `${componente.componente_tipo} · ${componente.componente_id.slice(0, 8)}`
                       }
+                      onAbrir={compuesto ? () => setCompuestoAbiertoId(compuesto.id) : undefined}
                       onEliminar={() =>
                         handleEliminarComponente(
                           componente.id,
@@ -545,6 +572,30 @@ function MaterialDetail({ material }: { material: Material }) {
           )}
         </div>
       </div>
+
+      {/* Panel del Compuesto abierto desde "Componentes" — mismo
+          CompuestoPanelFlotante que usa Química/Ítems/Minerales. Trae su
+          propio breadcrumb interno (Elemento › Compuesto › Material), así
+          que desde acá se puede seguir navegando hasta el Elemento que lo
+          forma, igual que ya se puede ir de Elemento/Compuesto hacia este
+          Material. */}
+      {compuestoAbiertoId &&
+        (() => {
+          const compuestoActivo = compuestos.find((c) => c.id === compuestoAbiertoId);
+          if (!compuestoActivo) return null;
+          return (
+            <CompuestoPanelFlotante
+              compuesto={compuestoActivo}
+              elementos={elementos}
+              todosLosCompuestos={compuestos}
+              onCerrar={() => setCompuestoAbiertoId(null)}
+              onActualizar={(id, cambios) =>
+                setCompuestos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
+              }
+            />
+          );
+        })()}
+
       <ConfirmModal />
     </div>
   );
