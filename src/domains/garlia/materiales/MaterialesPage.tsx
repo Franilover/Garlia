@@ -929,6 +929,25 @@ export function MaterialEditorFlotante({
   );
 }
 
+/**
+ * Etiquetas legibles para materiales.categoria. Valores confirmados con
+ * SELECT categoria, count(*) FROM materiales GROUP BY categoria
+ * (2026-09-17) — es un subconjunto de los mismos valores que
+ * compuestos.categoria (ver ETIQUETAS_CATEGORIA en elementos/CompuestosPage.tsx),
+ * así que se mantienen las mismas etiquetas para consistencia entre las
+ * dos páginas. Un valor fuera de este mapa se muestra tal cual (ver
+ * fallback `?? cat`).
+ */
+const ETIQUETAS_CATEGORIA: Record<string, string> = {
+  mineral: "Mineral",
+  metal_aleacion: "Metal / Aleación",
+  tejido_organico_animal: "Tejido orgánico animal",
+  tejido_organico_vegetal: "Tejido orgánico vegetal",
+  liquido_organico: "Líquido orgánico",
+  gas: "Gas",
+  sustancia_organica_amorfa: "Sustancia orgánica amorfa",
+};
+
 export function MaterialesPage() {
   const { items: materiales, loading } = useMateriales();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
@@ -963,7 +982,11 @@ export function MaterialesPage() {
       mapa.get(cat)!.push(m);
     }
 
-    const grupos = orden.map((cat) => ({ id: cat, nombre: cat, materiales: mapa.get(cat)! }));
+    const grupos = orden.map((cat) => ({
+      id: cat,
+      nombre: ETIQUETAS_CATEGORIA[cat] ?? cat,
+      materiales: mapa.get(cat)!,
+    }));
     if (sinCategoria.length > 0) {
       grupos.push({ id: "__sin-categoria__", nombre: "Sin categoría", materiales: sinCategoria });
     }

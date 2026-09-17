@@ -2231,6 +2231,28 @@ function LaboratorioModal({
 }
 
 /**
+ * Etiquetas legibles para compuestos.categoria (eje físico). Los valores
+ * clave son exactamente los que existen hoy en la columna real de Supabase
+ * (verificado con SELECT categoria, count(*) FROM compuestos GROUP BY
+ * categoria, 2026-09-17); un valor que no esté en este mapa simplemente se
+ * muestra tal cual (ver fallback `?? cat` en gruposPorCategoria), así que
+ * agregar una categoría nueva en la base no rompe la UI, solo se ve sin
+ * traducir hasta que se agregue acá.
+ */
+const ETIQUETAS_CATEGORIA: Record<string, string> = {
+  mineral: "Mineral",
+  metal_aleacion: "Metal / Aleación",
+  tejido_organico_animal: "Tejido orgánico animal",
+  tejido_organico_vegetal: "Tejido orgánico vegetal",
+  biomolecula: "Biomolécula",
+  liquido_organico: "Líquido orgánico",
+  liquido_base: "Líquido base",
+  gas: "Gas",
+  solido_volatil: "Sólido volátil",
+  sustancia_organica_amorfa: "Sustancia orgánica amorfa",
+};
+
+/**
  * MasonryGruposNaturaleza
  * ───────────────────────────────────────────────────────────────────────────
  * Reparte los grupos de compuestos (por Naturaleza) en columnas de igual
@@ -2437,12 +2459,11 @@ export function CompuestosPage({
   }, [compuestos, tagsNaturaleza, tagIdsDe]);
 
   // Agrupamiento por Categoría (columna real compuestos.categoria, eje
-  // físico — mineral, metal_aleacion, etc. — distinto del eje "naturaleza"
-  // de arriba). Mismo criterio de armado: una sección por cada valor de
-  // categoria presente, más un bloque final para los que no tienen
-  // categoria asignada, en el orden en que aparecen los grupos (no hay un
-  // enum fijo documentado en el frontend, así que no se fuerza un orden
-  // arbitrario de categorías).
+  // físico — distinto del eje "naturaleza" de arriba). Etiquetas y orden
+  // verificados contra los valores reales en Supabase (SELECT categoria,
+  // count(*) FROM compuestos GROUP BY categoria, 2026-09-17): 10 valores
+  // en uso, sin ningún NULL — el bloque "Sin categoría" se deja como red
+  // de seguridad por si aparece uno más adelante, no porque exista hoy.
   const gruposPorCategoria = useMemo(() => {
     const orden: string[] = [];
     const mapa = new Map<string, Compuesto[]>();
@@ -2461,7 +2482,11 @@ export function CompuestosPage({
       mapa.get(cat)!.push(c);
     }
 
-    const grupos = orden.map((cat) => ({ id: cat, nombre: cat, compuestos: mapa.get(cat)! }));
+    const grupos = orden.map((cat) => ({
+      id: cat,
+      nombre: ETIQUETAS_CATEGORIA[cat] ?? cat,
+      compuestos: mapa.get(cat)!,
+    }));
 
     if (sinCategoria.length > 0) {
       grupos.push({ id: "__sin-categoria__", nombre: "Sin categoría", compuestos: sinCategoria });
