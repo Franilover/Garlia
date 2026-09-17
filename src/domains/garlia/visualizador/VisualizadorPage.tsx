@@ -100,6 +100,7 @@ import { TriangleATS, HexagonoATS, type EntidadATS, type EntidadEjes } from "./T
 // cambia qué SVG dibuja.
 import { ParticulaVisual, IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
 import { MapaUniversalSection } from "./MapaUniversalSection";
+import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
 
 // SectionKey: se mantienen las 15 keys viejas (ya tienen render implementado
 // más abajo, active === "...") y se agregan keys nuevas para los VIS que
@@ -204,7 +205,7 @@ const navGroups: NavGroup[] = [
       { key: "propagacion", label: "Propagación", visId: "VIS-06", icon: <Radio size={15} />, implementado: false },
       { key: "tiempo", label: "Tiempo", visId: "VIS-16", icon: <Radio size={15} />, implementado: false },
       { key: "information", label: "Información (sin dato)", visId: "VIS-PENDIENTE-INFO", icon: <Radio size={15} />, implementado: false },
-      { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: false },
+      { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: true },
       { key: "runas", label: "Runa → Mecanismo → Fenómeno", visId: "VIS-09", icon: <CircleDot size={15} />, implementado: true },
       // Sandbox: entorno experimental aislado (crear simulación, entidades,
       // disparar eventos, Play/Pause/Step/Reset) — antes tab de nivel
@@ -3730,12 +3731,13 @@ function VisualizadorPage() {
 
             {active === "sandbox" ? <SandboxPage /> : null}
 
+            {active === "laboratorio" ? <LaboratorioPropiedadesSection /> : null}
+
             {(
               [
                 ["comparacion", "VIS-18", "Comparación"],
                 ["propagacion", "VIS-06", "Propagación"],
                 ["tiempo", "VIS-16", "Tiempo"],
-                ["laboratorio", "VIS-17", "Laboratorio"],
                 ["celulasTejido", "VIS-11", "Células → Tejido"],
                 ["tejidoOrgano", "VIS-12", "Tejido → Órgano"],
                 ["organoOrganismo", "VIS-13", "Órgano → Organismo"],
