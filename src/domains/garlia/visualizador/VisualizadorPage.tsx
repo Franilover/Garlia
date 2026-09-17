@@ -6,7 +6,6 @@ import {
   Camera,
   ChevronRight,
   CircleDot,
-  FlaskConical,
   Flame,
   GitBranch,
   Layers3,
@@ -104,7 +103,9 @@ import { TriangleATS, HexagonoATS, type EntidadATS, type EntidadEjes } from "./T
 // cambia qué SVG dibuja.
 import { ParticulaVisual, IumVisual } from "@/domains/garlia/fisica/ParticulaVisual";
 import { MapaUniversalSection } from "./MapaUniversalSection";
-import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
+// LaboratorioPropiedadesSection (VIS-17) ya NO se importa acá — se movió a
+// worldbuilder/WorldbuilderPage.tsx (grupo "Lab"), ver comentario en
+// navGroups más abajo. El componente sigue en materiales/ sin cambios.
 
 // SectionKey: se mantienen las 15 keys viejas (ya tienen render implementado
 // más abajo, active === "...") y se agregan keys nuevas para los VIS que
@@ -209,7 +210,16 @@ const navGroups: NavGroup[] = [
       { key: "propagacion", label: "Propagación", visId: "VIS-06", icon: <Radio size={15} />, implementado: false },
       { key: "tiempo", label: "Tiempo", visId: "VIS-16", icon: <Radio size={15} />, implementado: false },
       { key: "information", label: "Información (sin dato)", visId: "VIS-PENDIENTE-INFO", icon: <Radio size={15} />, implementado: false },
-      { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: true },
+      // "laboratorio" (VIS-17) retirado del nav (2026-09-17): movido a la
+      // pestaña Worldbuilder (grupo "Lab" ahí), que es donde el
+      // worldbuilder sin conocimiento técnico del motor lo va a usar. El
+      // bloque `active === "laboratorio"` y el import de
+      // LaboratorioPropiedadesSection NO se borran de este archivo por el
+      // mismo motivo que "oris"/"elementos_ruta": si se retoma acá, el
+      // código ya está. El componente en sí (LaboratorioPropiedadesSection)
+      // sigue viviendo en materiales/, montado ahora solo desde
+      // worldbuilder/WorldbuilderPage.tsx — nunca en los dos lugares a la
+      // vez.
       { key: "runas", label: "Runa → Mecanismo → Fenómeno", visId: "VIS-09", icon: <CircleDot size={15} />, implementado: true },
       // Sandbox (VIS-17-SANDBOX) retirado del nav (2026-09-17): fusionado
       // dentro de "Interacción" (VIS-05, más abajo en este mismo grupo),
@@ -4302,7 +4312,11 @@ function VisualizadorPage() {
 
             {active === "mapaUniversal" ? <MapaUniversalSection /> : null}
 
-            {active === "laboratorio" ? <LaboratorioPropiedadesSection /> : null}
+            {/* "laboratorio" (VIS-17) movido a Worldbuilder — ver comentario
+                en navGroups arriba. Ya no se monta acá para no tenerlo en
+                dos lugares a la vez; si "active" cae en "laboratorio" por
+                algún estado viejo persistido, no renderiza nada (mismo
+                comportamiento que cualquier otro SectionKey sin bloque). */}
 
             {(
               [
