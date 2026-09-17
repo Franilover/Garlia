@@ -25,6 +25,8 @@ import type {
   ParCompuestosSugerido,
   ParElementosSugerido,
   RequisitoPropiedadLab,
+  ResultadoCreacionCompuestoLab,
+  ResultadoCreacionMaterialLab,
   ResultadoSimulacionCompuesto,
   ResultadoSimulacionMaterial,
   SugerenciaPropiedadLab,
@@ -204,4 +206,83 @@ export async function sugerirParesCompuestosPorPropiedad(
     valor: Number(f.valor),
     propiedades: (f.propiedades as Record<string, number>) ?? {},
   }));
+}
+
+/**
+ * Sugiere un nombre para la combinación vía fn_generar_nombre_material_v1
+ * (fragmentos fonéticos de los nombres base + sufijo por categoría, con
+ * anti-colisión contra compuestos y materiales existentes — misma función
+ * que ya usa el resto del proyecto, ej. "Ashvane"+"Cargess"→"Ashvacargeil").
+ * Es solo una propuesta: la UI la precarga en un input editable, nunca crea
+ * con este nombre sin que el usuario lo confirme.
+ */
+export async function sugerirNombreCombinacion(
+  nombresBase: string[],
+  categoria?: string,
+): Promise<string> {
+  const { data, error } = await supabase.rpc("fn_generar_nombre_material_v1", {
+    p_nombres_base: nombresBase,
+    p_categoria_clave: categoria ?? null,
+  });
+  return assertNoError(data as string, error, "sugerirNombreCombinacion");
+}
+
+/**
+ * Materializa de verdad (a diferencia de simular_* / sugerir_pares_*, que
+ * son solo lectura) un Compuesto nuevo a partir de N Elementos reales — vía la
+ * RPC fn_worldbuilder_crear_compuesto. Partes iguales (cantidad=1 cada
+ * elemento) salvo que se pase `cantidades`, mismo criterio que el resto de
+ * este slice (sin control fino de proporción todavía).
+ *
+ * Se usa tanto desde una fila de "¿Qué combino para conseguir X?" (2
+ * elementos, ids salen de ParElementosSugerido) como desde el Simulador
+ * manual (2+ elementos, ids salen de seleccionIds) — misma función para
+ * ambos casos, el nivel de UI no le importa a la RPC.
+ */
+export async function crearCompuestoDesdeElementos(
+  nombre: string,
+  elementoIds: string[],
+  opciones?: { categoria?: string; notas?: string; cantidades?: Record<string, number> },
+): Promise<ResultadoCreacionCompuestoLab> {
+  const elementos = elementoIds.map((id) => ({
+    id,
+    ...(opciones?.cantidades?.[id] ? { cantidad: opciones.cantidades[id] } : {}),
+  }));
+  const { data, error } = await supabase.rpc("fn_worldbuilder_crear_compuesto", {
+    p_nombre: nombre,
+    p_categoria: opciones?.categoria ?? null,
+    p_elementos: elementos,
+    p_notas: opciones?.notas ?? "Creado desde Laboratorio.",
+  });
+  return assertNoError(data as ResultadoCreacionCompuestoLab, error, "crearCompuestoDesdeElementos");
+}
+
+/**
+ * Materializa de verdad un Material nuevo a partir de N Compuestos reales —
+ * vía la RPC fn_worldbuilder_crear_material (ya existente, genérica: acepta
+ * componentes tipo "material" o "compuesto" mezclados, acá se usan todos
+ * tipo "compuesto" porque es el caso de este slice). Partes iguales salvo
+ * que se pasen `proporciones` explícitas.
+ *
+ * Mismo uso dual que crearCompuestoDesdeElementos: sirve tanto para una
+ * fila de "Compuestos → Material" del ranking como para el Simulador
+ * manual de Compuesto+Compuesto.
+ */
+export async function crearMaterialDesdeCompuestos(
+  nombre: string,
+  compuestoIds: string[],
+  opciones?: { descripcion?: string; proporciones?: Record<string, number> },
+): Promise<ResultadoCreacionMaterialLab> {
+  const componentes = compuestoIds.map((id) => ({
+    tipo: "compuesto" as const,
+    id,
+    ...(opciones?.proporciones?.[id] ? { proporcion: opciones.proporciones[id] } : {}),
+  }));
+  const { data, error } = await supabase.rpc("fn_worldbuilder_crear_material", {
+    p_nombre: nombre,
+    p_descripcion: opciones?.descripcion ?? "",
+    p_componentes: componentes,
+    p_intenciones: "Creado desde Laboratorio.",
+  });
+  return assertNoError(data as ResultadoCreacionMaterialLab, error, "crearMaterialDesdeCompuestos");
 }

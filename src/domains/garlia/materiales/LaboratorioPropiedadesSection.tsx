@@ -22,6 +22,11 @@
 import React, { useMemo, useState } from "react";
 
 import { useLaboratorioPropiedades } from "./useLaboratorioPropiedades";
+import {
+  crearCompuestoDesdeElementos,
+  crearMaterialDesdeCompuestos,
+  sugerirNombreCombinacion,
+} from "./laboratorioPropiedadesService";
 import { useRankingParesCompuestos } from "./useRankingParesCompuestos";
 import { useRankingParesElementos } from "./useRankingParesElementos";
 import { useSimuladorCompuesto } from "./useSimuladorCompuesto";
@@ -30,6 +35,8 @@ import type {
   EntidadLab,
   ParCompuestosSugerido,
   ParElementosSugerido,
+  ResultadoCreacionCompuestoLab,
+  ResultadoCreacionMaterialLab,
   SugerenciaPropiedadLab,
 } from "./laboratorioPropiedades.types";
 
@@ -229,6 +236,136 @@ function TarjetaResultado({ fila, posicion }: { fila: SugerenciaPropiedadLab; po
   );
 }
 
+/**
+ * Botón "Crear compuesto"/"Crear material" que cuelga de una combinación ya
+ * calculada (fila de ranking o resultado de simulación).
+ *
+ * Flujo en 2 pasos, nunca crea sin que el usuario vea y pueda editar el
+ * nombre primero:
+ *   1) click en "Crear…" → pide un nombre sugerido vía
+ *      fn_generar_nombre_material_v1 (fragmentos fonéticos + sufijo,
+ *      mismo patrón que el resto del catálogo) y lo muestra en un input
+ *      editable, con botón "Confirmar".
+ *   2) "Confirmar" → llama a la RPC de escritura real
+ *      (fn_worldbuilder_crear_compuesto / fn_worldbuilder_crear_material)
+ *      con el nombre que haya quedado en el input.
+ *
+ * No repite la creación si ya se creó (evita duplicados por doble click) —
+ * para combinar de nuevo hay que armar otra combinación.
+ */
+function BotonCrearDesdeCombinacion<T extends ResultadoCreacionCompuestoLab | ResultadoCreacionMaterialLab>({
+  etiqueta,
+  etiquetaCreando,
+  nombresBase,
+  categoria,
+  onSugerirNombre,
+  onCrear,
+  onVerEnCatalogo,
+}: {
+  etiqueta: string;
+  etiquetaCreando: string;
+  nombresBase: string[];
+  categoria?: string;
+  onSugerirNombre: (nombresBase: string[], categoria?: string) => Promise<string>;
+  onCrear: (nombre: string) => Promise<T>;
+  onVerEnCatalogo?: (resultado: T) => void;
+}) {
+  const [estado, setEstado] = useState<"idle" | "sugiriendo" | "editando" | "creando" | "creado" | "error">("idle");
+  const [nombre, setNombre] = useState("");
+  const [resultado, setResultado] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleIniciar = async () => {
+    setEstado("sugiriendo");
+    setError(null);
+    try {
+      const sugerido = await onSugerirNombre(nombresBase, categoria);
+      setNombre(sugerido);
+      setEstado("editando");
+    } catch (e) {
+      console.error("[BotonCrearDesdeCombinacion] error sugiriendo nombre:", e);
+      // Sin nombre sugerido igual se puede seguir: el usuario escribe uno a mano.
+      setNombre("");
+      setEstado("editando");
+    }
+  };
+
+  const handleConfirmar = async () => {
+    if (!nombre.trim()) {
+      setError("Ponele un nombre antes de crear.");
+      return;
+    }
+    setEstado("creando");
+    setError(null);
+    try {
+      const r = await onCrear(nombre.trim());
+      setResultado(r);
+      setEstado("creado");
+    } catch (e) {
+      console.error("[BotonCrearDesdeCombinacion] error creando:", e);
+      setError(e instanceof Error ? e.message : "No se pudo crear. Probá de nuevo.");
+      setEstado("editando");
+    }
+  };
+
+  if (estado === "creado" && resultado) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400/80">Creado</span>
+        <span className="text-xs font-black text-primary/85">{resultado.nombre}</span>
+        {onVerEnCatalogo ? (
+          <button
+            type="button"
+            onClick={() => onVerEnCatalogo(resultado)}
+            className="text-[10px] font-black uppercase tracking-wider text-accent/80 transition-colors hover:text-accent"
+          >
+            Ver en catálogo →
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (estado === "editando" || estado === "creando") {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            disabled={estado === "creando"}
+            placeholder="Nombre…"
+            className="w-full max-w-[220px] rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40 disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={handleConfirmar}
+            disabled={estado === "creando"}
+            className="rounded-lg bg-accent px-3.5 py-2 text-[11px] font-black text-[var(--bg-main)] transition-opacity disabled:opacity-40"
+          >
+            {estado === "creando" ? etiquetaCreando : "Confirmar"}
+          </button>
+        </div>
+        {error ? <span className="text-[10px] font-bold text-red-400">{error}</span> : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={handleIniciar}
+        disabled={estado === "sugiriendo"}
+        className="w-fit rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2 text-[11px] font-black text-accent transition-colors hover:bg-accent/20 disabled:opacity-40"
+      >
+        {estado === "sugiriendo" ? "Pensando un nombre…" : etiqueta}
+      </button>
+    </div>
+  );
+}
+
 function TarjetaParElemento({ par, posicion, propiedad }: { par: ParElementosSugerido; posicion: number; propiedad: string }) {
   return (
     <div className="rounded-xl border border-primary/10 p-4">
@@ -275,6 +412,16 @@ function TarjetaParElemento({ par, posicion, propiedad }: { par: ParElementosSug
           ))}
         </div>
       </details>
+
+      <div className="mt-3">
+        <BotonCrearDesdeCombinacion
+          etiqueta="Crear este compuesto"
+          etiquetaCreando="Creando compuesto…"
+          nombresBase={[par.elementoANombre, par.elementoBNombre]}
+          onSugerirNombre={sugerirNombreCombinacion}
+          onCrear={(nombre) => crearCompuestoDesdeElementos(nombre, [par.elementoAId, par.elementoBId])}
+        />
+      </div>
     </div>
   );
 }
@@ -325,6 +472,16 @@ function TarjetaParCompuesto({ par, posicion, propiedad }: { par: ParCompuestosS
           ))}
         </div>
       </details>
+
+      <div className="mt-3">
+        <BotonCrearDesdeCombinacion
+          etiqueta="Crear este material"
+          etiquetaCreando="Creando material…"
+          nombresBase={[par.compuestoANombre, par.compuestoBNombre]}
+          onSugerirNombre={sugerirNombreCombinacion}
+          onCrear={(nombre) => crearMaterialDesdeCompuestos(nombre, [par.compuestoAId, par.compuestoBId])}
+        />
+      </div>
     </div>
   );
 }
@@ -621,6 +778,18 @@ function SimuladorCompuestoPanel() {
           {resultado.nota ? (
             <p className="mt-3 text-[10px] leading-4 text-primary/35">{resultado.nota}</p>
           ) : null}
+
+          <div className="mt-4">
+            <BotonCrearDesdeCombinacion
+              etiqueta="Crear este compuesto"
+              etiquetaCreando="Creando compuesto…"
+              nombresBase={(resultado.elementos ?? []).map((e) => e.nombre)}
+              onSugerirNombre={sugerirNombreCombinacion}
+              onCrear={(nombre) =>
+                crearCompuestoDesdeElementos(nombre, (resultado.elementos ?? []).map((e) => e.id))
+              }
+            />
+          </div>
         </div>
       ) : null}
     </div>
@@ -771,6 +940,18 @@ function SimuladorMaterialPanel() {
           {resultado.nota ? (
             <p className="mt-1.5 text-[10px] leading-4 text-primary/35">{resultado.nota}</p>
           ) : null}
+
+          <div className="mt-4">
+            <BotonCrearDesdeCombinacion
+              etiqueta="Crear este material"
+              etiquetaCreando="Creando material…"
+              nombresBase={(resultado.compuestos ?? []).map((c) => c.nombre)}
+              onSugerirNombre={sugerirNombreCombinacion}
+              onCrear={(nombre) =>
+                crearMaterialDesdeCompuestos(nombre, (resultado.compuestos ?? []).map((c) => c.id))
+              }
+            />
+          </div>
         </div>
       ) : null}
     </div>

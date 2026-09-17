@@ -202,3 +202,32 @@ export interface ParCompuestosSugerido {
    *  contexto extra, mismo criterio que en el ranking de Elementos. */
   propiedades: Record<string, number>;
 }
+
+// ─── Materializar una combinación: crear el Compuesto o Material de verdad ─
+// A diferencia de todo lo anterior en este archivo (simular_*, sugerir_*),
+// que son RPC de solo lectura, estas dos SÍ escriben en la base:
+//   - fn_worldbuilder_crear_compuesto(p_nombre, p_categoria, p_elementos jsonb, p_notas)
+//   - fn_worldbuilder_crear_material(p_nombre, p_descripcion, p_componentes jsonb, p_intenciones)
+// (la segunda ya existía en el proyecto para otros flujos; se reutiliza acá
+// tal cual, sin cambiar su contrato). Se llaman desde una fila del ranking
+// "¿Qué combino para conseguir X?" o desde el Simulador manual — mismas
+// funciones para ambos casos.
+
+export interface ResultadoCreacionCompuestoLab {
+  id: string;
+  nombre: string;
+  categoria: string | null;
+  propiedades: Record<string, number>;
+  estado: string;
+  auditoria_id: string;
+}
+
+export interface ResultadoCreacionMaterialLab {
+  id: string;
+  nombre: string;
+  categoria: string | null;
+  propiedades: Record<string, number>;
+  evaluacion: { estado: string; criterios: unknown[]; intenciones: unknown[] };
+  estado: string;
+  auditoria_id: string;
+}
