@@ -28,7 +28,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Beaker,
   Blend,
   CheckCircle2,
   ChevronDown,
@@ -883,18 +882,6 @@ export function WorldbuilderPage() {
           </aside>
 
           <section className="min-w-0 px-3 pb-16 sm:px-4">
-            <div className="mb-5 flex items-center gap-2.5">
-              <Beaker size={18} className="text-accent" />
-              <div>
-                <p className="text-sm font-black text-primary/90">Worldbuilder</p>
-                <p className="text-[11px] font-bold text-primary/40">
-                  {modo === "laboratorio"
-                    ? "Explorá el motor de propiedades directamente — mismo VIS-17 del Visualizador."
-                    : "Creá materiales y objetos describiendo lo que querés — sin fórmulas."}
-                </p>
-              </div>
-            </div>
-
             {wb.error ? (
               <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-xs font-bold text-red-400">
                 {wb.error}

@@ -335,19 +335,6 @@ function RankingParesCompuestosPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-black text-primary/80">
-          Laboratorio · ¿Qué combino para conseguir X? — Compuestos{" "}
-          <span className="font-medium text-primary/35">· VIS-17</span>
-        </p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí una propiedad y mostramos las 20 combinaciones de 2 Compuestos —de todo
-          el catálogo, no una que armes vos— que darían el Material resultante con el
-          valor más alto en esa propiedad. Calculado con promedio simple entre ambos,
-          en partes iguales (misma fórmula que el simulador Compuesto → Material).
-        </p>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={propiedad}
@@ -408,18 +395,6 @@ function RankingParesElementosPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-black text-primary/80">
-          Laboratorio · ¿Qué combino para conseguir X? <span className="font-medium text-primary/35">· VIS-17</span>
-        </p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí una propiedad y mostramos las 20 combinaciones de 2 Elementos —de todo
-          el catálogo, no una que armes vos— que darían el compuesto resultante con el
-          valor más alto en esa propiedad. Calculado con la misma fórmula que un
-          Compuesto real, en partes iguales.
-        </p>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={propiedad}
@@ -523,18 +498,6 @@ function SimuladorCompuestoPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-black text-primary/80">
-          Laboratorio · Simulador de combinaciones <span className="font-medium text-primary/35">· VIS-17</span>
-        </p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí 2 o más Elementos y mirá qué Compuesto resultaría de combinarlos en
-          partes iguales — la misma fórmula que usa el motor para un Compuesto real,
-          aplicada a una combinación que todavía no existe en el catálogo. No se crea
-          ni se guarda nada.
-        </p>
-      </div>
-
       {loadingElementos ? (
         <LoadingRow>Cargando catálogo de elementos…</LoadingRow>
       ) : (
@@ -680,18 +643,6 @@ function SimuladorMaterialPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs font-black text-primary/80">
-          Laboratorio · Simulador de combinaciones <span className="font-medium text-primary/35">· VIS-17</span>
-        </p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí 2 o más Compuestos y mirá qué Material resultaría de combinarlos en
-          partes iguales — masa/carga/volumen se suman y el resto de propiedades se
-          promedia, igual que haría el motor con un Material real sin Estructura
-          asociada. No se crea ni se guarda nada.
-        </p>
-      </div>
-
       {loadingCompuestos ? (
         <LoadingRow>Cargando catálogo de compuestos…</LoadingRow>
       ) : (
@@ -950,17 +901,6 @@ export function LaboratorioPropiedadesSection() {
   return (
     <div className="flex flex-col gap-6">
       {toggleModo}
-
-      <div>
-        <p className="text-xs font-black text-primary/80">
-          Laboratorio · Buscar en el catálogo <span className="font-medium text-primary/35">· VIS-17</span>
-        </p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          A diferencia de "¿Qué combino para conseguir X?" (que evalúa combinaciones
-          nuevas), esto busca entre los Compuestos o Materiales que YA existen en el
-          catálogo cuáles cumplen mejor los requisitos que armes acá.
-        </p>
-      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ToggleEntidad entidad={entidad} onChange={setEntidad} />
