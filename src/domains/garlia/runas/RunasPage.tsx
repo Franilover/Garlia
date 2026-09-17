@@ -14,6 +14,7 @@
 import {
   Atom,
   BarChart3,
+  Beaker,
   Maximize2,
   Plus,
   ScrollText,
@@ -37,6 +38,7 @@ import { ElementosPage } from "@/domains/garlia/elementos/ElementosPage";
 import type { Elemento } from "@/domains/garlia/elementos/types";
 import { BiologiaCatalogos, BiologiaCladograma } from "@/domains/garlia/biologia/BiologiaPage";
 import VisualizadorPage from "@/domains/garlia/visualizador/VisualizadorPage";
+import { WorldbuilderPage } from "@/domains/garlia/worldbuilder/WorldbuilderPage";
 import { FisicaPage } from "@/domains/garlia/fisica/FisicaPage";
 import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
@@ -721,6 +723,13 @@ const SECCIONES_MAGIA: { key: SeccionMagia; label: string; Icon: React.ElementTy
   { key: "runas", label: "Runas", Icon: Waypoints },
   { key: "tabla", label: "Química", Icon: Atom },
   { key: "visualizador", label: "Visualizador", Icon: BarChart3 },
+  // Worldbuilder (2026-09): capa humana sobre el motor — crear/mezclar
+  // materiales y objetos describiendo en lenguaje natural lo que se
+  // quiere, sin exponer dureza/rigidez/categorías internas. Pestaña de
+  // nivel superior propia a pedido explícito, junto a Runas/Química/
+  // Visualizador (no dentro de Lab: el público es distinto — worldbuilders
+  // sin conocimiento técnico del motor, ver worldbuilder/WorldbuilderPage.tsx).
+  { key: "worldbuilder", label: "Worldbuilder", Icon: Beaker },
 ];
 
 function SelectorSeccionMagia({
@@ -1009,6 +1018,10 @@ export function RunasPage({
       ) : seccionMagia === "visualizador" ? (
         <div className="mt-4">
           <VisualizadorPage />
+        </div>
+      ) : seccionMagia === "worldbuilder" ? (
+        <div className="mt-4">
+          <WorldbuilderPage />
         </div>
       ) : (
         <div className="mt-4 flex flex-col lg:flex-row gap-6">

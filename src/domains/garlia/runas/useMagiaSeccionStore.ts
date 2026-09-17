@@ -33,6 +33,7 @@ export type SeccionMagia =
   | "biologia"
   | "sandbox"
   | "visualizador"
+  | "worldbuilder"
   | "logica";
 
 // Sub-secciones dentro de la tab "Química": antes física/biología tenían
