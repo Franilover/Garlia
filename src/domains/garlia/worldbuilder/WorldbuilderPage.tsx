@@ -32,17 +32,20 @@ import {
   Blend,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   Clock,
   FlaskConical,
   Package,
   Search,
   Sparkles,
+  TestTube2,
   Wand2,
   XCircle,
 } from "lucide-react";
 
 import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
+import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
 
 import { useWorldbuilder } from "./useWorldbuilder";
 import { EmptyRow, LoadingRow, SelectDropdown, SelectorIntenciones, StatusPill } from "./ui";
@@ -85,14 +88,7 @@ function useSeleccionIntenciones() {
   return { seleccionadas, toggle, limpiar: () => setSeleccionadas(new Set()) };
 }
 
-type ModoWorldbuilder = "buscar" | "crear" | "mezclar" | "item";
-
-const MODOS: { key: ModoWorldbuilder; label: string; icon: React.ReactNode }[] = [
-  { key: "buscar", label: "Buscar", icon: <Search size={13} /> },
-  { key: "crear", label: "Crear material", icon: <FlaskConical size={13} /> },
-  { key: "mezclar", label: "Mezclar", icon: <Blend size={13} /> },
-  { key: "item", label: "Crear objeto", icon: <Package size={13} /> },
-];
+type ModoWorldbuilder = "buscar" | "crear" | "mezclar" | "item" | "laboratorio";
 
 /** Fila de un criterio evaluado — nunca muestra la fórmula, solo el
  *  nombre de la intención + ✓/✗. El valor numérico crudo queda oculto
@@ -794,6 +790,32 @@ function PanelHistorial({ wb }: { wb: ReturnType<typeof useWorldbuilder> }) {
   );
 }
 
+// ─── Nav por grupos, mismo lenguaje visual/estructural que VisualizadorPage
+// (sidebar de acordeón a la izquierda, ~150px, sección a la derecha) — se
+// agrega el grupo "Lab" con la misma LaboratorioPropiedadesSection que ya
+// vive en el Visualizador (VIS-17), reusada tal cual: es 100% autocontenida
+// (sus propios hooks/fetches a Supabase), sin props, así que no hace falta
+// tocarla ni duplicarla — mismo componente, dos lugares donde se monta.
+type GrupoWorldbuilder = "Crear" | "Lab";
+
+type NavItemWorldbuilder = { key: ModoWorldbuilder; label: string; icon: React.ReactNode };
+
+const NAV_GROUPS: { group: GrupoWorldbuilder; items: NavItemWorldbuilder[] }[] = [
+  {
+    group: "Crear",
+    items: [
+      { key: "buscar", label: "Buscar", icon: <Search size={15} /> },
+      { key: "crear", label: "Crear material", icon: <FlaskConical size={15} /> },
+      { key: "mezclar", label: "Mezclar", icon: <Blend size={15} /> },
+      { key: "item", label: "Crear objeto", icon: <Package size={15} /> },
+    ],
+  },
+  {
+    group: "Lab",
+    items: [{ key: "laboratorio", label: "Laboratorio", icon: <TestTube2 size={15} /> }],
+  },
+];
+
 export function WorldbuilderPage() {
   const wb = useWorldbuilder();
   const { items: materiales, loading: loadingMateriales } = useMateriales();
@@ -801,74 +823,121 @@ export function WorldbuilderPage() {
 
   const [modo, setModo] = useState<ModoWorldbuilder>("buscar");
   const [baseInicialId, setBaseInicialId] = useState<string | null>(null);
+  // Acordeón de sidebar — arranca expandiendo el grupo que contiene el modo
+  // activo, mismo criterio que grupoExpandido en VisualizadorPage.
+  const [grupoExpandido, setGrupoExpandido] = useState<GrupoWorldbuilder | null>(
+    () => NAV_GROUPS.find((g) => g.items.some((i) => i.key === "buscar"))?.group ?? NAV_GROUPS[0]?.group ?? null,
+  );
 
   const materialesLite = useMemo(() => materiales.map((m) => ({ id: m.id, nombre: m.nombre })), [materiales]);
   const compuestosLite = useMemo(() => compuestos.map((c) => ({ id: c.id, nombre: c.nombre })), [compuestos]);
 
   return (
-    <div className="mx-auto max-w-5xl px-3 pb-16 pt-4 sm:px-4">
-      <div className="mb-5 flex items-center gap-2.5">
-        <Beaker size={18} className="text-accent" />
-        <div>
-          <p className="text-sm font-black text-primary/90">Worldbuilder</p>
-          <p className="text-[11px] font-bold text-primary/40">
-            Creá materiales y objetos describiendo lo que querés — sin fórmulas.
-          </p>
+    <main className="min-h-screen bg-[var(--bg-main)] text-primary">
+      <div className="w-full py-8">
+        <div className="grid gap-2 lg:grid-cols-[150px_minmax(0,1fr)]">
+          <aside className="p-0 lg:sticky lg:top-6 lg:self-start">
+            <nav className="space-y-1">
+              {NAV_GROUPS.map((grupo) => {
+                const expandido = grupoExpandido === grupo.group;
+                const grupoActivo = grupo.items.some((i) => i.key === modo);
+                return (
+                  <div key={grupo.group}>
+                    <button
+                      type="button"
+                      onClick={() => setGrupoExpandido(expandido ? null : grupo.group)}
+                      className={`flex w-full items-center justify-between gap-2 py-2 text-left text-[10px] font-black uppercase tracking-widest transition-colors ${
+                        grupoActivo ? "text-primary/70" : "text-primary/30 hover:text-primary/55"
+                      }`}
+                    >
+                      <span>{grupo.group}</span>
+                      <ChevronRight
+                        size={12}
+                        className={`shrink-0 transition-transform ${expandido ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                    {expandido ? (
+                      <div className="mb-2 space-y-1.5 pl-1">
+                        {grupo.items.map((item) => {
+                          const selected = item.key === modo;
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => setModo(item.key)}
+                              className={`flex w-full items-center gap-2 py-2 text-left text-xs transition-colors ${
+                                selected ? "font-black text-primary/90" : "font-medium text-primary/45 hover:text-primary/70"
+                              }`}
+                            >
+                              {item.icon}
+                              <span>{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <section className="min-w-0 px-3 pb-16 sm:px-4">
+            <div className="mb-5 flex items-center gap-2.5">
+              <Beaker size={18} className="text-accent" />
+              <div>
+                <p className="text-sm font-black text-primary/90">Worldbuilder</p>
+                <p className="text-[11px] font-bold text-primary/40">
+                  {modo === "laboratorio"
+                    ? "Explorá el motor de propiedades directamente — mismo VIS-17 del Visualizador."
+                    : "Creá materiales y objetos describiendo lo que querés — sin fórmulas."}
+                </p>
+              </div>
+            </div>
+
+            {wb.error ? (
+              <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-xs font-bold text-red-400">
+                {wb.error}
+              </div>
+            ) : null}
+
+            {modo === "laboratorio" ? (
+              <LaboratorioPropiedadesSection />
+            ) : loadingMateriales || loadingCompuestos ? (
+              <LoadingRow>Cargando catálogo de materiales y compuestos…</LoadingRow>
+            ) : (
+              <>
+                {modo === "buscar" ? (
+                  <PanelBuscar
+                    wb={wb}
+                    onUsarComoBase={(id) => {
+                      setBaseInicialId(id);
+                      setModo("crear");
+                    }}
+                  />
+                ) : null}
+                {modo === "crear" ? (
+                  <PanelCrearMaterial
+                    wb={wb}
+                    materiales={materialesLite}
+                    compuestos={compuestosLite}
+                    baseInicialId={baseInicialId}
+                  />
+                ) : null}
+                {modo === "mezclar" ? <PanelMezclar wb={wb} materiales={materialesLite} /> : null}
+                {modo === "item" ? <PanelCrearItem wb={wb} materiales={materialesLite} /> : null}
+              </>
+            )}
+
+            {modo !== "laboratorio" ? (
+              <div className="mt-6">
+                <PanelHistorial wb={wb} />
+              </div>
+            ) : null}
+          </section>
         </div>
       </div>
-
-      <div className="mb-5 inline-flex flex-wrap rounded-lg border border-primary/10 p-1">
-        {MODOS.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => setModo(m.key)}
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
-              modo === m.key ? "bg-primary/10 text-primary/90" : "text-primary/40 hover:text-primary/60"
-            }`}
-          >
-            {m.icon}
-            {m.label}
-          </button>
-        ))}
-      </div>
-
-      {wb.error ? (
-        <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-xs font-bold text-red-400">
-          {wb.error}
-        </div>
-      ) : null}
-
-      {loadingMateriales || loadingCompuestos ? (
-        <LoadingRow>Cargando catálogo de materiales y compuestos…</LoadingRow>
-      ) : (
-        <>
-          {modo === "buscar" ? (
-            <PanelBuscar
-              wb={wb}
-              onUsarComoBase={(id) => {
-                setBaseInicialId(id);
-                setModo("crear");
-              }}
-            />
-          ) : null}
-          {modo === "crear" ? (
-            <PanelCrearMaterial
-              wb={wb}
-              materiales={materialesLite}
-              compuestos={compuestosLite}
-              baseInicialId={baseInicialId}
-            />
-          ) : null}
-          {modo === "mezclar" ? <PanelMezclar wb={wb} materiales={materialesLite} /> : null}
-          {modo === "item" ? <PanelCrearItem wb={wb} materiales={materialesLite} /> : null}
-        </>
-      )}
-
-      <div className="mt-6">
-        <PanelHistorial wb={wb} />
-      </div>
-    </div>
+    </main>
   );
 }
 
