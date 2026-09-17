@@ -45,17 +45,45 @@ import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 
 import { useWorldbuilder } from "./useWorldbuilder";
-import { EmptyRow, LoadingRow, SelectDropdown, StatusPill } from "./ui";
+import { EmptyRow, LoadingRow, SelectDropdown, SelectorIntenciones, StatusPill } from "./ui";
 import type {
   ComponenteMaterial,
   CriterioEvaluado,
   EvaluacionWorldbuilder,
-  IntencionDetectada,
+  IntencionHumana,
   ItemCreadoResultado,
   MaterialCreadoResultado,
   MaterialDeItem,
   MaterialSugerido,
 } from "./types";
+
+/** Arma el string `p_intenciones` que esperan las RPC (crear_material,
+ *  mezclar_materiales, crear_item, sugerir_materiales) a partir de las
+ *  claves elegidas en el multi-select — el motor vuelve a correr
+ *  fn_worldbuilder_detectar_intenciones sobre este texto, así que basta con
+ *  unir por coma los `nombre` (o sinónimo[0]) de cada intención elegida,
+ *  probado en vivo contra el motor. */
+function armarTextoIntenciones(claves: Set<string>, catalogo: IntencionHumana[]): string {
+  return catalogo
+    .filter((i) => claves.has(i.clave))
+    .map((i) => i.nombre)
+    .join(", ");
+}
+
+/** Hook chico para manejar el set de intenciones seleccionadas por panel —
+ *  cada panel tiene su propio estado independiente (Buscar/Crear/Mezclar/
+ *  Item no comparten selección entre sí). */
+function useSeleccionIntenciones() {
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+  const toggle = (clave: string) =>
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(clave)) next.delete(clave);
+      else next.add(clave);
+      return next;
+    });
+  return { seleccionadas, toggle, limpiar: () => setSeleccionadas(new Set()) };
+}
 
 type ModoWorldbuilder = "buscar" | "crear" | "mezclar" | "item";
 
@@ -65,50 +93,6 @@ const MODOS: { key: ModoWorldbuilder; label: string; icon: React.ReactNode }[] =
   { key: "mezclar", label: "Mezclar", icon: <Blend size={13} /> },
   { key: "item", label: "Crear objeto", icon: <Package size={13} /> },
 ];
-
-/** Chips de intención detectada — confirmación visual ANTES de ejecutar
- *  cualquier búsqueda/creación. Cada chip es togglable: el worldbuilder
- *  puede destildar una intención mal detectada sin reescribir el texto. */
-function ChipsIntenciones({
-  detectando,
-  intenciones,
-  activas,
-  onToggle,
-}: {
-  detectando: boolean;
-  intenciones: IntencionDetectada[];
-  activas: Set<string>;
-  onToggle: (clave: string) => void;
-}) {
-  if (detectando) {
-    return <p className="text-[10px] font-bold text-primary/35">Detectando lo que pediste…</p>;
-  }
-  if (intenciones.length === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] font-black uppercase tracking-widest text-primary/35">Entendí:</span>
-      {intenciones.map((it) => {
-        const on = activas.has(it.clave);
-        return (
-          <button
-            key={it.clave}
-            type="button"
-            onClick={() => onToggle(it.clave)}
-            title={it.descripcion}
-            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black transition-colors ${
-              on
-                ? "border-accent/40 bg-accent/10 text-accent"
-                : "border-primary/10 text-primary/30 line-through"
-            }`}
-          >
-            {on ? <CheckCircle2 size={10} /> : null}
-            {it.nombre}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 /** Fila de un criterio evaluado — nunca muestra la fórmula, solo el
  *  nombre de la intención + ✓/✗. El valor numérico crudo queda oculto
@@ -226,44 +210,31 @@ function PanelBuscar({
   wb: ReturnType<typeof useWorldbuilder>;
   onUsarComoBase: (materialId: string) => void;
 }) {
-  const [texto, setTexto] = useState("");
+  const { seleccionadas, toggle } = useSeleccionIntenciones();
+  const textoIntenciones = useMemo(() => armarTextoIntenciones(seleccionadas, wb.intenciones), [seleccionadas, wb.intenciones]);
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <p className="text-xs font-black text-primary/80">¿Qué estás buscando?</p>
         <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Describí lo que necesitás en tus palabras — por ejemplo "algo duro y resistente" o "un material
-          transparente y liviano". Te mostramos qué ya existe antes de crear algo nuevo.
+          Elegí las propiedades que necesitás — por ejemplo "duro" y "resistente", o "transparente" y "liviano".
+          Te mostramos qué ya existe antes de crear algo nuevo.
         </p>
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <textarea
-          value={texto}
-          onChange={(e) => {
-            setTexto(e.target.value);
-            wb.detectarIntenciones(e.target.value);
-          }}
-          rows={2}
-          placeholder="quiero algo duro y resistente…"
-          className="w-full resize-none rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/85 outline-none transition-colors placeholder:text-primary/25 focus:border-primary/40"
+        <SelectorIntenciones
+          intenciones={wb.intenciones}
+          seleccionadas={seleccionadas}
+          onToggle={toggle}
+          loading={wb.loadingCatalogo}
         />
-        <div className="flex items-center justify-between gap-3">
-          <ChipsIntenciones
-            detectando={wb.detectando}
-            intenciones={wb.intencionesDetectadas}
-            activas={new Set(wb.intencionesDetectadas.map((i) => i.clave))}
-            onToggle={() => {
-              /* Solo lectura acá — el filtro real de qué intenciones usar
-                 se resuelve del lado del texto, no de un estado propio,
-                 para no duplicar la fuente de verdad del motor. */
-            }}
-          />
+        <div className="flex items-center justify-end gap-3">
           <button
             type="button"
-            disabled={!texto.trim() || wb.buscando}
-            onClick={() => wb.buscarMateriales(texto)}
+            disabled={seleccionadas.size === 0 || wb.buscando}
+            onClick={() => wb.buscarMateriales(textoIntenciones)}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"
           >
             <Search size={12} />
@@ -414,7 +385,7 @@ function PanelCrearMaterial({
 }) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [intencionesTexto, setIntencionesTexto] = useState("");
+  const { seleccionadas, toggle } = useSeleccionIntenciones();
   const [componentes, setComponentes] = useState<ComponenteMaterial[]>([{ tipo: "material", id: "" }]);
 
   useEffect(() => {
@@ -464,24 +435,12 @@ function PanelCrearMaterial({
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
           ¿Qué querés que tenga? (opcional)
         </p>
-        <textarea
-          value={intencionesTexto}
-          onChange={(e) => {
-            setIntencionesTexto(e.target.value);
-            wb.detectarIntenciones(e.target.value);
-          }}
-          rows={2}
-          placeholder="quiero que sea duro y resistente…"
-          className="w-full resize-none rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/85 outline-none placeholder:text-primary/25 focus:border-primary/40"
+        <SelectorIntenciones
+          intenciones={wb.intenciones}
+          seleccionadas={seleccionadas}
+          onToggle={toggle}
+          loading={wb.loadingCatalogo}
         />
-        <div className="mt-1.5">
-          <ChipsIntenciones
-            detectando={wb.detectando}
-            intenciones={wb.intencionesDetectadas}
-            activas={new Set(wb.intencionesDetectadas.map((i) => i.clave))}
-            onToggle={() => {}}
-          />
-        </div>
       </div>
 
       <button
@@ -492,7 +451,7 @@ function PanelCrearMaterial({
             nombre: nombre.trim(),
             descripcion: descripcion.trim() || undefined,
             componentes,
-            intenciones: intencionesTexto.trim() || undefined,
+            intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
           })
         }
         className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"
@@ -522,7 +481,7 @@ function PanelMezclar({
   const [materialAId, setMaterialAId] = useState("");
   const [materialBId, setMaterialBId] = useState("");
   const [porcentajeA, setPorcentajeA] = useState(50);
-  const [intencionesTexto, setIntencionesTexto] = useState("");
+  const { seleccionadas, toggle } = useSeleccionIntenciones();
 
   const materialA = materiales.find((m) => m.id === materialAId) ?? null;
   const materialB = materiales.find((m) => m.id === materialBId) ?? null;
@@ -588,24 +547,12 @@ function PanelMezclar({
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
           ¿Qué querés que tenga? (opcional)
         </p>
-        <textarea
-          value={intencionesTexto}
-          onChange={(e) => {
-            setIntencionesTexto(e.target.value);
-            wb.detectarIntenciones(e.target.value);
-          }}
-          rows={2}
-          placeholder="quiero que sea flexible y transparente…"
-          className="w-full resize-none rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/85 outline-none placeholder:text-primary/25 focus:border-primary/40"
+        <SelectorIntenciones
+          intenciones={wb.intenciones}
+          seleccionadas={seleccionadas}
+          onToggle={toggle}
+          loading={wb.loadingCatalogo}
         />
-        <div className="mt-1.5">
-          <ChipsIntenciones
-            detectando={wb.detectando}
-            intenciones={wb.intencionesDetectadas}
-            activas={new Set(wb.intencionesDetectadas.map((i) => i.clave))}
-            onToggle={() => {}}
-          />
-        </div>
       </div>
 
       <button
@@ -617,7 +564,7 @@ function PanelMezclar({
             materialAId,
             materialBId,
             proporcionA: porcentajeA / 100,
-            intenciones: intencionesTexto.trim() || undefined,
+            intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
           })
         }
         className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"
@@ -647,7 +594,7 @@ function PanelCrearItem({
   const [nombre, setNombre] = useState("");
   const [tipoTexto, setTipoTexto] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [intencionesTexto, setIntencionesTexto] = useState("");
+  const { seleccionadas, toggle } = useSeleccionIntenciones();
   const [materialesItem, setMaterialesItem] = useState<MaterialDeItem[]>([]);
 
   const agregarMaterial = () => setMaterialesItem([...materialesItem, { id: "" }]);
@@ -745,24 +692,12 @@ function PanelCrearItem({
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
           ¿Qué querés que tenga? (opcional)
         </p>
-        <textarea
-          value={intencionesTexto}
-          onChange={(e) => {
-            setIntencionesTexto(e.target.value);
-            wb.detectarIntenciones(e.target.value);
-          }}
-          rows={2}
-          placeholder="quiero que sea duro…"
-          className="w-full resize-none rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/85 outline-none placeholder:text-primary/25 focus:border-primary/40"
+        <SelectorIntenciones
+          intenciones={wb.intenciones}
+          seleccionadas={seleccionadas}
+          onToggle={toggle}
+          loading={wb.loadingCatalogo}
         />
-        <div className="mt-1.5">
-          <ChipsIntenciones
-            detectando={wb.detectando}
-            intenciones={wb.intencionesDetectadas}
-            activas={new Set(wb.intencionesDetectadas.map((i) => i.clave))}
-            onToggle={() => {}}
-          />
-        </div>
       </div>
 
       <button
@@ -774,7 +709,7 @@ function PanelCrearItem({
             tipoTexto: tipoTexto.trim(),
             descripcion: descripcion.trim() || undefined,
             materiales: materialesItem.filter((m) => m.id),
-            intenciones: intencionesTexto.trim() || undefined,
+            intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
           })
         }
         className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"

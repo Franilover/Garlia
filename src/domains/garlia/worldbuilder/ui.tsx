@@ -68,6 +68,54 @@ export function EmptyRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Multi-select de chips clickeables sobre el catálogo REAL de intenciones
+ *  (worldbuilder_intenciones_humanas, cargado una vez en useWorldbuilder) —
+ *  reemplaza al textarea de lenguaje libre + detección debounced: el
+ *  worldbuilder elige directo las intenciones que existen, no tipea texto
+ *  para que el motor lo interprete. Estado 100% del componente (claves
+ *  seleccionadas), sin pasar por fn_worldbuilder_detectar_intenciones. */
+export function SelectorIntenciones({
+  intenciones,
+  seleccionadas,
+  onToggle,
+  loading,
+}: {
+  intenciones: { clave: string; nombre: string; descripcion?: string }[];
+  seleccionadas: Set<string>;
+  onToggle: (clave: string) => void;
+  loading?: boolean;
+}) {
+  if (loading) {
+    return <p className="text-[10px] font-bold text-primary/35">Cargando catálogo de intenciones…</p>;
+  }
+  if (intenciones.length === 0) {
+    return <p className="text-[10px] font-bold text-primary/30">No hay intenciones activas en el catálogo.</p>;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {intenciones.map((it) => {
+        const on = seleccionadas.has(it.clave);
+        return (
+          <button
+            key={it.clave}
+            type="button"
+            onClick={() => onToggle(it.clave)}
+            title={it.descripcion}
+            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black capitalize transition-colors ${
+              on
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-primary/15 text-primary/40 hover:border-primary/30 hover:text-primary/65"
+            }`}
+          >
+            {on ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+            {it.nombre}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function StatusPill({
   children,
   tone = "default",
