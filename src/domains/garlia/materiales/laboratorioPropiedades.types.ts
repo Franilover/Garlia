@@ -71,3 +71,34 @@ export interface SugerenciaPropiedadLab {
   propiedades: Record<string, number>;
   coincidencias: CoincidenciaPropiedadLab[];
 }
+
+// ─── Simulador Elemento + Elemento → Compuesto hipotético ─────────────────
+// Fuente de verdad: RPC simular_compuesto_desde_elementos(p_elemento_ids
+// uuid[]) — solo lectura, no crea fila en "compuestos" ni "compuesto_
+// elementos". Reutiliza la misma fórmula que fn_calcular_compuesto_desde_
+// elementos (el compuesto REAL), con elementos en partes iguales (sin
+// proporciones custom, según lo pedido).
+
+export type EstadoSimulacionCompuesto =
+  | "simulado"
+  | "sin_elementos"
+  | "insuficientes_elementos"
+  | "elementos_inexistentes";
+
+export interface ResultadoSimulacionCompuesto {
+  estado: EstadoSimulacionCompuesto;
+  modelo?: string;
+  elementos?: { id: string; nombre: string }[];
+  masa?: number | null;
+  carga?: number | null;
+  volumen_real?: number | null;
+  densidad_real?: number | null;
+  estabilidad?: number | null;
+  rigidez?: number | null;
+  flexibilidad?: number | null;
+  dureza?: number | null;
+  conductividad?: number | null;
+  transparencia?: number | null;
+  interaccion?: number | null;
+  nota?: string;
+}

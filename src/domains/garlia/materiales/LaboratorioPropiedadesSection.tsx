@@ -19,10 +19,13 @@
  * ya usa MapaUniversalSection.tsx.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 
 import { useLaboratorioPropiedades } from "./useLaboratorioPropiedades";
+import { useSimuladorCompuesto } from "./useSimuladorCompuesto";
 import type { EntidadLab, SugerenciaPropiedadLab } from "./laboratorioPropiedades.types";
+
+type ModoLab = "buscar" | "simular";
 
 // ─── Primitivas visuales locales (mismas clases que el resto del Visualizador) ─
 
@@ -216,9 +219,198 @@ function TarjetaResultado({ fila, posicion }: { fila: SugerenciaPropiedadLab; po
   );
 }
 
+/** Etiquetas legibles para las claves que devuelve la RPC de simulación —
+ *  mismo criterio que ETIQUETAS_METRICA en GridPropiedadesCalculadas.tsx,
+ *  duplicado acá porque esa constante no está exportada y el set de claves
+ *  de esta RPC es chico y fijo (compuesto simulado, no genérico). */
+const ETIQUETAS_SIMULACION: Record<string, string> = {
+  masa: "Masa",
+  carga: "Carga",
+  volumen_real: "Volumen",
+  densidad_real: "Densidad",
+  estabilidad: "Estabilidad",
+  rigidez: "Rigidez",
+  flexibilidad: "Flexibilidad",
+  dureza: "Dureza",
+  conductividad: "Conductividad",
+  transparencia: "Transparencia",
+  interaccion: "Interacción",
+};
+
+/** Estas son índices [0,1] con barra de proporción — el resto (masa,
+ *  carga, volumen, densidad) son magnitudes abiertas, mismo criterio que
+ *  propiedadesCalculadasGenerico en GridPropiedadesCalculadas.tsx. */
+const CLAVES_INDICE = new Set([
+  "estabilidad",
+  "rigidez",
+  "flexibilidad",
+  "dureza",
+  "conductividad",
+  "transparencia",
+  "interaccion",
+]);
+
+function SimuladorCompuestoPanel() {
+  const {
+    disponibles,
+    seleccionados,
+    agregarElemento,
+    quitarElemento,
+    limpiar,
+    simular,
+    resultado,
+    loadingElementos,
+    loadingSimulacion,
+    error,
+  } = useSimuladorCompuesto();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-xs font-black text-primary/80">
+          Laboratorio · Simulador de combinaciones <span className="font-medium text-primary/35">· VIS-17</span>
+        </p>
+        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
+          Elegí 2 o más Elementos y mirá qué Compuesto resultaría de combinarlos en
+          partes iguales — la misma fórmula que usa el motor para un Compuesto real,
+          aplicada a una combinación que todavía no existe en el catálogo. No se crea
+          ni se guarda nada.
+        </p>
+      </div>
+
+      {loadingElementos ? (
+        <LoadingRow>Cargando catálogo de elementos…</LoadingRow>
+      ) : (
+        <select
+          value=""
+          onChange={(e) => {
+            if (e.target.value) agregarElemento(e.target.value);
+          }}
+          className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+        >
+          <option value="" disabled>
+            + Agregar elemento a la combinación…
+          </option>
+          {disponibles.map((el) => (
+            <option key={el.id} value={el.id} className="bg-[var(--bg-main)] text-primary">
+              {el.nombre}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {seleccionados.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {seleccionados.map((el) => (
+            <span
+              key={el.id}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/15 py-1.5 pl-3.5 pr-2 text-xs font-black text-primary/80"
+            >
+              {el.nombre}
+              <button
+                type="button"
+                onClick={() => quitarElemento(el.id)}
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-black text-primary/35 transition-colors hover:text-red-400"
+                aria-label={`Quitar ${el.nombre}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={limpiar}
+            className="text-[10px] font-black uppercase tracking-wider text-primary/35 transition-colors hover:text-primary/60"
+          >
+            Limpiar todo
+          </button>
+        </div>
+      ) : (
+        <EmptyRow>Todavía no elegiste ningún elemento.</EmptyRow>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={simular}
+          disabled={loadingSimulacion || seleccionados.length < 2}
+          className="rounded-lg bg-accent px-5 py-2.5 text-xs font-black text-[var(--bg-main)] transition-opacity disabled:opacity-30"
+        >
+          {loadingSimulacion ? "Simulando…" : "Simular compuesto"}
+        </button>
+        {seleccionados.length === 1 ? (
+          <span className="text-[10px] font-bold text-primary/35">Elegí al menos un elemento más.</span>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-xs font-bold text-red-400">
+          {error}
+        </div>
+      ) : null}
+
+      {resultado ? (
+        <div className="rounded-xl border border-primary/10 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+            Compuesto simulado a partir de {resultado.elementos?.map((e) => e.nombre).join(" + ")}
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {(
+              [
+                "masa",
+                "carga",
+                "volumen_real",
+                "densidad_real",
+                "estabilidad",
+                "rigidez",
+                "flexibilidad",
+                "dureza",
+                "conductividad",
+                "transparencia",
+                "interaccion",
+              ] as const
+            ).map((clave) => {
+              const valor = resultado[clave];
+              if (valor === null || valor === undefined) return null;
+              const esIndice = CLAVES_INDICE.has(clave);
+              return (
+                <div
+                  key={clave}
+                  className="flex flex-col gap-1 rounded-md border border-primary/10 bg-primary/5 px-2.5 py-2"
+                >
+                  <span className="truncate text-[9px] font-black uppercase tracking-widest text-primary/35">
+                    {ETIQUETAS_SIMULACION[clave] ?? clave}
+                  </span>
+                  <span className="text-micro font-black text-primary/80">
+                    {Number(valor).toFixed(esIndice ? 3 : 4)}
+                  </span>
+                  {esIndice ? (
+                    <div className="h-1 overflow-hidden rounded-full bg-primary/10">
+                      <div
+                        className="h-full rounded-full bg-accent/50"
+                        style={{ width: `${Math.max(0, Math.min(1, Number(valor))) * 100}%` }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          {resultado.nota ? (
+            <p className="mt-3 text-[10px] leading-4 text-primary/35">{resultado.nota}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Sección principal ──────────────────────────────────────────────────────
 
 export function LaboratorioPropiedadesSection() {
+  const [modo, setModo] = useState<ModoLab>("simular");
   const {
     catalogo,
     loadingCatalogo,
@@ -247,8 +439,41 @@ export function LaboratorioPropiedadesSection() {
     [catalogo, requisitos],
   );
 
+  const toggleModo = (
+    <div className="inline-flex rounded-lg border border-primary/15 p-1">
+      {(
+        [
+          { key: "simular" as const, label: "Simular combinación" },
+          { key: "buscar" as const, label: "Buscar por propiedad" },
+        ]
+      ).map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => setModo(o.key)}
+          className={`rounded-md px-3.5 py-1.5 text-xs font-black transition-colors ${
+            modo === o.key ? "bg-primary/10 text-primary/90" : "text-primary/40 hover:text-primary/60"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (modo === "simular") {
+    return (
+      <div className="flex flex-col gap-6">
+        {toggleModo}
+        <SimuladorCompuestoPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {toggleModo}
+
       <div>
         <p className="text-xs font-black text-primary/80">
           Laboratorio · Buscador por propiedad <span className="font-medium text-primary/35">· VIS-17</span>

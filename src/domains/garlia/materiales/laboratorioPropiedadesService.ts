@@ -23,6 +23,7 @@ import type {
   CoincidenciaPropiedadLab,
   EntidadLab,
   RequisitoPropiedadLab,
+  ResultadoSimulacionCompuesto,
   SugerenciaPropiedadLab,
 } from "./laboratorioPropiedades.types";
 
@@ -97,4 +98,28 @@ export async function sugerirPorPropiedades(
   });
   const filas = assertNoError(data as Record<string, unknown>[] | null, error, "sugerirMateriales") ?? [];
   return filas.map((f) => normalizarFila(f, "material_id"));
+}
+
+/**
+ * Simula "si combino estos Elementos (partes iguales), ¿qué Compuesto
+ * resultaría?" — vía la RPC de solo-lectura simular_compuesto_desde_
+ * elementos. No crea ninguna fila; es la misma fórmula que usa el motor
+ * para un Compuesto real (fn_calcular_compuesto_desde_elementos), aplicada
+ * a una combinación que no existe en el catálogo.
+ *
+ * Requiere 2+ ids de Elemento — la RPC devuelve estado
+ * "insuficientes_elementos" si se manda menos, y la UI no debería llegar
+ * a llamar esto con menos de 2 seleccionados.
+ */
+export async function simularCompuestoDesdeElementos(
+  elementoIds: string[],
+): Promise<ResultadoSimulacionCompuesto> {
+  const { data, error } = await supabase.rpc("simular_compuesto_desde_elementos", {
+    p_elemento_ids: elementoIds,
+  });
+  return assertNoError(
+    data as ResultadoSimulacionCompuesto,
+    error,
+    "simularCompuestoDesdeElementos",
+  );
 }
