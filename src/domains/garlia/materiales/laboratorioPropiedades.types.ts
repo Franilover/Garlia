@@ -173,3 +173,32 @@ export interface ParElementosSugerido {
    *  anterior. */
   propiedades: Record<string, number>;
 }
+
+// ─── Ranking de pares de Compuestos por una propiedad objetivo ────────────
+// Fuente de verdad: RPC sugerir_pares_compuestos_por_propiedad(p_propiedad
+// text, p_limite int) — solo lectura. Mismo concepto que el ranking de
+// pares de Elementos, un nivel arriba: evalúa TODOS los pares posibles del
+// catálogo real de Compuestos y devuelve el top N ordenado desc por la
+// propiedad elegida. A diferencia del par de Elementos (ponderado por
+// volumen, con fn_promedio_dominante para dureza/conductividad/
+// transparencia), acá se usa PROMEDIO SIMPLE entre los 2 compuestos —
+// misma fórmula que simular_material_desde_compuestos/
+// calcular_promedios_propiedades_json (partes iguales, sin Estructura).
+
+/** Mismas 7 propiedades que el ranking de pares de Elementos — son las
+ *  columnas físicas que tiene un Compuesto real, únicas que la RPC de
+ *  ranking de pares de Compuestos soporta. */
+export const PROPIEDADES_PAR_COMPUESTOS = PROPIEDADES_PAR_ELEMENTOS;
+
+export interface ParCompuestosSugerido {
+  compuestoAId: string;
+  compuestoANombre: string;
+  compuestoBId: string;
+  compuestoBNombre: string;
+  /** El valor de la propiedad elegida para este par — es la columna por la
+   *  que está ordenado el ranking. */
+  valor: number;
+  /** Las 7 propiedades del Material resultante, no solo la elegida —
+   *  contexto extra, mismo criterio que en el ranking de Elementos. */
+  propiedades: Record<string, number>;
+}

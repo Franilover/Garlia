@@ -22,13 +22,20 @@
 import React, { useMemo, useState } from "react";
 
 import { useLaboratorioPropiedades } from "./useLaboratorioPropiedades";
+import { useRankingParesCompuestos } from "./useRankingParesCompuestos";
 import { useRankingParesElementos } from "./useRankingParesElementos";
 import { useSimuladorCompuesto } from "./useSimuladorCompuesto";
 import { useSimuladorMaterial } from "./useSimuladorMaterial";
-import type { EntidadLab, ParElementosSugerido, SugerenciaPropiedadLab } from "./laboratorioPropiedades.types";
+import type {
+  EntidadLab,
+  ParCompuestosSugerido,
+  ParElementosSugerido,
+  SugerenciaPropiedadLab,
+} from "./laboratorioPropiedades.types";
 
 type ModoLab = "ranking" | "buscarExistente" | "simular";
 type NivelSimulacion = "elementoACompuesto" | "compuestoAMaterial";
+type NivelRanking = "elementosACompuesto" | "compuestosAMaterial";
 
 // ─── Primitivas visuales locales (mismas clases que el resto del Visualizador) ─
 
@@ -268,6 +275,129 @@ function TarjetaParElemento({ par, posicion, propiedad }: { par: ParElementosSug
           ))}
         </div>
       </details>
+    </div>
+  );
+}
+
+function TarjetaParCompuesto({ par, posicion, propiedad }: { par: ParCompuestosSugerido; posicion: number; propiedad: string }) {
+  return (
+    <div className="rounded-xl border border-primary/10 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-black text-primary/60">
+            {posicion}
+          </span>
+          <p className="text-xs font-black text-primary/85">
+            {par.compuestoANombre} <span className="font-medium text-primary/35">+</span> {par.compuestoBNombre}
+          </p>
+        </div>
+        <StatusPill>{par.valor.toFixed(3)}</StatusPill>
+      </div>
+
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-primary/10">
+        <div
+          className="h-full rounded-full bg-accent/60"
+          style={{ width: `${Math.max(0, Math.min(1, par.valor)) * 100}%` }}
+        />
+      </div>
+
+      <details className="mt-3">
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          Material resultante completo
+        </summary>
+        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          {Object.entries(par.propiedades).map(([clave, valor]) => (
+            <div
+              key={clave}
+              className={`flex flex-col gap-0.5 rounded-md border px-2 py-1.5 ${
+                clave === propiedad
+                  ? "border-accent/30 bg-accent/10"
+                  : "border-primary/10 bg-primary/5"
+              }`}
+            >
+              <span className="truncate text-[9px] font-black uppercase tracking-widest text-primary/35">
+                {clave}
+              </span>
+              <span className="text-micro font-black text-primary/70">
+                {typeof valor === "number" ? valor.toFixed(4) : String(valor)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function RankingParesCompuestosPanel() {
+  const { propiedades, propiedad, setPropiedad, resultados, loading, error, buscado, buscar } =
+    useRankingParesCompuestos();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-xs font-black text-primary/80">
+          Laboratorio · ¿Qué combino para conseguir X? — Compuestos{" "}
+          <span className="font-medium text-primary/35">· VIS-17</span>
+        </p>
+        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
+          Elegí una propiedad y mostramos las 20 combinaciones de 2 Compuestos —de todo
+          el catálogo, no una que armes vos— que darían el Material resultante con el
+          valor más alto en esa propiedad. Calculado con promedio simple entre ambos,
+          en partes iguales (misma fórmula que el simulador Compuesto → Material).
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={propiedad}
+          onChange={(e) => setPropiedad(e.target.value)}
+          className="w-full max-w-xs rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+        >
+          {propiedades.map((p) => (
+            <option key={p.clave} value={p.clave} className="bg-[var(--bg-main)] text-primary">
+              {p.nombre}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={buscar}
+          disabled={loading}
+          className="rounded-lg bg-accent px-5 py-2.5 text-xs font-black text-[var(--bg-main)] transition-opacity disabled:opacity-30"
+        >
+          {loading ? "Calculando…" : "Ver top 20"}
+        </button>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-xs font-bold text-red-400">
+          {error}
+        </div>
+      ) : null}
+
+      {loading ? <LoadingRow>Evaluando todas las combinaciones posibles…</LoadingRow> : null}
+
+      {!loading && buscado && !error ? (
+        resultados.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+              Top {resultados.length} — ordenado por {propiedades.find((p) => p.clave === propiedad)?.nombre ?? propiedad}
+            </p>
+            {resultados.map((par, i) => (
+              <TarjetaParCompuesto
+                key={`${par.compuestoAId}-${par.compuestoBId}`}
+                par={par}
+                posicion={i + 1}
+                propiedad={propiedad}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyRow>No se encontró ninguna combinación calculable para esta propiedad todavía.</EmptyRow>
+        )
+      ) : null}
     </div>
   );
 }
@@ -701,6 +831,7 @@ function SimuladorMaterialPanel() {
 export function LaboratorioPropiedadesSection() {
   const [modo, setModo] = useState<ModoLab>("ranking");
   const [nivel, setNivel] = useState<NivelSimulacion>("elementoACompuesto");
+  const [nivelRanking, setNivelRanking] = useState<NivelRanking>("elementosACompuesto");
   const {
     catalogo,
     loadingCatalogo,
@@ -756,7 +887,32 @@ export function LaboratorioPropiedadesSection() {
     return (
       <div className="flex flex-col gap-6">
         {toggleModo}
-        <RankingParesElementosPanel />
+
+        <div className="inline-flex w-fit rounded-lg border border-primary/10 p-1">
+          {(
+            [
+              { key: "elementosACompuesto" as const, label: "Elementos → Compuesto" },
+              { key: "compuestosAMaterial" as const, label: "Compuestos → Material" },
+            ]
+          ).map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => setNivelRanking(o.key)}
+              className={`rounded-md px-3 py-1.5 text-[11px] font-black transition-colors ${
+                nivelRanking === o.key ? "bg-primary/10 text-primary/80" : "text-primary/35 hover:text-primary/55"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
+        {nivelRanking === "elementosACompuesto" ? (
+          <RankingParesElementosPanel />
+        ) : (
+          <RankingParesCompuestosPanel />
+        )}
       </div>
     );
   }

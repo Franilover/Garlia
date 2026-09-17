@@ -22,6 +22,7 @@ import { supabase } from "@/infra/supabase/supabase";
 import type {
   CoincidenciaPropiedadLab,
   EntidadLab,
+  ParCompuestosSugerido,
   ParElementosSugerido,
   RequisitoPropiedadLab,
   ResultadoSimulacionCompuesto,
@@ -171,6 +172,35 @@ export async function sugerirParesElementosPorPropiedad(
     elementoANombre: String(f.elemento_a_nombre),
     elementoBId: String(f.elemento_b_id),
     elementoBNombre: String(f.elemento_b_nombre),
+    valor: Number(f.valor),
+    propiedades: (f.propiedades as Record<string, number>) ?? {},
+  }));
+}
+
+/**
+ * "Elegí una propiedad → mostrame las N combinaciones de 2 Compuestos que
+ * darían el Material resultante con el valor más alto en esa propiedad."
+ * Vía sugerir_pares_compuestos_por_propiedad, análoga a la de Elementos
+ * pero un nivel arriba: evalúa TODOS los pares del catálogo real de
+ * Compuestos con promedio simple (misma fórmula que
+ * simular_material_desde_compuestos) y devuelve el top N ya ordenado
+ * desc. Solo lectura.
+ */
+export async function sugerirParesCompuestosPorPropiedad(
+  propiedad: string,
+  limite = 20,
+): Promise<ParCompuestosSugerido[]> {
+  const { data, error } = await supabase.rpc("sugerir_pares_compuestos_por_propiedad", {
+    p_propiedad: propiedad,
+    p_limite: limite,
+  });
+  const filas =
+    assertNoError(data as Record<string, unknown>[] | null, error, "sugerirParesCompuestosPorPropiedad") ?? [];
+  return filas.map((f) => ({
+    compuestoAId: String(f.compuesto_a_id),
+    compuestoANombre: String(f.compuesto_a_nombre),
+    compuestoBId: String(f.compuesto_b_id),
+    compuestoBNombre: String(f.compuesto_b_nombre),
     valor: Number(f.valor),
     propiedades: (f.propiedades as Record<string, number>) ?? {},
   }));
