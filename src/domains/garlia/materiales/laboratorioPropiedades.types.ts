@@ -102,3 +102,74 @@ export interface ResultadoSimulacionCompuesto {
   interaccion?: number | null;
   nota?: string;
 }
+
+// ─── Simulador Compuesto + Compuesto → Material hipotético ────────────────
+// Fuente de verdad: RPC simular_material_desde_compuestos(p_compuesto_ids
+// uuid[]) — solo lectura, no crea fila en "materiales" ni
+// "material_componentes". Mismo criterio que el simulador de Compuesto:
+// componentes en partes iguales, sin Estructura asociada (eso es
+// composición real de otro nivel, fuera de este slice).
+
+export type EstadoSimulacionMaterial =
+  | "simulado"
+  | "sin_compuestos"
+  | "insuficientes_compuestos"
+  | "compuestos_inexistentes";
+
+export interface ResultadoSimulacionMaterial {
+  estado: EstadoSimulacionMaterial;
+  modelo?: string;
+  compuestos?: { id: string; nombre: string }[];
+  masa?: number | null;
+  carga?: number | null;
+  volumen?: number | null;
+  densidad?: number | null;
+  estabilidad?: number | null;
+  rigidez?: number | null;
+  flexibilidad?: number | null;
+  dureza?: number | null;
+  conductividad?: number | null;
+  transparencia?: number | null;
+  interaccion?: number | null;
+  fuente_fisica?: string;
+  nota?: string;
+}
+
+// ─── Ranking de pares de Elementos por una propiedad objetivo ─────────────
+// Fuente de verdad: RPC sugerir_pares_elementos_por_propiedad(p_propiedad
+// text, p_limite int) — solo lectura. A diferencia del simulador manual
+// (una combinación armada a mano), esto evalúa TODOS los pares posibles
+// del catálogo real de Elementos con la misma fórmula de compuesto
+// (fn_calcular_compuesto_desde_elementos) y devuelve el top N ordenado
+// desc por la propiedad elegida. "Elegís transparencia → te muestra las 20
+// combinaciones que darían más transparencia", sin tener que armar nada
+// a mano.
+
+/** Las 7 propiedades que calcula un Compuesto real desde sus Elementos
+ *  (fn_calcular_compuesto_desde_elementos) — únicas que la RPC de ranking
+ *  de pares soporta. Se hardcodea esta lista (no viene de un catálogo
+ *  Supabase) porque son literalmente las columnas físicas de "compuestos",
+ *  no una entrada del catálogo oficial de propiedades_derivadas. */
+export const PROPIEDADES_PAR_ELEMENTOS: { clave: string; nombre: string }[] = [
+  { clave: "dureza", nombre: "Dureza" },
+  { clave: "rigidez", nombre: "Rigidez" },
+  { clave: "flexibilidad", nombre: "Flexibilidad" },
+  { clave: "estabilidad", nombre: "Estabilidad" },
+  { clave: "conductividad", nombre: "Conductividad" },
+  { clave: "transparencia", nombre: "Transparencia" },
+  { clave: "interaccion", nombre: "Interacción" },
+];
+
+export interface ParElementosSugerido {
+  elementoAId: string;
+  elementoANombre: string;
+  elementoBId: string;
+  elementoBNombre: string;
+  /** El valor de la propiedad elegida para este par — es la columna por la
+   *  que está ordenado el ranking. */
+  valor: number;
+  /** Las 7 propiedades del compuesto resultante, no solo la elegida —
+   *  contexto extra, mismo criterio que coincidencias en el buscador
+   *  anterior. */
+  propiedades: Record<string, number>;
+}

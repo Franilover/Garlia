@@ -22,10 +22,13 @@
 import React, { useMemo, useState } from "react";
 
 import { useLaboratorioPropiedades } from "./useLaboratorioPropiedades";
+import { useRankingParesElementos } from "./useRankingParesElementos";
 import { useSimuladorCompuesto } from "./useSimuladorCompuesto";
-import type { EntidadLab, SugerenciaPropiedadLab } from "./laboratorioPropiedades.types";
+import { useSimuladorMaterial } from "./useSimuladorMaterial";
+import type { EntidadLab, ParElementosSugerido, SugerenciaPropiedadLab } from "./laboratorioPropiedades.types";
 
-type ModoLab = "buscar" | "simular";
+type ModoLab = "ranking" | "buscarExistente" | "simular";
+type NivelSimulacion = "elementoACompuesto" | "compuestoAMaterial";
 
 // ─── Primitivas visuales locales (mismas clases que el resto del Visualizador) ─
 
@@ -219,6 +222,128 @@ function TarjetaResultado({ fila, posicion }: { fila: SugerenciaPropiedadLab; po
   );
 }
 
+function TarjetaParElemento({ par, posicion, propiedad }: { par: ParElementosSugerido; posicion: number; propiedad: string }) {
+  return (
+    <div className="rounded-xl border border-primary/10 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-black text-primary/60">
+            {posicion}
+          </span>
+          <p className="text-xs font-black text-primary/85">
+            {par.elementoANombre} <span className="font-medium text-primary/35">+</span> {par.elementoBNombre}
+          </p>
+        </div>
+        <StatusPill>{par.valor.toFixed(3)}</StatusPill>
+      </div>
+
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-primary/10">
+        <div
+          className="h-full rounded-full bg-accent/60"
+          style={{ width: `${Math.max(0, Math.min(1, par.valor)) * 100}%` }}
+        />
+      </div>
+
+      <details className="mt-3">
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          Compuesto resultante completo
+        </summary>
+        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          {Object.entries(par.propiedades).map(([clave, valor]) => (
+            <div
+              key={clave}
+              className={`flex flex-col gap-0.5 rounded-md border px-2 py-1.5 ${
+                clave === propiedad
+                  ? "border-accent/30 bg-accent/10"
+                  : "border-primary/10 bg-primary/5"
+              }`}
+            >
+              <span className="truncate text-[9px] font-black uppercase tracking-widest text-primary/35">
+                {clave}
+              </span>
+              <span className="text-micro font-black text-primary/70">
+                {typeof valor === "number" ? valor.toFixed(4) : String(valor)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function RankingParesElementosPanel() {
+  const { propiedades, propiedad, setPropiedad, resultados, loading, error, buscado, buscar } =
+    useRankingParesElementos();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-xs font-black text-primary/80">
+          Laboratorio · ¿Qué combino para conseguir X? <span className="font-medium text-primary/35">· VIS-17</span>
+        </p>
+        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
+          Elegí una propiedad y mostramos las 20 combinaciones de 2 Elementos —de todo
+          el catálogo, no una que armes vos— que darían el compuesto resultante con el
+          valor más alto en esa propiedad. Calculado con la misma fórmula que un
+          Compuesto real, en partes iguales.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={propiedad}
+          onChange={(e) => setPropiedad(e.target.value)}
+          className="w-full max-w-xs rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+        >
+          {propiedades.map((p) => (
+            <option key={p.clave} value={p.clave} className="bg-[var(--bg-main)] text-primary">
+              {p.nombre}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={buscar}
+          disabled={loading}
+          className="rounded-lg bg-accent px-5 py-2.5 text-xs font-black text-[var(--bg-main)] transition-opacity disabled:opacity-30"
+        >
+          {loading ? "Calculando…" : "Ver top 20"}
+        </button>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-xs font-bold text-red-400">
+          {error}
+        </div>
+      ) : null}
+
+      {loading ? <LoadingRow>Evaluando todas las combinaciones posibles…</LoadingRow> : null}
+
+      {!loading && buscado && !error ? (
+        resultados.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+              Top {resultados.length} — ordenado por {propiedades.find((p) => p.clave === propiedad)?.nombre ?? propiedad}
+            </p>
+            {resultados.map((par, i) => (
+              <TarjetaParElemento
+                key={`${par.elementoAId}-${par.elementoBId}`}
+                par={par}
+                posicion={i + 1}
+                propiedad={propiedad}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyRow>No se encontró ninguna combinación calculable para esta propiedad todavía.</EmptyRow>
+        )
+      ) : null}
+    </div>
+  );
+}
+
 /** Etiquetas legibles para las claves que devuelve la RPC de simulación —
  *  mismo criterio que ETIQUETAS_METRICA en GridPropiedadesCalculadas.tsx,
  *  duplicado acá porque esa constante no está exportada y el set de claves
@@ -226,7 +351,9 @@ function TarjetaResultado({ fila, posicion }: { fila: SugerenciaPropiedadLab; po
 const ETIQUETAS_SIMULACION: Record<string, string> = {
   masa: "Masa",
   carga: "Carga",
+  volumen: "Volumen",
   volumen_real: "Volumen",
+  densidad: "Densidad",
   densidad_real: "Densidad",
   estabilidad: "Estabilidad",
   rigidez: "Rigidez",
@@ -407,10 +534,173 @@ function SimuladorCompuestoPanel() {
   );
 }
 
+function SimuladorMaterialPanel() {
+  const {
+    disponibles,
+    seleccionados,
+    agregarCompuesto,
+    quitarCompuesto,
+    limpiar,
+    simular,
+    resultado,
+    loadingCompuestos,
+    loadingSimulacion,
+    error,
+  } = useSimuladorMaterial();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-xs font-black text-primary/80">
+          Laboratorio · Simulador de combinaciones <span className="font-medium text-primary/35">· VIS-17</span>
+        </p>
+        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
+          Elegí 2 o más Compuestos y mirá qué Material resultaría de combinarlos en
+          partes iguales — masa/carga/volumen se suman y el resto de propiedades se
+          promedia, igual que haría el motor con un Material real sin Estructura
+          asociada. No se crea ni se guarda nada.
+        </p>
+      </div>
+
+      {loadingCompuestos ? (
+        <LoadingRow>Cargando catálogo de compuestos…</LoadingRow>
+      ) : (
+        <select
+          value=""
+          onChange={(e) => {
+            if (e.target.value) agregarCompuesto(e.target.value);
+          }}
+          className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+        >
+          <option value="" disabled>
+            + Agregar compuesto a la combinación…
+          </option>
+          {disponibles.map((c) => (
+            <option key={c.id} value={c.id} className="bg-[var(--bg-main)] text-primary">
+              {c.nombre}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {seleccionados.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {seleccionados.map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/15 py-1.5 pl-3.5 pr-2 text-xs font-black text-primary/80"
+            >
+              {c.nombre}
+              <button
+                type="button"
+                onClick={() => quitarCompuesto(c.id)}
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-black text-primary/35 transition-colors hover:text-red-400"
+                aria-label={`Quitar ${c.nombre}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={limpiar}
+            className="text-[10px] font-black uppercase tracking-wider text-primary/35 transition-colors hover:text-primary/60"
+          >
+            Limpiar todo
+          </button>
+        </div>
+      ) : (
+        <EmptyRow>Todavía no elegiste ningún compuesto.</EmptyRow>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={simular}
+          disabled={loadingSimulacion || seleccionados.length < 2}
+          className="rounded-lg bg-accent px-5 py-2.5 text-xs font-black text-[var(--bg-main)] transition-opacity disabled:opacity-30"
+        >
+          {loadingSimulacion ? "Simulando…" : "Simular material"}
+        </button>
+        {seleccionados.length === 1 ? (
+          <span className="text-[10px] font-bold text-primary/35">Elegí al menos un compuesto más.</span>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-xs font-bold text-red-400">
+          {error}
+        </div>
+      ) : null}
+
+      {resultado ? (
+        <div className="rounded-xl border border-primary/10 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+            Material simulado a partir de {resultado.compuestos?.map((c) => c.nombre).join(" + ")}
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {(
+              [
+                "masa",
+                "carga",
+                "volumen",
+                "densidad",
+                "estabilidad",
+                "rigidez",
+                "flexibilidad",
+                "dureza",
+                "conductividad",
+                "transparencia",
+                "interaccion",
+              ] as const
+            ).map((clave) => {
+              const valor = resultado[clave];
+              if (valor === null || valor === undefined) return null;
+              const esIndice = CLAVES_INDICE.has(clave);
+              return (
+                <div
+                  key={clave}
+                  className="flex flex-col gap-1 rounded-md border border-primary/10 bg-primary/5 px-2.5 py-2"
+                >
+                  <span className="truncate text-[9px] font-black uppercase tracking-widest text-primary/35">
+                    {ETIQUETAS_SIMULACION[clave] ?? clave}
+                  </span>
+                  <span className="text-micro font-black text-primary/80">
+                    {Number(valor).toFixed(esIndice ? 3 : 4)}
+                  </span>
+                  {esIndice ? (
+                    <div className="h-1 overflow-hidden rounded-full bg-primary/10">
+                      <div
+                        className="h-full rounded-full bg-accent/50"
+                        style={{ width: `${Math.max(0, Math.min(1, Number(valor))) * 100}%` }}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          {resultado.fuente_fisica ? (
+            <p className="mt-3 text-[10px] font-bold uppercase tracking-widest text-primary/35">
+              fuente_fisica: {resultado.fuente_fisica}
+            </p>
+          ) : null}
+          {resultado.nota ? (
+            <p className="mt-1.5 text-[10px] leading-4 text-primary/35">{resultado.nota}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Sección principal ──────────────────────────────────────────────────────
 
 export function LaboratorioPropiedadesSection() {
-  const [modo, setModo] = useState<ModoLab>("simular");
+  const [modo, setModo] = useState<ModoLab>("ranking");
+  const [nivel, setNivel] = useState<NivelSimulacion>("elementoACompuesto");
   const {
     catalogo,
     loadingCatalogo,
@@ -440,11 +730,12 @@ export function LaboratorioPropiedadesSection() {
   );
 
   const toggleModo = (
-    <div className="inline-flex rounded-lg border border-primary/15 p-1">
+    <div className="inline-flex flex-wrap rounded-lg border border-primary/15 p-1">
       {(
         [
+          { key: "ranking" as const, label: "¿Qué combino para conseguir X?" },
           { key: "simular" as const, label: "Simular combinación" },
-          { key: "buscar" as const, label: "Buscar por propiedad" },
+          { key: "buscarExistente" as const, label: "Buscar en el catálogo" },
         ]
       ).map((o) => (
         <button
@@ -461,11 +752,41 @@ export function LaboratorioPropiedadesSection() {
     </div>
   );
 
+  if (modo === "ranking") {
+    return (
+      <div className="flex flex-col gap-6">
+        {toggleModo}
+        <RankingParesElementosPanel />
+      </div>
+    );
+  }
+
   if (modo === "simular") {
     return (
       <div className="flex flex-col gap-6">
         {toggleModo}
-        <SimuladorCompuestoPanel />
+
+        <div className="inline-flex w-fit rounded-lg border border-primary/10 p-1">
+          {(
+            [
+              { key: "elementoACompuesto" as const, label: "Elemento → Compuesto" },
+              { key: "compuestoAMaterial" as const, label: "Compuesto → Material" },
+            ]
+          ).map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => setNivel(o.key)}
+              className={`rounded-md px-3 py-1.5 text-[11px] font-black transition-colors ${
+                nivel === o.key ? "bg-primary/10 text-primary/80" : "text-primary/35 hover:text-primary/55"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
+        {nivel === "elementoACompuesto" ? <SimuladorCompuestoPanel /> : <SimuladorMaterialPanel />}
       </div>
     );
   }
@@ -476,13 +797,12 @@ export function LaboratorioPropiedadesSection() {
 
       <div>
         <p className="text-xs font-black text-primary/80">
-          Laboratorio · Buscador por propiedad <span className="font-medium text-primary/35">· VIS-17</span>
+          Laboratorio · Buscar en el catálogo <span className="font-medium text-primary/35">· VIS-17</span>
         </p>
         <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí qué propiedad(es) física(s) o reactiva(s) te interesan y un umbral —
-          el motor busca en el catálogo real de Compuestos o Materiales cuáles las
-          cumplen mejor. El ranking y los valores son los que ya calculó Supabase,
-          no una estimación del visualizador.
+          A diferencia de "¿Qué combino para conseguir X?" (que evalúa combinaciones
+          nuevas), esto busca entre los Compuestos o Materiales que YA existen en el
+          catálogo cuáles cumplen mejor los requisitos que armes acá.
         </p>
       </div>
 

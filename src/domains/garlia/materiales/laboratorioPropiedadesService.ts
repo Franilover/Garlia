@@ -22,8 +22,10 @@ import { supabase } from "@/infra/supabase/supabase";
 import type {
   CoincidenciaPropiedadLab,
   EntidadLab,
+  ParElementosSugerido,
   RequisitoPropiedadLab,
   ResultadoSimulacionCompuesto,
+  ResultadoSimulacionMaterial,
   SugerenciaPropiedadLab,
 } from "./laboratorioPropiedades.types";
 
@@ -122,4 +124,54 @@ export async function simularCompuestoDesdeElementos(
     error,
     "simularCompuestoDesdeElementos",
   );
+}
+
+/**
+ * Simula "si combino estos Compuestos (partes iguales), ¿qué Material
+ * resultaría?" — vía la RPC de solo-lectura simular_material_desde_
+ * compuestos. No crea ninguna fila; agrega masa/carga/volumen por suma y
+ * promedia el resto de propiedades con la misma lógica que
+ * _calcular_propiedades_material_recursivo usa para componentes tipo
+ * "compuesto" (sin Estructura asociada, eso es otro nivel).
+ *
+ * Requiere 2+ ids de Compuesto.
+ */
+export async function simularMaterialDesdeCompuestos(
+  compuestoIds: string[],
+): Promise<ResultadoSimulacionMaterial> {
+  const { data, error } = await supabase.rpc("simular_material_desde_compuestos", {
+    p_compuesto_ids: compuestoIds,
+  });
+  return assertNoError(
+    data as ResultadoSimulacionMaterial,
+    error,
+    "simularMaterialDesdeCompuestos",
+  );
+}
+
+/**
+ * "Elegí una propiedad → mostrame las N combinaciones de 2 Elementos que
+ * darían el compuesto resultante con el valor más alto en esa propiedad."
+ * Vía sugerir_pares_elementos_por_propiedad, que evalúa TODOS los pares
+ * del catálogo real (no uno armado a mano) con la fórmula real de
+ * compuesto y devuelve el top N ya ordenado desc. Solo lectura.
+ */
+export async function sugerirParesElementosPorPropiedad(
+  propiedad: string,
+  limite = 20,
+): Promise<ParElementosSugerido[]> {
+  const { data, error } = await supabase.rpc("sugerir_pares_elementos_por_propiedad", {
+    p_propiedad: propiedad,
+    p_limite: limite,
+  });
+  const filas =
+    assertNoError(data as Record<string, unknown>[] | null, error, "sugerirParesElementosPorPropiedad") ?? [];
+  return filas.map((f) => ({
+    elementoAId: String(f.elemento_a_id),
+    elementoANombre: String(f.elemento_a_nombre),
+    elementoBId: String(f.elemento_b_id),
+    elementoBNombre: String(f.elemento_b_nombre),
+    valor: Number(f.valor),
+    propiedades: (f.propiedades as Record<string, number>) ?? {},
+  }));
 }
