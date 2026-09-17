@@ -2389,6 +2389,17 @@ export function CompuestosPage({
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [laboratorioAbierto, setLaboratorioAbierto] = useState(false);
 
+  // Selector de eje de agrupamiento para el listado principal. "naturaleza"
+  // (default, comportamiento previo) usa el sistema de tags manual; ahora
+  // que la columna real compuestos.categoria por fin se trae desde
+  // Supabase (2026-09-17, ver CONFIG_COMPUESTOS.select y Compuesto.categoria
+  // en types.ts), se agrega "categoria" como vista alternativa sobre el
+  // eje físico (mineral, metal_aleacion, etc.) en vez de reemplazar la
+  // vista existente.
+  const [ejeAgrupamiento, setEjeAgrupamiento] = useState<"naturaleza" | "categoria">(
+    "naturaleza",
+  );
+
   // Agrupamiento por Naturaleza (eje "naturaleza" del sistema de tags) —
   // mismo espíritu que Personajes/Criaturas agrupados por su jerarquía:
   // una sección por cada tag de naturaleza que tenga al menos un compuesto,
@@ -2425,6 +2436,40 @@ export function CompuestosPage({
     return { grupos, sinNaturaleza };
   }, [compuestos, tagsNaturaleza, tagIdsDe]);
 
+  // Agrupamiento por Categoría (columna real compuestos.categoria, eje
+  // físico — mineral, metal_aleacion, etc. — distinto del eje "naturaleza"
+  // de arriba). Mismo criterio de armado: una sección por cada valor de
+  // categoria presente, más un bloque final para los que no tienen
+  // categoria asignada, en el orden en que aparecen los grupos (no hay un
+  // enum fijo documentado en el frontend, así que no se fuerza un orden
+  // arbitrario de categorías).
+  const gruposPorCategoria = useMemo(() => {
+    const orden: string[] = [];
+    const mapa = new Map<string, Compuesto[]>();
+    const sinCategoria: Compuesto[] = [];
+
+    for (const c of compuestos) {
+      const cat = c.categoria;
+      if (!cat) {
+        sinCategoria.push(c);
+        continue;
+      }
+      if (!mapa.has(cat)) {
+        mapa.set(cat, []);
+        orden.push(cat);
+      }
+      mapa.get(cat)!.push(c);
+    }
+
+    const grupos = orden.map((cat) => ({ id: cat, nombre: cat, compuestos: mapa.get(cat)! }));
+
+    if (sinCategoria.length > 0) {
+      grupos.push({ id: "__sin-categoria__", nombre: "Sin categoría", compuestos: sinCategoria });
+    }
+
+    return { grupos, sinCategoria };
+  }, [compuestos]);
+
   // Permite que el caller fuerce la apertura de un compuesto específico
   // desde afuera (ej. al navegar desde "Usado en compuestos" en el editor
   // de un Elemento). seleccionadoId pasa a ser la única fuente de verdad
@@ -2446,6 +2491,28 @@ export function CompuestosPage({
   return (
     <div className="flex relative">
       <div className="flex-1 p-3 flex flex-col gap-3">
+        <div className="flex gap-1 self-start rounded-lg bg-primary/5 p-0.5">
+          {(
+            [
+              { id: "naturaleza" as const, label: "Naturaleza" },
+              { id: "categoria" as const, label: "Categoría" },
+            ]
+          ).map((opcion) => (
+            <button
+              key={opcion.id}
+              type="button"
+              onClick={() => setEjeAgrupamiento(opcion.id)}
+              className={`rounded-md px-2.5 py-1 text-micro font-bold uppercase tracking-[0.08em] transition-colors ${
+                ejeAgrupamiento === opcion.id
+                  ? "bg-primary/15 text-primary/80"
+                  : "text-primary/35 hover:text-primary/55"
+              }`}
+            >
+              {opcion.label}
+            </button>
+          ))}
+        </div>
+
         {loading && compuestos.length === 0 ? (
           <div className="py-6 text-micro text-primary/30 text-center">Cargando…</div>
         ) : compuestos.length === 0 ? (
@@ -2454,7 +2521,11 @@ export function CompuestosPage({
           </div>
         ) : (
           <MasonryGruposNaturaleza
-            grupos={gruposPorNaturaleza.grupos}
+            grupos={
+              ejeAgrupamiento === "categoria"
+                ? gruposPorCategoria.grupos
+                : gruposPorNaturaleza.grupos
+            }
             elementos={elementos}
             activoId={activoId}
             onSeleccionar={(id) =>

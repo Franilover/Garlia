@@ -40,6 +40,12 @@ export interface Material {
    *  columnas faltantes en elementos/compuestos/materiales). Solo lectura,
    *  calculada por Supabase. */
   capacidades_reactivas: Record<string, unknown> | null;
+
+  /** Columna real de "materiales" agregada en v285, nunca propagada al
+   *  frontend (mismo problema que compuestos.categoria en v286): faltaba
+   *  en este tipo y en el select de CONFIG_MATERIALES, así que
+   *  useMateriales() nunca la traía. No se asume enum cerrado. */
+  categoria?: string | null;
 }
 
 export interface MaterialComponente {
@@ -77,10 +83,12 @@ export const CONFIG_MATERIALES = {
   // 2026-08-27: agregada "capacidades_reactivas", única columna real de la
   // tabla "materiales" que faltaba en el select — ver auditoría de columnas
   // faltantes en elementos/compuestos/materiales.
+  // 2026-09-17: agregada "categoria" (v285), que tenía el mismo problema
+  // (existía en Supabase pero nunca se pedía ni se tipaba en el frontend).
   select:
     "id, nombre, descripcion, notas, tipo_material, material_padre_id, " +
     "propiedades_calculadas, estado_calculo, orden, created_at, updated_at, " +
-    "capacidades_reactivas",
+    "capacidades_reactivas, categoria",
 };
 
 export const CONFIG_MATERIAL_COMPONENTES = {

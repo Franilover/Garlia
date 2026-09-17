@@ -631,6 +631,14 @@ export interface Compuesto {
   topologia_estructura_derivada?: string | null;
   naturaleza_semantica?: string | null;
   razon_clasificacion?: string | null;
+  /** Columna real de "compuestos" agregada en v286 (ver auditoría), nunca
+   *  propagada al frontend hasta ahora: faltaba en este tipo y en el select
+   *  de CONFIG_COMPUESTOS, así que useCompuestos() nunca la traía — de ahí
+   *  que CompuestosPage no pudiera agrupar por ella. Eje físico
+   *  (mineral, metal_aleacion, etc.), independiente del eje "naturaleza"
+   *  del sistema de tags. No se asume un enum cerrado: se tipa como string
+   *  para no romper si Supabase tiene/agrega valores no documentados acá. */
+  categoria?: string | null;
 }
 
 export const CONFIG_COMPUESTOS = {
@@ -651,13 +659,17 @@ export const CONFIG_COMPUESTOS = {
   // topologia_estructura_derivada) — select actualizado a los nombres
   // nuevos, o el select entero vuelve a fallar con 42703 como pasó antes
   // con "componentes" (ver nota arriba).
+  // 2026-09-17: agregada "categoria" (mineral, metal_aleacion, etc.),
+  // columna real de v286 que nunca se había pedido acá — por eso
+  // CompuestosPage no podía agrupar por ella (ver auditoría categoria
+  // faltante en Compuesto/Material).
   select:
     "id, nombre, simbolo, notas, created_at, updated_at, sustancia_base_id, estado, " +
     "tipo_compuesto, estado_topologia, formula_canonica, masa, carga, estabilidad, rigidez, " +
     "flexibilidad, propiedades_emergentes, estructura, validacion, compatibilidad, " +
     "topologia_estructura, energia_enlace, umbral_estabilidad, clasificacion, razon_clasificacion, " +
     "auditoria, topologia_enlace, topologia_estructura_derivada, naturaleza_semantica, dureza, " +
-    "conductividad, transparencia, interaccion, volumen, densidad",
+    "conductividad, transparencia, interaccion, volumen, densidad, categoria",
 };
 
 /** Una propiedad física calculada del Compuesto, lista para renderizar en
