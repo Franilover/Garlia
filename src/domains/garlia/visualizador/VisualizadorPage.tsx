@@ -3,21 +3,26 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
+  Camera,
   ChevronRight,
   CircleDot,
   FlaskConical,
-  Beaker,
+  Flame,
   GitBranch,
   Layers3,
   Orbit,
   Pause,
   Play,
+  Plus,
   Radio,
   RotateCcw,
   SkipForward,
   Sparkles,
+  Trash2,
   Waypoints,
+  Weight,
   Workflow,
+  Zap,
 } from "lucide-react";
 
 // V2 — conectado a datos reales de Supabase. Cada sección lee de los
@@ -69,7 +74,6 @@ import {
 // Nueva sección "rutas" (no toca las 12 secciones existentes arriba).
 import { StructureCanvas, type CanvasColumn, type CanvasEdge } from "./StructureCanvas";
 import { Inspector, type InspectorEntity } from "./Inspector";
-import { SandboxPage } from "@/domains/garlia/sandbox/SandboxPage";
 import { TraceView, type TraceStep } from "./TraceView";
 import { type Perspectiva } from "./PerspectivaSwitcher";
 import { useEnlaceRoute, type EnlaceResuelto } from "./routes/useEnlaceRoute";
@@ -130,7 +134,7 @@ type SectionKey =
   | "tejidoOrgano" // VIS-12
   | "organoOrganismo" // VIS-13
   | "organismoReinoMundo" // VIS-14
-  | "sandbox"; // ex-tab de nivel superior en RunasPage, movida acá a "Lab"
+  | "sandbox"; // VIS-17-SANDBOX retirado del nav 2026-09-17 (fusionado en "interaccion"); tipo se deja para no romper el union en otros usos
 
 type NavGroup = {
   group: string;
@@ -207,12 +211,13 @@ const navGroups: NavGroup[] = [
       { key: "information", label: "Información (sin dato)", visId: "VIS-PENDIENTE-INFO", icon: <Radio size={15} />, implementado: false },
       { key: "laboratorio", label: "Laboratorio", visId: "VIS-17", icon: <FlaskConical size={15} />, implementado: true },
       { key: "runas", label: "Runa → Mecanismo → Fenómeno", visId: "VIS-09", icon: <CircleDot size={15} />, implementado: true },
-      // Sandbox: entorno experimental aislado (crear simulación, entidades,
-      // disparar eventos, Play/Pause/Step/Reset) — antes tab de nivel
-      // superior junto a Runas/Química en RunasPage.tsx, movido acá a
-      // "Lab" a pedido explícito (2026-09-14). Mismo componente
-      // (SandboxPage), sin cambios en su lógica interna.
-      { key: "sandbox", label: "Sandbox", visId: "VIS-17-SANDBOX", icon: <Beaker size={15} />, implementado: true },
+      // Sandbox (VIS-17-SANDBOX) retirado del nav (2026-09-17): fusionado
+      // dentro de "Interacción" (VIS-05, más abajo en este mismo grupo),
+      // que ahora es el hub único del Sandbox — crear/cargar/descartar
+      // simulación, entidades, motor físico, snapshots. SandboxPage.tsx
+      // sigue existiendo sin cambios en su lógica interna, solo ya no
+      // tiene entrada propia acá (mismo criterio ya aplicado a "oris"/
+      // "elementos_ruta" antes).
     ],
   },
   {
@@ -1759,11 +1764,555 @@ function CompatibilidadSection() {
   );
 }
 
+/** Input numérico chico, mismo lenguaje visual que los <select>/<input> ya
+ *  usados en Interacción/Laboratorio (borde primary/15, texto xs font-black,
+ *  foco primary/40) — evita traer <Input>/<Select> de otro dominio con su
+ *  propio look (ver nota de SandboxBtn en SandboxPage.tsx sobre contraste
+ *  roto por depender de otro sistema de estilos). */
+function NumberField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  step = "any",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  step?: string;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-[10px] font-bold text-primary/45">
+      {label}
+      <input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-24 rounded-md border border-primary/15 bg-transparent px-2 py-1 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
+      />
+    </label>
+  );
+}
+
+/** Botón de acción chico, mismo lenguaje que los botones circulares de
+ *  Play/Pause/Step/Reset ya existentes en Interacción, pero en formato
+ *  pill con label — para las acciones del motor físico. */
+function AccionFisicaBtn({
+  icon,
+  children,
+  onClick,
+  disabled,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+/** Resultado crudo de una acción física — el motor puede devolver
+ *  "informacion_insuficiente" (masa/temperatura/posición no definida) y eso
+ *  NO es un error de red: se muestra tal cual, nunca se reintenta en
+ *  silencio ni se inventa el dato que falta. */
+function ResultadoAccionFisica({ resultado }: { resultado: Record<string, unknown> | null }) {
+  if (!resultado) return null;
+  const aplicado = resultado.aplicado === true || ["aplicado", "calculado", "resuelto"].includes(String(resultado.estado));
+  return (
+    <div
+      className={`mt-2 rounded-lg border px-3 py-2 text-[10px] font-bold leading-4 ${
+        aplicado ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-500" : "border-amber-500/20 bg-amber-500/5 text-amber-500"
+      }`}
+    >
+      {aplicado ? (
+        <span>Aplicado{resultado.tiempo != null ? ` · t=${resultado.tiempo}` : ""}</span>
+      ) : (
+        <span>
+          {String(resultado.estado ?? "sin_dato")}
+          {resultado.razon ? ` — ${resultado.razon}` : ""}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Panel de acciones del motor físico sobre la entidad seleccionada —
+ *  Temperatura, Fuerza, Daño mecánico, Eterium (sobre una sola entidad) y
+ *  Transferencias/Transmisión (entre la seleccionada y una segunda,
+ *  elegida acá mismo). Cada bloque es opt-in (colapsado por defecto vía
+ *  <details>) para no abrumar cuando la entidad no participa de ese tipo
+ *  de interacción — mismo criterio que "Todas las propiedades" en
+ *  LaboratorioPropiedadesSection. */
+function PanelAccionesFisicas({ route }: { route: ReturnType<typeof useInteraccionRoute> }) {
+  const entidad = route.entidadSel;
+  const [resultado, setResultado] = useState<Record<string, unknown> | null>(null);
+
+  const [temperatura, setTemperatura] = useState("");
+  const [deltaEnergia, setDeltaEnergia] = useState("");
+  const [fraccionDanio, setFraccionDanio] = useState("");
+  const [fuerza, setFuerza] = useState({ x: "", y: "", z: "" });
+  const [intensidadEterium, setIntensidadEterium] = useState("");
+  const [destinoId, setDestinoId] = useState("");
+  const [cantidadEnergia, setCantidadEnergia] = useState("");
+  const [cantidadCarga, setCantidadCarga] = useState("");
+
+  const otrasEntidades = useMemo(
+    () => route.entidades.filter((e) => e.id !== entidad?.id),
+    [route.entidades, entidad],
+  );
+
+  if (!entidad) {
+    return (
+      <EmptyRow>Elegí una entidad de la lista para aplicarle acciones del motor físico.</EmptyRow>
+    );
+  }
+
+  const t = route.tiempoSimulado ?? 0;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ResultadoAccionFisica resultado={resultado} />
+
+      <details className="rounded-2xl p-4" open>
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          <Flame size={11} className="mr-1.5 inline -mt-0.5" /> Temperatura
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+          <NumberField label="valor" value={temperatura} onChange={setTemperatura} placeholder="uΘ" />
+          <AccionFisicaBtn
+            icon={<Zap size={12} />}
+            disabled={temperatura === ""}
+            onClick={async () => {
+              const r = await route.establecerTemperatura({
+                entidadId: entidad.id,
+                temperatura: Number(temperatura),
+                tiempoActual: t,
+              });
+              setResultado(r);
+            }}
+          >
+            Establecer
+          </AccionFisicaBtn>
+          <NumberField label="Δ energía" value={deltaEnergia} onChange={setDeltaEnergia} placeholder="energia_u" />
+          <AccionFisicaBtn
+            icon={<Zap size={12} />}
+            disabled={deltaEnergia === ""}
+            onClick={async () => {
+              const r = await route.aplicarDeltaTemperatura({
+                entidadId: entidad.id,
+                deltaEnergia: Number(deltaEnergia),
+                tiempoActual: t,
+              });
+              setResultado(r);
+            }}
+          >
+            Aplicar Δ energía
+          </AccionFisicaBtn>
+        </div>
+      </details>
+
+      <details className="rounded-2xl p-4">
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          <Weight size={11} className="mr-1.5 inline -mt-0.5" /> Mecánica
+        </summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <NumberField label="fx" value={fuerza.x} onChange={(v) => setFuerza((f) => ({ ...f, x: v }))} placeholder="0" />
+            <NumberField label="fy" value={fuerza.y} onChange={(v) => setFuerza((f) => ({ ...f, y: v }))} placeholder="0" />
+            <NumberField label="fz" value={fuerza.z} onChange={(v) => setFuerza((f) => ({ ...f, z: v }))} placeholder="0" />
+            <AccionFisicaBtn
+              icon={<Zap size={12} />}
+              onClick={async () => {
+                const r = await route.aplicarFuerza({
+                  entidadId: entidad.id,
+                  fuerza: {
+                    x: Number(fuerza.x || 0),
+                    y: Number(fuerza.y || 0),
+                    z: Number(fuerza.z || 0),
+                  },
+                  tiempoActual: t,
+                });
+                setResultado(r);
+              }}
+            >
+              Aplicar fuerza
+            </AccionFisicaBtn>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <NumberField label="daño (0–1)" value={fraccionDanio} onChange={setFraccionDanio} step="0.01" placeholder="0.25" />
+            <AccionFisicaBtn
+              icon={<Zap size={12} />}
+              disabled={fraccionDanio === ""}
+              onClick={async () => {
+                const r = await route.aplicarDanioMecanico({
+                  entidadId: entidad.id,
+                  fraccion: Number(fraccionDanio),
+                  tiempoActual: t,
+                });
+                setResultado(r);
+              }}
+            >
+              Aplicar daño
+            </AccionFisicaBtn>
+            <AccionFisicaBtn
+              icon={<Weight size={12} />}
+              onClick={async () => {
+                const r = await route.resolverPeso(entidad.id);
+                setResultado(r);
+              }}
+            >
+              Resolver peso
+            </AccionFisicaBtn>
+            <AccionFisicaBtn
+              icon={<Sparkles size={12} />}
+              onClick={async () => {
+                const r = await route.calcularEnergiaCinetica(entidad.id);
+                setResultado(r);
+              }}
+            >
+              Energía cinética
+            </AccionFisicaBtn>
+          </div>
+        </div>
+      </details>
+
+      <details className="rounded-2xl p-4">
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          <Zap size={11} className="mr-1.5 inline -mt-0.5" /> Transferencias (requiere otra entidad)
+        </summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <SelectDropdown
+            items={otrasEntidades}
+            active={otrasEntidades.find((e) => e.id === destinoId) ?? null}
+            getKey={(e) => e.id}
+            getLabel={(e) => e.entidad_tipo}
+            onSelect={(e) => setDestinoId(e.id)}
+            placeholder="Entidad destino…"
+          />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <NumberField label="energía" value={cantidadEnergia} onChange={setCantidadEnergia} placeholder="energia_u" />
+            <AccionFisicaBtn
+              icon={<Zap size={12} />}
+              disabled={!destinoId || cantidadEnergia === ""}
+              onClick={async () => {
+                const r = await route.transferirEnergia({
+                  origenId: entidad.id,
+                  destinoId,
+                  cantidad: Number(cantidadEnergia),
+                  tiempoActual: t,
+                });
+                setResultado(r);
+              }}
+            >
+              Transferir energía
+            </AccionFisicaBtn>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <NumberField label="carga" value={cantidadCarga} onChange={setCantidadCarga} placeholder="uQ" />
+            <AccionFisicaBtn
+              icon={<Zap size={12} />}
+              disabled={!destinoId || cantidadCarga === ""}
+              onClick={async () => {
+                const r = await route.transferirCarga({
+                  origenId: entidad.id,
+                  destinoId,
+                  cantidad: Number(cantidadCarga),
+                  tiempoActual: t,
+                });
+                setResultado(r);
+              }}
+            >
+              Transferir carga
+            </AccionFisicaBtn>
+            <AccionFisicaBtn
+              icon={<Radio size={12} />}
+              disabled={!destinoId}
+              onClick={async () => {
+                const r = await route.transmitirInformacion({
+                  origenId: entidad.id,
+                  destinoId,
+                  contenido: { emitido_desde: "Interacción" },
+                  tiempoActual: t,
+                });
+                setResultado(r);
+              }}
+            >
+              Transmitir información
+            </AccionFisicaBtn>
+          </div>
+        </div>
+      </details>
+
+      <details className="rounded-2xl p-4">
+        <summary className="cursor-pointer text-[10px] font-black uppercase tracking-widest text-primary/35">
+          <Sparkles size={11} className="mr-1.5 inline -mt-0.5" /> Eterium y métricas
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+          <NumberField label="intensidad" value={intensidadEterium} onChange={setIntensidadEterium} placeholder="0" />
+          <AccionFisicaBtn
+            icon={<Zap size={12} />}
+            disabled={intensidadEterium === ""}
+            onClick={async () => {
+              const r = await route.aplicarEterium({
+                entidadId: entidad.id,
+                intensidad: Number(intensidadEterium),
+                tiempoActual: t,
+              });
+              setResultado(r);
+            }}
+          >
+            Aplicar Eterium
+          </AccionFisicaBtn>
+          <AccionFisicaBtn
+            icon={<BarChart3 size={12} />}
+            onClick={async () => {
+              const r = await route.calcularMetricasDinamicas(entidad.id);
+              setResultado(r);
+            }}
+          >
+            Métricas dinámicas
+          </AccionFisicaBtn>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/** Panel "Agregar entidad" — elegir Elemento/Compuesto del catálogo real y
+ *  copiarlo al Sandbox. Reemplaza la sección homónima de SandboxPage con
+ *  el mismo lenguaje visual que el resto de Interacción. */
+function PanelAgregarEntidad({ route }: { route: ReturnType<typeof useInteraccionRoute> }) {
+  const [tipo, setTipo] = useState<"elemento" | "compuesto">("elemento");
+  const [seleccionId, setSeleccionId] = useState("");
+  const [agregando, setAgregando] = useState(false);
+
+  const items = tipo === "elemento" ? route.elementos : route.compuestos;
+  const loadingCatalogo = tipo === "elemento" ? route.loadingCatalogoElementos : route.loadingCatalogoCompuestos;
+
+  return (
+    <div className="rounded-2xl p-5">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">
+        Agregar entidad desde el catálogo
+      </p>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="inline-flex rounded-lg border border-primary/15 p-1">
+          {(["elemento", "compuesto"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => {
+                setTipo(k);
+                setSeleccionId("");
+              }}
+              className={`rounded-md px-3 py-1.5 text-[11px] font-black capitalize transition-colors ${
+                tipo === k ? "bg-primary/10 text-primary/90" : "text-primary/40 hover:text-primary/60"
+              }`}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+
+        <SelectDropdown
+          items={items}
+          active={items.find((i) => i.id === seleccionId) ?? null}
+          getKey={(i) => i.id}
+          getLabel={(i) => i.nombre}
+          onSelect={(i) => setSeleccionId(i.id)}
+          placeholder={loadingCatalogo ? "Cargando catálogo…" : `Elegir ${tipo}…`}
+        />
+
+        <button
+          type="button"
+          disabled={!seleccionId || agregando}
+          onClick={async () => {
+            setAgregando(true);
+            try {
+              const id = await route.agregarEntidadDesdeCatalogo({ entidadTipo: tipo, entidadOrigenId: seleccionId });
+              if (id) setSeleccionId("");
+            } finally {
+              setAgregando(false);
+            }
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+        >
+          <Plus size={13} />
+          {agregando ? "Copiando…" : "Copiar al Sandbox"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Panel "Simulación" — crear/cargar/descartar sandbox, contexto
+ *  gravitacional y snapshots. Vive arriba de todo, mismo criterio que el
+ *  selector de simulación ya existente, solo que ahora también permite
+ *  crear una simulación nueva sin salir de Interacción. */
+function PanelGestionSandbox({ route }: { route: ReturnType<typeof useInteraccionRoute> }) {
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [etiquetaSnapshot, setEtiquetaSnapshot] = useState("");
+  const [contextoGravId, setContextoGravId] = useState("");
+
+  return (
+    <div className="rounded-2xl p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end gap-2.5">
+          <div>
+            <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">Simulación activa</p>
+            <SelectDropdown
+              items={route.simulaciones}
+              active={route.simulaciones.find((s) => s.id === route.simulacionId) ?? null}
+              getKey={(s) => s.id}
+              getLabel={(s) => `${s.nombre} (t=${s.tiempo_simulado})`}
+              onSelect={(s) => route.setSimulacionId(s.id)}
+              placeholder="Seleccioná una simulación…"
+            />
+          </div>
+
+          {route.simulacionId ? (
+            <button
+              type="button"
+              onClick={() => route.descartarSimulacion()}
+              className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-red-400/80 transition-colors hover:border-red-500/40 hover:text-red-400"
+              title="Descartar esta simulación"
+            >
+              <Trash2 size={12} />
+              Descartar
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1.5 text-[10px] font-bold text-primary/45">
+            Crear nueva
+            <input
+              type="text"
+              value={nombreNuevo}
+              onChange={(e) => setNombreNuevo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && nombreNuevo.trim()) {
+                  route.crearSimulacion(nombreNuevo.trim());
+                  setNombreNuevo("");
+                }
+              }}
+              placeholder="Nombre del sandbox"
+              className="w-48 rounded-md border border-primary/15 bg-transparent px-2.5 py-1.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={!nombreNuevo.trim() || route.creandoSimulacion}
+            onClick={async () => {
+              const id = await route.crearSimulacion(nombreNuevo.trim());
+              if (id) setNombreNuevo("");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+          >
+            <Plus size={13} />
+            {route.creandoSimulacion ? "Creando…" : "Crear"}
+          </button>
+        </div>
+      </div>
+
+      {route.simulacionId ? (
+        <div className="mt-5 grid gap-4 border-t border-primary/10 pt-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+              Gravedad ({route.contextosGravitacionales.length} contextos)
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <SelectDropdown
+                items={route.contextosGravitacionales}
+                active={route.contextosGravitacionales.find((c) => c.id === contextoGravId) ?? null}
+                getKey={(c) => c.id}
+                getLabel={(c) => `${c.nombre} (g=${c.gravedad_local})`}
+                onSelect={(c) => setContextoGravId(c.id)}
+                placeholder="Sin contexto asignado…"
+              />
+              <button
+                type="button"
+                disabled={!contextoGravId}
+                onClick={() => route.asignarContextoGravitacional(contextoGravId)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+              >
+                Asignar
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+              Snapshots ({route.snapshots.length})
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={etiquetaSnapshot}
+                onChange={(e) => setEtiquetaSnapshot(e.target.value)}
+                placeholder="Etiqueta (opcional)"
+                className="w-40 rounded-md border border-primary/15 bg-transparent px-2.5 py-1.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  await route.crearSnapshot(etiquetaSnapshot.trim() || undefined);
+                  setEtiquetaSnapshot("");
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85"
+              >
+                <Camera size={12} />
+                Guardar
+              </button>
+            </div>
+            {route.snapshots.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {route.snapshots.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => route.restaurarSnapshot(s.id)}
+                    title={`Restaurar snapshot en t=${s.tiempo_simulado}`}
+                    className="rounded-md border border-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85"
+                  >
+                    {s.etiqueta || `t=${s.tiempo_simulado}`}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function InteraccionSection() {
   // VIS-05 — visualizador_estado orden 5: "¿Qué ocurre cuando dos entidades
   // interactúan?". Envuelve el Sandbox real (sandbox/useSandbox.ts) vía
   // useInteraccionRoute — el frontend no calcula ni simula nada acá, solo
   // visualiza eventos/entidades/estado ya resueltos por el motor.
+  //
+  // Fase 2026-09: Interacción es ahora el hub único del Sandbox — absorbe
+  // crear/cargar/descartar simulación, agregar entidad desde catálogo,
+  // snapshots, contexto gravitacional y el motor físico nuevo (temperatura,
+  // fuerza, daño, transferencias, información, Eterium), todo dentro del
+  // mismo lenguaje visual minimalista ya usado acá (rounded-2xl p-5,
+  // StatusPill, EmptyRow, SelectDropdown) — sin traer el look de
+  // SandboxPage.tsx (Card/Badge propios), que sigue existiendo pero ya no
+  // en el nav.
   const route = useInteraccionRoute();
 
   const timelineOrdenada = useMemo(
@@ -1776,194 +2325,218 @@ function InteraccionSection() {
 
   return (
     <>
-      {route.loading ? (
-        <LoadingRow />
-      ) : route.empty ? (
-        <EmptyRow>
-          No hay simulaciones de Sandbox activas todavía — creá una desde la sección Sandbox para poder ver
-          interacciones acá.
-        </EmptyRow>
-      ) : null}
+      {route.loading ? <LoadingRow /> : null}
 
-      {!route.loading && route.simulaciones.length > 0 ? (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SelectDropdown
-              items={route.simulaciones}
-              active={route.simulaciones.find((s) => s.id === route.simulacionId) ?? null}
-              getKey={(s) => s.id}
-              getLabel={(s) => s.nombre}
-              onSelect={(s) => route.setSimulacionId(s.id)}
-              placeholder="Seleccioná una simulación…"
-            />
-            <div className="flex items-center gap-2">
-              <StatusPill>t={route.tiempoSimulado ?? "—"}</StatusPill>
-              <button
-                type="button"
-                onClick={() => route.play()}
-                disabled={route.ejecutandoAccion}
-                className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
-                title="Play"
-              >
-                <Play size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => route.pause()}
-                disabled={route.ejecutandoAccion}
-                className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
-                title="Pause"
-              >
-                <Pause size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => route.step()}
-                disabled={route.ejecutandoAccion}
-                className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
-                title="Step"
-              >
-                <SkipForward size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => route.reset()}
-                disabled={route.ejecutandoAccion}
-                className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
-                title="Reset"
-              >
-                <RotateCcw size={14} />
-              </button>
-            </div>
-          </div>
+      {!route.loading ? (
+        <div className="space-y-5">
+          <PanelGestionSandbox route={route} />
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-[2.8fr_0.72fr]">
-            <div className="space-y-5">
-              {/* Timeline (docx: "timeline, nodos causales, log") — cada
-                  evento es clickeable, fija cuál cadena se ve en el
-                  Inspector/TraceView de la derecha. */}
-              <div className="overflow-x-auto rounded-2xl p-5">
-                <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">Timeline de eventos</p>
-                {timelineOrdenada.length === 0 ? (
-                  <EmptyRow>Esta simulación todavía no tiene eventos encolados.</EmptyRow>
-                ) : (
-                  <div className="flex min-w-[560px] flex-wrap gap-2">
-                    {timelineOrdenada.map((ev) => {
-                      const selected = route.eventoSelId === ev.evento.id;
-                      return (
-                        <button
-                          key={ev.evento.id}
-                          type="button"
-                          onClick={() => route.setEventoSelId(ev.evento.id)}
-                          className={`rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
-                            selected ? "border-primary/40" : "border-primary/10 hover:border-primary/25"
-                          }`}
-                        >
-                          <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">
-                            t={ev.evento.tiempo_programado}
-                          </p>
-                          <p className="mt-0.5 text-xs font-black text-primary/85">
-                            {ev.catalogo?.nombre ?? ev.evento.evento_id.slice(0, 8)}
-                          </p>
-                          <p
-                            className={`mt-0.5 text-[10px] font-bold ${
-                              ev.evento.estado === "procesado" ? "text-primary/60" : "text-primary/35"
-                            }`}
-                          >
-                            {ev.evento.estado}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+          {route.empty ? (
+            <EmptyRow>
+              No hay simulaciones de Sandbox activas todavía — creá una arriba para empezar a agregar entidades y
+              disparar interacciones.
+            </EmptyRow>
+          ) : null}
 
-              {/* Cadena causal completa del evento seleccionado (docx
-                  "trace causal") — sigue evento_origen_id hacia atrás. Un
-                  solo eslabón es válido (no todo evento tiene origen). */}
-              {route.cadenaCausal.length > 1 ? (
-                <div className="rounded-2xl p-5">
-                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">
-                    Cadena causal
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-primary/55">
-                    {[...route.cadenaCausal].reverse().map((ev, i, arr) => (
-                      <React.Fragment key={ev.id}>
-                        <span className={ev.id === route.eventoSel?.evento.id ? "text-primary/90" : undefined}>
-                          {route.catalogoEventos.find((c) => c.id === ev.evento_id)?.nombre ?? ev.evento_id.slice(0, 8)}
-                        </span>
-                        {i < arr.length - 1 ? <ChevronRight size={12} className="text-primary/25" /> : null}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Disparar evento (docx "click evento, inspector") — mismo
-                  RPC que ya usa SandboxPage, encolar_evento_sandbox vía
-                  route.dispararEvento. */}
-              <div className="rounded-2xl p-5">
-                <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">
-                  Disparar evento
+          {route.simulacionId ? (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+                  {route.simulacionActiva?.nombre ?? "Simulación"}
                 </p>
-                <div className="flex flex-wrap gap-2.5">
-                  <SelectDropdown
-                    items={route.entidades}
-                    active={route.entidades.find((e) => e.id === entidadParaDisparo) ?? null}
-                    getKey={(e) => e.id}
-                    getLabel={(e) => e.entidad_tipo}
-                    onSelect={(e) => setEntidadParaDisparo(e.id)}
-                    placeholder="Entidad…"
-                  />
-                  <SelectDropdown
-                    items={route.catalogoEventos}
-                    active={route.catalogoEventos.find((e) => e.id === eventoParaDisparo) ?? null}
-                    getKey={(e) => e.id}
-                    getLabel={(e) => e.nombre}
-                    onSelect={(e) => setEventoParaDisparo(e.id)}
-                    placeholder="Evento…"
-                  />
+                <div className="flex items-center gap-2">
+                  <StatusPill>t={route.tiempoSimulado ?? "—"}</StatusPill>
                   <button
                     type="button"
-                    disabled={!entidadParaDisparo || !eventoParaDisparo}
-                    onClick={() => {
-                      route.dispararEvento({ eventoId: eventoParaDisparo, entidadId: entidadParaDisparo });
-                      setEventoParaDisparo("");
-                    }}
-                    className="rounded-full border border-primary/15 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+                    onClick={() => route.play()}
+                    disabled={route.ejecutandoAccion}
+                    className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
+                    title="Play"
                   >
-                    Encolar
+                    <Play size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => route.pause()}
+                    disabled={route.ejecutandoAccion}
+                    className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
+                    title="Pause"
+                  >
+                    <Pause size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => route.step()}
+                    disabled={route.ejecutandoAccion}
+                    className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
+                    title="Step"
+                  >
+                    <SkipForward size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => route.reset()}
+                    disabled={route.ejecutandoAccion}
+                    className="rounded-full border border-primary/15 p-2 text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/90 disabled:opacity-40"
+                    title="Reset"
+                  >
+                    <RotateCcw size={14} />
                   </button>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4 lg:max-w-[280px]">
-              <div className="rounded-2xl p-5">
-                <TraceView steps={route.cadena} direction="down" />
+              <PanelAgregarEntidad route={route} />
+
+              <div className="grid gap-5 lg:grid-cols-[2.8fr_0.72fr]">
+                <div className="space-y-5">
+                  {/* Timeline (docx: "timeline, nodos causales, log") — cada
+                      evento es clickeable, fija cuál cadena se ve en el
+                      Inspector/TraceView de la derecha. */}
+                  <div className="overflow-x-auto rounded-2xl p-5">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">Timeline de eventos</p>
+                    {timelineOrdenada.length === 0 ? (
+                      <EmptyRow>Esta simulación todavía no tiene eventos encolados.</EmptyRow>
+                    ) : (
+                      <div className="flex min-w-[560px] flex-wrap gap-2">
+                        {timelineOrdenada.map((ev) => {
+                          const selected = route.eventoSelId === ev.evento.id;
+                          return (
+                            <button
+                              key={ev.evento.id}
+                              type="button"
+                              onClick={() => route.setEventoSelId(ev.evento.id)}
+                              className={`rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
+                                selected ? "border-primary/40" : "border-primary/10 hover:border-primary/25"
+                              }`}
+                            >
+                              <p className="text-[9px] font-black uppercase tracking-widest text-primary/35">
+                                t={ev.evento.tiempo_programado}
+                              </p>
+                              <p className="mt-0.5 text-xs font-black text-primary/85">
+                                {ev.catalogo?.nombre ?? ev.evento.evento_id.slice(0, 8)}
+                              </p>
+                              <p
+                                className={`mt-0.5 text-[10px] font-bold ${
+                                  ev.evento.estado === "procesado" ? "text-primary/60" : "text-primary/35"
+                                }`}
+                              >
+                                {ev.evento.estado}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cadena causal completa del evento seleccionado (docx
+                      "trace causal") — sigue evento_origen_id hacia atrás. Un
+                      solo eslabón es válido (no todo evento tiene origen). */}
+                  {route.cadenaCausal.length > 1 ? (
+                    <div className="rounded-2xl p-5">
+                      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">
+                        Cadena causal
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-primary/55">
+                        {[...route.cadenaCausal].reverse().map((ev, i, arr) => (
+                          <React.Fragment key={ev.id}>
+                            <span className={ev.id === route.eventoSel?.evento.id ? "text-primary/90" : undefined}>
+                              {route.catalogoEventos.find((c) => c.id === ev.evento_id)?.nombre ?? ev.evento_id.slice(0, 8)}
+                            </span>
+                            {i < arr.length - 1 ? <ChevronRight size={12} className="text-primary/25" /> : null}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Disparar evento (docx "click evento, inspector") — mismo
+                      RPC que ya usa SandboxPage, encolar_evento_sandbox vía
+                      route.dispararEvento. */}
+                  <div className="rounded-2xl p-5">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-primary/35">
+                      Disparar evento
+                    </p>
+                    <div className="flex flex-wrap gap-2.5">
+                      <SelectDropdown
+                        items={route.entidades}
+                        active={route.entidades.find((e) => e.id === entidadParaDisparo) ?? null}
+                        getKey={(e) => e.id}
+                        getLabel={(e) => e.entidad_tipo}
+                        onSelect={(e) => setEntidadParaDisparo(e.id)}
+                        placeholder="Entidad…"
+                      />
+                      <SelectDropdown
+                        items={route.catalogoEventos}
+                        active={route.catalogoEventos.find((e) => e.id === eventoParaDisparo) ?? null}
+                        getKey={(e) => e.id}
+                        getLabel={(e) => e.nombre}
+                        onSelect={(e) => setEventoParaDisparo(e.id)}
+                        placeholder="Evento…"
+                      />
+                      <button
+                        type="button"
+                        disabled={!entidadParaDisparo || !eventoParaDisparo}
+                        onClick={() => {
+                          route.dispararEvento({ eventoId: eventoParaDisparo, entidadId: entidadParaDisparo });
+                          setEventoParaDisparo("");
+                        }}
+                        className="rounded-full border border-primary/15 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:opacity-40"
+                      >
+                        Encolar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Motor físico — acciones puntuales sobre la entidad
+                      elegida acá (temperatura, fuerza, transferencias, etc.).
+                      Mismo nivel que "Disparar evento": ambas son formas de
+                      mutar una entidad, una por catálogo, otra directa. */}
+                  <div className="rounded-2xl p-5">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
+                        Motor físico
+                      </p>
+                      <SelectDropdown
+                        items={route.entidades}
+                        active={route.entidadSel}
+                        getKey={(e) => e.id}
+                        getLabel={(e) => e.entidad_tipo}
+                        onSelect={(e) => route.setEntidadSelId(e.id)}
+                        placeholder="Elegí una entidad…"
+                      />
+                    </div>
+                    <PanelAccionesFisicas route={route} />
+                  </div>
+                </div>
+
+                <div className="space-y-4 lg:max-w-[280px]">
+                  <div className="rounded-2xl p-5">
+                    <TraceView steps={route.cadena} direction="down" />
+                  </div>
+                  {route.eventoSel ? (
+                    <Inspector
+                      entity={{
+                        eyebrow: "Interacción",
+                        title: route.eventoSel.catalogo?.nombre ?? route.eventoSel.evento.evento_id,
+                        subtitle: route.eventoSel.catalogo?.categoria ?? undefined,
+                        note: route.eventoSel.catalogo?.descripcion ?? null,
+                        fields: [
+                          { label: "Estado", value: route.eventoSel.evento.estado },
+                          { label: "Sujeto", value: route.eventoSel.sujeto?.entidad_tipo ?? null },
+                          { label: "Objetivo", value: route.eventoSel.objetivo?.entidad_tipo ?? null },
+                          { label: "t. programado", value: route.eventoSel.evento.tiempo_programado },
+                          { label: "t. ejecutado", value: route.eventoSel.evento.ejecutado_at },
+                        ],
+                      }}
+                      bordered={false}
+                    />
+                  ) : null}
+                </div>
               </div>
-              {route.eventoSel ? (
-                <Inspector
-                  entity={{
-                    eyebrow: "Interacción",
-                    title: route.eventoSel.catalogo?.nombre ?? route.eventoSel.evento.evento_id,
-                    subtitle: route.eventoSel.catalogo?.categoria ?? undefined,
-                    note: route.eventoSel.catalogo?.descripcion ?? null,
-                    fields: [
-                      { label: "Estado", value: route.eventoSel.evento.estado },
-                      { label: "Sujeto", value: route.eventoSel.sujeto?.entidad_tipo ?? null },
-                      { label: "Objetivo", value: route.eventoSel.objetivo?.entidad_tipo ?? null },
-                      { label: "t. programado", value: route.eventoSel.evento.tiempo_programado },
-                      { label: "t. ejecutado", value: route.eventoSel.evento.ejecutado_at },
-                    ],
-                  }}
-                  bordered={false}
-                />
-              ) : null}
-            </div>
-          </div>
-        </>
+            </>
+          ) : null}
+        </div>
       ) : null}
     </>
   );
@@ -3728,8 +4301,6 @@ function VisualizadorPage() {
             {active === "elEnlace" ? <EnlaceSection /> : null}
 
             {active === "mapaUniversal" ? <MapaUniversalSection /> : null}
-
-            {active === "sandbox" ? <SandboxPage /> : null}
 
             {active === "laboratorio" ? <LaboratorioPropiedadesSection /> : null}
 

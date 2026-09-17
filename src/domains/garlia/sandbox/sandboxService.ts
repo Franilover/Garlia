@@ -8,17 +8,37 @@
  * Patrón de import calcado de AuthProvider.tsx / syncEngine.ts, que ya
  * usan `supabase.rpc()` directo en este mismo proyecto.
  *
- * RPCs cubiertas en este primer slice (las "oficiales" según el mapa de
- * auditoría, no las legado/alternativas):
- *   - crear_sandbox
- *   - agregar_entidad_sandbox
+ * RPCs cubiertas — control/estructura del Sandbox:
+ *   - crear_sandbox, descartar_sandbox
+ *   - agregar_entidad_sandbox, actualizar_estado_entidad_sandbox
  *   - encolar_evento_sandbox
  *   - control_sandbox   (Play / Pause / Step / Reset — orquestador único)
+ *   - crear_snapshot_sandbox, restaurar_snapshot_sandbox
+ *   - asignar_contexto_gravitacional_sandbox
+ *
+ * RPCs cubiertas — motor físico (fase 2026-09, acciones puntuales sobre una
+ * entidad ya existente, más allá de "disparar evento" del catálogo):
+ *   - establecer_temperatura_sandbox / aplicar_delta_temperatura_sandbox_v1
+ *   - aplicar_danio_mecanico_sandbox_v1
+ *   - aplicar_fuerza_sandbox
+ *   - transferir_energia_sandbox / transferir_carga_sandbox
+ *   - transmitir_informacion_sandbox
+ *   - aplicar_eterium_sandbox
+ *   - calcular_metricas_dinamicas_sandbox / calcular_energia_cinetica_sandbox_v1
+ *     / resolver_peso_sandbox_v1 (solo lectura/cómputo, sin mutación)
  *
  * Deliberadamente NO se llaman directo desde el frontend (son piezas
- * internas que control_sandbox / avanzar_tiempo_sandbox ya orquestan):
+ * internas que control_sandbox / avanzar_tiempo_sandbox / las RPC de arriba
+ * ya orquestan, o requieren un tipo de entidad — "item" — que este Sandbox
+ * de Elemento/Compuesto no usa):
  *   - avanzar_tiempo_sandbox, procesar_eventos_sandbox,
  *     evaluar_interaccion_sandbox, aplicar_efectos_interaccion_sandbox
+ *   - resolver_fase_item_sandbox_v1, resolver_transicion_fase_item_sandbox_v1,
+ *     obtener_contexto_item_sandbox, inicializar_fase_item_sandbox_v1
+ *     (todas exigen entidad_tipo='item')
+ *   - avanzar_movimiento_sandbox, resolver_aceleracion_dinamica_sandbox_v1
+ *     (dependen de aplicar_fuerza_sandbox ya corrida, se orquestan juntas
+ *     desde el hook, no son un botón aparte)
  *
  * Legado, no usar (confirmado en auditoría — operan sobre JSON suelto o
  * tablas paralelas, no sobre sandbox_entidades real):
@@ -30,12 +50,15 @@ import { supabase } from "@/infra/supabase/supabase";
 
 import type {
   AccionControlSandbox,
+  ContextoGravitacional,
   InteraccionEventoCatalogo,
+  ResultadoAccionFisicaSandbox,
   RespuestaMotorSandbox,
   SandboxEntidad,
   SandboxEvento,
   SandboxSimulacion,
   SandboxSnapshot,
+  Vector3,
 } from "./types";
 
 function assertNoError<T>(data: T, error: { message: string } | null, contexto: string): T {
@@ -166,4 +189,273 @@ export async function listarCatalogoEventos(): Promise<InteraccionEventoCatalogo
     .from("interaccion_eventos")
     .select("*");
   return assertNoError(data as InteraccionEventoCatalogo[], error, "listarCatalogoEventos") ?? [];
+}
+
+// ─── Control/estructura del Sandbox — resto de RPC oficiales ───────────────
+
+/** Marca una simulación como descartada (estado='descartada'). No borra
+ *  filas — listarSimulaciones ya filtra `neq('estado','descartada')`, así
+ *  que desaparece de la lista sin perder el histórico en la tabla. */
+export async function descartarSandbox(simulacionId: string): Promise<void> {
+  const { error } = await supabase.rpc("descartar_sandbox", {
+    p_simulacion_id: simulacionId,
+  });
+  assertNoError(null, error, "descartarSandbox");
+}
+
+/** Guarda un snapshot del estado completo (entidades + eventos) de la
+ *  simulación en el tiempo_simulado actual. Solo lectura sobre el estado
+ *  existente — no avanza ni modifica nada, solo lo copia a sandbox_snapshots. */
+export async function crearSnapshotSandbox(
+  simulacionId: string,
+  etiqueta?: string,
+): Promise<string> {
+  const { data, error } = await supabase.rpc("crear_snapshot_sandbox", {
+    p_simulacion_id: simulacionId,
+    p_etiqueta: etiqueta ?? null,
+  });
+  return assertNoError(data as string, error, "crearSnapshotSandbox");
+}
+
+/** Restaura entidades + eventos + tiempo_simulado de la simulación al
+ *  momento exacto en que se tomó el snapshot. Reemplaza el estado actual
+ *  por completo (el motor ya lo hace transaccionalmente). */
+export async function restaurarSnapshotSandbox(
+  snapshotId: string,
+): Promise<RespuestaMotorSandbox> {
+  const { data, error } = await supabase.rpc("restaurar_snapshot_sandbox", {
+    p_snapshot_id: snapshotId,
+  });
+  return assertNoError(data as RespuestaMotorSandbox, error, "restaurarSnapshotSandbox");
+}
+
+/** Parcha estado_actual de una entidad a mano (merge superficial de
+ *  `propiedades`/`estados`, el resto de claves top-level se reemplaza tal
+ *  cual). Uso explícito y deliberado del usuario — el motor de eventos
+ *  sigue siendo quien normalmente escribe estado_actual; esto es la
+ *  vía manual equivalente a "editar en el inspector". */
+export async function actualizarEstadoEntidadSandbox(params: {
+  entidadId: string;
+  patch: Record<string, unknown>;
+  tiempo?: number | null;
+}): Promise<RespuestaMotorSandbox> {
+  const { data, error } = await supabase.rpc("actualizar_estado_entidad_sandbox", {
+    p_entidad_id: params.entidadId,
+    p_patch: params.patch,
+    p_tiempo: params.tiempo ?? null,
+  });
+  return assertNoError(data as RespuestaMotorSandbox, error, "actualizarEstadoEntidadSandbox");
+}
+
+/** Catálogo de contextos gravitacionales activos (Tierra, Luna, gravedad
+ *  cero, etc.) — solo lectura, para poblar el selector de "Gravedad" de la
+ *  simulación. */
+export async function listarContextosGravitacionales(): Promise<ContextoGravitacional[]> {
+  const { data, error } = await supabase
+    .from("contextos_gravitacionales")
+    .select("id, nombre, descripcion, gravedad_local, unidad_gravedad_id, activo")
+    .eq("activo", true)
+    .order("nombre");
+  return assertNoError(data as ContextoGravitacional[], error, "listarContextosGravitacionales") ?? [];
+}
+
+/** Asigna un contexto gravitacional a la simulación — necesario para que
+ *  resolverPesoSandbox pueda calcular Peso = Masa × g más adelante. */
+export async function asignarContextoGravitacionalSandbox(params: {
+  simulacionId: string;
+  contextoGravitacionalId: string;
+}): Promise<RespuestaMotorSandbox> {
+  const { data, error } = await supabase.rpc("asignar_contexto_gravitacional_sandbox", {
+    p_simulacion_id: params.simulacionId,
+    p_contexto_gravitacional_id: params.contextoGravitacionalId,
+  });
+  return assertNoError(data as RespuestaMotorSandbox, error, "asignarContextoGravitacionalSandbox");
+}
+
+// ─── Motor físico — acciones puntuales sobre una entidad ya existente ──────
+// Todas devuelven el jsonb crudo de la RPC (ver ResultadoAccionFisicaSandbox
+// en types.ts): cuando el motor no puede aplicar el efecto (masa no
+// definida, energía insuficiente, etc.) NO se lanza excepción — es una
+// respuesta válida que el caller debe mostrar tal cual.
+
+/** Fija la temperatura de una entidad a un valor explícito (no deriva de
+ *  energía — para eso está aplicarDeltaTemperaturaSandbox). */
+export async function establecerTemperaturaSandbox(params: {
+  entidadId: string;
+  temperatura: number;
+  tiempoActual?: number | null;
+  origen?: string;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("establecer_temperatura_sandbox", {
+    p_sandbox_entidad_id: params.entidadId,
+    p_temperatura: params.temperatura,
+    p_tiempo_actual: params.tiempoActual ?? null,
+    p_origen: params.origen ?? "entorno",
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "establecerTemperaturaSandbox");
+}
+
+/** Aplica un delta de energía y deriva el nuevo valor de temperatura vía
+ *  capacidad térmica — requiere que la entidad ya tenga `temperatura`
+ *  definida en sus propiedades (si no, el motor devuelve
+ *  estado:'informacion_insuficiente', no un error). */
+export async function aplicarDeltaTemperaturaSandbox(params: {
+  entidadId: string;
+  deltaEnergia: number;
+  tiempoActual?: number | null;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("aplicar_delta_temperatura_sandbox_v1", {
+    p_sandbox_entidad_id: params.entidadId,
+    p_delta_energia: params.deltaEnergia,
+    p_tiempo_actual: params.tiempoActual ?? null,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "aplicarDeltaTemperaturaSandbox");
+}
+
+/** Aplica daño mecánico como fracción [0,1] de la integridad estructural
+ *  actual — el motor clampea la fracción y marca condicion_estructural
+ *  (sano/danado/fracturado) según el resultado. */
+export async function aplicarDanioMecanicoSandbox(params: {
+  entidadId: string;
+  fraccion: number;
+  tiempoActual?: number | null;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("aplicar_danio_mecanico_sandbox_v1", {
+    p_sandbox_entidad_id: params.entidadId,
+    p_fraccion: params.fraccion,
+    p_tiempo_actual: params.tiempoActual ?? null,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "aplicarDanioMecanicoSandbox");
+}
+
+/** Aplica una fuerza (vector 3D) y deriva aceleracion = fuerza/masa —
+ *  requiere `masa` > 0 ya definida en las propiedades de la entidad. */
+export async function aplicarFuerzaSandbox(params: {
+  entidadId: string;
+  fuerza: Vector3;
+  tiempoActual: number;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("aplicar_fuerza_sandbox", {
+    p_sandbox_entidad_id: params.entidadId,
+    p_fuerza: params.fuerza,
+    p_tiempo_actual: params.tiempoActual,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "aplicarFuerzaSandbox");
+}
+
+/** Transfiere una cantidad de `energia` de una entidad a otra — falla
+ *  explícitamente (estado:'energia_insuficiente') si el origen no tiene
+ *  suficiente, sin dejar la operación a medias. */
+export async function transferirEnergiaSandbox(params: {
+  origenId: string;
+  destinoId: string;
+  cantidad: number;
+  tiempoActual?: number | null;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("transferir_energia_sandbox", {
+    p_origen_id: params.origenId,
+    p_destino_id: params.destinoId,
+    p_cantidad: params.cantidad,
+    p_tiempo_actual: params.tiempoActual ?? null,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "transferirEnergiaSandbox");
+}
+
+/** Transfiere carga eléctrica entre dos entidades, moderado por la
+ *  conductividad de cada una (evaluar_transferencia_electrica_sandbox
+ *  interno) — requiere `carga` y conductividad ya definidas en ambas. */
+export async function transferirCargaSandbox(params: {
+  origenId: string;
+  destinoId: string;
+  cantidad: number;
+  tiempoActual: number;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("transferir_carga_sandbox", {
+    p_origen_id: params.origenId,
+    p_destino_id: params.destinoId,
+    p_cantidad: params.cantidad,
+    p_tiempo_actual: params.tiempoActual,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "transferirCargaSandbox");
+}
+
+/** Transmite información de una entidad a otra, atenuada por distancia
+ *  real (requiere `posicion` {x,y,z} definida en ambas propiedades) según
+ *  intensidad/fidelidad/alcance — deja el contenido recibido en
+ *  estado_actual.informacion.ultimo_recibido de la entidad destino. */
+export async function transmitirInformacionSandbox(params: {
+  origenId: string;
+  destinoId: string;
+  contenido: Record<string, unknown>;
+  intensidad?: number;
+  fidelidad?: number;
+  alcance?: number | null;
+  modeloAtenuacion?: "lineal" | "inverso" | "cuadratico";
+  tiempoActual?: number | null;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("transmitir_informacion_sandbox", {
+    p_origen_id: params.origenId,
+    p_destino_id: params.destinoId,
+    p_contenido: params.contenido,
+    p_intensidad: params.intensidad ?? 1,
+    p_fidelidad: params.fidelidad ?? 1,
+    p_alcance: params.alcance ?? null,
+    p_modelo_atenuacion: params.modeloAtenuacion ?? "lineal",
+    p_tiempo_actual: params.tiempoActual ?? null,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "transmitirInformacionSandbox");
+}
+
+/** Suma intensidad de Eterium acumulada en la entidad — magnitud propia
+ *  del mundo Garlia, aditiva sobre estado_actual.eterium.intensidad. */
+export async function aplicarEteriumSandbox(params: {
+  entidadId: string;
+  intensidad: number;
+  origen?: string;
+  tiempoActual?: number | null;
+}): Promise<ResultadoAccionFisicaSandbox> {
+  const { data, error } = await supabase.rpc("aplicar_eterium_sandbox", {
+    p_sandbox_entidad_id: params.entidadId,
+    p_intensidad: params.intensidad,
+    p_origen: params.origen ?? "proceso",
+    p_tiempo_actual: params.tiempoActual ?? null,
+  });
+  return assertNoError(data as ResultadoAccionFisicaSandbox, error, "aplicarEteriumSandbox");
+}
+
+// ─── Motor físico — lecturas/cómputo (sin mutación) ────────────────────────
+
+/** Métricas agregadas de actividad de una entidad (estados activos,
+ *  eventos, persistencia promedio, respuesta temporal) — solo lectura,
+ *  útil para un panel de diagnóstico por entidad. */
+export async function calcularMetricasDinamicasSandbox(
+  entidadId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.rpc("calcular_metricas_dinamicas_sandbox", {
+    p_sandbox_entidad_id: entidadId,
+  });
+  return assertNoError(data as Record<string, unknown>, error, "calcularMetricasDinamicasSandbox");
+}
+
+/** Energía cinética actual (E = 1/2 m|v|²) — requiere `masa` y
+ *  `velocidad` {x,y,z} ya definidas. Solo lectura. */
+export async function calcularEnergiaCineticaSandbox(
+  entidadId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.rpc("calcular_energia_cinetica_sandbox_v1", {
+    p_sandbox_entidad_id: entidadId,
+  });
+  return assertNoError(data as Record<string, unknown>, error, "calcularEnergiaCineticaSandbox");
+}
+
+/** Peso = Masa × gravedad_local del contexto gravitacional asignado a la
+ *  simulación — requiere que la simulación tenga contexto_gravitacional_id
+ *  asignado (ver asignarContextoGravitacionalSandbox). Solo lectura. */
+export async function resolverPesoSandbox(
+  entidadId: string,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.rpc("resolver_peso_sandbox_v1", {
+    p_sandbox_entidad_id: entidadId,
+  });
+  return assertNoError(data as Record<string, unknown>, error, "resolverPesoSandbox");
 }
