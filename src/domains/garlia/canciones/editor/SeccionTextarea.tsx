@@ -60,22 +60,22 @@ export function SyllableColumn({
   align = "end",
   /**
    * Ref al contenedor que envuelve al RichEditor (ver uso más abajo en
-   * SeccionTextarea). Se usa para medir la altura REAL de cada línea
-   * renderizada en pantalla, en vez de asumir una altura fija por línea.
+   * SeccionTextarea). Se usa para extraer, en un solo recorrido del DOM
+   * real, tanto el TEXTO como la ALTURA de cada fila visual del editor.
    *
-   * Por qué hace falta: RichEditor usa `white-space: pre-wrap` +
-   * `word-break: break-word` (ver RichEditor.tsx), así que una línea de
-   * letra larga hace WRAP visual a 2+ líneas dentro del mismo <p> cuando
-   * no cabe en el ancho del editor. Antes cada fila de esta columna medía
-   * `FONT_SIZE_PX * 1.7` fijo, sin saber que una línea lógica podía ocupar
-   * más alto en pantalla — resultado: apenas una sola línea larga hacía
-   * wrap, todos los números de las filas siguientes quedaban más arriba
-   * que su letra correspondiente (el desface que se reporta).
-   *
-   * Con `editorRef`, medimos el alto real de cada <p> (y de cada <br>
-   * suelto dentro de él) vía ResizeObserver y usamos esas alturas en vez
-   * de una constante — así cada número queda a la misma altura que su
-   * línea, haga wrap o no.
+   * Por qué se lee todo del DOM y no de `texto`: `texto` llega a este
+   * componente ya serializado por richTextSerializer.serializeRootToRaw(),
+   * que tiene sus propias reglas de cuántos "\n" representan cada tipo de
+   * salto (un <br> interno = "\n"; un salto entre párrafos = "\n\n"; un
+   * párrafo vacío real, cero texto entre esos "\n\n"). Esas reglas cambian
+   * según el contenido (con y sin <br> internos, con y sin párrafos
+   * vacíos), así que cualquier intento de "adivinar cuántas líneas fantasma
+   * insertar" para que `texto.split("\n")` calce con el DOM es un parche
+   * que se rompe con la siguiente combinación no probada — como pasó acá
+   * en varias iteraciones. La única forma de que el texto de una fila y su
+   * altura SIEMPRE coincidan es sacar ambos del mismo lugar en el mismo
+   * recorrido: por cada <p>, por cada segmento entre <br>, se lee el
+   * `textContent` de ese segmento Y se mide su altura, en la misma pasada.
    */
   editorRef,
 }: {
@@ -85,102 +85,79 @@ export function SyllableColumn({
   align?: "start" | "end";
   editorRef?: React.RefObject<HTMLElement | null>;
 }) {
-  const lineas = texto.split("\n");
-  const refLineas = refTexto !== null ? refTexto.split("\n") : null;
   const justify = align === "start" ? "justify-start" : "justify-end";
-
-  // ── Medición real de alturas de línea ───────────────────────────────
-  // rowHeights[i] = alto en px de la fila i tal como se ve en pantalla.
-  // Si no hay editorRef (o aún no midió), cae de vuelta a la altura fija
-  // de siempre, así el componente sigue funcionando en cualquier lugar
-  // donde no se le pase la referencia al editor.
   const alturaFija = FONT_SIZE_PX * 1.7;
-  const [rowHeights, setRowHeights] = useState<number[] | null>(null);
+
+  // Fallback cuando no hay editorRef (p.ej. antes de montar, o un uso de
+  // SyllableColumn sin editor asociado): se cae de vuelta al split simple
+  // de siempre, con altura fija por fila.
+  const lineasFallback = texto.split("\n");
+
+  // ── Filas reales: texto + altura, extraídas del DOM en un solo paso ──
+  type Fila = { texto: string; altura: number };
+  const [filas, setFilas] = useState<Fila[] | null>(null);
   // Distancia real (px) entre el borde superior de `editorRef` (el wrapper
-  // completo, que puede incluir una toolbar propia de RichEditor por encima
-  // del área de texto — corrector ortográfico, exportar, etc.) y el borde
-  // superior del primer párrafo de texto. Antes se asumía un `paddingTop`
-  // fijo de 4px calcado del padding del contenteditable, pero eso ignoraba
-  // cualquier elemento (como esa barra de iconos) que viviera ANTES del
-  // editor dentro del mismo wrapper — el resultado era que la primera fila
-  // (y por arrastre, todas) arrancaba más arriba de lo que le correspondía.
+  // completo, que puede incluir una toolbar propia de RichEditor por
+  // encima del área de texto — corrector ortográfico, exportar, etc.) y el
+  // borde superior del primer párrafo de texto. Se mide en vivo en vez de
+  // asumir un padding fijo, para que cualquier elemento antes del área de
+  // texto quede compensado automáticamente.
   const [offsetTop, setOffsetTop] = useState<number | null>(null);
 
   useEffect(() => {
     const root = editorRef?.current;
-    if (!root) { setRowHeights(null); setOffsetTop(null); return; }
+    if (!root) { setFilas(null); setOffsetTop(null); return; }
 
     const medir = () => {
-      // Lexical serializa: un párrafo (<p>) por bloque de Enter, y dentro
-      // de cada uno, un <br> por cada Shift+Enter. Un párrafo vacío
-      // (`<p><br data-lexical-managed-linebreak></p>`) es UNA fila; un
-      // párrafo con N <br> internos son N+1 filas dentro de ese <p> — hay
-      // que medir cada segmento, no solo la altura total del <p>, porque
-      // un párrafo con texto que hace wrap reparte su altura entre varias
-      // filas lógicas de forma pareja, mientras uno con <br><br><br>
-      // reparte su altura en franjas iguales por línea vacía.
       const parrafos = Array.from(root.querySelectorAll<HTMLElement>("[data-lexical-editor] > p"));
-      if (parrafos.length === 0) { setRowHeights(null); setOffsetTop(null); return; }
+      if (parrafos.length === 0) { setFilas(null); setOffsetTop(null); return; }
 
-      // Offset real: top del primer párrafo menos top del wrapper. Esto
-      // incluye automáticamente cualquier toolbar/barra superior propia
-      // del editor, sin necesidad de conocer su altura de antemano.
       const rootTop = root.getBoundingClientRect().top;
-      const primerParrafoTop = parrafos[0].getBoundingClientRect().top;
-      setOffsetTop(primerParrafoTop - rootTop);
+      setOffsetTop(parrafos[0].getBoundingClientRect().top - rootTop);
 
-      const alturas: number[] = [];
-      // El texto que llega a este componente viene serializado por
-      // richTextSerializer.serializeRootToRaw(): un <br> (Shift+Enter)
-      // dentro de un párrafo se vuelve "\n" simple, pero el salto ENTRE
-      // párrafos (Enter normal) se vuelve "\n\n" — dos saltos, no uno
-      // (ver `lines.join("\n\n")` en ese archivo). Al hacer
-      // `texto.split("\n")` más abajo, ese "\n\n" entre párrafos genera
-      // una entrada de línea VACÍA extra que no existe como <p> propio en
-      // el DOM. Si aquí solo contáramos <p> + <br> reales, `rowHeights`
-      // quedaría con una fila menos por cada salto de párrafo que
-      // `lineas`, desalineando todo lo que viene después del primer
-      // párrafo — el síntoma exacto reportado ("falta un número por
-      // estrofa, todo se corre hacia abajo"). Por eso, después de cada
-      // párrafo (salvo el último) se empuja una fila fantasma de altura 0
-      // que representa esa línea vacía del "\n\n".
-      for (let pIdx = 0; pIdx < parrafos.length; pIdx++) {
-        const p = parrafos[pIdx];
-        // getBoundingClientRect().height NO incluye el margin-bottom del
-        // párrafo (cada <p> de Lexical trae "mb-[0.4em]"), pero ese margen
-        // SÍ separa una estrofa (un <p>) de la siguiente en pantalla.
-        // OJO: el margen pertenece únicamente al ÚLTIMO segmento visual del
-        // párrafo (justo antes de la estrofa siguiente) — repartirlo entre
-        // TODOS los segmentos (como se hacía antes) inflaba de más el
-        // espacio entre cada línea interna del mismo párrafo, y encima el
-        // salto real entre párrafos consecutivos quedaba subestimado. Por
-        // eso ahora se suma solo al final.
-        const margenInferior = parseFloat(getComputedStyle(p).marginBottom) || 0;
-        const totalH = p.getBoundingClientRect().height || alturaFija;
-        // Cantidad de <br> dentro de este párrafo = líneas extra dentro
-        // del mismo bloque (soft breaks). N <br> ⇒ N+1 filas lógicas.
-        const brs = p.querySelectorAll("br").length;
-        // N <br> dentro de un párrafo ⇒ N+1 filas lógicas (no 2N).
-        const segmentos = brs + 1;
-        // Nota: cuando el párrafo tiene texto que además hace wrap visual
-        // (más líneas en pantalla que <br> reales), el navegador ya lo
-        // refleja en `totalH` — repartir esa altura entre los `segmentos`
-        // lógicos declarados por Lexical sigue siendo la mejor aproximación
-        // posible sin reimplementar el layout de texto nosotros mismos.
-        const porSegmento = totalH / segmentos;
-        for (let i = 0; i < segmentos; i++) {
-          const esUltimo = i === segmentos - 1;
-          alturas.push(porSegmento + (esUltimo ? margenInferior : 0));
+      const resultado: Fila[] = [];
+
+      for (const p of parrafos) {
+        // Cada <p> se parte en segmentos por cada <br> interno (Shift+Enter).
+        // childNodes recorre spans de texto y <br> en orden real del DOM,
+        // así que agrupar el texto entre <br> consecutivos da exactamente
+        // las líneas visuales de ESTE párrafo — sin adivinar nada sobre
+        // cómo se serializó a "\n" en otro lugar.
+        const hijos = Array.from(p.childNodes);
+        const segmentosTexto: string[] = [""];
+        for (const hijo of hijos) {
+          if (hijo.nodeName === "BR") {
+            segmentosTexto.push("");
+          } else {
+            segmentosTexto[segmentosTexto.length - 1] += hijo.textContent ?? "";
+          }
         }
-        // Fila fantasma: representa la entrada vacía que `texto.split("\n")`
-        // produce por el "\n\n" entre párrafos. No ocupa espacio propio en
-        // pantalla (el margin-bottom del <p> ya cubrió ese salto arriba),
-        // así que su altura es 0 — solo existe para que los índices de
-        // `alturas` y de `lineas` (más abajo, en el render) vuelvan a
-        // coincidir uno a uno.
-        if (pIdx < parrafos.length - 1) alturas.push(0);
+
+        // Altura total del párrafo tal como se ve en pantalla, repartida
+        // entre sus segmentos internos (si el texto además hace wrap
+        // visual dentro de un segmento, el navegador ya refleja eso en la
+        // altura total del <p> — repartirla en partes iguales entre los
+        // segmentos declarados por Lexical sigue siendo la mejor
+        // aproximación sin reimplementar el layout de texto).
+        const totalH = p.getBoundingClientRect().height || alturaFija;
+        const porSegmento = totalH / segmentosTexto.length;
+        // El margin-bottom del <p> (separación real entre párrafos en
+        // pantalla) no está incluido en getBoundingClientRect().height, y
+        // solo existe visualmente DESPUÉS del último segmento de este
+        // párrafo — por eso se suma únicamente ahí, no repartido entre
+        // todos los segmentos internos.
+        const margenInferior = parseFloat(getComputedStyle(p).marginBottom) || 0;
+
+        segmentosTexto.forEach((seg, i) => {
+          const esUltimo = i === segmentosTexto.length - 1;
+          resultado.push({
+            texto: seg,
+            altura: porSegmento + (esUltimo ? margenInferior : 0),
+          });
+        });
       }
-      setRowHeights(alturas);
+
+      setFilas(resultado);
     };
 
     medir();
@@ -194,6 +171,15 @@ export function SyllableColumn({
     return () => { ro.disconnect(); mo.disconnect(); };
   }, [editorRef, texto, alturaFija]);
 
+  // El texto de referencia (columna opuesta, otro idioma) no siempre tiene
+  // su propio editorRef medido acá — se empareja por índice de fila visual
+  // contra `filas`/`lineasFallback`, que es la mejor correspondencia
+  // disponible entre dos editores independientes.
+  const refLineas = refTexto !== null ? refTexto.split("\n") : null;
+
+  const usandoDom = filas !== null;
+  const totalFilas = usandoDom ? filas!.length : lineasFallback.length;
+
   return (
     <div
       aria-hidden
@@ -205,12 +191,12 @@ export function SyllableColumn({
       // midió (editor recién montado / sin editorRef), cae de vuelta a 4px.
       style={{ paddingTop: offsetTop ?? 4 }}
     >
-      {lineas.map((linea, idx) => {
-        const miTxt  = linea;
+      {Array.from({ length: totalFilas }, (_, idx) => {
+        const miTxt  = usandoDom ? filas![idx].texto : lineasFallback[idx];
+        const filaAltura = usandoDom ? filas![idx].altura : alturaFija;
         const refTxt = refLineas ? (refLineas[idx] ?? "") : "";
         const miVacia  = miTxt.trim() === "";
         const refVacia = refTxt.trim() === "";
-        const filaAltura = rowHeights?.[idx] ?? alturaFija;
 
         // Se muestra el número apenas UNO de los dos lados tenga texto en
         // esa fila (antes exigía que ambos tuvieran texto), para que una
