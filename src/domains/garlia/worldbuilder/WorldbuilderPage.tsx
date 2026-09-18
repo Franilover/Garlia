@@ -45,6 +45,8 @@ import {
 import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
+import { useFormasGeometricas } from "@/domains/garlia/items/useFormasGeometricas";
+import { supabase } from "@/infra/supabase/supabase";
 
 import { useWorldbuilder } from "./useWorldbuilder";
 import {
@@ -53,6 +55,7 @@ import {
   PreviewPlantilla,
   SelectDropdown,
   SelectDropdownConCategoria,
+  SelectorFormaGeometrica,
   SelectorIntenciones,
   StatusPill,
 } from "./ui";
@@ -607,6 +610,20 @@ function PanelCrearItem({
   const { seleccionadas, toggle } = useSeleccionIntenciones();
   const [materialesItem, setMaterialesItem] = useState<MaterialDeItem[]>([]);
 
+  // Forma geométrica — mismo modelo que items/EditorGeometriaItem.tsx, pero
+  // opcional y controlado: por defecto el objeto usa la forma que ya trae
+  // la plantilla del tipo elegido (crear_item_desde_plantilla_geometrica en
+  // Supabase la fija sola), esto es solo para el worldbuilder que quiere
+  // sobreescribirla (ej. una "Espada" con forma de cilindro en vez de la
+  // hoja prismática por defecto). Como fn_worldbuilder_crear_item no acepta
+  // geometría, se aplica con un update aparte DESPUÉS de crear el item.
+  const { formas: formasGeometricas, loading: loadingFormas } = useFormasGeometricas();
+  const [formaGeometrica, setFormaGeometrica] = useState<{ forma: string | null; medidas: Record<string, string> }>({
+    forma: null,
+    medidas: {},
+  });
+  const [guardandoForma, setGuardandoForma] = useState(false);
+
   const agregarMaterial = () => setMaterialesItem([...materialesItem, { id: "" }]);
   const quitarMaterial = (i: number) => setMaterialesItem(materialesItem.filter((_, idx) => idx !== i));
   const actualizarMaterial = (i: number, patch: Partial<MaterialDeItem>) =>
@@ -615,6 +632,38 @@ function PanelCrearItem({
   const tipoTexto = usarTipoLibre ? tipoLibre.trim() : tipoSeleccionado?.nombre_humano ?? "";
   const puedeCrear = nombre.trim() && tipoTexto && !wb.creando;
   const resultado = wb.ultimaCreacion && "tipo" in wb.ultimaCreacion ? (wb.ultimaCreacion as ItemCreadoResultado) : null;
+
+  async function crearConFormaOpcional() {
+    const creado = await wb.crearItem({
+      nombre: nombre.trim(),
+      tipoTexto,
+      descripcion: descripcion.trim() || undefined,
+      materiales: materialesItem.filter((m) => m.id),
+      intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
+    });
+    if (!creado || creado.estado === "requiere_plantilla" || !creado.id || !formaGeometrica.forma) return;
+
+    // Sobreescritura de forma, igual patrón que EditorGeometriaItem.tsx:
+    // se manda {forma, medidas...} y el trigger de Supabase recalcula
+    // volumen/masa/densidad. No se llama a wb.crearItem de nuevo — es un
+    // update directo sobre el item recién creado.
+    setGuardandoForma(true);
+    const forma = formasGeometricas.find((f) => f.clave === formaGeometrica.forma);
+    const geometriaNueva: Record<string, unknown> = { forma: formaGeometrica.forma };
+    if (forma) {
+      for (const clave of forma.parametrosNumericos) {
+        const n = Number(formaGeometrica.medidas[clave]);
+        if (!Number.isNaN(n) && n > 0) geometriaNueva[clave] = n;
+      }
+      const unidad = forma.parametrosDefault["unidad_longitud"];
+      if (unidad) geometriaNueva["unidad_longitud"] = unidad;
+    }
+    const { error } = await supabase.from("items").update({ geometria_fisica: geometriaNueva }).eq("id", creado.id);
+    setGuardandoForma(false);
+    if (error) {
+      console.error("[PanelCrearItem] error guardando forma sobre item creado:", error);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -679,6 +728,18 @@ function PanelCrearItem({
             <PreviewPlantilla parametros={tipoSeleccionado.parametros_base} />
           </div>
         ) : null}
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+          Forma geométrica (opcional)
+        </p>
+        <SelectorFormaGeometrica
+          formas={formasGeometricas}
+          loading={loadingFormas}
+          valor={formaGeometrica}
+          onChange={setFormaGeometrica}
+        />
       </div>
 
       <input
@@ -751,20 +812,12 @@ function PanelCrearItem({
 
       <button
         type="button"
-        disabled={!puedeCrear}
-        onClick={() =>
-          wb.crearItem({
-            nombre: nombre.trim(),
-            tipoTexto,
-            descripcion: descripcion.trim() || undefined,
-            materiales: materialesItem.filter((m) => m.id),
-            intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
-          })
-        }
+        disabled={!puedeCrear || guardandoForma}
+        onClick={() => void crearConFormaOpcional()}
         className="inline-flex w-fit items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"
       >
         <Package size={13} />
-        {wb.creando ? "Creando…" : "Crear objeto"}
+        {wb.creando ? "Creando…" : guardandoForma ? "Ajustando forma…" : "Crear objeto"}
       </button>
 
       {resultado ? (

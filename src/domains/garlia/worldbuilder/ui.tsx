@@ -193,6 +193,105 @@ export function SelectDropdownConCategoria<T extends { categoria?: string | null
   );
 }
 
+/** Selector de forma + medidas opcionales — mismo modelo que
+ *  items/EditorGeometriaItem.tsx (elegir forma alcanza para tener un objeto
+ *  físicamente calculable; las medidas son un ajuste opcional colapsado),
+ *  pero CONTROLADO en vez de escribir directo a Supabase: en Worldbuilder
+ *  todavía no existe el item en el momento de elegir forma (se crea recién
+ *  al enviar "Crear objeto"), así que este componente solo devuelve
+ *  {forma, medidas} al padre vía onChange — el padre decide cuándo
+ *  persistir (update de items.geometria_fisica una vez que hay itemId).
+ *  Las claves de `medidas` y el valor de unidad_longitud siguen el mismo
+ *  shape que geometria_fisica espera, confirmado contra
+ *  formas_geometricas_defaults en vivo. */
+export function SelectorFormaGeometrica({
+  formas,
+  loading,
+  valor,
+  onChange,
+}: {
+  formas: { clave: string; nombre: string; parametrosDefault: Record<string, number | string>; parametrosNumericos: string[] }[];
+  loading?: boolean;
+  valor: { forma: string | null; medidas: Record<string, string> };
+  onChange: (valor: { forma: string | null; medidas: Record<string, string> }) => void;
+}) {
+  const [mostrarMedidas, setMostrarMedidas] = React.useState(false);
+  const formaActual = formas.find((f) => f.clave === valor.forma);
+
+  const elegirForma = (clave: string) => {
+    const forma = formas.find((f) => f.clave === clave);
+    if (!forma) return;
+    const medidas: Record<string, string> = {};
+    for (const k of forma.parametrosNumericos) {
+      medidas[k] = String(forma.parametrosDefault[k] as number);
+    }
+    onChange({ forma: clave, medidas });
+    setMostrarMedidas(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        <select
+          value={valor.forma ?? ""}
+          onChange={(e) => {
+            if (e.target.value) elegirForma(e.target.value);
+          }}
+          disabled={loading}
+          className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40 disabled:opacity-40"
+        >
+          <option value="" disabled>
+            {loading ? "Cargando formas…" : "Elegir forma (opcional)…"}
+          </option>
+          {formas.map((f) => (
+            <option key={f.clave} value={f.clave} className="bg-[var(--bg-main)] text-primary">
+              {f.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {!valor.forma && !loading ? (
+        <p className="text-[10px] italic text-primary/35">
+          Si no elegís ninguna, se usa la forma de la plantilla del tipo de objeto elegido más arriba.
+        </p>
+      ) : null}
+
+      {formaActual && formaActual.parametrosNumericos.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => setMostrarMedidas((v) => !v)}
+            className="w-fit text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/70"
+          >
+            {mostrarMedidas ? "Ocultar medidas" : "Ajustar medidas (opcional)"}
+          </button>
+          {mostrarMedidas ? (
+            <div className="flex flex-wrap items-end gap-3 py-1">
+              {formaActual.parametrosNumericos.map((clave) => (
+                <label key={clave} className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-bold text-primary/40">{ETIQUETAS_PARAMETRO[clave] ?? clave}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={valor.medidas[clave] ?? ""}
+                    onChange={(e) => onChange({ forma: valor.forma, medidas: { ...valor.medidas, [clave]: e.target.value } })}
+                    className="w-20 border-0 border-b border-primary/15 bg-transparent px-0 py-1 text-sm font-black text-primary outline-none transition-colors focus:border-primary/40 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                </label>
+              ))}
+              <span className="pb-1.5 text-[10px] text-primary/30">
+                Medidas de referencia, no una unidad real — solo importan entre sí.
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function LoadingRow({ children }: { children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-primary/10 p-5 text-xs font-bold text-primary/35">
