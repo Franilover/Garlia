@@ -15,11 +15,14 @@
  * motor, no quienes ya bucean fórmulas en Laboratorio/Interacción.
  *
  * Flujo de pantalla (deliberadamente en este orden):
- *   1. Buscar — "¿ya existe algo así?" (fn_worldbuilder_sugerir_materiales)
- *      SIEMPRE antes de crear, para no duplicar materiales con otro nombre.
- *   2. Crear material — combina 1-16 Materiales/Compuestos ya existentes.
- *   3. Mezclar — caso particular de (2): exactamente 2 materiales, A/B%.
- *   4. Crear item — tipo humano ("espada") + Materiales ya existentes.
+ *   1. Crear material — combina 1-16 Materiales/Compuestos ya existentes.
+ *   2. Mezclar — caso particular de (1): exactamente 2 materiales, A/B%.
+ *   3. Crear item — tipo humano ("espada") + Materiales ya existentes.
+ * (2026-09-18: se sacó el panel "Buscar" — ¿ya existe algo así? — que
+ * corría fn_worldbuilder_sugerir_materiales sobre todo el catálogo antes de
+ * crear. La RPC y el estado en useWorldbuilder [buscando/sugerencias/
+ * buscarMateriales] siguen vivos por si se quiere reintroducir, pero ya no
+ * tienen ningún caller en esta página.)
  * Todas comparten el mismo panel de "detectar intención" (chips ✓/✗
  * editables antes de ejecutar nada) y el mismo bloque de evaluación humana
  * al final — nunca se muestra una fórmula ni un número crudo como veredicto,
@@ -35,7 +38,6 @@ import {
   Clock,
   FlaskConical,
   Package,
-  Search,
   Sparkles,
   TestTube2,
   Wand2,
@@ -67,7 +69,6 @@ import type {
   ItemCreadoResultado,
   MaterialCreadoResultado,
   MaterialDeItem,
-  MaterialSugerido,
   TipoObjeto,
 } from "./types";
 
@@ -85,8 +86,8 @@ function armarTextoIntenciones(claves: Set<string>, catalogo: IntencionHumana[])
 }
 
 /** Hook chico para manejar el set de intenciones seleccionadas por panel —
- *  cada panel tiene su propio estado independiente (Buscar/Crear/Mezclar/
- *  Item no comparten selección entre sí). */
+ *  cada panel tiene su propio estado independiente (Crear/Mezclar/Item no
+ *  comparten selección entre sí). */
 function useSeleccionIntenciones() {
   const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
   const toggle = (clave: string) =>
@@ -99,7 +100,7 @@ function useSeleccionIntenciones() {
   return { seleccionadas, toggle, limpiar: () => setSeleccionadas(new Set()) };
 }
 
-type ModoWorldbuilder = "buscar" | "crear" | "mezclar" | "item" | "laboratorio";
+type ModoWorldbuilder = "crear" | "mezclar" | "item" | "laboratorio";
 
 /** Fila de un criterio evaluado — nunca muestra la fórmula, solo el
  *  nombre de la intención + ✓/✗. El valor numérico crudo queda oculto
@@ -167,108 +168,6 @@ function DetallePropiedades({ propiedades }: { propiedades: Record<string, unkno
         ))}
       </div>
     </details>
-  );
-}
-
-/** Tarjeta de un material sugerido por la búsqueda — clic para usarlo como
- *  componente en "Crear material"/"Mezclar" sin tener que retipear el id. */
-function TarjetaMaterialSugerido({
-  sugerido,
-  onUsar,
-}: {
-  sugerido: MaterialSugerido;
-  onUsar?: () => void;
-}) {
-  const cumplidos = sugerido.criterios.filter((c) => c.cumple).length;
-  return (
-    <div className="rounded-xl border border-primary/10 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-xs font-black text-primary/85">{sugerido.nombre}</p>
-          <p className="text-[10px] font-bold capitalize text-primary/35">{sugerido.categoria.replace(/_/g, " ")}</p>
-        </div>
-        <StatusPill tone={sugerido.puntuacion >= 0.99 ? "success" : sugerido.puntuacion > 0 ? "warning" : "default"}>
-          {cumplidos}/{sugerido.criterios.length} criterios
-        </StatusPill>
-      </div>
-      <div className="mt-2.5 flex flex-col gap-1">
-        {sugerido.criterios.map((c, i) => (
-          <FilaCriterio key={`${c.intencion}-${c.propiedad}-${i}`} c={c} />
-        ))}
-      </div>
-      {onUsar ? (
-        <button
-          type="button"
-          onClick={onUsar}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/55 transition-colors hover:border-primary/30 hover:text-primary/85"
-        >
-          Usar como base
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-/** Panel "Buscar" — primer paso del flujo: ¿ya existe algo así? */
-function PanelBuscar({
-  wb,
-  onUsarComoBase,
-}: {
-  wb: ReturnType<typeof useWorldbuilder>;
-  onUsarComoBase: (materialId: string) => void;
-}) {
-  const { seleccionadas, toggle } = useSeleccionIntenciones();
-  const textoIntenciones = useMemo(() => armarTextoIntenciones(seleccionadas, wb.intenciones), [seleccionadas, wb.intenciones]);
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-xs font-black text-primary/80">¿Qué estás buscando?</p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí las propiedades que necesitás — por ejemplo "duro" y "resistente", o "transparente" y "liviano".
-          Te mostramos qué ya existe antes de crear algo nuevo.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-2.5">
-        <SelectorIntenciones
-          intenciones={wb.intenciones}
-          seleccionadas={seleccionadas}
-          onToggle={toggle}
-          loading={wb.loadingCatalogo}
-        />
-        <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            disabled={seleccionadas.size === 0 || wb.buscando}
-            onClick={() => wb.buscarMateriales(textoIntenciones)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[var(--bg-main)] transition-opacity disabled:opacity-30"
-          >
-            <Search size={12} />
-            {wb.buscando ? "Buscando…" : "Buscar"}
-          </button>
-        </div>
-      </div>
-
-      {wb.buscando ? <LoadingRow>Evaluando todo el catálogo…</LoadingRow> : null}
-
-      {wb.sugerencias ? (
-        wb.sugerencias.resultados.length === 0 ? (
-          <EmptyRow>
-            No encontramos nada parecido todavía — probá con "Crear material" o "Mezclar" para hacer uno nuevo.
-          </EmptyRow>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-primary/35">
-              {wb.sugerencias.resultados.length} candidatos encontrados
-            </p>
-            {wb.sugerencias.resultados.map((r) => (
-              <TarjetaMaterialSugerido key={r.id} sugerido={r} onUsar={() => onUsarComoBase(r.id)} />
-            ))}
-          </div>
-        )
-      ) : null}
-    </div>
   );
 }
 
@@ -383,21 +282,15 @@ function PanelCrearMaterial({
   wb,
   materiales,
   compuestos,
-  baseInicialId,
 }: {
   wb: ReturnType<typeof useWorldbuilder>;
   materiales: { id: string; nombre: string }[];
   compuestos: { id: string; nombre: string }[];
-  baseInicialId: string | null;
 }) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const { seleccionadas, toggle } = useSeleccionIntenciones();
   const [componentes, setComponentes] = useState<ComponenteMaterial[]>([{ tipo: "material", id: "" }]);
-
-  useEffect(() => {
-    if (baseInicialId) setComponentes([{ tipo: "material", id: baseInicialId }]);
-  }, [baseInicialId]);
 
   const puedeCrear = nombre.trim() && componentes.every((c) => c.id) && !wb.creando;
 
@@ -932,7 +825,6 @@ const NAV_GROUPS: { group: GrupoWorldbuilder; items: NavItemWorldbuilder[] }[] =
   {
     group: "Crear",
     items: [
-      { key: "buscar", label: "Buscar", icon: <Search size={15} /> },
       { key: "crear", label: "Crear material", icon: <FlaskConical size={15} /> },
       { key: "mezclar", label: "Mezclar", icon: <Blend size={15} /> },
       { key: "item", label: "Crear objeto", icon: <Package size={15} /> },
@@ -949,12 +841,11 @@ export function WorldbuilderPage() {
   const { items: materiales, loading: loadingMateriales } = useMateriales();
   const { items: compuestos, loading: loadingCompuestos } = useCompuestos();
 
-  const [modo, setModo] = useState<ModoWorldbuilder>("buscar");
-  const [baseInicialId, setBaseInicialId] = useState<string | null>(null);
+  const [modo, setModo] = useState<ModoWorldbuilder>("crear");
   // Acordeón de sidebar — arranca expandiendo el grupo que contiene el modo
   // activo, mismo criterio que grupoExpandido en VisualizadorPage.
   const [grupoExpandido, setGrupoExpandido] = useState<GrupoWorldbuilder | null>(
-    () => NAV_GROUPS.find((g) => g.items.some((i) => i.key === "buscar"))?.group ?? NAV_GROUPS[0]?.group ?? null,
+    () => NAV_GROUPS.find((g) => g.items.some((i) => i.key === "crear"))?.group ?? NAV_GROUPS[0]?.group ?? null,
   );
 
   const materialesLite = useMemo(
@@ -1029,22 +920,8 @@ export function WorldbuilderPage() {
               <LoadingRow>Cargando catálogo de materiales y compuestos…</LoadingRow>
             ) : (
               <>
-                {modo === "buscar" ? (
-                  <PanelBuscar
-                    wb={wb}
-                    onUsarComoBase={(id) => {
-                      setBaseInicialId(id);
-                      setModo("crear");
-                    }}
-                  />
-                ) : null}
                 {modo === "crear" ? (
-                  <PanelCrearMaterial
-                    wb={wb}
-                    materiales={materialesLite}
-                    compuestos={compuestosLite}
-                    baseInicialId={baseInicialId}
-                  />
+                  <PanelCrearMaterial wb={wb} materiales={materialesLite} compuestos={compuestosLite} />
                 ) : null}
                 {modo === "mezclar" ? <PanelMezclar wb={wb} materiales={materialesLite} /> : null}
                 {modo === "item" ? <PanelCrearItem wb={wb} materiales={materialesLite} /> : null}
