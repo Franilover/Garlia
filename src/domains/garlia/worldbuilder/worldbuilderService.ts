@@ -64,10 +64,15 @@ export async function listarTiposObjeto(): Promise<TipoObjeto[]> {
     )
     .eq("activo", true)
     .order("nombre_humano");
+  // Supabase-js no infiere bien el tipo de un embed simple sobre los tipos
+  // generados del proyecto (devuelve GenericStringError[] en vez del shape
+  // real) — se fuerza vía `unknown` primero, tal como pide TS, ya que el
+  // shape real fue confirmado corriendo esta query en vivo.
+  type FilaConPlantilla = Omit<TipoObjeto, "parametros_base"> & {
+    plantillas_geometricas: { parametros_base: TipoObjeto["parametros_base"] } | null;
+  };
   const filas = assertNoError(
-    data as (Omit<TipoObjeto, "parametros_base"> & {
-      plantillas_geometricas: { parametros_base: TipoObjeto["parametros_base"] } | null;
-    })[],
+    data as unknown as FilaConPlantilla[],
     error,
     "listarTiposObjeto",
   );
@@ -79,6 +84,7 @@ export async function listarTiposObjeto(): Promise<TipoObjeto[]> {
     parametros_base: f.plantillas_geometricas?.parametros_base ?? null,
   }));
 }
+
 
 /** Últimas creaciones (materiales e items), para el panel de auditoría/
  *  historial — mismo criterio que el resto del dominio: solo lectura, no
