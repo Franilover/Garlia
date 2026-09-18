@@ -667,146 +667,150 @@ function PanelCrearItem({
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-xs font-black text-primary/80">Crear un objeto</p>
-        <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Elegí qué tipo de objeto querés y con qué materiales — la geometría queda completamente escondida, solo se
-          muestra la forma base como referencia.
-        </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">Nombre</p>
+          <input
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Nombre del objeto"
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
+          />
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">Tipo</p>
+          {wb.loadingCatalogo ? (
+            <p className="text-[10px] font-bold text-primary/35">Cargando catálogo de tipos…</p>
+          ) : usarTipoLibre ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={tipoLibre}
+                onChange={(e) => setTipoLibre(e.target.value)}
+                placeholder="Describí el tipo (ej. yelmo, vara…)"
+                className="w-full rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/70 outline-none focus:border-primary/40"
+              />
+              <button
+                type="button"
+                onClick={() => setUsarTipoLibre(false)}
+                className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
+              >
+                Volver al catálogo
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <SelectDropdown
+                items={wb.tiposObjeto}
+                active={tipoSeleccionado}
+                getKey={(t) => t.id}
+                getLabel={(t) => t.nombre_humano}
+                onSelect={setTipoSeleccionado}
+                placeholder="Elegir tipo…"
+              />
+              <button
+                type="button"
+                onClick={() => setUsarTipoLibre(true)}
+                className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
+              >
+                No está en la lista
+              </button>
+            </div>
+          )}
+          {tipoSeleccionado && !usarTipoLibre ? (
+            <div className="mt-2.5">
+              <PreviewPlantilla parametros={tipoSeleccionado.parametros_base} />
+            </div>
+          ) : null}
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+            Forma (opcional)
+          </p>
+          <SelectorFormaGeometrica
+            formas={formasGeometricas}
+            loading={loadingFormas}
+            valor={formaGeometrica}
+            onChange={setFormaGeometrica}
+          />
+        </div>
       </div>
 
-      <input
-        type="text"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-        placeholder="Nombre del objeto"
-        className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40 sm:max-w-sm"
-      />
-
-      <div>
-        <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">Tipo de objeto</p>
-        {wb.loadingCatalogo ? (
-          <p className="text-[10px] font-bold text-primary/35">Cargando catálogo de tipos…</p>
-        ) : usarTipoLibre ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={tipoLibre}
-              onChange={(e) => setTipoLibre(e.target.value)}
-              placeholder="Describí el tipo (ej. yelmo, vara…)"
-              className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/70 outline-none focus:border-primary/40 sm:max-w-sm"
-            />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+            Materiales (opcional)
+          </p>
+          <div className="flex flex-col gap-2">
+            {materialesItem.map((m, i) => {
+              const activo = materiales.find((mat) => mat.id === m.id) ?? null;
+              return (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <SelectDropdownConCategoria
+                    items={materiales}
+                    active={activo}
+                    getKey={(mat) => mat.id}
+                    getLabel={(mat) => mat.nombre}
+                    onSelect={(mat) => actualizarMaterial(i, { id: mat.id })}
+                    placeholder="Elegir material…"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={m.proporcion ?? ""}
+                    onChange={(e) =>
+                      actualizarMaterial(i, { proporcion: e.target.value === "" ? undefined : Number(e.target.value) })
+                    }
+                    placeholder="% (opcional)"
+                    className="w-24 rounded-md border border-primary/15 bg-transparent px-2 py-1.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => quitarMaterial(i)}
+                    className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-red-400"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              );
+            })}
             <button
               type="button"
-              onClick={() => setUsarTipoLibre(false)}
-              className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
+              onClick={agregarMaterial}
+              className="w-fit text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/70"
             >
-              Volver al catálogo
+              + Agregar material
             </button>
           </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <SelectDropdown
-              items={wb.tiposObjeto}
-              active={tipoSeleccionado}
-              getKey={(t) => t.id}
-              getLabel={(t) => t.nombre_humano}
-              onSelect={setTipoSeleccionado}
-              placeholder="Elegir tipo de objeto…"
-            />
-            <button
-              type="button"
-              onClick={() => setUsarTipoLibre(true)}
-              className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
-            >
-              No está en la lista
-            </button>
-          </div>
-        )}
-        {tipoSeleccionado && !usarTipoLibre ? (
-          <div className="mt-2.5">
-            <PreviewPlantilla parametros={tipoSeleccionado.parametros_base} />
-          </div>
-        ) : null}
-      </div>
+        </div>
 
-      <div>
-        <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
-          Forma geométrica (opcional)
-        </p>
-        <SelectorFormaGeometrica
-          formas={formasGeometricas}
-          loading={loadingFormas}
-          valor={formaGeometrica}
-          onChange={setFormaGeometrica}
-        />
-      </div>
-
-      <input
-        type="text"
-        value={descripcion}
-        onChange={(e) => setDescripcion(e.target.value)}
-        placeholder="Descripción (opcional)"
-        className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/70 outline-none focus:border-primary/40"
-      />
-
-      <div>
-        <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
-          Materiales (opcional)
-        </p>
-        <div className="flex flex-col gap-2">
-          {materialesItem.map((m, i) => {
-            const activo = materiales.find((mat) => mat.id === m.id) ?? null;
-            return (
-              <div key={i} className="flex flex-wrap items-center gap-2">
-                <SelectDropdownConCategoria
-                  items={materiales}
-                  active={activo}
-                  getKey={(mat) => mat.id}
-                  getLabel={(mat) => mat.nombre}
-                  onSelect={(mat) => actualizarMaterial(i, { id: mat.id })}
-                  placeholder="Elegir material…"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={m.proporcion ?? ""}
-                  onChange={(e) =>
-                    actualizarMaterial(i, { proporcion: e.target.value === "" ? undefined : Number(e.target.value) })
-                  }
-                  placeholder="% (opcional)"
-                  className="w-28 rounded-md border border-primary/15 bg-transparent px-2 py-1.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
-                />
-                <button
-                  type="button"
-                  onClick={() => quitarMaterial(i)}
-                  className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-red-400"
-                >
-                  Quitar
-                </button>
-              </div>
-            );
-          })}
-          <button
-            type="button"
-            onClick={agregarMaterial}
-            className="w-fit text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/70"
-          >
-            + Agregar material
-          </button>
+        <div>
+          <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
+            Propiedades que busca (opcional)
+          </p>
+          <SelectorIntenciones
+            intenciones={wb.intenciones}
+            seleccionadas={seleccionadas}
+            onToggle={toggle}
+            loading={wb.loadingCatalogo}
+          />
         </div>
       </div>
 
       <div>
         <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">
-          ¿Qué querés que tenga? (opcional)
+          Descripción (opcional)
         </p>
-        <SelectorIntenciones
-          intenciones={wb.intenciones}
-          seleccionadas={seleccionadas}
-          onToggle={toggle}
-          loading={wb.loadingCatalogo}
+        <textarea
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          placeholder="Describí el objeto con el detalle que quieras…"
+          rows={5}
+          className="w-full resize-y rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold leading-5 text-primary/70 outline-none focus:border-primary/40"
         />
       </div>
 
