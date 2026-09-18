@@ -132,15 +132,16 @@ export function SyllableColumn({
       const alturas: number[] = [];
       for (const p of parrafos) {
         // getBoundingClientRect().height NO incluye el margin-bottom del
-        // párrafo (cada <p> de Lexical trae "mb-[0.4em]" — ver clases del
-        // editor), pero ese margen SÍ separa un verso del siguiente en
-        // pantalla. Si no lo sumamos aquí, cada fila del contador queda
-        // más "apretada" que su verso real y el desfase se acumula verso
-        // a verso — justo el síntoma de "se salta más espacio del que
-        // realmente hay" (en realidad es al revés: el contador reservaba
-        // MENOS espacio del que el editor usa de verdad).
+        // párrafo (cada <p> de Lexical trae "mb-[0.4em]"), pero ese margen
+        // SÍ separa una estrofa (un <p>) de la siguiente en pantalla.
+        // OJO: el margen pertenece únicamente al ÚLTIMO segmento visual del
+        // párrafo (justo antes de la estrofa siguiente) — repartirlo entre
+        // TODOS los segmentos (como se hacía antes) inflaba de más el
+        // espacio entre cada línea interna del mismo párrafo, y encima el
+        // salto real entre párrafos consecutivos quedaba subestimado. Por
+        // eso ahora se suma solo al final.
         const margenInferior = parseFloat(getComputedStyle(p).marginBottom) || 0;
-        const totalH = (p.getBoundingClientRect().height || alturaFija) + margenInferior;
+        const totalH = p.getBoundingClientRect().height || alturaFija;
         // Cantidad de <br> dentro de este párrafo = líneas extra dentro
         // del mismo bloque (soft breaks). N <br> ⇒ N+1 filas lógicas.
         const brs = p.querySelectorAll("br").length;
@@ -152,7 +153,10 @@ export function SyllableColumn({
         // lógicos declarados por Lexical sigue siendo la mejor aproximación
         // posible sin reimplementar el layout de texto nosotros mismos.
         const porSegmento = totalH / segmentos;
-        for (let i = 0; i < segmentos; i++) alturas.push(porSegmento);
+        for (let i = 0; i < segmentos; i++) {
+          const esUltimo = i === segmentos - 1;
+          alturas.push(porSegmento + (esUltimo ? margenInferior : 0));
+        }
       }
       setRowHeights(alturas);
     };
