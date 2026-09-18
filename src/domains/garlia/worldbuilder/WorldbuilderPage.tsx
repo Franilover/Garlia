@@ -47,7 +47,15 @@ import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
 
 import { useWorldbuilder } from "./useWorldbuilder";
-import { EmptyRow, LoadingRow, SelectDropdown, SelectorIntenciones, StatusPill } from "./ui";
+import {
+  EmptyRow,
+  LoadingRow,
+  PreviewPlantilla,
+  SelectDropdown,
+  SelectDropdownConCategoria,
+  SelectorIntenciones,
+  StatusPill,
+} from "./ui";
 import type {
   ComponenteMaterial,
   CriterioEvaluado,
@@ -57,6 +65,7 @@ import type {
   MaterialCreadoResultado,
   MaterialDeItem,
   MaterialSugerido,
+  TipoObjeto,
 } from "./types";
 
 /** Arma el string `p_intenciones` que esperan las RPC (crear_material,
@@ -584,10 +593,16 @@ function PanelCrearItem({
   materiales,
 }: {
   wb: ReturnType<typeof useWorldbuilder>;
-  materiales: { id: string; nombre: string }[];
+  materiales: { id: string; nombre: string; categoria?: string | null }[];
 }) {
   const [nombre, setNombre] = useState("");
-  const [tipoTexto, setTipoTexto] = useState("");
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoObjeto | null>(null);
+  // "Otro" cubre el tipo que no está (todavía) en worldbuilder_tipos_objeto
+  // — se manda como texto libre a fn_worldbuilder_crear_item igual que
+  // antes, así no se pierde la posibilidad de pedir algo fuera del
+  // catálogo, solo deja de ser la ÚNICA forma de elegir un tipo.
+  const [tipoLibre, setTipoLibre] = useState("");
+  const [usarTipoLibre, setUsarTipoLibre] = useState(false);
   const [descripcion, setDescripcion] = useState("");
   const { seleccionadas, toggle } = useSeleccionIntenciones();
   const [materialesItem, setMaterialesItem] = useState<MaterialDeItem[]>([]);
@@ -597,7 +612,8 @@ function PanelCrearItem({
   const actualizarMaterial = (i: number, patch: Partial<MaterialDeItem>) =>
     setMaterialesItem(materialesItem.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
 
-  const puedeCrear = nombre.trim() && tipoTexto.trim() && !wb.creando;
+  const tipoTexto = usarTipoLibre ? tipoLibre.trim() : tipoSeleccionado?.nombre_humano ?? "";
+  const puedeCrear = nombre.trim() && tipoTexto && !wb.creando;
   const resultado = wb.ultimaCreacion && "tipo" in wb.ultimaCreacion ? (wb.ultimaCreacion as ItemCreadoResultado) : null;
 
   return (
@@ -605,26 +621,64 @@ function PanelCrearItem({
       <div>
         <p className="text-xs font-black text-primary/80">Crear un objeto</p>
         <p className="mt-1.5 text-[11px] leading-5 text-primary/45">
-          Describí qué tipo de objeto querés ("espada", "casco", "medallón"…) y con qué materiales — la geometría
-          queda completamente escondida.
+          Elegí qué tipo de objeto querés y con qué materiales — la geometría queda completamente escondida, solo se
+          muestra la forma base como referencia.
         </p>
       </div>
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        <input
-          type="text"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          placeholder="Nombre del objeto"
-          className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40"
-        />
-        <input
-          type="text"
-          value={tipoTexto}
-          onChange={(e) => setTipoTexto(e.target.value)}
-          placeholder="Tipo de objeto (espada, casco…)"
-          className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/70 outline-none focus:border-primary/40"
-        />
+      <input
+        type="text"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        placeholder="Nombre del objeto"
+        className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none focus:border-primary/40 sm:max-w-sm"
+      />
+
+      <div>
+        <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-primary/35">Tipo de objeto</p>
+        {wb.loadingCatalogo ? (
+          <p className="text-[10px] font-bold text-primary/35">Cargando catálogo de tipos…</p>
+        ) : usarTipoLibre ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={tipoLibre}
+              onChange={(e) => setTipoLibre(e.target.value)}
+              placeholder="Describí el tipo (ej. yelmo, vara…)"
+              className="rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-bold text-primary/70 outline-none focus:border-primary/40 sm:max-w-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setUsarTipoLibre(false)}
+              className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
+            >
+              Volver al catálogo
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <SelectDropdown
+              items={wb.tiposObjeto}
+              active={tipoSeleccionado}
+              getKey={(t) => t.id}
+              getLabel={(t) => t.nombre_humano}
+              onSelect={setTipoSeleccionado}
+              placeholder="Elegir tipo de objeto…"
+            />
+            <button
+              type="button"
+              onClick={() => setUsarTipoLibre(true)}
+              className="text-[10px] font-black uppercase tracking-widest text-primary/30 hover:text-primary/60"
+            >
+              No está en la lista
+            </button>
+          </div>
+        )}
+        {tipoSeleccionado && !usarTipoLibre ? (
+          <div className="mt-2.5">
+            <PreviewPlantilla parametros={tipoSeleccionado.parametros_base} />
+          </div>
+        ) : null}
       </div>
 
       <input
@@ -644,7 +698,7 @@ function PanelCrearItem({
             const activo = materiales.find((mat) => mat.id === m.id) ?? null;
             return (
               <div key={i} className="flex flex-wrap items-center gap-2">
-                <SelectDropdown
+                <SelectDropdownConCategoria
                   items={materiales}
                   active={activo}
                   getKey={(mat) => mat.id}
@@ -701,7 +755,7 @@ function PanelCrearItem({
         onClick={() =>
           wb.crearItem({
             nombre: nombre.trim(),
-            tipoTexto: tipoTexto.trim(),
+            tipoTexto,
             descripcion: descripcion.trim() || undefined,
             materiales: materialesItem.filter((m) => m.id),
             intenciones: seleccionadas.size > 0 ? armarTextoIntenciones(seleccionadas, wb.intenciones) : undefined,
@@ -716,8 +770,8 @@ function PanelCrearItem({
       {resultado ? (
         resultado.estado === "requiere_plantilla" ? (
           <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 text-xs font-bold text-amber-500">
-            No reconocimos "{tipoTexto}" como un tipo de objeto todavía. Probá con otra palabra (espada, casco,
-            medallón…) o pedí que se agregue este tipo al catálogo.
+            No reconocimos "{tipoTexto}" como un tipo de objeto todavía. Elegí uno del catálogo o pedí que se agregue
+            este tipo.
           </div>
         ) : (
           <div className="rounded-2xl border border-accent/20 bg-accent/5 p-5">
@@ -728,6 +782,24 @@ function PanelCrearItem({
                 <p className="text-[10px] font-bold capitalize text-primary/40">
                   {resultado.tipo?.nombre} · {resultado.categoria?.replace(/_/g, " ")}
                 </p>
+                {/* No hay una convención de ruta confirmada en este export
+                 * para "abrir este Item en su catálogo" (no se encontró
+                 * ningún ?seleccionar=/id= existente en items/ ni un
+                 * page.tsx de routing en este árbol) — se muestra el id
+                 * real con copiar, en vez de inventar un link que podría
+                 * apuntar a una ruta que no existe. Si el proyecto define
+                 * una ruta de detalle de Item, reemplazar este bloque por
+                 * un <a href> real a esa ruta. */}
+                {resultado.id ? (
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard?.writeText(resultado.id!)}
+                    className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-accent hover:underline"
+                    title={resultado.id}
+                  >
+                    Copiar ID del objeto creado
+                  </button>
+                ) : null}
               </div>
               <Sparkles size={18} className="text-accent" />
             </div>
@@ -828,8 +900,14 @@ export function WorldbuilderPage() {
     () => NAV_GROUPS.find((g) => g.items.some((i) => i.key === "buscar"))?.group ?? NAV_GROUPS[0]?.group ?? null,
   );
 
-  const materialesLite = useMemo(() => materiales.map((m) => ({ id: m.id, nombre: m.nombre })), [materiales]);
-  const compuestosLite = useMemo(() => compuestos.map((c) => ({ id: c.id, nombre: c.nombre })), [compuestos]);
+  const materialesLite = useMemo(
+    () => materiales.map((m) => ({ id: m.id, nombre: m.nombre, categoria: m.categoria ?? null })),
+    [materiales],
+  );
+  const compuestosLite = useMemo(
+    () => compuestos.map((c) => ({ id: c.id, nombre: c.nombre, categoria: c.categoria ?? null })),
+    [compuestos],
+  );
 
   return (
     <main className="min-h-screen bg-[var(--bg-main)] text-primary">

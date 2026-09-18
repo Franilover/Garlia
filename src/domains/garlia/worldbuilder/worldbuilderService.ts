@@ -58,10 +58,26 @@ export async function listarCategorias(): Promise<CategoriaMaterial[]> {
 export async function listarTiposObjeto(): Promise<TipoObjeto[]> {
   const { data, error } = await supabase
     .from("worldbuilder_tipos_objeto")
-    .select("id, clave, nombre_humano, sinonimos, plantilla_id, categoria_canonica, activo")
+    .select(
+      "id, clave, nombre_humano, sinonimos, plantilla_id, categoria_canonica, activo, " +
+        "plantillas_geometricas!plantilla_id(parametros_base)",
+    )
     .eq("activo", true)
     .order("nombre_humano");
-  return assertNoError(data as TipoObjeto[], error, "listarTiposObjeto") ?? [];
+  const filas = assertNoError(
+    data as (Omit<TipoObjeto, "parametros_base"> & {
+      plantillas_geometricas: { parametros_base: TipoObjeto["parametros_base"] } | null;
+    })[],
+    error,
+    "listarTiposObjeto",
+  );
+  // El embed de Supabase-js devuelve la relación 1:1 como objeto (no array)
+  // cuando el FK es único, como acá (plantilla_id) — se aplana a plano para
+  // no forzar a cada caller a desanidar plantillas_geometricas.parametros_base.
+  return (filas ?? []).map((f) => ({
+    ...f,
+    parametros_base: f.plantillas_geometricas?.parametros_base ?? null,
+  }));
 }
 
 /** Últimas creaciones (materiales e items), para el panel de auditoría/

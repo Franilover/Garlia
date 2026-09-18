@@ -41,6 +41,14 @@ export interface TipoObjeto {
   plantilla_id: string;
   categoria_canonica: string;
   activo: boolean;
+  /** Medidas de referencia de la plantilla geométrica asociada
+   *  (plantillas_geometricas.parametros_base, ej. {"longitud":{"valor":80,
+   *  "unidad":"longitud_u"}, ...}) — traído vía join en listarTiposObjeto()
+   *  únicamente para mostrar un preview de tamaño/forma antes de crear el
+   *  objeto; el motor real sigue derivando la geometría del item a partir
+   *  de plantilla_id dentro de fn_worldbuilder_crear_item, esto es solo
+   *  lectura informativa en la UI. */
+  parametros_base: Record<string, { valor: number; unidad: string }> | null;
 }
 
 // ─── Shapes jsonb devueltos por las RPC — confirmados en vivo ──────────────

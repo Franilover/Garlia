@@ -51,6 +51,148 @@ export function SelectDropdown<T>({
   );
 }
 
+/** Etiquetas legibles para las unidades de parametros_base
+ *  (plantillas_geometricas), confirmadas contra los valores reales en
+ *  Supabase (todas las plantillas usan "longitud_u" hoy) — fallback al
+ *  valor crudo si aparece una unidad nueva. */
+const ETIQUETAS_UNIDAD: Record<string, string> = {
+  longitud_u: "u",
+};
+
+/** Etiquetas legibles para las claves de parametros_base — mismo criterio
+ *  de fallback que ETIQUETAS_UNIDAD: una clave nueva se muestra tal cual. */
+const ETIQUETAS_PARAMETRO: Record<string, string> = {
+  longitud: "Longitud",
+  ancho: "Ancho",
+  grosor: "Grosor",
+  radio: "Radio",
+};
+
+/** Preview de las medidas de referencia de una plantilla geométrica
+ *  (TipoObjeto.parametros_base) — pensado para mostrarse en "Crear objeto"
+ *  apenas se elige un tipo, así el worldbuilder ve el tamaño/forma base
+ *  ANTES de crear, sin tener que abrir el editor de geometría del item. Es
+ *  puramente informativo: no se envía a fn_worldbuilder_crear_item, que ya
+ *  resuelve la geometría real a partir de plantilla_id por su cuenta. */
+export function PreviewPlantilla({
+  parametros,
+}: {
+  parametros: Record<string, { valor: number; unidad: string }> | null;
+}) {
+  if (!parametros || Object.keys(parametros).length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] font-black uppercase tracking-widest text-primary/30">Forma base</span>
+      {Object.entries(parametros).map(([clave, { valor, unidad }]) => (
+        <span
+          key={clave}
+          className="inline-flex items-center gap-1 rounded-full border border-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary/55"
+        >
+          {ETIQUETAS_PARAMETRO[clave] ?? clave}
+          <span className="font-black text-primary/75">
+            {valor}
+            {ETIQUETAS_UNIDAD[unidad] ?? unidad}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Etiquetas legibles para compuestos.categoria/materiales.categoria (eje
+ *  físico), calcadas de ETIQUETAS_CATEGORIA en elementos/CompuestosPage.tsx
+ *  y materiales/MaterialesPage.tsx para consistencia entre las 3 pantallas
+ *  — un valor fuera de este mapa se muestra tal cual. */
+const ETIQUETAS_CATEGORIA: Record<string, string> = {
+  mineral: "Mineral",
+  metal_aleacion: "Metal / Aleación",
+  tejido_organico_animal: "Tejido orgánico animal",
+  tejido_organico_vegetal: "Tejido orgánico vegetal",
+  biomolecula: "Biomolécula",
+  liquido_organico: "Líquido orgánico",
+  liquido_base: "Líquido base",
+  gas: "Gas",
+  solido_volatil: "Sólido volátil",
+  sustancia_organica_amorfa: "Sustancia orgánica amorfa",
+};
+
+/** Variante de SelectDropdown para listas de Material/Compuesto: agrupa
+ *  las <option> por categoria real (columna compuestos.categoria/
+ *  materiales.categoria, ver auditoría categoria faltante en Compuesto/
+ *  Material) dentro de <optgroup>, para que elegir un componente en
+ *  Worldbuilder no obligue a escanear una lista plana de 70+ nombres sin
+ *  ningún criterio. Los que no tienen categoria van al final, sin
+ *  optgroup — mismo criterio "Sin categoría" que el resto del dominio. */
+export function SelectDropdownConCategoria<T extends { categoria?: string | null }>({
+  items,
+  active,
+  getKey,
+  getLabel,
+  onSelect,
+  placeholder = "Seleccioná un elemento…",
+}: {
+  items: T[];
+  active: T | null;
+  getKey: (item: T) => string;
+  getLabel: (item: T) => string;
+  onSelect: (item: T) => void;
+  placeholder?: string;
+}) {
+  const grupos = React.useMemo(() => {
+    const orden: string[] = [];
+    const mapa = new Map<string, T[]>();
+    const sinCategoria: T[] = [];
+    for (const item of items) {
+      const cat = item.categoria;
+      if (!cat) {
+        sinCategoria.push(item);
+        continue;
+      }
+      if (!mapa.has(cat)) {
+        mapa.set(cat, []);
+        orden.push(cat);
+      }
+      mapa.get(cat)!.push(item);
+    }
+    return { conCategoria: orden.map((cat) => ({ cat, items: mapa.get(cat)! })), sinCategoria };
+  }, [items]);
+
+  return (
+    <select
+      value={active ? getKey(active) : ""}
+      onChange={(e) => {
+        const found = items.find((item) => getKey(item) === e.target.value);
+        if (found) onSelect(found);
+      }}
+      className="w-full max-w-sm rounded-lg border border-primary/15 bg-transparent px-3.5 py-2.5 text-xs font-black text-primary/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/40"
+    >
+      {!active ? (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      ) : null}
+      {grupos.conCategoria.map(({ cat, items: itemsDeCat }) => (
+        <optgroup key={cat} label={ETIQUETAS_CATEGORIA[cat] ?? cat} className="bg-[var(--bg-main)] text-primary">
+          {itemsDeCat.map((item) => (
+            <option key={getKey(item)} value={getKey(item)} className="bg-[var(--bg-main)] text-primary">
+              {getLabel(item)}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+      {grupos.sinCategoria.length > 0 ? (
+        <optgroup label="Sin categoría" className="bg-[var(--bg-main)] text-primary">
+          {grupos.sinCategoria.map((item) => (
+            <option key={getKey(item)} value={getKey(item)} className="bg-[var(--bg-main)] text-primary">
+              {getLabel(item)}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+    </select>
+  );
+}
+
 export function LoadingRow({ children }: { children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-primary/10 p-5 text-xs font-bold text-primary/35">
