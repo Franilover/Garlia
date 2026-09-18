@@ -96,10 +96,19 @@ export function SyllableColumn({
   // donde no se le pase la referencia al editor.
   const alturaFija = FONT_SIZE_PX * 1.7;
   const [rowHeights, setRowHeights] = useState<number[] | null>(null);
+  // Distancia real (px) entre el borde superior de `editorRef` (el wrapper
+  // completo, que puede incluir una toolbar propia de RichEditor por encima
+  // del área de texto — corrector ortográfico, exportar, etc.) y el borde
+  // superior del primer párrafo de texto. Antes se asumía un `paddingTop`
+  // fijo de 4px calcado del padding del contenteditable, pero eso ignoraba
+  // cualquier elemento (como esa barra de iconos) que viviera ANTES del
+  // editor dentro del mismo wrapper — el resultado era que la primera fila
+  // (y por arrastre, todas) arrancaba más arriba de lo que le correspondía.
+  const [offsetTop, setOffsetTop] = useState<number | null>(null);
 
   useEffect(() => {
     const root = editorRef?.current;
-    if (!root) { setRowHeights(null); return; }
+    if (!root) { setRowHeights(null); setOffsetTop(null); return; }
 
     const medir = () => {
       // Lexical serializa: un párrafo (<p>) por bloque de Enter, y dentro
@@ -111,11 +120,27 @@ export function SyllableColumn({
       // filas lógicas de forma pareja, mientras uno con <br><br><br>
       // reparte su altura en franjas iguales por línea vacía.
       const parrafos = Array.from(root.querySelectorAll<HTMLElement>("[data-lexical-editor] > p"));
-      if (parrafos.length === 0) { setRowHeights(null); return; }
+      if (parrafos.length === 0) { setRowHeights(null); setOffsetTop(null); return; }
+
+      // Offset real: top del primer párrafo menos top del wrapper. Esto
+      // incluye automáticamente cualquier toolbar/barra superior propia
+      // del editor, sin necesidad de conocer su altura de antemano.
+      const rootTop = root.getBoundingClientRect().top;
+      const primerParrafoTop = parrafos[0].getBoundingClientRect().top;
+      setOffsetTop(primerParrafoTop - rootTop);
 
       const alturas: number[] = [];
       for (const p of parrafos) {
-        const totalH = p.getBoundingClientRect().height || alturaFija;
+        // getBoundingClientRect().height NO incluye el margin-bottom del
+        // párrafo (cada <p> de Lexical trae "mb-[0.4em]" — ver clases del
+        // editor), pero ese margen SÍ separa un verso del siguiente en
+        // pantalla. Si no lo sumamos aquí, cada fila del contador queda
+        // más "apretada" que su verso real y el desfase se acumula verso
+        // a verso — justo el síntoma de "se salta más espacio del que
+        // realmente hay" (en realidad es al revés: el contador reservaba
+        // MENOS espacio del que el editor usa de verdad).
+        const margenInferior = parseFloat(getComputedStyle(p).marginBottom) || 0;
+        const totalH = (p.getBoundingClientRect().height || alturaFija) + margenInferior;
         // Cantidad de <br> dentro de este párrafo = líneas extra dentro
         // del mismo bloque (soft breaks). N <br> ⇒ N+1 filas lógicas.
         const brs = p.querySelectorAll("br").length;
@@ -147,9 +172,12 @@ export function SyllableColumn({
     <div
       aria-hidden
       className="flex flex-col shrink-0 select-none"
-      // El padding-top debe calzar con el padding-top real del editor
-      // (RichEditor: "4px 8px 8px") para que la fila 0 arranque alineada.
-      style={{ paddingTop: 4 }}
+      // Antes: paddingTop fijo de 4px (asumiendo que el editor arranca
+      // pegado al wrapper). Ahora: el offset medido en vivo contra el
+      // primer párrafo real — así compensa automáticamente cualquier
+      // toolbar u otro elemento por encima del área de texto. Si aún no
+      // midió (editor recién montado / sin editorRef), cae de vuelta a 4px.
+      style={{ paddingTop: offsetTop ?? 4 }}
     >
       {lineas.map((linea, idx) => {
         const miTxt  = linea;
