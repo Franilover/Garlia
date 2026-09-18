@@ -130,7 +130,22 @@ export function SyllableColumn({
       setOffsetTop(primerParrafoTop - rootTop);
 
       const alturas: number[] = [];
-      for (const p of parrafos) {
+      // El texto que llega a este componente viene serializado por
+      // richTextSerializer.serializeRootToRaw(): un <br> (Shift+Enter)
+      // dentro de un párrafo se vuelve "\n" simple, pero el salto ENTRE
+      // párrafos (Enter normal) se vuelve "\n\n" — dos saltos, no uno
+      // (ver `lines.join("\n\n")` en ese archivo). Al hacer
+      // `texto.split("\n")` más abajo, ese "\n\n" entre párrafos genera
+      // una entrada de línea VACÍA extra que no existe como <p> propio en
+      // el DOM. Si aquí solo contáramos <p> + <br> reales, `rowHeights`
+      // quedaría con una fila menos por cada salto de párrafo que
+      // `lineas`, desalineando todo lo que viene después del primer
+      // párrafo — el síntoma exacto reportado ("falta un número por
+      // estrofa, todo se corre hacia abajo"). Por eso, después de cada
+      // párrafo (salvo el último) se empuja una fila fantasma de altura 0
+      // que representa esa línea vacía del "\n\n".
+      for (let pIdx = 0; pIdx < parrafos.length; pIdx++) {
+        const p = parrafos[pIdx];
         // getBoundingClientRect().height NO incluye el margin-bottom del
         // párrafo (cada <p> de Lexical trae "mb-[0.4em]"), pero ese margen
         // SÍ separa una estrofa (un <p>) de la siguiente en pantalla.
@@ -157,6 +172,13 @@ export function SyllableColumn({
           const esUltimo = i === segmentos - 1;
           alturas.push(porSegmento + (esUltimo ? margenInferior : 0));
         }
+        // Fila fantasma: representa la entrada vacía que `texto.split("\n")`
+        // produce por el "\n\n" entre párrafos. No ocupa espacio propio en
+        // pantalla (el margin-bottom del <p> ya cubrió ese salto arriba),
+        // así que su altura es 0 — solo existe para que los índices de
+        // `alturas` y de `lineas` (más abajo, en el render) vuelvan a
+        // coincidir uno a uno.
+        if (pIdx < parrafos.length - 1) alturas.push(0);
       }
       setRowHeights(alturas);
     };
