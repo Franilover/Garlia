@@ -119,7 +119,8 @@ export function SyllableColumn({
         // Cantidad de <br> dentro de este párrafo = líneas extra dentro
         // del mismo bloque (soft breaks). N <br> ⇒ N+1 filas lógicas.
         const brs = p.querySelectorAll("br").length;
-        const segmentos = Math.max(1, brs + (brs === 0 ? 1 : brs));
+        // N <br> dentro de un párrafo ⇒ N+1 filas lógicas (no 2N).
+        const segmentos = brs + 1;
         // Nota: cuando el párrafo tiene texto que además hace wrap visual
         // (más líneas en pantalla que <br> reales), el navegador ya lo
         // refleja en `totalH` — repartir esa altura entre los `segmentos`
