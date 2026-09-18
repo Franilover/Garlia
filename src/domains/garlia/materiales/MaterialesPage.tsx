@@ -956,14 +956,11 @@ export function MaterialesPage() {
   // Agrupamiento por categoria (columna real "materiales.categoria",
   // agregada en v285 y recién ahora traída al frontend — ver auditoría
   // categoria faltante en Material/Compuesto y CONFIG_MATERIALES.select).
-  // Antes la lista era plana; se agrega este toggle para no perder el
-  // comportamiento previo mientras se habilita la vista por categoría.
-  // Mismo criterio de armado que gruposPorCategoria en CompuestosPage:
-  // sin enum fijo documentado, se agrupa por el valor tal cual viene de
-  // Supabase, en el orden en que aparece, con un bloque final para los
-  // materiales sin categoria asignada.
-  const [agruparPorCategoria, setAgruparPorCategoria] = useState(false);
-
+  // Antes la lista era plana; ahora agrupa siempre por categoria. Mismo
+  // criterio de armado que gruposPorCategoria en CompuestosPage: sin enum
+  // fijo documentado, se agrupa por el valor tal cual viene de Supabase,
+  // en el orden en que aparece, con un bloque final para los materiales
+  // sin categoria asignada.
   const gruposPorCategoria = useMemo(() => {
     const orden: string[] = [];
     const mapa = new Map<string, Material[]>();
@@ -995,23 +992,9 @@ export function MaterialesPage() {
 
   return (
     <div className="px-3 pb-4 pt-2">
-      <div className="mb-2 flex justify-end">
-        <button
-          type="button"
-          onClick={() => setAgruparPorCategoria((v) => !v)}
-          className={`rounded-md px-2.5 py-1 text-micro font-bold uppercase tracking-[0.08em] transition-colors ${
-            agruparPorCategoria
-              ? "bg-primary/15 text-primary/80"
-              : "bg-primary/5 text-primary/35 hover:text-primary/55"
-          }`}
-        >
-          Agrupar por categoría
-        </button>
-      </div>
-
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
-      ) : agruparPorCategoria ? (
+      ) : (
         <div className="flex flex-col gap-3">
           {gruposPorCategoria.map((grupo) => (
             <div key={grupo.id}>
@@ -1029,17 +1012,6 @@ export function MaterialesPage() {
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-1">
-          {materiales.map((material) => (
-            <MaterialPill
-              key={material.id}
-              material={material}
-              selected={material.id === seleccionadoId}
-              onClick={() => setSeleccionadoId(material.id)}
-            />
           ))}
         </div>
       )}

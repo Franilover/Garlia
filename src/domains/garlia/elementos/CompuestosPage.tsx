@@ -46,7 +46,6 @@ import {
 } from "../_shared/useEditorHeaderControls";
 import { ElementoPanelFlotante } from "./ElementosPage";
 import { AtomoVisual } from "./ElementoEditor";
-import { useCompuestoTags, useTagsCatalogo } from "./useTagsCompuestos";
 import {
   sincronizarComponentesCompuesto,
   agregarElementoACompuesto,
@@ -1071,8 +1070,9 @@ function CompuestoEditor({
 
   // useTagsCatalogo/useCompuestoTags (Naturaleza/Oris/Uso) se sacaron de
   // acá: alimentaban solo SelectorTagsCompuesto, que ya no se renderiza en
-  // este editor. Siguen vivos en MasonryGruposNaturaleza (vista de
-  // catálogo, más abajo en este mismo archivo) sin relación con esto.
+  // este editor. El agrupamiento por Naturaleza en el catálogo (más abajo
+  // en este archivo) también se sacó (2026-09-17): el listado principal
+  // ahora agrupa por compuestos.categoria en vez del eje de tags.
   // useUsosCompuesto (bloque "Usado en Item/Mineral/Flora") también se
   // sacó de acá: era informativo, de solo lectura, sobre otras entidades
   // del catálogo — no datos propios de Química.
@@ -2253,9 +2253,9 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
 };
 
 /**
- * MasonryGruposNaturaleza
+ * MasonryGruposCategoria
  * ───────────────────────────────────────────────────────────────────────────
- * Reparte los grupos de compuestos (por Naturaleza) en columnas de igual
+ * Reparte los grupos de compuestos (por categoria) en columnas de igual
  * ancho, cada grupo asignado a la columna con menor altura acumulada
  * (masonry greedy, mismo criterio que distribuirEnColumnas en
  * GeografiaJerarquica.tsx). Como ahora cada compuesto es solo una pill de
@@ -2263,8 +2263,10 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
  * dado el ancho de columna — se estima con el mismo enfoque de "simular el
  * wrap" en vez de medir el DOM, para poder recalcular las columnas antes
  * de pintar.
+ * (Antes agrupaba por el eje "naturaleza" del sistema de tags — renombrado
+ * 2026-09-17 al pasar el catálogo a agrupar por compuestos.categoria.)
  */
-function MasonryGruposNaturaleza({
+function MasonryGruposCategoria({
   grupos,
   elementos,
   activoId,
@@ -2411,52 +2413,6 @@ export function CompuestosPage({
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [laboratorioAbierto, setLaboratorioAbierto] = useState(false);
 
-  // Selector de eje de agrupamiento para el listado principal. "naturaleza"
-  // (default, comportamiento previo) usa el sistema de tags manual; ahora
-  // que la columna real compuestos.categoria por fin se trae desde
-  // Supabase (2026-09-17, ver CONFIG_COMPUESTOS.select y Compuesto.categoria
-  // en types.ts), se agrega "categoria" como vista alternativa sobre el
-  // eje físico (mineral, metal_aleacion, etc.) en vez de reemplazar la
-  // vista existente.
-  const [ejeAgrupamiento, setEjeAgrupamiento] = useState<"naturaleza" | "categoria">(
-    "naturaleza",
-  );
-
-  // Agrupamiento por Naturaleza (eje "naturaleza" del sistema de tags) —
-  // mismo espíritu que Personajes/Criaturas agrupados por su jerarquía:
-  // una sección por cada tag de naturaleza que tenga al menos un compuesto,
-  // más un bloque final "Sin naturaleza" para los que no tienen tag de ese
-  // eje asignado. Se arma acá (y no en useTagsCompuestos) porque es una
-  // vista, no un dato — la fuente de verdad sigue siendo la tabla relacional.
-  const { porCategoria: tagsPorCategoria } = useTagsCatalogo();
-  const { tagIdsDe } = useCompuestoTags();
-  const tagsNaturaleza = tagsPorCategoria.naturaleza;
-
-  const gruposPorNaturaleza = useMemo(() => {
-    const mapa = new Map<string, Compuesto[]>();
-    for (const tag of tagsNaturaleza) mapa.set(tag.id, []);
-    const sinNaturaleza: Compuesto[] = [];
-
-    for (const c of compuestos) {
-      const tagIds = tagIdsDe(c.id);
-      const tagNaturaleza = tagsNaturaleza.find((t) => tagIds.has(t.id));
-      if (tagNaturaleza) {
-        mapa.get(tagNaturaleza.id)!.push(c);
-      } else {
-        sinNaturaleza.push(c);
-      }
-    }
-
-    const grupos = tagsNaturaleza
-      .map((tag) => ({ id: tag.id, nombre: tag.nombre, compuestos: mapa.get(tag.id)! }))
-      .filter((g) => g.compuestos.length > 0);
-
-    if (sinNaturaleza.length > 0) {
-      grupos.push({ id: "__sin-naturaleza__", nombre: "Sin naturaleza", compuestos: sinNaturaleza });
-    }
-
-    return { grupos, sinNaturaleza };
-  }, [compuestos, tagsNaturaleza, tagIdsDe]);
 
   // Agrupamiento por Categoría (columna real compuestos.categoria, eje
   // físico — distinto del eje "naturaleza" de arriba). Etiquetas y orden
@@ -2516,28 +2472,6 @@ export function CompuestosPage({
   return (
     <div className="flex relative">
       <div className="flex-1 p-3 flex flex-col gap-3">
-        <div className="flex gap-1 self-start rounded-lg bg-primary/5 p-0.5">
-          {(
-            [
-              { id: "naturaleza" as const, label: "Naturaleza" },
-              { id: "categoria" as const, label: "Categoría" },
-            ]
-          ).map((opcion) => (
-            <button
-              key={opcion.id}
-              type="button"
-              onClick={() => setEjeAgrupamiento(opcion.id)}
-              className={`rounded-md px-2.5 py-1 text-micro font-bold uppercase tracking-[0.08em] transition-colors ${
-                ejeAgrupamiento === opcion.id
-                  ? "bg-primary/15 text-primary/80"
-                  : "text-primary/35 hover:text-primary/55"
-              }`}
-            >
-              {opcion.label}
-            </button>
-          ))}
-        </div>
-
         {loading && compuestos.length === 0 ? (
           <div className="py-6 text-micro text-primary/30 text-center">Cargando…</div>
         ) : compuestos.length === 0 ? (
@@ -2545,12 +2479,8 @@ export function CompuestosPage({
             Todavía no hay compuestos creados.
           </div>
         ) : (
-          <MasonryGruposNaturaleza
-            grupos={
-              ejeAgrupamiento === "categoria"
-                ? gruposPorCategoria.grupos
-                : gruposPorNaturaleza.grupos
-            }
+          <MasonryGruposCategoria
+            grupos={gruposPorCategoria.grupos}
             elementos={elementos}
             activoId={activoId}
             onSeleccionar={(id) =>
