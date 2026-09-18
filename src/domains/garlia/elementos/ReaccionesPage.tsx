@@ -19,15 +19,23 @@
  * notas), en vez de un grid de tabla química.
  */
 
-import { Beaker, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Beaker, RefreshCw, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useConfirm } from "@/ui/ConfirmModal";
+import { type SaveStatus } from "@/ui/saveStatus";
+
 import { SelectorConsumeProduce, type ItemProceso } from "@/domains/garlia/flora/SelectorConsumeProduce";
 import { BalanceProcesoPanel } from "@/domains/garlia/_shared/BalanceProcesoPanel";
+import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
+import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 
 import type { Compuesto, Elemento, Reaccion } from "./types";
 import { persistirReaccion } from "./persistirReaccion";
+import { useProcesos } from "./useProcesos";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
+import { CONFIG_PROCESO_REACCIONES, type ProcesoReaccion } from "./types";
 
 interface Props {
   reacciones: Reaccion[];
@@ -178,6 +186,8 @@ export function ReaccionesPage({
  * visual que GrupoCompuestoPanelFlotante: modal centrado con backdrop blur,
  * cierra con click en el backdrop, Escape, o el botón X.
  */
+const ESTADOS_REACCION = ["definida", "en_revision", "estable", "obsoleta"] as const;
+
 export function ReaccionPanelFlotante({
   reaccion,
   compuestos,
@@ -186,6 +196,7 @@ export function ReaccionPanelFlotante({
   onActualizar,
   onEliminar,
   onAbrirItem,
+  onHeaderControlsChange,
 }: {
   reaccion: Reaccion;
   compuestos: Compuesto[];
@@ -194,7 +205,40 @@ export function ReaccionPanelFlotante({
   onActualizar: (id: string, cambios: Partial<Reaccion>) => void;
   onEliminar?: (id: string) => void;
   onAbrirItem?: (item: ItemProceso) => void;
+  /** Publica los controles de header hacia el contenedor (mismo patrón que
+   *  ElementoEditor/CompuestoEditor) para evitar la barra duplicada cuando
+   *  este panel se monta dentro de otro que ya tiene su propia barra. Si no
+   *  se pasa (uso actual desde EditorItem/GridCatalogoGrupo/ReaccionesPage),
+   *  el panel sigue mostrando su propia EditorHeaderBar. */
+  onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [local, setLocal] = useState(reaccion);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setLocal(reaccion), [reaccion]);
+
+  // Procesos donde esta Reacción está vinculada — informativo, mismo
+  // criterio que "Usado en compuestos" en ElementoEditor: la relación es
+  // opcional y de solo lectura desde acá (se edita desde el editor de
+  // Proceso, no desde acá — Reacción no "posee" a Proceso).
+  const { items: procesosCatalogo } = useProcesos();
+  const { data: vinculosProcesoReaccion } = useSupabaseData<ProcesoReaccion>(
+    CONFIG_PROCESO_REACCIONES.tabla,
+    { select: CONFIG_PROCESO_REACCIONES.select },
+  );
+  const procesosQueLaUsan = useMemo(
+    () =>
+      vinculosProcesoReaccion
+        .filter((v) => v.reaccion_id === reaccion.id)
+        .map((v) => ({
+          vinculo: v,
+          proceso: procesosCatalogo.find((p) => p.id === v.proceso_id),
+        }))
+        .filter((x): x is { vinculo: ProcesoReaccion; proceso: NonNullable<typeof x.proceso> } => !!x.proceso),
+    [vinculosProcesoReaccion, procesosCatalogo, reaccion.id],
+  );
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -207,6 +251,196 @@ export function ReaccionPanelFlotante({
       document.body.style.overflow = prevOverflow;
     };
   }, [onCerrar]);
+
+  // persist() envuelve onActualizar (que en todos los callers ya hace el
+  // guardado optimista + persistirReaccion) solo para mostrar el indicador
+  // de guardado — mismo criterio visual que ElementoEditor/CompuestoEditor,
+  // sin duplicar la lógica de persistencia real que ya vive en el caller.
+  function persist(cambios: Partial<Reaccion>) {
+    setSaving(true);
+    onActualizar(reaccion.id, cambios);
+    setSaving(false);
+  }
+
+  async function handleEliminar() {
+    if (!onEliminar) return;
+    const ok = await confirm({
+      title: "Eliminar reacción",
+      message: `¿Eliminar "${local.nombre || "(sin nombre)"}"? Esta acción no se puede deshacer.`,
+    });
+    if (ok) onEliminar(reaccion.id);
+  }
+
+  const status: SaveStatus = saving ? "saving" : "idle";
+
+  const headerControls = {
+    IconoFallback: Beaker,
+    nombre: local.nombre ?? "",
+    placeholderNombre: "Nombre de la reacción (ej: Fotosíntesis básica)…",
+    onChangeNombre: (nombre: string) => {
+      setLocal((p) => ({ ...p, nombre }));
+      persist({ nombre });
+    },
+    status,
+    onGuardar: () => persist({ nombre: local.nombre }),
+    onEliminar: handleEliminar,
+    extra: (
+      <>
+        {/* Reversible: toggle sí/no — mismo lenguaje visual que el toggle
+            Química/Humana de ElementoEditor (botón con borde, icono +
+            etiqueta corta), en vez de un checkbox nativo. */}
+        <button
+          type="button"
+          onClick={() => {
+            const reversible = !local.reversible;
+            setLocal((p) => ({ ...p, reversible }));
+            persist({ reversible });
+          }}
+          title={local.reversible ? "Reacción reversible" : "Reacción no reversible"}
+          aria-pressed={local.reversible}
+          className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+            local.reversible
+              ? "border-accent/40 bg-accent/10 text-accent"
+              : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+          }`}
+        >
+          <RefreshCw size={11} />
+          <span className="hidden sm:inline">Reversible</span>
+        </button>
+
+        {/* Estado del ciclo de vida — mismo criterio que estado_fundamento
+            en Proceso: un select compacto, no un badge de solo lectura. */}
+        <select
+          value={local.estado ?? "definida"}
+          onChange={(e) => {
+            const estado = e.target.value;
+            setLocal((p) => ({ ...p, estado }));
+            persist({ estado });
+          }}
+          title="Estado"
+          className="shrink-0 bg-primary/5 rounded-md px-1.5 h-6 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 capitalize"
+        >
+          {ESTADOS_REACCION.map((e) => (
+            <option key={e} value={e} className="capitalize">
+              {e.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+
+        {/* Versión: número entero, edición directa — mismo patrón de input
+            angosto que el símbolo de ElementoEditor. */}
+        <input
+          type="number"
+          min={1}
+          value={local.version ?? 1}
+          onChange={(e) => setLocal((p) => ({ ...p, version: Math.max(1, Number(e.target.value)) }))}
+          onBlur={() => persist({ version: local.version })}
+          title="Versión"
+          className="shrink-0 w-10 text-center bg-primary/5 rounded-md px-1 py-0.5 text-micro font-black text-primary outline-none border border-primary/10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+      </>
+    ),
+  };
+
+  usePublishHeaderControls(headerControls, onHeaderControlsChange);
+
+  const body = (
+    <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
+      <div className="grid grid-cols-2 gap-3 items-start">
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Consume
+            </span>
+            <SelectorConsumeProduce
+              label="Consume"
+              items={(reaccion.consume ?? []) as ItemProceso[]}
+              onChange={(consume) => onActualizar(reaccion.id, { consume })}
+              elementos={elementos}
+              compuestos={compuestos}
+              onAbrirItem={onAbrirItem}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Produce
+            </span>
+            <SelectorConsumeProduce
+              label="Produce"
+              items={(reaccion.produce ?? []) as ItemProceso[]}
+              onChange={(produce) => onActualizar(reaccion.id, { produce })}
+              elementos={elementos}
+              compuestos={compuestos}
+              onAbrirItem={onAbrirItem}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Balance
+            </span>
+            <BalanceProcesoPanel
+              consume={(reaccion.consume ?? []) as ItemProceso[]}
+              produce={(reaccion.produce ?? []) as ItemProceso[]}
+              compuestos={compuestos}
+              elementos={elementos}
+              onAutocompletar={(produce) => onActualizar(reaccion.id, { produce })}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              Descripción
+            </span>
+            <textarea
+              className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+              placeholder="Condiciones, notas, contexto de esta reacción…"
+              value={reaccion.descripcion ?? ""}
+              onChange={(e) => onActualizar(reaccion.id, { descripcion: e.target.value })}
+            />
+          </div>
+
+          {procesosQueLaUsan.length > 0 && (
+            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Usado en procesos
+              </span>
+              <div className="flex flex-col gap-1">
+                {procesosQueLaUsan.map(({ vinculo, proceso }) => (
+                  <div
+                    key={vinculo.id}
+                    className="flex items-center justify-between gap-2 px-2 py-1 rounded-md border border-primary/10"
+                  >
+                    <span className="text-micro font-bold text-primary/70 truncate">
+                      {proceso.nombre}
+                    </span>
+                    {vinculo.rol && (
+                      <span className="text-micro text-primary/40 truncate">{vinculo.rol}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Uso embebido (onHeaderControlsChange presente, ej. dentro de un panel
+  // apilado de Proceso): sin portal ni backdrop propios, el contenedor
+  // padre ya resuelve eso y renderiza esta barra en la suya.
+  if (onHeaderControlsChange) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <ConfirmModal />
+        {body}
+      </div>
+    );
+  }
 
   if (typeof document === "undefined") return null;
 
@@ -228,112 +462,24 @@ export function ReaccionPanelFlotante({
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header: ícono + nombre editable + eliminar + cerrar */}
-        <div
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Beaker className="text-primary/50" size={12} />
+        <ConfirmModal />
+        <div className="shrink-0 flex items-stretch">
+          <div className="flex-1 min-w-0">
+            <EditorHeaderBar controls={headerControls} />
           </div>
-          <input
-            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-            placeholder="Nombre de la reacción (ej: Fotosíntesis básica)…"
-            value={reaccion.nombre ?? ""}
-            onChange={(e) => onActualizar(reaccion.id, { nombre: e.target.value })}
-          />
-          {onEliminar && (
-            <button
-              type="button"
-              onClick={() => onEliminar(reaccion.id)}
-              title="Eliminar reacción"
-              className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
-            >
-              <Trash2 size={10} />
-            </button>
-          )}
           <button
             type="button"
             onClick={onCerrar}
             title="Cerrar (Esc)"
-            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors cursor-pointer"
+            className="shrink-0 px-3 flex items-center justify-center text-primary/40 hover:text-primary transition-colors cursor-pointer border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
             <X size={16} />
           </button>
         </div>
-
-        {/* Contenido: consume + produce + balance + notas, en 2 columnas
-            para coherencia con Elemento/Compuesto — no una pila vertical. */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
-          <div className="grid grid-cols-2 gap-3 items-start">
-            <div className="flex flex-col gap-2 min-w-0">
-              <div className="flex flex-col gap-1.5 min-w-0 p-2">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                  Consume
-                </span>
-                <SelectorConsumeProduce
-                  label="Consume"
-                  items={(reaccion.consume ?? []) as ItemProceso[]}
-                  onChange={(consume) => onActualizar(reaccion.id, { consume })}
-                  elementos={elementos}
-                  compuestos={compuestos}
-                  onAbrirItem={onAbrirItem}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 min-w-0 p-2">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                  Produce
-                </span>
-                <SelectorConsumeProduce
-                  label="Produce"
-                  items={(reaccion.produce ?? []) as ItemProceso[]}
-                  onChange={(produce) => onActualizar(reaccion.id, { produce })}
-                  elementos={elementos}
-                  compuestos={compuestos}
-                  onAbrirItem={onAbrirItem}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 min-w-0">
-              <div className="flex flex-col gap-1.5 min-w-0 p-2">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                  Balance
-                </span>
-                <BalanceProcesoPanel
-                  consume={(reaccion.consume ?? []) as ItemProceso[]}
-                  produce={(reaccion.produce ?? []) as ItemProceso[]}
-                  compuestos={compuestos}
-                  elementos={elementos}
-                  onAutocompletar={(produce) => onActualizar(reaccion.id, { produce })}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5 min-w-0 p-2">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                  Descripción
-                </span>
-                <textarea
-                  className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
-                  placeholder="Condiciones, notas, contexto de esta reacción…"
-                  value={reaccion.descripcion ?? ""}
-                  onChange={(e) => onActualizar(reaccion.id, { descripcion: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        {body}
       </div>
     </div>,
     document.body,

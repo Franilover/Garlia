@@ -1027,6 +1027,40 @@ export function ElementosPage({
     }
   }
 
+  // ── Procesos: mismo patrón simple (ad-hoc, sin crear/renombrar/eliminar
+  // en el hook) que Reacciones arriba — a diferencia de Estructuras/
+  // Materiales/Formas, cuyos hooks (useEstructuras/useMateriales/
+  // useFormasGeometricas) ya exponían esas 3 funciones desde antes de que
+  // Procesos tuviera edición. Se agregó acá en vez de en useProcesos.ts
+  // para no tocar la firma de ese hook, usada también por
+  // ReaccionesPage/ReaccionPanelFlotante (bloque "Usado en procesos").
+  const [creatingProceso, setCreatingProceso] = useState(false);
+
+  async function handleCreateProceso() {
+    setCreatingProceso(true);
+    try {
+      const { error } = await supabase.from("procesos").insert([{ nombre: "Nuevo proceso" }]);
+      if (error) throw error;
+      // No hace falta actualizar procesosParaConteo a mano: useProcesos()
+      // usa useSupabaseData, suscrito a cambios de la tabla — la nueva fila
+      // llega sola por esa vía (mismo comentario que la nota de arriba
+      // sobre "ambas instancias convergen").
+    } catch (e) {
+      console.error("[ElementosPage] error creando proceso:", e);
+    } finally {
+      setCreatingProceso(false);
+    }
+  }
+
+  async function handleEliminarProceso(id: string) {
+    try {
+      const { error } = await supabase.from("procesos").delete().eq("id", id);
+      if (error) throw error;
+    } catch (e) {
+      console.error("[ElementosPage] error eliminando proceso:", e);
+    }
+  }
+
   const activoId = seleccionadoId ?? seleccionarId ?? null;
   const activo = useMemo(
     () => elementos.find((e) => e.id === activoId) ?? null,
@@ -1250,7 +1284,13 @@ export function ElementosPage({
             key: "procesos",
             titulo: "Procesos",
             total: procesosParaConteo.length,
-            contenido: <ProcesosPage />,
+            contenido: (
+              <ProcesosPage
+                creating={creatingProceso}
+                onCreate={handleCreateProceso}
+                onEliminar={handleEliminarProceso}
+              />
+            ),
           },
           {
             key: "fenomenos",

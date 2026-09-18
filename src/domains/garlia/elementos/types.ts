@@ -1369,14 +1369,23 @@ export interface Reaccion {
   descripcion: string | null;
   activador?: string | null;
   created_at: string;
-  updated_at?: string;
+  updated_at?: string | null;
+  /** Columnas reales de "reacciones" que faltaban en tipo/select
+   *  (2026-09-18, ver auditoría de columnas faltantes): estado del ciclo
+   *  de vida de la reacción (mismo eje que estado_fundamento de Proceso),
+   *  si es reversible, y el número de versión de la definición. */
+  estado: string;
+  reversible: boolean;
+  version: number;
 }
 
 export const CONFIG_REACCIONES = {
   tabla: "reacciones",
   // consume/produce dejaron de persistirse como JSONB en Fase 6.
   // Se reconstruyen desde reaccion_componentes por useReacciones().
-  select: "id, nombre, descripcion, activador, created_at, updated_at",
+  select:
+    "id, nombre, descripcion, activador, created_at, updated_at, " +
+    "estado, reversible, version",
 };
 
 export interface ReaccionComponenteRow {

@@ -1,148 +1,477 @@
 "use client";
 
-import { Activity, Loader2, X } from "lucide-react";
+/**
+ * ProcesosPage.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Catálogo de Procesos (tabla "procesos"): antes solo lectura (pills +
+ * panel de detalle sin edición), ahora editor completo con el mismo patrón
+ * visual y de guardado que Elemento/Compuesto/Reacción — EditorHeaderBar +
+ * usePublishHeaderControls + useConfirm para eliminar.
+ *
+ * Un Proceso describe una receta entrada→transformación→salida en lenguaje
+ * natural (regla_clave/entrada/transformacion/salida/conservacion) y puede,
+ * opcionalmente, vincularse a una o más Reacciones concretas (tabla puente
+ * proceso_reacciones) — ver ReaccionesPage.tsx: Reacción es un concepto
+ * independiente, no una etapa obligatoria de Proceso.
+ */
+
+import { Activity, Beaker, Loader2, Plus, Trash2 } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { supabase } from "@/infra/supabase/supabase";
+import { useConfirm } from "@/ui/ConfirmModal";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
+import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 
 import { useProcesos } from "./useProcesos";
-import { useProcesoReacciones } from "./useProcesoReacciones";
 import { useReacciones } from "./useReacciones";
-import type { Proceso } from "./types";
+import { ReaccionPanelFlotante } from "./ReaccionesPage";
+import {
+  vincularReaccionAProceso,
+  actualizarProcesoReaccion,
+  desvincularReaccionDeProceso,
+} from "./persistirProcesoReaccion";
+import { CONFIG_PROCESO_REACCIONES, type Proceso, type ProcesoReaccion, type Reaccion } from "./types";
 
-function formatValue(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "string") return value;
-  return String(value);
-}
+const ESTADOS_FUNDAMENTO = ["definida", "en_revision", "estable", "obsoleta"] as const;
 
-function ProcesoDetail({ proceso }: { proceso: Proceso }) {
-  const { items: relaciones, loading: loadingRelaciones } = useProcesoReacciones(proceso.id);
-  const { items: reacciones } = useReacciones();
+/**
+ * Sección de Reacciones vinculadas a este Proceso — editable: agregar una
+ * reacción existente del catálogo, editar su orden/rol dentro del proceso,
+ * o desvincularla. Mismo lenguaje visual que ComposicionRealBloque en
+ * CompuestosPage.tsx (fila + inputs con onBlur + botón agregar con select).
+ * Nunca crea ni edita la Reacción en sí — solo la fila puente.
+ */
+function ReaccionesVinculadasBloque({
+  procesoId,
+  reacciones,
+  onAbrirReaccion,
+}: {
+  procesoId: string;
+  reacciones: Reaccion[];
+  onAbrirReaccion?: (reaccionId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<ProcesoReaccion>(
+    CONFIG_PROCESO_REACCIONES.tabla,
+    { select: CONFIG_PROCESO_REACCIONES.select, order: { campo: "orden" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevaReaccionId, setNuevaReaccionId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
 
-  const receta = [
-    ["regla_clave", "Regla clave", proceso.regla_clave],
-    ["entrada", "Entrada", proceso.entrada],
-    ["transformacion", "Transformación", proceso.transformacion],
-    ["salida", "Salida", proceso.salida],
-    ["conservacion", "Conservación", proceso.conservacion],
-    ["estado_fundamento", "Fundamento", proceso.estado_fundamento],
-  ] as const;
-  const recetaVisible = receta.filter(([, , value]) => value);
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const reaccionesDisponibles = useMemo(
+    () =>
+      reacciones.filter((r) => !vinculosDeEsteProceso.some((v) => v.reaccion_id === r.id)),
+    [reacciones, vinculosDeEsteProceso],
+  );
+
+  async function handleOrdenBlur(vinculoId: string, valor: string) {
+    const orden = valor.trim() === "" ? null : Number(valor);
+    if (orden !== null && !Number.isFinite(orden)) return;
+    setGuardandoId(vinculoId);
+    await actualizarProcesoReaccion(vinculoId, { orden });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarProcesoReaccion(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular reacción",
+      message: `¿Desvincular "${nombre}" de este proceso? La reacción en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularReaccionDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevaReaccionId) return;
+    setGuardandoId(nuevaReaccionId);
+    await vincularReaccionAProceso(procesoId, nuevaReaccionId, {
+      rol: nuevoRol.trim() || null,
+      orden: vinculosDeEsteProceso.length,
+    });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevaReaccionId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          {proceso.tipo && (
-            <span className="inline-block rounded px-1.5 py-0.5 bg-primary/5 text-micro font-bold text-primary/40">
-              {proceso.tipo}
-            </span>
-          )}
-          {proceso.descripcion && (
-            <p className="mt-1.5 text-xs leading-relaxed text-primary/55">{proceso.descripcion}</p>
-          )}
-        </div>
-      </header>
+    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Reacciones
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={reaccionesDisponibles.length === 0}
+          title="Vincular una reacción existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+      <p className="text-micro text-primary/35 -mt-1">
+        Opcional: transformación material específica asociada a este proceso, si existe.
+      </p>
 
-      <div className="grid grid-cols-2 gap-3 items-start">
-        <div className="flex flex-col gap-2 min-w-0">
-          {recetaVisible.length > 0 && (
-            <div className="flex flex-col gap-1.5 min-w-0 p-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                  Receta del proceso
-                </span>
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevaReaccionId}
+            onChange={(e) => setNuevaReaccionId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir reacción…</option>
+            {reaccionesDisponibles.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.nombre || "(sin nombre)"}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevaReaccionId || guardandoId === nuevaReaccionId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevaReaccionId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">
+          Sin reacción asociada — no todo proceso tiene una, y eso no es un dato faltante.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const reaccion = reacciones.find((r) => r.id === vinculo.reaccion_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={!onAbrirReaccion}
+                    onClick={() => reaccion && onAbrirReaccion?.(reaccion.id)}
+                    title={onAbrirReaccion ? "Ver/editar esta reacción" : undefined}
+                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                      onAbrirReaccion ? "cursor-pointer hover:underline hover:text-primary" : ""
+                    }`}
+                  >
+                    <Beaker size={10} className="text-primary/40 shrink-0" />
+                    {reaccion?.nombre ?? vinculo.reaccion_id.slice(0, 8)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuitar(vinculo.id, reaccion?.nombre ?? vinculo.reaccion_id)}
+                    disabled={ocupado}
+                    title="Desvincular de este proceso"
+                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                  >
+                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <input
+                    type="number"
+                    defaultValue={vinculo.orden ?? ""}
+                    key={`orden-${vinculo.id}-${vinculo.orden ?? ""}`}
+                    onBlur={(e) => handleOrdenBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="#"
+                    title="Orden"
+                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <input
+                    defaultValue={vinculo.rol ?? ""}
+                    key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                    onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="Rol"
+                    title="Rol"
+                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                  />
+                </div>
               </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Editor completo de un Proceso — mismo patrón que ElementoEditor/
+ * CompuestoEditor/ReaccionPanelFlotante: publica sus controles de header
+ * (nombre editable, guardar, eliminar) hacia el contenedor si se lo piden,
+ * o muestra su propia EditorHeaderBar en uso standalone.
+ */
+function ProcesoEditor({
+  proceso,
+  onActualizar,
+  onEliminar,
+  onHeaderControlsChange,
+  onAbrirReaccion,
+}: {
+  proceso: Proceso;
+  onActualizar: (id: string, cambios: Partial<Proceso>) => void;
+  onEliminar?: (id: string) => void;
+  onHeaderControlsChange?: OnHeaderControlsChange;
+  onAbrirReaccion?: (reaccionId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [local, setLocal] = useState(proceso);
+  const [saving, setSaving] = useState(false);
+  const { items: reacciones } = useReacciones();
+
+  useEffect(() => setLocal(proceso), [proceso]);
+
+  async function persist(cambios: Partial<Proceso>) {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("procesos").update(cambios).eq("id", proceso.id);
+      if (error) throw error;
+      onActualizar(proceso.id, cambios);
+    } catch (e) {
+      console.error("[ProcesoEditor] error guardando:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEliminar() {
+    if (!onEliminar) return;
+    const ok = await confirm({
+      title: "Eliminar proceso",
+      message: `¿Eliminar "${local.nombre}"? Esta acción no se puede deshacer.`,
+    });
+    if (ok) onEliminar(proceso.id);
+  }
+
+  const status: SaveStatus = saving ? "saving" : "idle";
+
+  const headerControls = {
+    IconoFallback: Activity,
+    nombre: local.nombre ?? "",
+    placeholderNombre: "Nombre del proceso",
+    onChangeNombre: (nombre: string) => setLocal((p) => ({ ...p, nombre })),
+    onBlurNombre: () => persist({ nombre: local.nombre }),
+    status,
+    onGuardar: () =>
+      persist({
+        nombre: local.nombre,
+        tipo: local.tipo,
+        descripcion: local.descripcion,
+        condiciones: local.condiciones,
+        notas: local.notas,
+        regla_clave: local.regla_clave,
+        entrada: local.entrada,
+        transformacion: local.transformacion,
+        salida: local.salida,
+        conservacion: local.conservacion,
+        estado_fundamento: local.estado_fundamento,
+      }),
+    onEliminar: handleEliminar,
+    extra: (
+      <>
+        <input
+          value={local.tipo ?? ""}
+          onChange={(e) => setLocal((p) => ({ ...p, tipo: e.target.value || null }))}
+          onBlur={() => persist({ tipo: local.tipo })}
+          placeholder="Tipo"
+          className="shrink-0 w-24 bg-primary/5 rounded-md px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+        />
+        <select
+          value={local.estado_fundamento ?? "definida"}
+          onChange={(e) => {
+            const estado_fundamento = e.target.value;
+            setLocal((p) => ({ ...p, estado_fundamento }));
+            persist({ estado_fundamento });
+          }}
+          title="Estado del fundamento"
+          className="shrink-0 bg-primary/5 rounded-md px-1.5 h-6 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 capitalize"
+        >
+          {ESTADOS_FUNDAMENTO.map((e) => (
+            <option key={e} value={e} className="capitalize">
+              {e.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+      </>
+    ),
+  };
+
+  usePublishHeaderControls(headerControls, onHeaderControlsChange);
+
+  const receta = [
+    ["regla_clave", "Regla clave", local.regla_clave] as const,
+    ["entrada", "Entrada", local.entrada] as const,
+    ["transformacion", "Transformación", local.transformacion] as const,
+    ["salida", "Salida", local.salida] as const,
+    ["conservacion", "Conservación", local.conservacion] as const,
+  ];
+
+  function campoBlur(campo: keyof Proceso) {
+    persist({ [campo]: local[campo] } as Partial<Proceso>);
+  }
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+      {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
+
+      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto">
+        <div className="flex flex-col gap-1.5 min-w-0 p-2">
+          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+            Descripción
+          </span>
+          <textarea
+            className="w-full min-h-[3.5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+            placeholder="Qué es este proceso, en qué contexto ocurre…"
+            value={local.descripcion ?? ""}
+            onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
+            onBlur={() => campoBlur("descripcion")}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 items-start">
+          <div className="flex flex-col gap-2 min-w-0">
+            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Receta del proceso
+              </span>
               <p className="text-micro text-primary/35 -mt-1">Entrada → transformación → salida</p>
               <div className="flex flex-col gap-1">
-                {recetaVisible.map(([key, label, value]) =>
-                  key === "regla_clave" ? (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between gap-2 px-2 py-1"
-                    >
-                      <span className="text-micro font-bold text-primary/50 truncate">{label}</span>
-                      <span className="text-micro font-black text-primary/70 text-right">{formatValue(value)}</span>
-                    </div>
-                  ) : (
-                    <div key={key} className="px-2 py-1">
-                      <span className="text-micro font-bold text-primary/45">{label}</span>
-                      <p className="mt-0.5 text-micro leading-relaxed text-primary/65">{value}</p>
-                    </div>
-                  ),
-                )}
+                {receta.map(([campo, label, value]) => (
+                  <div key={campo} className="px-2 py-1">
+                    <span className="text-micro font-bold text-primary/45">{label}</span>
+                    <textarea
+                      className="mt-0.5 w-full min-h-[2rem] bg-transparent px-0 py-0.5 text-micro leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
+                      placeholder={`${label}…`}
+                      value={value ?? ""}
+                      onChange={(e) =>
+                        setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
+                      }
+                      onBlur={() => campoBlur(campo)}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
-          )}
 
-          {proceso.condiciones && (
             <div className="flex flex-col gap-1.5 min-w-0 p-2">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Condiciones
               </span>
-              <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/55">
-                {proceso.condiciones}
-              </p>
+              <textarea
+                className="w-full min-h-[4rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                placeholder="Bajo qué condiciones ocurre este proceso…"
+                value={local.condiciones ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
+                onBlur={() => campoBlur("condiciones")}
+              />
             </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="flex flex-col gap-1.5 min-w-0 p-2">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Reacciones
-            </span>
-            <p className="text-micro text-primary/35 -mt-1">
-              Opcional: transformación material específica asociada a este proceso, si existe.
-            </p>
-            {loadingRelaciones ? (
-              <div className="flex items-center gap-1.5 py-2 text-micro text-primary/40">
-                <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
-              </div>
-            ) : relaciones.length === 0 ? (
-              <p className="py-1 text-micro text-primary/30">
-                Sin reacción asociada — no todo proceso tiene una, y eso no es un dato faltante.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {relaciones.map((relacion) => {
-                  const reaccion = reacciones.find((item) => item.id === relacion.reaccion_id);
-                  return (
-                    <div key={relacion.id} className="px-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-micro font-bold text-primary/70 truncate">
-                          {reaccion?.nombre ?? relacion.reaccion_id.slice(0, 8)}
-                        </span>
-                        {relacion.orden !== null && (
-                          <span className="text-micro text-primary/40 shrink-0">#{relacion.orden}</span>
-                        )}
-                      </div>
-                      {relacion.rol && <div className="mt-0.5 text-micro text-primary/35">{relacion.rol}</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
-          {proceso.notas && (
+          <div className="flex flex-col gap-2 min-w-0">
+            <ReaccionesVinculadasBloque
+              procesoId={proceso.id}
+              reacciones={reacciones}
+              onAbrirReaccion={onAbrirReaccion}
+            />
+
             <div className="flex flex-col gap-1.5 min-w-0 p-2">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Notas
               </span>
-              <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/50">{proceso.notas}</p>
+              <textarea
+                className="w-full min-h-[4rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                placeholder="Notas libres…"
+                value={local.notas ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, notas: e.target.value }))}
+                onBlur={() => campoBlur("notas")}
+              />
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Editor({ proceso, onClose }: { proceso: Proceso; onClose: () => void }) {
+/**
+ * Panel flotante centrado del detalle de un Proceso — mismo comportamiento
+ * visual que ReaccionPanelFlotante/CompuestoPanelFlotante: modal centrado
+ * con backdrop blur, cierra con click en el backdrop, Escape, o el botón X.
+ * Apila el panel flotante de una Reacción vinculada, si se abre una — mismo
+ * patrón de apilado que celulaAbierta/materialAbierto en CompuestoEditor.
+ */
+function ProcesoPanelFlotante({
+  proceso,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+}: {
+  proceso: Proceso;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Proceso>) => void;
+  onEliminar?: (id: string) => void;
+}) {
+  const [reaccionAbiertaId, setReaccionAbiertaId] = useState<string | null>(null);
+  const { items: reacciones, setItems: setReacciones } = useReacciones();
+  const reaccionAbierta = reacciones.find((r) => r.id === reaccionAbiertaId) ?? null;
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        if (reaccionAbiertaId) setReaccionAbiertaId(null);
+        else onCerrar();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     const previous = document.body.style.overflow;
@@ -151,73 +480,115 @@ function Editor({ proceso, onClose }: { proceso: Proceso; onClose: () => void })
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previous;
     };
-  }, [onClose]);
+  }, [onCerrar, reaccionAbiertaId]);
 
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
-      style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", backdropFilter: "blur(8px)" }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
+    <>
       <div
-        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+        style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", backdropFilter: "blur(8px)" }}
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onCerrar();
         }}
-        onMouseDown={(event) => event.stopPropagation()}
       >
         <div
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
           style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+            background: "var(--bg-main)",
+            border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
+          onMouseDown={(event) => event.stopPropagation()}
         >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Activity className="text-primary/50" size={12} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-primary">{proceso.nombre}</p>
-            <p className="text-micro text-primary/35">Proceso · solo lectura</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title="Cerrar (Esc)"
-            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
-          <ProcesoDetail proceso={proceso} />
+          <ProcesoEditor
+            key={proceso.id}
+            proceso={proceso}
+            onActualizar={onActualizar}
+            onEliminar={onEliminar}
+            onAbrirReaccion={setReaccionAbiertaId}
+          />
         </div>
       </div>
-    </div>,
+
+      {reaccionAbierta && (
+        <ReaccionPanelFlotante
+          reaccion={reaccionAbierta}
+          compuestos={[]}
+          elementos={[]}
+          onCerrar={() => setReaccionAbiertaId(null)}
+          onActualizar={(id, cambios) =>
+            setReacciones((prev) => prev.map((r) => (r.id === id ? { ...r, ...cambios } : r)))
+          }
+        />
+      )}
+    </>,
     document.body,
   );
 }
 
-export default function ProcesosPage() {
-  const { items, loading } = useProcesos();
+interface ProcesosPageProps {
+  /** Opcionales — mismo patrón que ReaccionesPage: si el caller (ver
+   *  ElementosPage.tsx, header de sección vía CabeceraSeccionConMenu) ya
+   *  conecta crear/eliminar al hook real, se usan esos. Si no se pasan,
+   *  ProcesosPage sigue siendo usable standalone con sus propios handlers
+   *  internos (mismo fallback que tenía antes de la migración). */
+  creating?: boolean;
+  onCreate?: () => void;
+  onEliminar?: (id: string) => void;
+}
+
+export default function ProcesosPage({ creating: creatingProp, onCreate, onEliminar: onEliminarProp }: ProcesosPageProps = {}) {
+  const { items, setItems, loading } = useProcesos();
   const [selected, setSelected] = useState<Proceso | null>(null);
+  const [creatingLocal, setCreatingLocal] = useState(false);
+  const creating = creatingProp ?? creatingLocal;
+
+  async function handleCrearLocal() {
+    setCreatingLocal(true);
+    try {
+      const { data, error } = await supabase
+        .from("procesos")
+        .insert([{ nombre: "Nuevo proceso" }])
+        .select()
+        .single();
+      if (error) throw error;
+      setItems((prev) => [...prev, data as Proceso]);
+      setSelected(data as Proceso);
+    } catch (e) {
+      console.error("[ProcesosPage] error creando proceso:", e);
+    } finally {
+      setCreatingLocal(false);
+    }
+  }
+
+  async function handleEliminarLocal(id: string) {
+    try {
+      const { error } = await supabase.from("procesos").delete().eq("id", id);
+      if (error) throw error;
+      setItems((prev) => prev.filter((p) => p.id !== id));
+      setSelected(null);
+    } catch (e) {
+      console.error("[ProcesosPage] error eliminando proceso:", e);
+    }
+  }
+
+  const handleEliminar = onEliminarProp ?? handleEliminarLocal;
+
+  function actualizar(id: string, cambios: Partial<Proceso>) {
+    setItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+    setSelected((prev) => (prev && prev.id === id ? { ...prev, ...cambios } : prev));
+  }
 
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
+      ) : items.length === 0 ? (
+        <div className="py-6 text-micro text-primary/25 text-center">
+          Todavía no hay procesos creados.
+        </div>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {items.map((item) => (
@@ -234,7 +605,31 @@ export default function ProcesosPage() {
           ))}
         </div>
       )}
-      {selected && <Editor proceso={selected} onClose={() => setSelected(null)} />}
+
+      {/* Botón "Nuevo" propio solo cuando no hay onCreate del caller (uso
+          standalone) — mismo criterio: si el header de sección ya ofrece
+          "Añadir" (CabeceraSeccionConMenu), no lo duplicamos acá abajo. */}
+      {!onCreate && (
+        <button
+          type="button"
+          onClick={handleCrearLocal}
+          disabled={creating}
+          title="Nuevo proceso"
+          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-primary/20 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/40 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-40"
+        >
+          {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+          Nuevo
+        </button>
+      )}
+
+      {selected && (
+        <ProcesoPanelFlotante
+          proceso={selected}
+          onCerrar={() => setSelected(null)}
+          onActualizar={actualizar}
+          onEliminar={handleEliminar}
+        />
+      )}
     </div>
   );
 }
