@@ -176,8 +176,15 @@ export function ElementoEditor({
     [interpretacionesCrudas],
   );
   const propiedadesFisicas = useMemo(
-    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones),
-    [local, interpretaciones],
+    () =>
+      // FE-018 fix: fusionarInterpretaciones oculta propiedades sin
+      // interpretación válida — correcto solo en modo Escritor. En modo
+      // científico `interpretaciones` está vacío a propósito (hook
+      // desactivado arriba); fusionar ahí ocultaba toda la lista técnica.
+      modoVista === "humana"
+        ? fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones)
+        : propiedadesCalculadasDeElemento(local),
+    [local, interpretaciones, modoVista],
   );
   const { items: sitiosEnlace, loading: sitiosLoading } = useElementoSitiosEnlace(elemento.id);
 

@@ -497,12 +497,20 @@ function MaterialDetail({
     "escritor",
     modo === "humana",
   );
+  const propiedadesGenerico = propiedadesCalculadasGenerico(propiedades).map((p) => ({
+    ...p,
+    grupo: p.grupo ?? "Propiedades físicas",
+  }));
   const propiedadesCombinadas = [
-    ...fusionarConTarjetasDeVista(
-      propiedadesCalculadasGenerico(propiedades).map((p) => ({ ...p, grupo: p.grupo ?? "Propiedades físicas" })),
-      interpretaciones,
-      filasContratoEscritorMaterial,
-    ),
+    // FE-018 fix: fusionarConTarjetasDeVista aplica la regla estricta de
+    // ocultamiento (sin interpretación → oculto), que es correcta SOLO en
+    // modo Escritor. En modo científico `interpretaciones` está vacío a
+    // propósito (hook desactivado arriba) y aplicar la fusión ahí ocultaba
+    // todas las propiedades técnicas. En científico se muestra la lista
+    // técnica sin filtrar.
+    ...(modo === "humana"
+      ? fusionarConTarjetasDeVista(propiedadesGenerico, interpretaciones, filasContratoEscritorMaterial)
+      : propiedadesGenerico),
     ...(loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo)),
   ];
   const fuente = etiquetaFuenteFisica(propiedades.fuente_fisica as string | undefined);

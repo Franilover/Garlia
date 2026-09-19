@@ -1159,8 +1159,10 @@ function CompuestoEditor({
   // Capa humana (modo Escritor): nivel + significado del motor de
   // interpretación de Supabase. Solo se consulta en modo "humana"; el
   // frontend no aplica umbrales ni textos propios (ver
-  // useInterpretacionEscritor). Mientras carga o si falla, las tarjetas
-  // caen al valor técnico.
+  // useInterpretacionEscritor). En modo "quimica" nunca se pide (queda
+  // {}) y las propiedades técnicas se muestran sin fusionar/filtrar (ver
+  // propiedadesFisicas más abajo) — la regla estricta de ocultamiento sin
+  // interpretación aplica solo dentro de modo "humana".
   const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
     "compuesto",
     compuesto.id,
@@ -1183,14 +1185,23 @@ function CompuestoEditor({
 
   const propiedadesFisicas = useMemo(
     () => [
-      ...fusionarConTarjetasDeVista(
-        propiedadesCalculadasDeCompuesto(local),
-        interpretaciones,
-        filasContratoEscritor,
-      ),
+      // FE-018 fix: la regla estricta de ocultamiento (fusionarConTarjetasDeVista
+      // → fusionarInterpretaciones) es SOLO para modo Escritor. En modo
+      // Científico ("quimica") no hay interpretaciones cargadas a propósito
+      // (el hook está desactivado arriba), así que aplicar la fusión acá
+      // ocultaba TODAS las propiedades técnicas al no encontrar match — se
+      // usa la lista técnica sin filtrar en científico, y solo se fusiona/
+      // filtra en modo humana.
+      ...(modoVista === "humana"
+        ? fusionarConTarjetasDeVista(
+            propiedadesCalculadasDeCompuesto(local),
+            interpretaciones,
+            filasContratoEscritor,
+          )
+        : propiedadesCalculadasDeCompuesto(local)),
       ...(estabilidadLoading ? [] : propiedadesDeEstabilidadDetalle(estabilidadDetalle)),
     ],
-    [local, estabilidadDetalle, estabilidadLoading, interpretaciones, filasContratoEscritor],
+    [local, estabilidadDetalle, estabilidadLoading, interpretaciones, filasContratoEscritor, modoVista],
   );
 
   // Fórmula expandida para el header (ver formulaExpandidaCompuesto): null
