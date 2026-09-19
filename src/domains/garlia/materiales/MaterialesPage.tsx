@@ -1000,6 +1000,9 @@ export function MaterialesPage() {
   const seleccionado = materiales.find((material) => material.id === seleccionadoId) ?? null;
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
+  // Propiedad por la que se ordenan TODAS las secciones a la vez. El orden
+  // propio de una sección (ordenPorGrupo) tiene prioridad sobre este.
+  const [ordenGlobal, setOrdenGlobal] = useState<string | null>(null);
 
   // Agrupamiento por categoria (columna real "materiales.categoria",
   // agregada en v285 y recién ahora traída al frontend — ver auditoría
@@ -1052,11 +1055,18 @@ export function MaterialesPage() {
                 onSeleccionar={(clave) =>
                   setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
                 }
+                propiedadGlobal={ordenGlobal}
+                onSeleccionarGlobal={(clave) => {
+                  // Un orden global nuevo reemplaza los ordenes propios,
+                  // para que el cambio se vea en todas las secciones.
+                  setOrdenPorGrupo({});
+                  setOrdenGlobal(clave);
+                }}
               />
               <div className="flex flex-wrap gap-1">
                 {ordenarPorPropiedad(
                   grupo.materiales,
-                  ordenPorGrupo[grupo.id] ?? null,
+                  ordenPorGrupo[grupo.id] ?? ordenGlobal,
                   (m, clave) => m.propiedades_calculadas?.[clave],
                 ).map((material) => (
                   <MaterialPill

@@ -2309,6 +2309,9 @@ function MasonryGruposCategoria({
   // Solo cambia el orden de las pills dentro del grupo, no su tamaño, así que
   // no afecta la distribución masonry de abajo.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
+  // Propiedad por la que se ordenan TODAS las secciones a la vez. El orden
+  // propio de una sección (ordenPorGrupo) tiene prioridad sobre este.
+  const [ordenGlobal, setOrdenGlobal] = useState<string | null>(null);
 
   const GAP = 16;
   const ANCHO_MIN_COLUMNA = 240;
@@ -2389,11 +2392,18 @@ function MasonryGruposCategoria({
                   onSeleccionar={(clave) =>
                     setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
                   }
+                  propiedadGlobal={ordenGlobal}
+                  onSeleccionarGlobal={(clave) => {
+                    // Un orden global nuevo reemplaza los ordenes propios,
+                    // para que el cambio se vea en todas las secciones.
+                    setOrdenPorGrupo({});
+                    setOrdenGlobal(clave);
+                  }}
                 />
                 <div className="flex flex-wrap gap-1">
                   {ordenarPorPropiedad(
                     grupo.compuestos,
-                    ordenPorGrupo[grupo.id] ?? null,
+                    ordenPorGrupo[grupo.id] ?? ordenGlobal,
                     (c, clave) => (c as unknown as Record<string, unknown>)[clave],
                   ).map((c) => (
                     <CompuestoCasilla

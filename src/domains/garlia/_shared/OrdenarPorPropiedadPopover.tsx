@@ -16,7 +16,7 @@
  * `obtenerValor(item, clave)` y usa `ordenarPorPropiedad` para ordenar.
  */
 
-import { ArrowDownWideNarrow, X } from "lucide-react";
+import { ArrowDownWideNarrow, ListOrdered, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { PopoverFlotante } from "./PopoverFlotante";
@@ -68,78 +68,144 @@ export function ordenarPorPropiedad<T>(
   return conIndice.map((x) => x.item);
 }
 
+/** Lista de propiedades dentro de un popover (compartida por los 2 botones). */
+function ListaPropiedades({
+  titulo,
+  propiedadActiva,
+  onSeleccionar,
+  onCerrar,
+  textoQuitar,
+}: {
+  titulo: string;
+  propiedadActiva: string | null;
+  onSeleccionar: (clave: string | null) => void;
+  onCerrar: () => void;
+  textoQuitar: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 p-1.5">
+      <div className="px-1.5 pb-1 text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        {titulo}
+      </div>
+      {PROPIEDADES_ORDENABLES.map((p) => {
+        const seleccionada = p.clave === propiedadActiva;
+        return (
+          <button
+            key={p.clave}
+            type="button"
+            onClick={() => {
+              onSeleccionar(seleccionada ? null : p.clave);
+              onCerrar();
+            }}
+            className={`rounded-md px-2 py-1 text-left text-micro font-bold transition-colors cursor-pointer ${
+              seleccionada ? "bg-accent/15 text-accent" : "text-primary/70 hover:bg-primary/10"
+            }`}
+          >
+            {p.label}
+          </button>
+        );
+      })}
+      {propiedadActiva && (
+        <button
+          type="button"
+          onClick={() => {
+            onSeleccionar(null);
+            onCerrar();
+          }}
+          className="mt-1 flex items-center gap-1 rounded-md border-t border-primary/10 px-2 pt-1.5 pb-1 text-left text-micro font-bold text-primary/50 hover:text-primary cursor-pointer"
+        >
+          <X size={10} /> {textoQuitar}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function OrdenarPorPropiedadPopover({
   titulo,
   propiedadActiva,
   onSeleccionar,
+  propiedadGlobal = null,
+  onSeleccionarGlobal,
 }: {
   /** Texto del título de la sección (ej. "Mineral"). */
   titulo: string;
-  /** Clave de la propiedad por la que está ordenado el grupo, o null. */
+  /** Clave de la propiedad por la que está ordenado ESTE grupo, o null. */
   propiedadActiva: string | null;
   onSeleccionar: (clave: string | null) => void;
+  /** Propiedad por la que están ordenados TODOS los grupos, o null. */
+  propiedadGlobal?: string | null;
+  /** Si se pasa, aparece el segundo botón que ordena todas las secciones. */
+  onSeleccionarGlobal?: (clave: string | null) => void;
 }) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [anchorSeccion, setAnchorSeccion] = useState<HTMLElement | null>(null);
+  const [anchorGlobal, setAnchorGlobal] = useState<HTMLElement | null>(null);
   const activa = PROPIEDADES_ORDENABLES.find((p) => p.clave === propiedadActiva) ?? null;
+  const global = PROPIEDADES_ORDENABLES.find((p) => p.clave === propiedadGlobal) ?? null;
+  // Lo que se ve en el chip: el orden propio de la sección gana al global.
+  const efectiva = activa ?? global;
 
   return (
-    <>
+    <div className="mb-1 flex items-center gap-1 px-1">
       <button
         type="button"
-        onClick={(e) => setAnchor((a) => (a ? null : e.currentTarget))}
-        title="Filtrar / ordenar por propiedad"
-        className={`mb-1 flex w-full items-center gap-1.5 px-1 text-left text-micro font-bold uppercase tracking-[0.12em] transition-colors cursor-pointer ${
-          activa ? "text-accent" : "text-primary/40 hover:text-primary/70"
+        onClick={(e) => {
+          setAnchorGlobal(null);
+          setAnchorSeccion(e.currentTarget.parentElement);
+        }}
+        title="Ordenar solo esta sección por propiedad"
+        className={`flex min-w-0 flex-1 items-center gap-1.5 text-left text-micro font-bold uppercase tracking-[0.12em] transition-colors cursor-pointer ${
+          efectiva ? "text-accent" : "text-primary/40 hover:text-primary/70"
         }`}
       >
         <span className="truncate">{titulo}</span>
-        {activa && (
+        {efectiva && (
           <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] normal-case tracking-normal">
-            ↓ {activa.label}
+            ↓ {efectiva.label}
           </span>
         )}
         <ArrowDownWideNarrow size={11} className="ml-auto shrink-0 opacity-60" />
       </button>
 
-      <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={200} maxHeight={380}>
-        <div className="flex flex-col gap-0.5 p-1.5">
-          <div className="px-1.5 pb-1 text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Ordenar por (mayor primero)
-          </div>
-          {PROPIEDADES_ORDENABLES.map((p) => {
-            const seleccionada = p.clave === propiedadActiva;
-            return (
-              <button
-                key={p.clave}
-                type="button"
-                onClick={() => {
-                  onSeleccionar(seleccionada ? null : p.clave);
-                  setAnchor(null);
-                }}
-                className={`rounded-md px-2 py-1 text-left text-micro font-bold transition-colors cursor-pointer ${
-                  seleccionada
-                    ? "bg-accent/15 text-accent"
-                    : "text-primary/70 hover:bg-primary/10"
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-          {activa && (
-            <button
-              type="button"
-              onClick={() => {
-                onSeleccionar(null);
-                setAnchor(null);
-              }}
-              className="mt-1 flex items-center gap-1 rounded-md border-t border-primary/10 px-2 pt-1.5 pb-1 text-left text-micro font-bold text-primary/50 hover:text-primary cursor-pointer"
-            >
-              <X size={10} /> Quitar orden
-            </button>
-          )}
-        </div>
+      {onSeleccionarGlobal && (
+        <button
+          type="button"
+          onClick={(e) => {
+            setAnchorSeccion(null);
+            setAnchorGlobal(e.currentTarget.parentElement);
+          }}
+          title="Ordenar TODAS las secciones por propiedad"
+          className={`shrink-0 flex h-5 w-5 items-center justify-center rounded border transition-colors cursor-pointer ${
+            global
+              ? "border-accent/30 bg-accent/15 text-accent"
+              : "border-primary/15 text-primary/40 hover:border-primary/35 hover:bg-primary/5 hover:text-primary"
+          }`}
+        >
+          <ListOrdered size={11} />
+        </button>
+      )}
+
+      <PopoverFlotante anchor={anchorSeccion} onClose={() => setAnchorSeccion(null)} width={200} maxHeight={380}>
+        <ListaPropiedades
+          titulo="Esta sección · mayor primero"
+          propiedadActiva={propiedadActiva}
+          onSeleccionar={onSeleccionar}
+          onCerrar={() => setAnchorSeccion(null)}
+          textoQuitar="Quitar orden de la sección"
+        />
       </PopoverFlotante>
-    </>
+
+      {onSeleccionarGlobal && (
+        <PopoverFlotante anchor={anchorGlobal} onClose={() => setAnchorGlobal(null)} width={210} maxHeight={380}>
+          <ListaPropiedades
+            titulo="Todas las secciones · mayor primero"
+            propiedadActiva={propiedadGlobal}
+            onSeleccionar={onSeleccionarGlobal}
+            onCerrar={() => setAnchorGlobal(null)}
+            textoQuitar="Quitar orden global"
+          />
+        </PopoverFlotante>
+      )}
+    </div>
   );
 }
