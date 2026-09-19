@@ -87,14 +87,10 @@ export function EditorItem({
   const [form, setForm] = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [showModalDnd, setShowModalDnd] = useState(false);
-  // Toggle "Científico ↔ Escritor" del header — mismo patrón que
-  // ElementoEditor/CompuestoEditor/MaterialEditorFlotante: alterna cómo se
-  // muestran las propiedades físicas del objeto (valor técnico vs. nivel +
-  // explicación en lenguaje llano), sin recalcular nada. Objeto todavía no
-  // tiene capa humana propia calculada en Supabase, así que en modo
-  // Escritor cada celda cae de vuelta al valor técnico automáticamente
-  // (ver PropertyCell en PanelFisicaObjeto) — el toggle ya queda listo
-  // para cuando esa capa exista.
+  // Toggle "Científico ↔ Escritor". Ambos modos consumen los mismos
+  // valores canónicos: el modo Escritor delega la interpretación a
+  // Supabase mediante el intérprete humano único; el frontend no aplica
+  // umbrales ni genera significados propios.
   const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
   const [editandoReaccionId, setEditandoReaccionId] = useState<string | null>(null);
