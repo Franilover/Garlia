@@ -51,6 +51,46 @@ export interface TipoObjeto {
   parametros_base: Record<string, { valor: number; unidad: string }> | null;
 }
 
+/** Contrato de lectura canónico que alimenta la capa frontend del Worldbuilder.
+ *  No contiene fórmulas: el valor ya viene resuelto por Supabase. */
+export interface PropiedadWorldbuilderFrontend {
+  propiedad_id: string;
+  propiedad_clave: string;
+  nombre: string;
+  descripcion: string | null;
+  utilidad_narrativa: string | null;
+  grupo_presentacion: string | null;
+  categoria_presentacion: string | null;
+  tipo_presentacion: string | null;
+  modo_visualizacion: "escala" | "etiqueta" | "booleano" | "contextual" | "oculta" | "valor" | string;
+  capas_entidad: string[];
+  condicional: boolean;
+  visible_escritor: boolean;
+  visible_worldbuilder: boolean;
+  orden_escritor: number;
+  tipo_valor: string;
+  rango_min: number | null;
+  rango_max: number | null;
+  unidad_clave: string | null;
+  unidad_nombre: string | null;
+  unidad_simbolo: string | null;
+  categoria_clave: string | null;
+  categoria_nombre: string | null;
+  tags: string[];
+  fuente_canonica: "resolver_propiedad_canonica";
+  tipo_acceso: "directa" | "condicional" | "oculta" | string;
+}
+
+export interface PropiedadWorldbuilderEntidad extends PropiedadWorldbuilderFrontend {
+  entidad_tipo: "elemento" | "compuesto" | "material" | string;
+  entidad_id: string;
+  entidad_nombre: string;
+  valor: string | null;
+  estado_valor: string;
+  estado_presentacion: "disponible" | "condicional_disponible" | "sin_dato" | "oculta" | string;
+  valor_mostrable: boolean;
+}
+
 // ─── Shapes jsonb devueltos por las RPC — confirmados en vivo ──────────────
 
 /** Un criterio de una intención: mínimo, máximo, o ambos, sobre una
