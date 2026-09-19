@@ -11,17 +11,30 @@ import { EditorGeometriaItem } from "./EditorGeometriaItem";
 import { useInterpretacionEscritor, type InterpretacionEscritor } from "@/domains/garlia/_shared/useInterpretacionEscritor";
 import {
   useContratoPresentacion,
-  useValoresCientificos,
-  aplicarValoresCientificos,
   type GrupoContrato,
 } from "@/domains/garlia/_shared/useContratoPresentacion";
 
+/** Intenta parsear un string como número (para valores de
+ *  v_frontend_worldbuilder_propiedades_entidad, que llegan serializados
+ *  como string aunque sean numéricos — jsonb/numeric de Postgres vía
+ *  PostgREST). Si no es un número válido, se devuelve tal cual (para no
+ *  romper strings genuinamente textuales, ej. clasificaciones). */
+function normalizarNumero(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const n = Number(value);
+  // Un string vacío o con espacios da Number("") = 0, hay que excluirlo
+  // explícitamente para no convertir texto vacío en 0.
+  if (value.trim() !== "" && Number.isFinite(n)) return n;
+  return value;
+}
+
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(3);
-  if (typeof value === "boolean") return value ? "Sí" : "No";
-  if (typeof value === "string") return value;
-  return JSON.stringify(value);
+  const v = normalizarNumero(value);
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(3);
+  if (typeof v === "boolean") return v ? "Sí" : "No";
+  if (typeof v === "string") return v;
+  return JSON.stringify(v);
 }
 
 /** Tarjeta compacta de una propiedad — mismo lenguaje visual que
@@ -152,12 +165,14 @@ export function PanelFisicaObjeto({
   // teniendo su propio renderer más abajo (EditorGeometriaItem, Materiales).
   const { grupos: gruposContrato } = useContratoPresentacion("objeto", "cientifico");
 
-  // FE-019 (piloto): valores canónicos desde v_frontend_worldbuilder_propiedades_entidad.
-  // Se aplican por-encima del jsonb propiedadesFisicas (nunca lo reemplazan
-  // por completo): si la vista no trae una clave, se conserva el valor ya
-  // calculado por Supabase en propiedades_fisicas — así esto no puede
-  // romper el panel si la vista aún no cubre "objeto" en producción.
-  const { valores: valoresCientificos } = useValoresCientificos("objeto", itemId, modo === "quimica");
+  // FE-019 (piloto) — DESACTIVADO tras detectar valores de
+  // v_frontend_worldbuilder_propiedades_entidad con precisión numeric
+  // extendida (ej. "0.000225000...000") que rompían el formateo visual.
+  // Se deja el hook importado/disponible para reactivar una vez validado
+  // el shape real de la vista contra Supabase, pero por ahora Objeto usa
+  // exclusivamente el jsonb propiedadesFisicas (ver aplicarValoresCientificos
+  // más abajo, que queda sin invocar).
+  const valoresCientificos: Record<string, string | null> = {};
 
   const propiedades = propiedadesFisicas ?? {};
   // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y

@@ -83,12 +83,16 @@ import { useContratoPresentacion } from "../_shared/useContratoPresentacion";
  *  arma sus tarjetas con el nombre de columna que ya usa Compuesto
  *  (`dureza`). Ver renombrarClaves — FE-018, reemplaza a
  *  ALIAS_VISTA_A_FRONTEND (antes centralizado en useInterpretacionEscritor.ts). */
-const ALIAS_COMPUESTO: Record<string, string> = {
-  dureza_compuesto: "dureza",
-  conductividad_compuesto: "conductividad",
-  transparencia_compuesto: "transparencia",
-  interaccion_compuesto: "interaccion",
-};
+// BUGFIX FE-018: el mapa anterior (dureza_compuesto→dureza, etc.) asumía
+// que la vista v_frontend_escritor_propiedades_interpretadas sufija las
+// claves de Compuesto con "_compuesto" para desambiguar de Elemento — sin
+// evidencia real de eso en el código (propiedadesCalculadasDeCompuesto ya
+// usa "dureza"/"conductividad"/"transparencia"/"interaccion" sin sufijo,
+// igual que la vista, que además ya filtra por entidad_tipo como columna
+// aparte). Ese alias falso rompía el match y ocultaba todo en Escritor.
+// Compuesto no necesita ningún renombre: sus claves de tarjeta coinciden
+// 1:1 con las de la vista.
+const ALIAS_COMPUESTO: Record<string, string> = {};
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";

@@ -34,6 +34,7 @@ import {
 } from "@/domains/garlia/_shared/OrdenarPorPropiedadPopover";
 import {
   fusionarConTarjetasDeVista,
+  fusionarInterpretaciones,
   useInterpretacionEscritor,
 } from "@/domains/garlia/_shared/useInterpretacionEscritor";
 import { useContratoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
@@ -98,6 +99,13 @@ const EJES_PERFIL_REACTIVO: { clave: string; label: string; descripcion: string 
  * TarjetaPropiedadesFisicas — pedido explícito: mismo diseño que
  * "Propiedades físicas" en vez de un bloque "Perfil reactivo" aparte.
  *
+ * `clave` de cada tarjeta lleva el prefijo `pr_` (ej. `pr_afinidad_reactiva`)
+ * para no chocar con claves de Propiedades físicas que puedan coincidir de
+ * nombre; `claveInterpretacion` (sin prefijo, igual al nombre de columna de
+ * `item.perfil`) es la que se usa para buscar en el mapa de interpretaciones
+ * de Escritor — v_frontend_escritor_propiedades_interpretadas usa el nombre
+ * de columna real, no el prefijo de UI.
+ *
  * No es una lista de etiquetas manuales tipo "inflamable/explosivo": son
  * ejes derivados de la microestructura del material. Cuando el material no
  * tiene desglose microscópico suficiente (estado !== "derivado_microestructura")
@@ -106,7 +114,7 @@ const EJES_PERFIL_REACTIVO: { clave: string; label: string; descripcion: string 
  */
 function propiedadesDePerfilReactivo(
   item: PerfilReactivoMaterial | null,
-): PropiedadCalculada[] {
+): (PropiedadCalculada & { claveInterpretacion: string })[] {
   if (!item || item.estado !== "derivado_microestructura" || !item.perfil) return [];
 
   const prop = (v: number | null | undefined) =>
@@ -117,6 +125,7 @@ function propiedadesDePerfilReactivo(
     const v = item.perfil?.[eje.clave] as number | undefined;
     return {
       clave: `pr_${eje.clave}`,
+      claveInterpretacion: eje.clave,
       label: eje.label,
       valor: fmt(v),
       proporcion: prop(v),
@@ -501,6 +510,21 @@ function MaterialDetail({
     ...p,
     grupo: p.grupo ?? "Propiedades físicas",
   }));
+  const perfilReactivoCrudo = loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo);
+  // FE-018 fix (extendido a Reactividad): en modo Escritor, el perfil
+  // reactivo también debe respetar la regla estricta de ocultamiento (sin
+  // interpretación válida → oculto) en vez de mostrar siempre el valor
+  // técnico crudo, como pasaba antes en cualquier modo. Se fusiona por
+  // `claveInterpretacion` (nombre de columna real, sin el prefijo `pr_` de
+  // UI) contra el mismo mapa de interpretaciones de Material.
+  const perfilReactivoParaFusion = perfilReactivoCrudo.map((p) => ({ ...p, clave: p.claveInterpretacion }));
+  const perfilReactivoFusionado =
+    modo === "humana"
+      ? fusionarInterpretaciones(perfilReactivoParaFusion, interpretaciones).map((p, i) => ({
+          ...p,
+          clave: perfilReactivoCrudo[i].clave, // restaura clave `pr_...` para key de React / tarjeta
+        }))
+      : perfilReactivoCrudo;
   const propiedadesCombinadas = [
     // FE-018 fix: fusionarConTarjetasDeVista aplica la regla estricta de
     // ocultamiento (sin interpretación → oculto), que es correcta SOLO en
@@ -511,7 +535,7 @@ function MaterialDetail({
     ...(modo === "humana"
       ? fusionarConTarjetasDeVista(propiedadesGenerico, interpretaciones, filasContratoEscritorMaterial)
       : propiedadesGenerico),
-    ...(loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo)),
+    ...perfilReactivoFusionado,
   ];
   const fuente = etiquetaFuenteFisica(propiedades.fuente_fisica as string | undefined);
 

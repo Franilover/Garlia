@@ -30,15 +30,25 @@ import {
   useInterpretacionEscritor,
 } from "../_shared/useInterpretacionEscritor";
 
-/** Renombre de columna conocido para Elemento: la vista de interpretaciones
- *  usa `carga_neta` como nombre canónico de propiedad, mientras que
- *  propiedadesCalculadasDeElemento arma su tarjeta con el nombre de columna
- *  interno `carga_q` (ver ALIAS_CLAVE_HUMANA_ELEMENTO en elementos/types.ts,
- *  que resuelve el mismo alias para el camino legado). `masa_base`/
- *  `volumen_base` ya coinciden 1:1 entre vista y tarjeta, no necesitan
- *  renombre. FE-018: reemplaza a ALIAS_ELEMENTO (antes centralizado en
- *  useInterpretacionEscritor.ts). */
+/** Renombres de columna conocidos para Elemento: la vista de
+ *  interpretaciones (`v_frontend_escritor_propiedades_interpretadas`) usa
+ *  nombres cortos (`masa`, `volumen`, `carga_neta`), mientras que
+ *  propiedadesCalculadasDeElemento arma sus tarjetas con el nombre de
+ *  columna interno de la tabla `elementos` (`masa_base`, `volumen_base`,
+ *  `carga_q`) — misma correspondencia que ya usaba el camino legado
+ *  (ALIAS_CLAVE_HUMANA_ELEMENTO en elementos/types.ts, dirección
+ *  clave-interna→clave-vista; acá va invertida: clave-vista→clave-tarjeta,
+ *  que es lo que espera renombrarClaves). FE-018: reemplaza a
+ *  ALIAS_ELEMENTO (antes centralizado en useInterpretacionEscritor.ts).
+ *
+ *  BUGFIX: la versión anterior de este mapa solo traía `carga_neta` y
+ *  daba por sentado (incorrectamente) que `masa`/`volumen` de la vista ya
+ *  coincidían con `masa_base`/`volumen_base` de la tarjeta — por eso
+ *  Elemento no mostraba nada en modo Escritor: casi ninguna clave hacía
+ *  match. */
 const ALIAS_ELEMENTO: Record<string, string> = {
+  masa: "masa_base",
+  volumen: "volumen_base",
   carga_neta: "carga_q",
 };
 import { ParticulaVisual } from "../fisica/ParticulaVisual";
