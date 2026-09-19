@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 
 import { useItemMateriales } from "./useItemMateriales";
+import { InterpretacionHumanaPanel } from "@/domains/garlia/_shared/InterpretacionHumanaPanel";
 import { SelectorMaterialesItem } from "./SelectorMaterialesItem";
 import { EditorGeometriaItem } from "./EditorGeometriaItem";
 
