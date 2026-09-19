@@ -183,18 +183,44 @@ export function PanelFisicaObjeto({
               ? "Tiene materiales asociados pero falta geometría (volumen) para derivar densidad."
               : "Todavía no tiene composición material suficiente para derivar propiedades físicas."}
           </p>
+        ) : modo === "humana" ? (
+          <InterpretacionHumanaPanel entidadTipo="objeto" entidadId={itemId} />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {/* Izquierda: Magnitudes + Geometría apiladas */}
             <div className="flex flex-col gap-2">
               {MAGNITUDES_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
                 <div className="flex flex-col gap-0.5">
                   <SubGroupLabel>Magnitudes</SubGroupLabel>
                   {MAGNITUDES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                     ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
+                      <PropertyCell key={key} label={label} value={propiedades[key]} />
                     ),
                   )}
+                </div>
+              )}
+              {GEOMETRIA_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
+                <div className="flex flex-col gap-0.5">
+                  <SubGroupLabel>Geometría</SubGroupLabel>
+                  {GEOMETRIA_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
+                    ([key, label]) => (
+                      <PropertyCell key={key} label={label} value={propiedades[key]} />
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
+            {PROPIEDADES_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
+              <div className="flex flex-col gap-0.5">
+                <SubGroupLabel>Propiedades</SubGroupLabel>
+                {PROPIEDADES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
+                  ([key, label]) => (
+                    <PropertyCell key={key} label={label} value={propiedades[key]} />
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        )}
                 </div>
               )}
               {GEOMETRIA_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
