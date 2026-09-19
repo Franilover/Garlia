@@ -25,6 +25,8 @@ export interface FormaGeometrica {
   id: string;
   clave: string;
   nombre: string;
+  /** Descripción canónica de formas_geometricas, solo presentación. */
+  descripcion: string;
   /** Medidas de referencia ya en el formato que el motor espera en
    *  geometria_fisica (incluye unidad_longitud). Se usan como valor inicial
    *  editable en el formulario — nunca se le muestran al usuario como
@@ -88,6 +90,7 @@ export function useFormasGeometricas() {
             id: fila.formas_geometricas.id,
             clave: fila.formas_geometricas.clave,
             nombre: fila.formas_geometricas.nombre,
+            descripcion: fila.formas_geometricas.descripcion ?? "",
             parametrosDefault,
             parametrosNumericos,
           };
