@@ -8,6 +8,7 @@ import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { useItemMateriales } from "./useItemMateriales";
 import { SelectorMaterialesItem } from "./SelectorMaterialesItem";
 import { EditorGeometriaItem } from "./EditorGeometriaItem";
+import { useInterpretacionEscritor, type InterpretacionEscritor } from "@/domains/garlia/_shared/useInterpretacionEscritor";
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -23,22 +24,42 @@ function formatValue(value: unknown): string {
  *  espaciado, apoyándose en el contenedor exterior para el límite visual.
  *
  *  `modo` acompaña al toggle Científico ↔ Escritor del header de
- *  EditorItem (ver PanelFisicaObjeto), pero Objeto todavía no tiene una
- *  capa humana propia calculada en Supabase (no hay
- *  propiedades_emergentes.interpretacion_humana para items) — así que en
- *  modo "humana" esta celda sigue mostrando el mismo valor técnico, igual
- *  que TarjetaPropiedad cae de vuelta al valor técnico cuando la propiedad
- *  puntual no tiene nivelHumano. El parámetro ya queda listo para cuando
- *  esa capa humana exista, sin tener que volver a tocar este archivo. */
+ *  EditorItem. En modo "humana" muestra nivel + significado tal como los
+ *  entrega el motor de interpretación de Supabase (vista
+ *  v_frontend_escritor_propiedades_interpretadas, ver
+ *  useInterpretacionEscritor) — sin umbrales ni textos propios acá. Si la
+ *  propiedad no viene interpretada (ej. factor_geometrico), cae al valor
+ *  técnico, igual que TarjetaPropiedad. */
 function PropertyCell({
   label,
   value,
   modo = "quimica",
+  interpretacion,
 }: {
   label: string;
   value: unknown;
   modo?: "quimica" | "humana";
+  interpretacion?: InterpretacionEscritor;
 }) {
+  if (modo === "humana" && interpretacion) {
+    return (
+      <div
+        title={interpretacion.significado ?? undefined}
+        className="flex flex-col gap-0.5 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]"
+      >
+        <div className="flex items-center justify-between gap-1 min-w-0">
+          <span className="text-micro font-bold text-accent/60 truncate">{label}</span>
+          <span className="text-micro font-black text-accent capitalize shrink-0 truncate max-w-[6.5rem] text-right">
+            {interpretacion.nivel}
+          </span>
+        </div>
+        {interpretacion.significado && (
+          <span className="text-[10px] leading-snug text-primary/50">{interpretacion.significado}</span>
+        )}
+      </div>
+    );
+  }
+
   if (modo === "humana") {
     return (
       <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]">
@@ -143,6 +164,10 @@ export function PanelFisicaObjeto({
   const { items: composicion, loading: loadingComposicion } = useItemMateriales(itemId);
   const [editandoComposicion, setEditandoComposicion] = useState(false);
 
+  // Capa humana (modo Escritor) desde el motor de Supabase, solo en modo
+  // "humana". Claves ya alineadas con las de este panel (dureza, interaccion…).
+  const { interpretaciones } = useInterpretacionEscritor("objeto", itemId, modo === "humana");
+
   const propiedades = propiedadesFisicas ?? {};
   // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y
   // propiedades_fisicas.estado ("calculable" | "sin_materiales" |
@@ -192,7 +217,7 @@ export function PanelFisicaObjeto({
                   <SubGroupLabel>Magnitudes</SubGroupLabel>
                   {MAGNITUDES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                     ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
+                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
                     ),
                   )}
                 </div>
@@ -202,7 +227,7 @@ export function PanelFisicaObjeto({
                   <SubGroupLabel>Geometría</SubGroupLabel>
                   {GEOMETRIA_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                     ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
+                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
                     ),
                   )}
                 </div>
@@ -215,7 +240,7 @@ export function PanelFisicaObjeto({
                 <SubGroupLabel>Propiedades</SubGroupLabel>
                 {PROPIEDADES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                   ([key, label]) => (
-                    <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
+                    <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
                   ),
                 )}
               </div>

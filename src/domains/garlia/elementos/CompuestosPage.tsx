@@ -70,6 +70,10 @@ import { useCelulas } from "./useCelulas";
 import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
 import { OrdenarPorPropiedadPopover, ordenarPorPropiedad } from "../_shared/OrdenarPorPropiedadPopover";
+import {
+  fusionarConTarjetasDeVista,
+  useInterpretacionEscritor,
+} from "../_shared/useInterpretacionEscritor";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
@@ -1027,11 +1031,11 @@ function CompuestoEditor({
   const [local, setLocal] = useState(compuesto);
   // Toggle "Científico ↔ Escritor" del header: alterna cómo se muestran las
   // propiedades físicas (valor + fórmula técnica vs. nivel + explicación
-  // en lenguaje llano) sin recalcular ni volver a pedir nada — ambas capas
-  // ya vienen en la misma fila de "compuestos" (propiedades_emergentes.
-  // interpretacion_humana), ver propiedadesCalculadasDeCompuesto. Los
-  // valores internos del estado siguen siendo "quimica"/"humana", solo
-  // cambió la etiqueta visible.
+  // en lenguaje llano) sin recalcular nada. La capa humana viene del
+  // contrato canónico de Supabase (v_frontend_escritor_propiedades_
+  // interpretadas, ver useInterpretacionEscritor) y solo se consulta
+  // cuando el modo es "humana". Los valores internos del estado siguen
+  // siendo "quimica"/"humana", solo cambió la etiqueta visible.
   const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [editandoElementoIdLocal, setEditandoElementoIdLocal] = useState<string | null>(null);
   const editandoElementoId =
@@ -1137,12 +1141,23 @@ function CompuestoEditor({
   // resto de Propiedades físicas (TarjetaPropiedadesFisicas), sin bloque ni
   // grid separados. Si el compuesto no tiene fila auxiliar todavía o sigue
   // cargando, propiedadesDeEstabilidadDetalle devuelve [] y no se nota hueco.
+  // Capa humana (modo Escritor): nivel + significado del motor de
+  // interpretación de Supabase. Solo se consulta en modo "humana"; el
+  // frontend no aplica umbrales ni textos propios (ver
+  // useInterpretacionEscritor). Mientras carga o si falla, las tarjetas
+  // caen al valor técnico.
+  const { interpretaciones } = useInterpretacionEscritor(
+    "compuesto",
+    compuesto.id,
+    modoVista === "humana",
+  );
+
   const propiedadesFisicas = useMemo(
     () => [
-      ...propiedadesCalculadasDeCompuesto(local),
+      ...fusionarConTarjetasDeVista(propiedadesCalculadasDeCompuesto(local), interpretaciones),
       ...(estabilidadLoading ? [] : propiedadesDeEstabilidadDetalle(estabilidadDetalle)),
     ],
-    [local, estabilidadDetalle, estabilidadLoading],
+    [local, estabilidadDetalle, estabilidadLoading, interpretaciones],
   );
 
   // Fórmula expandida para el header (ver formulaExpandidaCompuesto): null

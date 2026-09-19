@@ -32,6 +32,10 @@ import {
   OrdenarPorPropiedadPopover,
   ordenarPorPropiedad,
 } from "@/domains/garlia/_shared/OrdenarPorPropiedadPopover";
+import {
+  fusionarConTarjetasDeVista,
+  useInterpretacionEscritor,
+} from "@/domains/garlia/_shared/useInterpretacionEscritor";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -307,12 +311,11 @@ function MaterialDetail({
   /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
    *  nivel + explicación en lenguaje llano — ver botón Científico ↔
    *  Escritor en el header de MaterialEditorFlotante, mismo patrón que
-   *  ElementoEditor/CompuestoEditor. Material todavía no tiene capa humana
-   *  propia (propiedades_emergentes.interpretacion_humana) calculada en
-   *  Supabase, así que en modo Escritor cada tarjeta cae de vuelta al
-   *  valor técnico automáticamente (ver TarjetaPropiedad en
-   *  GridPropiedadesCalculadas) — el toggle ya queda listo para cuando
-   *  esa capa exista, sin tener que tocar este componente de nuevo. */
+   *  ElementoEditor/CompuestoEditor. La capa humana viene del contrato
+   *  canónico de Supabase (v_frontend_escritor_propiedades_interpretadas,
+   *  ver useInterpretacionEscritor); una propiedad que el motor no
+   *  interpreta cae de vuelta al valor técnico (ver TarjetaPropiedad en
+   *  GridPropiedadesCalculadas). */
   modo?: "quimica" | "humana";
   /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
    *  mismo estado para que el nivel "Compuesto" del breadcrumb superior
@@ -476,8 +479,18 @@ function MaterialDetail({
   // el perfil reactivo sigue cargando no se agregan sus filas todavía, para
   // no mostrar "sin dato" un instante y después aparecer.
   const propiedades = material.propiedades_calculadas ?? {};
+  // Capa humana (modo Escritor) desde el motor de Supabase — solo se
+  // consulta en modo "humana". Sin umbrales ni textos propios acá.
+  const { interpretaciones } = useInterpretacionEscritor(
+    "material",
+    material.id,
+    modo === "humana",
+  );
   const propiedadesCombinadas = [
-    ...propiedadesCalculadasGenerico(propiedades).map((p) => ({ ...p, grupo: p.grupo ?? "Propiedades físicas" })),
+    ...fusionarConTarjetasDeVista(
+      propiedadesCalculadasGenerico(propiedades).map((p) => ({ ...p, grupo: p.grupo ?? "Propiedades físicas" })),
+      interpretaciones,
+    ),
     ...(loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo)),
   ];
   const fuente = etiquetaFuenteFisica(propiedades.fuente_fisica as string | undefined);

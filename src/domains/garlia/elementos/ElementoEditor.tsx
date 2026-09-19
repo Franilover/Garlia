@@ -24,6 +24,10 @@ import { type SaveStatus } from "@/ui/saveStatus";
 
 import { InfoFormulasPopover } from "./InfoFormulasPopover";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
+import {
+  fusionarInterpretaciones,
+  useInterpretacionEscritor,
+} from "../_shared/useInterpretacionEscritor";
 import { ParticulaVisual } from "../fisica/ParticulaVisual";
 
 import {
@@ -86,11 +90,11 @@ export function ElementoEditor({
   // Toggle "Científico ↔ Escritor" del header — mismo patrón que
   // CompuestoEditor: alterna cómo se muestran las propiedades físicas
   // (valor técnico vs. nivel + explicación en lenguaje llano), sin
-  // recalcular nada — ambas capas ya vienen en la misma fila de "elementos"
-  // (propiedades_emergentes.interpretacion_humana), ver
-  // propiedadesCalculadasDeElemento. Los valores internos del estado siguen
-  // siendo "quimica"/"humana" (no se tocan tipos ni claves de datos), solo
-  // cambió la etiqueta visible.
+  // recalcular nada. La capa humana viene del contrato canónico de
+  // Supabase (v_frontend_escritor_propiedades_interpretadas, ver
+  // useInterpretacionEscritor) y solo se consulta en modo "humana". Los
+  // valores internos del estado siguen siendo "quimica"/"humana" (no se
+  // tocan tipos ni claves de datos), solo cambió la etiqueta visible.
   const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
 
   useEffect(() => setLocal(elemento), [elemento]);
@@ -146,7 +150,18 @@ export function ElementoEditor({
 
   // Propiedades físicas calculadas por Supabase (masa, estabilidad, rigidez,
   // dureza, etc.) — puramente de lectura, ver propiedadesCalculadasDeElemento.
-  const propiedadesFisicas = useMemo(() => propiedadesCalculadasDeElemento(local), [local]);
+  // Capa humana (modo Escritor) desde el motor de Supabase; sin umbrales ni
+  // textos propios acá. Elemento hoy solo trae masa/estabilidad/rigidez/
+  // flexibilidad como valor_mostrable (volumen aún no está resuelto).
+  const { interpretaciones } = useInterpretacionEscritor(
+    "elemento",
+    elemento.id,
+    modoVista === "humana",
+  );
+  const propiedadesFisicas = useMemo(
+    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones),
+    [local, interpretaciones],
+  );
   const { items: sitiosEnlace, loading: sitiosLoading } = useElementoSitiosEnlace(elemento.id);
 
   // Compuestos donde se usa este elemento — para la columna junto a Notas.

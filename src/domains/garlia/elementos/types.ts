@@ -467,12 +467,15 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
   // (ver ALIAS_CLAVE_HUMANA_ELEMENTO). Si el elemento no tiene capa humana
   // todavía o la propiedad puntual no está interpretada, queda undefined y
   // el toggle Humana cae de vuelta al valor técnico (ver TarjetaPropiedad).
-  const humanaPorClave = interpretacionHumanaDeElemento(el);
+  // LEGADO RETIRADO: antes esto leía propiedades_emergentes.
+  // interpretacion_humana embebido en la fila del elemento. Ahora la capa
+  // humana (modo Escritor) viene del contrato canónico de Supabase
+  // (v_frontend_escritor_propiedades_interpretadas) y se fusiona en el
+  // editor con fusionarInterpretaciones() — ver
+  // _shared/useInterpretacionEscritor.ts. adjuntar() queda como identidad
+  // para no tocar el resto de esta función.
   function adjuntar(p: PropiedadCalculada): PropiedadCalculada {
-    const clave = ALIAS_CLAVE_HUMANA_ELEMENTO[p.clave] ?? p.clave;
-    const h = humanaPorClave?.[clave];
-    if (!h) return p;
-    return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
+    return p;
   }
 
   // ─── Familias siguiendo la arquitectura científica canónica (ver
@@ -745,11 +748,15 @@ export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalcula
   // PropiedadCalculada sin tocar el resto de la función; si el compuesto
   // no tiene capa humana todavía, queda undefined y el toggle Humana cae
   // de vuelta al valor técnico (ver TarjetaPropiedad).
-  const humanaPorClave = interpretacionHumanaDeCompuesto(c);
+  // LEGADO RETIRADO: antes esto leía propiedades_emergentes.
+  // interpretacion_humana embebido en la fila del compuesto (solo existía
+  // para los 20 canónicos). Ahora la capa humana (modo Escritor) viene del
+  // contrato canónico de Supabase (v_frontend_escritor_propiedades_
+  // interpretadas) y se fusiona en el editor con fusionarInterpretaciones()
+  // — ver _shared/useInterpretacionEscritor.ts. adjuntar() queda como
+  // identidad para no tocar el resto de esta función.
   function adjuntar(p: PropiedadCalculada): PropiedadCalculada {
-    const h = humanaPorClave?.[p.clave];
-    if (!h) return p;
-    return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
+    return p;
   }
 
   // ─── Familias siguiendo la arquitectura científica canónica (mismo
