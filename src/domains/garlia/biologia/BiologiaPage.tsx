@@ -7,9 +7,6 @@
  * Ahora muestra directamente el cladograma (Cladística) sin sub-tabs:
  *   - Ecosistemas se manejan desde Entidades → Criaturas (ver
  *     CriaturasJerarquica / EcosistemaEditor), ya no vive acá.
- *   - Perfiles atómicos de criatura (afinidad.ts de Elementos + Oris de
- *     Física) tampoco se muestran acá — si hace falta recuperar el acceso,
- *     ver PerfilesAtomicosPage en PerfilAtomicoCriaturaPanel.tsx.
  *
  * 100% self-contained (trae sus propios datos de Supabase, como Física) y
  * NO toca EditorCriatura.tsx — solo referencia criaturas por id.

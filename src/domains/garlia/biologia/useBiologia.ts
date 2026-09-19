@@ -3,8 +3,8 @@
 /**
  * useBiologia.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Datos del módulo Biología: biomas, clados, ecosistemas, cadenas_alimenticias
- * y perfiles_atomicos_criatura. Antes cada hook tenía su propio fetch/CRUD
+ * Datos del módulo Biología: biomas, clados, ecosistemas, cadenas_alimenticias.
+ * Antes cada hook tenía su propio fetch/CRUD
  * directo contra Supabase (sin caché ni offline); ahora todos corren sobre
  * useSupabaseData — mismo patrón que useElementos/useFisica — para que la
  * pestaña Biología cargue al instante desde Dexie al reabrir la app y
@@ -34,8 +34,6 @@ import {
   type EcosistemaCriatura,
   type EcosistemaFlora,
   type EcosistemaInput,
-  type PerfilAtomicoCriatura,
-  type PerfilAtomicoCriaturaInput,
 } from "./types";
 
 // ─── Biomas ─────────────────────────────────────────────────────────────────
@@ -474,38 +472,5 @@ export function useCadenasAlimenticias() {
   return { cadenas, setCadenas: setData, loading, creating: false, crear, actualizar, eliminar };
 }
 
-// ─── Perfiles atómicos de criatura ───────────────────────────────────────────
-
-export function usePerfilesAtomicosCriatura() {
-  const { data, setData, loading, addRow, updateRow } = useSupabaseData<PerfilAtomicoCriatura>(
-    "perfiles_atomicos_criatura",
-  );
-
-  const perfiles = useMemo(() => data, [data]);
-
-  const obtenerOCrear = useCallback(
-    async (criaturaId: string) => {
-      const existente = perfiles.find((p) => p.criatura_id === criaturaId);
-      if (existente) return existente;
-
-      const { data: creado } = await addRow({
-        criatura_id: criaturaId,
-        componentes: [],
-        oris_ids: [],
-        rasgos_evolutivos: [],
-        notas: "",
-      });
-      return (creado as PerfilAtomicoCriatura) ?? null;
-    },
-    [perfiles, addRow],
-  );
-
-  const actualizar = useCallback(
-    async (id: string, updates: PerfilAtomicoCriaturaInput) => {
-      await updateRow(id, updates);
-    },
-    [updateRow],
-  );
-
-  return { perfiles, setPerfiles: setData, loading, obtenerOCrear, actualizar };
-}
+// Nota: el hook usePerfilesAtomicosCriatura (tabla "perfiles_atomicos_criatura")
+// se quitó — esa tabla nunca existió en Supabase, el bloque solo tiraba 404.

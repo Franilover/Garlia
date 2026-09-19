@@ -80,7 +80,6 @@ import { useCriaturaOrganismos } from "@/domains/garlia/criaturas/useCriaturaOrg
 import { useMembresiaSubsistemaCriatura } from "@/domains/garlia/criaturas/useMembresiaSubsistemaCriatura";
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
-import { PanelPerfilCriatura } from "@/domains/garlia/biologia/PerfilAtomicoCriaturaPanel";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { OrganismoPanelFlotante } from "@/domains/garlia/criaturas/OrganismoPanelFlotante";
 import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
@@ -93,10 +92,7 @@ import { useTejidos } from "@/domains/garlia/elementos/useTejidos";
 import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { useOrganos } from "@/domains/garlia/elementos/useOrganos";
 import { useOrganismos } from "@/domains/garlia/elementos/useOrganismos";
-import { usePerfilesAtomicosCriatura } from "@/domains/garlia/biologia/useBiologia";
-import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import type { Organo, Organismo } from "@/domains/garlia/elementos/types";
-import { useOris } from "@/domains/garlia/fisica/useFisica";
 import { supabase } from "@/infra/supabase/supabase";
 import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 
@@ -164,21 +160,6 @@ export function EditorCriatura({
     saving: savingPersonajes,
     toggle: togglePersonaje,
   } = usePersonajesDeCriatura(form.id, item.nombre);
-
-  // ── Perfil atómico (Biología) ────────────────────────────────────────────
-  // Mismo panel que antes vivía en su propia sub-tab de Biología —
-  // reusado tal cual acá para manejar todo desde el editor de criatura.
-  const { items: elementosPerfil, loading: loadingElementosPerfil } = useElementos();
-  const { items: orisPerfil, loading: loadingOrisPerfil } = useOris();
-  const {
-    loading: loadingPerfilesAtomicos,
-    obtenerOCrear: obtenerOCrearPerfil,
-    actualizar: actualizarPerfil,
-  } = usePerfilesAtomicosCriatura();
-  const orisDisponiblesPerfil = useMemo(
-    () => (orisPerfil ?? []).map((o) => ({ id: o.id, nombre: o.nombre })),
-    [orisPerfil],
-  );
 
   // ── Órganos (composición macro, ensamblaje de compuestos) ────────────────
   // Catálogo real "organos" — compartido con Órganos de Flora (tabla propia,
@@ -498,44 +479,23 @@ export function EditorCriatura({
                 reinicie al ir y volver entre secciones. */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
-                {/* Fila 1: Rasgos evolutivos (Perfil atómico) | Organismo —
-                    vínculo criatura→organismo (rol, cantidad, principal). */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
-                  <section className="flex flex-col gap-2 lg:pr-4">
-                    <header className="flex items-center gap-1.5">
-                      <Atom size={10} className="text-primary/35" />
-                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                        Rasgos evolutivos
-                      </h3>
-                    </header>
-                    {loadingElementosPerfil || loadingOrisPerfil || loadingPerfilesAtomicos ? (
-                      <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
-                    ) : (
-                      <PanelPerfilCriatura
-                        key={form.id}
-                        actualizar={actualizarPerfil}
-                        criaturaId={form.id}
-                        criaturaNombre={form.nombre}
-                        elementos={elementosPerfil}
-                        obtenerOCrear={obtenerOCrearPerfil}
-                        orisDisponibles={orisDisponiblesPerfil}
-                      />
-                    )}
-                  </section>
-
-                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
-                    <PanelOrganismosCriatura
-                      items={organismosCriatura.items}
-                      loading={organismosCriatura.loading}
-                      catalogo={catalogoOrganismos}
-                      onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
-                      onActualizar={organismosCriatura.actualizarVinculo}
-                      onMarcarPrincipal={organismosCriatura.marcarPrincipal}
-                      onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
-                      onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
-                    />
-                  </section>
-                </div>
+                {/* Fila 1: Organismo — vínculo criatura→organismo (rol,
+                    cantidad, principal). El bloque "Rasgos evolutivos"
+                    (Perfil atómico, tabla perfiles_atomicos_criatura) se
+                    quitó por completo: esa tabla nunca existió en Supabase
+                    y el bloque solo tiraba 404 en loop. */}
+                <section className="flex flex-col gap-2">
+                  <PanelOrganismosCriatura
+                    items={organismosCriatura.items}
+                    loading={organismosCriatura.loading}
+                    catalogo={catalogoOrganismos}
+                    onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
+                    onActualizar={organismosCriatura.actualizarVinculo}
+                    onMarcarPrincipal={organismosCriatura.marcarPrincipal}
+                    onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
+                    onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
+                  />
+                </section>
 
                 <div
                   className="border-t"
