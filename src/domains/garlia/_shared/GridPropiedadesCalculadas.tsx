@@ -257,12 +257,12 @@ export function TarjetaPropiedadesFisicas({
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];
 
   // Si al menos una propiedad trae "grupo", se renderiza agrupado en
-  // secciones (una por familia, en el orden en que aparecen por primera
-  // vez en la lista) con subtítulo propio — ej. Elemento: Propiedades
-  // físicas / Estructura / Enlaces / Capacidad externa. Las propiedades
-  // sin grupo (o la lista entera, si ninguna trae grupo) se muestran en
-  // un tramo final sin encabezado — mismo comportamiento de siempre para
-  // Compuesto/Material/Estructura, que no clasifican por grupo.
+  // secciones (una por familia) con subtítulo propio — ej. Elemento:
+  // Propiedades físicas / Estructura / Enlaces / Capacidad externa. Las
+  // propiedades sin grupo (o la lista entera, si ninguna trae grupo) se
+  // muestran en un tramo final sin encabezado — mismo comportamiento de
+  // siempre para Compuesto/Material/Estructura, que no clasifican por
+  // grupo.
   const tieneGrupos = conValor.some((p) => p.grupo);
 
   if (!tieneGrupos) {
@@ -285,13 +285,29 @@ export function TarjetaPropiedadesFisicas({
     );
   }
 
-  const grupos: { nombre: string | null; items: PropiedadCalculada[] }[] = [];
+  // Se agrupa por NOMBRE real de grupo, no por adyacencia en el array:
+  // fuentes distintas (columnas directas de la entidad, filas de una tabla
+  // de detalle aparte como compuesto_estabilidad, tarjetas "solo vista" de
+  // la capa humana como Cohesión) se concatenan en el array final en el
+  // orden en que se calculan, no necesariamente contiguas por grupo — con
+  // un merge por adyacencia, dos fuentes que comparten el mismo nombre de
+  // grupo (ej. "Propiedades físicas" u "Análisis estructural") pero llegan
+  // separadas en el array terminaban pintándose como dos secciones
+  // duplicadas con el mismo título en vez de una sola. Un Map preserva el
+  // orden de PRIMERA aparición de cada grupo (mismo criterio que antes),
+  // pero acumula ahí todas las apariciones posteriores sin importar dónde
+  // caigan en el array.
+  const gruposPorNombre = new Map<string | null, PropiedadCalculada[]>();
   for (const p of conValor) {
     const nombre = p.grupo ?? null;
-    const ultimo = grupos[grupos.length - 1];
-    if (ultimo && ultimo.nombre === nombre) ultimo.items.push(p);
-    else grupos.push({ nombre, items: [p] });
+    const items = gruposPorNombre.get(nombre);
+    if (items) items.push(p);
+    else gruposPorNombre.set(nombre, [p]);
   }
+  const grupos: { nombre: string | null; items: PropiedadCalculada[] }[] = Array.from(
+    gruposPorNombre,
+    ([nombre, items]) => ({ nombre, items }),
+  );
 
   return (
     <div className="flex flex-col gap-1.5 min-w-0 p-2">
