@@ -24,6 +24,7 @@ import { type SaveStatus } from "@/ui/saveStatus";
 
 import { InfoFormulasPopover } from "./InfoFormulasPopover";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
+import { InterpretacionHumanaPanel } from "../_shared/InterpretacionHumanaPanel";
 import { ParticulaVisual } from "../fisica/ParticulaVisual";
 
 import {
@@ -37,7 +38,6 @@ import {
   capacidadExterna,
   layerTotal,
   propiedadesCalculadasDeElemento,
-  resumenHumanoDeElemento,
   type Compuesto,
   type Elemento,
   type LayerName,
@@ -266,7 +266,7 @@ export function ElementoEditor({
             <PropiedadesFisicasBloque
               propiedades={propiedadesFisicas}
               modo={modoVista}
-              resumenHumano={resumenHumanoDeElemento(local)}
+              entidadId={local.id}
             />
             <SitiosEnlaceBloque sitios={sitiosEnlace} loading={sitiosLoading} />
           </div>
@@ -471,33 +471,21 @@ function SitiosEnlaceBloque({
 function PropiedadesFisicasBloque({
   propiedades,
   modo = "quimica",
-  resumenHumano,
+  entidadId,
 }: {
   propiedades: PropiedadCalculada[];
-  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
-   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
-   *  Escritor en el header de ElementoEditor, mismo patrón que
-   *  CompuestoEditor. */
   modo?: "quimica" | "humana";
-  /** Frase de propiedades_emergentes.humano.resumen — se muestra arriba de
-   *  la grilla solo en modo Humana. Null si el elemento no tiene capa
-   *  humana todavía. */
-  resumenHumano?: string | null;
+  entidadId: string;
 }) {
   // columnas=3 (antes 2): con las columnas de carga/catálisis/transición por
   // capa + ocupación externa sumadas (ver auditoría 2026-08-30), la lista
   // pasó de 21 a 41 propiedades — 2 columnas dejaba una sola tira vertical
   // larguísima. 3 reparte mejor sin apretar tanto como las 5 de Compuesto
   // (que tiene menos texto por etiqueta).
-  return (
-    <div className="flex flex-col gap-2">
-      {modo === "humana" && resumenHumano && (
-        <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
-          {resumenHumano}
-        </p>
-      )}
-      <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={3} modo={modo} />
-    </div>
+  return modo === "humana" ? (
+    <InterpretacionHumanaPanel entidadTipo="elemento" entidadId={entidadId} />
+  ) : (
+    <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={3} modo="quimica" />
   );
 }
 
