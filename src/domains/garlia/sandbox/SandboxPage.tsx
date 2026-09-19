@@ -178,7 +178,7 @@ function formatearValor(valor: unknown): string {
 }
 
 /** Etiqueta legible para claves snake_case comunes de estado_actual. Claves
- *  no listadas se muestran tal cual, mismo criterio que ETIQUETAS_METRICA en
+ *  no listadas se muestran tal cual, mismo criterio de respaldo visual que
  *  GridPropiedadesCalculadas.tsx. */
 const ETIQUETAS_PROPIEDAD: Record<string, string> = {
   masa: "Masa",

@@ -9,6 +9,11 @@ import { useItemMateriales } from "./useItemMateriales";
 import { SelectorMaterialesItem } from "./SelectorMaterialesItem";
 import { EditorGeometriaItem } from "./EditorGeometriaItem";
 import { useInterpretacionEscritor, type InterpretacionEscritor } from "@/domains/garlia/_shared/useInterpretacionEscritor";
+import {
+  useContratoPresentacion,
+  useValoresCientificos,
+  type ValorCientifico,
+} from "@/domains/garlia/_shared/useContratoPresentacion";
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -16,6 +21,16 @@ function formatValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "string") return value;
   return JSON.stringify(value);
+}
+
+/** Formatea un valor científico que viene de Supabase. NULL ≠ 0: un valor
+ *  ausente o `no_resuelta` se muestra "—", nunca "0". Las unidades salen de
+ *  la vista (`unidad_simbolo`), no de un mapa local. */
+function formatValorCientifico(v: ValorCientifico | undefined): string {
+  if (!v || !v.mostrable || v.valor === null) return "—";
+  const n = v.valor;
+  const txt = Number.isInteger(n) ? String(n) : Number(n.toPrecision(4)).toString();
+  return v.unidadSimbolo ? `${txt} ${v.unidadSimbolo}` : txt;
 }
 
 /** Tarjeta compacta de una propiedad — mismo lenguaje visual que
@@ -35,14 +50,20 @@ function PropertyCell({
   value,
   modo = "quimica",
   interpretacion,
+  sinDato = false,
 }: {
   label: string;
   value: unknown;
+  /** El valor no está resuelto todavía (`estado_valor = no_resuelta`). Se
+   *  muestra explícito como "sin dato", no como 0 ni oculto. */
+  sinDato?: boolean;
   modo?: "quimica" | "humana";
   interpretacion?: InterpretacionEscritor;
 }) {
   // Modo Escritor: mismo diseño que Científico; solo cambia el valor por el
-  // nivel del motor. La explicación queda como tooltip.
+  // nivel del motor. La explicación queda como tooltip. Sin interpretación
+  // en modo Escritor la celda no se renderiza (regla estricta, sin fallback
+  // técnico) — ver el filtro en PanelFisicaObjeto.
   const esHumana = modo === "humana" && !!interpretacion;
   return (
     <div
@@ -55,7 +76,7 @@ function PropertyCell({
           esHumana ? "capitalize" : "tabular-nums"
         }`}
       >
-        {esHumana ? interpretacion?.nivel : formatValue(value)}
+        {esHumana ? interpretacion?.nivel : sinDato ? "sin dato" : formatValue(value)}
       </span>
     </div>
   );
@@ -68,20 +89,6 @@ function SubGroupLabel({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
-
-const MAGNITUDES_OBJETO = [
-  ["masa", "Masa"], ["densidad", "Densidad"], ["volumen", "Volumen"],
-] as const;
-
-const GEOMETRIA_OBJETO = [
-  ["factor_geometrico", "Factor geométrico"],
-] as const;
-
-const PROPIEDADES_OBJETO = [
-  ["rigidez", "Rigidez"], ["estabilidad", "Estabilidad"], ["flexibilidad", "Flexibilidad"],
-  ["dureza", "Dureza"], ["conductividad", "Conductividad"], ["transparencia", "Transparencia"],
-  ["resistencia_efectiva", "Resistencia efectiva"],
-] as const;
 
 const ESTADO_LABEL: Record<string, string> = {
   calculable: "Calculado",
@@ -122,8 +129,11 @@ export function PanelFisicaObjeto({
   geometriaFisica,
   onRefrescarItem,
   modo = "quimica",
+  versionValores = 0,
 }: {
   itemId: string;
+  /** Súbelo tras editar la composición para releer los valores de Supabase. */
+  versionValores?: number;
   propiedadesFisicas?: (Record<string, unknown> & { estado?: string; fuente_fisica?: string }) | null;
   estadoFisico?: string | null;
   geometriaFisica?: Record<string, unknown> | null;
@@ -147,6 +157,13 @@ export function PanelFisicaObjeto({
   // Capa humana (modo Escritor) desde el motor de Supabase, solo en modo
   // "humana". Claves ya alineadas con las de este panel (dureza, interaccion…).
   const { interpretaciones } = useInterpretacionEscritor("objeto", itemId, modo === "humana");
+
+  // Estructura (grupos, nombres, orden, visibilidad) desde el CONTRATO de
+  // Supabase, y valores desde la vista canónica. Este panel no conoce ni
+  // una clave de propiedad: pinta lo que el contrato declara.
+  const modoContrato = modo === "humana" ? "escritor" : "cientifico";
+  const { grupos: gruposContrato } = useContratoPresentacion("objeto", modoContrato);
+  const { valores } = useValoresCientificos("objeto", itemId, versionValores);
 
   const propiedades = propiedadesFisicas ?? {};
   // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y
@@ -190,41 +207,32 @@ export function PanelFisicaObjeto({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {/* Izquierda: Magnitudes + Geometría apiladas */}
-            <div className="flex flex-col gap-2">
-              {MAGNITUDES_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
-                <div className="flex flex-col gap-0.5">
-                  <SubGroupLabel>Magnitudes</SubGroupLabel>
-                  {MAGNITUDES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
-                    ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
-                    ),
-                  )}
+            {gruposContrato.map((g) => {
+              // Solo propiedades que Supabase devolvió para ESTE objeto.
+              // Modo Escritor: además, solo las que el motor interpretó.
+              const filas = g.propiedades.filter((p) =>
+                modo === "humana" ? !!interpretaciones[p.clave] : valores[p.clave] !== undefined,
+              );
+              if (filas.length === 0) return null;
+              return (
+                <div key={g.grupo} className="flex flex-col gap-0.5">
+                  <SubGroupLabel>{g.nombre}</SubGroupLabel>
+                  {filas.map((p) => {
+                    const v = valores[p.clave];
+                    return (
+                      <PropertyCell
+                        key={p.clave}
+                        label={p.nombre}
+                        value={formatValorCientifico(v)}
+                        sinDato={!v || !v.mostrable || v.valor === null}
+                        modo={modo}
+                        interpretacion={interpretaciones[p.clave]}
+                      />
+                    );
+                  })}
                 </div>
-              )}
-              {GEOMETRIA_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
-                <div className="flex flex-col gap-0.5">
-                  <SubGroupLabel>Geometría</SubGroupLabel>
-                  {GEOMETRIA_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
-                    ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
-                    ),
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Derecha: Propiedades */}
-            {PROPIEDADES_OBJETO.some(([key]) => propiedades[key] !== undefined) && (
-              <div className="flex flex-col gap-0.5">
-                <SubGroupLabel>Propiedades</SubGroupLabel>
-                {PROPIEDADES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
-                  ([key, label]) => (
-                    <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} interpretacion={interpretaciones[key]} />
-                  ),
-                )}
-              </div>
-            )}
+              );
+            })}
           </div>
         )}
       </section>

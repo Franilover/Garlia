@@ -19,33 +19,26 @@ import React from "react";
 import { InfoFormulasPopover } from "@/domains/garlia/elementos/InfoFormulasPopover";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 
-/** Etiquetas legibles para las claves numéricas más comunes. Claves no
- *  listadas acá se muestran tal cual (snake_case), no rompe nada nuevo. */
-const ETIQUETAS_METRICA: Record<string, string> = {
-  masa: "Masa",
-  carga: "Carga",
-  rigidez: "Rigidez",
-  cohesion: "Cohesión",
-  estabilidad: "Estabilidad",
-  flexibilidad: "Flexibilidad",
-  compatibilidad: "Compatibilidad",
-  energia_enlace: "Energía de enlace",
-  subestructuras: "Subestructuras",
-  componentes: "Componentes",
-  soporte_estructural: "Soporte estructural",
-  componentes_directos: "Componentes directos",
-  interfaces_con_datos: "Interfaces con datos",
-  resistencia_estructural: "Resistencia estructural",
-  flexibilidad_estructural: "Flexibilidad estructural",
-};
+/** Respaldo VISUAL únicamente (snake_case → Título) para cuando el caller no
+ *  pasa nombres del contrato. No es una tabla de etiquetas ni decide qué
+ *  propiedades existen: solo evita mostrar la clave cruda. La autoridad de
+ *  nombres es v_frontend_contrato_presentacion_detalle (prop `etiquetas`). */
+function labelDeRespaldo(clave: string): string {
+  const t = clave.replace(/_/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 
 /** Claves de metadata (no métricas) que no se muestran como tarjeta. */
 const CLAVES_METADATA = new Set(["fuente", "metodo", "version", "ponderacion"]);
 
 export function GridPropiedadesCalculadas({
   propiedades,
+  etiquetas,
 }: {
   propiedades: Record<string, unknown> | null;
+  /** `clave → nombre` desde el contrato (useContratoPresentacion().nombres).
+   *  Sin esto, se usa el respaldo visual snake_case → Título. */
+  etiquetas?: Record<string, string>;
 }) {
   if (!propiedades) {
     return <p className="text-micro text-primary/25 italic py-1">Sin propiedades calculadas todavía.</p>;
@@ -67,7 +60,7 @@ export function GridPropiedadesCalculadas({
           className="flex flex-col gap-0.5 bg-primary/5 rounded-md px-2 py-1.5 border border-primary/10"
         >
           <span className="text-[10px] font-black uppercase tracking-widest text-primary/35 truncate">
-            {ETIQUETAS_METRICA[clave] ?? clave}
+            {etiquetas?.[clave] ?? labelDeRespaldo(clave)}
           </span>
           <span className="text-micro font-black text-primary/80">
             {typeof valor === "number" ? Number(valor.toFixed(4)).toString() : String(valor)}
@@ -183,18 +176,16 @@ export function propiedadesCalculadasGenerico(
 /** Una tarjeta individual de propiedad — extraído para no duplicar el JSX
  *  entre el render agrupado y el plano de abajo. */
 function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo?: "quimica" | "humana" }) {
-  // Modo Humana: si esta propiedad no tiene capa humana calculada todavía
-  // (ver interpretacionHumanaDeCompuesto), cae de vuelta al valor técnico
-  // en vez de mostrar un hueco — mismo criterio que el resto del sistema
-  // (no inventar "??" cuando falta un dato, ver comentario en
-  // formulaExpandidaCompuesto).
-  const esHumana = modo === "humana" && p.nivelHumano !== undefined;
+  // Modo Escritor: MISMO diseño que Científico (mismos colores, misma barra
+  // de proporción). Lo único que cambia es lo que se muestra a la derecha:
+  // el nivel cualitativo del motor ("media", "baja"…) en lugar del número.
+  // La explicación en lenguaje llano queda como tooltip.
+  //
+  // REGLA ESTRICTA: en modo Escritor esta tarjeta solo se renderiza si trae
+  // `nivelHumano` (ver TarjetaPropiedadesFisicas, que filtra antes). No hay
+  // caída al valor técnico.
+  const esHumana = modo === "humana";
 
-  // Modo Escritor: MISMO diseño que Científico (mismos colores, misma
-  // barra de proporción, sin fondo de acento ni frase debajo). Lo único que
-  // cambia es lo que se muestra a la derecha: el nivel cualitativo del
-  // motor de interpretación ("media", "baja"…) en lugar del número. La
-  // explicación en lenguaje llano queda como tooltip al pasar el mouse.
   return (
     <div
       title={esHumana ? (p.significadoHumano ?? p.descripcion) : p.descripcion}
@@ -245,13 +236,14 @@ export function TarjetaPropiedadesFisicas({
    *  técnico (ver TarjetaPropiedad). */
   modo?: "quimica" | "humana";
 }) {
-  // Modo Humana: las propiedades sin capa humana calculada (clasificación,
-  // estructura, fórmula canónica, etc. — texto técnico que no tiene
-  // traducción a nivel cualitativo) ya no se ocultan — se muestran igual
-  // que en modo Química (fallback automático en TarjetaPropiedad, ver
-  // esHumana ahí) para que el toggle no haga desaparecer tarjetas, solo
-  // cambie de vista las que sí tienen traducción humana.
-  const conValor = propiedades.filter((p) => p.valor !== null);
+  // Modo Escritor (regla estricta): solo se muestran las propiedades que el
+  // motor interpretó (traen `nivelHumano`). Las demás se OCULTAN — no se
+  // muestra el valor técnico como sustituto.
+  // Modo Científico: se muestran todas las que tengan valor.
+  const conValor =
+    modo === "humana"
+      ? propiedades.filter((p) => p.nivelHumano !== undefined)
+      : propiedades.filter((p) => p.valor !== null);
   if (conValor.length === 0) return null;
 
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];

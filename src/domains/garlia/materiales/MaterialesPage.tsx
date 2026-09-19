@@ -34,8 +34,10 @@ import {
 } from "@/domains/garlia/_shared/OrdenarPorPropiedadPopover";
 import {
   fusionarConTarjetasDeVista,
+  renombrarClaves,
   useInterpretacionEscritor,
 } from "@/domains/garlia/_shared/useInterpretacionEscritor";
+import { useContratoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -486,10 +488,20 @@ function MaterialDetail({
     material.id,
     modo === "humana",
   );
+  const { filas: filasContrato } = useContratoPresentacion("material", "escritor");
+  // El contrato usa la clave canónica con sufijo `_compuesto`; las tarjetas
+  // usan la clave corta. Renombre local y explícito de ESTE editor.
+  const interpretacionesMaterial = renombrarClaves(interpretaciones, {
+    dureza_compuesto: "dureza",
+    conductividad_compuesto: "conductividad",
+    transparencia_compuesto: "transparencia",
+    interaccion_compuesto: "interaccion",
+  });
   const propiedadesCombinadas = [
     ...fusionarConTarjetasDeVista(
       propiedadesCalculadasGenerico(propiedades).map((p) => ({ ...p, grupo: p.grupo ?? "Propiedades físicas" })),
-      interpretaciones,
+      interpretacionesMaterial,
+      filasContrato,
     ),
     ...(loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo)),
   ];

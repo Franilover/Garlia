@@ -29,7 +29,14 @@
  * el resultado de Supabase, cuando llega, reemplaza lo que se haya pintado
  * desde Dexie y además reescribe la copia local para la próxima vez. Si
  * Supabase falla (offline/timeout) y ya había algo de Dexie, ese algo queda
- * como último resultado válido en vez de caer al valor técnico.
+ * como último resultado válido.
+ *
+ * REGLA ESTRICTA (sin fallback técnico): en modo Escritor una propiedad se
+ * muestra SOLO si la vista dice `valor_mostrable = true` y trae un `nivel`.
+ * Cualquier otro caso se OCULTA. Nunca se cae al valor técnico.
+ *
+ * Este archivo NO decide qué propiedades existen, cómo se llaman ni en qué
+ * grupo van: eso es del contrato (ver useContratoPresentacion.ts).
  */
 
 import { useEffect, useState } from "react";
@@ -56,51 +63,6 @@ export interface InterpretacionEscritor {
 /** Mapa `clave de propiedad del frontend → interpretación`. */
 export type InterpretacionesPorClave = Record<string, InterpretacionEscritor>;
 
-/**
- * La vista usa claves canónicas de propiedad que en 5 casos difieren de las
- * claves que usan las tarjetas del frontend (`p.clave`). Se resuelve acá, en
- * UN solo lugar, en vez de por editor: la clave de la vista se expone bajo
- * la clave que el frontend ya usa, sin tocar columnas ni la vista.
- *
- *   vista (propiedad_clave)      → frontend (p.clave)
- */
-const ALIAS_VISTA_A_FRONTEND: Record<string, string> = {
-  dureza_compuesto: "dureza",
-  conductividad_compuesto: "conductividad",
-  transparencia_compuesto: "transparencia",
-  interaccion_compuesto: "interaccion",
-  // Elemento: la tarjeta usa el nombre de columna interno.
-  // (masa_base/volumen_base se resuelven abajo, solo para "elemento", porque
-  // en Compuesto/Material/Objeto la clave de tarjeta ES "masa"/"volumen".)
-};
-
-/** Alias adicionales solo válidos para Elemento (nombre de columna interno). */
-const ALIAS_ELEMENTO: Record<string, string> = {
-  masa: "masa_base",
-  volumen: "volumen_base",
-};
-
-/**
- * Capa humana principal que se expone en modo Escritor (las 11 acordadas).
- * Se usa como lista blanca al FUSIONAR sobre las tarjetas: aunque la vista
- * traiga otras filas con `valor_mostrable = true` (ej. `resistencia`, que
- * todavía no está resuelta para la mayoría de entidades), no se pintan como
- * si fueran una escala real. Claves = las del frontend (ya con alias).
- */
-export const PROPIEDADES_CAPA_HUMANA = new Set<string>([
-  "masa", "masa_base",
-  "volumen", "volumen_base",
-  "densidad",
-  "estabilidad",
-  "rigidez",
-  "flexibilidad",
-  "dureza",
-  "cohesion",
-  "conductividad",
-  "transparencia",
-  "interaccion",
-]);
-
 /** Fila mínima que se pide a la vista. */
 interface FilaVista {
   propiedad_clave: string;
@@ -113,33 +75,25 @@ interface FilaVista {
 }
 
 /**
- * Convierte las filas de la vista en el mapa por clave del frontend.
- * Pura y exportada para poder probarla sin red.
+ * Convierte las filas de la vista en un mapa por `propiedad_clave`, TAL COMO
+ * la entrega Supabase. Pura y exportada para poder probarla sin red.
+ *
+ * Sin alias de clave y sin lista blanca: qué claves existen lo decide el
+ * contrato, no este archivo.
  *
  * Reglas:
- *  - `valor_mostrable !== true` → se descarta (incluye `resistencia` y
- *    `actividad_catalitica`, que hoy no están resueltas: no se inventa una
- *    escala falsa, la tarjeta cae al valor técnico como siempre).
+ *  - `valor_mostrable !== true` → se descarta.
  *  - sin `interpretacion_humana.nivel` → se descarta.
- *  - fuera de PROPIEDADES_CAPA_HUMANA (ej. `resistencia`) → se descarta.
  */
-export function mapearInterpretaciones(
-  filas: FilaVista[],
-  entidad: EntidadInterpretable,
-): InterpretacionesPorClave {
+export function mapearInterpretaciones(filas: FilaVista[]): InterpretacionesPorClave {
   const out: InterpretacionesPorClave = {};
   for (const f of filas) {
     if (f.valor_mostrable !== true) continue;
     const nivel = f.interpretacion_humana?.nivel;
     if (!nivel) continue;
 
-    let clave = ALIAS_VISTA_A_FRONTEND[f.propiedad_clave] ?? f.propiedad_clave;
-    if (entidad === "elemento") clave = ALIAS_ELEMENTO[clave] ?? clave;
-
-    if (!PROPIEDADES_CAPA_HUMANA.has(clave)) continue;
-
     const n = f.valor === null || f.valor === undefined ? NaN : Number(f.valor);
-    out[clave] = {
+    out[f.propiedad_clave] = {
       nivel,
       significado: f.interpretacion_humana?.significado ?? null,
       valor: Number.isFinite(n) ? n : null,
@@ -159,8 +113,8 @@ export function mapearInterpretaciones(
  * instante con `loading = false` y la consulta a Supabase sigue en
  * paralelo en segundo plano, revalidando cuando llega.
  *
- * Si ambas fuentes fallan/están vacías, devuelve `{}`: los llamadores ya
- * caen al valor técnico cuando una propiedad no trae interpretación.
+ * Si ambas fuentes fallan/están vacías, devuelve `{}` y en modo Escritor no
+ * se muestra ninguna propiedad (no hay fallback técnico).
  */
 export function useInterpretacionEscritor(
   entidad: EntidadInterpretable,
@@ -188,7 +142,7 @@ export function useInterpretacionEscritor(
         const local = await leerEscritorCache(entidad, entidadId);
         if (cancelado) return;
         if (local.length > 0) {
-          setInterpretaciones(mapearInterpretaciones(local as unknown as FilaVista[], entidad));
+          setInterpretaciones(mapearInterpretaciones(local as unknown as FilaVista[]));
           setLoading(false);
           pintadoDesdeCache = true;
         }
@@ -212,7 +166,7 @@ export function useInterpretacionEscritor(
           if (!pintadoDesdeCache) setInterpretaciones({});
         } else {
           const filas = (data ?? []) as FilaVista[];
-          setInterpretaciones(mapearInterpretaciones(filas, entidad));
+          setInterpretaciones(mapearInterpretaciones(filas));
           // Actualiza el cache de Dexie con lo recién leído, para que la
           // próxima vez (y el próximo offline) tengan esta versión.
           void guardarEscritorCache(entidad, entidadId, filas);
@@ -236,47 +190,62 @@ export function useInterpretacionEscritor(
 }
 
 /**
- * Fusiona las interpretaciones del motor en una lista de tarjetas
- * (PropiedadCalculada). Solo agrega `nivelHumano`/`significadoHumano`; nunca
- * toca el valor técnico ni lo recalcula, así que el modo Científico queda
- * idéntico. Las tarjetas sin interpretación se devuelven tal cual (en modo
- * Escritor caen al valor técnico, ver TarjetaPropiedad).
+ * Aplica la regla estricta del modo Escritor sobre una lista de tarjetas.
+ *
+ *  - `valor_mostrable = true` + `nivel` válido → la tarjeta se muestra, con
+ *    `nivelHumano`/`significadoHumano` del motor.
+ *  - cualquier otro caso → la tarjeta se OCULTA. No hay fallback al valor
+ *    técnico: mostrar el número donde el motor no interpretó rompería el
+ *    contrato del modo Escritor.
+ *
+ * `interpretaciones` está indexado por `propiedad_clave` de la vista. Si la
+ * tarjeta usa otra clave para la misma propiedad, quien llama renombra
+ * explícitamente con `renombrarClaves` — no hay tabla de alias compartida.
  */
 export function fusionarInterpretaciones<
   T extends { clave: string; nivelHumano?: string; significadoHumano?: string },
 >(propiedades: T[], interpretaciones: InterpretacionesPorClave): T[] {
-  return propiedades.map((p) => {
+  const out: T[] = [];
+  for (const p of propiedades) {
     const h = interpretaciones[p.clave];
-    if (!h) return p;
-    return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado ?? undefined };
-  });
+    if (!h || !h.nivel) continue;
+    out.push({ ...p, nivelHumano: h.nivel, significadoHumano: h.significado ?? undefined });
+  }
+  return out;
 }
 
 /**
- * Propiedades de la capa humana que NO existen como columna/tarjeta en el
- * frontend y por eso solo se pueden mostrar desde la vista. Hoy: Cohesión
- * (índice 0–1) en Compuesto y Material. Se agregan como tarjeta extra SOLO
- * si la vista la trae con `valor_mostrable = true`; el número y la
- * interpretación son los del motor, nada se calcula acá.
+ * Renombra claves de un mapa de interpretaciones. Utilidad local y
+ * EXPLÍCITA: cada caller declara su propio mapa de 1–2 claves. No es una
+ * autoridad compartida; si una clave del contrato difiere de la clave de
+ * la tarjeta, la corrección de fondo es en Supabase.
  */
-const TARJETAS_SOLO_VISTA: {
-  clave: string;
-  label: string;
-  descripcion: string;
-  grupo: string;
-}[] = [
-  {
-    clave: "cohesion",
-    label: "Cohesión",
-    descripcion: "Qué tan unido se mantiene internamente (índice 0–1 calculado por el motor).",
-    grupo: "Propiedades físicas",
-  },
-];
+export function renombrarClaves(
+  interpretaciones: InterpretacionesPorClave,
+  mapa: Record<string, string>,
+): InterpretacionesPorClave {
+  const out: InterpretacionesPorClave = {};
+  for (const [k, v] of Object.entries(interpretaciones)) out[mapa[k] ?? k] = v;
+  return out;
+}
+
+/** Datos de una tarjeta que vive SOLO en la vista (no existe como columna en
+ *  el frontend). Nombre, descripción y grupo salen del CONTRATO
+ *  (`nombre_escritor`, `descripcion_escritor`, `grupo_nombre`); nada se
+ *  inventa localmente. */
+export interface FilaContratoMinima {
+  propiedad_clave: string | null;
+  grupo_nombre: string;
+  propiedad_nombre?: string | null;
+  nombre_escritor?: string | null;
+  descripcion_escritor?: string | null;
+}
 
 /**
- * Igual que fusionarInterpretaciones, pero además agrega las tarjetas que
- * solo existen en la vista (Cohesión) cuando el motor las devolvió. Se usa
- * en Compuesto y Material, donde Cohesión está interpretada.
+ * Igual que `fusionarInterpretaciones`, pero además agrega las tarjetas que
+ * el motor interpretó y que NO existen como tarjeta en el frontend (hoy:
+ * Cohesión). Se agregan solo si el contrato las declara para este modo, y
+ * su nombre/descripción/grupo vienen del contrato, no de una tabla local.
  */
 export function fusionarConTarjetasDeVista<
   T extends {
@@ -289,20 +258,27 @@ export function fusionarConTarjetasDeVista<
     nivelHumano?: string;
     significadoHumano?: string;
   },
->(propiedades: T[], interpretaciones: InterpretacionesPorClave): T[] {
+>(
+  propiedades: T[],
+  interpretaciones: InterpretacionesPorClave,
+  filasContrato: FilaContratoMinima[],
+): T[] {
   const base = fusionarInterpretaciones(propiedades, interpretaciones);
-  const claves = new Set(base.map((p) => p.clave));
+  const yaPresentes = new Set(propiedades.map((p) => p.clave));
   const extras: T[] = [];
-  for (const t of TARJETAS_SOLO_VISTA) {
-    const h = interpretaciones[t.clave];
-    if (!h || claves.has(t.clave)) continue;
+
+  for (const f of filasContrato) {
+    const clave = f.propiedad_clave;
+    if (!clave || yaPresentes.has(clave)) continue;
+    const h = interpretaciones[clave];
+    if (!h || !h.nivel) continue;
     extras.push({
-      clave: t.clave,
-      label: t.label,
+      clave,
+      label: f.nombre_escritor ?? f.propiedad_nombre ?? clave,
       valor: h.valor === null ? null : h.valor.toFixed(3),
       proporcion: h.valor === null ? undefined : Math.max(0, Math.min(1, h.valor)),
-      descripcion: t.descripcion,
-      grupo: t.grupo,
+      descripcion: f.descripcion_escritor ?? "",
+      grupo: f.grupo_nombre,
       nivelHumano: h.nivel,
       significadoHumano: h.significado ?? undefined,
     } as unknown as T);

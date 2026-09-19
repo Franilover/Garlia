@@ -26,6 +26,7 @@ import { InfoFormulasPopover } from "./InfoFormulasPopover";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
 import {
   fusionarInterpretaciones,
+  renombrarClaves,
   useInterpretacionEscritor,
 } from "../_shared/useInterpretacionEscritor";
 import { ParticulaVisual } from "../fisica/ParticulaVisual";
@@ -158,9 +159,16 @@ export function ElementoEditor({
     elemento.id,
     modoVista === "humana",
   );
+  // Las tarjetas de Elemento usan el nombre de columna interno (masa_base,
+  // volumen_base); el contrato usa la clave canónica (masa, volumen). El
+  // renombre es local y explícito de ESTE editor — no una tabla compartida.
+  const interpretacionesElemento = useMemo(
+    () => renombrarClaves(interpretaciones, { masa: "masa_base", volumen: "volumen_base" }),
+    [interpretaciones],
+  );
   const propiedadesFisicas = useMemo(
-    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones),
-    [local, interpretaciones],
+    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretacionesElemento),
+    [local, interpretacionesElemento],
   );
   const { items: sitiosEnlace, loading: sitiosLoading } = useElementoSitiosEnlace(elemento.id);
 

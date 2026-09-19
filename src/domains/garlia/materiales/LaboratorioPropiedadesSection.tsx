@@ -607,7 +607,7 @@ function RankingParesElementosPanel() {
 }
 
 /** Etiquetas legibles para las claves que devuelve la RPC de simulación —
- *  mismo criterio que ETIQUETAS_METRICA en GridPropiedadesCalculadas.tsx,
+ *  mismo criterio de respaldo visual que GridPropiedadesCalculadas.tsx,
  *  duplicado acá porque esa constante no está exportada y el set de claves
  *  de esta RPC es chico y fijo (compuesto simulado, no genérico). */
 const ETIQUETAS_SIMULACION: Record<string, string> = {

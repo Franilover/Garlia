@@ -72,8 +72,10 @@ import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas"
 import { OrdenarPorPropiedadPopover, ordenarPorPropiedad } from "../_shared/OrdenarPorPropiedadPopover";
 import {
   fusionarConTarjetasDeVista,
+  renombrarClaves,
   useInterpretacionEscritor,
 } from "../_shared/useInterpretacionEscritor";
+import { useContratoPresentacion } from "../_shared/useContratoPresentacion";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
@@ -1152,12 +1154,33 @@ function CompuestoEditor({
     modoVista === "humana",
   );
 
+  // Contrato (nombre/descripción/grupo de tarjetas que solo existen en la
+  // vista, p. ej. Cohesión) desde Supabase. Modo Escritor.
+  const { filas: filasContrato } = useContratoPresentacion("compuesto", "escritor");
+  // Las tarjetas de Compuesto usan `dureza`, etc.; el contrato usa la clave
+  // canónica con sufijo `_compuesto`. Renombre local y explícito de ESTE
+  // editor, no una tabla compartida.
+  const interpretacionesCompuesto = useMemo(
+    () =>
+      renombrarClaves(interpretaciones, {
+        dureza_compuesto: "dureza",
+        conductividad_compuesto: "conductividad",
+        transparencia_compuesto: "transparencia",
+        interaccion_compuesto: "interaccion",
+      }),
+    [interpretaciones],
+  );
+
   const propiedadesFisicas = useMemo(
     () => [
-      ...fusionarConTarjetasDeVista(propiedadesCalculadasDeCompuesto(local), interpretaciones),
+      ...fusionarConTarjetasDeVista(
+        propiedadesCalculadasDeCompuesto(local),
+        interpretacionesCompuesto,
+        filasContrato,
+      ),
       ...(estabilidadLoading ? [] : propiedadesDeEstabilidadDetalle(estabilidadDetalle)),
     ],
-    [local, estabilidadDetalle, estabilidadLoading, interpretaciones],
+    [local, estabilidadDetalle, estabilidadLoading, interpretacionesCompuesto, filasContrato],
   );
 
   // Fórmula expandida para el header (ver formulaExpandidaCompuesto): null
