@@ -26,6 +26,8 @@ import type {
   TipoObjeto,
   TipoObjetoResuelto,
   WorldbuilderCreacion,
+  PropiedadWorldbuilderFrontend,
+  PropiedadWorldbuilderEntidad,
 } from "./types";
 
 function assertNoError<T>(data: T, error: { message: string } | null, contexto: string): T {
@@ -55,6 +57,40 @@ export async function listarCategorias(): Promise<CategoriaMaterial[]> {
   return assertNoError(data as CategoriaMaterial[], error, "listarCategorias") ?? [];
 }
 
+/** Catálogo de propiedades aptas para la presentación Worldbuilder.
+ * La forma, categoría, tags, unidad y visibilidad vienen de Supabase;
+ * el frontend no reconstruye esta metadata localmente. */
+export async function listarPropiedadesFrontend(): Promise<PropiedadWorldbuilderFrontend[]> {
+  const { data, error } = await supabase
+    .from("v_frontend_worldbuilder_propiedades_catalogo")
+    .select("*")
+    .order("orden_escritor")
+    .order("propiedad_clave");
+
+  return assertNoError(data as PropiedadWorldbuilderFrontend[], error, "listarPropiedadesFrontend") ?? [];
+}
+
+/** Propiedades de una entidad concreta. Los valores ya vienen resueltos
+ * por resolver_propiedad_canonica; sin_dato se conserva como estado y
+ * nunca se convierte en 0. */
+export async function listarPropiedadesEntidadFrontend(
+  entidadTipo: "elemento" | "compuesto" | "material",
+  entidadId: string,
+): Promise<PropiedadWorldbuilderEntidad[]> {
+  const { data, error } = await supabase
+    .from("v_frontend_worldbuilder_propiedades_entidad")
+    .select("*")
+    .eq("entidad_tipo", entidadTipo)
+    .eq("entidad_id", entidadId)
+    .order("orden_escritor")
+    .order("propiedad_clave");
+
+  return assertNoError(
+    data as PropiedadWorldbuilderEntidad[],
+    error,
+    "listarPropiedadesEntidadFrontend",
+  ) ?? [];
+}
 export async function listarTiposObjeto(): Promise<TipoObjeto[]> {
   const { data, error } = await supabase
     .from("worldbuilder_tipos_objeto")
