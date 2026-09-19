@@ -205,6 +205,12 @@ export function EditorGeometriaItem({
         {guardando && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-primary/40" />}
       </div>
 
+      {formaActual?.descripcion && (
+        <p className="text-micro text-primary/45 leading-relaxed">
+          {formaActual.descripcion}
+        </p>
+      )}
+
       {!formaSeleccionada && !loadingFormas && (
         <p className="text-micro text-primary/35 italic py-0.5">
           Elige una forma para que el motor pueda calcular el volumen y derivar
