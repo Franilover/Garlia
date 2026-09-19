@@ -24,33 +24,17 @@ function formatValue(value: unknown): string {
  *  espaciado, apoyándose en el contenedor exterior para el límite visual.
  *
  *  `modo` acompaña al toggle Científico ↔ Escritor del header de
- *  EditorItem (ver PanelFisicaObjeto), pero Objeto todavía no tiene una
- *  capa humana propia calculada en Supabase (no hay
- *  propiedades_emergentes.interpretacion_humana para items) — así que en
- *  modo "humana" esta celda sigue mostrando el mismo valor técnico, igual
- *  que TarjetaPropiedad cae de vuelta al valor técnico cuando la propiedad
- *  puntual no tiene nivelHumano. El parámetro ya queda listo para cuando
- *  esa capa humana exista, sin tener que volver a tocar este archivo. */
+ *  La vista humana no usa esta celda: PanelFisicaObjeto delega el modo
+ *  Escritor a InterpretacionHumanaPanel. Esta celda es exclusivamente para
+ *  la vista científica.
+ */
 function PropertyCell({
   label,
   value,
-  modo = "quimica",
 }: {
   label: string;
   value: unknown;
-  modo?: "quimica" | "humana";
 }) {
-  if (modo === "humana") {
-    return (
-      <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]">
-        <span className="text-micro font-bold text-accent/60 truncate">{label}</span>
-        <span className="text-micro font-black text-accent tabular-nums shrink-0">
-          {formatValue(value)}
-        </span>
-      </div>
-    );
-  }
-
   return (
     <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5">
       <span className="text-micro font-bold text-primary/50 truncate">{label}</span>
