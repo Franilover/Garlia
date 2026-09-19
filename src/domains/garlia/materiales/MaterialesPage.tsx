@@ -34,7 +34,6 @@ import {
 } from "@/domains/garlia/_shared/OrdenarPorPropiedadPopover";
 import {
   fusionarConTarjetasDeVista,
-  renombrarClaves,
   useInterpretacionEscritor,
 } from "@/domains/garlia/_shared/useInterpretacionEscritor";
 import { useContratoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
@@ -316,8 +315,9 @@ function MaterialDetail({
    *  ElementoEditor/CompuestoEditor. La capa humana viene del contrato
    *  canónico de Supabase (v_frontend_escritor_propiedades_interpretadas,
    *  ver useInterpretacionEscritor); una propiedad que el motor no
-   *  interpreta cae de vuelta al valor técnico (ver TarjetaPropiedad en
-   *  GridPropiedadesCalculadas). */
+   *  interpreta se OCULTA en este modo — nunca cae de vuelta al valor
+   *  técnico como sustituto (regla estricta FE-018, ver
+   *  fusionarInterpretaciones). */
   modo?: "quimica" | "humana";
   /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
    *  mismo estado para que el nivel "Compuesto" del breadcrumb superior
@@ -488,20 +488,20 @@ function MaterialDetail({
     material.id,
     modo === "humana",
   );
-  const { filas: filasContrato } = useContratoPresentacion("material", "escritor");
-  // El contrato usa la clave canónica con sufijo `_compuesto`; las tarjetas
-  // usan la clave corta. Renombre local y explícito de ESTE editor.
-  const interpretacionesMaterial = renombrarClaves(interpretaciones, {
-    dureza_compuesto: "dureza",
-    conductividad_compuesto: "conductividad",
-    transparencia_compuesto: "transparencia",
-    interaccion_compuesto: "interaccion",
-  });
+  // Contrato de presentación (modo escritor): única fuente autorizada de
+  // nombre/descripción/grupo para propiedades interpretadas sin tarjeta
+  // propia (ej. Cohesión) — ver fusionarConTarjetasDeVista. FE-018:
+  // reemplaza a TARJETAS_SOLO_VISTA.
+  const { filas: filasContratoEscritorMaterial } = useContratoPresentacion(
+    "material",
+    "escritor",
+    modo === "humana",
+  );
   const propiedadesCombinadas = [
     ...fusionarConTarjetasDeVista(
       propiedadesCalculadasGenerico(propiedades).map((p) => ({ ...p, grupo: p.grupo ?? "Propiedades físicas" })),
-      interpretacionesMaterial,
-      filasContrato,
+      interpretaciones,
+      filasContratoEscritorMaterial,
     ),
     ...(loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo)),
   ];

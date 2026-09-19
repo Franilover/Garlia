@@ -29,6 +29,18 @@ import {
   renombrarClaves,
   useInterpretacionEscritor,
 } from "../_shared/useInterpretacionEscritor";
+
+/** Renombre de columna conocido para Elemento: la vista de interpretaciones
+ *  usa `carga_neta` como nombre canónico de propiedad, mientras que
+ *  propiedadesCalculadasDeElemento arma su tarjeta con el nombre de columna
+ *  interno `carga_q` (ver ALIAS_CLAVE_HUMANA_ELEMENTO en elementos/types.ts,
+ *  que resuelve el mismo alias para el camino legado). `masa_base`/
+ *  `volumen_base` ya coinciden 1:1 entre vista y tarjeta, no necesitan
+ *  renombre. FE-018: reemplaza a ALIAS_ELEMENTO (antes centralizado en
+ *  useInterpretacionEscritor.ts). */
+const ALIAS_ELEMENTO: Record<string, string> = {
+  carga_neta: "carga_q",
+};
 import { ParticulaVisual } from "../fisica/ParticulaVisual";
 
 import {
@@ -154,21 +166,18 @@ export function ElementoEditor({
   // Capa humana (modo Escritor) desde el motor de Supabase; sin umbrales ni
   // textos propios acá. Elemento hoy solo trae masa/estabilidad/rigidez/
   // flexibilidad como valor_mostrable (volumen aún no está resuelto).
-  const { interpretaciones } = useInterpretacionEscritor(
+  const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
     "elemento",
     elemento.id,
     modoVista === "humana",
   );
-  // Las tarjetas de Elemento usan el nombre de columna interno (masa_base,
-  // volumen_base); el contrato usa la clave canónica (masa, volumen). El
-  // renombre es local y explícito de ESTE editor — no una tabla compartida.
-  const interpretacionesElemento = useMemo(
-    () => renombrarClaves(interpretaciones, { masa: "masa_base", volumen: "volumen_base" }),
-    [interpretaciones],
+  const interpretaciones = useMemo(
+    () => renombrarClaves(interpretacionesCrudas, ALIAS_ELEMENTO),
+    [interpretacionesCrudas],
   );
   const propiedadesFisicas = useMemo(
-    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretacionesElemento),
-    [local, interpretacionesElemento],
+    () => fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones),
+    [local, interpretaciones],
   );
   const { items: sitiosEnlace, loading: sitiosLoading } = useElementoSitiosEnlace(elemento.id);
 

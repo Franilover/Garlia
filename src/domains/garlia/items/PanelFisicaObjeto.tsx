@@ -12,7 +12,8 @@ import { useInterpretacionEscritor, type InterpretacionEscritor } from "@/domain
 import {
   useContratoPresentacion,
   useValoresCientificos,
-  type ValorCientifico,
+  aplicarValoresCientificos,
+  type GrupoContrato,
 } from "@/domains/garlia/_shared/useContratoPresentacion";
 
 function formatValue(value: unknown): string {
@@ -21,16 +22,6 @@ function formatValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "Sí" : "No";
   if (typeof value === "string") return value;
   return JSON.stringify(value);
-}
-
-/** Formatea un valor científico que viene de Supabase. NULL ≠ 0: un valor
- *  ausente o `no_resuelta` se muestra "—", nunca "0". Las unidades salen de
- *  la vista (`unidad_simbolo`), no de un mapa local. */
-function formatValorCientifico(v: ValorCientifico | undefined): string {
-  if (!v || !v.mostrable || v.valor === null) return "—";
-  const n = v.valor;
-  const txt = Number.isInteger(n) ? String(n) : Number(n.toPrecision(4)).toString();
-  return v.unidadSimbolo ? `${txt} ${v.unidadSimbolo}` : txt;
 }
 
 /** Tarjeta compacta de una propiedad — mismo lenguaje visual que
@@ -43,27 +34,25 @@ function formatValorCientifico(v: ValorCientifico | undefined): string {
  *  entrega el motor de interpretación de Supabase (vista
  *  v_frontend_escritor_propiedades_interpretadas, ver
  *  useInterpretacionEscritor) — sin umbrales ni textos propios acá. Si la
- *  propiedad no viene interpretada (ej. factor_geometrico), cae al valor
- *  técnico, igual que TarjetaPropiedad. */
+ *  propiedad no viene interpretada (ej. factor_geometrico), el valor
+ *  técnico se sigue mostrando en modo "quimica"; el toggle a modo "humana"
+ *  no oculta la celda acá (a diferencia de TarjetaPropiedad/
+ *  fusionarInterpretaciones), pero tampoco inventa nivel/significado — solo
+ *  cae a formatValue(value) porque `esHumana` requiere `interpretacion`
+ *  presente (ver más abajo). */
 function PropertyCell({
   label,
   value,
   modo = "quimica",
   interpretacion,
-  sinDato = false,
 }: {
   label: string;
   value: unknown;
-  /** El valor no está resuelto todavía (`estado_valor = no_resuelta`). Se
-   *  muestra explícito como "sin dato", no como 0 ni oculto. */
-  sinDato?: boolean;
   modo?: "quimica" | "humana";
   interpretacion?: InterpretacionEscritor;
 }) {
   // Modo Escritor: mismo diseño que Científico; solo cambia el valor por el
-  // nivel del motor. La explicación queda como tooltip. Sin interpretación
-  // en modo Escritor la celda no se renderiza (regla estricta, sin fallback
-  // técnico) — ver el filtro en PanelFisicaObjeto.
+  // nivel del motor. La explicación queda como tooltip.
   const esHumana = modo === "humana" && !!interpretacion;
   return (
     <div
@@ -76,7 +65,7 @@ function PropertyCell({
           esHumana ? "capitalize" : "tabular-nums"
         }`}
       >
-        {esHumana ? interpretacion?.nivel : sinDato ? "sin dato" : formatValue(value)}
+        {esHumana ? interpretacion?.nivel : formatValue(value)}
       </span>
     </div>
   );
@@ -129,11 +118,8 @@ export function PanelFisicaObjeto({
   geometriaFisica,
   onRefrescarItem,
   modo = "quimica",
-  versionValores = 0,
 }: {
   itemId: string;
-  /** Súbelo tras editar la composición para releer los valores de Supabase. */
-  versionValores?: number;
   propiedadesFisicas?: (Record<string, unknown> & { estado?: string; fuente_fisica?: string }) | null;
   estadoFisico?: string | null;
   geometriaFisica?: Record<string, unknown> | null;
@@ -158,12 +144,20 @@ export function PanelFisicaObjeto({
   // "humana". Claves ya alineadas con las de este panel (dureza, interaccion…).
   const { interpretaciones } = useInterpretacionEscritor("objeto", itemId, modo === "humana");
 
-  // Estructura (grupos, nombres, orden, visibilidad) desde el CONTRATO de
-  // Supabase, y valores desde la vista canónica. Este panel no conoce ni
-  // una clave de propiedad: pinta lo que el contrato declara.
-  const modoContrato = modo === "humana" ? "escritor" : "cientifico";
-  const { grupos: gruposContrato } = useContratoPresentacion("objeto", modoContrato);
-  const { valores } = useValoresCientificos("objeto", itemId, versionValores);
+  // Grupos/propiedades/orden/nombres de Objeto en modo científico salen del
+  // contrato de presentación — ya no de MAGNITUDES_OBJETO/GEOMETRIA_OBJETO/
+  // PROPIEDADES_OBJETO (FE-018). Solo se piden los grupos declarados con
+  // estrategia genérica (propiedad_clave no nulo); los grupos especializados
+  // (Identificación, Geometría, Enlaces, Análisis estructural) siguen
+  // teniendo su propio renderer más abajo (EditorGeometriaItem, Materiales).
+  const { grupos: gruposContrato } = useContratoPresentacion("objeto", "cientifico");
+
+  // FE-019 (piloto): valores canónicos desde v_frontend_worldbuilder_propiedades_entidad.
+  // Se aplican por-encima del jsonb propiedadesFisicas (nunca lo reemplazan
+  // por completo): si la vista no trae una clave, se conserva el valor ya
+  // calculado por Supabase en propiedades_fisicas — así esto no puede
+  // romper el panel si la vista aún no cubre "objeto" en producción.
+  const { valores: valoresCientificos } = useValoresCientificos("objeto", itemId, modo === "quimica");
 
   const propiedades = propiedadesFisicas ?? {};
   // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y
@@ -206,33 +200,49 @@ export function PanelFisicaObjeto({
               : "Todavía no tiene composición material suficiente para derivar propiedades físicas."}
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {gruposContrato.map((g) => {
-              // Solo propiedades que Supabase devolvió para ESTE objeto.
-              // Modo Escritor: además, solo las que el motor interpretó.
-              const filas = g.propiedades.filter((p) =>
-                modo === "humana" ? !!interpretaciones[p.clave] : valores[p.clave] !== undefined,
-              );
-              if (filas.length === 0) return null;
-              return (
+          // Grupos, nombres y orden vienen del contrato
+          // (v_frontend_contrato_presentacion_detalle, ver
+          // useContratoPresentacion) — FE-018: ya no hay arrays locales
+          // (MAGNITUDES_OBJETO/GEOMETRIA_OBJETO/PROPIEDADES_OBJETO)
+          // decidiendo qué existe, cómo se llama o en qué grupo cae. Cada
+          // grupo del contrato con `propiedad_clave` no nulo se pinta acá,
+          // en el orden que trae `gruposContrato` (ya ordenado por
+          // grupo_orden); solo se muestran las propiedades presentes en el
+          // jsonb `propiedades_fisicas` de este objeto puntual. Los grupos
+          // especializados (Identificación/Geometría/Enlaces/Análisis
+          // estructural, propiedad_clave = null) no se listan acá: tienen
+          // su propio renderer (EditorGeometriaItem más abajo, etc.), pero
+          // su nombre/orden como sección igual proviene del contrato si se
+          // necesita mostrarlos con encabezado propio.
+          <div className="grid grid-cols-2 gap-3 items-start">
+            {gruposContrato
+              .filter((g: GrupoContrato) =>
+                g.propiedades.some((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined),
+              )
+              .map((g: GrupoContrato) => (
                 <div key={g.grupo} className="flex flex-col gap-0.5">
-                  <SubGroupLabel>{g.nombre}</SubGroupLabel>
-                  {filas.map((p) => {
-                    const v = valores[p.clave];
-                    return (
-                      <PropertyCell
-                        key={p.clave}
-                        label={p.nombre}
-                        value={formatValorCientifico(v)}
-                        sinDato={!v || !v.mostrable || v.valor === null}
-                        modo={modo}
-                        interpretacion={interpretaciones[p.clave]}
-                      />
-                    );
-                  })}
+                  <SubGroupLabel>{g.grupo_nombre}</SubGroupLabel>
+                  {g.propiedades
+                    .filter((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined)
+                    .map((p) => {
+                      const clave = p.propiedad_clave as string;
+                      // FE-019: valor de la vista canónica si está presente
+                      // (incluyendo null explícito = "aplicable sin dato");
+                      // si la vista no trae la clave, usa el valor del
+                      // jsonb ya calculado por Supabase (fallback seguro).
+                      const valor = clave in valoresCientificos ? valoresCientificos[clave] : propiedades[clave];
+                      return (
+                        <PropertyCell
+                          key={clave}
+                          label={p.propiedad_nombre ?? clave}
+                          value={valor}
+                          modo={modo}
+                          interpretacion={interpretaciones[clave]}
+                        />
+                      );
+                    })}
                 </div>
-              );
-            })}
+              ))}
           </div>
         )}
       </section>

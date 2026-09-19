@@ -19,25 +19,36 @@ import React from "react";
 import { InfoFormulasPopover } from "@/domains/garlia/elementos/InfoFormulasPopover";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 
-/** Respaldo VISUAL únicamente (snake_case → Título) para cuando el caller no
- *  pasa nombres del contrato. No es una tabla de etiquetas ni decide qué
- *  propiedades existen: solo evita mostrar la clave cruda. La autoridad de
- *  nombres es v_frontend_contrato_presentacion_detalle (prop `etiquetas`). */
-function labelDeRespaldo(clave: string): string {
-  const t = clave.replace(/_/g, " ").trim();
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-
 /** Claves de metadata (no métricas) que no se muestran como tarjeta. */
 const CLAVES_METADATA = new Set(["fuente", "metodo", "version", "ponderacion"]);
+
+/** Convierte snake_case en un label legible mínimo (ej. "energia_enlace" →
+ *  "Energia enlace") — usado SOLO como fallback visual cuando no hay un
+ *  nombre autorizado por el contrato de presentación (ver
+ *  useContratoPresentacion). No es una tabla de traducción: no decide qué
+ *  existe ni reemplaza nombres reales, solo evita mostrar snake_case crudo
+ *  cuando el caller no tiene el contrato a mano todavía.
+ *
+ *  FE-018: reemplaza a ETIQUETAS_METRICA, que era una tabla fija de 15
+ *  nombres elegidos a mano y actuaba como autoridad de presentación para
+ *  cualquier clave que cayera en ella. El nombre real de una propiedad
+ *  ahora sale de `propiedad_nombre` / `nombre_escritor` en
+ *  `v_frontend_contrato_presentacion_detalle` — este fallback solo cubre
+ *  el caso de un jsonb leído sin pasar aún por el contrato. */
+function labelDeRespaldo(clave: string): string {
+  return clave.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+}
 
 export function GridPropiedadesCalculadas({
   propiedades,
   etiquetas,
 }: {
   propiedades: Record<string, unknown> | null;
-  /** `clave → nombre` desde el contrato (useContratoPresentacion().nombres).
-   *  Sin esto, se usa el respaldo visual snake_case → Título. */
+  /** Nombres autorizados por clave (ej. `propiedad_nombre` del contrato de
+   *  presentación) — si el caller ya cruzó las claves contra
+   *  `v_frontend_contrato_presentacion_detalle`, las pasa acá. Sin esto, se
+   *  usa `labelDeRespaldo` (snake_case → Título) como último recurso
+   *  visual, nunca una tabla fija. */
   etiquetas?: Record<string, string>;
 }) {
   if (!propiedades) {
@@ -176,16 +187,18 @@ export function propiedadesCalculadasGenerico(
 /** Una tarjeta individual de propiedad — extraído para no duplicar el JSX
  *  entre el render agrupado y el plano de abajo. */
 function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo?: "quimica" | "humana" }) {
-  // Modo Escritor: MISMO diseño que Científico (mismos colores, misma barra
-  // de proporción). Lo único que cambia es lo que se muestra a la derecha:
-  // el nivel cualitativo del motor ("media", "baja"…) en lugar del número.
-  // La explicación en lenguaje llano queda como tooltip.
-  //
-  // REGLA ESTRICTA: en modo Escritor esta tarjeta solo se renderiza si trae
-  // `nivelHumano` (ver TarjetaPropiedadesFisicas, que filtra antes). No hay
-  // caída al valor técnico.
-  const esHumana = modo === "humana";
+  // Modo Humana: si esta propiedad no tiene capa humana calculada todavía
+  // (ver interpretacionHumanaDeCompuesto), cae de vuelta al valor técnico
+  // en vez de mostrar un hueco — mismo criterio que el resto del sistema
+  // (no inventar "??" cuando falta un dato, ver comentario en
+  // formulaExpandidaCompuesto).
+  const esHumana = modo === "humana" && p.nivelHumano !== undefined;
 
+  // Modo Escritor: MISMO diseño que Científico (mismos colores, misma
+  // barra de proporción, sin fondo de acento ni frase debajo). Lo único que
+  // cambia es lo que se muestra a la derecha: el nivel cualitativo del
+  // motor de interpretación ("media", "baja"…) en lugar del número. La
+  // explicación en lenguaje llano queda como tooltip al pasar el mouse.
   return (
     <div
       title={esHumana ? (p.significadoHumano ?? p.descripcion) : p.descripcion}
@@ -236,14 +249,13 @@ export function TarjetaPropiedadesFisicas({
    *  técnico (ver TarjetaPropiedad). */
   modo?: "quimica" | "humana";
 }) {
-  // Modo Escritor (regla estricta): solo se muestran las propiedades que el
-  // motor interpretó (traen `nivelHumano`). Las demás se OCULTAN — no se
-  // muestra el valor técnico como sustituto.
-  // Modo Científico: se muestran todas las que tengan valor.
-  const conValor =
-    modo === "humana"
-      ? propiedades.filter((p) => p.nivelHumano !== undefined)
-      : propiedades.filter((p) => p.valor !== null);
+  // Modo Humana: las propiedades sin capa humana calculada (clasificación,
+  // estructura, fórmula canónica, etc. — texto técnico que no tiene
+  // traducción a nivel cualitativo) ya no se ocultan — se muestran igual
+  // que en modo Química (fallback automático en TarjetaPropiedad, ver
+  // esHumana ahí) para que el toggle no haga desaparecer tarjetas, solo
+  // cambie de vista las que sí tienen traducción humana.
+  const conValor = propiedades.filter((p) => p.valor !== null);
   if (conValor.length === 0) return null;
 
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];

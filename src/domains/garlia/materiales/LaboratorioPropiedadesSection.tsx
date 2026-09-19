@@ -607,9 +607,10 @@ function RankingParesElementosPanel() {
 }
 
 /** Etiquetas legibles para las claves que devuelve la RPC de simulación —
- *  mismo criterio de respaldo visual que GridPropiedadesCalculadas.tsx,
- *  duplicado acá porque esa constante no está exportada y el set de claves
- *  de esta RPC es chico y fijo (compuesto simulado, no genérico). */
+ *  tabla local a propósito, fuera del alcance de FE-018: el set de claves
+ *  de esta RPC es chico y fijo (compuesto simulado, no genérico, no
+ *  ligado a ninguna entidad real del catálogo) y no representa autoridad
+ *  de presentación sobre Elemento/Compuesto/Material/Objeto. */
 const ETIQUETAS_SIMULACION: Record<string, string> = {
   masa: "Masa",
   carga: "Carga",

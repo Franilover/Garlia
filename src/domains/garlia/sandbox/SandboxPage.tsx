@@ -177,9 +177,13 @@ function formatearValor(valor: unknown): string {
   return String(valor);
 }
 
-/** Etiqueta legible para claves snake_case comunes de estado_actual. Claves
- *  no listadas se muestran tal cual, mismo criterio de respaldo visual que
- *  GridPropiedadesCalculadas.tsx. */
+/** Etiqueta legible para claves snake_case comunes de estado_actual, propia
+ *  del Sandbox (herramienta de depuración, fuera del alcance de FE-018: no
+ *  es autoridad de presentación para ningún editor real). Claves no
+ *  listadas se muestran tal cual — mismo criterio de fallback que
+ *  labelDeRespaldo en GridPropiedadesCalculadas.tsx, aunque acá se mantiene
+ *  como tabla local a propósito porque el Sandbox no lee del contrato de
+ *  presentación. */
 const ETIQUETAS_PROPIEDAD: Record<string, string> = {
   masa: "Masa",
   masa_base: "Masa base",

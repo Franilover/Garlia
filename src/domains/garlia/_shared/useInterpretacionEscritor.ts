@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * useInterpretacionEscritor.ts
+ * useInterpretacionEscritor.ts — FE-018
  * ───────────────────────────────────────────────────────────────────────────
  * Lee la capa humana (modo Escritor) desde el CONTRATO CANÓNICO de Supabase:
  *
@@ -16,10 +16,32 @@
  * El frontend NO implementa umbrales, clasificaciones, textos propios,
  * conversiones ni interpretaciones locales: solo pinta `nivel` y
  * `significado` tal como los devuelve la vista, y solo cuando
- * `valor_mostrable = true`. Reemplaza al camino legado que leía
+ * `valor_mostrable = true` Y hay interpretación humana válida (`nivel`
+ * presente). Reemplaza al camino legado que leía
  * `propiedades_emergentes.interpretacion_humana` embebido en cada fila
  * (adjuntar() en elementos/types.ts), que solo existía para Elemento y
  * Compuesto y dejaba a Material y Objeto sin capa humana.
+ *
+ * FE-018: antes de esta migración, este archivo mantenía su propia
+ * autoridad sobre qué propiedades existen en el modo Escritor
+ * (PROPIEDADES_CAPA_HUMANA, una lista blanca de "las 11 acordadas"), cómo
+ * se llaman en la vista vs. en el frontend (ALIAS_VISTA_A_FRONTEND,
+ * ALIAS_ELEMENTO) y qué tarjetas "extra" agregar cuando la vista trae una
+ * propiedad sin columna propia en el frontend (TARJETAS_SOLO_VISTA, ej.
+ * Cohesión). Esas tres cosas quedan retiradas: qué propiedades existen, su
+ * nombre, su grupo y su orden ahora los decide
+ * `v_frontend_contrato_presentacion_detalle` (ver useContratoPresentacion),
+ * no una lista local. Este archivo se reduce a su función original: leer
+ * `v_frontend_escritor_propiedades_interpretadas` y devolver el mapa
+ * clave→interpretación, con la regla estricta de ocultamiento.
+ *
+ * Regla obligatoria (sin excepciones ni fallback):
+ *   interpretación humana válida + valor_mostrable = true  → mostrar
+ *   cualquier otro caso                                    → ocultar
+ * Nunca se cae al valor técnico como sustituto de una interpretación
+ * ausente — eso lo decide el caller (o mejor, el contrato) mostrando la
+ * propiedad como no disponible, nunca sustituyendo el número técnico en su
+ * lugar.
  *
  * Cache-first vía Dexie (ver guardarEscritorCache/leerEscritorCache en
  * syncEngine.ts): al cambiar de entidad se pinta primero lo que ya haya en
@@ -29,14 +51,7 @@
  * el resultado de Supabase, cuando llega, reemplaza lo que se haya pintado
  * desde Dexie y además reescribe la copia local para la próxima vez. Si
  * Supabase falla (offline/timeout) y ya había algo de Dexie, ese algo queda
- * como último resultado válido.
- *
- * REGLA ESTRICTA (sin fallback técnico): en modo Escritor una propiedad se
- * muestra SOLO si la vista dice `valor_mostrable = true` y trae un `nivel`.
- * Cualquier otro caso se OCULTA. Nunca se cae al valor técnico.
- *
- * Este archivo NO decide qué propiedades existen, cómo se llaman ni en qué
- * grupo van: eso es del contrato (ver useContratoPresentacion.ts).
+ * como último resultado válido en vez de caer al valor técnico.
  */
 
 import { useEffect, useState } from "react";
@@ -60,7 +75,14 @@ export interface InterpretacionEscritor {
   valor: number | null;
 }
 
-/** Mapa `clave de propiedad del frontend → interpretación`. */
+/** Mapa `propiedad_clave de la vista → interpretación`. La clave usada acá
+ *  es EXACTAMENTE `propiedad_clave` tal como la entrega
+ *  `v_frontend_escritor_propiedades_interpretadas` — ya no se traduce a un
+ *  nombre de columna interno del frontend (ver nota de migración FE-018
+ *  arriba). El caller que necesite cruzar esto contra el contrato de
+ *  presentación (`propiedad_clave` de
+ *  v_frontend_contrato_presentacion_detalle) usa la misma clave, porque
+ *  ambas vistas comparten el mismo vocabulario canónico de propiedad. */
 export type InterpretacionesPorClave = Record<string, InterpretacionEscritor>;
 
 /** Fila mínima que se pide a la vista. */
@@ -75,17 +97,23 @@ interface FilaVista {
 }
 
 /**
- * Convierte las filas de la vista en un mapa por `propiedad_clave`, TAL COMO
- * la entrega Supabase. Pura y exportada para poder probarla sin red.
+ * Convierte las filas de la vista en el mapa por `propiedad_clave` tal
+ * como la entrega Supabase. Pura y exportada para poder probarla sin red.
  *
- * Sin alias de clave y sin lista blanca: qué claves existen lo decide el
- * contrato, no este archivo.
- *
- * Reglas:
+ * Regla estricta (sin fallback):
  *  - `valor_mostrable !== true` → se descarta.
- *  - sin `interpretacion_humana.nivel` → se descarta.
+ *  - sin `interpretacion_humana.nivel` (interpretación inválida/ausente) →
+ *    se descarta.
+ * No hay lista blanca local ni alias de traducción de clave: toda fila que
+ * cumpla las dos condiciones de arriba se expone tal cual. Cualquier
+ * filtro adicional sobre qué propiedades mostrar en un editor puntual debe
+ * salir del contrato de presentación (ver useContratoPresentacion), no de
+ * una constante en este archivo.
  */
-export function mapearInterpretaciones(filas: FilaVista[]): InterpretacionesPorClave {
+export function mapearInterpretaciones(
+  filas: FilaVista[],
+  _entidad: EntidadInterpretable,
+): InterpretacionesPorClave {
   const out: InterpretacionesPorClave = {};
   for (const f of filas) {
     if (f.valor_mostrable !== true) continue;
@@ -113,8 +141,9 @@ export function mapearInterpretaciones(filas: FilaVista[]): InterpretacionesPorC
  * instante con `loading = false` y la consulta a Supabase sigue en
  * paralelo en segundo plano, revalidando cuando llega.
  *
- * Si ambas fuentes fallan/están vacías, devuelve `{}` y en modo Escritor no
- * se muestra ninguna propiedad (no hay fallback técnico).
+ * Si ambas fuentes fallan/están vacías, devuelve `{}`: los llamadores deben
+ * OCULTAR la propiedad cuando no hay interpretación — nunca sustituirla
+ * por el valor técnico (ver regla estricta en el encabezado del archivo).
  */
 export function useInterpretacionEscritor(
   entidad: EntidadInterpretable,
@@ -142,7 +171,7 @@ export function useInterpretacionEscritor(
         const local = await leerEscritorCache(entidad, entidadId);
         if (cancelado) return;
         if (local.length > 0) {
-          setInterpretaciones(mapearInterpretaciones(local as unknown as FilaVista[]));
+          setInterpretaciones(mapearInterpretaciones(local as unknown as FilaVista[], entidad));
           setLoading(false);
           pintadoDesdeCache = true;
         }
@@ -166,7 +195,7 @@ export function useInterpretacionEscritor(
           if (!pintadoDesdeCache) setInterpretaciones({});
         } else {
           const filas = (data ?? []) as FilaVista[];
-          setInterpretaciones(mapearInterpretaciones(filas));
+          setInterpretaciones(mapearInterpretaciones(filas, entidad));
           // Actualiza el cache de Dexie con lo recién leído, para que la
           // próxima vez (y el próximo offline) tengan esta versión.
           void guardarEscritorCache(entidad, entidadId, filas);
@@ -190,17 +219,45 @@ export function useInterpretacionEscritor(
 }
 
 /**
- * Aplica la regla estricta del modo Escritor sobre una lista de tarjetas.
+ * Renombra las claves de un mapa de interpretaciones ya filtrado (solo
+ * traduce nombres de columna, nunca decide qué se muestra — eso ya pasó en
+ * mapearInterpretaciones/valor_mostrable+nivel antes de llegar acá).
  *
- *  - `valor_mostrable = true` + `nivel` válido → la tarjeta se muestra, con
- *    `nivelHumano`/`significadoHumano` del motor.
- *  - cualquier otro caso → la tarjeta se OCULTA. No hay fallback al valor
- *    técnico: mostrar el número donde el motor no interpretó rompería el
- *    contrato del modo Escritor.
+ * FE-018: reemplaza a ALIAS_VISTA_A_FRONTEND/ALIAS_ELEMENTO, que vivían
+ * hardcodeados en este archivo como autoridad centralizada. La diferencia
+ * es de propietario, no de mecanismo: ahí eran una tabla opaca que este
+ * módulo "sabía" aplicar a cualquier entidad; acá cada editor pasa
+ * EXPLÍCITAMENTE su propio mapa de 1-2 renombres conocidos (ej. Compuesto:
+ * `dureza_compuesto` → `dureza`, el mismo nombre de columna que ya usa en
+ * su propia función de armado de tarjetas) — no hay lista compartida entre
+ * entidades, ni autoridad sobre qué propiedades existen: si una clave no
+ * está en `alias`, pasa tal cual.
+ */
+export function renombrarClaves(
+  interpretaciones: InterpretacionesPorClave,
+  alias: Record<string, string>,
+): InterpretacionesPorClave {
+  const out: InterpretacionesPorClave = {};
+  for (const [clave, valor] of Object.entries(interpretaciones)) {
+    out[alias[clave] ?? clave] = valor;
+  }
+  return out;
+}
+
+/**
+ * Fusiona las interpretaciones del motor en una lista de tarjetas
+ * (PropiedadCalculada). Solo agrega `nivelHumano`/`significadoHumano`; nunca
+ * toca el valor técnico ni lo recalcula, así que el modo Científico queda
+ * idéntico.
  *
- * `interpretaciones` está indexado por `propiedad_clave` de la vista. Si la
- * tarjeta usa otra clave para la misma propiedad, quien llama renombra
- * explícitamente con `renombrarClaves` — no hay tabla de alias compartida.
+ * FE-018: antes, una tarjeta `p` sin interpretación se devolvía "tal cual",
+ * lo que en el caller (TarjetaPropiedad, modo "humana") terminaba cayendo
+ * de vuelta al valor técnico como fallback visual. La regla del contrato es
+ * estricta: sin interpretación válida, la propiedad se OCULTA en modo
+ * Escritor, no se sustituye. Por eso esta función ahora FILTRA en vez de
+ * solo mapear — devuelve únicamente las propiedades que sí tienen
+ * interpretación. El caller ya no necesita (ni debe) tener su propio
+ * fallback `interpretacion ?? valorTecnico`.
  */
 export function fusionarInterpretaciones<
   T extends { clave: string; nivelHumano?: string; significadoHumano?: string },
@@ -208,44 +265,28 @@ export function fusionarInterpretaciones<
   const out: T[] = [];
   for (const p of propiedades) {
     const h = interpretaciones[p.clave];
-    if (!h || !h.nivel) continue;
+    if (!h) continue; // sin interpretación válida → se oculta, nunca fallback técnico
     out.push({ ...p, nivelHumano: h.nivel, significadoHumano: h.significado ?? undefined });
   }
   return out;
 }
 
 /**
- * Renombra claves de un mapa de interpretaciones. Utilidad local y
- * EXPLÍCITA: cada caller declara su propio mapa de 1–2 claves. No es una
- * autoridad compartida; si una clave del contrato difiere de la clave de
- * la tarjeta, la corrección de fondo es en Supabase.
- */
-export function renombrarClaves(
-  interpretaciones: InterpretacionesPorClave,
-  mapa: Record<string, string>,
-): InterpretacionesPorClave {
-  const out: InterpretacionesPorClave = {};
-  for (const [k, v] of Object.entries(interpretaciones)) out[mapa[k] ?? k] = v;
-  return out;
-}
-
-/** Datos de una tarjeta que vive SOLO en la vista (no existe como columna en
- *  el frontend). Nombre, descripción y grupo salen del CONTRATO
- *  (`nombre_escritor`, `descripcion_escritor`, `grupo_nombre`); nada se
- *  inventa localmente. */
-export interface FilaContratoMinima {
-  propiedad_clave: string | null;
-  grupo_nombre: string;
-  propiedad_nombre?: string | null;
-  nombre_escritor?: string | null;
-  descripcion_escritor?: string | null;
-}
-
-/**
- * Igual que `fusionarInterpretaciones`, pero además agrega las tarjetas que
- * el motor interpretó y que NO existen como tarjeta en el frontend (hoy:
- * Cohesión). Se agregan solo si el contrato las declara para este modo, y
- * su nombre/descripción/grupo vienen del contrato, no de una tabla local.
+ * Igual que fusionarInterpretaciones, pero además agrega como tarjeta
+ * cualquier propiedad que la vista trae interpretada y que todavía no
+ * existía en la lista `propiedades` de entrada (por ejemplo, una propiedad
+ * de la capa humana que no tiene columna/tarjeta propia en el frontend,
+ * como Cohesión en Compuesto/Material).
+ *
+ * FE-018: antes había una lista fija (TARJETAS_SOLO_VISTA) con la única
+ * propiedad "extra" conocida (Cohesión), su label, descripción y grupo
+ * hardcodeados acá. Ahora el nombre/label/grupo de una propiedad narrativa
+ * SIEMPRE sale del contrato de presentación
+ * (v_frontend_contrato_presentacion_detalle: nombre_escritor,
+ * descripcion_escritor, grupo/grupo_nombre) — este archivo ya no inventa
+ * ninguno. El caller pasa las filas del contrato (modo escritor) para esta
+ * entidad; si no las pasa, simplemente no se agregan tarjetas "solo vista"
+ * (nunca se inventa un nombre localmente como fallback).
  */
 export function fusionarConTarjetasDeVista<
   T extends {
@@ -261,24 +302,34 @@ export function fusionarConTarjetasDeVista<
 >(
   propiedades: T[],
   interpretaciones: InterpretacionesPorClave,
-  filasContrato: FilaContratoMinima[],
+  /** Filas del contrato de presentación (modo escritor) para esta entidad
+   *  (ver useContratoPresentacion), usadas ÚNICAMENTE para resolver
+   *  nombre/descripción/grupo de una propiedad que la vista interpreta
+   *  pero que no trae tarjeta propia en `propiedades`. */
+  filasContrato: {
+    propiedad_clave: string | null;
+    propiedad_nombre: string | null;
+    nombre_escritor: string | null;
+    descripcion_escritor: string | null;
+    grupo_nombre: string;
+  }[] = [],
 ): T[] {
   const base = fusionarInterpretaciones(propiedades, interpretaciones);
-  const yaPresentes = new Set(propiedades.map((p) => p.clave));
+  const claves = new Set(base.map((p) => p.clave));
   const extras: T[] = [];
 
-  for (const f of filasContrato) {
-    const clave = f.propiedad_clave;
-    if (!clave || yaPresentes.has(clave)) continue;
-    const h = interpretaciones[clave];
-    if (!h || !h.nivel) continue;
+  for (const [clave, h] of Object.entries(interpretaciones)) {
+    if (claves.has(clave)) continue;
+    const fila = filasContrato.find((f) => f.propiedad_clave === clave);
+    if (!fila) continue; // sin fila del contrato no hay nombre/grupo autorizado — se omite, no se inventa
+
     extras.push({
       clave,
-      label: f.nombre_escritor ?? f.propiedad_nombre ?? clave,
+      label: fila.nombre_escritor ?? fila.propiedad_nombre ?? clave,
       valor: h.valor === null ? null : h.valor.toFixed(3),
       proporcion: h.valor === null ? undefined : Math.max(0, Math.min(1, h.valor)),
-      descripcion: f.descripcion_escritor ?? "",
-      grupo: f.grupo_nombre,
+      descripcion: fila.descripcion_escritor ?? "",
+      grupo: fila.grupo_nombre,
       nivelHumano: h.nivel,
       significadoHumano: h.significado ?? undefined,
     } as unknown as T);

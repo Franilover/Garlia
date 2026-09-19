@@ -76,6 +76,19 @@ import {
   useInterpretacionEscritor,
 } from "../_shared/useInterpretacionEscritor";
 import { useContratoPresentacion } from "../_shared/useContratoPresentacion";
+
+/** Renombres de columna conocidos para Compuesto: la vista de
+ *  interpretaciones usa el nombre canónico de propiedad
+ *  (`dureza_compuesto`, etc.), mientras que propiedadesCalculadasDeCompuesto
+ *  arma sus tarjetas con el nombre de columna que ya usa Compuesto
+ *  (`dureza`). Ver renombrarClaves — FE-018, reemplaza a
+ *  ALIAS_VISTA_A_FRONTEND (antes centralizado en useInterpretacionEscritor.ts). */
+const ALIAS_COMPUESTO: Record<string, string> = {
+  dureza_compuesto: "dureza",
+  conductividad_compuesto: "conductividad",
+  transparencia_compuesto: "transparencia",
+  interaccion_compuesto: "interaccion",
+};
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
@@ -1148,39 +1161,36 @@ function CompuestoEditor({
   // frontend no aplica umbrales ni textos propios (ver
   // useInterpretacionEscritor). Mientras carga o si falla, las tarjetas
   // caen al valor técnico.
-  const { interpretaciones } = useInterpretacionEscritor(
+  const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
     "compuesto",
     compuesto.id,
     modoVista === "humana",
   );
-
-  // Contrato (nombre/descripción/grupo de tarjetas que solo existen en la
-  // vista, p. ej. Cohesión) desde Supabase. Modo Escritor.
-  const { filas: filasContrato } = useContratoPresentacion("compuesto", "escritor");
-  // Las tarjetas de Compuesto usan `dureza`, etc.; el contrato usa la clave
-  // canónica con sufijo `_compuesto`. Renombre local y explícito de ESTE
-  // editor, no una tabla compartida.
-  const interpretacionesCompuesto = useMemo(
-    () =>
-      renombrarClaves(interpretaciones, {
-        dureza_compuesto: "dureza",
-        conductividad_compuesto: "conductividad",
-        transparencia_compuesto: "transparencia",
-        interaccion_compuesto: "interaccion",
-      }),
-    [interpretaciones],
+  const interpretaciones = useMemo(
+    () => renombrarClaves(interpretacionesCrudas, ALIAS_COMPUESTO),
+    [interpretacionesCrudas],
+  );
+  // Contrato de presentación (modo escritor): única fuente autorizada de
+  // nombre/descripción/grupo para propiedades que la vista interpreta pero
+  // que no tienen tarjeta propia en propiedadesCalculadasDeCompuesto (ej.
+  // Cohesión) — ver fusionarConTarjetasDeVista. FE-018: reemplaza a
+  // TARJETAS_SOLO_VISTA.
+  const { filas: filasContratoEscritor } = useContratoPresentacion(
+    "compuesto",
+    "escritor",
+    modoVista === "humana",
   );
 
   const propiedadesFisicas = useMemo(
     () => [
       ...fusionarConTarjetasDeVista(
         propiedadesCalculadasDeCompuesto(local),
-        interpretacionesCompuesto,
-        filasContrato,
+        interpretaciones,
+        filasContratoEscritor,
       ),
       ...(estabilidadLoading ? [] : propiedadesDeEstabilidadDetalle(estabilidadDetalle)),
     ],
-    [local, estabilidadDetalle, estabilidadLoading, interpretacionesCompuesto, filasContrato],
+    [local, estabilidadDetalle, estabilidadLoading, interpretaciones, filasContratoEscritor],
   );
 
   // Fórmula expandida para el header (ver formulaExpandidaCompuesto): null
