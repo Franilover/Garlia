@@ -21,6 +21,7 @@ import {
   propiedadesCalculadasGenerico,
   TarjetaPropiedadesFisicas,
 } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
+import { InterpretacionHumanaPanel } from "@/domains/garlia/_shared/InterpretacionHumanaPanel";
 import { useCompuestosConElementos } from "@/domains/garlia/elementos/useCompuestosConElementos";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { useEstructuras } from "@/domains/garlia/elementos/useEstructuras";
@@ -506,7 +507,11 @@ function MaterialDetail({
               </span>
             </div>
           )}
-          <TarjetaPropiedadesFisicas propiedades={propiedadesCombinadas} columnas={2} modo={modo} />
+          {modo === "humana" ? (
+            <InterpretacionHumanaPanel entidadTipo="material" entidadId={material.id} />
+          ) : (
+            <TarjetaPropiedadesFisicas propiedades={propiedadesCombinadas} columnas={2} modo="quimica" />
+          )}
         </div>
 
         <div className="flex flex-col gap-2 min-w-0">
