@@ -21,14 +21,24 @@
  * (adjuntar() en elementos/types.ts), que solo existía para Elemento y
  * Compuesto y dejaba a Material y Objeto sin capa humana.
  *
- * Sin cache en Dexie a propósito: la vista se recalcula en el servidor
- * cuando cambian las reglas o los valores, y un cache local la dejaría
- * desactualizada. Es una lectura chica (≤ ~12 filas por entidad).
+ * Cache-first vía Dexie (ver guardarEscritorCache/leerEscritorCache en
+ * syncEngine.ts): al cambiar de entidad se pinta primero lo que ya haya en
+ * Dexie (si hay, instantáneo y funciona offline), y SIEMPRE se dispara en
+ * paralelo la consulta a Supabase, que es la fuente de verdad — la vista se
+ * recalcula en el servidor cuando cambian las reglas o los valores, así que
+ * el resultado de Supabase, cuando llega, reemplaza lo que se haya pintado
+ * desde Dexie y además reescribe la copia local para la próxima vez. Si
+ * Supabase falla (offline/timeout) y ya había algo de Dexie, ese algo queda
+ * como último resultado válido en vez de caer al valor técnico.
  */
 
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
+import {
+  guardarEscritorCache,
+  leerEscritorCache,
+} from "@/infra/sync/syncEngine";
 
 /** Tipos de entidad que el interpretador ya cubre (vista: entidad_tipo). */
 export type EntidadInterpretable = "elemento" | "compuesto" | "material" | "objeto";
@@ -144,9 +154,13 @@ export function mapearInterpretaciones(
  * `activo` permite pedirlas solo cuando el editor está en modo Escritor (no
  * se hace ninguna consulta en modo Científico).
  *
- * Devuelve `{}` mientras carga o si falla: los llamadores ya caen al valor
- * técnico cuando una propiedad no trae interpretación, así que un fallo de
- * red degrada a "modo Científico" en vez de romper la pantalla.
+ * `loading` solo es `true` mientras NO hay nada para pintar todavía (ni
+ * Dexie ni Supabase respondieron). Si Dexie tiene algo, se pinta al
+ * instante con `loading = false` y la consulta a Supabase sigue en
+ * paralelo en segundo plano, revalidando cuando llega.
+ *
+ * Si ambas fuentes fallan/están vacías, devuelve `{}`: los llamadores ya
+ * caen al valor técnico cuando una propiedad no trae interpretación.
  */
 export function useInterpretacionEscritor(
   entidad: EntidadInterpretable,
@@ -164,9 +178,26 @@ export function useInterpretacionEscritor(
     }
 
     let cancelado = false;
+    let pintadoDesdeCache = false;
     setLoading(true);
 
     (async () => {
+      // 1) Dexie primero: si hay algo cacheado de una lectura anterior, se
+      //    pinta ya (instantáneo, funciona offline) mientras se revalida.
+      try {
+        const local = await leerEscritorCache(entidad, entidadId);
+        if (cancelado) return;
+        if (local.length > 0) {
+          setInterpretaciones(mapearInterpretaciones(local as unknown as FilaVista[], entidad));
+          setLoading(false);
+          pintadoDesdeCache = true;
+        }
+      } catch {
+        // sin cache local todavía, seguimos directo a Supabase
+      }
+
+      // 2) Supabase: fuente de verdad. Se consulta SIEMPRE, haya o no
+      //    pintado algo desde Dexie, y su resultado reemplaza lo anterior.
       try {
         const { data, error } = await (supabase as any)
           .from("v_frontend_escritor_propiedades_interpretadas")
@@ -178,14 +209,18 @@ export function useInterpretacionEscritor(
         if (cancelado) return;
         if (error) {
           console.warn("[useInterpretacionEscritor] no se pudo leer la vista:", error.message);
-          setInterpretaciones({});
+          if (!pintadoDesdeCache) setInterpretaciones({});
         } else {
-          setInterpretaciones(mapearInterpretaciones((data ?? []) as FilaVista[], entidad));
+          const filas = (data ?? []) as FilaVista[];
+          setInterpretaciones(mapearInterpretaciones(filas, entidad));
+          // Actualiza el cache de Dexie con lo recién leído, para que la
+          // próxima vez (y el próximo offline) tengan esta versión.
+          void guardarEscritorCache(entidad, entidadId, filas);
         }
       } catch (e) {
         if (!cancelado) {
           console.warn("[useInterpretacionEscritor] error inesperado:", e);
-          setInterpretaciones({});
+          if (!pintadoDesdeCache) setInterpretaciones({});
         }
       } finally {
         if (!cancelado) setLoading(false);

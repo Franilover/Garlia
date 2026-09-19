@@ -356,6 +356,22 @@ export interface FilaGenericaDexie {
   [key: string]: any;
 }
 
+/** Fila cacheada de la vista `v_frontend_escritor_propiedades_interpretadas`
+ *  (modo Escritor — ver v48 más abajo). Solo se guardan filas con
+ *  `valor_mostrable = true`. La vista NO tiene columna `id`: la clave real
+ *  es (entidad_tipo, entidad_id, propiedad_clave) — ver PK compuesta en v48. */
+export interface FilaEscritorInterpretacion {
+  entidad_tipo: string;
+  entidad_id: string;
+  propiedad_clave: string;
+  valor: string | null;
+  valor_mostrable: boolean;
+  interpretacion_humana: {
+    nivel?: string | null;
+    significado?: string | null;
+  } | null;
+}
+
 // ─── v38: cache offline de las vistas v_auditoria_* consumidas por el panel
 // de auditoría (domains/garlia/auditoria) — hasta ahora useAuditoriaCompuestos
 // y useAuditoriaElementos pegaban directo a Supabase en cada apertura del
@@ -1010,6 +1026,13 @@ class AgendaFraniDB extends Dexie {
   celula_compuestos!: Table<FilaGenericaDexie, string>;
   tejido_celulas!: Table<FilaGenericaDexie, string>;
   tejido_compuestos!: Table<FilaGenericaDexie, string>;
+
+  // ─── v48: cache offline (fallback) del modo Escritor — PK compuesta, ver
+  // version(48).stores() abajo.
+  v_frontend_escritor_propiedades_interpretadas!: Table<
+    FilaEscritorInterpretacion,
+    [string, string, string]
+  >;
 
   constructor() {
     super("AgendaFranilover");
@@ -2078,6 +2101,29 @@ class AgendaFraniDB extends Dexie {
     // malinterpretaría esa decisión de diseño como un hueco.
     this.version(47).stores({
       propiedades_derivadas: "id, clave",
+    });
+
+    // ─── v48: cache offline (best-effort) del modo Escritor — vista
+    // v_frontend_escritor_propiedades_interpretadas. useInterpretacionEscritor.ts
+    // documenta a propósito "sin cache en Dexie" para no mostrar niveles
+    // desactualizados cuando SÍ hay conexión — este cache no cambia eso: es
+    // un FALLBACK que solo se usa cuando la consulta a Supabase falla por
+    // red (offline / timeout), nunca en el camino feliz. Con conexión, el
+    // hook sigue leyendo directo de Supabase igual que siempre y además
+    // guarda una copia de lo recién leído en esta tabla para el próximo
+    // fallback (ver loadEscritorInterpretaciones en syncEngine.ts).
+    //
+    // PK COMPUESTA en vez de "id": la vista no tiene columna id (mismo
+    // criterio que compuesto_tags en v41). Clave natural = (entidad_tipo,
+    // entidad_id, propiedad_clave), única y sin nulos.
+    //
+    // A propósito NO entra en DEXIE_TABLES/OFFLINE_WRITABLE de
+    // useSupabaseData.ts: ese hook asume columna "id" y baja la tabla
+    // completa sin paginar. Esta cache se llena entidad por entidad, desde
+    // el propio hook de consumo. Solo lectura.
+    this.version(48).stores({
+      v_frontend_escritor_propiedades_interpretadas:
+        "[entidad_tipo+entidad_id+propiedad_clave], [entidad_tipo+entidad_id]",
     });
   }
 }

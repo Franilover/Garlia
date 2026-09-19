@@ -13,7 +13,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { db } from "@/infra/supabase/db";
+import { db, type FilaEscritorInterpretacion } from "@/infra/supabase/db";
 import { supabase } from "@/infra/supabase/supabase";
 import { isReallyOnline } from "@/lib/utils/offlineSync";
 
@@ -1628,4 +1628,82 @@ export async function invalidateReinoAssetPlacements(
   reinoId: string,
 ): Promise<void> {
   await invalidateSessionCache(`map_asset_placements:reino:${reinoId}`);
+}
+
+// ─── Modo Escritor: cache Dexie de interpretaciones humanas ───────────────────
+// Vista canónica v_frontend_escritor_propiedades_interpretadas. Cache-first
+// normal, mismo espíritu que el resto del archivo: useInterpretacionEscritor.ts
+// pinta primero lo que haya en Dexie (leerEscritorCache) para esa entidad —
+// instantáneo, funciona offline — y SIEMPRE dispara además la consulta a
+// Supabase en paralelo, que es la fuente de verdad (la vista se recalcula en
+// el servidor). Cuando esa respuesta llega, reemplaza lo pintado y reescribe
+// el cache local (guardarEscritorCache) para la próxima vez.
+
+const TABLA_ESCRITOR = "v_frontend_escritor_propiedades_interpretadas";
+
+function aFilaEscritor(raw: any): FilaEscritorInterpretacion | null {
+  if (!raw || raw.valor_mostrable !== true) return null;
+  if (
+    typeof raw.entidad_tipo !== "string" ||
+    typeof raw.entidad_id !== "string" ||
+    typeof raw.propiedad_clave !== "string"
+  ) {
+    return null;
+  }
+  return {
+    entidad_tipo: raw.entidad_tipo,
+    entidad_id: raw.entidad_id,
+    propiedad_clave: raw.propiedad_clave,
+    valor: raw.valor ?? null,
+    valor_mostrable: true,
+    interpretacion_humana: raw.interpretacion_humana ?? null,
+  };
+}
+
+/**
+ * Guarda/actualiza en Dexie las interpretaciones recién leídas de Supabase
+ * para UNA entidad, reemplazando lo que hubiera antes para esa entidad (una
+ * propiedad que dejó de ser mostrable no debe seguir apareciendo en la
+ * próxima lectura de cache). Se llama después de CADA consulta exitosa a
+ * Supabase, con conexión o no — es lo que mantiene el cache al día. Nunca
+ * lanza: un fallo acá no debe romper el camino que la llama.
+ */
+export async function guardarEscritorCache(
+  tipo: string,
+  entidadId: string,
+  filasCrudas: any[],
+): Promise<void> {
+  try {
+    const tabla = db?.v_frontend_escritor_propiedades_interpretadas;
+    if (!tabla) return;
+    const filas = filasCrudas
+      .map(aFilaEscritor)
+      .filter((f): f is FilaEscritorInterpretacion => f !== null);
+    await db.transaction("rw", tabla, async () => {
+      const existentes = await tabla
+        .where("[entidad_tipo+entidad_id]")
+        .equals([tipo, entidadId])
+        .primaryKeys();
+      if (existentes.length > 0) await tabla.bulkDelete(existentes);
+      if (filas.length > 0) await tabla.bulkPut(filas);
+    });
+  } catch (e) {
+    console.warn("[Dexie] No se pudo guardar cache del modo Escritor:", e);
+  }
+}
+
+/**
+ * Lee de Dexie el último resultado cacheado para UNA entidad — se usa para
+ * pintar al instante (y offline) mientras se revalida contra Supabase en
+ * paralelo. `[]` si todavía no hay nada cacheado para esa entidad.
+ */
+export async function leerEscritorCache(
+  tipo: string,
+  entidadId: string,
+): Promise<FilaEscritorInterpretacion[]> {
+  return dexieWhere<FilaEscritorInterpretacion>(
+    db?.v_frontend_escritor_propiedades_interpretadas,
+    "[entidad_tipo+entidad_id]",
+    [tipo, entidadId],
+  );
 }
