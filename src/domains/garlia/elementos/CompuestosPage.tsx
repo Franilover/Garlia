@@ -69,6 +69,7 @@ import {
 import { useCelulas } from "./useCelulas";
 import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { TarjetaPropiedadesFisicas } from "../_shared/GridPropiedadesCalculadas";
+import { OrdenarPorPropiedadPopover, ordenarPorPropiedad } from "../_shared/OrdenarPorPropiedadPopover";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { GrupoCompuestoPanelFlotante } from "./GruposCompuestosPage";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
@@ -2304,6 +2305,11 @@ function MasonryGruposCategoria({
     return () => observer.disconnect();
   }, []);
 
+  // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
+  // Solo cambia el orden de las pills dentro del grupo, no su tamaño, así que
+  // no afecta la distribución masonry de abajo.
+  const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
+
   const GAP = 16;
   const ANCHO_MIN_COLUMNA = 240;
   const anchoDisponible = containerWidth || 900;
@@ -2377,11 +2383,19 @@ function MasonryGruposCategoria({
           >
             {columna.map((grupo) => (
               <div key={grupo.id}>
-                <div className="mb-1 px-1 text-micro font-bold uppercase tracking-[0.12em] text-primary/40">
-                  {grupo.nombre}
-                </div>
+                <OrdenarPorPropiedadPopover
+                  titulo={grupo.nombre}
+                  propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+                  onSeleccionar={(clave) =>
+                    setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+                  }
+                />
                 <div className="flex flex-wrap gap-1">
-                  {grupo.compuestos.map((c) => (
+                  {ordenarPorPropiedad(
+                    grupo.compuestos,
+                    ordenPorGrupo[grupo.id] ?? null,
+                    (c, clave) => (c as unknown as Record<string, unknown>)[clave],
+                  ).map((c) => (
                     <CompuestoCasilla
                       key={c.id}
                       compuesto={c}

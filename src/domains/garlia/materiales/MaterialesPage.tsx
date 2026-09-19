@@ -28,6 +28,10 @@ import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPag
 import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage";
 import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+import {
+  OrdenarPorPropiedadPopover,
+  ordenarPorPropiedad,
+} from "@/domains/garlia/_shared/OrdenarPorPropiedadPopover";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -994,6 +998,8 @@ export function MaterialesPage() {
   const { items: materiales, loading } = useMateriales();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const seleccionado = materiales.find((material) => material.id === seleccionadoId) ?? null;
+  // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
+  const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
 
   // Agrupamiento por categoria (columna real "materiales.categoria",
   // agregada en v285 y recién ahora traída al frontend — ver auditoría
@@ -1040,11 +1046,19 @@ export function MaterialesPage() {
         <div className="flex flex-col gap-3">
           {gruposPorCategoria.map((grupo) => (
             <div key={grupo.id}>
-              <div className="mb-1 px-1 text-micro font-bold uppercase tracking-[0.12em] text-primary/40">
-                {grupo.nombre}
-              </div>
+              <OrdenarPorPropiedadPopover
+                titulo={grupo.nombre}
+                propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+                onSeleccionar={(clave) =>
+                  setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+                }
+              />
               <div className="flex flex-wrap gap-1">
-                {grupo.materiales.map((material) => (
+                {ordenarPorPropiedad(
+                  grupo.materiales,
+                  ordenPorGrupo[grupo.id] ?? null,
+                  (m, clave) => m.propiedades_calculadas?.[clave],
+                ).map((material) => (
                   <MaterialPill
                     key={material.id}
                     material={material}
