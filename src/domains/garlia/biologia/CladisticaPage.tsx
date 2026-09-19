@@ -339,8 +339,9 @@ function DiagramaCladograma({
                 opacity={esDestinoInvalido ? 0.25 : 1}
               />
               <text
-                x={8}
-                y={4}
+                x={esHoja ? 8 : 0}
+                y={esHoja ? 4 : 16}
+                textAnchor={esHoja ? "start" : "middle"}
                 opacity={siendoArrastrado ? 0.4 : esDestinoInvalido ? 0.3 : 1}
                 className={`text-[11px] font-bold select-none ${
                   activo || enSeleccionMultiple ? "fill-accent" : esHoverDestino ? "fill-accent" : "fill-primary/75"
@@ -350,8 +351,9 @@ function DiagramaCladograma({
               </text>
               {n.clado.criatura_ids?.length > 0 && (
                 <text
-                  x={8 + (n.clado.nombre?.length ?? 0) * 6.2 + 6}
-                  y={4}
+                  x={esHoja ? 8 + (n.clado.nombre?.length ?? 0) * 6.2 + 6 : 0}
+                  y={esHoja ? 4 : -6}
+                  textAnchor={esHoja ? "start" : "middle"}
                   className="text-[9px] font-bold fill-accent/60 select-none"
                 >
                   {n.clado.criatura_ids.length}
