@@ -81,6 +81,7 @@ import { useOrganos } from "./useOrganos";
 import { useTejidos } from "./useTejidos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 import { InfoFormulasPopover } from "./InfoFormulasPopover";
+import { InterpretacionHumanaPanel } from "../_shared/InterpretacionHumanaPanel";
 
 import {
   calcularAfinidad,
@@ -102,7 +103,6 @@ import {
   REACTIVIDAD_LABEL,
   propiedadesCalculadasDeCompuesto,
   propiedadesCalculadasDeElemento,
-  resumenHumanoDeCompuesto,
   type ComponenteCompuesto,
   type Compuesto,
   type Elemento,
@@ -328,31 +328,20 @@ function formulaExpandidaCompuesto(
 function PropiedadesFisicasCompuestoBloque({
   propiedades,
   modo = "quimica",
-  resumenHumano,
+  entidadId,
 }: {
   propiedades: PropiedadCalculada[];
-  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
-   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
-   *  Escritor en el header de CompuestoEditor. */
   modo?: "quimica" | "humana";
-  /** Frase de propiedades_emergentes.humano.resumen (composición +
-   *  estabilidad en lenguaje llano) — se muestra arriba de la grilla solo
-   *  en modo Humana. Null si el compuesto no tiene capa humana todavía. */
-  resumenHumano?: string | null;
+  entidadId: string;
 }) {
   // columnas=4 (antes 5): con Estabilidad-detalle + las columnas de
   // clasificación/estructura fundidas (ver auditoría 2026-08-30), varias
   // etiquetas nuevas son largas ("Tipo de estructura (derivada)", "Razón de
   // clasificación") — 5 columnas las apretaba demasiado.
-  return (
-    <div className="flex flex-col gap-2">
-      {modo === "humana" && resumenHumano && (
-        <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
-          {resumenHumano}
-        </p>
-      )}
-      <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={4} modo={modo} />
-    </div>
+  return modo === "humana" ? (
+    <InterpretacionHumanaPanel entidadTipo="compuesto" entidadId={entidadId} />
+  ) : (
+    <TarjetaPropiedadesFisicas propiedades={propiedades} columnas={4} modo="quimica" />
   );
 }
 
@@ -1323,7 +1312,7 @@ function CompuestoEditor({
           <PropiedadesFisicasCompuestoBloque
             propiedades={propiedadesFisicas}
             modo={modoVista}
-            resumenHumano={resumenHumanoDeCompuesto(local)}
+            entidadId={local.id}
           />
         </div>
 
