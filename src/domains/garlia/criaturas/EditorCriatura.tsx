@@ -279,10 +279,20 @@ export function EditorCriatura({
   );
 
   // ── Sincronizar form cuando cambia el item externo ────────────────────────
+  // OJO: antes esto solo dependía de [item.id], así que si la lista de
+  // criaturas se hidrataba primero desde caché local (Dexie/offline) con
+  // datos parciales y LUEGO llegaba la versión completa de Supabase (mismo
+  // id, pero con `descripcion` ya poblada), este efecto nunca volvía a
+  // correr — el usuario veía el campo Descripción vacío aunque en la base
+  // sí había texto. Ahora también resincroniza si cambia el contenido de
+  // `item` (no solo el id), pero sin pisar lo que el usuario ya esté
+  // editando: si el status sigue en "idle" (no hay ediciones locales sin
+  // guardar todavía) se acepta la actualización externa.
   useEffect(() => {
-    setForm(item);
+    setForm((prev) => (prev.id === item.id && status !== "idle" ? prev : item));
     setStatus("idle");
-  }, [item.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, item.descripcion]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const field =
