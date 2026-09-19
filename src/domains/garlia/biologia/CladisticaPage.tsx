@@ -179,6 +179,18 @@ function DiagramaCladograma({
     else onMoverGrupo(idsAMover, destinoId);
   };
 
+  // Mientras se arrastra con click derecho, el navegador dispara igual un
+  // evento "contextmenu" a nivel de documento apenas se suelta el botón (o,
+  // en algunos navegadores, apenas se aprieta) — si no se lo bloquea ahí
+  // también, el menú nativo se abre y corta el arrastre a mitad de camino.
+  // Por eso se instala un listener global mientras arrastrandoIds !== null.
+  useEffect(() => {
+    if (!arrastrandoIds) return;
+    const bloquear = (e: MouseEvent) => e.preventDefault();
+    document.addEventListener("contextmenu", bloquear, true);
+    return () => document.removeEventListener("contextmenu", bloquear, true);
+  }, [arrastrandoIds]);
+
   const handleMouseDown = (e: React.MouseEvent, cladoId: string) => {
     if (e.button !== 2) return; // solo click derecho arranca el arrastre
     e.preventDefault();
@@ -191,6 +203,19 @@ function DiagramaCladograma({
     setArrastrandoIds(grupo);
     setHuboMovimiento(false);
     setPosMouse(puntoSvg(e.clientX, e.clientY));
+
+    // Capturamos el resto del arrastre a nivel de documento: si el mouse
+    // sale del SVG (o incluso de la ventana) mientras se mantiene el click
+    // derecho, seguimos recibiendo mousemove/mouseup igual. onMouseLeave del
+    // SVG por sí solo cortaba el arrastre apenas el cursor rozaba el borde.
+    const onMove = (ev: MouseEvent) => handleMouseMove(ev as unknown as React.MouseEvent);
+    const onUp = () => {
+      finalizarArrastre();
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -221,7 +246,7 @@ function DiagramaCladograma({
     : [];
 
   return (
-    <div className="overflow-auto rounded-2xl border border-primary/10 bg-white-custom/60 p-3 relative">
+    <div className="overflow-auto p-3 relative w-full">
       {arrastrandoIds && huboMovimiento && (
         <p className="text-micro font-black uppercase tracking-widest text-accent/70 mb-2 px-1">
           Soltá el click derecho sobre otro clado para reasignar
@@ -243,7 +268,6 @@ function DiagramaCladograma({
         style={{ minWidth: "100%", cursor: arrastrandoIds ? "grabbing" : "default" }}
         onMouseMove={handleMouseMove}
         onMouseUp={finalizarArrastre}
-        onMouseLeave={finalizarArrastre}
         onContextMenu={(e) => e.preventDefault()}
       >
         {/* Ramas */}
@@ -315,8 +339,9 @@ function DiagramaCladograma({
                 opacity={esDestinoInvalido ? 0.25 : 1}
               />
               <text
-                x={8}
-                y={4}
+                x={esHoja ? 8 : 0}
+                y={esHoja ? 4 : 16}
+                textAnchor={esHoja ? "start" : "middle"}
                 opacity={siendoArrastrado ? 0.4 : esDestinoInvalido ? 0.3 : 1}
                 className={`text-[11px] font-bold select-none ${
                   activo || enSeleccionMultiple ? "fill-accent" : esHoverDestino ? "fill-accent" : "fill-primary/75"
@@ -326,8 +351,9 @@ function DiagramaCladograma({
               </text>
               {n.clado.criatura_ids?.length > 0 && (
                 <text
-                  x={8 + (n.clado.nombre?.length ?? 0) * 6.2 + 6}
-                  y={4}
+                  x={esHoja ? 8 + (n.clado.nombre?.length ?? 0) * 6.2 + 6 : 0}
+                  y={esHoja ? 4 : -6}
+                  textAnchor={esHoja ? "start" : "middle"}
                   className="text-[9px] font-bold fill-accent/60 select-none"
                 >
                   {n.clado.criatura_ids.length}
