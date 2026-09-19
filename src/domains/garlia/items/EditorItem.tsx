@@ -20,7 +20,7 @@
  */
 
 
-import { Atom, Box, Bug, Dices, Package, X } from "lucide-react";
+import { Atom, Beaker, Box, Bug, Dices, Package, UserRound, X } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
@@ -87,6 +87,15 @@ export function EditorItem({
   const [form, setForm] = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [showModalDnd, setShowModalDnd] = useState(false);
+  // Toggle "Científico ↔ Escritor" del header — mismo patrón que
+  // ElementoEditor/CompuestoEditor/MaterialEditorFlotante: alterna cómo se
+  // muestran las propiedades físicas del objeto (valor técnico vs. nivel +
+  // explicación en lenguaje llano), sin recalcular nada. Objeto todavía no
+  // tiene capa humana propia calculada en Supabase, así que en modo
+  // Escritor cada celda cae de vuelta al valor técnico automáticamente
+  // (ver PropertyCell en PanelFisicaObjeto) — el toggle ya queda listo
+  // para cuando esa capa exista.
+  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
   const [editandoReaccionId, setEditandoReaccionId] = useState<string | null>(null);
   const { onWikilink } = useWikilink();
@@ -268,6 +277,30 @@ export function EditorItem({
     </button>
   );
 
+  // Toggle Científico ↔ Escritor — mismo componente visual que
+  // ElementoEditor/CompuestoEditor/MaterialEditorFlotante, viaja junto al
+  // dado D&D dentro de "extra".
+  const modoVistaBtn = (
+    <button
+      type="button"
+      onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+      title={
+        modoVista === "quimica"
+          ? "Ver explicación en lenguaje llano de las propiedades"
+          : "Ver valores y fórmulas técnicas"
+      }
+      aria-pressed={modoVista === "humana"}
+      className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+        modoVista === "humana"
+          ? "border-accent/40 bg-accent/10 text-accent"
+          : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+      }`}
+    >
+      {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
+      <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+    </button>
+  );
+
   const headerControls = {
     imagenUrl: form.imagen_url,
     IconoFallback: Package,
@@ -277,7 +310,12 @@ export function EditorItem({
     status,
     onGuardar: save,
     onEliminar: del,
-    extra: dadoDndBtn,
+    extra: (
+      <>
+        {modoVistaBtn}
+        {dadoDndBtn}
+      </>
+    ),
   };
   usePublishHeaderControls(headerControls, onHeaderControlsChange);
 
@@ -436,6 +474,7 @@ export function EditorItem({
                 estadoFisico={form.estado_fisico}
                 geometriaFisica={form.geometria_fisica}
                 onRefrescarItem={refrescarPropiedadesFisicas}
+                modo={modoVista}
               />
             </div>
           </div>

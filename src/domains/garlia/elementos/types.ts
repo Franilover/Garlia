@@ -475,18 +475,27 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
     return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
   }
 
-  // ─── 4 familias, mismo orden en el que se muestran agrupadas en el
-  // panel (ver TarjetaPropiedadesFisicas con agruparPor="grupo"):
-  // Propiedades físicas → Estructura → Enlaces → Capacidad externa.
+  // ─── Familias siguiendo la arquitectura científica canónica (ver
+  // documento "Arquitectura científica" — regla: Propiedades = qué es,
+  // Estructura = cómo está organizado, Reactividad = qué puede
+  // transformar/activar). Mismo orden en el que se muestran agrupadas en
+  // el panel (ver TarjetaPropiedadesFisicas con agruparPor="grupo"):
+  // Estado físico fundamental → Propiedades físicas → Reactividad →
+  // Estructura → Enlaces → Capacidad externa → Diagnóstico técnico.
   const G = {
+    fisicoFundamental: "Estado físico fundamental",
     fisicas: "Propiedades físicas",
+    reactividad: "Reactividad",
     estructura: "Estructura",
     enlaces: "Enlaces",
     capacidadExterna: "Capacidad externa",
+    diagnostico: "Diagnóstico técnico",
   } as const;
 
   return [
-    // ─── Propiedades físicas ────────────────────────────────────────────
+    // ─── Estado físico fundamental (sección 2 del plan): solo las
+    // magnitudes base — masa, volumen, carga. No se mezcla con
+    // comportamiento emergente (Propiedades físicas, abajo).
     // ⚠️ Fórmula corregida (auditoría 2026-09-12): masa_base ya NO depende
     // solo de partículas del núcleo. calcular_propiedades_elemento() ahora
     // suma el peso_masa de TODAS las partículas del elemento (las 3 capas),
@@ -494,21 +503,42 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
     // elemento con partículas variadas en media/externa puede así tener
     // masa distinta de otro con igual núcleo — algo que la fórmula anterior
     // (solo núcleo) no permitía capturar.
-    { clave: "masa_base", label: "Masa", valor: fmt(el.masa_base, 2), descripcion: "Cantidad de masa fundamental del elemento en la escala interna de Garlia.", formula: "Masa = Σ peso_masa(partícula) · factor_capa, factor_capa = 1.00 (núcleo) / 0.40 (media) / 0.15 (externa)", grupo: G.fisicas },
-    { clave: "volumen_base", label: "Volumen", valor: fmt(el.volumen_base, 2), descripcion: "Espacio de referencia asociado a la configuración del elemento; no es una magnitud 0–1.", formula: "Volumen base = número total de partículas de la configuración elemental", grupo: G.fisicas },
+    { clave: "masa_base", label: "Masa", valor: fmt(el.masa_base, 2), descripcion: "Cantidad de masa fundamental del elemento en la escala interna de Garlia.", formula: "Masa = Σ peso_masa(partícula) · factor_capa, factor_capa = 1.00 (núcleo) / 0.40 (media) / 0.15 (externa)", grupo: G.fisicoFundamental },
+    { clave: "volumen_base", label: "Volumen", valor: fmt(el.volumen_base, 2), descripcion: "Espacio de referencia asociado a la configuración del elemento; no es una magnitud 0–1.", formula: "Volumen base = número total de partículas de la configuración elemental", grupo: G.fisicoFundamental },
+    { clave: "carga_q", label: "Carga Q", valor: fmt(el.carga_q, 2), descripcion: "Carga cuántica total del elemento, suma de las 3 capas.", formula: "Carga Q = carga_q(núcleo) + carga_q(media) + carga_q(externa)", grupo: G.fisicoFundamental },
+    { clave: "carga_q_norm", label: "Carga Q (normalizada)", valor: fmt(el.carga_q_norm), proporcion: prop(el.carga_q_norm), descripcion: "Carga Q normalizada a escala 0–1 para comparar entre elementos.", grupo: G.fisicoFundamental },
+
+    // ─── Propiedades físicas (sección 3 del plan, "emergentes"): lo que el
+    // elemento PUEDE HACER/RESISTIR, derivado de composición y estructura.
     { clave: "estabilidad", label: "Estabilidad", valor: fmt(el.estabilidad), proporcion: prop(el.estabilidad), descripcion: "Qué tan resistente es a romperse o transformarse.", formula: "Propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
     { clave: "rigidez", label: "Rigidez", valor: fmt(el.rigidez), proporcion: prop(el.rigidez), descripcion: "Resistencia a deformarse bajo fuerza.", formula: "Propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
     { clave: "flexibilidad", label: "Flexibilidad", valor: fmt(el.flexibilidad), proporcion: prop(el.flexibilidad), descripcion: "Capacidad de deformarse sin romperse.", formula: "Propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
-    { clave: "dureza", label: "Dureza", valor: fmt(el.dureza), proporcion: prop(el.dureza), descripcion: "Resistencia a ser rayado o penetrado.", formula: "Dureza = 0.65·rigidez + 0.20·saturación de enlace + 0.15·saturación externa", grupo: G.fisicas },
+    // Dureza queda marcada como propiedad "dependiente de prueba" (sección
+    // 3 del plan): necesita una perturbación/criterio de falla para tener
+    // sentido, a diferencia de Rigidez/Flexibilidad/Estabilidad — no se
+    // separa a un grupo aparte todavía porque comparte la misma fórmula
+    // simple derivada que el resto, pero queda documentado acá.
+    { clave: "dureza", label: "Dureza", valor: fmt(el.dureza), proporcion: prop(el.dureza), descripcion: "Resistencia a ser rayado o penetrado (propiedad condicional: depende de una prueba/perturbación concreta, no es una magnitud universal como Rigidez).", formula: "Dureza = 0.65·rigidez + 0.20·saturación de enlace + 0.15·saturación externa", grupo: G.fisicas },
+
+    // ─── Interacción y transferencia (subgrupo de Propiedades físicas,
+    // sección 4 del plan): cómo el elemento transmite/deja pasar una
+    // influencia, en vez de cómo resiste una fuerza.
     { clave: "conductividad", label: "Conductividad", valor: fmt(el.conductividad), proporcion: prop(el.conductividad), descripcion: "Facilidad para transmitir energía/interacción.", formula: "Conductividad = 0.35·interacción externa + 0.30·interacción media + 0.20·información externa + 0.15·dinámica externa", grupo: G.fisicas },
     { clave: "transparencia", label: "Transparencia", valor: fmt(el.transparencia), proporcion: prop(el.transparencia), descripcion: "Cuánto deja pasar en vez de bloquear/absorber.", formula: "Transparencia = propiedad derivada de la capacidad de paso y retención.", grupo: G.fisicas },
     { clave: "interaccion", label: "Interacción", valor: fmt(el.interaccion), proporcion: prop(el.interaccion), descripcion: "Facilidad con la que el elemento se acopla o responde a su entorno.", formula: "Interacción = propiedad derivada de la capacidad de acoplamiento del elemento.", grupo: G.fisicas },
-    { clave: "capacidad_transformacion", label: "Cap. transformación", valor: fmt(el.capacidad_transformacion), proporcion: prop(el.capacidad_transformacion), descripcion: "Potencial/facilidad de cambio del elemento (no es velocidad real).", formula: "Cap. transformación = 0.60·transición + 0.20·(1−catálisis) + 0.20·(1−saturación externa)", grupo: G.fisicas },
-    { clave: "dinamismo_particular", label: "Dinamismo", valor: fmt(el.dinamismo_particular, 2), descripcion: "Magnitud combinada de dinámica/transformación/interacción — usada como base de duración de procesos.", formula: "Dinamismo = combinación de dinámica + transformación + interacción de la capa externa", grupo: G.fisicas },
-    { clave: "carga_q", label: "Carga Q", valor: fmt(el.carga_q, 2), descripcion: "Carga cuántica total del elemento, suma de las 3 capas.", formula: "Carga Q = carga_q(núcleo) + carga_q(media) + carga_q(externa)", grupo: G.fisicas },
-    { clave: "carga_q_norm", label: "Carga Q (normalizada)", valor: fmt(el.carga_q_norm), proporcion: prop(el.carga_q_norm), descripcion: "Carga Q normalizada a escala 0–1 para comparar entre elementos.", grupo: G.fisicas },
 
-    // ─── Estructura ─────────────────────────────────────────────────────
+    // ─── Reactividad (sección 9 del plan): potencial/velocidad de cambio,
+    // separado a propósito de Propiedades físicas — antes vivían todas en
+    // el mismo grupo "Propiedades físicas", mezclando "qué tan rígido es"
+    // con "qué tan propenso a transformarse es".
+    { clave: "capacidad_transformacion", label: "Cap. transformación", valor: fmt(el.capacidad_transformacion), proporcion: prop(el.capacidad_transformacion), descripcion: "Potencial/facilidad de cambio del elemento (no es velocidad real).", formula: "Cap. transformación = 0.60·transición + 0.20·(1−catálisis) + 0.20·(1−saturación externa)", grupo: G.reactividad },
+    { clave: "dinamismo_particular", label: "Dinamismo", valor: fmt(el.dinamismo_particular, 2), descripcion: "Magnitud combinada de dinámica/transformación/interacción — usada como base de duración de procesos.", formula: "Dinamismo = combinación de dinámica + transformación + interacción de la capa externa", grupo: G.reactividad },
+    { clave: "catalisis_total", label: "Catálisis total", valor: fmt(el.catalisis_total, 2), descripcion: "Suma de catálisis en las 3 capas — numerador de la relación R usada en régimen estructural.", grupo: G.reactividad },
+    { clave: "transicion_total", label: "Transición total", valor: fmt(el.transicion_total, 2), descripcion: "Suma de transición en las 3 capas — denominador de la relación R usada en régimen estructural.", grupo: G.reactividad },
+    { clave: "balance_ct", label: "Balance Catálisis/Transición", valor: fmt(el.balance_ct), descripcion: "R = Catálisis total / Transición total. Define la familia (Rígido/Intermedio/Reactivo) junto a Noble/Inerte.", formula: "R = Catálisis total / Transición total", grupo: G.reactividad },
+
+    // ─── Estructura (sección 5 del plan): cómo está organizado
+    // internamente — régimen, capas, catálisis/transición/carga por capa.
     { clave: "regimen_estructural", label: "Régimen estructural", valor: el.regimen_estructural ?? null, descripcion: "Clasificación estructural derivada (ej. equilibrio).", formula: "Catálisis > Transición → conservación · Catálisis = Transición → equilibrio · Transición > Catálisis → transformación", grupo: G.estructura },
     { clave: "nucleo_particulas_totales", label: "Partículas (núcleo)", valor: fmt(el.nucleo_particulas_totales, 0), descripcion: "Cantidad total de partículas en la capa núcleo.", grupo: G.estructura },
     { clave: "media_particulas_totales", label: "Partículas (media)", valor: fmt(el.media_particulas_totales, 0), descripcion: "Cantidad total de partículas en la capa media.", grupo: G.estructura },
@@ -522,7 +552,8 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
     { clave: "media_carga_q", label: "Carga Q (media)", valor: fmt(el.media_carga_q, 2), descripcion: "Carga cuántica aportada solo por la capa media.", grupo: G.estructura },
     { clave: "externa_carga_q", label: "Carga Q (externa)", valor: fmt(el.externa_carga_q, 2), descripcion: "Carga cuántica aportada solo por la capa externa.", grupo: G.estructura },
 
-    // ─── Enlaces ────────────────────────────────────────────────────────
+    // ─── Enlaces (sección 6 del plan): resumen de la capacidad/afinidad de
+    // enlace del elemento — separado de Estructura general.
     { clave: "valencia_estructural", label: "Valencia estructural", valor: fmt(el.valencia_estructural, 0), descripcion: "Cantidad de enlaces que puede sostener estructuralmente.", formula: "Valencia = mín(ocupación, capacidad externa − ocupación, capacidad externa / 2)", grupo: G.enlaces },
     // "valencia_fuente", "sitios_enlace_externos", "capacidad_enlace_bruta",
     // "disponibilidad_sitios" y "capacidad_externa_enlace" removidas de esta
@@ -533,18 +564,12 @@ export function propiedadesCalculadasDeElemento(el: Elemento): PropiedadCalculad
     { clave: "saturacion_enlace", label: "Saturación de enlace", valor: fmt(el.saturacion_enlace), proporcion: prop(el.saturacion_enlace), descripcion: "Qué tan cerca está de agotar su capacidad de enlace.", formula: "Saturación de enlace = sitios de enlace usados / sitios de enlace disponibles", grupo: G.enlaces },
     { clave: "selectividad_enlace", label: "Selectividad de enlace", valor: fmt(el.selectividad_enlace), proporcion: prop(el.selectividad_enlace), descripcion: "Qué tan exigente es el elemento al aceptar enlaces nuevos.", grupo: G.enlaces },
 
-    // ─── Capacidad externa ──────────────────────────────────────────────
+    // ─── Capacidad externa (parte de Arquitectura interna, sección 5.2 del
+    // plan): cupo/ocupación de la capa externa — determina Noble/Inerte.
     { clave: "capacidad_externa", label: "Capacidad externa", valor: fmt(el.capacidad_externa, 0), descripcion: "Cupo total de la capa externa para partículas de Voluntad/Percepción/Transición/Catálisis.", grupo: G.capacidadExterna },
     { clave: "ocupacion_externa", label: "Ocupación externa", valor: fmt(el.ocupacion_externa, 0), descripcion: "Cuánto de la capacidad externa está ocupado actualmente.", grupo: G.capacidadExterna },
     { clave: "capacidad_externa_restante", label: "Capacidad externa restante", valor: fmt(el.capacidad_externa_restante, 0), descripcion: "Cupo de la capa externa que todavía queda libre.", grupo: G.capacidadExterna },
     { clave: "saturacion_externa", label: "Saturación externa", valor: fmt(el.saturacion_externa), proporcion: prop(el.saturacion_externa), descripcion: "Qué tan llena está la capa externa — en 100% determina si el elemento es Noble.", formula: "Saturación externa = ocupación externa / capacidad externa", grupo: G.capacidadExterna },
-
-    // ─── Sin familia definida: totales globales de catálisis/transición
-    // que alimentan el régimen estructural (balance_ct), no encajan en
-    // una sola capa ni en una sola familia — quedan sin agrupar, al final.
-    { clave: "catalisis_total", label: "Catálisis total", valor: fmt(el.catalisis_total, 2), descripcion: "Suma de catálisis en las 3 capas — numerador de la relación R usada en régimen estructural." },
-    { clave: "transicion_total", label: "Transición total", valor: fmt(el.transicion_total, 2), descripcion: "Suma de transición en las 3 capas — denominador de la relación R usada en régimen estructural." },
-    { clave: "balance_ct", label: "Balance Catálisis/Transición", valor: fmt(el.balance_ct), descripcion: "R = Catálisis total / Transición total. Define la familia (Rígido/Intermedio/Reactivo) junto a Noble/Inerte.", formula: "R = Catálisis total / Transición total" },
   ].map(adjuntar);
 }
 
@@ -727,19 +752,25 @@ export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalcula
     return { ...p, nivelHumano: h.nivel, significadoHumano: h.significado };
   }
 
-  // ─── 3 familias propias del Compuesto (la 4ta, "Análisis estructural",
-  // se agrega en propiedadesDeEstabilidadDetalle porque viene de una fuente
-  // distinta — compuesto_estabilidad — pero comparte el mismo mecanismo de
-  // agrupación de TarjetaPropiedadesFisicas). Mismo patrón que
-  // propiedadesCalculadasDeElemento (grupo: G.xxx), ver comentario ahí.
+  // ─── Familias siguiendo la arquitectura científica canónica (mismo
+  // criterio que propiedadesCalculadasDeElemento, ver comentario ahí):
+  // Identificación → Propiedades físicas → Estructura → Análisis
+  // estructural (agregado aparte en propiedadesDeEstabilidadDetalle,
+  // porque viene de compuesto_estabilidad — fuente distinta — pero
+  // comparte el mismo mecanismo de agrupación de TarjetaPropiedadesFisicas
+  // y el mismo nombre de grupo, para fundirse en una sola sección visual).
   const G = {
     fisicas: "Propiedades físicas",
     estructura: "Estructura",
-    clasificacion: "Clasificación",
+    identificacion: "Identificación",
+    analisisEstructural: "Análisis estructural",
   } as const;
 
   return [
-    // ─── Propiedades físicas ────────────────────────────────────────────
+    // ─── Propiedades físicas (sección 2+3 del plan: Estado físico
+    // fundamental + emergentes fundidos en un solo grupo para Compuesto —
+    // a diferencia de Elemento, acá no hay suficiente volumen de campos
+    // para justificar 2 sub-secciones separadas todavía).
     { clave: "masa", label: "Masa", valor: fmt(c.masa, 2), descripcion: "Cantidad total de masa contenida en el compuesto. Es una magnitud interna, no un índice 0–1.", formula: "Masa = Σ (cantidad × masa base de cada elemento)", grupo: G.fisicas },
     { clave: "volumen", label: "Volumen", valor: fmt(c.volumen, 2), descripcion: "Espacio ocupado por el compuesto según su cantidad de partículas y su organización estructural.", formula: "V = V_composición × F_geom", grupo: G.fisicas },
     { clave: "densidad", label: "Densidad", valor: fmt(c.densidad, 4), descripcion: "Concentración de masa respecto al volumen ocupado. No es un índice 0–1.", formula: "ρ = M / V", grupo: G.fisicas },
@@ -747,36 +778,49 @@ export function propiedadesCalculadasDeCompuesto(c: Compuesto): PropiedadCalcula
     { clave: "estabilidad", label: "Estabilidad", valor: fmt(c.estabilidad), proporcion: prop(c.estabilidad), descripcion: "Qué tan resistente es el compuesto a romperse o transformarse.", formula: "Estabilidad = propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
     { clave: "rigidez", label: "Rigidez", valor: fmt(c.rigidez), proporcion: prop(c.rigidez), descripcion: "Resistencia del compuesto a deformarse bajo fuerza.", formula: "Rigidez = propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
     { clave: "flexibilidad", label: "Flexibilidad", valor: fmt(c.flexibilidad), proporcion: prop(c.flexibilidad), descripcion: "Capacidad del compuesto de deformarse sin romperse.", formula: "Flexibilidad = propiedad derivada de la composición y estructura del compuesto.", grupo: G.fisicas },
-    { clave: "dureza", label: "Dureza", valor: fmt(c.dureza), proporcion: prop(c.dureza), descripcion: "Resistencia del compuesto a ser rayado o penetrado.", formula: "Dureza = propiedad derivada de la composición del compuesto.", grupo: G.fisicas },
+    // Dureza: propiedad condicional/dependiente de prueba (sección 3 del
+    // plan) — se deja en el mismo grupo por ahora (comparte fórmula simple
+    // derivada con el resto), pero documentada como tal.
+    { clave: "dureza", label: "Dureza", valor: fmt(c.dureza), proporcion: prop(c.dureza), descripcion: "Resistencia del compuesto a ser rayado o penetrado (propiedad condicional: depende de una prueba/perturbación concreta).", formula: "Dureza = propiedad derivada de la composición del compuesto.", grupo: G.fisicas },
     { clave: "conductividad", label: "Conductividad", valor: fmt(c.conductividad), proporcion: prop(c.conductividad), descripcion: "Facilidad del compuesto para transmitir una influencia a través de su estructura.", formula: "Conductividad = propiedad derivada de la capacidad de transmisión de sus componentes.", grupo: G.fisicas },
     { clave: "transparencia", label: "Transparencia", valor: fmt(c.transparencia), proporcion: prop(c.transparencia), descripcion: "Facilidad con la que una influencia atraviesa el compuesto sin quedar retenida.", formula: "Transparencia = propiedad derivada de la capacidad de paso de sus componentes.", grupo: G.fisicas },
     { clave: "interaccion", label: "Interacción", valor: fmt(c.interaccion), proporcion: prop(c.interaccion), descripcion: "Facilidad con la que el compuesto se acopla con su entorno.", formula: "Interacción = propiedad derivada de la capacidad de acoplamiento de sus componentes.", grupo: G.fisicas },
     { clave: "compatibilidad", label: "Compatibilidad", valor: fmt(c.compatibilidad), proporcion: prop(c.compatibilidad), descripcion: "Qué tan compatibles son entre sí los sitios de enlace usados.", formula: "Compatibilidad = función de carga, catálisis, transición, interacción y transformación entre los sitios enlazados", grupo: G.fisicas },
     { clave: "energia_enlace", label: "Energía de enlace", valor: fmt(c.energia_enlace, 4), descripcion: "Energía acumulada en los enlaces del compuesto.", formula: "Energía de enlace = Σ (coste energético × intensidad × (1 − reversibilidad)) de cada enlace", grupo: G.fisicas },
 
-    // ─── Estructura ─────────────────────────────────────────────────────
+    // ─── Estructura (sección 5 del plan): cómo está organizado
+    // internamente — estado, tipo, topología.
     { clave: "estado_estructura", label: "Estado de estructura", valor: c.estado_topologia ?? null, descripcion: "Qué tan completa/consistente está la definición estructural del compuesto.", grupo: G.estructura },
     { clave: "tipo_estructura", label: "Tipo de estructura", valor: c.topologia_estructura ?? null, descripcion: "Clasificación de la arquitectura de enlaces del compuesto.", grupo: G.estructura },
     { clave: "tipo_estructura_derivada", label: "Tipo de estructura (derivada)", valor: c.topologia_estructura_derivada ?? null, descripcion: "Tipo de estructura recalculado automáticamente a partir de la composición y enlaces actuales.", grupo: G.estructura },
     { clave: "topologia_enlace", label: "Topología de enlace", valor: c.topologia_enlace ?? null, descripcion: "Forma en que se organizan los enlaces entre los elementos del compuesto (ej. lineal, ramificada).", grupo: G.estructura },
 
-    // ─── Clasificación ──────────────────────────────────────────────────
-    { clave: "tipo_compuesto", label: "Tipo", valor: c.tipo_compuesto ?? null, descripcion: "Clasificación estructural (sustancia, mezcla, aleación, material estructural).", formula: "Sin enlace definido → mezcla · con estructura de enlace válida → compuesto", grupo: G.clasificacion },
-    { clave: "clasificacion", label: "Clasificación", valor: c.clasificacion ?? null, descripcion: "Clasificación derivada más específica del compuesto.", grupo: G.clasificacion },
-    { clave: "naturaleza_semantica", label: "Naturaleza semántica", valor: c.naturaleza_semantica ?? null, descripcion: "Interpretación de qué tipo de sustancia representa el compuesto dentro del canon.", grupo: G.clasificacion },
-    { clave: "formula_canonica", label: "Fórmula canónica", valor: c.formula_canonica ?? null, descripcion: "Notación canónica de la composición del compuesto (ej. Fl2Cr).", grupo: G.clasificacion },
-    { clave: "razon_clasificacion", label: "Razón de clasificación", valor: c.razon_clasificacion ?? null, descripcion: "Motivo/regla por la que Supabase asignó la Clasificación mostrada arriba.", grupo: G.clasificacion },
+    // ─── Identificación (sección 1 del plan): "qué es" el compuesto —
+    // tipo, clasificación, naturaleza semántica, fórmula canónica. Antes
+    // este grupo se llamaba "Clasificación"; se renombra a Identificación
+    // para alinear con el resto de editores (Elemento/Material) y con la
+    // sección 1 del plan, que agrupa nombre/símbolo/fórmula/tipo/estado
+    // como "qué es la entidad" — siempre arriba, sin mezclarse con
+    // propiedades.
+    { clave: "tipo_compuesto", label: "Tipo", valor: c.tipo_compuesto ?? null, descripcion: "Clasificación estructural (sustancia, mezcla, aleación, material estructural).", formula: "Sin enlace definido → mezcla · con estructura de enlace válida → compuesto", grupo: G.identificacion },
+    { clave: "clasificacion", label: "Clasificación", valor: c.clasificacion ?? null, descripcion: "Clasificación derivada más específica del compuesto.", grupo: G.identificacion },
+    { clave: "naturaleza_semantica", label: "Naturaleza semántica", valor: c.naturaleza_semantica ?? null, descripcion: "Interpretación de qué tipo de sustancia representa el compuesto dentro del canon.", grupo: G.identificacion },
+    { clave: "formula_canonica", label: "Fórmula canónica", valor: c.formula_canonica ?? null, descripcion: "Notación canónica de la composición del compuesto (ej. Fl2Cr).", grupo: G.identificacion },
+    { clave: "razon_clasificacion", label: "Razón de clasificación", valor: c.razon_clasificacion ?? null, descripcion: "Motivo/regla por la que Supabase asignó la Clasificación mostrada arriba.", grupo: G.identificacion },
 
-    // ─── Análisis estructural (parte 1: viene de columnas de "compuestos";
-    // el resto — tensión, calidad de enlaces, complejidad estructural,
-    // coste de organización, confianza — se agrega en
-    // propiedadesDeEstabilidadDetalle con el mismo nombre de grupo, ver ahí,
-    // porque sale de la tabla "compuesto_estabilidad" en vez de columnas
-    // directas de "compuestos"). Se excluyen a propósito
+    // ─── Análisis estructural (sección 11 del plan, "Análisis derivado":
+    // describe el análisis que el sistema hizo del compuesto, no una
+    // propiedad física primaria — parte 1 acá, viene de columnas de
+    // "compuestos"; el resto —tensión, calidad de enlaces, complejidad
+    // estructural, coste de organización, confianza— se agrega en
+    // propiedadesDeEstabilidadDetalle con el mismo nombre de grupo, ver
+    // ahí, porque sale de la tabla "compuesto_estabilidad" en vez de
+    // columnas directas de "compuestos"). Se excluyen a propósito
     // estructura/validacion/auditoria/propiedades_emergentes: son jsonb de
     // diagnóstico interno, no aplanables a una tarjeta simple sin decidir
-    // antes qué mostrar de cada uno.
-    { clave: "umbral_estabilidad", label: "Umbral de estabilidad", valor: fmt(c.umbral_estabilidad), proporcion: prop(c.umbral_estabilidad), descripcion: "Estabilidad mínima requerida para que el compuesto se considere formado de manera consistente.", grupo: "Análisis estructural" },
+    // antes qué mostrar de cada uno — quedarían en Diagnóstico técnico /
+    // Validación el día que se decida aplanarlos.
+    { clave: "umbral_estabilidad", label: "Umbral de estabilidad", valor: fmt(c.umbral_estabilidad), proporcion: prop(c.umbral_estabilidad), descripcion: "Estabilidad mínima requerida para que el compuesto se considere formado de manera consistente.", grupo: G.analisisEstructural },
   ].map(adjuntar);
 }
 

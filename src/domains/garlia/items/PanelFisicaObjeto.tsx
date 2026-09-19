@@ -20,8 +20,36 @@ function formatValue(value: unknown): string {
 /** Tarjeta compacta de una propiedad — mismo lenguaje visual que
  *  TarjetaPropiedadesFisicas de Química (elementos/GridPropiedadesCalculadas):
  *  sin borde ni fondo propios, solo tipografía micro y separación por
- *  espaciado, apoyándose en el contenedor exterior para el límite visual. */
-function PropertyCell({ label, value }: { label: string; value: unknown }) {
+ *  espaciado, apoyándose en el contenedor exterior para el límite visual.
+ *
+ *  `modo` acompaña al toggle Científico ↔ Escritor del header de
+ *  EditorItem (ver PanelFisicaObjeto), pero Objeto todavía no tiene una
+ *  capa humana propia calculada en Supabase (no hay
+ *  propiedades_emergentes.interpretacion_humana para items) — así que en
+ *  modo "humana" esta celda sigue mostrando el mismo valor técnico, igual
+ *  que TarjetaPropiedad cae de vuelta al valor técnico cuando la propiedad
+ *  puntual no tiene nivelHumano. El parámetro ya queda listo para cuando
+ *  esa capa humana exista, sin tener que volver a tocar este archivo. */
+function PropertyCell({
+  label,
+  value,
+  modo = "quimica",
+}: {
+  label: string;
+  value: unknown;
+  modo?: "quimica" | "humana";
+}) {
+  if (modo === "humana") {
+    return (
+      <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]">
+        <span className="text-micro font-bold text-accent/60 truncate">{label}</span>
+        <span className="text-micro font-black text-accent tabular-nums shrink-0">
+          {formatValue(value)}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5">
       <span className="text-micro font-bold text-primary/50 truncate">{label}</span>
@@ -92,6 +120,7 @@ export function PanelFisicaObjeto({
   estadoFisico,
   geometriaFisica,
   onRefrescarItem,
+  modo = "quimica",
 }: {
   itemId: string;
   propiedadesFisicas?: (Record<string, unknown> & { estado?: string; fuente_fisica?: string }) | null;
@@ -105,6 +134,10 @@ export function PanelFisicaObjeto({
    *  vez. Sin esto, la sección de física quedaría mostrando el valor
    *  anterior hasta recargar el editor entero. */
   onRefrescarItem?: () => void;
+  /** "quimica" (default): valor técnico plano, como siempre. "humana":
+   *  mismo lenguaje visual "chip" que TarjetaPropiedad en modo Escritor —
+   *  ver botón Científico ↔ Escritor en el header de EditorItem. */
+  modo?: "quimica" | "humana";
 }) {
   const { items: materialesCatalogo, loading: loadingCatalogo } = useMateriales();
   const { items: composicion, loading: loadingComposicion } = useItemMateriales(itemId);
@@ -159,7 +192,7 @@ export function PanelFisicaObjeto({
                   <SubGroupLabel>Magnitudes</SubGroupLabel>
                   {MAGNITUDES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                     ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} />
+                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
                     ),
                   )}
                 </div>
@@ -169,7 +202,7 @@ export function PanelFisicaObjeto({
                   <SubGroupLabel>Geometría</SubGroupLabel>
                   {GEOMETRIA_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                     ([key, label]) => (
-                      <PropertyCell key={key} label={label} value={propiedades[key]} />
+                      <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
                     ),
                   )}
                 </div>
@@ -182,7 +215,7 @@ export function PanelFisicaObjeto({
                 <SubGroupLabel>Propiedades</SubGroupLabel>
                 {PROPIEDADES_OBJETO.filter(([key]) => propiedades[key] !== undefined).map(
                   ([key, label]) => (
-                    <PropertyCell key={key} label={label} value={propiedades[key]} />
+                    <PropertyCell key={key} label={label} value={propiedades[key]} modo={modo} />
                   ),
                 )}
               </div>

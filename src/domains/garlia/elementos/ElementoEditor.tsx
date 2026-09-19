@@ -83,11 +83,14 @@ export function ElementoEditor({
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(elemento);
-  // Toggle "Química ↔ Humana" del header — mismo patrón que CompuestoEditor:
-  // alterna cómo se muestran las propiedades físicas (valor técnico vs.
-  // nivel + explicación en lenguaje llano), sin recalcular nada — ambas
-  // capas ya vienen en la misma fila de "elementos" (propiedades_emergentes.
-  // interpretacion_humana), ver propiedadesCalculadasDeElemento.
+  // Toggle "Científico ↔ Escritor" del header — mismo patrón que
+  // CompuestoEditor: alterna cómo se muestran las propiedades físicas
+  // (valor técnico vs. nivel + explicación en lenguaje llano), sin
+  // recalcular nada — ambas capas ya vienen en la misma fila de "elementos"
+  // (propiedades_emergentes.interpretacion_humana), ver
+  // propiedadesCalculadasDeElemento. Los valores internos del estado siguen
+  // siendo "quimica"/"humana" (no se tocan tipos ni claves de datos), solo
+  // cambió la etiqueta visible.
   const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
 
   useEffect(() => setLocal(elemento), [elemento]);
@@ -217,8 +220,8 @@ export function ElementoEditor({
           onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
           title={
             modoVista === "quimica"
-              ? "Ver explicación humana de las propiedades"
-              : "Ver valores y fórmulas químicas"
+              ? "Ver explicación en lenguaje llano de las propiedades"
+              : "Ver valores y fórmulas técnicas"
           }
           aria-pressed={modoVista === "humana"}
           className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
@@ -228,7 +231,7 @@ export function ElementoEditor({
           }`}
         >
           {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-          <span className="hidden sm:inline">{modoVista === "humana" ? "Humana" : "Química"}</span>
+          <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
         </button>
       </>
     ),
@@ -472,8 +475,9 @@ function PropiedadesFisicasBloque({
 }: {
   propiedades: PropiedadCalculada[];
   /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
-   *  nivel + explicación en lenguaje llano — ver botón Química ↔ Humana en
-   *  el header de ElementoEditor, mismo patrón que CompuestoEditor. */
+   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
+   *  Escritor en el header de ElementoEditor, mismo patrón que
+   *  CompuestoEditor. */
   modo?: "quimica" | "humana";
   /** Frase de propiedades_emergentes.humano.resumen — se muestra arriba de
    *  la grilla solo en modo Humana. Null si el elemento no tiene capa

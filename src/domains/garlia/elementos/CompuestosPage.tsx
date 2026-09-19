@@ -332,8 +332,8 @@ function PropiedadesFisicasCompuestoBloque({
 }: {
   propiedades: PropiedadCalculada[];
   /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
-   *  nivel + explicación en lenguaje llano — ver botón Química ↔ Humana
-   *  en el header de CompuestoEditor. */
+   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
+   *  Escritor en el header de CompuestoEditor. */
   modo?: "quimica" | "humana";
   /** Frase de propiedades_emergentes.humano.resumen (composición +
    *  estabilidad en lenguaje llano) — se muestra arriba de la grilla solo
@@ -1024,11 +1024,13 @@ function CompuestoEditor({
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(compuesto);
-  // Toggle "Química ↔ Humana" del header: alterna cómo se muestran las
+  // Toggle "Científico ↔ Escritor" del header: alterna cómo se muestran las
   // propiedades físicas (valor + fórmula técnica vs. nivel + explicación
   // en lenguaje llano) sin recalcular ni volver a pedir nada — ambas capas
   // ya vienen en la misma fila de "compuestos" (propiedades_emergentes.
-  // interpretacion_humana), ver propiedadesCalculadasDeCompuesto.
+  // interpretacion_humana), ver propiedadesCalculadasDeCompuesto. Los
+  // valores internos del estado siguen siendo "quimica"/"humana", solo
+  // cambió la etiqueta visible.
   const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [editandoElementoIdLocal, setEditandoElementoIdLocal] = useState<string | null>(null);
   const editandoElementoId =
@@ -1273,8 +1275,8 @@ function CompuestoEditor({
           onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
           title={
             modoVista === "quimica"
-              ? "Ver explicación humana de las propiedades"
-              : "Ver valores y fórmulas químicas"
+              ? "Ver explicación en lenguaje llano de las propiedades"
+              : "Ver valores y fórmulas técnicas"
           }
           aria-pressed={modoVista === "humana"}
           className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
@@ -1284,7 +1286,7 @@ function CompuestoEditor({
           }`}
         >
           {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-          <span className="hidden sm:inline">{modoVista === "humana" ? "Humana" : "Química"}</span>
+          <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
         </button>
       </>
     ),

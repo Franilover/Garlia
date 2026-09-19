@@ -118,6 +118,20 @@ export function propiedadesCalculadasGenerico(
   const fmt = (v: number | null, digitos = 3) => (v === null ? null : v.toFixed(digitos));
   const prop = (v: number | null) => (v === null ? undefined : Math.max(0, Math.min(1, v)));
 
+  // ─── Mismos nombres de grupo que Elemento/Compuesto (ver
+  // propiedadesCalculadasDeElemento/DeCompuesto en elementos/types.ts):
+  // Estado físico fundamental (magnitudes acumulativas) → Propiedades
+  // físicas (índices [0,1] emergentes). Antes MAGNITUDES e INDICES se
+  // fundían en un único grupo "Propiedades físicas" (ver
+  // MaterialesPage.tsx: `grupo: p.grupo ?? "Propiedades físicas"`),
+  // mezclando "qué es" (masa/volumen/carga) con "qué puede hacer"
+  // (rigidez/estabilidad/etc.) — separados acá siguiendo la arquitectura
+  // científica canónica.
+  const G = {
+    fisicoFundamental: "Estado físico fundamental",
+    fisicas: "Propiedades físicas",
+  } as const;
+
   const MAGNITUDES: { clave: string; label: string; descripcion: string; digitos?: number }[] = [
     { clave: "masa", label: "Masa", descripcion: "Cantidad total de masa contenida; magnitud acumulativa, no un índice 0–1. La fuente exacta (composición directa o estructura) depende del nivel — ver fuente_fisica.", digitos: 2 },
     { clave: "carga", label: "Carga", descripcion: "Carga neta acumulada de la composición.", digitos: 2 },
@@ -130,7 +144,10 @@ export function propiedadesCalculadasGenerico(
     { clave: "estabilidad", label: "Estabilidad", descripcion: "Tendencia a conservar su estado frente a ruptura o transformación.", formula: "S = 0.50·compatibilidad + 0.40·calidad de enlaces − 0.10·tensión − 0.05·complejidad" },
     { clave: "rigidez", label: "Rigidez", descripcion: "Resistencia a cambiar de forma cuando actúa una fuerza.", formula: "Propiedad derivada de la composición y arquitectura de enlaces del nivel inferior." },
     { clave: "flexibilidad", label: "Flexibilidad", descripcion: "Capacidad de cambiar de forma conservando su integridad.", formula: "Propiedad derivada de la composición y arquitectura de enlaces del nivel inferior." },
-    { clave: "dureza", label: "Dureza", descripcion: "Resistencia a penetración, rayado o deformación local.", formula: "Propiedad derivada de la composición del nivel inferior." },
+    // Dureza: propiedad condicional/dependiente de prueba (ver sección 3
+    // del plan de arquitectura científica) — se mantiene en el mismo
+    // grupo por ahora, documentada como tal.
+    { clave: "dureza", label: "Dureza", descripcion: "Resistencia a penetración, rayado o deformación local (propiedad condicional: depende de una prueba/perturbación concreta, no es una magnitud universal como Rigidez).", formula: "Propiedad derivada de la composición del nivel inferior." },
     { clave: "conductividad", label: "Conductividad", descripcion: "Facilidad para transmitir una influencia a través de su estructura.", formula: "Propiedad derivada de la capacidad de transmisión de sus componentes." },
     { clave: "transparencia", label: "Transparencia", descripcion: "Facilidad para dejar pasar una influencia sin retenerla.", formula: "Propiedad derivada de la capacidad de paso de sus componentes." },
     { clave: "interaccion", label: "Interacción", descripcion: "Facilidad para acoplarse o responder a su entorno.", formula: "Propiedad derivada de la capacidad de acoplamiento de sus componentes." },
@@ -142,13 +159,13 @@ export function propiedadesCalculadasGenerico(
   for (const m of MAGNITUDES) {
     const v = num(m.clave);
     if (v === null) continue;
-    salida.push({ clave: m.clave, label: m.label, valor: fmt(v, m.digitos ?? 3), descripcion: m.descripcion });
+    salida.push({ clave: m.clave, label: m.label, valor: fmt(v, m.digitos ?? 3), descripcion: m.descripcion, grupo: G.fisicoFundamental });
   }
 
   for (const i of INDICES) {
     const v = num(i.clave);
     if (v === null) continue;
-    salida.push({ clave: i.clave, label: i.label, valor: fmt(v), proporcion: prop(v), descripcion: i.descripcion, formula: i.formula });
+    salida.push({ clave: i.clave, label: i.label, valor: fmt(v), proporcion: prop(v), descripcion: i.descripcion, formula: i.formula, grupo: G.fisicas });
   }
 
   return salida;
@@ -235,9 +252,10 @@ export function TarjetaPropiedadesFisicas({
   titulo?: string;
   /** "quimica" (default): valor numérico + fórmula técnica, igual que
    *  siempre. "humana": nivel cualitativo + explicación en lenguaje llano
-   *  (propiedades_emergentes.interpretacion_humana) — ver botón Química ↔
-   *  Humana en CompuestoEditor. Propiedades sin capa humana calculada
-   *  todavía caen de vuelta al valor técnico (ver TarjetaPropiedad). */
+   *  (propiedades_emergentes.interpretacion_humana) — ver botón Científico
+   *  ↔ Escritor en ElementoEditor/CompuestoEditor/MaterialEditor.
+   *  Propiedades sin capa humana calculada todavía caen de vuelta al valor
+   *  técnico (ver TarjetaPropiedad). */
   modo?: "quimica" | "humana";
 }) {
   // Modo Humana: las propiedades sin capa humana calculada (clasificación,

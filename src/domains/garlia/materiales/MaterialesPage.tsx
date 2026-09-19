@@ -2,6 +2,7 @@
 
 import {
   Atom,
+  Beaker,
   Box,
   ChevronRight,
   Dices,
@@ -10,6 +11,7 @@ import {
   Plus,
   Save,
   Trash2,
+  UserRound,
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -110,7 +112,11 @@ function propiedadesDePerfilReactivo(
       valor: fmt(v),
       proporcion: prop(v),
       descripcion: eje.descripcion,
-      grupo: "Propiedades reactivas",
+      // Mismo nombre de grupo "Reactividad" que usa Elemento (sección 9 del
+      // plan de arquitectura científica) — antes decía "Propiedades
+      // reactivas", un nombre propio de Material que no coincidía con el
+      // resto de editores.
+      grupo: "Reactividad",
     };
   });
 }
@@ -291,8 +297,19 @@ function MaterialDetail({
   onCompuestoAbiertoIdChange,
   onComponentesCargados,
   onElementosCargados,
+  modo = "quimica",
 }: {
   material: Material;
+  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+   *  nivel + explicación en lenguaje llano — ver botón Científico ↔
+   *  Escritor en el header de MaterialEditorFlotante, mismo patrón que
+   *  ElementoEditor/CompuestoEditor. Material todavía no tiene capa humana
+   *  propia (propiedades_emergentes.interpretacion_humana) calculada en
+   *  Supabase, así que en modo Escritor cada tarjeta cae de vuelta al
+   *  valor técnico automáticamente (ver TarjetaPropiedad en
+   *  GridPropiedadesCalculadas) — el toggle ya queda listo para cuando
+   *  esa capa exista, sin tener que tocar este componente de nuevo. */
+  modo?: "quimica" | "humana";
   /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
    *  mismo estado para que el nivel "Compuesto" del breadcrumb superior
    *  (Elemento › Compuesto › Materiales) navegue al mismo sub-panel que
@@ -489,7 +506,7 @@ function MaterialDetail({
               </span>
             </div>
           )}
-          <TarjetaPropiedadesFisicas propiedades={propiedadesCombinadas} columnas={2} />
+          <TarjetaPropiedadesFisicas propiedades={propiedadesCombinadas} columnas={2} modo={modo} />
         </div>
 
         <div className="flex flex-col gap-2 min-w-0">
@@ -715,6 +732,12 @@ export function MaterialEditorFlotante({
   // clickear un compuesto del breadcrumb y clickear "hecho de:
   // [Compuesto]" en Componentes abran el mismo sub-panel en vez de dos
   // paneles independientes.
+  // Toggle "Científico ↔ Escritor" del header — mismo patrón que
+  // ElementoEditor/CompuestoEditor: alterna cómo se muestran las
+  // propiedades físicas (valor técnico vs. nivel + explicación en lenguaje
+  // llano), sin recalcular nada. Ver comentario en MaterialDetail sobre el
+  // fallback automático mientras Material no tenga capa humana propia.
+  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
   const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
   // Compuestos vinculados a este material, reportados por MaterialDetail
   // una vez resueltos contra el catálogo — alimenta el nivel "Compuesto"
@@ -845,6 +868,24 @@ export function MaterialEditorFlotante({
           </span>
           <button
             type="button"
+            onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+            title={
+              modoVista === "quimica"
+                ? "Ver explicación en lenguaje llano de las propiedades"
+                : "Ver valores y fórmulas técnicas"
+            }
+            aria-pressed={modoVista === "humana"}
+            className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
+              modoVista === "humana"
+                ? "border-accent/40 bg-accent/10 text-accent"
+                : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
+            }`}
+          >
+            {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
+            <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+          </button>
+          <button
+            type="button"
             onClick={onClose}
             title="Cerrar (Esc)"
             className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
@@ -864,6 +905,7 @@ export function MaterialEditorFlotante({
             onCompuestoAbiertoIdChange={setCompuestoAbiertoId}
             onComponentesCargados={setCompuestosDelMaterial}
             onElementosCargados={setElementosDeLosCompuestos}
+            modo={modoVista}
           />
         </div>
       </div>
