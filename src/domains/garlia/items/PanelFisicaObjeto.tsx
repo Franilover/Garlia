@@ -41,41 +41,21 @@ function PropertyCell({
   modo?: "quimica" | "humana";
   interpretacion?: InterpretacionEscritor;
 }) {
-  if (modo === "humana" && interpretacion) {
-    return (
-      <div
-        title={interpretacion.significado ?? undefined}
-        className="flex flex-col gap-0.5 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]"
-      >
-        <div className="flex items-center justify-between gap-1 min-w-0">
-          <span className="text-micro font-bold text-accent/60 truncate">{label}</span>
-          <span className="text-micro font-black text-accent capitalize shrink-0 truncate max-w-[6.5rem] text-right">
-            {interpretacion.nivel}
-          </span>
-        </div>
-        {interpretacion.significado && (
-          <span className="text-[10px] leading-snug text-primary/50">{interpretacion.significado}</span>
-        )}
-      </div>
-    );
-  }
-
-  if (modo === "humana") {
-    return (
-      <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]">
-        <span className="text-micro font-bold text-accent/60 truncate">{label}</span>
-        <span className="text-micro font-black text-accent tabular-nums shrink-0">
-          {formatValue(value)}
-        </span>
-      </div>
-    );
-  }
-
+  // Modo Escritor: mismo diseño que Científico; solo cambia el valor por el
+  // nivel del motor. La explicación queda como tooltip.
+  const esHumana = modo === "humana" && !!interpretacion;
   return (
-    <div className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5">
+    <div
+      title={esHumana ? (interpretacion?.significado ?? undefined) : undefined}
+      className="flex items-center justify-between gap-1 min-w-0 px-2 py-1.5"
+    >
       <span className="text-micro font-bold text-primary/50 truncate">{label}</span>
-      <span className="text-micro font-black text-primary/70 tabular-nums shrink-0">
-        {formatValue(value)}
+      <span
+        className={`text-micro font-black text-primary/70 shrink-0 truncate max-w-[6.5rem] text-right ${
+          esHumana ? "capitalize" : "tabular-nums"
+        }`}
+      >
+        {esHumana ? interpretacion?.nivel : formatValue(value)}
       </span>
     </div>
   );

@@ -190,37 +190,24 @@ function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo
   // formulaExpandidaCompuesto).
   const esHumana = modo === "humana" && p.nivelHumano !== undefined;
 
-  // Modo Humana: tarjeta completamente distinta — sin número técnico, sin
-  // barra de proporción, sin fórmula. Fondo tipo "chip" propio (no la caja
-  // gris genérica de Química) para que el toggle se sienta como cambiar de
-  // vista real, no solo cambiar un texto. Solo el nivel cualitativo
-  // ("Muy compatible", "Alta", "Baja") destaca arriba, con la frase en
-  // lenguaje llano debajo.
-  if (esHumana) {
-    return (
-      <div
-        title={p.significadoHumano}
-        className="flex flex-col gap-0.5 min-w-0 px-2 py-1.5 rounded-lg border border-accent/20 bg-accent/[0.06]"
-      >
-        <div className="flex items-center justify-between gap-1 min-w-0">
-          <span className="text-micro font-bold text-accent/60 truncate">{p.label}</span>
-          <span className="text-micro font-black text-accent capitalize shrink-0 truncate max-w-[6.5rem] text-right">
-            {p.nivelHumano}
-          </span>
-        </div>
-        {p.significadoHumano && (
-          <span className="text-[10px] leading-snug text-primary/50">{p.significadoHumano}</span>
-        )}
-      </div>
-    );
-  }
-
+  // Modo Escritor: MISMO diseño que Científico (mismos colores, misma
+  // barra de proporción, sin fondo de acento ni frase debajo). Lo único que
+  // cambia es lo que se muestra a la derecha: el nivel cualitativo del
+  // motor de interpretación ("media", "baja"…) en lugar del número. La
+  // explicación en lenguaje llano queda como tooltip al pasar el mouse.
   return (
-    <div title={p.descripcion} className="flex flex-col gap-1 min-w-0 px-2 py-1.5">
+    <div
+      title={esHumana ? (p.significadoHumano ?? p.descripcion) : p.descripcion}
+      className="flex flex-col gap-1 min-w-0 px-2 py-1.5"
+    >
       <div className="flex items-center justify-between gap-1 min-w-0">
         <span className="text-micro font-bold text-primary/50 truncate">{p.label}</span>
-        <span className="text-micro font-black tabular-nums shrink-0 truncate max-w-[6.5rem] text-right text-primary/70">
-          {p.valor}
+        <span
+          className={`text-micro font-black shrink-0 truncate max-w-[6.5rem] text-right text-primary/70 ${
+            esHumana ? "capitalize" : "tabular-nums"
+          }`}
+        >
+          {esHumana ? p.nivelHumano : p.valor}
         </span>
       </div>
       {p.proporcion !== undefined && (
@@ -283,9 +270,7 @@ export function TarjetaPropiedadesFisicas({
       <div className="flex flex-col gap-1.5 min-w-0 p-2">
         <div className="flex items-center gap-1.5">
           <span
-            className={`text-micro font-black uppercase tracking-[0.2em] ${
-              modo === "humana" ? "text-accent/50" : "text-primary/30"
-            }`}
+            className="text-micro font-black uppercase tracking-[0.2em] text-primary/30"
           >
             {titulo}
           </span>
@@ -312,9 +297,7 @@ export function TarjetaPropiedadesFisicas({
     <div className="flex flex-col gap-1.5 min-w-0 p-2">
       <div className="flex items-center gap-1.5">
         <span
-          className={`text-micro font-black uppercase tracking-[0.2em] ${
-            modo === "humana" ? "text-accent/50" : "text-primary/30"
-          }`}
+          className="text-micro font-black uppercase tracking-[0.2em] text-primary/30"
         >
           {titulo}
         </span>
