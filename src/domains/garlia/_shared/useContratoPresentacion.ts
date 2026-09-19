@@ -30,6 +30,12 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
+import {
+  guardarContratoCache,
+  leerContratoCache,
+  guardarValoresCientificosCache,
+  leerValoresCientificosCache,
+} from "@/infra/sync/syncEngine";
 
 /** Los únicos dos modos de presentación en frontend. Worldbuilder consume
  *  "cientifico" — no existe un tercer modo "worldbuilder" en el contrato. */
@@ -165,6 +171,14 @@ export type ValoresCientificosPorClave = Record<string, string | null>;
  * resueltos acá, y el grupo/nombre/orden salen de
  * useContratoPresentacion. No se recalcula nada en React: si Supabase no
  * trae valor para una clave, esa propiedad simplemente no aparece.
+ *
+ * Cache-first vía Dexie (ver guardarValoresCientificosCache/
+ * leerValoresCientificosCache en syncEngine.ts): al cambiar de entidad se
+ * pinta primero lo que ya haya en Dexie (si hay, instantáneo y funciona
+ * offline — esto es lo que resuelve la demora percibida al abrir un
+ * editor), y SIEMPRE se dispara en paralelo la consulta a Supabase, que es
+ * la fuente de verdad y reemplaza lo pintado cuando llega, reescribiendo
+ * además la copia local para la próxima vez.
  */
 export function useValoresCientificos(
   entidad: EntidadContrato,
@@ -184,34 +198,64 @@ export function useValoresCientificos(
     }
 
     let cancelado = false;
+    let pintadoDesdeCache = false;
     setLoading(true);
     setError(null);
 
-    (async () => {
-      const { data, error: err } = await (supabase as any)
-        .from("v_frontend_worldbuilder_propiedades_entidad")
-        .select("entidad_tipo, entidad_id, propiedad_clave, valor")
-        .eq("entidad_tipo", entidad)
-        .eq("entidad_id", entidadId);
-
-      if (cancelado) return;
-      if (err) {
-        console.warn("[useValoresCientificos] no se pudo leer la vista:", err.message);
-        setValores({});
-        setError(err.message);
-      } else {
-        const filas = (data ?? []) as FilaValorCientifico[];
-        const out: ValoresCientificosPorClave = {};
-        for (const f of filas) {
-          // NULL se preserva tal cual — nunca se convierte a 0 ni se omite
-          // la clave (una clave presente con valor null es distinta de una
-          // clave ausente: la primera significa "aplicable pero sin dato
-          // todavía", la segunda "no aplicable a esta entidad").
-          out[f.propiedad_clave] = f.valor;
-        }
-        setValores(out);
+    const aMapa = (filas: { propiedad_clave: string; valor: string | null }[]) => {
+      const out: ValoresCientificosPorClave = {};
+      for (const f of filas) {
+        // NULL se preserva tal cual — nunca se convierte a 0 ni se omite
+        // la clave (una clave presente con valor null es distinta de una
+        // clave ausente: la primera significa "aplicable pero sin dato
+        // todavía", la segunda "no aplicable a esta entidad").
+        out[f.propiedad_clave] = f.valor;
       }
-      setLoading(false);
+      return out;
+    };
+
+    (async () => {
+      // 1) Dexie primero: pinta al instante si hay algo cacheado.
+      try {
+        const local = await leerValoresCientificosCache(entidad, entidadId);
+        if (cancelado) return;
+        if (local.length > 0) {
+          setValores(aMapa(local));
+          setLoading(false);
+          pintadoDesdeCache = true;
+        }
+      } catch {
+        // sin cache local todavía, seguimos directo a Supabase
+      }
+
+      // 2) Supabase: fuente de verdad, siempre se consulta.
+      try {
+        const { data, error: err } = await (supabase as any)
+          .from("v_frontend_worldbuilder_propiedades_entidad")
+          .select("entidad_tipo, entidad_id, propiedad_clave, valor")
+          .eq("entidad_tipo", entidad)
+          .eq("entidad_id", entidadId);
+
+        if (cancelado) return;
+        if (err) {
+          console.warn("[useValoresCientificos] no se pudo leer la vista:", err.message);
+          if (!pintadoDesdeCache) {
+            setValores({});
+            setError(err.message);
+          }
+        } else {
+          const filas = (data ?? []) as FilaValorCientifico[];
+          setValores(aMapa(filas));
+          void guardarValoresCientificosCache(entidad, entidadId, filas);
+        }
+      } catch (e) {
+        if (!cancelado && !pintadoDesdeCache) {
+          console.warn("[useValoresCientificos] error inesperado:", e);
+          setValores({});
+        }
+      } finally {
+        if (!cancelado) setLoading(false);
+      }
     })();
 
     return () => {
@@ -259,6 +303,14 @@ interface EstadoContrato {
  * llaman y en qué orden van — ningún consumidor debe mantener su propia
  * lista de grupos o propiedades en paralelo (ver arquitectura recomendada
  * FE-018).
+ *
+ * Cache-first vía Dexie (ver guardarContratoCache/leerContratoCache en
+ * syncEngine.ts): al cambiar de entidad+modo se pinta primero lo que ya
+ * haya en Dexie (instantáneo, offline — el contrato cambia rara vez, así
+ * que esto es lo que elimina la demora de "pantalla vacía" al abrir un
+ * editor), y SIEMPRE se dispara en paralelo la consulta a Supabase, que es
+ * la fuente de verdad y reemplaza lo pintado cuando llega, reescribiendo
+ * además la copia local para la próxima vez.
  */
 export function useContratoPresentacion(
   entidad: EntidadContrato,
@@ -278,31 +330,59 @@ export function useContratoPresentacion(
     }
 
     let cancelado = false;
+    let pintadoDesdeCache = false;
     setLoading(true);
     setError(null);
 
     (async () => {
-      const { data, error: err } = await (supabase as any)
-        .from("v_frontend_contrato_presentacion_detalle")
-        .select(
-          "contrato_id, grupo, grupo_nombre, entidad_tipo, modo, estrategia, grupo_orden, " +
-            "grupo_descripcion, propiedad_clave, propiedad_orden_contrato, propiedad_nombre, " +
-            "nombre_escritor, descripcion_escritor, utilidad_narrativa, tipo_presentacion, " +
-            "modo_visualizacion, condicional, visible_escritor, visible_worldbuilder, " +
-            "propiedad_orden_catalogo, fuentes_canonicas, grupo_notas",
-        )
-        .eq("entidad_tipo", entidad)
-        .eq("modo", modo);
-
-      if (cancelado) return;
-      if (err) {
-        console.warn("[useContratoPresentacion] no se pudo leer el contrato:", err.message);
-        setFilas([]);
-        setError(err.message);
-      } else {
-        setFilas((data ?? []) as FilaContratoPresentacion[]);
+      // 1) Dexie primero: pinta al instante si hay algo cacheado para esta
+      //    combinación entidad+modo.
+      try {
+        const local = await leerContratoCache(entidad, modo);
+        if (cancelado) return;
+        if (local.length > 0) {
+          setFilas(local as FilaContratoPresentacion[]);
+          setLoading(false);
+          pintadoDesdeCache = true;
+        }
+      } catch {
+        // sin cache local todavía, seguimos directo a Supabase
       }
-      setLoading(false);
+
+      // 2) Supabase: fuente de verdad, siempre se consulta.
+      try {
+        const { data, error: err } = await (supabase as any)
+          .from("v_frontend_contrato_presentacion_detalle")
+          .select(
+            "contrato_id, grupo, grupo_nombre, entidad_tipo, modo, estrategia, grupo_orden, " +
+              "grupo_descripcion, propiedad_clave, propiedad_orden_contrato, propiedad_nombre, " +
+              "nombre_escritor, descripcion_escritor, utilidad_narrativa, tipo_presentacion, " +
+              "modo_visualizacion, condicional, visible_escritor, visible_worldbuilder, " +
+              "propiedad_orden_catalogo, fuentes_canonicas, grupo_notas",
+          )
+          .eq("entidad_tipo", entidad)
+          .eq("modo", modo);
+
+        if (cancelado) return;
+        if (err) {
+          console.warn("[useContratoPresentacion] no se pudo leer el contrato:", err.message);
+          if (!pintadoDesdeCache) {
+            setFilas([]);
+            setError(err.message);
+          }
+        } else {
+          const filasNuevas = (data ?? []) as FilaContratoPresentacion[];
+          setFilas(filasNuevas);
+          void guardarContratoCache(entidad, modo, filasNuevas);
+        }
+      } catch (e) {
+        if (!cancelado && !pintadoDesdeCache) {
+          console.warn("[useContratoPresentacion] error inesperado:", e);
+          setFilas([]);
+        }
+      } finally {
+        if (!cancelado) setLoading(false);
+      }
     })();
 
     return () => {

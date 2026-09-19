@@ -372,6 +372,49 @@ export interface FilaEscritorInterpretacion {
   } | null;
 }
 
+/** Fila cacheada de la vista `v_frontend_contrato_presentacion_detalle`
+ *  (grupo/orden/label del contrato de presentación — ver FE-018,
+ *  useContratoPresentacion.ts). La vista no tiene columna `id`: la clave
+ *  natural cacheada es (entidad_tipo, modo, contrato_id) — contrato_id ya
+ *  es único dentro de esa combinación, pero se compone igual para poder
+ *  borrar/leer por (entidad_tipo, modo) de una sola vez, mismo patrón que
+ *  la tabla de Escritor (v48). */
+export interface FilaContratoPresentacionDexie {
+  entidad_tipo: string;
+  modo: string;
+  contrato_id: string;
+  grupo: string;
+  grupo_nombre: string;
+  estrategia: string;
+  grupo_orden: number | null;
+  grupo_descripcion: string | null;
+  propiedad_clave: string | null;
+  propiedad_orden_contrato: number | null;
+  propiedad_nombre: string | null;
+  nombre_escritor: string | null;
+  descripcion_escritor: string | null;
+  utilidad_narrativa: string | null;
+  tipo_presentacion: string | null;
+  modo_visualizacion: string | null;
+  condicional: boolean | null;
+  visible_escritor: boolean | null;
+  visible_worldbuilder: boolean | null;
+  propiedad_orden_catalogo: number | null;
+  fuentes_canonicas: unknown;
+  grupo_notas: string | null;
+}
+
+/** Fila cacheada de la vista `v_frontend_worldbuilder_propiedades_entidad`
+ *  (valores científicos canónicos — ver FE-019, useValoresCientificos en
+ *  useContratoPresentacion.ts). Clave natural = (entidad_tipo, entidad_id,
+ *  propiedad_clave), mismo criterio que v48. */
+export interface FilaValorCientificoDexie {
+  entidad_tipo: string;
+  entidad_id: string;
+  propiedad_clave: string;
+  valor: string | null;
+}
+
 // ─── v38: cache offline de las vistas v_auditoria_* consumidas por el panel
 // de auditoría (domains/garlia/auditoria) — hasta ahora useAuditoriaCompuestos
 // y useAuditoriaElementos pegaban directo a Supabase en cada apertura del
@@ -1027,10 +1070,24 @@ class AgendaFraniDB extends Dexie {
   tejido_celulas!: Table<FilaGenericaDexie, string>;
   tejido_compuestos!: Table<FilaGenericaDexie, string>;
 
-  // ─── v48: cache offline (fallback) del modo Escritor — PK compuesta, ver
-  // version(48).stores() abajo.
+  // ─── v48/v49: cache offline CACHE-FIRST (no solo fallback) del contrato
+  // de presentación y sus dos fuentes de valores — ver FE-018/FE-019. Los
+  // tres hooks (useInterpretacionEscritor, useContratoPresentacion,
+  // useValoresCientificos) pintan primero lo que haya acá (instantáneo,
+  // funciona offline) y SIEMPRE disparan en paralelo la consulta real a
+  // Supabase, que reemplaza el resultado cuando llega y reescribe esta
+  // copia para la próxima vez — no es un camino aparte que solo se usa si
+  // falla la red.
   v_frontend_escritor_propiedades_interpretadas!: Table<
     FilaEscritorInterpretacion,
+    [string, string, string]
+  >;
+  v_frontend_contrato_presentacion_detalle!: Table<
+    FilaContratoPresentacionDexie,
+    [string, string, string]
+  >;
+  v_frontend_worldbuilder_propiedades_entidad!: Table<
+    FilaValorCientificoDexie,
     [string, string, string]
   >;
 
@@ -2103,15 +2160,9 @@ class AgendaFraniDB extends Dexie {
       propiedades_derivadas: "id, clave",
     });
 
-    // ─── v48: cache offline (best-effort) del modo Escritor — vista
-    // v_frontend_escritor_propiedades_interpretadas. useInterpretacionEscritor.ts
-    // documenta a propósito "sin cache en Dexie" para no mostrar niveles
-    // desactualizados cuando SÍ hay conexión — este cache no cambia eso: es
-    // un FALLBACK que solo se usa cuando la consulta a Supabase falla por
-    // red (offline / timeout), nunca en el camino feliz. Con conexión, el
-    // hook sigue leyendo directo de Supabase igual que siempre y además
-    // guarda una copia de lo recién leído en esta tabla para el próximo
-    // fallback (ver loadEscritorInterpretaciones en syncEngine.ts).
+    // ─── v48: cache CACHE-FIRST (no solo fallback — ver nota junto a la
+    // declaración Table<> más arriba) del modo Escritor — vista
+    // v_frontend_escritor_propiedades_interpretadas.
     //
     // PK COMPUESTA en vez de "id": la vista no tiene columna id (mismo
     // criterio que compuesto_tags en v41). Clave natural = (entidad_tipo,
@@ -2123,6 +2174,26 @@ class AgendaFraniDB extends Dexie {
     // el propio hook de consumo. Solo lectura.
     this.version(48).stores({
       v_frontend_escritor_propiedades_interpretadas:
+        "[entidad_tipo+entidad_id+propiedad_clave], [entidad_tipo+entidad_id]",
+    });
+
+    // ─── v49: cache CACHE-FIRST del contrato de presentación (FE-018) y de
+    // los valores científicos (FE-019) — mismo criterio que v48: no tienen
+    // columna "id" propia usable como PK, así que se cachean por clave
+    // natural y NO entran en DEXIE_TABLES/OFFLINE_WRITABLE (solo lectura,
+    // llenado entidad-por-entidad desde useContratoPresentacion.ts).
+    //
+    // v_frontend_contrato_presentacion_detalle: clave = (entidad_tipo,
+    // modo, contrato_id) — se lee/borra por [entidad_tipo+modo] (todas las
+    // filas de una entidad+modo a la vez, igual que se pide a Supabase).
+    //
+    // v_frontend_worldbuilder_propiedades_entidad: clave = (entidad_tipo,
+    // entidad_id, propiedad_clave) — se lee/borra por
+    // [entidad_tipo+entidad_id], igual que v_frontend_escritor_propiedades_interpretadas.
+    this.version(49).stores({
+      v_frontend_contrato_presentacion_detalle:
+        "[entidad_tipo+modo+contrato_id], [entidad_tipo+modo]",
+      v_frontend_worldbuilder_propiedades_entidad:
         "[entidad_tipo+entidad_id+propiedad_clave], [entidad_tipo+entidad_id]",
     });
   }

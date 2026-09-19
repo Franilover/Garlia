@@ -1707,3 +1707,114 @@ export async function leerEscritorCache(
     [tipo, entidadId],
   );
 }
+
+// ─── FE-018/FE-019: cache Dexie del contrato de presentación y de los
+// valores científicos ─────────────────────────────────────────────────────
+// Mismo espíritu y mismo patrón que el bloque de Escritor arriba: cada hook
+// (useContratoPresentacion, useValoresCientificos) pinta primero lo que haya
+// acá (instantáneo, offline) y SIEMPRE dispara en paralelo la consulta real
+// a Supabase, que reemplaza el resultado cuando llega y reescribe esta copia
+// para la próxima vez.
+
+/**
+ * Guarda/actualiza en Dexie las filas del contrato de presentación
+ * (v_frontend_contrato_presentacion_detalle) para UNA combinación
+ * entidad+modo, reemplazando lo que hubiera antes para esa combinación.
+ * Nunca lanza: un fallo acá no debe romper el camino que la llama.
+ */
+export async function guardarContratoCache(
+  entidad: string,
+  modo: string,
+  filasCrudas: any[],
+): Promise<void> {
+  try {
+    const tabla = db?.v_frontend_contrato_presentacion_detalle;
+    if (!tabla) return;
+    const filas = filasCrudas
+      .filter(
+        (f) =>
+          f &&
+          typeof f.entidad_tipo === "string" &&
+          typeof f.modo === "string" &&
+          typeof f.contrato_id === "string",
+      )
+      .map((f) => ({ ...f, entidad_tipo: entidad, modo }));
+    await db.transaction("rw", tabla, async () => {
+      const existentes = await tabla
+        .where("[entidad_tipo+modo]")
+        .equals([entidad, modo])
+        .primaryKeys();
+      if (existentes.length > 0) await tabla.bulkDelete(existentes);
+      if (filas.length > 0) await tabla.bulkPut(filas);
+    });
+  } catch (e) {
+    console.warn("[Dexie] No se pudo guardar cache del contrato de presentación:", e);
+  }
+}
+
+/**
+ * Lee de Dexie el último resultado cacheado del contrato de presentación
+ * para UNA combinación entidad+modo — se usa para pintar al instante (y
+ * offline) mientras se revalida contra Supabase en paralelo. `[]` si
+ * todavía no hay nada cacheado para esa combinación.
+ */
+export async function leerContratoCache(
+  entidad: string,
+  modo: string,
+): Promise<any[]> {
+  return dexieWhere<any>(
+    db?.v_frontend_contrato_presentacion_detalle,
+    "[entidad_tipo+modo]",
+    [entidad, modo],
+  );
+}
+
+/**
+ * Guarda/actualiza en Dexie los valores científicos
+ * (v_frontend_worldbuilder_propiedades_entidad) para UNA entidad,
+ * reemplazando lo que hubiera antes para esa entidad. Nunca lanza.
+ */
+export async function guardarValoresCientificosCache(
+  entidad: string,
+  entidadId: string,
+  filasCrudas: any[],
+): Promise<void> {
+  try {
+    const tabla = db?.v_frontend_worldbuilder_propiedades_entidad;
+    if (!tabla) return;
+    const filas = filasCrudas
+      .filter((f) => f && typeof f.propiedad_clave === "string")
+      .map((f) => ({
+        entidad_tipo: entidad,
+        entidad_id: entidadId,
+        propiedad_clave: f.propiedad_clave,
+        valor: f.valor ?? null,
+      }));
+    await db.transaction("rw", tabla, async () => {
+      const existentes = await tabla
+        .where("[entidad_tipo+entidad_id]")
+        .equals([entidad, entidadId])
+        .primaryKeys();
+      if (existentes.length > 0) await tabla.bulkDelete(existentes);
+      if (filas.length > 0) await tabla.bulkPut(filas);
+    });
+  } catch (e) {
+    console.warn("[Dexie] No se pudo guardar cache de valores científicos:", e);
+  }
+}
+
+/**
+ * Lee de Dexie el último resultado cacheado de valores científicos para UNA
+ * entidad — se usa para pintar al instante (y offline) mientras se revalida
+ * contra Supabase en paralelo. `[]` si todavía no hay nada cacheado.
+ */
+export async function leerValoresCientificosCache(
+  entidad: string,
+  entidadId: string,
+): Promise<{ propiedad_clave: string; valor: string | null }[]> {
+  return dexieWhere<{ propiedad_clave: string; valor: string | null }>(
+    db?.v_frontend_worldbuilder_propiedades_entidad,
+    "[entidad_tipo+entidad_id]",
+    [entidad, entidadId],
+  );
+}
