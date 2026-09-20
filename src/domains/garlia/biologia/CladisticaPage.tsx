@@ -818,7 +818,7 @@ function VistaPreviaSignificado({
   if (etiquetaRango) partes.push(`con rango de ${etiquetaRango}`);
 
   return (
-    <div className="rounded-lg border border-accent/15 bg-accent/[0.03] px-2.5 py-2">
+    <div className="rounded-lg border border-accent/15 px-2.5 py-2">
       <span className="text-micro font-black uppercase tracking-[0.15em] text-accent/50 block mb-1">
         Así quedará definido
       </span>
@@ -905,6 +905,35 @@ function PanelClado({
     }
     return ruta;
   }, [clado, cladoPorId]);
+  // Descendencia completa (todo el subárbol visual: hijos, nietos, etc.,
+  // sin filtrar por relacion_padre) — mismo criterio que el cladograma
+  // grande de arriba, solo que acotado a partir de este clado. IMPORTANTE:
+  // esto es el árbol tal como está dibujado por padre_id, no una afirmación
+  // de herencia biológica real — cada tramo sigue mostrando su propia
+  // relacion_padre para que quede claro cuál es ascendencia y cuál no.
+  const descendencia = useMemo(() => {
+    const porPadre = new Map<string, Clado[]>();
+    for (const c of clados) {
+      if (!c.padre_id) continue;
+      const arr = porPadre.get(c.padre_id) ?? [];
+      arr.push(c);
+      porPadre.set(c.padre_id, arr);
+    }
+    const visitados = new Set<string>([clado.id]); // guarda contra ciclos
+    function hijosDe(id: string, nivel: number): { clado: Clado; nivel: number }[] {
+      const directos = porPadre.get(id) ?? [];
+      const filas: { clado: Clado; nivel: number }[] = [];
+      for (const h of directos) {
+        if (visitados.has(h.id)) continue;
+        visitados.add(h.id);
+        filas.push({ clado: h, nivel });
+        filas.push(...hijosDe(h.id, nivel + 1));
+      }
+      return filas;
+    }
+    return hijosDe(clado.id, 0);
+  }, [clados, clado.id]);
+
   const [nombre, setNombre] = useState(clado.nombre);
   const [sinapomorfia, setSinapomorfia] = useState(clado.sinapomorfia ?? "");
   const [descripcion, setDescripcion] = useState(clado.descripcion ?? "");
@@ -1036,7 +1065,7 @@ function PanelClado({
             v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1). El
             escritor elige entre opciones válidas; nunca escribe texto
             libre para estos campos. */}
-        <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-2.5">
+        <div className="rounded-lg border border-primary/10 px-2.5 py-2 flex flex-col gap-2.5">
           <div>
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
               ¿Qué representa?
@@ -1090,9 +1119,6 @@ function PanelClado({
               {padreElegido ? padreElegido.nombre || "Sin nombre" : "— Raíz (sin padre) —"}
               <ChevronDown size={12} className="text-primary/30 shrink-0" />
             </button>
-            <p className="text-micro text-primary/35 leading-snug mt-1">
-              El padre define la posición del clado dentro del árbol.
-            </p>
 
             {buscadorPadreAbierto && (
               <BuscadorPadreClado
@@ -1399,6 +1425,44 @@ function PanelClado({
             </ul>
           )}
         </div>
+
+        {descendencia.length > 0 && (
+          <div>
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              Clados hijos / descendencia
+            </span>
+            <p className="text-micro text-primary/35 mb-1.5 leading-snug">
+              Todo el subárbol desde este clado — cada tramo muestra su propia unión con el padre,
+              no todas implican ascendencia biológica.
+            </p>
+            <ul className="rounded-lg border border-primary/10 px-2.5 py-1.5 flex flex-col gap-1">
+              {descendencia.map(({ clado: hijo, nivel }) => (
+                <li
+                  key={hijo.id}
+                  className="flex items-baseline gap-1.5"
+                  style={{ paddingLeft: `${nivel * 14}px` }}
+                >
+                  {nivel > 0 && <span className="text-primary/20 text-micro">└</span>}
+                  <button
+                    type="button"
+                    onClick={() => onSelectClado(hijo.id)}
+                    className="text-xs font-bold text-primary/80 hover:text-accent transition-colors"
+                  >
+                    {hijo.nombre || "Sin nombre"}
+                  </button>
+                  {glifoDeTipo(hijo.tipo_nodo) && (
+                    <span className="text-micro font-black text-primary/30">
+                      {glifoDeTipo(hijo.tipo_nodo)}
+                    </span>
+                  )}
+                  <span className="text-micro text-primary/30">
+                    {etiquetaRelacionPadre(hijo.relacion_padre)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
       </div>
     </div>
