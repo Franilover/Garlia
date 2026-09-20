@@ -33,7 +33,7 @@
  * backdrop blur), no una barra lateral fija.
  */
 
-import { Dna, Plus } from "lucide-react";
+import { ChevronRight, Dna, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -543,6 +543,47 @@ function DiagramaCladograma({
 
 // ─── Panel de detalle del clado seleccionado ────────────────────────────────
 
+// Breadcrumb de RUTA (no de niveles heterogéneos como BreadcrumbJerarquia en
+// Biología). Acá cada tramo es un ancestro real del mismo tipo ("Clado"),
+// ej. "Origen › Biológico › Fauna › ... › Humanidad" — el camino de
+// padre_id hacia arriba, tal como está en el árbol. Sin popover: cada
+// nombre es directamente clickeable y navega a ese clado.
+function RutaClado({
+  ruta,
+  onSelectClado,
+}: {
+  /** Ancestros en orden raíz → actual (incluye el clado actual al final). */
+  ruta: Clado[];
+  onSelectClado: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 flex-wrap px-0.5">
+      {ruta.map((c, idx) => {
+        const esActual = idx === ruta.length - 1;
+        return (
+          <React.Fragment key={c.id}>
+            {idx > 0 && <ChevronRight size={11} className="text-primary/20 shrink-0" />}
+            {esActual ? (
+              <span className="px-1.5 py-0.5 text-micro font-black uppercase tracking-widest text-primary">
+                {c.nombre || "Sin nombre"}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onSelectClado(c.id)}
+                className="px-1.5 py-0.5 rounded-md text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary hover:bg-primary/6 transition-colors cursor-pointer"
+                title={`Ir a ${c.nombre || "este clado"}`}
+              >
+                {c.nombre || "Sin nombre"}
+              </button>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 function PanelClado({
   clado,
   padre,
@@ -590,6 +631,30 @@ function PanelClado({
     () => new Map(organismos.map((o) => [o.organismo_id, o])),
     [organismos],
   );
+  // La sinapomorfía en sentido cladístico estricto (carácter derivado
+  // compartido por TODOS los descendientes) solo tiene sentido si este nodo
+  // es filogenético Y (siendo raíz, o su unión con el padre es ascendencia
+  // real). Para ecologico/ontologico/morfologico, o para un filogenetico
+  // unido por clasificacion_biologica/agrupacion_*, el campo sigue siendo
+  // texto libre (`clado.sinapomorfia`) pero el lenguaje no debe afirmar
+  // "descendencia" que el propio contrato de datos dice que no se infiere.
+  const esLinajeFilogenetico =
+    clado.tipo_nodo === "filogenetico" && (!padre || clado.relacion_padre === "ascendencia");
+  // Ruta de ancestros (Origen → ... → este clado), recorriendo padre_id
+  // hacia arriba sobre el mapa ya resuelto. Es lectura pura del árbol tal
+  // como está en Supabase — ningún dato nuevo, ninguna inferencia biológica.
+  const rutaAncestros = useMemo(() => {
+    const ruta: Clado[] = [];
+    const visitados = new Set<string>();
+    let actual: Clado | null = clado;
+    while (actual) {
+      if (visitados.has(actual.id)) break; // guarda contra ciclos accidentales
+      visitados.add(actual.id);
+      ruta.unshift(actual);
+      actual = actual.padre_id ? cladoPorId.get(actual.padre_id) ?? null : null;
+    }
+    return ruta;
+  }, [clado, cladoPorId]);
   const [nombre, setNombre] = useState(clado.nombre);
   const [sinapomorfia, setSinapomorfia] = useState(clado.sinapomorfia ?? "");
   const [descripcion, setDescripcion] = useState(clado.descripcion ?? "");
@@ -632,7 +697,9 @@ function PanelClado({
   );
 
   return (
-    <div className="flex flex-col gap-3.5 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-3.5 md:items-start">
+    <div className="flex flex-col gap-3.5">
+      {rutaAncestros.length > 1 && <RutaClado ruta={rutaAncestros} onSelectClado={onSelectClado} />}
+      <div className="flex flex-col gap-3.5 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-3.5 md:items-start">
       {/* Columna izquierda: metadatos de solo lectura + campos editables
           (Sinapomorfía, Descripción). Mismo criterio de 2 columnas que
           CompuestoEditor (gráfico+propiedades / composición+enlaces): más
@@ -719,14 +786,18 @@ function PanelClado({
 
         <div>
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
-            Sinapomorfía
+            {esLinajeFilogenetico ? "Sinapomorfía" : "Carácter definitorio"}
           </span>
           <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-            Carácter derivado compartido por todos los descendientes.
+            {esLinajeFilogenetico
+              ? "Carácter derivado compartido por todos los descendientes."
+              : "Qué define a este grupo — no implica ascendencia compartida."}
           </p>
           <input
             className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none placeholder:text-primary/30 placeholder:font-normal focus:border-primary/25"
-            placeholder="Ej. vejiga de veneno dorsal…"
+            placeholder={
+              esLinajeFilogenetico ? "Ej. vejiga de veneno dorsal…" : "Ej. hábitat compartido, rasgo común…"
+            }
             value={sinapomorfia}
             onChange={(e) => setSinapomorfia(e.target.value)}
             onBlur={guardar}
@@ -881,6 +952,7 @@ function PanelClado({
             </ul>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
