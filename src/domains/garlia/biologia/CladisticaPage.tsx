@@ -33,7 +33,7 @@
  * backdrop blur), no una barra lateral fija.
  */
 
-import { ChevronRight, Dna, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Dna, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -546,16 +546,43 @@ function DiagramaCladograma({
 // Breadcrumb de RUTA (no de niveles heterogéneos como BreadcrumbJerarquia en
 // Biología). Acá cada tramo es un ancestro real del mismo tipo ("Clado"),
 // ej. "Origen › Biológico › Fauna › ... › Humanidad" — el camino de
-// padre_id hacia arriba, tal como está en el árbol. Sin popover: cada
-// nombre es directamente clickeable y navega a ese clado.
+// padre_id hacia arriba, tal como está en el árbol. Sin popover en los
+// tramos de ancestros: cada nombre es directamente clickeable y navega a
+// ese clado. El tramo final (clado actual) sí lleva un ▾ con dropdown de
+// sus hijos directos — bajar un nivel sin tener que ir a buscar el bloque
+// de metadatos.
 function RutaClado({
   ruta,
+  hijos,
   onSelectClado,
 }: {
   /** Ancestros en orden raíz → actual (incluye el clado actual al final). */
   ruta: Clado[];
+  /** Hijos directos del clado actual (mismo dato que ya recibe PanelClado). */
+  hijos: Clado[];
   onSelectClado: (id: string) => void;
 }) {
+  const [dropdownAbierto, setDropdownAbierto] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!dropdownAbierto) return;
+    function onClickFuera(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setDropdownAbierto(false);
+      }
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setDropdownAbierto(false);
+    }
+    document.addEventListener("mousedown", onClickFuera);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClickFuera);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [dropdownAbierto]);
+
   return (
     <div className="flex items-center gap-1 flex-wrap px-0.5">
       {ruta.map((c, idx) => {
@@ -564,9 +591,55 @@ function RutaClado({
           <React.Fragment key={c.id}>
             {idx > 0 && <ChevronRight size={11} className="text-primary/20 shrink-0" />}
             {esActual ? (
-              <span className="px-1.5 py-0.5 text-micro font-black uppercase tracking-widest text-primary">
-                {c.nombre || "Sin nombre"}
-              </span>
+              <div ref={containerRef} className="relative">
+                <button
+                  type="button"
+                  disabled={hijos.length === 0}
+                  onClick={() => setDropdownAbierto((prev) => !prev)}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-micro font-black uppercase tracking-widest transition-colors ${
+                    hijos.length === 0
+                      ? "text-primary cursor-default"
+                      : "text-primary hover:bg-primary/6 cursor-pointer"
+                  }`}
+                  title={hijos.length === 0 ? undefined : "Ver hijos de este clado"}
+                >
+                  {c.nombre || "Sin nombre"}
+                  {hijos.length > 0 && (
+                    <ChevronDown
+                      size={10}
+                      className={`text-primary/40 transition-transform ${dropdownAbierto ? "rotate-180" : ""}`}
+                    />
+                  )}
+                </button>
+
+                {dropdownAbierto && hijos.length > 0 && (
+                  <div
+                    className="absolute z-30 mt-1 left-0 min-w-[11rem] max-w-[16rem] max-h-56 overflow-y-auto rounded-lg border shadow-xl py-1"
+                    style={{
+                      background: "var(--bg-main)",
+                      borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+                      animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    }}
+                  >
+                    <p className="px-2.5 pb-1 text-[0.6rem] font-black uppercase tracking-[0.2em] text-primary/30 border-b border-primary/8 mb-1">
+                      Hijos
+                    </p>
+                    {hijos.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => {
+                          setDropdownAbierto(false);
+                          onSelectClado(h.id);
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 text-micro font-bold text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                      >
+                        {h.nombre || "Sin nombre"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 type="button"
@@ -583,6 +656,7 @@ function RutaClado({
     </div>
   );
 }
+
 
 function PanelClado({
   clado,
@@ -698,7 +772,9 @@ function PanelClado({
 
   return (
     <div className="flex flex-col gap-3.5">
-      {rutaAncestros.length > 1 && <RutaClado ruta={rutaAncestros} onSelectClado={onSelectClado} />}
+      {(rutaAncestros.length > 1 || hijos.length > 0) && (
+        <RutaClado ruta={rutaAncestros} hijos={hijos} onSelectClado={onSelectClado} />
+      )}
       <div className="flex flex-col gap-3.5 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-3.5 md:items-start">
       {/* Columna izquierda: metadatos de solo lectura + campos editables
           (Sinapomorfía, Descripción). Mismo criterio de 2 columnas que
