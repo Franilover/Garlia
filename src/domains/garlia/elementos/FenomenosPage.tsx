@@ -1,8 +1,12 @@
 "use client";
 
-import { Sparkles, Loader2, X } from "lucide-react";
+import { Sparkles, Loader2, Save, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
+import { useConfirm } from "@/ui/ConfirmModal";
 
 import { useElementos } from "./useElementos";
 import { useFenomenos } from "./useFenomenos";
@@ -109,7 +113,43 @@ function FenomenoDetail({ fenomeno }: { fenomeno: Fenomeno }) {
   );
 }
 
-function Editor({ fenomeno, onClose }: { fenomeno: Fenomeno; onClose: () => void }) {
+function Editor({
+  fenomeno,
+  onClose,
+  onRename,
+  onDelete,
+}: {
+  fenomeno: Fenomeno;
+  onClose: () => void;
+  /** Renombrado on-blur con guardado inmediato, mismo patrón que
+   *  useFenomenos().renombrarFenomeno. Si se omite, el nombre queda de
+   *  solo lectura. */
+  onRename?: (nuevoNombre: string) => void;
+  /** Elimina el fenómeno y cierra el panel. Si se omite, no se muestra el
+   *  botón de borrar. */
+  onDelete?: () => void;
+}) {
+  const [nombreLocal, setNombreLocal] = useState(fenomeno.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  useEffect(() => setNombreLocal(fenomeno.nombre), [fenomeno.id, fenomeno.nombre]);
+
+  async function guardarNombre() {
+    if (!onRename) return;
+    const nuevo = nombreLocal.trim();
+    if (!nuevo || nuevo === fenomeno.nombre) {
+      setNombreLocal(fenomeno.nombre);
+      return;
+    }
+    setStatus("saving");
+    try {
+      await onRename(nuevo);
+      setStatus("saved");
+    } catch (e) {
+      console.error("[FenomenosPage] error renombrando:", e);
+      setStatus("error");
+    }
+  }
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -149,19 +189,43 @@ function Editor({ fenomeno, onClose }: { fenomeno: Fenomeno; onClose: () => void
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Sparkles className="text-primary/50" size={12} />
+          {onRename ? (
+            <input
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+              placeholder="Nombre del fenómeno"
+              value={nombreLocal}
+              onChange={(e) => setNombreLocal(e.target.value)}
+              onBlur={guardarNombre}
+            />
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
+              {fenomeno.nombre}
+            </span>
+          )}
+
+          <div className="shrink-0 flex items-center gap-1.5">
+            <SaveIndicator status={status} />
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              >
+                <Trash2 size={10} />
+              </button>
+            )}
+            {onRename && (
+              <button
+                type="button"
+                disabled={status === "saving"}
+                onClick={guardarNombre}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              >
+                <Save size={10} /> Guardar
+              </button>
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-primary">{fenomeno.nombre}</p>
-            <p className="text-micro text-primary/35">Fenómeno · solo lectura</p>
-          </div>
+
           <button
             type="button"
             onClick={onClose}
@@ -181,7 +245,8 @@ function Editor({ fenomeno, onClose }: { fenomeno: Fenomeno; onClose: () => void
 }
 
 export default function FenomenosPage() {
-  const { items, loading } = useFenomenos();
+  const { items, loading, renombrarFenomeno, eliminarFenomeno } = useFenomenos();
+  const { confirm, ConfirmModal } = useConfirm();
   const [selected, setSelected] = useState<Fenomeno | null>(null);
 
   return (
@@ -204,7 +269,23 @@ export default function FenomenosPage() {
           ))}
         </div>
       )}
-      {selected && <Editor fenomeno={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <Editor
+          fenomeno={selected}
+          onClose={() => setSelected(null)}
+          onRename={(nuevoNombre) => renombrarFenomeno(selected.id, nuevoNombre)}
+          onDelete={async () => {
+            const ok = await confirm({
+              title: "Eliminar fenómeno",
+              message: `¿Eliminar "${selected.nombre}"? Esta acción no se puede deshacer.`,
+            });
+            if (!ok) return;
+            await eliminarFenomeno(selected.id);
+            setSelected(null);
+          }}
+        />
+      )}
+      <ConfirmModal />
     </div>
   );
 }
