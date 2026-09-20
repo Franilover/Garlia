@@ -31,6 +31,9 @@ export function SistemaPanelFlotante({
   onAbrirOrganoExterno,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
+  onAbrirCriaturaExterno,
+  onAbrirCelulaExterno,
+  onAbrirTejidoExterno,
 }: {
   sistema: Sistema;
   onCerrar: () => void;
@@ -52,6 +55,14 @@ export function SistemaPanelFlotante({
   /** Misma idea que onAbrirSistemaExterno, un nivel más arriba: reemplaza
    *  toda la pila y abre ESE Organismo en OrganismoPanelFlotante. */
   onAbrirOrganismoExterno?: (organismoId: string) => void;
+  /** Salto DIRECTO a una Criatura desde el nivel "Criatura" del breadcrumb
+   *  de un Órgano/Tejido/Célula abierto acá — sin pasar por Organismo.
+   *  Sale de la pila de paneles: lo resuelve el padre (EditorCriatura). */
+  onAbrirCriaturaExterno?: (criaturaId: string) => void;
+  /** Salto DIRECTO (reemplaza toda la pila) a una Célula/Tejido elegida en el
+   *  breadcrumb de cualquier panel apilado. Resuelto en EditorCriatura. */
+  onAbrirCelulaExterno?: (celulaId: string) => void;
+  onAbrirTejidoExterno?: (tejidoId: string) => void;
 }) {
   const organos = useSistemaOrganos(sistema.id);
   const { items: compuestosOrganos } = useCompuestosConElementos();
@@ -171,6 +182,9 @@ export function SistemaPanelFlotante({
               onAbrirOrganoExterno={onAbrirOrganoExterno}
               onAbrirSistemaExterno={onAbrirSistemaExterno}
               onAbrirOrganismoExterno={onAbrirOrganismoExterno}
+              onAbrirCriaturaExterno={onAbrirCriaturaExterno}
+              onAbrirCelulaExterno={onAbrirCelulaExterno}
+              onAbrirTejidoExterno={onAbrirTejidoExterno}
             />
           );
         })()}

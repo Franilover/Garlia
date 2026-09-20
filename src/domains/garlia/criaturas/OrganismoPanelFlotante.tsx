@@ -38,6 +38,9 @@ export function OrganismoPanelFlotante({
   onAbrirOrganoExterno,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
+  onAbrirCriaturaExterno,
+  onAbrirCelulaExterno,
+  onAbrirTejidoExterno,
 }: {
   organismo: Organismo;
   onCerrar: () => void;
@@ -50,6 +53,13 @@ export function OrganismoPanelFlotante({
    *  un nivel de abajo, se elige un Organismo DISTINTO al que trajo hasta
    *  acá (ej. dos Sistemas distintos comparten un mismo Órgano catalogado). */
   onAbrirOrganismoExterno?: (organismoId: string) => void;
+  /** Salto DIRECTO a una Criatura desde el breadcrumb de cualquier panel
+   *  apilado acá (Sistema/Órgano/Tejido/Célula). Resuelto en EditorCriatura. */
+  onAbrirCriaturaExterno?: (criaturaId: string) => void;
+  /** Salto DIRECTO (reemplaza toda la pila) a una Célula/Tejido elegida en el
+   *  breadcrumb de cualquier panel apilado. Resuelto en EditorCriatura. */
+  onAbrirCelulaExterno?: (celulaId: string) => void;
+  onAbrirTejidoExterno?: (tejidoId: string) => void;
 }) {
   const sistemas = useOrganismoSistemas(organismo.id);
   const organosDirectos = useOrganismoOrganos(organismo.id);
@@ -218,6 +228,9 @@ export function OrganismoPanelFlotante({
               onAbrirOrganoExterno={onAbrirOrganoExterno}
               onAbrirSistemaExterno={onAbrirSistemaExterno}
               onAbrirOrganismoExterno={onAbrirOrganismoExterno}
+              onAbrirCriaturaExterno={onAbrirCriaturaExterno}
+              onAbrirCelulaExterno={onAbrirCelulaExterno}
+              onAbrirTejidoExterno={onAbrirTejidoExterno}
             />
           );
         })()}
@@ -240,6 +253,9 @@ export function OrganismoPanelFlotante({
               onAbrirOrganoExterno={onAbrirOrganoExterno}
               onAbrirSistemaExterno={onAbrirSistemaExterno}
               onAbrirOrganismoExterno={onAbrirOrganismoExterno}
+              onAbrirCriaturaExterno={onAbrirCriaturaExterno}
+              onAbrirCelulaExterno={onAbrirCelulaExterno}
+              onAbrirTejidoExterno={onAbrirTejidoExterno}
             />
           );
         })()}

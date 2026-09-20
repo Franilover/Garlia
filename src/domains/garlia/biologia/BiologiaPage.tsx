@@ -265,6 +265,7 @@ function PanelEditorActivoBiologia({
         onAbrirOrgano={onAbrirOrgano}
         onAbrirSistema={onAbrirSistema}
         onAbrirOrganismo={onAbrirOrganismo}
+        onAbrirCriatura={onAbrirCriatura}
       />
     );
   }
@@ -288,6 +289,7 @@ function PanelEditorActivoBiologia({
         onAbrirOrgano={onAbrirOrgano}
         onAbrirSistema={onAbrirSistema}
         onAbrirOrganismo={onAbrirOrganismo}
+        onAbrirCriatura={onAbrirCriatura}
       />
     );
   }
@@ -308,6 +310,7 @@ function PanelEditorActivoBiologia({
         onAbrirCelula={onAbrirCelula}
         onAbrirTejido={onAbrirTejido}
         onAbrirOrganismo={onAbrirOrganismo}
+        onAbrirCriatura={onAbrirCriatura}
       />
     );
   }
@@ -347,6 +350,7 @@ function PanelEditorActivoBiologia({
       onAbrirOrganoExterno={onAbrirOrgano}
       onAbrirSistemaExterno={onAbrirSistema}
       onAbrirOrganismoExterno={onAbrirOrganismo}
+      onAbrirCriaturaExterno={onAbrirCriatura}
       sinPortalPropio
     />
   );

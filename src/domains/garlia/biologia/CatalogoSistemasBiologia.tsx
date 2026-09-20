@@ -39,6 +39,7 @@ import { useComposicionDeUnSistema } from "@/domains/garlia/elementos/useComposi
 import { useOrganismosDeUnSistema } from "@/domains/garlia/elementos/useOrganismosDeUnSistema";
 import { useComposicionDeUnOrganismo } from "@/domains/garlia/elementos/useComposicionDeUnOrganismo";
 import { useCriaturasDeUnOrganismo } from "@/domains/garlia/elementos/useCriaturasDeUnOrganismo";
+import { useCriaturasDeOrganismos } from "@/domains/garlia/elementos/useCriaturasDeOrganismos";
 import type { Organismo, Organo, Sistema } from "@/domains/garlia/elementos/types";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
 import {
@@ -181,6 +182,7 @@ export function PanelEditorSistema({
   onAbrirCelula,
   onAbrirTejido,
   onAbrirOrganismo,
+  onAbrirCriatura,
   sinAnimacion,
 }: {
   item: Sistema;
@@ -200,6 +202,10 @@ export function PanelEditorSistema({
   /** Cierra este panel y abre el editor del Organismo elegido — navegación
    *  hacia arriba (organismo_sistemas, dirección inversa). */
   onAbrirOrganismo?: (organismoId: string) => void;
+  /** Cierra este panel y navega a la Criatura elegida — salto DIRECTO
+   *  (Criaturas que usan cualquier Organismo de este Sistema), sin pasar
+   *  por Organismo. Ver PanelEditorOrganismo.onAbrirCriatura. */
+  onAbrirCriatura?: (criaturaId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb — suprime la animación de entrada. */
   sinAnimacion?: boolean;
@@ -211,6 +217,11 @@ export function PanelEditorSistema({
   const vinculosOrgano = useSistemaOrganos(item.id);
   const composicion = useComposicionDeUnSistema(item.id);
   const organismosQueUsanEsteSistema = useOrganismosDeUnSistema(item.id);
+  const organismoIds = useMemo(
+    () => organismosQueUsanEsteSistema.items.map((o) => o.organismo_id),
+    [organismosQueUsanEsteSistema.items],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -279,6 +290,14 @@ export function PanelEditorSistema({
               })),
               loading: organismosQueUsanEsteSistema.loading,
               onNavegar: onAbrirOrganismo,
+            },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: organismosQueUsanEsteSistema.loading || criaturasAlcanzables.loading,
+              onNavegar: onAbrirCriatura,
             },
           ]}
         />

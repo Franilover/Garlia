@@ -20,6 +20,7 @@
 
 import {
   Atom,
+  Beaker,
   Boxes,
   Bug,
   Brain,
@@ -30,6 +31,7 @@ import {
   Layers,
   MapPin,
   Package,
+  PawPrint,
   Shield,
   SlidersHorizontal,
   Sparkles,
@@ -77,6 +79,8 @@ import { useWikilink } from "@/domains/garlia/_shared/WikilinkContext";
 import { useCriaturaAsideCatalogs } from "@/domains/garlia/criaturas/useCriaturaAsideCatalogs";
 import { useCriaturaOrganos } from "@/domains/garlia/criaturas/useCriaturaOrganos";
 import { useCriaturaOrganismos } from "@/domains/garlia/criaturas/useCriaturaOrganismos";
+import { useComposicionDeOrganismos } from "@/domains/garlia/elementos/useComposicionDeOrganismos";
+import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { useMembresiaSubsistemaCriatura } from "@/domains/garlia/criaturas/useMembresiaSubsistemaCriatura";
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
@@ -111,6 +115,7 @@ export function EditorCriatura({
   onSelectPersonaje,
   onSelectGrupo,
   onSelectSubsistema,
+  onSelectCriatura,
   onNavigateCiudad,
   onNavigateReino,
   onHeaderControlsChange,
@@ -123,6 +128,9 @@ export function EditorCriatura({
   onSelectPersonaje?: (personajeId: string) => void;
   onSelectGrupo?: (grupoId: string) => void;
   onSelectSubsistema?: (subsistemaId: string) => void;
+  /** Salto DIRECTO a OTRA Criatura desde el nivel "Criatura" del breadcrumb
+   *  de cualquier panel apilado (Célula/Tejido/Órgano/Sistema/Organismo). */
+  onSelectCriatura?: (criaturaId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
   onHeaderControlsChange?: OnHeaderControlsChange;
@@ -184,6 +192,15 @@ export function EditorCriatura({
   // de Órganos de arriba, así que trae su propio useOrganismos().
   const { items: catalogoOrganismos } = useOrganismos();
   const organismosCriatura = useCriaturaOrganismos(form.id);
+  // Unión de TODO lo alcanzable hacia abajo desde los Organismos de esta
+  // Criatura (Sistemas → Órganos → Tejidos → Células) — alimenta el
+  // breadcrumb de la sección Biología: salto DIRECTO Criatura → cualquier
+  // nivel, sin subir/bajar de a uno.
+  const organismoIdsCriatura = useMemo(
+    () => organismosCriatura.items.map((v) => v.organismo_id),
+    [organismosCriatura.items],
+  );
+  const composicionCriatura = useComposicionDeOrganismos(organismoIdsCriatura);
   // Panel flotante de detalle del Organismo (Sistemas→Órganos) abierto al
   // clickear una fila en PanelOrganismosCriatura — ver OrganismoPanelFlotante.tsx.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
@@ -194,33 +211,44 @@ export function EditorCriatura({
   const { items: catalogoSistemas } = useSistemas();
 
   /**
-   * Saltos "reemplazar toda la pila" — click en el breadcrumb interno de
-   * GrupoCompuestoPanelFlotante (Órgano ⇄ Sistema ⇄ Organismo), abierto
-   * desde ADENTRO de una Criatura, sobre un Sistema/Organismo/Órgano
-   * DISTINTO al que trajo hasta ahí. En vez de apilar un panel más encima,
-   * cierran los 3 estados raíz de la pila (editandoOrganismoId /
-   * editandoSistemaOrganismoId / editandoGrupoId) y abren solo el destino
-   * elegido — mismo efecto que si se hubiera clickeado ESE item desde
-   * cero en PanelOrganismosCriatura/fila de Biología. Pasadas hacia abajo
-   * como onAbrirOrganismoExterno/onAbrirSistemaExterno/onAbrirOrganoExterno
-   * a OrganismoPanelFlotante y SistemaPanelFlotante, que a su vez las
-   * reenvían a sus hijos sin manejarlas localmente.
+   * Saltos "reemplazar toda la pila" — desde el breadcrumb de la propia
+   * Criatura (Célula ⇄ … ⇄ Organismo ⇄ Criatura) o desde el breadcrumb
+   * interno de cualquier panel apilado (Célula/Tejido/Órgano/Sistema/
+   * Organismo), sobre un item DISTINTO al que trajo hasta ahí. En vez de
+   * apilar un panel más encima, cierran los paneles raíz y abren solo el
+   * destino elegido — mismo efecto que clickear ESE item desde cero.
+   * Pasados hacia abajo como onAbrir*Externo a OrganismoPanelFlotante y
+   * SistemaPanelFlotante, que los reenvían a sus hijos sin manejarlos.
+   * Nota: las funciones corren en eventos (no en render), por eso pueden
+   * referirse a setters de estado declarados más abajo.
    */
-  function saltarAOrganismo(id: string) {
+  function cerrarPilaBiologia() {
+    setEditandoOrganismoId(null);
     setEditandoSistemaOrganismoId(null);
     setEditandoOrganoDirectoOrganismoId(null);
     setEditandoGrupoId(null);
+    setEditandoTejidoId(null);
+    setEditandoCelulaId(null);
+  }
+  function saltarAOrganismo(id: string) {
+    cerrarPilaBiologia();
     setEditandoOrganismoId(id);
   }
   function saltarASistema(id: string) {
-    setEditandoOrganismoId(null);
-    setEditandoGrupoId(null);
+    cerrarPilaBiologia();
     setEditandoSistemaOrganismoId(id);
   }
   function saltarAOrgano(id: string) {
-    setEditandoOrganismoId(null);
-    setEditandoSistemaOrganismoId(null);
+    cerrarPilaBiologia();
     setEditandoGrupoId(id);
+  }
+  function saltarATejido(id: string) {
+    cerrarPilaBiologia();
+    setEditandoTejidoId(id);
+  }
+  function saltarACelula(id: string) {
+    cerrarPilaBiologia();
+    setEditandoCelulaId(id);
   }
 
 
@@ -531,6 +559,61 @@ export function EditorCriatura({
                 reinicie al ir y volver entre secciones. */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
+                {/* Breadcrumb completo Célula ⇄ … ⇄ Organismo ⇄ Criatura, parado
+                    en Criatura: cada nivel abre un popover con TODO lo
+                    alcanzable en ese nivel (unión de los Organismos de esta
+                    Criatura) y salta directo, sin pasar nivel por nivel. */}
+                <div className="shrink-0">
+                  <BreadcrumbJerarquia
+                    niveles={[
+                      {
+                        label: "Célula",
+                        icono: <Beaker size={10} />,
+                        activo: false,
+                        items: composicionCriatura.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
+                        loading: composicionCriatura.loading,
+                        onNavegar: saltarACelula,
+                      },
+                      {
+                        label: "Tejido",
+                        icono: <Layers size={10} />,
+                        activo: false,
+                        items: composicionCriatura.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
+                        loading: composicionCriatura.loading,
+                        onNavegar: saltarATejido,
+                      },
+                      {
+                        label: "Órgano",
+                        icono: <Boxes size={10} />,
+                        activo: false,
+                        items: composicionCriatura.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+                        loading: composicionCriatura.loading,
+                        onNavegar: saltarAOrgano,
+                      },
+                      {
+                        label: "Sistema",
+                        icono: <Layers size={10} />,
+                        activo: false,
+                        items: composicionCriatura.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+                        loading: composicionCriatura.loading,
+                        onNavegar: saltarASistema,
+                      },
+                      {
+                        label: "Organismo",
+                        icono: <Boxes size={10} />,
+                        activo: false,
+                        items: organismosCriatura.items.map((v) => ({
+                          id: v.organismo_id,
+                          nombre: v.organismo.nombre,
+                        })),
+                        loading: organismosCriatura.loading,
+                        onNavegar: saltarAOrganismo,
+                      },
+                      { label: "Criatura", icono: <PawPrint size={10} />, activo: true },
+                    ]}
+                  />
+                </div>
+
                 {/* Fila 1: Organismo — vínculo criatura→organismo (rol,
                     cantidad, principal). El bloque "Rasgos evolutivos"
                     (Perfil atómico, tabla perfiles_atomicos_criatura) se
@@ -1042,6 +1125,9 @@ export function EditorCriatura({
           onAbrirOrganoExterno={saltarAOrgano}
           onAbrirSistemaExterno={saltarASistema}
           onAbrirOrganismoExterno={saltarAOrganismo}
+          onAbrirCriaturaExterno={onSelectCriatura}
+          onAbrirCelulaExterno={saltarACelula}
+          onAbrirTejidoExterno={saltarATejido}
         />
       )}
 
@@ -1059,6 +1145,9 @@ export function EditorCriatura({
               onAbrirOrganoExterno={saltarAOrgano}
               onAbrirSistemaExterno={saltarASistema}
               onAbrirOrganismoExterno={saltarAOrganismo}
+          onAbrirCriaturaExterno={onSelectCriatura}
+          onAbrirCelulaExterno={saltarACelula}
+          onAbrirTejidoExterno={saltarATejido}
             />
           );
         })()}
@@ -1084,6 +1173,9 @@ export function EditorCriatura({
               onAbrirOrganoExterno={saltarAOrgano}
               onAbrirSistemaExterno={saltarASistema}
               onAbrirOrganismoExterno={saltarAOrganismo}
+          onAbrirCriaturaExterno={onSelectCriatura}
+          onAbrirCelulaExterno={saltarACelula}
+          onAbrirTejidoExterno={saltarATejido}
             />
           );
         })()}
@@ -1110,6 +1202,9 @@ export function EditorCriatura({
               onAbrirOrganoExterno={saltarAOrgano}
               onAbrirSistemaExterno={saltarASistema}
               onAbrirOrganismoExterno={saltarAOrganismo}
+          onAbrirCriaturaExterno={onSelectCriatura}
+          onAbrirCelulaExterno={saltarACelula}
+          onAbrirTejidoExterno={saltarATejido}
             />
           );
         })()}
@@ -1129,14 +1224,11 @@ export function EditorCriatura({
               onActualizar={celulasCatalogo.actualizar}
               onEliminar={celulasCatalogo.eliminar}
               onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirTejido={(tejidoId) => {
-                setEditandoCelulaId(null);
-                setEditandoTejidoId(tejidoId);
-              }}
-              onAbrirOrgano={(organoId) => {
-                setEditandoCelulaId(null);
-                setEditandoGrupoId(organoId);
-              }}
+              onAbrirTejido={saltarATejido}
+              onAbrirOrgano={saltarAOrgano}
+              onAbrirSistema={saltarASistema}
+              onAbrirOrganismo={saltarAOrganismo}
+              onAbrirCriatura={onSelectCriatura}
             />
           );
         })()}
@@ -1157,14 +1249,11 @@ export function EditorCriatura({
               onActualizar={tejidosCatalogo.actualizar}
               onEliminar={tejidosCatalogo.eliminar}
               onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirCelula={(celulaId) => {
-                setEditandoTejidoId(null);
-                setEditandoCelulaId(celulaId);
-              }}
-              onAbrirOrgano={(organoId) => {
-                setEditandoTejidoId(null);
-                setEditandoGrupoId(organoId);
-              }}
+              onAbrirCelula={saltarACelula}
+              onAbrirOrgano={saltarAOrgano}
+              onAbrirSistema={saltarASistema}
+              onAbrirOrganismo={saltarAOrganismo}
+              onAbrirCriatura={onSelectCriatura}
             />
           );
         })()}

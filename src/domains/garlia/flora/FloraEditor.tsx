@@ -50,6 +50,7 @@ import { type Flora, type PlantaProceso } from "./types";
 import { useEcosistemas, useEcosistemaFlora } from "@/domains/garlia/biologia/useBiologia";
 import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 import { type ItemProceso } from "./SelectorConsumeProduce";
 
@@ -88,6 +89,10 @@ export function FloraEditorMejorado({
   const [itemAbierto, setItemAbierto] = useState<
     { tipo: "elemento" | "compuesto" | "organo" | "celula" | "tejido"; id: string } | null
   >(null);
+  // Salto DIRECTO a Criatura desde el breadcrumb de los paneles de Biología
+  // montados acá — usePanelFlotante reemplaza en vez de apilar (ver su store).
+  const abrirPanelGlobal = usePanelFlotante((st) => st.abrir);
+  const abrirCriatura = (id: string) => abrirPanelGlobal("criatura", id);
   // Último elemento DOM clickeado dentro de la barra de Ecosistemas — usado
   // como anchor del PopoverFlotante, ya que SeccionEntidad.onEntityClick
   // solo entrega el id, no el evento/elemento.
@@ -428,6 +433,7 @@ export function FloraEditorMejorado({
                 void actualizarOrgano(id, cambios);
               }}
               onAbrirCompuesto={(id) => setItemAbierto({ tipo: "compuesto", id })}
+              onAbrirCriaturaExterno={abrirCriatura}
             />
           );
         })()}
@@ -449,6 +455,7 @@ export function FloraEditorMejorado({
               onAbrirCompuesto={(id) => setItemAbierto({ tipo: "compuesto", id })}
               onAbrirTejido={(id) => setItemAbierto({ tipo: "tejido", id })}
               onAbrirOrgano={(id) => setItemAbierto({ tipo: "organo", id })}
+              onAbrirCriatura={abrirCriatura}
             />
           );
         })()}
@@ -471,6 +478,7 @@ export function FloraEditorMejorado({
               onAbrirCompuesto={(id) => setItemAbierto({ tipo: "compuesto", id })}
               onAbrirCelula={(id) => setItemAbierto({ tipo: "celula", id })}
               onAbrirOrgano={(id) => setItemAbierto({ tipo: "organo", id })}
+              onAbrirCriatura={abrirCriatura}
             />
           );
         })()}

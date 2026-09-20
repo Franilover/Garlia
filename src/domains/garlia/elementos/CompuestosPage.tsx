@@ -1093,6 +1093,7 @@ function CompuestoEditor({
   // que además hay que subir el cierre completo — ver onNavegar abajo) y
   // deja solo el panel global del Item visible.
   const abrirPanelGlobalDesdeObjeto = usePanelFlotante((s) => s.abrir);
+  const abrirCriaturaDesdeObjeto = (id: string) => abrirPanelGlobalDesdeObjeto("criatura", id);
 
   // useTagsCatalogo/useCompuestoTags (Naturaleza/Oris/Uso) se sacaron de
   // acá: alimentaban solo SelectorTagsCompuesto, que ya no se renderiza en
@@ -1511,6 +1512,7 @@ function CompuestoEditor({
                     }
                   : undefined
               }
+              onAbrirCriatura={abrirCriaturaDesdeObjeto}
             />
           );
         })()}
@@ -1627,6 +1629,7 @@ export function CompuestoPanelFlotante({
   // CompuestoEditor más abajo). Clic en "Objeto" cierra este panel entero
   // (onCerrar) y deja solo el panel global del Item.
   const abrirPanelGlobalDesdeCompuesto = usePanelFlotante((s) => s.abrir);
+  const abrirCriaturaDesdeCompuesto = (id: string) => abrirPanelGlobalDesdeCompuesto("criatura", id);
   // Destino del salto Célula→Órgano desde el breadcrumb interno de
   // PanelEditorCelula (ver onAbrirOrgano en CompuestoEditor). Requiere el
   // catálogo de Órganos — GrupoCompuestoPanelFlotante resuelve el resto de
@@ -1905,6 +1908,7 @@ export function CompuestoPanelFlotante({
                     }
                   : undefined
               }
+              onAbrirCriaturaExterno={abrirCriaturaDesdeCompuesto}
             />
           );
         })()}
@@ -1944,6 +1948,7 @@ export function CompuestoPanelFlotante({
                 setTejidoAbierto(null);
                 setOrganoAbierto(organoId);
               }}
+              onAbrirCriatura={abrirCriaturaDesdeCompuesto}
             />
           );
         })()}

@@ -19,8 +19,8 @@
  * panel ya solo maneja Órgano, y el prop `tipo` desapareció.
  */
 
-import { Boxes, Beaker, ChevronLeft, Layers, Save, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Boxes, Beaker, ChevronLeft, Layers, PawPrint, Save, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { SelectorFormulaTejidos, type FilaFormulaTejido } from "@/domains/garlia/_shared/SelectorFormulaTejidos";
@@ -34,6 +34,7 @@ import { PanelEditorTejido, PanelEditorCelula } from "@/domains/garlia/biologia/
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
 import { useCelulasDeUnOrgano } from "@/domains/garlia/elementos/useCelulasDeUnOrgano";
 import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
+import { useCriaturasDeOrganismos } from "@/domains/garlia/elementos/useCriaturasDeOrganismos";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 
 import type { Compuesto } from "./types";
@@ -97,6 +98,9 @@ export function GrupoCompuestoPanelFlotante({
   onAbrirOrganoExterno,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
+  onAbrirCriaturaExterno,
+  onAbrirCelulaExterno,
+  onAbrirTejidoExterno,
   sinAnimacion,
   sinPortalPropio,
 }: {
@@ -129,6 +133,22 @@ export function GrupoCompuestoPanelFlotante({
    * onAbrirSistemaExterno.
    */
   onAbrirOrganismoExterno?: (organismoId: string) => void;
+  /**
+   * Navegar a la Criatura elegida desde el nivel "Criatura" del breadcrumb
+   * de este Órgano — salto DIRECTO (Criaturas que usan cualquier Organismo
+   * alcanzable), sin pasar por Organismo. Mismo patrón que
+   * onAbrirOrganismoExterno; sale del shell de Biología.
+   */
+  onAbrirCriaturaExterno?: (criaturaId: string) => void;
+  /**
+   * Salto "desde cero" a una Célula elegida en el breadcrumb de este Órgano
+   * o de sus paneles anidados. Si el padre lo provee, cierra este modal y
+   * delega (mismo patrón que onAbrirOrganoExterno); si no, cae al
+   * comportamiento local de siempre (Célula apilada dentro de este marco).
+   */
+  onAbrirCelulaExterno?: (celulaId: string) => void;
+  /** Igual que onAbrirCelulaExterno pero para Tejido. */
+  onAbrirTejidoExterno?: (tejidoId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb — suprime la animación de entrada. */
   sinAnimacion?: boolean;
@@ -151,6 +171,11 @@ export function GrupoCompuestoPanelFlotante({
   // Organismos que los usan — completa los dos niveles de arriba del
   // breadcrumb (Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo).
   const sistemasYOrganismos = useSistemasYOrganismosDeOrganos([grupo.id]);
+  const organismoIds = useMemo(
+    () => sistemasYOrganismos.organismoItems.map((o) => o.id),
+    [sistemasYOrganismos.organismoItems],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
   const catalogo = useCatalogoTejidos();
 
   // ── Editor completo del Tejido propio de una fila de la fórmula — mismo
@@ -166,6 +191,25 @@ export function GrupoCompuestoPanelFlotante({
   // apunta a Célula — panel independiente, no reemplaza al de arriba
   // (pueden estar los dos abiertos: Tejido debajo, Célula encima). ───────
   const [celulaAbiertaId, setCelulaAbiertaId] = useState<string | null>(null);
+  // Salto a Célula/Tejido: si el padre da un handler externo (ej.
+  // EditorCriatura, que reemplaza toda su pila), cierra este modal y
+  // delega; si no, abre el panel local apilado dentro de este marco.
+  function abrirCelula(celulaId: string) {
+    if (onAbrirCelulaExterno) {
+      onCerrar();
+      onAbrirCelulaExterno(celulaId);
+    } else {
+      setCelulaAbiertaId(celulaId);
+    }
+  }
+  function abrirTejido(tejidoId: string) {
+    if (onAbrirTejidoExterno) {
+      onCerrar();
+      onAbrirTejidoExterno(tejidoId);
+    } else {
+      setTejidoAbiertoId(tejidoId);
+    }
+  }
   const celulasCatalogo = useCelulas();
   const tejidosCatalogo = useTejidos();
 
@@ -269,7 +313,7 @@ export function GrupoCompuestoPanelFlotante({
                 activo: false,
                 items: celulasDelOrgano.items.map((c) => ({ id: c.id, nombre: c.nombre })),
                 loading: celulasDelOrgano.loading,
-                onNavegar: (celulaId) => setCelulaAbiertaId(celulaId),
+                onNavegar: (celulaId) => abrirCelula(celulaId),
               },
               {
                 label: "Tejido",
@@ -277,7 +321,7 @@ export function GrupoCompuestoPanelFlotante({
                 activo: false,
                 items: tejidos.items.map((f) => ({ id: f.tejido_id, nombre: f.nombre })),
                 loading: tejidos.loading,
-                onNavegar: (tejidoId) => setTejidoAbiertoId(tejidoId),
+                onNavegar: (tejidoId) => abrirTejido(tejidoId),
               },
               { label: "Órgano", icono: <Boxes size={10} />, activo: true },
               {
@@ -295,6 +339,14 @@ export function GrupoCompuestoPanelFlotante({
                 items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
                 loading: sistemasYOrganismos.loading,
                 onNavegar: onAbrirOrganismoExterno,
+              },
+              {
+                label: "Criatura",
+                icono: <PawPrint size={10} />,
+                activo: false,
+                items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+                loading: sistemasYOrganismos.loading || criaturasAlcanzables.loading,
+                onNavegar: onAbrirCriaturaExterno,
               },
             ]}
           />
@@ -386,11 +438,23 @@ export function GrupoCompuestoPanelFlotante({
         onCerrar={() => setTejidoAbiertoId(null)}
         onActualizar={tejidosCatalogo.actualizar}
         onEliminar={tejidosCatalogo.eliminar}
-        onAbrirCelula={(celulaId) => setCelulaAbiertaId(celulaId)}
+        onAbrirCelula={(celulaId) => abrirCelula(celulaId)}
         onAbrirOrgano={(organoId) => {
           setTejidoAbiertoId(null);
           onCerrar();
           onAbrirOrganoExterno?.(organoId);
+        }}
+        onAbrirSistema={(sistemaId) => {
+          onCerrar();
+          onAbrirSistemaExterno?.(sistemaId);
+        }}
+        onAbrirOrganismo={(organismoId) => {
+          onCerrar();
+          onAbrirOrganismoExterno?.(organismoId);
+        }}
+        onAbrirCriatura={(criaturaId) => {
+          onCerrar();
+          onAbrirCriaturaExterno?.(criaturaId);
         }}
         onAbrirCompuesto={
           onAbrirCompuesto
@@ -422,7 +486,24 @@ export function GrupoCompuestoPanelFlotante({
         }
         onAbrirTejido={(tejidoId) => {
           setCelulaAbiertaId(null);
-          setTejidoAbiertoId(tejidoId);
+          abrirTejido(tejidoId);
+        }}
+        onAbrirOrgano={(organoId) => {
+          setCelulaAbiertaId(null);
+          onCerrar();
+          onAbrirOrganoExterno?.(organoId);
+        }}
+        onAbrirSistema={(sistemaId) => {
+          onCerrar();
+          onAbrirSistemaExterno?.(sistemaId);
+        }}
+        onAbrirOrganismo={(organismoId) => {
+          onCerrar();
+          onAbrirOrganismoExterno?.(organismoId);
+        }}
+        onAbrirCriatura={(criaturaId) => {
+          onCerrar();
+          onAbrirCriaturaExterno?.(criaturaId);
         }}
       />
     );
@@ -473,7 +554,25 @@ export function GrupoCompuestoPanelFlotante({
         }
         onAbrirTejido={(tejidoId) => {
           setCelulaAbiertaId(null);
-          setTejidoAbiertoId(tejidoId);
+          abrirTejido(tejidoId);
+        }}
+        onAbrirOrgano={(organoId) => {
+          setCelulaAbiertaId(null);
+          setTejidoAbiertoId(null);
+          onCerrar();
+          onAbrirOrganoExterno?.(organoId);
+        }}
+        onAbrirSistema={(sistemaId) => {
+          onCerrar();
+          onAbrirSistemaExterno?.(sistemaId);
+        }}
+        onAbrirOrganismo={(organismoId) => {
+          onCerrar();
+          onAbrirOrganismoExterno?.(organismoId);
+        }}
+        onAbrirCriatura={(criaturaId) => {
+          onCerrar();
+          onAbrirCriaturaExterno?.(criaturaId);
         }}
       />
     </MiniPortalAnidado>

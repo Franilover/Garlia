@@ -28,7 +28,7 @@
  * abre panel flotante centrado).
  */
 
-import { Beaker, Boxes, ChevronLeft, Layers, Plus, Save, Trash2, X, Search } from "lucide-react";
+import { Beaker, Boxes, ChevronLeft, Layers, PawPrint, Plus, Save, Trash2, X, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -45,6 +45,7 @@ import { useTejidosDeUnaCelula } from "@/domains/garlia/elementos/useTejidosDeUn
 import { useOrganosDeUnTejido } from "@/domains/garlia/elementos/useOrganosDeUnTejido";
 import { useOrganosDeUnaCelula } from "@/domains/garlia/elementos/useOrganosDeUnaCelula";
 import { useSistemasYOrganismosDeOrganos } from "@/domains/garlia/elementos/useSistemasYOrganismosDeOrganos";
+import { useCriaturasDeOrganismos } from "@/domains/garlia/elementos/useCriaturasDeOrganismos";
 import type { Celula, Compuesto, Estructura, Tejido } from "@/domains/garlia/elementos/types";
 import { GridPropiedadesCalculadas } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
@@ -260,6 +261,7 @@ export function PanelEditorCelula({
   onAbrirOrgano,
   onAbrirSistema,
   onAbrirOrganismo,
+  onAbrirCriatura,
   sinAnimacion,
   sinMarco,
 }: {
@@ -283,6 +285,11 @@ export function PanelEditorCelula({
   /** Cierra este panel y abre el del Organismo elegido — techo de la
    *  cadena, misma unión transitiva un nivel más arriba todavía. */
   onAbrirOrganismo?: (organismoId: string) => void;
+  /** Cierra este panel y navega a la Criatura elegida — salto DIRECTO (unión
+   *  transitiva de las Criaturas que usan cualquier Organismo alcanzable),
+   *  sin pasar por Organismo. Sale del shell de Biología: lo resuelve el
+   *  padre (ver PanelEditorOrganismo.onAbrirCriatura). */
+  onAbrirCriatura?: (criaturaId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb (no un click nuevo desde la grilla) — suprime la
    *  animación de entrada para evitar el parpadeo "cierra y abre". */
@@ -303,6 +310,11 @@ export function PanelEditorCelula({
     [organosQueUsanEstaCelula.items],
   );
   const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
+  const organismoIds = useMemo(
+    () => sistemasYOrganismos.organismoItems.map((o) => o.id),
+    [sistemasYOrganismos.organismoItems],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -375,6 +387,14 @@ export function PanelEditorCelula({
               loading: sistemasYOrganismos.loading,
               onNavegar: onAbrirOrganismo,
             },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: sistemasYOrganismos.loading || criaturasAlcanzables.loading,
+              onNavegar: onAbrirCriatura,
+            },
           ]}
         />
       </div>
@@ -445,6 +465,7 @@ export function PanelEditorTejido({
   onAbrirOrgano,
   onAbrirSistema,
   onAbrirOrganismo,
+  onAbrirCriatura,
   onCompuestoCreado,
   onAbrirCompuesto,
   sinAnimacion,
@@ -469,6 +490,11 @@ export function PanelEditorTejido({
   /** Cierra este panel y abre el del Organismo elegido — techo de la
    *  cadena, misma unión transitiva un nivel más arriba todavía. */
   onAbrirOrganismo?: (organismoId: string) => void;
+  /** Cierra este panel y navega a la Criatura elegida — salto DIRECTO (unión
+   *  transitiva de las Criaturas que usan cualquier Organismo alcanzable),
+   *  sin pasar por Organismo. Sale del shell de Biología: lo resuelve el
+   *  padre (ver PanelEditorOrganismo.onAbrirCriatura). */
+  onAbrirCriatura?: (criaturaId: string) => void;
   onCompuestoCreado?: (c: Compuesto) => void;
   onAbrirCompuesto?: (compuestoId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
@@ -489,6 +515,11 @@ export function PanelEditorTejido({
     [organosQueUsanEsteTejido.items],
   );
   const sistemasYOrganismos = useSistemasYOrganismosDeOrganos(organoIds);
+  const organismoIds = useMemo(
+    () => sistemasYOrganismos.organismoItems.map((o) => o.id),
+    [sistemasYOrganismos.organismoItems],
+  );
+  const criaturasAlcanzables = useCriaturasDeOrganismos(organismoIds);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -560,6 +591,14 @@ export function PanelEditorTejido({
               items: sistemasYOrganismos.organismoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
               loading: sistemasYOrganismos.loading,
               onNavegar: onAbrirOrganismo,
+            },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasAlcanzables.items.map((c) => ({ id: c.id, nombre: c.nombre })),
+              loading: sistemasYOrganismos.loading || criaturasAlcanzables.loading,
+              onNavegar: onAbrirCriatura,
             },
           ]}
         />
