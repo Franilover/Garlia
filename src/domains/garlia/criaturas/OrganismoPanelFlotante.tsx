@@ -35,9 +35,21 @@ import type { Organismo } from "@/domains/garlia/elementos/types";
 export function OrganismoPanelFlotante({
   organismo,
   onCerrar,
+  onAbrirOrganoExterno,
+  onAbrirSistemaExterno,
+  onAbrirOrganismoExterno,
 }: {
   organismo: Organismo;
   onCerrar: () => void;
+  /** Reemplaza TODA la pila (incluido este panel) — ver comentario en
+   *  SistemaPanelFlotante.onAbrirOrganoExterno. Resuelto en EditorCriatura. */
+  onAbrirOrganoExterno?: (organoId: string) => void;
+  /** Reemplaza TODA la pila y abre ESE Sistema — ver SistemaPanelFlotante. */
+  onAbrirSistemaExterno?: (sistemaId: string) => void;
+  /** Reemplaza TODA la pila y abre ESE Organismo — usado cuando, parado en
+   *  un nivel de abajo, se elige un Organismo DISTINTO al que trajo hasta
+   *  acá (ej. dos Sistemas distintos comparten un mismo Órgano catalogado). */
+  onAbrirOrganismoExterno?: (organismoId: string) => void;
 }) {
   const sistemas = useOrganismoSistemas(organismo.id);
   const organosDirectos = useOrganismoOrganos(organismo.id);
@@ -200,7 +212,13 @@ export function OrganismoPanelFlotante({
           const sistemaActivo = sistemas.items.find((s) => s.sistema_id === editandoSistemaId)?.sistema;
           if (!sistemaActivo) return null;
           return (
-            <SistemaPanelFlotante sistema={sistemaActivo} onCerrar={() => setEditandoSistemaId(null)} />
+            <SistemaPanelFlotante
+              sistema={sistemaActivo}
+              onCerrar={() => setEditandoSistemaId(null)}
+              onAbrirOrganoExterno={onAbrirOrganoExterno}
+              onAbrirSistemaExterno={onAbrirSistemaExterno}
+              onAbrirOrganismoExterno={onAbrirOrganismoExterno}
+            />
           );
         })()}
 
@@ -219,6 +237,9 @@ export function OrganismoPanelFlotante({
                   prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
                 )
               }
+              onAbrirOrganoExterno={onAbrirOrganoExterno}
+              onAbrirSistemaExterno={onAbrirSistemaExterno}
+              onAbrirOrganismoExterno={onAbrirOrganismoExterno}
             />
           );
         })()}

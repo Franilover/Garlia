@@ -92,6 +92,7 @@ import { useTejidos } from "@/domains/garlia/elementos/useTejidos";
 import { PanelEditorCelula, PanelEditorTejido } from "@/domains/garlia/biologia/CatalogoTejidosBiologia";
 import { useOrganos } from "@/domains/garlia/elementos/useOrganos";
 import { useOrganismos } from "@/domains/garlia/elementos/useOrganismos";
+import { useSistemas } from "@/domains/garlia/elementos/useSistemas";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import type { Organo, Organismo } from "@/domains/garlia/elementos/types";
 import { supabase } from "@/infra/supabase/supabase";
@@ -186,6 +187,42 @@ export function EditorCriatura({
   // Panel flotante de detalle del Organismo (Sistemas→Órganos) abierto al
   // clickear una fila en PanelOrganismosCriatura — ver OrganismoPanelFlotante.tsx.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
+  // Catálogo global de Sistemas — necesario para resolver por id el
+  // destino de un salto "reemplazar toda la pila" (ver saltarASistema
+  // abajo), igual que catalogoOrganismos/catalogoOrganos ya cumplen ese
+  // rol para sus propios niveles.
+  const { items: catalogoSistemas } = useSistemas();
+
+  /**
+   * Saltos "reemplazar toda la pila" — click en el breadcrumb interno de
+   * GrupoCompuestoPanelFlotante (Órgano ⇄ Sistema ⇄ Organismo), abierto
+   * desde ADENTRO de una Criatura, sobre un Sistema/Organismo/Órgano
+   * DISTINTO al que trajo hasta ahí. En vez de apilar un panel más encima,
+   * cierran los 3 estados raíz de la pila (editandoOrganismoId /
+   * editandoSistemaOrganismoId / editandoGrupoId) y abren solo el destino
+   * elegido — mismo efecto que si se hubiera clickeado ESE item desde
+   * cero en PanelOrganismosCriatura/fila de Biología. Pasadas hacia abajo
+   * como onAbrirOrganismoExterno/onAbrirSistemaExterno/onAbrirOrganoExterno
+   * a OrganismoPanelFlotante y SistemaPanelFlotante, que a su vez las
+   * reenvían a sus hijos sin manejarlas localmente.
+   */
+  function saltarAOrganismo(id: string) {
+    setEditandoSistemaOrganismoId(null);
+    setEditandoOrganoDirectoOrganismoId(null);
+    setEditandoGrupoId(null);
+    setEditandoOrganismoId(id);
+  }
+  function saltarASistema(id: string) {
+    setEditandoOrganismoId(null);
+    setEditandoGrupoId(null);
+    setEditandoSistemaOrganismoId(id);
+  }
+  function saltarAOrgano(id: string) {
+    setEditandoOrganismoId(null);
+    setEditandoSistemaOrganismoId(null);
+    setEditandoGrupoId(id);
+  }
+
 
   // ── Organismo "principal" resuelto para la fila 2 (Órganos del organismo |
   // Sistemas del organismo), mostrada inline en el propio editor sin abrir
@@ -1002,6 +1039,9 @@ export function EditorCriatura({
           onCerrar={() => setEditandoGrupoId(null)}
           onActualizar={persistirOrgano}
           onAbrirCompuesto={setEditandoCompuestoId}
+          onAbrirOrganoExterno={saltarAOrgano}
+          onAbrirSistemaExterno={saltarASistema}
+          onAbrirOrganismoExterno={saltarAOrganismo}
         />
       )}
 
@@ -1016,23 +1056,34 @@ export function EditorCriatura({
             <OrganismoPanelFlotante
               organismo={organismoActivo}
               onCerrar={() => setEditandoOrganismoId(null)}
+              onAbrirOrganoExterno={saltarAOrgano}
+              onAbrirSistemaExterno={saltarASistema}
+              onAbrirOrganismoExterno={saltarAOrganismo}
             />
           );
         })()}
 
       {/* Click en una fila de "Sistemas del organismo" (fila 2 inline de
           Biología) — mismo panel que usa OrganismoPanelFlotante para sus
-          Sistemas. */}
+          Sistemas. Resuelve primero contra los Sistemas del organismo
+          principal (caso original, fila inline); si no aparece ahí, cae al
+          catálogo global de Sistemas — cubre el caso de un salto externo
+          (saltarASistema) hacia un Sistema que no pertenece a ese
+          organismo principal. */}
       {editandoSistemaOrganismoId &&
         (() => {
-          const sistemaActivo = sistemasOrganismo.items.find(
-            (s) => s.sistema_id === editandoSistemaOrganismoId,
-          )?.sistema;
+          const sistemaActivo =
+            sistemasOrganismo.items.find((s) => s.sistema_id === editandoSistemaOrganismoId)
+              ?.sistema ??
+            catalogoSistemas.find((s) => s.id === editandoSistemaOrganismoId);
           if (!sistemaActivo) return null;
           return (
             <SistemaPanelFlotante
               sistema={sistemaActivo}
               onCerrar={() => setEditandoSistemaOrganismoId(null)}
+              onAbrirOrganoExterno={saltarAOrgano}
+              onAbrirSistemaExterno={saltarASistema}
+              onAbrirOrganismoExterno={saltarAOrganismo}
             />
           );
         })()}
@@ -1056,6 +1107,9 @@ export function EditorCriatura({
                   prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
                 )
               }
+              onAbrirOrganoExterno={saltarAOrgano}
+              onAbrirSistemaExterno={saltarASistema}
+              onAbrirOrganismoExterno={saltarAOrganismo}
             />
           );
         })()}

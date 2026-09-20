@@ -28,9 +28,30 @@ import type { Sistema } from "@/domains/garlia/elementos/types";
 export function SistemaPanelFlotante({
   sistema,
   onCerrar,
+  onAbrirOrganoExterno,
+  onAbrirSistemaExterno,
+  onAbrirOrganismoExterno,
 }: {
   sistema: Sistema;
   onCerrar: () => void;
+  /**
+   * Reemplaza TODA la pila (cierra este panel y cualquier ancestro) y abre
+   * el editor completo del Órgano elegido desde el breadcrumb interno de
+   * GrupoCompuestoPanelFlotante (Órgano ⇄ Sistema ⇄ Organismo) — no apila
+   * encima, entra "desde cero" como si se hubiera clickeado ese Órgano
+   * directo. Resuelto arriba en EditorCriatura.tsx.
+   */
+  onAbrirOrganoExterno?: (organoId: string) => void;
+  /**
+   * Reemplaza TODA la pila y abre ESE Sistema en un SistemaPanelFlotante
+   * nuevo — usado cuando, parado en un Órgano/Tejido/Célula abierto desde
+   * acá, se clickea "Sistema" en su breadcrumb interno y se elige uno
+   * DISTINTO al que trajo hasta ahí.
+   */
+  onAbrirSistemaExterno?: (sistemaId: string) => void;
+  /** Misma idea que onAbrirSistemaExterno, un nivel más arriba: reemplaza
+   *  toda la pila y abre ESE Organismo en OrganismoPanelFlotante. */
+  onAbrirOrganismoExterno?: (organismoId: string) => void;
 }) {
   const organos = useSistemaOrganos(sistema.id);
   const { items: compuestosOrganos } = useCompuestosConElementos();
@@ -147,6 +168,9 @@ export function SistemaPanelFlotante({
                   prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
                 )
               }
+              onAbrirOrganoExterno={onAbrirOrganoExterno}
+              onAbrirSistemaExterno={onAbrirSistemaExterno}
+              onAbrirOrganismoExterno={onAbrirOrganismoExterno}
             />
           );
         })()}
