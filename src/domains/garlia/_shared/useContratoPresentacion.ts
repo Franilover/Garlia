@@ -27,7 +27,7 @@
  * grupos/propiedades hardcodeadas — eso lo decide Supabase en runtime).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import {
@@ -188,13 +188,26 @@ export function useValoresCientificos(
   const [valores, setValores] = useState<ValoresCientificosPorClave>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Ver misma técnica en useInterpretacionEscritor: distingue "cambió
+  // activo" (mismo dato, no limpiar — evita parpadeo) de "cambió la
+  // entidad" (dato de otra cosa, sí limpiar).
+  const entidadActualRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activo || !entidadId) {
-      setValores({});
+      if (entidadId !== entidadActualRef.current) {
+        setValores({});
+        entidadActualRef.current = entidadId ?? null;
+      }
       setLoading(false);
       setError(null);
       return;
+    }
+
+    const claveEntidad = `${entidad}:${entidadId}`;
+    if (entidadActualRef.current !== claveEntidad) {
+      setValores({});
+      entidadActualRef.current = claveEntidad;
     }
 
     let cancelado = false;
@@ -320,13 +333,22 @@ export function useContratoPresentacion(
   const [filas, setFilas] = useState<FilaContratoPresentacion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const claveActualRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activo) {
-      setFilas([]);
+      // No se limpia por desactivar solo — misma técnica que
+      // useInterpretacionEscritor/useValoresCientificos: evita parpadeo al
+      // volver a activar con la misma entidad+modo.
       setLoading(false);
       setError(null);
       return;
+    }
+
+    const clave = `${entidad}:${modo}`;
+    if (claveActualRef.current !== clave) {
+      setFilas([]);
+      claveActualRef.current = clave;
     }
 
     let cancelado = false;

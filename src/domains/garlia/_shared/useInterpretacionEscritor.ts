@@ -54,7 +54,7 @@
  * como último resultado válido en vez de caer al valor técnico.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import {
@@ -152,13 +152,39 @@ export function useInterpretacionEscritor(
 ): { interpretaciones: InterpretacionesPorClave; loading: boolean } {
   const [interpretaciones, setInterpretaciones] = useState<InterpretacionesPorClave>({});
   const [loading, setLoading] = useState(false);
+  // Recuerda para qué (entidad, entidadId) es el `interpretaciones` actual,
+  // para distinguir "cambió activo" (mismo dato, solo mostrar/ocultar — no
+  // limpiar, evita el parpadeo) de "cambió la entidad" (dato de otra cosa,
+  // SÍ hay que limpiar para no mostrar un instante los valores de la
+  // entidad anterior mientras carga la nueva).
+  const entidadActualRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!activo || !entidadId) {
-      setInterpretaciones({});
+      // Si solo se desactivó (ej. toggle a Científico) se conserva el
+      // estado para cuando vuelva a activarse — no hay nada que mostrar
+      // en Científico de todos modos, así que no importa. Si además
+      // cambió la entidad sin id, sí limpiamos.
+      if (entidadId !== entidadActualRef.current) {
+        setInterpretaciones({});
+        entidadActualRef.current = entidadId ?? null;
+      }
       setLoading(false);
       return;
     }
+
+    const claveEntidad = `${entidad}:${entidadId}`;
+    const esEntidadNueva = entidadActualRef.current !== claveEntidad;
+    if (esEntidadNueva) {
+      // Dato de otra entidad: limpiar ahora sí, para no mostrar por error
+      // los valores de la entidad anterior mientras carga la nueva.
+      setInterpretaciones({});
+      entidadActualRef.current = claveEntidad;
+    }
+    // Si NO es una entidad nueva (solo cambió `activo`, ej. toggle de
+    // modo), se deja `interpretaciones` como estaba — evita el parpadeo de
+    // "vacío → recién llega" en el frame async antes de que Dexie/Supabase
+    // respondan.
 
     let cancelado = false;
     let pintadoDesdeCache = false;

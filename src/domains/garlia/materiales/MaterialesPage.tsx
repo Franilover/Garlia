@@ -510,7 +510,15 @@ function MaterialDetail({
     ...p,
     grupo: p.grupo ?? "Propiedades físicas",
   }));
-  const perfilReactivoCrudo = loadingPerfilReactivo ? [] : propiedadesDePerfilReactivo(perfilReactivo);
+  // FIX parpadeo: antes se vaciaba el bloque de Reactividad con `[]`
+  // mientras loadingPerfilReactivo era true — eso incluye el frame inicial
+  // de CADA mount del hook (useState arranca en loading=true por
+  // definición, incluso con Dexie ya cacheado, hasta que el primer efecto
+  // corre), lo que producía un parpadeo visible cada vez que se abría el
+  // editor o se remontaba. Ahora se muestra el último `perfilReactivo`
+  // disponible aunque loading sea true; solo se omite si de verdad no hay
+  // ningún dato todavía (primera carga sin cache).
+  const perfilReactivoCrudo = propiedadesDePerfilReactivo(perfilReactivo);
   // FE-018 fix (extendido a Reactividad): en modo Escritor, el perfil
   // reactivo también debe respetar la regla estricta de ocultamiento (sin
   // interpretación válida → oculto) en vez de mostrar siempre el valor
