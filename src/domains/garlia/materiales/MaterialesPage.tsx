@@ -4,6 +4,7 @@ import {
   Atom,
   Beaker,
   Box,
+  ChevronLeft,
   ChevronRight,
   Dices,
   Loader2,
@@ -41,6 +42,8 @@ import { useContratoPresentacion } from "@/domains/garlia/_shared/useContratoPre
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
 import { supabase } from "@/infra/supabase/supabase";
 
 import { useMaterialComponentes } from "./useMaterialComponentes";
@@ -783,10 +786,24 @@ function MaterialPill({ material, selected, onClick }: { material: Material; sel
 export function MaterialEditorFlotante({
   material,
   onClose,
+  onBack,
+  onRename,
+  onDelete,
   breadcrumbNiveles,
 }: {
   material: Material;
   onClose: () => void;
+  /** Botón de volver (flecha a la izquierda) en el header — mismo lugar
+   *  que ChevronLeft en CompuestoEditor/ElementoEditor. Opcional: si se
+   *  omite (uso standalone, no hay a dónde volver), no se muestra. */
+  onBack?: () => void;
+  /** Renombrado con guardado inmediato on-blur, mismo patrón que
+   *  useMateriales().renombrarMaterial. Si se omite, el nombre del header
+   *  vuelve a mostrarse de solo lectura. */
+  onRename?: (nuevoNombre: string) => void;
+  /** Elimina el material y cierra el panel. Si se omite, no se muestra el
+   *  botón de borrar. */
+  onDelete?: () => void;
   /** Niveles del breadcrumb superior (BreadcrumbJerarquia) a mostrar arriba
    *  del header cuando este panel se abre DESDE otro nivel (ej. Compuesto)
    *  — ej. "Elemento > Compuesto > Material" con Material activo. Si se
@@ -837,6 +854,31 @@ export function MaterialEditorFlotante({
   // arriba solo guardan {id, nombre} para el breadcrumb).
   const { items: elementosCatalogo } = useElementos();
   const { items: compuestosCatalogo, setItems: setCompuestosCatalogo } = useCompuestosConElementos();
+
+  // Nombre editable en el header, mismo patrón on-blur que
+  // ElementoEditor/CompuestoEditor — el guardado real lo hace
+  // onRename (renombrarMaterial en MaterialesPage), acá solo se lleva el
+  // valor del input y el estado del SaveIndicator.
+  const [nombreLocal, setNombreLocal] = useState(material.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  useEffect(() => setNombreLocal(material.nombre), [material.id, material.nombre]);
+
+  async function guardarNombre() {
+    if (!onRename) return;
+    const nuevo = nombreLocal.trim();
+    if (!nuevo || nuevo === material.nombre) {
+      setNombreLocal(material.nombre);
+      return;
+    }
+    setStatus("saving");
+    try {
+      await onRename(nuevo);
+      setStatus("saved");
+    } catch (e) {
+      console.error("[MaterialEditorFlotante] error renombrando:", e);
+      setStatus("error");
+    }
+  }
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -923,18 +965,31 @@ export function MaterialEditorFlotante({
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Box className="text-primary/50" size={12} />
-          </div>
-          <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
-            {material.nombre}
-          </span>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              title="Volver"
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
+
+          {onRename ? (
+            <input
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+              placeholder="Nombre del material"
+              value={nombreLocal}
+              onChange={(e) => setNombreLocal(e.target.value)}
+              onBlur={guardarNombre}
+            />
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
+              {material.nombre}
+            </span>
+          )}
+
           <button
             type="button"
             onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
@@ -953,6 +1008,30 @@ export function MaterialEditorFlotante({
             {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
             <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
           </button>
+
+          <div className="shrink-0 flex items-center gap-1.5">
+            <SaveIndicator status={status} />
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              >
+                <Trash2 size={10} />
+              </button>
+            )}
+            {onRename && (
+              <button
+                type="button"
+                disabled={status === "saving"}
+                onClick={guardarNombre}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              >
+                <Save size={10} /> Guardar
+              </button>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={onClose}
@@ -1060,7 +1139,8 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
 };
 
 export function MaterialesPage() {
-  const { items: materiales, loading } = useMateriales();
+  const { items: materiales, loading, renombrarMaterial, eliminarMaterial } = useMateriales();
+  const { confirm, ConfirmModal } = useConfirm();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const seleccionado = materiales.find((material) => material.id === seleccionadoId) ?? null;
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
@@ -1147,8 +1227,22 @@ export function MaterialesPage() {
         </div>
       )}
       {seleccionado && (
-        <MaterialEditorFlotante material={seleccionado} onClose={() => setSeleccionadoId(null)} />
+        <MaterialEditorFlotante
+          material={seleccionado}
+          onClose={() => setSeleccionadoId(null)}
+          onRename={(nuevoNombre) => renombrarMaterial(seleccionado.id, nuevoNombre)}
+          onDelete={async () => {
+            const ok = await confirm({
+              title: "Eliminar material",
+              message: `¿Eliminar "${seleccionado.nombre}"? Esta acción no se puede deshacer.`,
+            });
+            if (!ok) return;
+            await eliminarMaterial(seleccionado.id);
+            setSeleccionadoId(null);
+          }}
+        />
       )}
+      <ConfirmModal />
     </div>
   );
 }

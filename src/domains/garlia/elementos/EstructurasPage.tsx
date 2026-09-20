@@ -1,11 +1,13 @@
 "use client";
 
-import { Box, Link2, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { Box, ChevronLeft, Link2, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PropiedadesFisicasGenerico } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { GeometriaBloque } from "@/domains/garlia/_shared/GeometriaBloque";
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
 
@@ -1015,10 +1017,44 @@ function EstructuraDetail({ estructura }: { estructura: Estructura }) {
 function EstructuraPanelFlotante({
   estructura,
   onClose,
+  onBack,
+  onRename,
+  onDelete,
 }: {
   estructura: Estructura;
   onClose: () => void;
+  /** Flecha de volver a la izquierda del header, mismo lugar que en
+   *  CompuestoEditor/ElementoEditor. Opcional. */
+  onBack?: () => void;
+  /** Renombrado on-blur con guardado inmediato, mismo patrón que
+   *  useEstructuras().renombrarEstructura. Si se omite, el nombre queda
+   *  de solo lectura. */
+  onRename?: (nuevoNombre: string) => void;
+  /** Elimina la estructura y cierra el panel. Si se omite, no se muestra
+   *  el botón de borrar. */
+  onDelete?: () => void;
 }) {
+  const [nombreLocal, setNombreLocal] = useState(estructura.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  useEffect(() => setNombreLocal(estructura.nombre), [estructura.id, estructura.nombre]);
+
+  async function guardarNombre() {
+    if (!onRename) return;
+    const nuevo = nombreLocal.trim();
+    if (!nuevo || nuevo === estructura.nombre) {
+      setNombreLocal(estructura.nombre);
+      return;
+    }
+    setStatus("saving");
+    try {
+      await onRename(nuevo);
+      setStatus("saved");
+    } catch (e) {
+      console.error("[EstructuraPanelFlotante] error renombrando:", e);
+      setStatus("error");
+    }
+  }
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -1061,18 +1097,54 @@ function EstructuraPanelFlotante({
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Box className="text-primary/50" size={12} />
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              title="Volver"
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
+
+          {onRename ? (
+            <input
+              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+              placeholder="Nombre de la estructura"
+              value={nombreLocal}
+              onChange={(e) => setNombreLocal(e.target.value)}
+              onBlur={guardarNombre}
+            />
+          ) : (
+            <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
+              {estructura.nombre}
+            </span>
+          )}
+
+          <div className="shrink-0 flex items-center gap-1.5">
+            <SaveIndicator status={status} />
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+              >
+                <Trash2 size={10} />
+              </button>
+            )}
+            {onRename && (
+              <button
+                type="button"
+                disabled={status === "saving"}
+                onClick={guardarNombre}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+              >
+                <Save size={10} /> Guardar
+              </button>
+            )}
           </div>
-          <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
-            {estructura.nombre}
-          </span>
+
           <button
             type="button"
             onClick={onClose}
@@ -1093,7 +1165,8 @@ function EstructuraPanelFlotante({
 }
 
 export default function EstructurasPage() {
-  const { items, loading } = useEstructuras();
+  const { items, loading, renombrarEstructura, eliminarEstructura } = useEstructuras();
+  const { confirm, ConfirmModal } = useConfirm();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
   const seleccionada = items.find((e) => e.id === seleccionadaId) ?? null;
 
@@ -1176,8 +1249,22 @@ export default function EstructurasPage() {
         </div>
       )}
       {seleccionada && (
-        <EstructuraPanelFlotante estructura={seleccionada} onClose={() => setSeleccionadaId(null)} />
+        <EstructuraPanelFlotante
+          estructura={seleccionada}
+          onClose={() => setSeleccionadaId(null)}
+          onRename={(nuevoNombre) => renombrarEstructura(seleccionada.id, nuevoNombre)}
+          onDelete={async () => {
+            const ok = await confirm({
+              title: "Eliminar estructura",
+              message: `¿Eliminar "${seleccionada.nombre}"? Esta acción no se puede deshacer.`,
+            });
+            if (!ok) return;
+            await eliminarEstructura(seleccionada.id);
+            setSeleccionadaId(null);
+          }}
+        />
       )}
+      <ConfirmModal />
     </div>
   );
 }
