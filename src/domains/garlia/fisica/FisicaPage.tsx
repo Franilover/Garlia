@@ -280,12 +280,12 @@ function catalogosBases(
   return [
     {
       key: "polaridades",
-      titulo: "Polaridades Fundamentales",
+      titulo: "Polaridades",
       filas: polaridades.map(polaridadAFilaCatalogo),
     },
     {
       key: "particula-base",
-      titulo: "Partícula Base",
+      titulo: "TASI",
       filas: particulaBase.map(particulaBaseAFilaCatalogo),
     },
     {
@@ -448,7 +448,7 @@ function TodasLasBasesView({
             tarjeta ancha apilada verticalmente, así que una columna con
             pocos ítems reparte en una o dos líneas cortas en vez de
             ocupar todo el alto disponible en una lista de 1 columna. */}
-        {/* Polaridades Fundamentales + Partícula Base van apiladas en una
+        {/* Polaridades + TASI van apiladas en una
             sola columna angosta (ambas con muy pocos ítems: 2 y 3-4) en
             vez de cada una llevarse su propio ancho de columna en el
             flex-wrap — evita el hueco vacío enorme que dejaban al ir
