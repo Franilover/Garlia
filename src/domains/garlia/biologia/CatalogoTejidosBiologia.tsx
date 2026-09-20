@@ -28,10 +28,12 @@
  * abre panel flotante centrado).
  */
 
-import { Beaker, Boxes, Layers, Plus, Trash2, X, Search } from "lucide-react";
+import { Beaker, Boxes, ChevronLeft, Layers, Plus, Save, Trash2, X, Search } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { useConfirm } from "@/ui/ConfirmModal";
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
 import {
   useEstructuraComposicion,
   type CompuestoDeEstructura,
@@ -323,7 +325,6 @@ export function PanelEditorCelula({
     <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
-        icono={<Beaker className="text-primary/50" size={12} />}
         nombre={item.nombre ?? ""}
         placeholder="Nombre…"
         onChangeNombre={(nombre) => onActualizar(item.id, { nombre })}
@@ -510,7 +511,6 @@ export function PanelEditorTejido({
     <PanelFlotanteBase sinAnimacion={sinAnimacion} sinMarco={sinMarco}>
       <ConfirmModal />
       <PanelFlotanteHeader
-        icono={<Layers className="text-primary/50" size={12} />}
         nombre={item.nombre ?? ""}
         placeholder="Nombre…"
         onChangeNombre={(nombre) => onActualizar(item.id, { nombre })}
@@ -881,23 +881,54 @@ function PanelFlotanteBase({
  * con botón "Guardar" explícito), acá se mantiene el autosave on-change ya
  * existente en Tejido/Célula/Grano/Veta — solo se iguala la cáscara visual.
  */
+/**
+ * Header estándar del panel flotante grande — mismo look que
+ * ElementoPanelFlotante/CompuestoPanelFlotante: flecha de volver (si hay
+ * onBack) a la izquierda en vez de la caja de ícono, input de nombre
+ * grande, SaveIndicator + botón Guardar explícito, botón eliminar y botón
+ * cerrar a la derecha. El guardado sigue siendo autosave on-change (mismo
+ * comportamiento de siempre en Tejido/Célula/Sistema/Organismo) — el botón
+ * Guardar dispara onGuardar si se pasa (para forzar/confirmar) y siempre
+ * deja ver un "Guardado" momentáneo, igual que si hubiera guardado manual.
+ */
 function PanelFlotanteHeader({
-  icono,
+  onBack,
   nombre,
   placeholder,
   onChangeNombre,
+  onGuardar,
   onEliminar,
   eliminando,
   onCerrar,
 }: {
-  icono: React.ReactNode;
+  /** Flecha de volver a la izquierda — mismo lugar que ChevronLeft en
+   *  CompuestoEditor/ElementoEditor. Si se omite, no se muestra nada ahí
+   *  (el nombre arranca pegado al borde izquierdo). */
+  onBack?: () => void;
   nombre: string;
   placeholder: string;
   onChangeNombre: (nombre: string) => void;
+  /** Se llama al click en Guardar, además de mostrar el SaveIndicator —
+   *  opcional, útil si el caller quiere forzar un guardado puntual más
+   *  allá del autosave on-change ya existente. */
+  onGuardar?: () => void | Promise<void>;
   onEliminar: () => void;
   eliminando?: boolean;
   onCerrar: () => void;
 }) {
+  const [status, setStatus] = useState<SaveStatus>("idle");
+
+  async function handleGuardar() {
+    setStatus("saving");
+    try {
+      await onGuardar?.();
+      setStatus("saved");
+    } catch (e) {
+      console.error("[PanelFlotanteHeader] error guardando:", e);
+      setStatus("error");
+    }
+  }
+
   return (
     <div
       className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
@@ -906,30 +937,42 @@ function PanelFlotanteHeader({
         background: "color-mix(in srgb, var(--primary) 3%, transparent)",
       }}
     >
-      <div
-        className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-        }}
-      >
-        {icono}
-      </div>
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          title="Volver"
+          className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+        >
+          <ChevronLeft size={12} />
+        </button>
+      )}
       <input
         className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
         placeholder={placeholder}
         value={nombre}
         onChange={(e) => onChangeNombre(e.target.value)}
       />
-      <button
-        type="button"
-        onClick={onEliminar}
-        disabled={eliminando}
-        title="Eliminar"
-        className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all disabled:opacity-40 cursor-pointer"
-      >
-        <Trash2 size={10} />
-      </button>
+      <div className="shrink-0 flex items-center gap-1.5">
+        <SaveIndicator status={status} />
+        <button
+          type="button"
+          onClick={onEliminar}
+          disabled={eliminando}
+          title="Eliminar"
+          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all disabled:opacity-40 cursor-pointer"
+        >
+          <Trash2 size={10} />
+        </button>
+        <button
+          type="button"
+          disabled={status === "saving"}
+          onClick={handleGuardar}
+          className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+        >
+          <Save size={10} /> Guardar
+        </button>
+      </div>
       <button
         type="button"
         onClick={onCerrar}

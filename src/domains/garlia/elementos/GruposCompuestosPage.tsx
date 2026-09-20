@@ -19,11 +19,13 @@
  * panel ya solo maneja Órgano, y el prop `tipo` desapareció.
  */
 
-import { Boxes, Beaker, Layers, Trash2, X } from "lucide-react";
+import { Boxes, Beaker, ChevronLeft, Layers, Save, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { SelectorFormulaTejidos, type FilaFormulaTejido } from "@/domains/garlia/_shared/SelectorFormulaTejidos";
+import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { type SaveStatus } from "@/ui/saveStatus";
 import { useOrganoTejidos } from "@/domains/garlia/elementos/useOrganoTejidos";
 import { useCatalogoTejidos } from "@/domains/garlia/elementos/useCatalogoTejidos";
 import { useCelulas } from "@/domains/garlia/elementos/useCelulas";
@@ -88,6 +90,7 @@ export function GrupoCompuestoPanelFlotante({
   grupo,
   compuestos,
   onCerrar,
+  onBack,
   onActualizar,
   onEliminar,
   onAbrirCompuesto,
@@ -100,6 +103,9 @@ export function GrupoCompuestoPanelFlotante({
   grupo: EntradaCatalogoGrupo;
   compuestos: Compuesto[];
   onCerrar: () => void;
+  /** Flecha de volver a la izquierda del header — mismo lugar que
+   *  ChevronLeft en CompuestoEditor/ElementoEditor. Opcional. */
+  onBack?: () => void;
   onActualizar: (id: string, cambios: Partial<EntradaCatalogoGrupo>) => void;
   onEliminar?: (id: string) => void;
   onAbrirCompuesto?: (compuestoId: string) => void;
@@ -163,6 +169,16 @@ export function GrupoCompuestoPanelFlotante({
   const celulasCatalogo = useCelulas();
   const tejidosCatalogo = useTejidos();
 
+  // SaveIndicator + botón Guardar explícito en el header — el guardado
+  // real sigue siendo autosave on-change (onActualizar ya persiste),
+  // mismo criterio que PanelFlotanteHeader en CatalogoTejidosBiologia/
+  // CatalogoSistemasBiologia: el botón solo confirma visualmente.
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  function handleGuardar() {
+    setStatus("saving");
+    setStatus("saved");
+  }
+
   useEffect(() => {
     if (sinPortalPropio) return; // el shell externo ya maneja Escape + scroll lock
     const onKeyDown = (e: KeyboardEvent) => {
@@ -188,7 +204,8 @@ export function GrupoCompuestoPanelFlotante({
   // (Órgano ⇄ su Tejido/Célula de una fila).
   const contenidoOrgano = (
       <>
-        {/* Header: ícono + nombre editable + eliminar + cerrar */}
+        {/* Header: flecha volver (opcional) + nombre editable + SaveIndicator
+            + Guardar + eliminar + cerrar */}
         <div
           className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
           style={{
@@ -196,31 +213,43 @@ export function GrupoCompuestoPanelFlotante({
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Boxes className="text-primary/50" size={12} />
-          </div>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              title="Volver"
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
           <input
             className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
             placeholder="Nombre (ej: Hoja)…"
             value={grupo.nombre ?? ""}
             onChange={(e) => onActualizar(grupo.id, { nombre: e.target.value })}
           />
-          {onEliminar && (
+          <div className="shrink-0 flex items-center gap-1.5">
+            <SaveIndicator status={status} />
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={() => onEliminar(grupo.id)}
+                title="Eliminar"
+                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              >
+                <Trash2 size={10} />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onEliminar(grupo.id)}
-              title="Eliminar"
-              className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              disabled={status === "saving"}
+              onClick={handleGuardar}
+              className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer"
             >
-              <Trash2 size={10} />
+              <Save size={10} /> Guardar
             </button>
-          )}
+          </div>
           <button
             type="button"
             onClick={onCerrar}
