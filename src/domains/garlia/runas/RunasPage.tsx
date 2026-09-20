@@ -44,6 +44,7 @@ import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
 import {
   useFisicaConceptos,
+  usePolaridades,
   useParticulas,
   useParticulasBase,
 } from "@/domains/garlia/fisica/useFisica";
@@ -374,6 +375,7 @@ function BloqueFisica({
   onOrisSeleccionadoChange?: (id: string | null) => void;
   onSelectCriatura?: (id: string) => void;
 }) {
+  const { items: polaridades, loading: loadingPolaridades } = usePolaridades();
   const { items: particulaBase, loading: loadingParticulaBase } = useParticulasBase();
   const { items: particulas, loading: loadingParticulas } = useParticulas();
   const { items: iums, loading: loadingIums } = useIumsConParticulas();
@@ -530,6 +532,8 @@ function BloqueFisica({
   return (
     <div>
       <FisicaPage
+        polaridades={polaridades}
+        loadingPolaridades={loadingPolaridades}
         particulaBase={particulaBase}
         loadingParticulaBase={loadingParticulaBase}
         particulas={particulas}

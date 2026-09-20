@@ -37,14 +37,17 @@ import {
   particulaAFilaCatalogo,
   particulaBaseAFilaCatalogo,
   particulasDeIum,
+  polaridadAFilaCatalogo,
   type FilaCatalogo,
   type FilaIum,
   type FilaParticulaBase,
+  type FilaPolaridad,
   type FisicaConcepto,
   type Ium,
   type Oris,
   type Particula,
   type ParticulaBase,
+  type Polaridad,
 } from "./types";
 import { PanelEditorSubsistema } from "@/domains/garlia/runas/BloqueSubsistemasMagia";
 import type { SubsistemaMagia } from "@/domains/garlia/runas/useSubsistemasMagia";
@@ -56,6 +59,9 @@ function subsistemaAFilaCatalogo(s: SubsistemaMagia): FilaCatalogo {
 }
 
 interface Props {
+  polaridades: Polaridad[];
+  loadingPolaridades?: boolean;
+
   particulaBase: ParticulaBase[];
   loadingParticulaBase?: boolean;
 
@@ -244,9 +250,10 @@ export function parsearArchivoFisicaJSON(
 // ─── Filas de navegación (columna izquierda) ───────────────────────────────
 
 
-type ClaveCatalogo = "particula-base" | "particulas" | "iums" | "oris" | "subsistemas";
+type ClaveCatalogo = "polaridades" | "particula-base" | "particulas" | "iums" | "oris" | "subsistemas";
 
 function catalogosBases(
+  polaridades: Polaridad[],
   particulaBase: ParticulaBase[],
   particulas: Particula[],
   iums: Ium[],
@@ -254,6 +261,11 @@ function catalogosBases(
   subsistemas: SubsistemaMagia[],
 ): { key: ClaveCatalogo; titulo: string; filas: FilaCatalogo[] }[] {
   return [
+    {
+      key: "polaridades",
+      titulo: "Polaridades Fundamentales",
+      filas: polaridades.map(polaridadAFilaCatalogo),
+    },
     {
       key: "particula-base",
       titulo: "Partícula Base",
@@ -283,6 +295,30 @@ const LEY_EQUIVALENCIA_ROTACIONAL = {
     "confirmar que ningún elemento del mundo las usaba: las 11 originales ya cubren el espacio completo de clases " +
     "de equivalencia rotacional del sistema.",
 };
+
+/** Círculo simple para un polo (+/−) — mismo lenguaje visual que
+ *  ParticulaVisual (círculo con borde + relleno tenue) pero sin letra
+ *  A/T/S/I, ya que Polaridad no es parte de esa fórmula: el signo es el
+ *  contenido. Mismo patrón que PoloCirculo en
+ *  visualizador/MapaUniversalSection.tsx, reimplementado acá liviano para
+ *  no acoplar fisica/ a visualizador/. */
+function PoloVisual({ signo, size = 88 }: { signo: "+" | "-"; size?: number }) {
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full border-2 font-black"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+        borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        color: "var(--primary)",
+      }}
+    >
+      {signo}
+    </div>
+  );
+}
 
 function BasesRowTitle({
   titulo,
@@ -328,6 +364,7 @@ function BasesRowTitle({
 }
 
 function TodasLasBasesView({
+  polaridades,
   particulaBase,
   particulas,
   iums,
@@ -341,6 +378,7 @@ function TodasLasBasesView({
   onCrearSubsistema,
   creandoSubsistema,
 }: {
+  polaridades: Polaridad[];
   particulaBase: ParticulaBase[];
   particulas: Particula[];
   iums: Ium[];
@@ -354,7 +392,7 @@ function TodasLasBasesView({
   onCrearSubsistema: (nombre: string) => Promise<SubsistemaMagia | null>;
   creandoSubsistema?: boolean;
 }) {
-  const catalogos = catalogosBases(particulaBase, particulas, iums, oris, subsistemas);
+  const catalogos = catalogosBases(polaridades, particulaBase, particulas, iums, oris, subsistemas);
 
   const [nombreNuevoSubsistema, setNombreNuevoSubsistema] = useState("");
   const [creandoAbierto, setCreandoAbierto] = useState(false);
@@ -493,7 +531,8 @@ function BasesItemCard({
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
-  const conVisual = bloque === "particula-base" || bloque === "particulas" || bloque === "iums";
+  const conVisual =
+    bloque === "polaridades" || bloque === "particula-base" || bloque === "particulas" || bloque === "iums";
   const esOris = bloque === "oris" && !!original;
   const esSubsistema = bloque === "subsistemas" && !!originalSubsistema;
 
@@ -563,6 +602,8 @@ function BasesItemCard({
               <div className="shrink-0 flex items-center justify-center w-[140px]">
                 {bloque === "iums" ? (
                   <IumVisual particulas={particulasDeIum(fila as FilaIum)} size={140} />
+                ) : bloque === "polaridades" ? (
+                  <PoloVisual signo={(fila as FilaPolaridad).signo} size={88} />
                 ) : bloque === "particula-base" ? (
                   <ParticulaVisual formula={(fila as FilaParticulaBase).letra} size={88} />
                 ) : (
@@ -777,6 +818,8 @@ function ConceptoEditor({
 // ─── Página principal ───────────────────────────────────────────────────────
 
 export function FisicaPage({
+  polaridades,
+  loadingPolaridades,
   particulaBase,
   loadingParticulaBase,
   particulas,
@@ -1031,6 +1074,7 @@ export function FisicaPage({
           // ancho disponible.
           <div className="flex-1 min-h-0 overflow-y-auto">
             <TodasLasBasesView
+              polaridades={polaridades}
               particulaBase={particulaBase}
               particulas={particulas}
               iums={iums}

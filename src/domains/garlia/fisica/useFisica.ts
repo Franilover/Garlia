@@ -19,12 +19,25 @@ import {
   ORIS_CONFIG,
   PARTICULAS_BASE_CONFIG,
   PARTICULAS_CONFIG,
+  POLARIDADES_CONFIG,
   type FisicaConcepto,
   type Ium,
   type Oris,
   type Particula,
   type ParticulaBase,
+  type Polaridad,
 } from "./types";
+
+export function usePolaridades() {
+  const { data, setData, loading } = useSupabaseData<Polaridad>(POLARIDADES_CONFIG.tabla, {
+    select: POLARIDADES_CONFIG.select,
+    order: { campo: "orden" },
+  });
+
+  const items = useMemo(() => data, [data]);
+
+  return { items, setItems: setData, loading };
+}
 
 export function useParticulasBase() {
   const { data, setData, loading } = useSupabaseData<ParticulaBase>(PARTICULAS_BASE_CONFIG.tabla, {

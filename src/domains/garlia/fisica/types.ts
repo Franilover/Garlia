@@ -101,6 +101,40 @@ export function agruparPorBloque(
   return grupos;
 }
 
+// ─── Catálogo: Polaridades Fundamentales (arranque antes de Partícula Base)
+// Vive en Supabase (tabla "polaridades") — mismo criterio que
+// "particulas_base": catálogo fijo en contenido (solo 2 filas: + y -) pero
+// editable desde ahí, no constante hardcodeada. Jerarquía documentada:
+//   POLARIDADES (+/-) → RELACIONES POLARES (++/--/+-/-+) → TASI → Partículas
+// donde Síntesis (S) = +→- (Emisión) e Invertisis (I) = -→+ (Recepción).
+
+/** Fila cruda tal cual vive en Supabase (tabla "polaridades"). */
+export interface Polaridad {
+  id: string;
+  orden: number;
+  signo: "+" | "-";
+  nombre: string;
+  detalle: string;
+}
+
+export const POLARIDADES_CONFIG = {
+  tabla: "polaridades",
+  select: "id, orden, signo, nombre, detalle",
+};
+
+/** Fila de Polaridad: además de nombre/detalle, trae su signo suelto
+ *  ("+" o "-") para dibujar su círculo simple con PoloVisual — mismo
+ *  criterio que FilaParticulaBase con su letra A/T/S/I. */
+export interface FilaPolaridad extends FilaCatalogo {
+  signo: "+" | "-";
+}
+
+/** Adapta una Polaridad (Supabase) al shape FilaPolaridad usado por las
+ *  vistas de catálogo. */
+export function polaridadAFilaCatalogo(p: Polaridad): FilaPolaridad {
+  return { nombre: p.nombre, detalle: p.detalle, signo: p.signo };
+}
+
 // ─── Catálogos: Partícula Base e Iums ──────────────────────────────────────
 // Viven en Supabase (tablas "particulas_base" e "iums") — mismo criterio que
 // "particulas": son catálogos fijos en contenido pero editables desde ahí,
