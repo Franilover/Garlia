@@ -591,8 +591,8 @@ function letraFundamentoDe(contexto: ContextoHumano): LetraATS | null {
  * siempre 9 círculos del mismo tamaño en el mismo lienzo — alcanza con
  * dos layouts estáticos que se lean claramente distintos de un vistazo.
  */
-const LIENZO = 140;
-const R_CIRCULO = 26;
+const LIENZO = 220;
+const R_CIRCULO = 42;
 
 // S: 9 círculos apretados unos contra otros en un empaquetado hexagonal
 // (3 filas de 3, offset alternado) — el radio de paso es casi igual al
@@ -607,10 +607,10 @@ const POSICIONES_ATRAIDAS: { x: number; y: number }[] = [
 // separación irregular entre sí (nunca dos muy cerca) — sensación de
 // "se repelen y no pueden juntarse".
 const POSICIONES_REPELIDAS: { x: number; y: number }[] = [
-  { x: -53, y: -53 }, { x: 0, y: -59 },  { x: 53, y: -50 },
-  { x: -61, y: 3 },                       { x: 58, y: 8 },
-  { x: -47, y: 55 },  { x: 6, y: 61 },   { x: 51, y: 51 },
-  { x: -5, y: 0 },
+  { x: -83, y: -83 }, { x: 0, y: -93 },  { x: 83, y: -79 },
+  { x: -96, y: 5 },                       { x: 91, y: 13 },
+  { x: -74, y: 86 },  { x: 9, y: 96 },   { x: 80, y: 80 },
+  { x: -8, y: 0 },
 ];
 
 function GridLetraFundamento({ letra }: { letra: LetraATS }) {
@@ -804,7 +804,7 @@ function BasesItemCard({
           />
         </PopoverFlotante>
       ) : esEnergia ? (
-        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={520} maxHeight={480}>
+        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={620} maxHeight={560}>
           <EnergiaFichaContent contexto={(fila as FilaEnergia).contexto} />
         </PopoverFlotante>
       ) : (
