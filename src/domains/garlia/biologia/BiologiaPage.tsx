@@ -33,7 +33,13 @@ import { CatalogoTejidosBiologia, PanelEditorCelula, PanelEditorTejido } from ".
 import { CatalogoSistemasBiologia, PanelEditorSistema, PanelEditorOrganismo } from "./CatalogoSistemasBiologia";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { useClados } from "./useBiologia";
-import type { Clado } from "./types";
+import {
+  RELACIONES_PADRE_CLADO,
+  TIPOS_NODO_CLADO,
+  type Clado,
+  type RelacionPadreClado,
+  type TipoNodoClado,
+} from "./types";
 
 interface Props {
   /** El padre decide qué hacer al clickear una criatura (ej. abrir su editor). */
@@ -78,6 +84,20 @@ interface ImportacionBiologia {
   padresOmitidos: { nombre: string }[];
 }
 
+// tipo_nodo / relacion_padre tienen un CHECK en Supabase: un valor fuera del
+// set haría fallar TODO el insert por lote. Se aceptan solo los valores del
+// CHECK; cualquier otra cosa se descarta a null (queda "sin clasificar") en
+// vez de adivinar el más parecido — Supabase manda, el import no inventa.
+function tipoNodoValido(v: unknown): TipoNodoClado | null {
+  return typeof v === "string" && (TIPOS_NODO_CLADO as string[]).includes(v) ? (v as TipoNodoClado) : null;
+}
+
+function relacionPadreValida(v: unknown): RelacionPadreClado | null {
+  return typeof v === "string" && (RELACIONES_PADRE_CLADO as string[]).includes(v)
+    ? (v as RelacionPadreClado)
+    : null;
+}
+
 function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): ImportacionBiologia {
   const data = JSON.parse(raw);
   const lista: unknown[] = Array.isArray(data) ? data : Array.isArray(data?.clados) ? data.clados : null;
@@ -103,9 +123,11 @@ function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): Imp
     // base (los ids del propio archivo, si trae, no sirven porque los
     // clados nuevos todavía no tienen id asignado por Supabase).
     let padreId = c.padre_id ?? null;
+    let padreOriginalDescartado = false;
     if (padreId && !idsExistentes.has(padreId)) {
       padresOmitidos.push({ nombre: c.nombre });
       padreId = null;
+      padreOriginalDescartado = true;
     }
 
     const datos = {
@@ -117,10 +139,36 @@ function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): Imp
       orden: c.orden ?? 0,
     };
 
+    // Columnas del contrato (tipo_nodo, relacion_padre, rango, estado):
+    // SOLO se envían si el archivo las trae explícitamente. Un JSON viejo
+    // (exportado antes del contrato) no debe pisar con null lo que Supabase
+    // ya tiene en un clado existente — Supabase manda. Los valores con CHECK
+    // se validan: uno inválido rompería todo el insert por lote, y se
+    // descarta a null (sin clasificar) en vez de adivinar el más parecido.
+    const contrato: Partial<
+      Pick<Clado, "tipo_nodo" | "relacion_padre" | "rango" | "estado">
+    > = {};
+    if ("tipo_nodo" in c) contrato.tipo_nodo = tipoNodoValido(c.tipo_nodo);
+    if ("relacion_padre" in c) {
+      // relacion_padre solo tiene sentido con padre: si el padre se
+      // descartó (o no había), se limpia para no afirmar un vínculo huérfano.
+      contrato.relacion_padre = padreId ? relacionPadreValida(c.relacion_padre) : null;
+    } else if (!padreId && padreOriginalDescartado) {
+      contrato.relacion_padre = null;
+    }
+    if ("rango" in c) contrato.rango = typeof c.rango === "string" ? c.rango : null;
+    if ("estado" in c && typeof c.estado === "string" && c.estado) contrato.estado = c.estado;
+
     if (existente) {
-      cladosActualizar.push({ id: existente.id, ...datos });
+      cladosActualizar.push({ id: existente.id, ...datos, ...contrato });
     } else {
-      cladosNuevos.push(datos);
+      cladosNuevos.push({
+        ...datos,
+        tipo_nodo: contrato.tipo_nodo ?? null,
+        relacion_padre: contrato.relacion_padre ?? null,
+        rango: contrato.rango ?? null,
+        estado: contrato.estado ?? "activo",
+      });
     }
   }
 

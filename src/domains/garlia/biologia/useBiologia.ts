@@ -30,6 +30,7 @@ import {
   type CadenaAlimenticiaInput,
   type Clado,
   type CladoInput,
+  type CladoRelacion,
   type Ecosistema,
   type EcosistemaCriatura,
   type EcosistemaFlora,
@@ -167,6 +168,10 @@ export function useClados() {
 
   const clados = useMemo(() => data, [data]);
 
+  // `tipo_nodo` / `relacion_padre` NO se infieren acá: un clado nuevo nace
+  // sin clasificar (null) hasta que alguien lo clasifique en Supabase.
+  // Inventar un valor por defecto (p. ej. "ascendencia") afirmaría
+  // parentesco que nadie declaró — justo lo que el contrato prohíbe.
   const crear = useCallback(
     async (nombre: string, padre_id: string | null = null) => {
       const { data: creado } = await addRow({
@@ -181,9 +186,16 @@ export function useClados() {
     [addRow],
   );
 
+  // Una raíz no tiene conexión con ningún padre: si el cambio deja padre_id
+  // en null, relacion_padre se limpia también — si no, quedaría afirmando
+  // una relación con un padre que ya no existe.
   const actualizar = useCallback(
     async (id: string, updates: CladoInput) => {
-      await updateRow(id, updates);
+      const payload: CladoInput =
+        "padre_id" in updates && updates.padre_id === null && !("relacion_padre" in updates)
+          ? { ...updates, relacion_padre: null }
+          : updates;
+      await updateRow(id, payload);
     },
     [updateRow],
   );
@@ -192,15 +204,58 @@ export function useClados() {
     async (id: string) => {
       // Reasignar hijos directos a raíz (padre_id null) para no dejar el
       // árbol con referencias colgantes, mismo criterio conservador que
-      // usaríamos para cualquier borrado de nodo intermedio.
+      // usaríamos para cualquier borrado de nodo intermedio. Su
+      // relacion_padre se limpia junto con padre_id (ver actualizar).
+      // Las filas de clado_relaciones que apuntan a este clado se borran
+      // solas: la FK es ON DELETE CASCADE en Supabase.
       const hijos = data.filter((c) => c.padre_id === id);
-      await Promise.all(hijos.map((c) => updateRow(c.id, { padre_id: null })));
+      await Promise.all(
+        hijos.map((c) => updateRow(c.id, { padre_id: null, relacion_padre: null })),
+      );
       await deleteRow(id);
     },
     [data, updateRow, deleteRow],
   );
 
   return { clados, setClados: setData, loading, creating: false, crear, actualizar, eliminar };
+}
+
+// ─── Clado ↔ Clado (relaciones laterales, tabla "clado_relaciones") ────────
+// Conexiones que NO son hijos del árbol (afinidad, ecológica, origen,
+// transformación, incertidumbre, asociación). Solo lectura: el frontend las
+// muestra tal cual vienen de Supabase y NUNCA las convierte en aristas
+// padre→hijo ni las deduce de otros datos. Sin caché offline por ahora —
+// mismo patrón directo que useBiomaReinos().
+
+export function useCladoRelaciones() {
+  const [relaciones, setRelaciones] = useState<CladoRelacion[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("clado_relaciones")
+        .select("id, clado_origen_id, clado_destino_id, tipo, descripcion, created_at");
+      if (cancelado) return;
+      if (error) console.error("[useCladoRelaciones] error leyendo clado_relaciones:", error);
+      setRelaciones((data as CladoRelacion[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  /** Relaciones laterales donde este clado participa (como origen o destino). */
+  const relacionesDe = useCallback(
+    (cladoId: string) =>
+      relaciones.filter((r) => r.clado_origen_id === cladoId || r.clado_destino_id === cladoId),
+    [relaciones],
+  );
+
+  return { relaciones, setRelaciones, loading, relacionesDe };
 }
 
 // ─── Ecosistemas ────────────────────────────────────────────────────────────

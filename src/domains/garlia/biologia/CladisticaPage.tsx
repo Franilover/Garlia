@@ -14,6 +14,14 @@
  * nodo interno, hojas alineadas a la derecha), no una lista anidada tipo
  * carpeta. Layout calculado en SVG a partir del árbol.
  *
+ * Contrato (Supabase manda): el árbol se construye SOLO con `padre_id`
+ * (padre visual/jerárquico) y se muestran TODOS los clados. `padre_id` no
+ * implica descendencia: cada nodo declara qué representa (`tipo_nodo`) y
+ * cada rama qué significa su unión con el padre (`relacion_padre`). Ambos
+ * se consumen tal cual — nunca se infieren. Las conexiones que no son
+ * hijos del árbol (`clado_relaciones`) se listan en el panel de detalle y
+ * jamás se dibujan como ramas padre→hijo.
+ *
  * Panel de detalle del clado seleccionado como panel flotante centrado
  * (mismo patrón que Elementos/Personajes/Criaturas — modal grande con
  * backdrop blur), no una barra lateral fija.
@@ -30,8 +38,16 @@ import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
 import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 
 import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
-import { useClados } from "./useBiologia";
-import type { Clado } from "./types";
+import { useCladoRelaciones, useClados } from "./useBiologia";
+import {
+  RELACION_PADRE_CLADO_LABEL,
+  TIPO_NODO_CLADO_LABEL,
+  TIPO_RELACION_CLADO_LABEL,
+  type Clado,
+  type CladoRelacion,
+  type RelacionPadreClado,
+  type TipoNodoClado,
+} from "./types";
 
 interface Props {
   onSelectCriatura?: (id: string) => void;
@@ -92,6 +108,106 @@ function construirLayout(clados: Clado[]): { nodos: NodoLayout[]; raices: NodoLa
 
 function anchoMaximo(nodos: NodoLayout[]): number {
   return nodos.reduce((max, n) => Math.max(max, n.x), 0) + COL_W + LEAF_LABEL_W;
+}
+
+// ─── Estilo según el contrato (tipo_nodo / relacion_padre) ──────────────────
+// Solo PRESENTACIÓN: se lee lo que declara Supabase, nunca se infiere.
+// Distinción visual clave: la línea sólida se reserva para vínculos que
+// SÍ afirman parentesco/origen (ascendencia, clasificación biológica,
+// origen). Las uniones de agrupación (ecológica, morfológica, ontológica)
+// van discontinuas y la incertidumbre punteada, para que nadie lea
+// "descendencia" donde el dato solo dice "agrupación" o "no se sabe".
+// Sin clasificar (null) se dibuja como el trazo neutro de siempre.
+
+/** dasharray de la rama que une un nodo con su padre, según relacion_padre. */
+const RAMA_DASH: Record<RelacionPadreClado, string | undefined> = {
+  ascendencia: undefined,
+  clasificacion_biologica: undefined,
+  origen: undefined,
+  agrupacion_ecologica: "6 3",
+  agrupacion_morfologica: "6 3",
+  clasificacion_ontologica: "6 3",
+  incertidumbre: "1.5 3.5",
+};
+
+function dashDeRama(rel: RelacionPadreClado | null): string | undefined {
+  return rel ? RAMA_DASH[rel] : undefined;
+}
+
+/** Glifo corto del tipo de nodo, para no depender solo del color. */
+const TIPO_NODO_GLIFO: Record<TipoNodoClado, string> = {
+  filogenetico: "",
+  origen: "O",
+  ecologico: "E",
+  incertidumbre: "?",
+  ontologico: "∞",
+  morfologico: "M",
+};
+
+function glifoDeTipo(tipo: TipoNodoClado | null): string {
+  return tipo ? TIPO_NODO_GLIFO[tipo] : "";
+}
+
+/** Etiqueta legible; si la base trae un valor fuera del CHECK, se muestra crudo. */
+function etiquetaTipoNodo(tipo: string | null): string {
+  if (!tipo) return "Sin clasificar";
+  return TIPO_NODO_CLADO_LABEL[tipo as TipoNodoClado] ?? tipo;
+}
+
+function etiquetaRelacionPadre(rel: string | null): string {
+  if (!rel) return "Sin clasificar";
+  return RELACION_PADRE_CLADO_LABEL[rel as RelacionPadreClado] ?? rel;
+}
+
+// ─── Leyenda ────────────────────────────────────────────────────────────────
+// Solo lista lo que EXISTE en los datos cargados (relaciones de rama y tipos
+// de nodo presentes), no una tabla fija: así nunca promete un trazo o glifo
+// que el árbol actual no usa.
+
+function LeyendaCladograma({ clados }: { clados: Clado[] }) {
+  const relaciones = useMemo(() => {
+    const set = new Set<RelacionPadreClado>();
+    for (const c of clados) if (c.padre_id && c.relacion_padre) set.add(c.relacion_padre);
+    return (Object.keys(RAMA_DASH) as RelacionPadreClado[]).filter((r) => set.has(r));
+  }, [clados]);
+
+  const tipos = useMemo(() => {
+    const set = new Set<TipoNodoClado>();
+    for (const c of clados) if (c.tipo_nodo) set.add(c.tipo_nodo);
+    return (Object.keys(TIPO_NODO_GLIFO) as TipoNodoClado[]).filter(
+      (t) => set.has(t) && TIPO_NODO_GLIFO[t] !== "",
+    );
+  }, [clados]);
+
+  if (relaciones.length === 0 && tipos.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 px-1">
+      {relaciones.map((r) => (
+        <span key={r} className="flex items-center gap-1.5 text-micro text-primary/45">
+          <svg width={26} height={6} aria-hidden>
+            <line
+              x1={0}
+              y1={3}
+              x2={26}
+              y2={3}
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeDasharray={dashDeRama(r)}
+              className="text-primary/40"
+            />
+          </svg>
+          {RELACION_PADRE_CLADO_LABEL[r]}
+        </span>
+      ))}
+      {tipos.map((t) => (
+        <span key={t} className="flex items-center gap-1 text-micro text-primary/45">
+          <span className="font-black text-accent/60 text-[10px]">{TIPO_NODO_GLIFO[t]}</span>
+          {TIPO_NODO_CLADO_LABEL[t]}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 // ─── Diagrama SVG ────────────────────────────────────────────────────────────
@@ -286,7 +402,22 @@ function DiagramaCladograma({
               <line x1={n.x} y1={n.y} x2={xHijos} y2={n.y} stroke="currentColor" strokeWidth={1.5} className="text-primary/25" />
               <line x1={xHijos} y1={yMin} x2={xHijos} y2={yMax} stroke="currentColor" strokeWidth={1.5} className="text-primary/25" />
               {n.hijos.map((h) => (
-                <line key={`h-${h.clado.id}`} x1={xHijos} y1={h.y} x2={h.x} y2={h.y} stroke="currentColor" strokeWidth={1.5} className="text-primary/25" />
+                // La rama final de cada hijo lleva SU relacion_padre (es lo
+                // que describe su unión con este padre). Tronco y barra
+                // vertical son compartidos y quedan neutros.
+                <line
+                  key={`h-${h.clado.id}`}
+                  x1={xHijos}
+                  y1={h.y}
+                  x2={h.x}
+                  y2={h.y}
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeDasharray={dashDeRama(h.clado.relacion_padre)}
+                  className="text-primary/25"
+                >
+                  <title>{`${h.clado.nombre || "Sin nombre"} — ${etiquetaRelacionPadre(h.clado.relacion_padre)} respecto de ${n.clado.nombre || "Sin nombre"}`}</title>
+                </line>
               ))}
             </g>
           );
@@ -342,6 +473,9 @@ function DiagramaCladograma({
                 }
                 opacity={esDestinoInvalido ? 0.25 : 1}
               />
+              <title>{`${n.clado.nombre || "Sin nombre"}\nNodo: ${etiquetaTipoNodo(n.clado.tipo_nodo)}\nUnión con el padre: ${
+                n.clado.padre_id ? etiquetaRelacionPadre(n.clado.relacion_padre) : "— (raíz)"
+              }`}</title>
               <text
                 x={esHoja ? 8 : 0}
                 y={esHoja ? 4 : 16}
@@ -352,10 +486,15 @@ function DiagramaCladograma({
                 }`}
               >
                 {n.clado.nombre || "Sin nombre"}
+                {glifoDeTipo(n.clado.tipo_nodo) && (
+                  <tspan className="fill-accent/55 text-[9px] font-black" dx={5}>
+                    {glifoDeTipo(n.clado.tipo_nodo)}
+                  </tspan>
+                )}
               </text>
               {n.clado.criatura_ids?.length > 0 && (
                 <text
-                  x={esHoja ? 8 + (n.clado.nombre?.length ?? 0) * 6.2 + 6 : 0}
+                  x={esHoja ? 8 + (n.clado.nombre?.length ?? 0) * 6.2 + (glifoDeTipo(n.clado.tipo_nodo) ? 20 : 6) : 0}
                   y={esHoja ? 4 : -6}
                   textAnchor={esHoja ? "start" : "middle"}
                   className="text-[9px] font-bold fill-accent/60 select-none"
@@ -387,17 +526,27 @@ function DiagramaCladograma({
 
 function PanelClado({
   clado,
+  padre,
+  relaciones,
+  cladoPorId,
   onSave,
   onDelete,
   onCrearHijo,
   onSelectCriatura,
+  onSelectClado,
   onHeaderControlsChange,
 }: {
   clado: Clado;
+  /** Padre visual del clado (resuelto por padre_id), null si es raíz. */
+  padre: Clado | null;
+  /** Relaciones laterales (clado_relaciones) donde este clado participa. */
+  relaciones: CladoRelacion[];
+  cladoPorId: Map<string, Clado>;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
+  onSelectClado: (id: string) => void;
   /** Publica los controles de header (nombre, guardar, eliminar) hacia el
    *  contenedor (CladoPanelFlotante), que los renderiza en su propia
    *  EditorHeaderBar — mismo patrón que ElementoEditor/CompuestoEditor,
@@ -447,6 +596,55 @@ function PanelClado({
 
   return (
     <div className="flex flex-col gap-3.5">
+      {/* Contrato de Supabase — solo lectura: se muestra lo que la base
+          declara, sin inferir. */}
+      <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+            Representa
+          </span>
+          <span className="text-xs font-bold text-primary/80 text-right">
+            {etiquetaTipoNodo(clado.tipo_nodo)}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+            Unión con el padre
+          </span>
+          <span className="text-xs font-bold text-primary/80 text-right">
+            {padre ? etiquetaRelacionPadre(clado.relacion_padre) : "— (raíz)"}
+          </span>
+        </div>
+        {padre && (
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+              Padre
+            </span>
+            <button
+              type="button"
+              onClick={() => onSelectClado(padre.id)}
+              className="text-xs font-bold text-accent/80 hover:text-accent transition-colors text-right"
+            >
+              {padre.nombre || "Sin nombre"}
+            </button>
+          </div>
+        )}
+        {clado.rango && (
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+              Rango
+            </span>
+            <span className="text-xs font-bold text-primary/60 text-right">{clado.rango}</span>
+          </div>
+        )}
+        {padre && (
+          <p className="text-micro text-primary/35 leading-snug">
+            El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
+            «Ascendencia».
+          </p>
+        )}
+      </div>
+
       <div>
         <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
           Sinapomorfía
@@ -474,6 +672,50 @@ function PanelClado({
           onChange={setDescripcion}
         />
       </div>
+
+      {relaciones.length > 0 && (
+        <div>
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+            Otras relaciones
+          </span>
+          <p className="text-micro text-primary/35 mb-1.5 leading-snug">
+            Conexiones que no son hijos del árbol: el otro clado sigue en su propia rama.
+          </p>
+          <ul className="flex flex-col gap-1.5">
+            {relaciones.map((r) => {
+              const esOrigen = r.clado_origen_id === clado.id;
+              const otro = cladoPorId.get(esOrigen ? r.clado_destino_id : r.clado_origen_id);
+              return (
+                <li
+                  key={r.id}
+                  className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
+                >
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-micro font-black uppercase tracking-widest text-accent/60">
+                      {TIPO_RELACION_CLADO_LABEL[r.tipo] ?? r.tipo}
+                    </span>
+                    <span className="text-micro text-primary/30">{esOrigen ? "→" : "←"}</span>
+                    {otro ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectClado(otro.id)}
+                        className="text-xs font-bold text-primary/80 hover:text-accent transition-colors"
+                      >
+                        {otro.nombre || "Sin nombre"}
+                      </button>
+                    ) : (
+                      <span className="text-xs italic text-primary/30">clado no disponible</span>
+                    )}
+                  </div>
+                  {r.descripcion && (
+                    <p className="text-micro text-primary/45 leading-snug mt-1">{r.descripcion}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <button
         type="button"
@@ -504,18 +746,26 @@ function PanelClado({
 // misma barra con SaveIndicator y confirmación inline de borrado.
 function CladoPanelFlotante({
   clado,
+  padre,
+  relaciones,
+  cladoPorId,
   onCerrar,
   onSave,
   onDelete,
   onCrearHijo,
   onSelectCriatura,
+  onSelectClado,
 }: {
   clado: Clado;
+  padre: Clado | null;
+  relaciones: CladoRelacion[];
+  cladoPorId: Map<string, Clado>;
   onCerrar: () => void;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
+  onSelectClado: (id: string) => void;
 }) {
   const [headerControls, setHeaderControls] = useState<Parameters<OnHeaderControlsChange>[0]>(null);
 
@@ -559,10 +809,14 @@ function CladoPanelFlotante({
           <PanelClado
             key={clado.id}
             clado={clado}
+            padre={padre}
+            relaciones={relaciones}
+            cladoPorId={cladoPorId}
             onSave={onSave}
             onDelete={onDelete}
             onCrearHijo={onCrearHijo}
             onSelectCriatura={onSelectCriatura}
+            onSelectClado={onSelectClado}
             onHeaderControlsChange={setHeaderControls}
           />
         </div>
@@ -576,10 +830,14 @@ function CladoPanelFlotante({
 
 export function CladisticaPage({ onSelectCriatura }: Props) {
   const { clados, loading, creating, crear, actualizar, eliminar } = useClados();
+  const { relacionesDe } = useCladoRelaciones();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [seleccionMultiple, setSeleccionMultiple] = useState<Set<string>>(new Set());
 
-  const seleccionado = clados.find((c) => c.id === seleccionadoId) ?? null;
+  const cladoPorId = useMemo(() => new Map(clados.map((c) => [c.id, c])), [clados]);
+  const seleccionado = seleccionadoId ? (cladoPorId.get(seleccionadoId) ?? null) : null;
+  const padreSeleccionado =
+    seleccionado?.padre_id ? (cladoPorId.get(seleccionado.padre_id) ?? null) : null;
 
   const crearRaiz = async () => {
     const nuevo = await crear("Nuevo clado", null);
@@ -643,6 +901,8 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
           lejano que quieras registrar).
         </p>
       ) : (
+        <>
+        <LeyendaCladograma clados={clados} />
         <DiagramaCladograma
           clados={clados}
           seleccionadoId={seleccionadoId}
@@ -655,6 +915,7 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
           onMover={(cladoId, nuevoPadreId) => void actualizar(cladoId, { padre_id: nuevoPadreId })}
           onMoverGrupo={(ids, nuevoPadreId) => void moverGrupo(ids, nuevoPadreId)}
         />
+        </>
       )}
 
       {/* Panel flotante centrado: mismo patrón que Elementos/Personajes/
@@ -663,6 +924,10 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
       {seleccionado && (
         <CladoPanelFlotante
           clado={seleccionado}
+          padre={padreSeleccionado}
+          relaciones={relacionesDe(seleccionado.id)}
+          cladoPorId={cladoPorId}
+          onSelectClado={setSeleccionadoId}
           onCerrar={() => setSeleccionadoId(null)}
           onSave={(updates) => void actualizar(seleccionado.id, updates)}
           onDelete={() => {

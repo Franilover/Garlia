@@ -8,11 +8,17 @@
  * Piezas:
  *   1. Bioma — condición única del mundo (ligada a Oris/elementos), M:N con
  *      Reino. Contiene 0+ Ecosistemas (subzonas geográficas concretas).
- *   2. Clado (cladograma) — árbol filogenético SIN rangos fijos (nada de
- *      Reino/Filo/Clase). Cada nodo es un grupo monofilético definido por
- *      una sinapomorfía (carácter derivado compartido por todos sus
- *      descendientes) — el criterio real de la cladística moderna, no la
- *      jerarquía linneana. padre_id arma el árbol; profundidad libre.
+ *   2. Clado (cladograma) — árbol SIN rangos fijos (nada de Reino/Filo/
+ *      Clase). padre_id arma el árbol visual/jerárquico; profundidad libre.
+ *      OJO: padre_id NO implica descendencia. Qué representa cada nodo lo
+ *      dice `tipo_nodo` (filogenético, origen, ecológico, incertidumbre,
+ *      ontológico, morfológico) y qué significa su vínculo con el padre lo
+ *      dice `relacion_padre` (ascendencia, clasificación biológica, …).
+ *      Los nodos filogenéticos siguen definidos por una sinapomorfía.
+ *      Las conexiones que no son parentesco de árbol viven en la tabla
+ *      `clado_relaciones` (afinidad, ecológica, origen, transformación,
+ *      incertidumbre, asociación). Supabase es la fuente única: el
+ *      frontend consume estas columnas, no infiere ni inventa relaciones.
  *      Cada clado puede tener 0+ criaturas asignadas (típicamente en las
  *      hojas, pero nada lo obliga).
  *   3. Ecosistema — subzona concreta dentro de un Bioma, con criaturas que
@@ -64,6 +70,75 @@ export interface BiomaReino {
 
 // ─── Cladística (cladograma / árbol filogenético) ──────────────────────────
 
+// ── Contrato de `clados` (Supabase manda) ─────────────────────────────────
+// `padre_id` es el padre VISUAL/JERÁRQUICO del árbol — NO implica por sí
+// mismo descendencia. Qué significa cada nodo y qué significa su conexión
+// con el padre lo dicen dos columnas aparte:
+//
+//   tipo_nodo       → qué REPRESENTA el nodo.
+//   relacion_padre  → qué SIGNIFICA su conexión con `padre_id`.
+//
+// Ambas tienen un CHECK constraint en la base; los tipos generados de
+// Supabase las emiten como `string | null` (no reflejan CHECKs), por eso
+// acá se declaran las uniones literales exactas del CHECK.
+
+/** Qué representa un nodo del cladograma (CHECK `clados.tipo_nodo`). */
+export type TipoNodoClado =
+  | "filogenetico"
+  | "origen"
+  | "ecologico"
+  | "incertidumbre"
+  | "ontologico"
+  | "morfologico";
+
+export const TIPOS_NODO_CLADO: TipoNodoClado[] = [
+  "filogenetico",
+  "origen",
+  "ecologico",
+  "incertidumbre",
+  "ontologico",
+  "morfologico",
+];
+
+/** Qué significa la conexión de un nodo con su padre (CHECK `clados.relacion_padre`). */
+export type RelacionPadreClado =
+  | "ascendencia"
+  | "clasificacion_biologica"
+  | "origen"
+  | "agrupacion_ecologica"
+  | "agrupacion_morfologica"
+  | "incertidumbre"
+  | "clasificacion_ontologica";
+
+export const RELACIONES_PADRE_CLADO: RelacionPadreClado[] = [
+  "ascendencia",
+  "clasificacion_biologica",
+  "origen",
+  "agrupacion_ecologica",
+  "agrupacion_morfologica",
+  "incertidumbre",
+  "clasificacion_ontologica",
+];
+
+export const TIPO_NODO_CLADO_LABEL: Record<TipoNodoClado, string> = {
+  filogenetico: "Filogenético",
+  origen: "Origen",
+  ecologico: "Ecológico",
+  incertidumbre: "Incertidumbre",
+  ontologico: "Ontológico",
+  morfologico: "Morfológico",
+};
+
+export const RELACION_PADRE_CLADO_LABEL: Record<RelacionPadreClado, string> = {
+  ascendencia: "Ascendencia",
+  clasificacion_biologica: "Clasificación biológica",
+  origen: "Origen",
+  agrupacion_ecologica: "Agrupación ecológica",
+  agrupacion_morfologica: "Agrupación morfológica",
+  incertidumbre: "Incertidumbre",
+  clasificacion_ontologica: "Clasificación ontológica",
+};
+
 /** Fila cruda tal cual vive en Supabase (tabla "clados"). */
 export interface Clado {
   id: string;
@@ -76,19 +151,87 @@ export interface Clado {
    * etiqueta de nivel sino la evidencia evolutiva del agrupamiento.
    */
   sinapomorfia: string;
-  /** Clado padre en el árbol — null si es raíz (ancestro común más lejano registrado). */
+  /**
+   * Padre visual/jerárquico en el árbol — null si es raíz. NO implica
+   * descendencia: leer `relacion_padre` para saber qué significa el vínculo.
+   */
   padre_id: string | null;
   descripcion: string;
   /** Criaturas (por id) que pertenecen exactamente a este clado. */
   criatura_ids: string[];
   orden: number;
+  /** Qué representa este nodo. null = sin clasificar todavía (no se infiere). */
+  tipo_nodo: TipoNodoClado | null;
+  /** Qué significa la conexión con `padre_id`. null = sin clasificar (no se infiere). */
+  relacion_padre: RelacionPadreClado | null;
+  /** Etiqueta libre de nivel (ej. "linaje", "rama_ecologica") — texto libre en la base. */
+  rango: string | null;
+  /** Estado del nodo ("activo" por defecto) — texto libre en la base. */
+  estado: string;
   created_at: string;
   updated_at: string;
 }
 
 export type CladoInput = Partial<
-  Pick<Clado, "nombre" | "sinapomorfia" | "padre_id" | "descripcion" | "criatura_ids" | "orden">
+  Pick<
+    Clado,
+    | "nombre"
+    | "sinapomorfia"
+    | "padre_id"
+    | "descripcion"
+    | "criatura_ids"
+    | "orden"
+    | "tipo_nodo"
+    | "relacion_padre"
+    | "rango"
+    | "estado"
+  >
 >;
+
+// ─── Clado ↔ Clado (tabla "clado_relaciones") ──────────────────────────────
+// Conexiones que NO deben convertirse en hijos del árbol: el nodo destino
+// vive en otra rama (su `padre_id` no cambia) pero está vinculado a este por
+// una relación con significado propio. Por ejemplo, "Primate" tiene
+// `afinidad` con "Humanidad de Garlia" sin que uno sea hijo del otro.
+// Solo se LEEN y se muestran — el frontend nunca las convierte en aristas
+// padre→hijo ni las inventa a partir de otros datos.
+
+/** Tipo de relación lateral (CHECK `clado_relaciones.tipo`). */
+export type TipoRelacionClado =
+  | "afinidad"
+  | "ecologica"
+  | "origen"
+  | "transformacion"
+  | "incertidumbre"
+  | "asociacion";
+
+export const TIPOS_RELACION_CLADO: TipoRelacionClado[] = [
+  "afinidad",
+  "ecologica",
+  "origen",
+  "transformacion",
+  "incertidumbre",
+  "asociacion",
+];
+
+export const TIPO_RELACION_CLADO_LABEL: Record<TipoRelacionClado, string> = {
+  afinidad: "Afinidad",
+  ecologica: "Ecológica",
+  origen: "Origen",
+  transformacion: "Transformación",
+  incertidumbre: "Incertidumbre",
+  asociacion: "Asociación",
+};
+
+/** Fila cruda tal cual vive en Supabase (tabla "clado_relaciones"). */
+export interface CladoRelacion {
+  id: string;
+  clado_origen_id: string;
+  clado_destino_id: string;
+  tipo: TipoRelacionClado;
+  descripcion: string;
+  created_at: string;
+}
 
 // ─── Ecosistemas ────────────────────────────────────────────────────────────
 
