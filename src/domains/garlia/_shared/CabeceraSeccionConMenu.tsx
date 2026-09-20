@@ -5,15 +5,32 @@
  * ───────────────────────────────────────────────────────────────────────────
  * Título clicable de sección (reemplazo del <Cabecera> estático de
  * FilaAsimetrica, y del título suelto de Elementos). Al hacer click abre un
- * menú flotante con dos opciones:
+ * menú flotante con hasta tres opciones:
  *
- *  - Añadir   → llama onAñadir() directo (mismo flujo que ya existía por
- *               bloque: handleCreateCompuesto / handleCreate elemento /
- *               crear estructura o material nuevo).
- *  - Editar   → abre un modal centrado (mismo shell que el resto de paneles
- *               flotantes del dominio) con la lista de ítems: nombre a la
- *               izquierda (editable inline, blur = guardar) y botón de
- *               borrar a la derecha.
+ *  - Añadir               → llama onAñadir() directo (mismo flujo que ya
+ *                            existía por bloque: handleCreateCompuesto /
+ *                            handleCreate elemento / crear estructura o
+ *                            material nuevo).
+ *  - Editar                → abre un modal centrado (mismo shell que el
+ *                            resto de paneles flotantes del dominio) con la
+ *                            lista de ítems: nombre a la izquierda
+ *                            (editable inline, blur = guardar) y botón de
+ *                            borrar a la derecha.
+ *  - Seleccionar agrupación → submenú con "Por categorías" (vuelve al
+ *                            agrupamiento normal) y "Por Propiedades", que
+ *                            abre un segundo submenú para elegir CUÁL
+ *                            propiedad (Dureza, Masa, etc.) — al elegirla se
+ *                            ordenan de mayor a menor TODAS las categorías
+ *                            del bloque a la vez (las categorías en sí no
+ *                            cambian, ver `agrupacionActiva`/
+ *                            `onSeleccionarAgrupacion`). Rediseño Química
+ *                            2026-09-20: reemplaza al botón "ordenar todas
+ *                            las secciones" que antes vivía aparte, en
+ *                            OrdenarPorPropiedadPopover (columna de la
+ *                            derecha, ícono ListOrdered) — ahora hay un
+ *                            solo selector de orden por categoría (el de
+ *                            OrdenarPorPropiedadPopover) y el disparador
+ *                            "para todas a la vez" vive acá, en el título.
  *
  * Genérico por diseño: no sabe nada de Compuesto/Estructura/Material/
  * Elemento — solo recibe items: {id, nombre}[] y callbacks. Cada consumidor
@@ -23,12 +40,19 @@
  * Si un bloque no pasa onAñadir/onRenombrar/onEliminar (ej. Estructuras y
  * Materiales antes de que existiera update/delete en el hook), esa opción
  * del menú/modal simplemente no se muestra — ver EstructurasPage/
- * MaterialesPage para cómo quedaron conectadas.
+ * MaterialesPage para cómo quedaron conectadas. Mismo criterio para
+ * "Seleccionar agrupación": si el caller no pasa
+ * propiedadesAgrupables/onSeleccionarAgrupacion, la opción no aparece — así
+ * queda la base lista para Estructuras u otros bloques que todavía no la
+ * conectaron.
  */
 
-import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Layers, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
+import { PopoverFlotante } from "./PopoverFlotante";
+import { PROPIEDADES_ORDENABLES, type PropiedadOrdenable } from "./OrdenarPorPropiedadPopover";
 
 export interface ItemEditable {
   id: string;
@@ -42,6 +66,58 @@ export interface CabeceraSeccionConMenuProps {
   onRenombrar?: (id: string, nuevoNombre: string) => void | Promise<void>;
   onEliminar?: (id: string) => void | Promise<void>;
   añadiendo?: boolean;
+  /**
+   * Clave de la propiedad usada para agrupar/ordenar TODAS las categorías
+   * de este bloque a la vez, o null si está agrupado "Por categorías" (el
+   * modo normal, sin orden global). Si se omite junto con
+   * onSeleccionarAgrupacion, la opción "Seleccionar agrupación" no aparece
+   * en el menú.
+   */
+  agrupacionActiva?: string | null;
+  /** Se llama con la clave elegida ("Por Propiedades → X") o null ("Por
+   *  categorías"). El caller es responsable de aplicar ese valor como orden
+   *  global sobre sus grupos — ver propiedadGlobal en
+   *  OrdenarPorPropiedadPopover. */
+  onSeleccionarAgrupacion?: (clave: string | null) => void;
+}
+
+/** Submenú "Seleccionar agrupación → Por Propiedades": lista de las mismas
+ *  12 propiedades numéricas que ofrece OrdenarPorPropiedadPopover por
+ *  sección, reutilizada acá para el disparador global. */
+function ListaPropiedadesAgrupacion({
+  propiedadActiva,
+  onSeleccionar,
+  onCerrar,
+}: {
+  propiedadActiva: string | null;
+  onSeleccionar: (clave: string | null) => void;
+  onCerrar: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 p-1.5">
+      <div className="px-1.5 pb-1 text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        Todas las categorías · mayor primero
+      </div>
+      {PROPIEDADES_ORDENABLES.map((p: PropiedadOrdenable) => {
+        const seleccionada = p.clave === propiedadActiva;
+        return (
+          <button
+            key={p.clave}
+            type="button"
+            onClick={() => {
+              onSeleccionar(p.clave);
+              onCerrar();
+            }}
+            className={`rounded-md px-2 py-1 text-left text-micro font-bold transition-colors cursor-pointer ${
+              seleccionada ? "bg-accent/15 text-accent" : "text-primary/70 hover:bg-primary/10"
+            }`}
+          >
+            {p.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function CabeceraSeccionConMenu({
@@ -51,23 +127,40 @@ export function CabeceraSeccionConMenu({
   onRenombrar,
   onEliminar,
   añadiendo,
+  agrupacionActiva = null,
+  onSeleccionarAgrupacion,
 }: CabeceraSeccionConMenuProps) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
+  // Segundo nivel: "Seleccionar agrupación" (Por categorías / Por Propiedades).
+  const [submenuAgrupacionAncla, setSubmenuAgrupacionAncla] = useState<HTMLElement | null>(null);
+  // Tercer nivel: lista de las 12 propiedades, colgando de "Por Propiedades".
+  const [submenuPropiedadAncla, setSubmenuPropiedadAncla] = useState<HTMLElement | null>(null);
   const anclaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuAbierto) return;
     function onDocClick(e: MouseEvent) {
-      if (anclaRef.current && !anclaRef.current.contains(e.target as Node)) {
-        setMenuAbierto(false);
-      }
+      const target = e.target as Node;
+      if (anclaRef.current?.contains(target)) return;
+      // Los submenús de "Seleccionar agrupación" (2do y 3er nivel) se
+      // renderizan en un portal a document.body vía PopoverFlotante, así
+      // que un click dentro de ellos NO está contenido en anclaRef — sin
+      // este chequeo, elegir "Por categorías" o cualquier propiedad cerraba
+      // este menú de golpe antes de que el propio onClick del botón llegue
+      // a procesarse. data-popover-panel lo pone PopoverFlotante en su
+      // contenedor raíz (ver PopoverFlotante.tsx).
+      if ((target as HTMLElement)?.closest?.("[data-popover-panel]")) return;
+      setMenuAbierto(false);
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [menuAbierto]);
 
-  const hayAlgoQueMostrar = Boolean(onAñadir || onRenombrar || onEliminar);
+  const hayAgrupacion = Boolean(onSeleccionarAgrupacion);
+  const hayAlgoQueMostrar = Boolean(onAñadir || onRenombrar || onEliminar || hayAgrupacion);
+  const propiedadActivaLabel =
+    PROPIEDADES_ORDENABLES.find((p) => p.clave === agrupacionActiva)?.label ?? null;
 
   return (
     <div className="px-3 pt-3 text-center relative" ref={anclaRef}>
@@ -80,11 +173,16 @@ export function CabeceraSeccionConMenu({
         } transition-colors`}
       >
         {titulo}
+        {propiedadActivaLabel && (
+          <span className="ml-1.5 normal-case tracking-normal text-accent">
+            ↓ {propiedadActivaLabel}
+          </span>
+        )}
       </button>
 
       {menuAbierto && (
         <div
-          className="absolute z-50 left-1/2 -translate-x-1/2 mt-1 min-w-[9rem] rounded-lg overflow-hidden shadow-xl text-left"
+          className="absolute z-50 left-1/2 -translate-x-1/2 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left"
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -117,8 +215,78 @@ export function CabeceraSeccionConMenu({
               Editar
             </button>
           )}
+          {hayAgrupacion && (
+            <button
+              type="button"
+              onClick={(e) => setSubmenuAgrupacionAncla(e.currentTarget)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-micro font-bold normal-case tracking-normal text-primary/70 hover:bg-primary/10 transition-colors cursor-pointer"
+            >
+              <Layers size={12} />
+              Seleccionar agrupación
+              <ChevronRight size={11} className="ml-auto opacity-50" />
+            </button>
+          )}
         </div>
       )}
+
+      {/* Segundo nivel: Por categorías (vuelve a null) / Por Propiedades
+          (abre el tercer nivel con las 12 propiedades) — se ancla al botón
+          "Seleccionar agrupación" de arriba. */}
+      <PopoverFlotante
+        anchor={submenuAgrupacionAncla}
+        onClose={() => setSubmenuAgrupacionAncla(null)}
+        width={190}
+        maxHeight={380}
+      >
+        <div className="flex flex-col gap-0.5 p-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              onSeleccionarAgrupacion?.(null);
+              setSubmenuAgrupacionAncla(null);
+              setMenuAbierto(false);
+            }}
+            className={`rounded-md px-2 py-1 text-left text-micro font-bold transition-colors cursor-pointer ${
+              agrupacionActiva === null
+                ? "bg-accent/15 text-accent"
+                : "text-primary/70 hover:bg-primary/10"
+            }`}
+          >
+            Por categorías
+          </button>
+          <button
+            type="button"
+            onClick={(e) => setSubmenuPropiedadAncla(e.currentTarget)}
+            className={`w-full flex items-center gap-1 rounded-md px-2 py-1 text-left text-micro font-bold transition-colors cursor-pointer ${
+              agrupacionActiva !== null
+                ? "bg-accent/15 text-accent"
+                : "text-primary/70 hover:bg-primary/10"
+            }`}
+          >
+            Por Propiedades
+            <ChevronRight size={11} className="ml-auto opacity-50" />
+          </button>
+        </div>
+      </PopoverFlotante>
+
+      {/* Tercer nivel: las 12 propiedades numéricas — se ancla al botón
+          "Por Propiedades" de arriba. */}
+      <PopoverFlotante
+        anchor={submenuPropiedadAncla}
+        onClose={() => setSubmenuPropiedadAncla(null)}
+        width={200}
+        maxHeight={380}
+      >
+        <ListaPropiedadesAgrupacion
+          propiedadActiva={agrupacionActiva}
+          onSeleccionar={(clave) => onSeleccionarAgrupacion?.(clave)}
+          onCerrar={() => {
+            setSubmenuPropiedadAncla(null);
+            setSubmenuAgrupacionAncla(null);
+            setMenuAbierto(false);
+          }}
+        />
+      </PopoverFlotante>
 
       {modalAbierto && (
         <EditarListaModal

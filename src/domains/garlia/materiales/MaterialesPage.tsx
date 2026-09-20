@@ -1138,16 +1138,25 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
   sustancia_organica_amorfa: "Sustancia orgánica amorfa",
 };
 
-export function MaterialesPage() {
+interface MaterialesPageProps {
+  /**
+   * Propiedad por la que se ordenan TODAS las categorías a la vez (elegida
+   * desde "Seleccionar agrupación → Por Propiedades" en el título
+   * "Materiales" — ver CabeceraSeccionConMenu en ElementosPage), o null en
+   * modo "Por categorías" normal. El estado vive en el caller porque el
+   * disparador está en el título de sección, fuera de este componente.
+   */
+  ordenGlobal?: string | null;
+}
+
+export function MaterialesPage({ ordenGlobal = null }: MaterialesPageProps = {}) {
   const { items: materiales, loading, renombrarMaterial, eliminarMaterial } = useMateriales();
   const { confirm, ConfirmModal } = useConfirm();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const seleccionado = materiales.find((material) => material.id === seleccionadoId) ?? null;
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
+  // ordenGlobal (todas las categorías a la vez) llega por prop desde arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
-  // Propiedad por la que se ordenan TODAS las secciones a la vez. El orden
-  // propio de una sección (ordenPorGrupo) tiene prioridad sobre este.
-  const [ordenGlobal, setOrdenGlobal] = useState<string | null>(null);
 
   // Agrupamiento por categoria (columna real "materiales.categoria",
   // agregada en v285 y recién ahora traída al frontend — ver auditoría
@@ -1201,12 +1210,6 @@ export function MaterialesPage() {
                   setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
                 }
                 propiedadGlobal={ordenGlobal}
-                onSeleccionarGlobal={(clave) => {
-                  // Un orden global nuevo reemplaza los ordenes propios,
-                  // para que el cambio se vea en todas las secciones.
-                  setOrdenPorGrupo({});
-                  setOrdenGlobal(clave);
-                }}
               />
               <div className="flex flex-wrap gap-1">
                 {ordenarPorPropiedad(

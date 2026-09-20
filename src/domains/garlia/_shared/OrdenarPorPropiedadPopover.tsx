@@ -3,10 +3,11 @@
 /**
  * OrdenarPorPropiedadPopover.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Título de sección clickeable + botón de filtrar/ordenar para los listados
- * agrupados de Compuestos y Materiales. Al elegir una propiedad emergente,
- * quien lo usa reordena los ítems del grupo de mayor a menor valor en esa
- * propiedad (los que no tienen el dato quedan al final, en su orden original).
+ * Título de sección clickeable + botón de filtrar/ordenar (un único
+ * selector por sección) para los listados agrupados de Compuestos y
+ * Materiales. Al elegir una propiedad emergente, quien lo usa reordena los
+ * ítems del grupo de mayor a menor valor en esa propiedad (los que no
+ * tienen el dato quedan al final, en su orden original).
  *
  * Solo se ofrecen propiedades NUMÉRICAS puras (las 12 de abajo): quedan
  * fuera a propósito los campos de texto/clasificación (tipo, categoría,
@@ -14,9 +15,17 @@
  *
  * Reusable: es agnóstico de la entidad. El caller le pasa una función
  * `obtenerValor(item, clave)` y usa `ordenarPorPropiedad` para ordenar.
+ *
+ * El orden "global" (todas las secciones a la vez, por ejemplo al elegir
+ * "Por Propiedades" desde el menú "Seleccionar agrupación" del título de la
+ * página — ver CabeceraSeccionConMenu) ya no vive acá: el segundo botón que
+ * lo disparaba desde este popover fue retirado (rediseño Química
+ * 2026-09-20). El caller sigue pudiendo aplicar un `propiedadGlobal` como
+ * prioridad más baja que el orden propio de cada sección — ver
+ * `propiedadGlobal` más abajo — solo que ahora se dispara desde otro lado.
  */
 
-import { ArrowDownWideNarrow, ListOrdered, X } from "lucide-react";
+import { ArrowDownWideNarrow, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { PopoverFlotante } from "./PopoverFlotante";
@@ -126,20 +135,20 @@ export function OrdenarPorPropiedadPopover({
   propiedadActiva,
   onSeleccionar,
   propiedadGlobal = null,
-  onSeleccionarGlobal,
 }: {
   /** Texto del título de la sección (ej. "Mineral"). */
   titulo: string;
   /** Clave de la propiedad por la que está ordenado ESTE grupo, o null. */
   propiedadActiva: string | null;
   onSeleccionar: (clave: string | null) => void;
-  /** Propiedad por la que están ordenados TODOS los grupos, o null. */
+  /** Propiedad por la que están ordenados TODOS los grupos (fijada desde
+   *  "Seleccionar agrupación → Por Propiedades" en el título de la página,
+   *  ver CabeceraSeccionConMenu), o null. Prioridad más baja que
+   *  propiedadActiva: solo se usa para el chip/orden si esta sección no
+   *  tiene su propio orden elegido. */
   propiedadGlobal?: string | null;
-  /** Si se pasa, aparece el segundo botón que ordena todas las secciones. */
-  onSeleccionarGlobal?: (clave: string | null) => void;
 }) {
   const [anchorSeccion, setAnchorSeccion] = useState<HTMLElement | null>(null);
-  const [anchorGlobal, setAnchorGlobal] = useState<HTMLElement | null>(null);
   const activa = PROPIEDADES_ORDENABLES.find((p) => p.clave === propiedadActiva) ?? null;
   const global = PROPIEDADES_ORDENABLES.find((p) => p.clave === propiedadGlobal) ?? null;
   // Lo que se ve en el chip: el orden propio de la sección gana al global.
@@ -149,10 +158,7 @@ export function OrdenarPorPropiedadPopover({
     <div className="mb-1 flex items-center gap-1 px-1">
       <button
         type="button"
-        onClick={(e) => {
-          setAnchorGlobal(null);
-          setAnchorSeccion(e.currentTarget.parentElement);
-        }}
+        onClick={(e) => setAnchorSeccion(e.currentTarget.parentElement)}
         title="Ordenar solo esta sección por propiedad"
         className={`flex min-w-0 flex-1 items-center gap-1.5 text-left text-micro font-bold uppercase tracking-[0.12em] transition-colors cursor-pointer ${
           efectiva ? "text-accent" : "text-primary/40 hover:text-primary/70"
@@ -167,24 +173,6 @@ export function OrdenarPorPropiedadPopover({
         <ArrowDownWideNarrow size={11} className="ml-auto shrink-0 opacity-60" />
       </button>
 
-      {onSeleccionarGlobal && (
-        <button
-          type="button"
-          onClick={(e) => {
-            setAnchorSeccion(null);
-            setAnchorGlobal(e.currentTarget.parentElement);
-          }}
-          title="Ordenar TODAS las secciones por propiedad"
-          className={`shrink-0 flex h-5 w-5 items-center justify-center rounded border transition-colors cursor-pointer ${
-            global
-              ? "border-accent/30 bg-accent/15 text-accent"
-              : "border-primary/15 text-primary/40 hover:border-primary/35 hover:bg-primary/5 hover:text-primary"
-          }`}
-        >
-          <ListOrdered size={11} />
-        </button>
-      )}
-
       <PopoverFlotante anchor={anchorSeccion} onClose={() => setAnchorSeccion(null)} width={200} maxHeight={380}>
         <ListaPropiedades
           titulo="Esta sección · mayor primero"
@@ -194,18 +182,6 @@ export function OrdenarPorPropiedadPopover({
           textoQuitar="Quitar orden de la sección"
         />
       </PopoverFlotante>
-
-      {onSeleccionarGlobal && (
-        <PopoverFlotante anchor={anchorGlobal} onClose={() => setAnchorGlobal(null)} width={210} maxHeight={380}>
-          <ListaPropiedades
-            titulo="Todas las secciones · mayor primero"
-            propiedadActiva={propiedadGlobal}
-            onSeleccionar={onSeleccionarGlobal}
-            onCerrar={() => setAnchorGlobal(null)}
-            textoQuitar="Quitar orden global"
-          />
-        </PopoverFlotante>
-      )}
     </div>
   );
 }

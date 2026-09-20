@@ -961,6 +961,17 @@ export function ElementosPage({
   const [creatingMaterial, setCreatingMaterial] = useState(false);
   const [creatingForma, setCreatingForma] = useState(false);
 
+  // ── "Seleccionar agrupación" del título de sección (ver
+  // CabeceraSeccionConMenu / FilaAsimetrica): propiedad por la que se
+  // ordenan TODAS las categorías de Compuestos o de Materiales a la vez,
+  // o null en modo "Por categorías" normal. Reemplaza al botón
+  // "ordenar todas las secciones" que antes vivía en
+  // OrdenarPorPropiedadPopover (rediseño Química 2026-09-20). Estado
+  // propio por bloque — elegir agrupación en Compuestos no toca Materiales
+  // y viceversa. ──────────────────────────────────────────────────────
+  const [agrupacionCompuestos, setAgrupacionCompuestos] = useState<string | null>(null);
+  const [agrupacionMateriales, setAgrupacionMateriales] = useState<string | null>(null);
+
   async function handleCrearEstructura() {
     setCreatingEstructura(true);
     try {
@@ -1199,6 +1210,8 @@ export function ElementosPage({
             añadiendo: creatingCompuesto,
             onRenombrar: handleRenombrarCompuesto,
             onEliminar: handleEliminarCompuesto,
+            agrupacionActiva: agrupacionCompuestos,
+            onSeleccionarAgrupacion: setAgrupacionCompuestos,
             contenido: (
               <CompuestosPage
                 compuestos={compuestos}
@@ -1218,6 +1231,7 @@ export function ElementosPage({
                   setCompuestoAAbrir(null);
                   setCompuestoRecienCreadoId(null);
                 }}
+                ordenGlobal={agrupacionCompuestos}
               />
             ),
           },
@@ -1230,6 +1244,11 @@ export function ElementosPage({
             añadiendo: creatingEstructura,
             onRenombrar: renombrarEstructura,
             onEliminar: eliminarEstructura,
+            // Base lista para más adelante: EstructurasPage todavía no
+            // agrupa por categoría/propiedad, así que no se pasa
+            // agrupacionActiva/onSeleccionarAgrupacion — la opción
+            // "Seleccionar agrupación" simplemente no aparece en su menú
+            // hasta que EstructurasPage lo soporte.
             contenido: <EstructurasPage />,
           },
           {
@@ -1241,7 +1260,9 @@ export function ElementosPage({
             añadiendo: creatingMaterial,
             onRenombrar: renombrarMaterial,
             onEliminar: eliminarMaterial,
-            contenido: <MaterialesPage />,
+            agrupacionActiva: agrupacionMateriales,
+            onSeleccionarAgrupacion: setAgrupacionMateriales,
+            contenido: <MaterialesPage ordenGlobal={agrupacionMateriales} />,
           },
           {
             key: "geometrias",

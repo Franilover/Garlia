@@ -195,6 +195,15 @@ interface Props {
    *  el panel este vuelve a reabrirse solo porque seleccionarId sigue
    *  teniendo el mismo valor. */
   onSeleccionarIdConsumido?: () => void;
+  /**
+   * Propiedad por la que se ordenan TODAS las categorías a la vez (elegida
+   * desde "Seleccionar agrupación → Por Propiedades" en el título "Compuestos"
+   * — ver CabeceraSeccionConMenu en ElementosPage), o null si está en modo
+   * "Por categorías" normal. El estado en sí vive en el caller (ElementosPage)
+   * porque el disparador está en el título de sección, fuera de este
+   * componente — acá solo se aplica sobre gruposPorCategoria.
+   */
+  ordenGlobal?: string | null;
 }
 
 function nombreElemento(elementos: Elemento[], id: string): string {
@@ -2342,11 +2351,15 @@ function MasonryGruposCategoria({
   elementos,
   activoId,
   onSeleccionar,
+  ordenGlobal,
 }: {
   grupos: { id: string; nombre: string; compuestos: Compuesto[] }[];
   elementos: Elemento[];
   activoId: string | null;
   onSeleccionar: (id: string) => void;
+  /** Propiedad que ordena TODAS las categorías a la vez — ver el mismo prop
+   *  en Props (arriba) de CompuestosPage. */
+  ordenGlobal: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -2375,11 +2388,9 @@ function MasonryGruposCategoria({
 
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
   // Solo cambia el orden de las pills dentro del grupo, no su tamaño, así que
-  // no afecta la distribución masonry de abajo.
+  // no afecta la distribución masonry de abajo. ordenGlobal (todas las
+  // categorías a la vez) llega por prop — ver comentario en Props, arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
-  // Propiedad por la que se ordenan TODAS las secciones a la vez. El orden
-  // propio de una sección (ordenPorGrupo) tiene prioridad sobre este.
-  const [ordenGlobal, setOrdenGlobal] = useState<string | null>(null);
 
   const GAP = 16;
   const ANCHO_MIN_COLUMNA = 240;
@@ -2461,12 +2472,6 @@ function MasonryGruposCategoria({
                     setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
                   }
                   propiedadGlobal={ordenGlobal}
-                  onSeleccionarGlobal={(clave) => {
-                    // Un orden global nuevo reemplaza los ordenes propios,
-                    // para que el cambio se vea en todas las secciones.
-                    setOrdenPorGrupo({});
-                    setOrdenGlobal(clave);
-                  }}
                 />
                 <div className="flex flex-wrap gap-1">
                   {ordenarPorPropiedad(
@@ -2503,6 +2508,7 @@ export function CompuestosPage({
   onEliminar,
   seleccionarId,
   onSeleccionarIdConsumido,
+  ordenGlobal = null,
 }: Props) {
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [laboratorioAbierto, setLaboratorioAbierto] = useState(false);
@@ -2580,6 +2586,7 @@ export function CompuestosPage({
             onSeleccionar={(id) =>
               setSeleccionadoId((actual) => (actual === id ? null : id))
             }
+            ordenGlobal={ordenGlobal}
           />
         )}
       </div>

@@ -54,6 +54,10 @@ interface Bloque {
   onRenombrar?: (id: string, nuevoNombre: string) => void | Promise<void>;
   onEliminar?: (id: string) => void | Promise<void>;
   añadiendo?: boolean;
+  /** "Seleccionar agrupación" del título — ver CabeceraSeccionConMenu. Si se
+   *  omite, esa opción no aparece en el menú de este bloque. */
+  agrupacionActiva?: string | null;
+  onSeleccionarAgrupacion?: (clave: string | null) => void;
 }
 
 const UMBRAL_DOMINANCIA = 1.5;
@@ -98,6 +102,8 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
               onRenombrar={bloque.onRenombrar}
               onEliminar={bloque.onEliminar}
               añadiendo={bloque.añadiendo}
+              agrupacionActiva={bloque.agrupacionActiva}
+              onSeleccionarAgrupacion={bloque.onSeleccionarAgrupacion}
             />
             {bloque.contenido}
           </div>
@@ -119,6 +125,8 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
           onRenombrar={grande.onRenombrar}
           onEliminar={grande.onEliminar}
           añadiendo={grande.añadiendo}
+          agrupacionActiva={grande.agrupacionActiva}
+          onSeleccionarAgrupacion={grande.onSeleccionarAgrupacion}
         />
         {grande.contenido}
       </div>
@@ -132,6 +140,8 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
               onRenombrar={bloque.onRenombrar}
               onEliminar={bloque.onEliminar}
               añadiendo={bloque.añadiendo}
+              agrupacionActiva={bloque.agrupacionActiva}
+              onSeleccionarAgrupacion={bloque.onSeleccionarAgrupacion}
             />
             {bloque.contenido}
           </div>

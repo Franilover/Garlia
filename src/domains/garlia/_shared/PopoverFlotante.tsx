@@ -180,6 +180,7 @@ export function PopoverFlotante({
       )}
       <div
         ref={panelRef}
+        data-popover-panel="true"
         className="fixed z-[9999] rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
         style={{
           top: pos.top,
