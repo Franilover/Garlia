@@ -19,11 +19,15 @@
  * backdrop blur), no una barra lateral fija.
  */
 
-import { Dna, Plus, Trash2, X } from "lucide-react";
+import { Dna, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { RichEditor } from "@/editor/lexical";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
+import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 
 import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
 import { useClados } from "./useBiologia";
@@ -387,63 +391,63 @@ function PanelClado({
   onDelete,
   onCrearHijo,
   onSelectCriatura,
+  onHeaderControlsChange,
 }: {
   clado: Clado;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
+  /** Publica los controles de header (nombre, guardar, eliminar) hacia el
+   *  contenedor (CladoPanelFlotante), que los renderiza en su propia
+   *  EditorHeaderBar — mismo patrón que ElementoEditor/CompuestoEditor,
+   *  para evitar la barra duplicada de la vista rápida. */
+  onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
   const [nombre, setNombre] = useState(clado.nombre);
   const [sinapomorfia, setSinapomorfia] = useState(clado.sinapomorfia ?? "");
   const [descripcion, setDescripcion] = useState(clado.descripcion ?? "");
+  const [status, setStatus] = useState<SaveStatus>("idle");
 
   React.useEffect(() => {
     setNombre(clado.nombre);
     setSinapomorfia(clado.sinapomorfia ?? "");
     setDescripcion(clado.descripcion ?? "");
+    setStatus("idle");
   }, [clado.id]);
 
   const guardar = () => {
-    onSave({
-      nombre: nombre.trim() || clado.nombre,
-      sinapomorfia: sinapomorfia.trim(),
-      descripcion,
-    });
+    setStatus("saving");
+    try {
+      onSave({
+        nombre: nombre.trim() || clado.nombre,
+        sinapomorfia: sinapomorfia.trim(),
+        descripcion,
+      });
+      setStatus("saved");
+    } catch (e) {
+      console.error("[PanelClado] error guardando:", e);
+      setStatus("error");
+    }
   };
 
+  usePublishHeaderControls(
+    {
+      IconoFallback: Dna,
+      nombre,
+      placeholderNombre: "Nombre del clado…",
+      onChangeNombre: setNombre,
+      onBlurNombre: guardar,
+      status,
+      onGuardar: guardar,
+      onEliminar: onDelete,
+    },
+    onHeaderControlsChange,
+  );
+
   return (
-    <div>
-      <div className="flex items-center gap-1.5 mb-3">
-        <Dna size={12} className="text-accent/60 shrink-0" />
-        <input
-          className="flex-1 min-w-0 bg-transparent text-xs font-black uppercase italic tracking-tight text-primary truncate outline-none placeholder:text-primary/25 px-1 py-0.5 rounded hover:bg-primary/5 focus:bg-primary/8"
-          placeholder="Nombre del clado…"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          onBlur={guardar}
-        />
-      </div>
-
-      <div className="flex items-center gap-1.5 mb-4">
-        <button
-          type="button"
-          onClick={guardar}
-          className="flex-1 text-micro font-black uppercase tracking-widest px-2 py-1.5 rounded-lg bg-primary text-bg-main hover:opacity-90 transition-opacity"
-        >
-          Guardar
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          title="Eliminar clado"
-          className="shrink-0 p-1.5 rounded-lg text-primary/25 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-        >
-          <Trash2 size={13} />
-        </button>
-      </div>
-
-      <div className="mb-3.5">
+    <div className="flex flex-col gap-3.5">
+      <div>
         <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
           Sinapomorfía
         </span>
@@ -459,7 +463,7 @@ function PanelClado({
         />
       </div>
 
-      <div className="mb-3.5">
+      <div>
         <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
           Descripción
         </span>
@@ -474,7 +478,7 @@ function PanelClado({
       <button
         type="button"
         onClick={onCrearHijo}
-        className="w-full flex items-center justify-center gap-1.5 mb-3.5 px-2 py-1.5 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
+        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
         style={{
           borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
           color: "color-mix(in srgb, var(--primary) 35%, transparent)",
@@ -494,9 +498,10 @@ function PanelClado({
 }
 
 // ─── Panel flotante centrado (mismo patrón que ElementoPanelFlotante en
-// Química y los paneles de Personaje/Criatura) ─────────────────────────────
-// Reemplaza el sidebar fijo: al clickear un clado se abre un modal grande
-// centrado con backdrop blur, en vez de una barra lateral angosta.
+// Química: EditorHeaderBar única + backdrop blur), en vez del sidebar fijo
+// o de un header custom propio — así el "menú" de Clados queda visualmente
+// idéntico a Elementos/Compuestos: mismos colores, mismo borde de 1px, la
+// misma barra con SaveIndicator y confirmación inline de borrado.
 function CladoPanelFlotante({
   clado,
   onCerrar,
@@ -512,6 +517,8 @@ function CladoPanelFlotante({
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
 }) {
+  const [headerControls, setHeaderControls] = useState<Parameters<OnHeaderControlsChange>[0]>(null);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -546,37 +553,7 @@ function CladoPanelFlotante({
           animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
         }}
       >
-        <div
-          className="shrink-0 flex items-center gap-3 px-4 py-3 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
-          <div
-            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-            }}
-          >
-            <Dna className="text-primary/50" size={12} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Clado · vista rápida
-            </p>
-            <p className="text-xs font-bold text-primary truncate">{clado.nombre}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onCerrar}
-            title="Cerrar (Esc)"
-            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
+        {headerControls && <EditorHeaderBar controls={headerControls} />}
 
         <div className="flex-1 min-h-0 overflow-y-auto p-3.5">
           <PanelClado
@@ -586,6 +563,7 @@ function CladoPanelFlotante({
             onDelete={onDelete}
             onCrearHijo={onCrearHijo}
             onSelectCriatura={onSelectCriatura}
+            onHeaderControlsChange={setHeaderControls}
           />
         </div>
       </div>
