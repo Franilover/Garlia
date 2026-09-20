@@ -15,7 +15,7 @@
  * useSistemaOrganos.ts (organismo_sistemas y sistemas ya están en
  * DEXIE_TABLES desde v35). Además espeja el resultado en
  * useOrganismoBiologiaStore (Zustand) para que otra instancia del hook
- * pidiendo el mismo organismoId (ej. EditorCriatura + OrganismoPanelFlotante
+ * pidiendo el mismo organismoId (ej. EditorCriatura + PanelEditorOrganismo
  * abiertos a la vez) adopte el resultado ya resuelto sin refetchear.
  */
 

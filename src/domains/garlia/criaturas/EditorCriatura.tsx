@@ -85,7 +85,7 @@ import { useMembresiaSubsistemaCriatura } from "@/domains/garlia/criaturas/useMe
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
 import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
-import { OrganismoPanelFlotante } from "@/domains/garlia/criaturas/OrganismoPanelFlotante";
+import { PanelEditorOrganismo } from "@/domains/garlia/biologia/CatalogoSistemasBiologia";
 import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
 import { useOrganismoSistemas } from "@/domains/garlia/elementos/useOrganismoSistemas";
 import { useOrganismoOrganos } from "@/domains/garlia/elementos/useOrganismoOrganos";
@@ -190,7 +190,7 @@ export function EditorCriatura({
   // criatura_organismos, hueco de datos real hasta ahora (0 filas), ver
   // useCriaturaOrganismos.ts. Catálogo de Organismo es independiente del
   // de Órganos de arriba, así que trae su propio useOrganismos().
-  const { items: catalogoOrganismos } = useOrganismos();
+  const { items: catalogoOrganismos, setItems: setCatalogoOrganismos } = useOrganismos();
   const organismosCriatura = useCriaturaOrganismos(form.id);
   // Unión de TODO lo alcanzable hacia abajo desde los Organismos de esta
   // Criatura (Sistemas → Órganos → Tejidos → Células) — alimenta el
@@ -201,8 +201,8 @@ export function EditorCriatura({
     [organismosCriatura.items],
   );
   const composicionCriatura = useComposicionDeOrganismos(organismoIdsCriatura);
-  // Panel flotante de detalle del Organismo (Sistemas→Órganos) abierto al
-  // clickear una fila en PanelOrganismosCriatura — ver OrganismoPanelFlotante.tsx.
+  // Panel flotante editable de Organismo (mismo PanelEditorOrganismo que
+  // usa Biología) abierto al clickear una fila en PanelOrganismosCriatura.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
   // Catálogo global de Sistemas — necesario para resolver por id el
   // destino de un salto "reemplazar toda la pila" (ver saltarASistema
@@ -217,8 +217,10 @@ export function EditorCriatura({
    * Organismo), sobre un item DISTINTO al que trajo hasta ahí. En vez de
    * apilar un panel más encima, cierran los paneles raíz y abren solo el
    * destino elegido — mismo efecto que clickear ESE item desde cero.
-   * Pasados hacia abajo como onAbrir*Externo a OrganismoPanelFlotante y
-   * SistemaPanelFlotante, que los reenvían a sus hijos sin manejarlos.
+   * Pasados hacia abajo como onAbrir*Externo a SistemaPanelFlotante (y como
+   * onAbrirOrganismo/onAbrirSistema/etc. directos a PanelEditorOrganismo/
+   * PanelEditorCelula/PanelEditorTejido), que los reenvían a sus hijos sin
+   * manejarlos.
    * Nota: las funciones corren en eventos (no en render), por eso pueden
    * referirse a setters de estado declarados más abajo.
    */
@@ -269,7 +271,8 @@ export function EditorCriatura({
   const organosDirectosOrganismo = useOrganismoOrganos(organismoPrincipalId ?? "");
 
   // Panel del Sistema abierto al clickear una fila en la columna "Sistemas
-  // del organismo" — mismo patrón que dentro de OrganismoPanelFlotante.
+  // del organismo" — mismo componente (SistemaPanelFlotante) que se usaba
+  // dentro del antiguo OrganismoPanelFlotante.
   const [editandoSistemaOrganismoId, setEditandoSistemaOrganismoId] = useState<string | null>(
     null,
   );
@@ -300,6 +303,31 @@ export function EditorCriatura({
   async function persistirOrgano(id: string, cambios: Partial<Organo>) {
     onOrganoActualizadoLocal(id, cambios);
     await organosCriatura.actualizarOrgano(id, cambios);
+  }
+
+  // Editor completo de Organismo (PanelEditorOrganismo, el mismo que usa
+  // Biología) — reemplaza al antiguo OrganismoPanelFlotante de
+  // solo-lectura de este archivo, que quedaba desactualizado frente al
+  // catálogo real y no permitía editar nombre/descripción/notas ni el
+  // vínculo con Sistemas (organismo_sistemas) desde acá.
+  // Nota: PanelEditorOrganismo no muestra "Órganos directos"
+  // (organismo_organos) — esa vista sigue disponible inline más abajo
+  // (fila 2 de Biología), pero solo para el Organismo PRINCIPAL de la
+  // Criatura. Si se abre acá un Organismo vinculado que no es el
+  // principal, sus Órganos directos (si tuviera) no se ven desde este
+  // panel — antes sí se veían (para cualquier Organismo) en el viejo
+  // OrganismoPanelFlotante.
+  async function actualizarOrganismo(id: string, cambios: Partial<Organismo>) {
+    setCatalogoOrganismos((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
+    const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
+    if (error) console.error("[EditorCriatura] error actualizando organismo:", error);
+  }
+
+  async function eliminarOrganismo(id: string): Promise<{ ok: boolean; error: unknown }> {
+    const { error } = await supabase.from("organismos").delete().eq("id", id);
+    if (error) return { ok: false, error };
+    setCatalogoOrganismos((prev) => prev.filter((o) => o.id !== id));
+    return { ok: true, error: null };
   }
 
   // ── Catálogos del aside ────────────────────────────────────────────────────
@@ -641,7 +669,7 @@ export function EditorCriatura({
                 {/* Fila 2: Órganos del organismo | Sistemas del organismo —
                     resueltas contra el Organismo principal (o el primero
                     vinculado) de esta criatura, mostradas inline sin abrir
-                    OrganismoPanelFlotante. */}
+                    el editor completo del Organismo. */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
                   <section className="flex flex-col gap-2 lg:pr-4">
                     <header className="flex items-center gap-1.5">
@@ -1132,34 +1160,41 @@ export function EditorCriatura({
         />
       )}
 
-      {/* Click en una fila de Organismo (PanelOrganismosCriatura) — muestra
-          sus Sistemas y, dentro de cada uno, sus Órganos. Mismo idioma
-          visual que GrupoCompuestoPanelFlotante de arriba. */}
+      {/* Click en una fila de Organismo (PanelOrganismosCriatura) — abre el
+          editor completo del Organismo (mismo PanelEditorOrganismo que usa
+          Biología): nombre/descripción/notas editables + Sistemas vinculados
+          (con proporción) + breadcrumb completo Célula⇄…⇄Organismo⇄Criatura. */}
       {editandoOrganismoId &&
         (() => {
           const organismoActivo = catalogoOrganismos.find((o) => o.id === editandoOrganismoId);
           if (!organismoActivo) return null;
           return (
-            <OrganismoPanelFlotante
-              organismo={organismoActivo}
+            <PanelEditorOrganismo
+              item={organismoActivo}
+              sistemas={catalogoSistemas}
               onCerrar={() => setEditandoOrganismoId(null)}
-              onAbrirOrganoExterno={saltarAOrgano}
-              onAbrirSistemaExterno={saltarASistema}
-              onAbrirOrganismoExterno={saltarAOrganismo}
-          onAbrirCriaturaExterno={onSelectCriatura}
-          onAbrirCelulaExterno={saltarACelula}
-          onAbrirTejidoExterno={saltarATejido}
+              onActualizar={actualizarOrganismo}
+              onEliminar={async (id) => {
+                const res = await eliminarOrganismo(id);
+                if (res.ok) setEditandoOrganismoId(null);
+                return res;
+              }}
+              onAbrirSistema={saltarASistema}
+              onAbrirCelula={saltarACelula}
+              onAbrirTejido={saltarATejido}
+              onAbrirOrgano={saltarAOrgano}
+              onAbrirCriatura={onSelectCriatura}
             />
           );
         })()}
 
       {/* Click en una fila de "Sistemas del organismo" (fila 2 inline de
-          Biología) — mismo panel que usa OrganismoPanelFlotante para sus
-          Sistemas. Resuelve primero contra los Sistemas del organismo
-          principal (caso original, fila inline); si no aparece ahí, cae al
-          catálogo global de Sistemas — cubre el caso de un salto externo
-          (saltarASistema) hacia un Sistema que no pertenece a ese
-          organismo principal. */}
+          Biología) — mismo SistemaPanelFlotante que se abre al navegar a un
+          Sistema desde el editor de Organismo. Resuelve primero contra los
+          Sistemas del organismo principal (caso original, fila inline); si
+          no aparece ahí, cae al catálogo global de Sistemas — cubre el caso
+          de un salto externo (saltarASistema) hacia un Sistema que no
+          pertenece a ese organismo principal. */}
       {editandoSistemaOrganismoId &&
         (() => {
           const sistemaActivo =
@@ -1183,7 +1218,8 @@ export function EditorCriatura({
 
       {/* Click en una fila de "Órganos del organismo" (fila 2 inline de
           Biología) — abre el editor completo del Órgano, mismo componente
-          que usa OrganismoPanelFlotante para sus Órganos directos. */}
+          (GrupoCompuestoPanelFlotante) que se abre desde "Órganos directos"
+          dentro del editor de Organismo. */}
       {editandoOrganoDirectoOrganismoId &&
         (() => {
           const organoActivo = catalogoOrganos.find(
@@ -1421,7 +1457,7 @@ function PanelOrganismosCriatura({
   ) => void;
   onMarcarPrincipal: (vinculoId: string, esPrincipal: boolean) => void;
   onQuitar: (vinculoId: string) => void;
-  /** Click en el nombre del Organismo — abre OrganismoPanelFlotante (Sistemas→Órganos). */
+  /** Click en el nombre del Organismo — abre PanelEditorOrganismo (editable, con Sistemas). */
   onAbrirOrganismo?: (organismoId: string) => void;
 }) {
   const [buscando, setBuscando] = useState(false);

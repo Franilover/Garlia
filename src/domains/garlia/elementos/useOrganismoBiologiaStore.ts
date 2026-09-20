@@ -9,7 +9,7 @@
  *
  * Por qué existe: el mismo Organismo puede pedirse desde dos lugares a la
  * vez (ej. la fila 2 inline de EditorCriatura y, si se abre,
- * OrganismoPanelFlotante para ese mismo organismo). Sin este store, cada
+ * PanelEditorOrganismo para ese mismo organismo). Sin este store, cada
  * instancia del hook hace su propio round-trip a Supabase (aunque Dexie ya
  * amortigua el primer pintado, sigue siendo un fetch de red duplicado y un
  * segundo parpadeo de loading). Con el store, la segunda instancia adopta

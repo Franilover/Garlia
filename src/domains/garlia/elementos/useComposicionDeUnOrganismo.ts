@@ -15,7 +15,7 @@
  * CUALQUIERA de los Sistemas del Organismo.
  *
  * No incluye Órganos directos (organismo_organos, sin pasar por Sistema):
- * ese vínculo vive aparte en OrganismoPanelFlotante/useOrganismoOrganos y
+ * ese vínculo vive aparte en PanelEditorOrganismo/useOrganismoOrganos y
  * no forma parte de la cadena fija de 5 niveles que expone el breadcrumb.
  *
  * No cachea en Dexie (solo lectura para un breadcrumb, no un catálogo editable).
