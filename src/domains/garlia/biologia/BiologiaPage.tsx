@@ -44,6 +44,8 @@ import {
 interface Props {
   /** El padre decide qué hacer al clickear una criatura (ej. abrir su editor). */
   onSelectCriatura?: (id: string) => void;
+  /** Abre un organismo (lo resuelve el shell, que ya gestiona los paneles de organismo). */
+  onAbrirOrganismo?: (organismoId: string) => void;
 }
 
 // ─── Descarga: el cladograma de Biología en un solo JSON ──────────────────
@@ -52,9 +54,11 @@ interface Props {
 function descargarDatosBiologia(datos: {
   clados: ReturnType<typeof useClados>["clados"];
 }) {
+  // clados.criatura_ids es LEGACY/DERIVADO: no se exporta, así un archivo
+  // nuevo no arrastra una relación clado → criatura que ya no es canónica.
   const payload = {
     exportado_en: new Date().toISOString(),
-    clados: datos.clados,
+    clados: datos.clados.map(({ criatura_ids: _legacy, ...resto }) => resto),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
@@ -78,7 +82,7 @@ function descargarDatosBiologia(datos: {
 // en la base se resetea a null (queda como raíz) para no dejar referencias
 // colgantes — mismo criterio conservador que usa eliminar() en useBiologia.
 interface ImportacionBiologia {
-  cladosNuevos: Omit<Clado, "id" | "created_at" | "updated_at">[];
+  cladosNuevos: Omit<Clado, "id" | "created_at" | "updated_at" | "criatura_ids">[];
   /** Clados del archivo que coinciden por nombre con uno existente: se actualizan en vez de saltarse. */
   cladosActualizar: (Partial<Clado> & { id: string })[];
   padresOmitidos: { nombre: string }[];
@@ -107,7 +111,7 @@ function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): Imp
 
   const idsExistentes = new Set(cladosExistentes.map((c) => c.id));
   const porNombre = new Map(cladosExistentes.map((c) => [c.nombre, c]));
-  const cladosNuevos: Omit<Clado, "id" | "created_at" | "updated_at">[] = [];
+  const cladosNuevos: Omit<Clado, "id" | "created_at" | "updated_at" | "criatura_ids">[] = [];
   const cladosActualizar: (Partial<Clado> & { id: string })[] = [];
   const padresOmitidos: { nombre: string }[] = [];
 
@@ -135,9 +139,11 @@ function parsearArchivoBiologiaJSON(raw: string, cladosExistentes: Clado[]): Imp
       sinapomorfia: c.sinapomorfia ?? "",
       padre_id: padreId,
       descripcion: c.descripcion ?? "",
-      criatura_ids: c.criatura_ids ?? [],
       orden: c.orden ?? 0,
     };
+    // clados.criatura_ids es LEGACY/DERIVADO: el importador ya no la envía
+    // (ni la lee del archivo). La relación clado → criatura no se importa
+    // desde acá; vive en organismos.clado_id + criatura_organismos.
 
     // Columnas del contrato (tipo_nodo, relacion_padre, rango, estado):
     // SOLO se envían si el archivo las trae explícitamente. Un JSON viejo
@@ -704,7 +710,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
  * (ver comentario arriba). Mismo comportamiento de siempre, solo que ahora
  * no vive pegado a la columna de Tejidos/Sistemas/Órganos.
  */
-export function BiologiaCladograma({ onSelectCriatura }: Props) {
+export function BiologiaCladograma({ onSelectCriatura, onAbrirOrganismo }: Props) {
   // Traído acá solo para armar el JSON de descarga — Cladística sigue
   // manejando sus propios datos internamente (self-contained), esto no le
   // saca esa responsabilidad.
@@ -786,7 +792,7 @@ export function BiologiaCladograma({ onSelectCriatura }: Props) {
         </div>
       )}
 
-      <CladisticaPage onSelectCriatura={onSelectCriatura} />
+      <CladisticaPage onSelectCriatura={onSelectCriatura} onAbrirOrganismo={onAbrirOrganismo} />
     </div>
   );
 }
@@ -798,11 +804,11 @@ export function BiologiaCladograma({ onSelectCriatura }: Props) {
  * layout general), pero se mantiene por si algún otro consumidor lo
  * necesita en el futuro.
  */
-export function BiologiaPage({ onSelectCriatura }: Props) {
+export function BiologiaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
   return (
     <div className="flex flex-col sm:flex-row gap-3 min-h-0">
       <div className="flex-1 min-w-0">
-        <BiologiaCladograma onSelectCriatura={onSelectCriatura} />
+        <BiologiaCladograma onSelectCriatura={onSelectCriatura} onAbrirOrganismo={onAbrirOrganismo} />
       </div>
       <div className="flex-1 min-w-0 border-l border-primary/10 pl-3">
         <BiologiaCatalogos onSelectCriatura={onSelectCriatura} />

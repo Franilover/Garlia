@@ -22,6 +22,12 @@
  * hijos del árbol (`clado_relaciones`) se listan en el panel de detalle y
  * jamás se dibujan como ramas padre→hijo.
  *
+ * Modelo biológico: CLADO → ORGANISMO → CRIATURA. El clado dice qué linaje
+ * es; la biología efectiva vive en el organismo (organismos.clado_id) y la
+ * criatura es la entidad narrativa que lo usa (criatura_organismos). Por eso
+ * el panel de un clado lista sus ORGANISMOS (v_clados_organismos_v1), no
+ * criaturas; y clados.criatura_ids (legacy) ya no se lee ni se escribe.
+ *
  * Panel de detalle del clado seleccionado como panel flotante centrado
  * (mismo patrón que Elementos/Personajes/Criaturas — modal grande con
  * backdrop blur), no una barra lateral fija.
@@ -37,20 +43,29 @@ import { type SaveStatus } from "@/ui/saveStatus";
 import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
 import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 
-import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
-import { useCladoRelaciones, useClados } from "./useBiologia";
+import {
+  useCladoRelaciones,
+  useClados,
+  useCladosOrganismos,
+  useOrganismosCriaturas,
+} from "./useBiologia";
 import {
   RELACION_PADRE_CLADO_LABEL,
   TIPO_NODO_CLADO_LABEL,
   TIPO_RELACION_CLADO_LABEL,
   type Clado,
+  type CladoOrganismo,
   type CladoRelacion,
+  type OrganismoCriatura,
   type RelacionPadreClado,
   type TipoNodoClado,
 } from "./types";
 
 interface Props {
   onSelectCriatura?: (id: string) => void;
+  /** Abre un organismo (mismo panel de organismo del resto del proyecto). El
+   *  cladograma no lo monta por su cuenta: lo resuelve el contenedor. */
+  onAbrirOrganismo?: (organismoId: string) => void;
 }
 
 // ─── Layout del cladograma ──────────────────────────────────────────────────
@@ -232,6 +247,7 @@ function descendientesDe(id: string, clados: Clado[]): Set<string> {
 
 function DiagramaCladograma({
   clados,
+  conteoOrganismos,
   seleccionadoId,
   seleccionMultiple,
   onSelect,
@@ -240,6 +256,8 @@ function DiagramaCladograma({
   onMoverGrupo,
 }: {
   clados: Clado[];
+  /** Organismos por clado (organismos.clado_id, vía v_clados_organismos_v1). */
+  conteoOrganismos: Map<string, number>;
   seleccionadoId: string | null;
   seleccionMultiple: Set<string>;
   onSelect: (id: string) => void;
@@ -492,14 +510,15 @@ function DiagramaCladograma({
                   </tspan>
                 )}
               </text>
-              {n.clado.criatura_ids?.length > 0 && (
+              {(conteoOrganismos.get(n.clado.id) ?? 0) > 0 && (
                 <text
                   x={esHoja ? 8 + (n.clado.nombre?.length ?? 0) * 6.2 + (glifoDeTipo(n.clado.tipo_nodo) ? 20 : 6) : 0}
                   y={esHoja ? 4 : -6}
                   textAnchor={esHoja ? "start" : "middle"}
                   className="text-[9px] font-bold fill-accent/60 select-none"
                 >
-                  {n.clado.criatura_ids.length}
+                  <title>{`${conteoOrganismos.get(n.clado.id)} organismo(s) en este clado`}</title>
+                  {conteoOrganismos.get(n.clado.id)}
                 </text>
               )}
             </g>
@@ -527,25 +546,36 @@ function DiagramaCladograma({
 function PanelClado({
   clado,
   padre,
+  hijos,
   relaciones,
+  organismos,
+  criaturasDe,
   cladoPorId,
   onSave,
   onDelete,
   onCrearHijo,
   onSelectCriatura,
+  onAbrirOrganismo,
   onSelectClado,
   onHeaderControlsChange,
 }: {
   clado: Clado;
   /** Padre visual del clado (resuelto por padre_id), null si es raíz. */
   padre: Clado | null;
+  /** Hijos directos en el árbol (clados con padre_id = este clado). */
+  hijos: Clado[];
   /** Relaciones laterales (clado_relaciones) donde este clado participa. */
   relaciones: CladoRelacion[];
+  /** Organismos del clado (organismos.clado_id, v_clados_organismos_v1). */
+  organismos: CladoOrganismo[];
+  /** Criaturas que usan un organismo (criatura_organismos, v_organismos_criaturas_v1). */
+  criaturasDe: (organismoId: string) => OrganismoCriatura[];
   cladoPorId: Map<string, Clado>;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
+  onAbrirOrganismo?: (organismoId: string) => void;
   onSelectClado: (id: string) => void;
   /** Publica los controles de header (nombre, guardar, eliminar) hacia el
    *  contenedor (CladoPanelFlotante), que los renderiza en su propia
@@ -553,6 +583,13 @@ function PanelClado({
    *  para evitar la barra duplicada de la vista rápida. */
   onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
+  // Nombre de la variante base: se resuelve entre los organismos que ya
+  // trae la vista (una variante comparte clado con su base en los datos
+  // actuales; si no está en este clado, se omite el "de X" en vez de inventarlo).
+  const organismoPorId = useMemo(
+    () => new Map(organismos.map((o) => [o.organismo_id, o])),
+    [organismos],
+  );
   const [nombre, setNombre] = useState(clado.nombre);
   const [sinapomorfia, setSinapomorfia] = useState(clado.sinapomorfia ?? "");
   const [descripcion, setDescripcion] = useState(clado.descripcion ?? "");
@@ -637,6 +674,35 @@ function PanelClado({
             <span className="text-xs font-bold text-primary/60 text-right">{clado.rango}</span>
           </div>
         )}
+        {clado.estado && (
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+              Estado
+            </span>
+            <span className="text-xs font-bold text-primary/60 text-right">{clado.estado}</span>
+          </div>
+        )}
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+            Hijos
+          </span>
+          {hijos.length === 0 ? (
+            <span className="text-xs text-primary/35 text-right">—</span>
+          ) : (
+            <span className="flex flex-wrap justify-end gap-x-2 gap-y-0.5">
+              {hijos.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => onSelectClado(h.id)}
+                  className="text-xs font-bold text-accent/80 hover:text-accent transition-colors"
+                >
+                  {h.nombre || "Sin nombre"}
+                </button>
+              ))}
+            </span>
+          )}
+        </div>
         {padre && (
           <p className="text-micro text-primary/35 leading-snug">
             El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
@@ -729,12 +795,81 @@ function PanelClado({
         <Plus size={10} /> Añadir clado hijo
       </button>
 
-      <SelectorCriaturasMulti
-        ids={clado.criatura_ids ?? []}
-        onChange={(ids) => onSave({ criatura_ids: ids })}
-        onSelectCriatura={onSelectCriatura}
-        label="Criaturas de este clado"
-      />
+      <div>
+        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+          Organismos del clado
+        </span>
+        <p className="text-micro text-primary/35 mb-1.5 leading-snug">
+          La biología efectiva vive en el organismo; el clado aporta el linaje y la herencia.
+        </p>
+        {organismos.length === 0 ? (
+          <p className="text-xs text-primary/30 italic">
+            Este clado todavía no tiene organismos asignados.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {organismos.map((o) => {
+              const criaturas = criaturasDe(o.organismo_id);
+              const base = o.organismo_base_id ? organismoPorId.get(o.organismo_base_id) : null;
+              return (
+                <li
+                  key={o.organismo_id}
+                  className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
+                >
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      disabled={!onAbrirOrganismo}
+                      onClick={() => onAbrirOrganismo?.(o.organismo_id)}
+                      className="text-xs font-bold text-primary/80 hover:text-accent transition-colors disabled:hover:text-primary/80 disabled:cursor-default"
+                    >
+                      {o.organismo || "Sin nombre"}
+                    </button>
+                    {o.tipo_organismo && (
+                      <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                        {o.tipo_organismo}
+                      </span>
+                    )}
+                    {o.variante_tipo && (
+                      <span className="text-micro text-primary/40">
+                        variante: {o.variante_tipo}
+                        {o.sexo_biologico ? ` · ${o.sexo_biologico}` : ""}
+                        {base ? ` de ${base.organismo}` : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    {criaturas.length === 0 ? (
+                      <span className="text-micro text-primary/30 italic">
+                        Ninguna criatura usa este organismo todavía.
+                      </span>
+                    ) : (
+                      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                          Criaturas
+                        </span>
+                        {criaturas.map((c) => (
+                          <button
+                            key={`${c.organismo_id}-${c.criatura_id}`}
+                            type="button"
+                            disabled={!onSelectCriatura}
+                            onClick={() => onSelectCriatura?.(c.criatura_id)}
+                            title={c.es_principal ? "Organismo principal de esta criatura" : undefined}
+                            className="text-xs font-bold text-accent/80 hover:text-accent transition-colors disabled:hover:text-accent/80 disabled:cursor-default"
+                          >
+                            {c.criatura}
+                            {c.es_principal ? " ★" : ""}
+                          </button>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -747,24 +882,32 @@ function PanelClado({
 function CladoPanelFlotante({
   clado,
   padre,
+  hijos,
   relaciones,
+  organismos,
+  criaturasDe,
   cladoPorId,
   onCerrar,
   onSave,
   onDelete,
   onCrearHijo,
   onSelectCriatura,
+  onAbrirOrganismo,
   onSelectClado,
 }: {
   clado: Clado;
   padre: Clado | null;
+  hijos: Clado[];
   relaciones: CladoRelacion[];
+  organismos: CladoOrganismo[];
+  criaturasDe: (organismoId: string) => OrganismoCriatura[];
   cladoPorId: Map<string, Clado>;
   onCerrar: () => void;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
   onSelectCriatura?: (id: string) => void;
+  onAbrirOrganismo?: (organismoId: string) => void;
   onSelectClado: (id: string) => void;
 }) {
   const [headerControls, setHeaderControls] = useState<Parameters<OnHeaderControlsChange>[0]>(null);
@@ -810,12 +953,16 @@ function CladoPanelFlotante({
             key={clado.id}
             clado={clado}
             padre={padre}
+            hijos={hijos}
             relaciones={relaciones}
+            organismos={organismos}
+            criaturasDe={criaturasDe}
             cladoPorId={cladoPorId}
             onSave={onSave}
             onDelete={onDelete}
             onCrearHijo={onCrearHijo}
             onSelectCriatura={onSelectCriatura}
+            onAbrirOrganismo={onAbrirOrganismo}
             onSelectClado={onSelectClado}
             onHeaderControlsChange={setHeaderControls}
           />
@@ -828,9 +975,11 @@ function CladoPanelFlotante({
 
 // ─── Página principal ────────────────────────────────────────────────────────
 
-export function CladisticaPage({ onSelectCriatura }: Props) {
+export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
   const { clados, loading, creating, crear, actualizar, eliminar } = useClados();
   const { relacionesDe } = useCladoRelaciones();
+  const { organismosDe, conteoPorClado } = useCladosOrganismos();
+  const { criaturasDe } = useOrganismosCriaturas();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [seleccionMultiple, setSeleccionMultiple] = useState<Set<string>>(new Set());
 
@@ -838,6 +987,11 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
   const seleccionado = seleccionadoId ? (cladoPorId.get(seleccionadoId) ?? null) : null;
   const padreSeleccionado =
     seleccionado?.padre_id ? (cladoPorId.get(seleccionado.padre_id) ?? null) : null;
+  // Hijos directos: se derivan de padre_id (la única fuente del árbol).
+  const hijosSeleccionado = useMemo(
+    () => (seleccionadoId ? clados.filter((c) => c.padre_id === seleccionadoId) : []),
+    [clados, seleccionadoId],
+  );
 
   const crearRaiz = async () => {
     const nuevo = await crear("Nuevo clado", null);
@@ -905,6 +1059,7 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
         <LeyendaCladograma clados={clados} />
         <DiagramaCladograma
           clados={clados}
+          conteoOrganismos={conteoPorClado}
           seleccionadoId={seleccionadoId}
           seleccionMultiple={seleccionMultiple}
           onSelect={(id) => {
@@ -925,7 +1080,11 @@ export function CladisticaPage({ onSelectCriatura }: Props) {
         <CladoPanelFlotante
           clado={seleccionado}
           padre={padreSeleccionado}
+          hijos={hijosSeleccionado}
           relaciones={relacionesDe(seleccionado.id)}
+          organismos={organismosDe(seleccionado.id)}
+          criaturasDe={criaturasDe}
+          onAbrirOrganismo={onAbrirOrganismo}
           cladoPorId={cladoPorId}
           onSelectClado={setSeleccionadoId}
           onCerrar={() => setSeleccionadoId(null)}

@@ -30,11 +30,13 @@ import {
   type CadenaAlimenticiaInput,
   type Clado,
   type CladoInput,
+  type CladoOrganismo,
   type CladoRelacion,
   type Ecosistema,
   type EcosistemaCriatura,
   type EcosistemaFlora,
   type EcosistemaInput,
+  type OrganismoCriatura,
 } from "./types";
 
 // ─── Biomas ─────────────────────────────────────────────────────────────────
@@ -179,7 +181,6 @@ export function useClados() {
         sinapomorfia: "",
         padre_id,
         descripcion: "",
-        criatura_ids: [],
       });
       return (creado as Clado) ?? null;
     },
@@ -256,6 +257,88 @@ export function useCladoRelaciones() {
   );
 
   return { relaciones, setRelaciones, loading, relacionesDe };
+}
+
+// ─── Clado → Organismos (vista v_clados_organismos_v1) ─────────────────────
+// Canónico: un clado tiene 0..N organismos (organismos.clado_id). Se lee la
+// vista de Supabase, que ya trae la semántica del clado y los datos del
+// organismo — el frontend solo agrupa por clado_id para consultar.
+// Sin caché offline por ahora (mismo patrón directo que useCladoRelaciones).
+
+export function useCladosOrganismos() {
+  const [filas, setFilas] = useState<CladoOrganismo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("v_clados_organismos_v1")
+        .select(
+          "clado_id, clado, tipo_nodo, relacion_padre, rango, estado, organismo_id, organismo, tipo_organismo, categoria, variante_tipo, sexo_biologico, organismo_base_id",
+        );
+      if (cancelado) return;
+      if (error) console.error("[useCladosOrganismos] error leyendo v_clados_organismos_v1:", error);
+      setFilas((data as CladoOrganismo[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  /** Organismos que pertenecen a un clado (organismos.clado_id). */
+  const organismosDe = useCallback(
+    (cladoId: string) => filas.filter((f) => f.clado_id === cladoId),
+    [filas],
+  );
+
+  /** Cantidad de organismos por clado — para mostrar en el cladograma. */
+  const conteoPorClado = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const f of filas) m.set(f.clado_id, (m.get(f.clado_id) ?? 0) + 1);
+    return m;
+  }, [filas]);
+
+  return { filas, loading, organismosDe, conteoPorClado };
+}
+
+// ─── Organismo → Criaturas (vista v_organismos_criaturas_v1) ────────────────
+// "Criaturas que usan este organismo": sale de criatura_organismos (vía la
+// vista), NUNCA de clado_criaturas ni de clados.criatura_ids.
+
+export function useOrganismosCriaturas() {
+  const [filas, setFilas] = useState<OrganismoCriatura[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("v_organismos_criaturas_v1")
+        .select("organismo_id, organismo, clado_id, criatura_id, criatura, es_principal, rol, cantidad");
+      if (cancelado) return;
+      if (error) console.error("[useOrganismosCriaturas] error leyendo v_organismos_criaturas_v1:", error);
+      setFilas((data as OrganismoCriatura[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  /** Criaturas que usan un organismo (principales primero). */
+  const criaturasDe = useCallback(
+    (organismoId: string) =>
+      filas
+        .filter((f) => f.organismo_id === organismoId)
+        .sort((a, b) => Number(b.es_principal) - Number(a.es_principal)),
+    [filas],
+  );
+
+  return { filas, loading, criaturasDe };
 }
 
 // ─── Ecosistemas ────────────────────────────────────────────────────────────

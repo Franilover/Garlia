@@ -157,7 +157,14 @@ export interface Clado {
    */
   padre_id: string | null;
   descripcion: string;
-  /** Criaturas (por id) que pertenecen exactamente a este clado. */
+  /**
+   * @deprecated LEGACY/DERIVADO. NO usar como fuente de datos nueva ni para
+   * construir clado → criatura. La navegación canónica es
+   *   clado → organismos.clado_id → organismo → criatura_organismos
+   * (ver useOrganismosDeClado / v_clados_organismos_criaturas_v1).
+   * La columna sigue en la fila cruda y por eso queda tipada, pero el
+   * frontend ya no la lee ni la escribe.
+   */
   criatura_ids: string[];
   orden: number;
   /** Qué representa este nodo. null = sin clasificar todavía (no se infiere). */
@@ -179,7 +186,6 @@ export type CladoInput = Partial<
     | "sinapomorfia"
     | "padre_id"
     | "descripcion"
-    | "criatura_ids"
     | "orden"
     | "tipo_nodo"
     | "relacion_padre"
@@ -231,6 +237,44 @@ export interface CladoRelacion {
   tipo: TipoRelacionClado;
   descripcion: string;
   created_at: string;
+}
+
+// ─── Modelo biológico canónico: Clado → Organismo → Criatura ───────────────
+// La biología se define en el ORGANISMO y se hereda a través de su CLADO
+// (organismos.clado_id). La criatura es la entidad narrativa que usa uno o
+// más organismos (criatura_organismos). Un clado puede tener VARIOS
+// organismos: 1 clado ≠ 1 organismo.
+//
+// Estas filas vienen tal cual de las vistas de Supabase (que resuelven el
+// join) — el frontend no reconstruye la relación ni la herencia.
+
+/** Fila de la vista v_clados_organismos_v1 (un organismo de un clado). */
+export interface CladoOrganismo {
+  clado_id: string;
+  clado: string;
+  tipo_nodo: TipoNodoClado | null;
+  relacion_padre: RelacionPadreClado | null;
+  rango: string | null;
+  estado: string | null;
+  organismo_id: string;
+  organismo: string;
+  tipo_organismo: string | null;
+  categoria: string | null;
+  variante_tipo: string | null;
+  sexo_biologico: string | null;
+  organismo_base_id: string | null;
+}
+
+/** Fila de la vista v_organismos_criaturas_v1 (una criatura que usa un organismo). */
+export interface OrganismoCriatura {
+  organismo_id: string;
+  organismo: string;
+  clado_id: string | null;
+  criatura_id: string;
+  criatura: string;
+  es_principal: boolean;
+  rol: string | null;
+  cantidad: number | null;
 }
 
 // ─── Ecosistemas ────────────────────────────────────────────────────────────

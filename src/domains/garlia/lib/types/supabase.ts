@@ -333,6 +333,42 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_biologia_organismo_rasgos_20260920: {
+        Row: {
+          created_at: string | null
+          estado: string | null
+          id: string | null
+          notas: string | null
+          organismo_id: string | null
+          origen: string | null
+          rasgo_id: string | null
+          updated_at: string | null
+          valor: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          estado?: string | null
+          id?: string | null
+          notas?: string | null
+          organismo_id?: string | null
+          origen?: string | null
+          rasgo_id?: string | null
+          updated_at?: string | null
+          valor?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          estado?: string | null
+          id?: string | null
+          notas?: string | null
+          organismo_id?: string | null
+          origen?: string | null
+          rasgo_id?: string | null
+          updated_at?: string | null
+          valor?: string | null
+        }
+        Relationships: []
+      }
       biologia_componentes_moleculares: {
         Row: {
           created_at: string
@@ -699,6 +735,13 @@ export type Database = {
             foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -721,6 +764,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -1816,6 +1866,13 @@ export type Database = {
             foreignKeyName: "celula_capacidades_celula_id_fkey"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_capacidades_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -1883,6 +1940,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_compartimentos_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -1965,6 +2029,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_componentes_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -2116,6 +2187,13 @@ export type Database = {
             foreignKeyName: "celula_estados_fisicos_celula_id_fkey"
             columns: ["celula_id"]
             isOneToOne: true
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_estados_fisicos_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: true
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -2192,6 +2270,13 @@ export type Database = {
             foreignKeyName: "celula_estructuras_celula_fk"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_estructuras_celula_fk"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -2228,6 +2313,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_estructuras_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -2425,6 +2517,13 @@ export type Database = {
             foreignKeyName: "celula_identidad_requisitos_celula_id_fkey"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_identidad_requisitos_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -2495,6 +2594,13 @@ export type Database = {
             foreignKeyName: "celula_compuestos_celula_fk"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_compuestos_celula_fk"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -2531,6 +2637,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_compuestos_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -2806,6 +2919,13 @@ export type Database = {
             foreignKeyName: "celula_procesos_celula_id_fkey"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_procesos_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -2909,6 +3029,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "celula_ubicaciones_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -3088,6 +3215,13 @@ export type Database = {
             foreignKeyName: "celulas_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "celulas_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -3218,6 +3352,20 @@ export type Database = {
             foreignKeyName: "clado_criaturas_clado_id_fkey"
             columns: ["clado_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_criaturas_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_criaturas_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
             referencedRelation: "v_clados_plan_corporal_v1"
             referencedColumns: ["clado_id"]
           },
@@ -3246,6 +3394,13 @@ export type Database = {
             foreignKeyName: "clado_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "clado_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -3268,6 +3423,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "clado_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -3306,6 +3468,20 @@ export type Database = {
             foreignKeyName: "clado_rasgos_clado_id_fkey"
             columns: ["clado_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_rasgos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_rasgos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
             referencedRelation: "v_clados_plan_corporal_v1"
             referencedColumns: ["clado_id"]
           },
@@ -3322,6 +3498,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rasgos_biologicos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clado_rasgos_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
           },
           {
             foreignKeyName: "clado_rasgos_rasgo_id_fkey"
@@ -3369,6 +3552,20 @@ export type Database = {
             foreignKeyName: "clado_relaciones_clado_destino_id_fkey"
             columns: ["clado_destino_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_relaciones_clado_destino_id_fkey"
+            columns: ["clado_destino_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_relaciones_clado_destino_id_fkey"
+            columns: ["clado_destino_id"]
+            isOneToOne: false
             referencedRelation: "v_clados_plan_corporal_v1"
             referencedColumns: ["clado_id"]
           },
@@ -3385,6 +3582,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clado_relaciones_clado_origen_id_fkey"
+            columns: ["clado_origen_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clado_relaciones_clado_origen_id_fkey"
+            columns: ["clado_origen_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
           },
           {
             foreignKeyName: "clado_relaciones_clado_origen_id_fkey"
@@ -3455,6 +3666,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clados_padre_id_fkey"
+            columns: ["padre_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "clados_padre_id_fkey"
+            columns: ["padre_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
           },
           {
             foreignKeyName: "clados_padre_id_fkey"
@@ -5702,6 +5927,13 @@ export type Database = {
             foreignKeyName: "criatura_ciudades_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_ciudades_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -5724,6 +5956,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_ciudades_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -5763,6 +6002,13 @@ export type Database = {
             foreignKeyName: "criatura_drops_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_drops_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -5785,6 +6031,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_drops_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -5845,6 +6098,13 @@ export type Database = {
             foreignKeyName: "criatura_minerales_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_minerales_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -5867,6 +6127,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_minerales_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -5918,6 +6185,13 @@ export type Database = {
             foreignKeyName: "criatura_organismos_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -5943,6 +6217,13 @@ export type Database = {
             referencedColumns: ["criatura_id"]
           },
           {
+            foreignKeyName: "criatura_organismos_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
             foreignKeyName: "criatura_organismos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
@@ -5953,7 +6234,35 @@ export type Database = {
             foreignKeyName: "criatura_organismos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -5996,6 +6305,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -6042,6 +6358,13 @@ export type Database = {
             foreignKeyName: "criatura_plantas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6067,6 +6390,13 @@ export type Database = {
             referencedColumns: ["criatura_id"]
           },
           {
+            foreignKeyName: "criatura_plantas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
             foreignKeyName: "criatura_plantas_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
@@ -6077,7 +6407,35 @@ export type Database = {
             foreignKeyName: "criatura_plantas_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -6126,6 +6484,13 @@ export type Database = {
             foreignKeyName: "criatura_plantas_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_plantas_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_organismos_eterium"
             referencedColumns: ["organismo_id"]
           },
@@ -6166,6 +6531,13 @@ export type Database = {
             foreignKeyName: "criatura_reinos_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_reinos_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6188,6 +6560,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_reinos_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -6243,6 +6622,13 @@ export type Database = {
             foreignKeyName: "criatura_relaciones_criatura_destino_id_fkey"
             columns: ["criatura_destino_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_relaciones_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6265,6 +6651,13 @@ export type Database = {
             columns: ["criatura_destino_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_relaciones_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -6285,6 +6678,13 @@ export type Database = {
             foreignKeyName: "criatura_relaciones_criatura_origen_id_fkey"
             columns: ["criatura_origen_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_relaciones_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6307,6 +6707,13 @@ export type Database = {
             columns: ["criatura_origen_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "criatura_relaciones_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -6423,6 +6830,13 @@ export type Database = {
             foreignKeyName: "descubrimientos_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "descubrimientos_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6445,6 +6859,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "descubrimientos_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
         ]
@@ -6742,6 +7163,13 @@ export type Database = {
             foreignKeyName: "don_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "don_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6764,6 +7192,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "don_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -6894,6 +7329,13 @@ export type Database = {
             foreignKeyName: "ecosistema_criatura_roles_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criatura_roles_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -6916,6 +7358,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criatura_roles_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -6982,6 +7431,13 @@ export type Database = {
             foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -7004,6 +7460,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -7064,7 +7527,35 @@ export type Database = {
             foreignKeyName: "ecosistema_flora_flora_id_fkey"
             columns: ["flora_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_flora_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_flora_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_flora_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_flora_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -7107,6 +7598,13 @@ export type Database = {
             columns: ["flora_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_flora_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -7213,7 +7711,35 @@ export type Database = {
             foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -7256,6 +7782,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_organismos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -7320,6 +7853,13 @@ export type Database = {
             foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
             columns: ["criatura_destino_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -7342,6 +7882,13 @@ export type Database = {
             columns: ["criatura_destino_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -7362,6 +7909,13 @@ export type Database = {
             foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
             columns: ["criatura_origen_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -7384,6 +7938,13 @@ export type Database = {
             columns: ["criatura_origen_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -10895,6 +11456,13 @@ export type Database = {
             foreignKeyName: "fichas_dnd_especie_id_fkey"
             columns: ["especie_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "fichas_dnd_especie_id_fkey"
+            columns: ["especie_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -10917,6 +11485,13 @@ export type Database = {
             columns: ["especie_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "fichas_dnd_especie_id_fkey"
+            columns: ["especie_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -11060,7 +11635,35 @@ export type Database = {
             foreignKeyName: "flora_compuestos_flora_id_fkey"
             columns: ["flora_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flora_compuestos_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flora_compuestos_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flora_compuestos_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flora_compuestos_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -11103,6 +11706,13 @@ export type Database = {
             columns: ["flora_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flora_compuestos_flora_id_fkey"
+            columns: ["flora_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -11228,7 +11838,35 @@ export type Database = {
             foreignKeyName: "flujo_eterium_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: true
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flujo_eterium_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flujo_eterium_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flujo_eterium_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flujo_eterium_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -11271,6 +11909,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: true
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "flujo_eterium_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -12062,6 +12707,13 @@ export type Database = {
             foreignKeyName: "hechizo_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "hechizo_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -12084,6 +12736,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "hechizo_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -12181,6 +12840,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historia_evolutiva_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "historia_evolutiva_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
           },
           {
             foreignKeyName: "historia_evolutiva_clado_id_fkey"
@@ -13209,6 +13882,13 @@ export type Database = {
             foreignKeyName: "item_crafteres_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "item_crafteres_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -13231,6 +13911,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "item_crafteres_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -13660,6 +14347,13 @@ export type Database = {
             foreignKeyName: "items_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "items_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -13682,6 +14376,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "items_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -13821,7 +14522,35 @@ export type Database = {
             foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -13864,6 +14593,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "ium_acoplamiento_contextual_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -16904,7 +17640,35 @@ export type Database = {
             foreignKeyName: "organismo_compuestos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_compuestos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_compuestos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_compuestos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_compuestos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -16947,6 +17711,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_compuestos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -16998,7 +17769,35 @@ export type Database = {
             foreignKeyName: "organismo_organos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17041,6 +17840,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17105,7 +17911,35 @@ export type Database = {
             foreignKeyName: "organismo_rasgos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17154,6 +17988,13 @@ export type Database = {
             foreignKeyName: "organismo_rasgos_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_organismos_eterium"
             referencedColumns: ["organismo_id"]
           },
@@ -17163,6 +18004,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rasgos_biologicos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organismo_rasgos_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
           },
           {
             foreignKeyName: "organismo_rasgos_rasgo_id_fkey"
@@ -17210,7 +18058,35 @@ export type Database = {
             foreignKeyName: "organismo_sistemas_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_sistemas_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_sistemas_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_sistemas_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_sistemas_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17253,6 +18129,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_sistemas_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17364,6 +18247,20 @@ export type Database = {
             foreignKeyName: "organismos_clado_id_fkey"
             columns: ["clado_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
             referencedRelation: "v_clados_plan_corporal_v1"
             referencedColumns: ["clado_id"]
           },
@@ -17420,7 +18317,35 @@ export type Database = {
             foreignKeyName: "organismos_organismo_base_id_fkey"
             columns: ["organismo_base_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17463,6 +18388,13 @@ export type Database = {
             columns: ["organismo_base_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17511,7 +18443,35 @@ export type Database = {
             foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
             columns: ["organismo_id"]
             isOneToOne: true
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -17554,6 +18514,13 @@ export type Database = {
             columns: ["organismo_id"]
             isOneToOne: true
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_vegetales_detalle_organismo_id_fkey"
+            columns: ["organismo_id"]
+            isOneToOne: true
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18346,6 +19313,13 @@ export type Database = {
             foreignKeyName: "perfiles_mascota_id_fkey"
             columns: ["mascota_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "perfiles_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -18368,6 +19342,13 @@ export type Database = {
             columns: ["mascota_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "perfiles_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -18611,7 +19592,35 @@ export type Database = {
             foreignKeyName: "planta_ciudades_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18654,6 +19663,13 @@ export type Database = {
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_ciudades_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18700,7 +19716,35 @@ export type Database = {
             foreignKeyName: "planta_lugares_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18743,6 +19787,13 @@ export type Database = {
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_lugares_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18798,7 +19849,35 @@ export type Database = {
             foreignKeyName: "planta_reacciones_planta_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_reacciones_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_reacciones_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_reacciones_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_reacciones_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -18841,6 +19920,13 @@ export type Database = {
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "planta_reacciones_planta_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -20777,6 +21863,7 @@ export type Database = {
       }
       rasgo_organos: {
         Row: {
+          clado_id: string | null
           created_at: string
           id: string
           obligatorio: boolean
@@ -20785,6 +21872,7 @@ export type Database = {
           rol: string
         }
         Insert: {
+          clado_id?: string | null
           created_at?: string
           id?: string
           obligatorio?: boolean
@@ -20793,6 +21881,7 @@ export type Database = {
           rol?: string
         }
         Update: {
+          clado_id?: string | null
           created_at?: string
           id?: string
           obligatorio?: boolean
@@ -20801,6 +21890,41 @@ export type Database = {
           rol?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rasgo_organos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "clados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rasgo_organos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "rasgo_organos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "rasgo_organos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_plan_corporal_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "rasgo_organos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_eterium_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
           {
             foreignKeyName: "rasgo_organos_organo_id_fkey"
             columns: ["organo_id"]
@@ -20814,6 +21938,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rasgos_biologicos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rasgo_organos_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
           },
           {
             foreignKeyName: "rasgo_organos_rasgo_id_fkey"
@@ -20856,6 +21987,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rasgos_biologicos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rasgo_sistemas_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
           },
           {
             foreignKeyName: "rasgo_sistemas_rasgo_id_fkey"
@@ -22891,6 +24029,13 @@ export type Database = {
             foreignKeyName: "tejido_celulas_celula_id_fkey"
             columns: ["celula_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "tejido_celulas_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
             referencedRelation: "v_tejidos_celulas"
             referencedColumns: ["celula_id"]
           },
@@ -22982,6 +24127,13 @@ export type Database = {
             columns: ["celula_id"]
             isOneToOne: false
             referencedRelation: "v_celulas_composicion"
+            referencedColumns: ["celula_id"]
+          },
+          {
+            foreignKeyName: "tejido_componentes_celula_id_fkey"
+            columns: ["celula_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
             referencedColumns: ["celula_id"]
           },
           {
@@ -23171,6 +24323,13 @@ export type Database = {
             foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -23304,6 +24463,13 @@ export type Database = {
             foreignKeyName: "tipo_celular_capacidades_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_capacidades_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -23344,6 +24510,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tipos_celulares"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_compartimentos_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
           },
           {
             foreignKeyName: "tipo_celular_compartimentos_tipo_celular_id_fkey"
@@ -23498,6 +24671,13 @@ export type Database = {
             foreignKeyName: "tipo_celular_estructuras_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -23618,6 +24798,13 @@ export type Database = {
             foreignKeyName: "tipo_celular_procesos_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_procesos_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -23733,6 +24920,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tipos_celulares"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipos_celulares_tipo_padre_fkey"
+            columns: ["tipo_celular_padre_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
           },
           {
             foreignKeyName: "tipos_celulares_tipo_padre_fkey"
@@ -24650,7 +25844,35 @@ export type Database = {
             foreignKeyName: "organismo_organos_organismo_id_fkey"
             columns: ["planta_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -24693,6 +25915,13 @@ export type Database = {
             columns: ["planta_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismo_organos_organismo_id_fkey"
+            columns: ["planta_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -24879,7 +26108,35 @@ export type Database = {
             foreignKeyName: "criatura_organismos_organismo_id_fkey"
             columns: ["organismo_principal_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_principal_id"]
+            isOneToOne: false
             referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -24922,6 +26179,13 @@ export type Database = {
             columns: ["organismo_principal_id"]
             isOneToOne: false
             referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "criatura_organismos_organismo_id_fkey"
+            columns: ["organismo_principal_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["organismo_id"]
           },
           {
@@ -25180,6 +26444,34 @@ export type Database = {
         }
         Relationships: []
       }
+      v_auditoria_organismo_rasgos_redundantes_v1: {
+        Row: {
+          fuente_redundancia: string | null
+          organismo: string | null
+          organismo_id: string | null
+          rasgo: string | null
+          rasgo_id: string | null
+        }
+        Relationships: []
+      }
+      v_auditoria_organismos_cadena_v1: {
+        Row: {
+          estructuras_efectivas: number | null
+          estructuras_sin_material: number | null
+          materiales_efectivos: number | null
+          organismo: string | null
+          organismo_id: string | null
+          organos_efectivos: number | null
+          organos_sin_tejido: number | null
+          rasgos_efectivos: number | null
+          sistemas_efectivos: number | null
+          tejidos_efectivos: number | null
+          tejidos_sin_tipo_celular: number | null
+          tipos_celulares_efectivos: number | null
+          tipos_sin_estructura: number | null
+        }
+        Relationships: []
+      }
       v_auditoria_origen_celular_v1: {
         Row: {
           actividad_procesos: number | null
@@ -25204,6 +26496,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tipos_celulares"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "celulas_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
           },
           {
             foreignKeyName: "celulas_tipo_celular_id_fkey"
@@ -25508,6 +26807,13 @@ export type Database = {
             foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -25530,6 +26836,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "cadena_alimenticia_eslabones_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -25606,6 +26919,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
           },
           {
             foreignKeyName: "organismos_clado_id_fkey"
@@ -26233,6 +27560,157 @@ export type Database = {
           },
         ]
       }
+      v_celulas_estructuras_efectivas_v1: {
+        Row: {
+          cantidad: number | null
+          celula: string | null
+          celula_id: string | null
+          estructura: string | null
+          estructura_id: string | null
+          fuente: string | null
+          fuente_tipo_id: string | null
+          material_id: string | null
+          proporcion: number | null
+          rol: string | null
+          tipo_celular: string | null
+          tipo_celular_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales_resumen_composicion"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_perfil_reactivo_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "worldbuilder_materiales_humanos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_arquitectura_estructura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructura_volumen"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_motor"
+            referencedColumns: ["entidad_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_interfaces_estructura"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_geometria_disponible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_integridad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_modelo_fisico"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_monitor_semantico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_propiedades_calculables"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_volumen_causal"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_integridad_estructuras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_clado_herencia_rasgos_v1: {
         Row: {
           ancestro_id: string | null
@@ -26254,8 +27732,150 @@ export type Database = {
             foreignKeyName: "clado_rasgos_rasgo_id_fkey"
             columns: ["rasgo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
+          },
+          {
+            foreignKeyName: "clado_rasgos_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
             referencedRelation: "v_auditoria_rasgos_biologicos"
             referencedColumns: ["rasgo_id"]
+          },
+        ]
+      }
+      v_clados_organismos_criaturas_v1: {
+        Row: {
+          cantidad: number | null
+          clado: string | null
+          clado_id: string | null
+          criatura: string | null
+          criatura_id: string | null
+          es_principal: boolean | null
+          estado: string | null
+          organismo: string | null
+          organismo_id: string | null
+          rango: string | null
+          relacion_padre: string | null
+          rol: string | null
+          tipo_nodo: string | null
+        }
+        Relationships: []
+      }
+      v_clados_organismos_v1: {
+        Row: {
+          categoria: string | null
+          clado: string | null
+          clado_id: string | null
+          estado: string | null
+          organismo: string | null
+          organismo_base_id: string | null
+          organismo_id: string | null
+          rango: string | null
+          relacion_padre: string | null
+          sexo_biologico: string | null
+          tipo_nodo: string | null
+          tipo_organismo: string | null
+          variante_tipo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "organismos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_organismos_cadena_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_campo_libre_organismo_ecosistema_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_criaturas_biologia"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_eterium_organismos_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_fatiga_recuperacion_aoris_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_flora_composicion"
+            referencedColumns: ["flora_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_modelo_energetico_relativo_aoris"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_arquitectura"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
+            referencedColumns: ["organismo_id"]
+          },
+          {
+            foreignKeyName: "organismos_organismo_base_id_fkey"
+            columns: ["organismo_base_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_eterium"
+            referencedColumns: ["organismo_id"]
           },
         ]
       }
@@ -26792,6 +28412,13 @@ export type Database = {
             foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
             columns: ["criatura_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -26814,6 +28441,13 @@ export type Database = {
             columns: ["criatura_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_criaturas_criatura_id_fkey"
+            columns: ["criatura_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -29094,6 +30728,424 @@ export type Database = {
         }
         Relationships: []
       }
+      v_organismos_biologia_efectiva_v1: {
+        Row: {
+          cantidad_estructura: number | null
+          cantidad_material: number | null
+          cantidad_organo: number | null
+          cantidad_tejido: number | null
+          cantidad_tipo_celular: number | null
+          estructura_id: string | null
+          fuente_estructura: string | null
+          fuente_organo: string | null
+          fuente_sistema: string | null
+          material_id: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen_organo: string | null
+          origen_sistema: string | null
+          proporcion_estructura: number | null
+          proporcion_material: number | null
+          proporcion_sistema: string | null
+          proporcion_tejido: string | null
+          proporcion_tipo_celular: number | null
+          rol_material: string | null
+          rol_organo: string | null
+          rol_tipo_celular: string | null
+          sistema_id: string | null
+          tejido_id: string | null
+          tipo_celular_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales_resumen_composicion"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_perfil_reactivo_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "worldbuilder_materiales_humanos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_celulas"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_composicion"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_celulares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_tipo_celular_proceso_capacidad"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_arquitectura_estructura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructura_volumen"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_motor"
+            referencedColumns: ["entidad_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_interfaces_estructura"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_geometria_disponible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_integridad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_modelo_fisico"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_monitor_semantico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_propiedades_calculables"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_volumen_causal"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_integridad_estructuras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_organismos_criaturas_v1: {
+        Row: {
+          cantidad: number | null
+          clado_id: string | null
+          criatura: string | null
+          criatura_id: string | null
+          es_principal: boolean | null
+          organismo: string | null
+          organismo_id: string | null
+          rol: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "clados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_plan_corporal_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_eterium_organismos_v1"
+            referencedColumns: ["clado_id"]
+          },
+        ]
+      }
+      v_organismos_estructuras_efectivas_v1: {
+        Row: {
+          cantidad: number | null
+          estructura_id: string | null
+          fuente_estructura: string | null
+          fuente_tipo_id: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          proporcion: number | null
+          rol: string | null
+          tejido_id: string | null
+          tipo_celular_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organo_tejidos_organo_id_fkey"
+            columns: ["organo_id"]
+            isOneToOne: false
+            referencedRelation: "organos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_celulas"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_composicion"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_celulares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_tipo_celular_proceso_capacidad"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_arquitectura_estructura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructura_volumen"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_motor"
+            referencedColumns: ["entidad_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_interfaces_estructura"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_geometria_disponible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_integridad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_modelo_fisico"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_monitor_semantico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_propiedades_calculables"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_volumen_causal"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_integridad_estructuras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_organismos_eterium: {
         Row: {
           base_eterium: string | null
@@ -29130,6 +31182,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["clado_id"]
+          },
+          {
+            foreignKeyName: "organismos_clado_id_fkey"
+            columns: ["clado_id"]
+            isOneToOne: false
+            referencedRelation: "v_clados_organismos_v1"
+            referencedColumns: ["clado_id"]
           },
           {
             foreignKeyName: "organismos_clado_id_fkey"
@@ -29172,8 +31238,214 @@ export type Database = {
             foreignKeyName: "clado_rasgos_rasgo_id_fkey"
             columns: ["rasgo_id"]
             isOneToOne: false
+            referencedRelation: "v_auditoria_organismo_rasgos_redundantes_v1"
+            referencedColumns: ["rasgo_id"]
+          },
+          {
+            foreignKeyName: "clado_rasgos_rasgo_id_fkey"
+            columns: ["rasgo_id"]
+            isOneToOne: false
             referencedRelation: "v_auditoria_rasgos_biologicos"
             referencedColumns: ["rasgo_id"]
+          },
+        ]
+      }
+      v_organismos_materiales_efectivos_v1: {
+        Row: {
+          cantidad: number | null
+          estructura_id: string | null
+          fuente_estructura: string | null
+          fuente_tipo_id: string | null
+          material_id: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          proporcion: number | null
+          rol: string | null
+          tejido_id: string | null
+          tipo_celular_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiales_resumen_composicion"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_perfil_reactivo_material"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_estructuras_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "worldbuilder_materiales_humanos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_organo_id_fkey"
+            columns: ["organo_id"]
+            isOneToOne: false
+            referencedRelation: "organos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_celulas"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_composicion"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_celulares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_tipo_celular_proceso_capacidad"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_arquitectura_estructura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructura_volumen"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_motor"
+            referencedColumns: ["entidad_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_interfaces_estructura"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_geometria_disponible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_integridad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_modelo_fisico"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_monitor_semantico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_propiedades_calculables"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_volumen_causal"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_integridad_estructuras"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -29184,15 +31456,40 @@ export type Database = {
           organo_id: string | null
           rol: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "planta_organos_organo_id_fkey"
-            columns: ["organo_id"]
-            isOneToOne: false
-            referencedRelation: "organos"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      v_organismos_organos_efectivos_v2: {
+        Row: {
+          cantidad: number | null
+          fuente: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen: string | null
+          rol: string | null
+        }
+        Relationships: []
+      }
+      v_organismos_organos_efectivos_v3: {
+        Row: {
+          cantidad: number | null
+          fuente: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen: string | null
+          rol: string | null
+        }
+        Relationships: []
+      }
+      v_organismos_organos_efectivos_v4: {
+        Row: {
+          cantidad: number | null
+          fuente: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen: string | null
+          rol: string | null
+        }
+        Relationships: []
       }
       v_organismos_rasgos_efectivos: {
         Row: {
@@ -29210,27 +31507,145 @@ export type Database = {
           proporcion: string | null
           sistema_id: string | null
         }
+        Relationships: []
+      }
+      v_organismos_sistemas_efectivos_v2: {
+        Row: {
+          fuente: string | null
+          organismo_id: string | null
+          origen: string | null
+          proporcion: string | null
+          sistema_id: string | null
+        }
+        Relationships: []
+      }
+      v_organismos_sistemas_efectivos_v3: {
+        Row: {
+          fuente: string | null
+          organismo_id: string | null
+          origen: string | null
+          proporcion: string | null
+          sistema_id: string | null
+        }
+        Relationships: []
+      }
+      v_organismos_sistemas_efectivos_v4: {
+        Row: {
+          fuente: string | null
+          organismo_id: string | null
+          origen: string | null
+          proporcion: string | null
+          sistema_id: string | null
+        }
+        Relationships: []
+      }
+      v_organismos_tejidos_efectivos_v1: {
+        Row: {
+          cantidad: number | null
+          fuente_organo: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen_organo: string | null
+          proporcion: string | null
+          tejido_id: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "organismo_sistemas_sistema_id_fkey"
-            columns: ["sistema_id"]
+            foreignKeyName: "organo_tejidos_organo_id_fkey"
+            columns: ["organo_id"]
             isOneToOne: false
-            referencedRelation: "sistemas"
+            referencedRelation: "organos"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organismo_sistemas_sistema_id_fkey"
-            columns: ["sistema_id"]
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
             isOneToOne: false
-            referencedRelation: "v_auditoria_sistemas_v1"
-            referencedColumns: ["sistema_id"]
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "organismo_sistemas_sistema_id_fkey"
-            columns: ["sistema_id"]
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
             isOneToOne: false
-            referencedRelation: "v_demanda_fisiologica_sistema_v1"
-            referencedColumns: ["sistema_id"]
+            referencedRelation: "v_tejidos_celulas"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_composicion"
+            referencedColumns: ["tejido_id"]
+          },
+        ]
+      }
+      v_organismos_tipos_celulares_efectivos_v1: {
+        Row: {
+          cantidad: number | null
+          evidencia: string | null
+          fuente_organo: string | null
+          fuente_tipo_celular: string | null
+          organismo_id: string | null
+          organo_id: string | null
+          origen_organo: string | null
+          origen_tipo_celular: string | null
+          proporcion: number | null
+          rol: string | null
+          tejido_id: string | null
+          tipo_celular_id: string | null
+          tipo_proporcion: string | null
+          unidad_cantidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organo_tejidos_organo_id_fkey"
+            columns: ["organo_id"]
+            isOneToOne: false
+            referencedRelation: "organos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_celulas"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "organo_tejidos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "v_tejidos_composicion"
+            referencedColumns: ["tejido_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_celulares"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
+            referencedRelation: "v_tipo_celular_proceso_capacidad"
+            referencedColumns: ["tipo_celular_id"]
           },
         ]
       }
@@ -29560,6 +31975,13 @@ export type Database = {
             foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
             columns: ["criatura_destino_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -29582,6 +32004,13 @@ export type Database = {
             columns: ["criatura_destino_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_destino_id_fkey"
+            columns: ["criatura_destino_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -29602,6 +32031,13 @@ export type Database = {
             foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
             columns: ["criatura_origen_id"]
             isOneToOne: false
+            referencedRelation: "v_clados_organismos_criaturas_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
             referencedRelation: "v_criatura_contexto_cladistico_v1"
             referencedColumns: ["criatura_id"]
           },
@@ -29624,6 +32060,13 @@ export type Database = {
             columns: ["criatura_origen_id"]
             isOneToOne: false
             referencedRelation: "v_criaturas_habitats_v1"
+            referencedColumns: ["criatura_id"]
+          },
+          {
+            foreignKeyName: "ecosistema_relaciones_criaturas_criatura_origen_id_fkey"
+            columns: ["criatura_origen_id"]
+            isOneToOne: false
+            referencedRelation: "v_organismos_criaturas_v1"
             referencedColumns: ["criatura_id"]
           },
           {
@@ -29927,6 +32370,13 @@ export type Database = {
             foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
             columns: ["tipo_celular_id"]
             isOneToOne: false
+            referencedRelation: "v_celulas_estructuras_efectivas_v1"
+            referencedColumns: ["tipo_celular_id"]
+          },
+          {
+            foreignKeyName: "tejido_tipos_celulares_tipo_celular_id_fkey"
+            columns: ["tipo_celular_id"]
+            isOneToOne: false
             referencedRelation: "v_tipo_celular_proceso_capacidad"
             referencedColumns: ["tipo_celular_id"]
           },
@@ -30060,6 +32510,117 @@ export type Database = {
           tipo_celular_proceso_id: string | null
         }
         Relationships: []
+      }
+      v_tipos_celulares_estructuras_efectivos_v1: {
+        Row: {
+          cantidad: number | null
+          estructura_id: string | null
+          fuente: string | null
+          fuente_tipo_id: string | null
+          proporcion: number | null
+          rol: string | null
+          tipo_celular_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_arquitectura_estructura"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_arquitectura_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructura_volumen"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_estructuras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_auditoria_motor"
+            referencedColumns: ["entidad_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estado_interfaces_estructura"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_geometria_disponible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_integridad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_modelo_fisico"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_monitor_semantico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_propiedades_calculables"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_estructura_volumen_causal"
+            referencedColumns: ["estructura_id"]
+          },
+          {
+            foreignKeyName: "tipo_celular_estructuras_estructura_id_fkey"
+            columns: ["estructura_id"]
+            isOneToOne: false
+            referencedRelation: "v_integridad_estructuras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_trazabilidad_propiedades_v1: {
         Row: {
