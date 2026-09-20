@@ -57,7 +57,9 @@ export function useEnergias() {
           // Orden fijo (Eterium, Garin) según ENERGIAS_CONCEPTOS, no el
           // orden que devuelva Supabase — mismo criterio visual que
           // RamaLibres en el Mapa Universal.
-          const porConcepto = new Map((data as ContextoHumano[]).map((c) => [c.concepto, c]));
+          const porConcepto = new Map(
+            (data as unknown as ContextoHumano[]).map((c) => [c.concepto, c]),
+          );
           setItems(
             ENERGIAS_CONCEPTOS.map((nombre) => porConcepto.get(nombre)).filter(
               (c): c is ContextoHumano => !!c,
