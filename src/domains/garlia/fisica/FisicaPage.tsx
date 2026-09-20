@@ -452,9 +452,10 @@ function TodasLasBasesView({
             sola columna angosta (ambas con muy pocos ítems: 2 y 3-4) en
             vez de cada una llevarse su propio ancho de columna en el
             flex-wrap — evita el hueco vacío enorme que dejaban al ir
-            sueltas. El resto (Partículas / Iums / Oris / Subsistemas)
-            sigue en su propia columna proporcional a su cantidad de
-            ítems, como antes. */}
+            sueltas. Mismo criterio para Energías + Subsistemas (Energías
+            arriba, Subsistemas abajo): también pocos ítems cada una.
+            Partículas / Iums / Oris siguen en su propia columna
+            proporcional a su cantidad de ítems, como antes. */}
         <div className="flex flex-wrap gap-3 items-start">
           <div className="flex flex-col gap-4 min-w-[180px]" style={{ flexGrow: 1, flexBasis: 0 }}>
             {catalogos
@@ -480,7 +481,7 @@ function TodasLasBasesView({
           </div>
 
           {catalogos
-            .filter(({ key }) => key !== "polaridades" && key !== "particula-base")
+            .filter(({ key }) => key !== "polaridades" && key !== "particula-base" && key !== "energias" && key !== "subsistemas")
             .map(({ key, titulo, filas }) => (
             <div
               key={key}
@@ -498,26 +499,15 @@ function TodasLasBasesView({
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {filas.map((f, i) => {
-                    const original = key === "oris" ? oris[i] : key === "subsistemas" ? subsistemas[i] : null;
+                    const original = key === "oris" ? oris[i] : null;
                     return (
                       <BasesItemCard
                         key={f.nombre + i}
                         fila={f}
                         bloque={key}
                         original={key === "oris" ? (original as Oris) : undefined}
-                        originalSubsistema={key === "subsistemas" ? (original as SubsistemaMagia) : undefined}
                         onActualizarOris={onActualizarOris}
                         onEliminarOris={onEliminarOris}
-                        onActualizarSubsistema={onActualizarSubsistema}
-                        onEliminarSubsistema={onEliminarSubsistema}
-                        onSelectCriatura={onSelectCriatura}
-                        autoAbrir={
-                          key === "subsistemas" && original
-                            ? (original as SubsistemaMagia).id === autoAbrirSubsistemaId
-                            : false
-                        }
-                        onAutoAbierto={() => setAutoAbrirSubsistemaId(null)}
-                        oris={key === "subsistemas" ? oris : undefined}
                       />
                     );
                   })}
@@ -525,6 +515,50 @@ function TodasLasBasesView({
               )}
             </div>
           ))}
+
+          {/* Energías + Subsistemas apiladas, mismo criterio que
+              Polaridades/Partícula Base: Energías arriba, Subsistemas
+              abajo. */}
+          <div className="flex flex-col gap-4 min-w-[180px]" style={{ flexGrow: 1, flexBasis: 0 }}>
+            {catalogos
+              .filter(({ key }) => key === "energias" || key === "subsistemas")
+              .map(({ key, titulo, filas }) => (
+                <div key={key} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
+                    <BasesRowTitle titulo={titulo} cantidad={filas.length} />
+                  </div>
+                  {filas.length === 0 ? (
+                    <div className="py-4 text-micro text-primary/25 text-center border border-dashed border-primary/10 rounded-md">
+                      Sin {titulo.toLowerCase()} todavía
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {filas.map((f, i) => {
+                        const original = key === "subsistemas" ? subsistemas[i] : null;
+                        return (
+                          <BasesItemCard
+                            key={f.nombre + i}
+                            fila={f}
+                            bloque={key}
+                            originalSubsistema={key === "subsistemas" ? (original as SubsistemaMagia) : undefined}
+                            onActualizarSubsistema={onActualizarSubsistema}
+                            onEliminarSubsistema={onEliminarSubsistema}
+                            onSelectCriatura={onSelectCriatura}
+                            autoAbrir={
+                              key === "subsistemas" && original
+                                ? (original as SubsistemaMagia).id === autoAbrirSubsistemaId
+                                : false
+                            }
+                            onAutoAbierto={() => setAutoAbrirSubsistemaId(null)}
+                            oris={key === "subsistemas" ? oris : undefined}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+          </div>
         </div>
       </div>
     </div>
