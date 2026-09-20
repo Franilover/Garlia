@@ -29,6 +29,8 @@ import {
   type CadenaAlimenticia,
   type CadenaAlimenticiaInput,
   type Clado,
+  type CladoEditorOpcion,
+  type CladoEditorRegla,
   type CladoInput,
   type CladoOrganismo,
   type CladoRelacion,
@@ -257,6 +259,110 @@ export function useCladoRelaciones() {
   );
 
   return { relaciones, setRelaciones, loading, relacionesDe };
+}
+
+// ─── Editor guiado de clados (v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1) ──
+// Catálogo de opciones + matriz de combinaciones válidas para el editor de
+// clados. Solo lectura, sin caché offline por ahora — mismo patrón directo
+// que useCladoRelaciones(). El frontend consulta estas vistas en vez de
+// hardcodear listas: si Supabase agrega/desactiva una opción o una regla,
+// el editor lo refleja sin tocar código.
+
+export function useCladoEditorCatalogo() {
+  const [opciones, setOpciones] = useState<CladoEditorOpcion[]>([]);
+  const [reglas, setReglas] = useState<CladoEditorRegla[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoading(true);
+      const [opcionesRes, reglasRes] = await Promise.all([
+        supabase
+          .from("v_clado_editor_opciones_v1")
+          .select("id, campo, clave, etiqueta, descripcion, orden, activo, legado, metadata")
+          .order("campo")
+          .order("orden"),
+        supabase
+          .from("v_clado_editor_reglas_v1")
+          .select("id, tipo_nodo, relacion_padre, tipo_nodo_padre, permitida, descripcion, orden, activo")
+          .order("orden"),
+      ]);
+      if (cancelado) return;
+      if (opcionesRes.error) {
+        console.error(
+          "[useCladoEditorCatalogo] error leyendo v_clado_editor_opciones_v1:",
+          opcionesRes.error,
+        );
+      }
+      if (reglasRes.error) {
+        console.error(
+          "[useCladoEditorCatalogo] error leyendo v_clado_editor_reglas_v1:",
+          reglasRes.error,
+        );
+      }
+      setOpciones((opcionesRes.data as CladoEditorOpcion[]) ?? []);
+      setReglas((reglasRes.data as CladoEditorRegla[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  /** Opciones activas de un campo (para nuevas selecciones), en orden. Si
+   *  `valorActual` está fuera del catálogo activo (legado o desactivado),
+   *  se agrega igual al final para no romper la edición de un registro
+   *  existente — nunca se fuerza a "limpiar" un valor que el escritor no
+   *  cambió. */
+  const opcionesDe = useCallback(
+    (campo: CladoEditorOpcion["campo"], valorActual?: string | null) => {
+      const delCampo = opciones.filter((o) => o.campo === campo);
+      const activas = delCampo.filter((o) => o.activo);
+      if (valorActual && !activas.some((o) => o.clave === valorActual)) {
+        const legada = delCampo.find((o) => o.clave === valorActual);
+        if (legada) return [...activas, legada];
+      }
+      return activas;
+    },
+    [opciones],
+  );
+
+  /** Combinaciones de relacion_padre permitidas para un tipo_nodo dado,
+   *  filtradas además por el tipo_nodo del padre cuando la regla lo exige
+   *  (tipo_nodo_padre !== null). Si el clado es raíz (tipoNodoPadre=null),
+   *  solo se ofrecen las reglas que no restringen el tipo del padre. */
+  const relacionesPermitidas = useCallback(
+    (tipoNodo: string | null, tipoNodoPadre: string | null) => {
+      if (!tipoNodo) return [];
+      return reglas.filter(
+        (r) =>
+          r.activo &&
+          r.permitida &&
+          r.tipo_nodo === tipoNodo &&
+          (r.tipo_nodo_padre === null || r.tipo_nodo_padre === tipoNodoPadre),
+      );
+    },
+    [reglas],
+  );
+
+  /** Descripción de la regla exacta (tipo_nodo + relacion_padre + tipo del
+   *  padre) para mostrar debajo del dropdown de "Unión con el padre". */
+  const descripcionRegla = useCallback(
+    (tipoNodo: string | null, relacionPadre: string | null, tipoNodoPadre: string | null) => {
+      if (!tipoNodo || !relacionPadre) return null;
+      const regla = reglas.find(
+        (r) =>
+          r.tipo_nodo === tipoNodo &&
+          r.relacion_padre === relacionPadre &&
+          (r.tipo_nodo_padre === null || r.tipo_nodo_padre === tipoNodoPadre),
+      );
+      return regla?.descripcion ?? null;
+    },
+    [reglas],
+  );
+
+  return { opciones, reglas, loading, opcionesDe, relacionesPermitidas, descripcionRegla };
 }
 
 // ─── Clado → Organismos (vista v_clados_organismos_v1) ─────────────────────

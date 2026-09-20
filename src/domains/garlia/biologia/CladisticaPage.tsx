@@ -44,6 +44,7 @@ import { EditorHeaderBar } from "../_shared/EditorHeaderBar";
 import { usePublishHeaderControls, type OnHeaderControlsChange } from "../_shared/useEditorHeaderControls";
 
 import {
+  useCladoEditorCatalogo,
   useCladoRelaciones,
   useClados,
   useCladosOrganismos,
@@ -53,7 +54,9 @@ import {
   RELACION_PADRE_CLADO_LABEL,
   TIPO_NODO_CLADO_LABEL,
   TIPO_RELACION_CLADO_LABEL,
+  type CampoEditorClado,
   type Clado,
+  type CladoEditorOpcion,
   type CladoOrganismo,
   type CladoRelacion,
   type OrganismoCriatura,
@@ -67,6 +70,23 @@ interface Props {
    *  cladograma no lo monta por su cuenta: lo resuelve el contenedor. */
   onAbrirOrganismo?: (organismoId: string) => void;
 }
+
+/** Shape devuelto por useCladoEditorCatalogo — tipado acá para no importar
+ *  el hook completo solo por su tipo de retorno en los componentes hijos. */
+type CladoEditorCatalogo = {
+  opciones: CladoEditorOpcion[];
+  loading: boolean;
+  opcionesDe: (campo: CampoEditorClado, valorActual?: string | null) => CladoEditorOpcion[];
+  relacionesPermitidas: (
+    tipoNodo: string | null,
+    tipoNodoPadre: string | null,
+  ) => { relacion_padre: RelacionPadreClado; descripcion: string | null }[];
+  descripcionRegla: (
+    tipoNodo: string | null,
+    relacionPadre: string | null,
+    tipoNodoPadre: string | null,
+  ) => string | null;
+};
 
 // ─── Layout del cladograma ──────────────────────────────────────────────────
 // Árbol rectangular clásico: cada hoja ocupa una fila (ROW_H), cada nivel de
@@ -658,6 +678,157 @@ function RutaClado({
 }
 
 
+// Selector buscable de padre: NO es un input de texto libre — el valor que
+// se guarda siempre es el padre_id de un clado real elegido de la lista.
+// El campo de texto solo filtra qué mostrar, igual que un combobox.
+function BuscadorPadreClado({
+  clados,
+  cladoActualId,
+  texto,
+  onTexto,
+  onElegir,
+  onClose,
+}: {
+  clados: Clado[];
+  /** Excluir al clado que se está editando: no puede ser su propio padre. */
+  cladoActualId: string;
+  texto: string;
+  onTexto: (v: string) => void;
+  /** id=null limpia el padre (el clado pasa a ser raíz). */
+  onElegir: (id: string | null) => void;
+  onClose: () => void;
+}) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  React.useEffect(() => {
+    function onClickFuera(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) onClose();
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", onClickFuera);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClickFuera);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [onClose]);
+
+  const filtrados = clados
+    .filter((c) => c.id !== cladoActualId)
+    .filter((c) => (c.nombre || "").toLowerCase().includes(texto.trim().toLowerCase()))
+    .slice(0, 40); // límite razonable de resultados visibles, no de datos
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute z-30 mt-1 left-0 right-0 rounded-lg border shadow-xl py-1"
+      style={{
+        background: "var(--bg-main)",
+        borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+        animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <div className="px-2 pb-1.5">
+        <input
+          ref={inputRef}
+          value={texto}
+          onChange={(e) => onTexto(e.target.value)}
+          placeholder="Buscar clado por nombre…"
+          className="w-full bg-primary/[0.03] border border-primary/10 rounded-md px-2 py-1 text-xs font-bold text-primary/80 outline-none placeholder:text-primary/30 placeholder:font-normal focus:border-primary/25"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => onElegir(null)}
+        className="w-full text-left px-2.5 py-1.5 text-micro font-black uppercase tracking-widest text-primary/40 hover:bg-primary/6 hover:text-primary transition-colors cursor-pointer border-b border-primary/8 mb-1"
+      >
+        — Raíz (sin padre) —
+      </button>
+      <div className="max-h-52 overflow-y-auto">
+        {filtrados.length === 0 ? (
+          <p className="px-2.5 py-1.5 text-micro text-primary/25 italic">Sin resultados</p>
+        ) : (
+          filtrados.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onElegir(c.id)}
+              className="w-full text-left px-2.5 py-1.5 text-micro font-bold text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+            >
+              {c.nombre || "(sin nombre)"}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Vista previa: resume en una frase la configuración resultante de los
+// dropdowns actuales, para que el escritor vea de inmediato qué está
+// declarando antes de guardar. Puramente derivado del estado local del
+// formulario — no dispara ningún fetch ni lee nada nuevo de Supabase.
+function VistaPreviaSignificado({
+  nombre,
+  tipoNodo,
+  padreElegido,
+  relacionPadre,
+  rango,
+  opcionesTipoNodo,
+  opcionesRango,
+}: {
+  nombre: string;
+  tipoNodo: string | null;
+  padreElegido: Clado | null;
+  relacionPadre: string | null;
+  rango: string | null;
+  opcionesTipoNodo: CladoEditorOpcion[];
+  opcionesRango: CladoEditorOpcion[];
+}) {
+  const nombreClado = nombre.trim() || "Este clado";
+  const etiquetaTipo = tipoNodo
+    ? (opcionesTipoNodo.find((o) => o.clave === tipoNodo)?.etiqueta ?? tipoNodo).toLowerCase()
+    : null;
+  const etiquetaRelacion = relacionPadre
+    ? (RELACION_PADRE_CLADO_LABEL[relacionPadre as RelacionPadreClado] ?? relacionPadre).toLowerCase()
+    : null;
+  const etiquetaRango = rango
+    ? (opcionesRango.find((o) => o.clave === rango)?.etiqueta ?? rango).toLowerCase()
+    : null;
+
+  const partes: string[] = [];
+  partes.push(etiquetaTipo ? `es un clado ${etiquetaTipo}` : "todavía no tiene tipo de nodo asignado");
+  if (padreElegido) {
+    partes.push(
+      `clasificado bajo ${padreElegido.nombre || "Sin nombre"}${
+        etiquetaRelacion ? ` mediante una relación de ${etiquetaRelacion}` : ""
+      }`,
+    );
+  } else {
+    partes.push("como raíz del árbol (sin padre)");
+  }
+  if (etiquetaRango) partes.push(`con rango de ${etiquetaRango}`);
+
+  return (
+    <div className="rounded-lg border border-accent/15 bg-accent/[0.03] px-2.5 py-2">
+      <span className="text-micro font-black uppercase tracking-[0.15em] text-accent/50 block mb-1">
+        Así quedará definido
+      </span>
+      <p className="text-xs text-primary/70 leading-snug">
+        <strong className="font-bold text-primary/85">{nombreClado}</strong> {partes.join(", ")}.
+      </p>
+    </div>
+  );
+}
+
 function PanelClado({
   clado,
   padre,
@@ -666,6 +837,8 @@ function PanelClado({
   organismos,
   criaturasDe,
   cladoPorId,
+  clados,
+  cladoEditor,
   onSave,
   onDelete,
   onCrearHijo,
@@ -686,6 +859,9 @@ function PanelClado({
   /** Criaturas que usan un organismo (criatura_organismos, v_organismos_criaturas_v1). */
   criaturasDe: (organismoId: string) => OrganismoCriatura[];
   cladoPorId: Map<string, Clado>;
+  /** Todos los clados, para el selector buscable de padre. */
+  clados: Clado[];
+  cladoEditor: CladoEditorCatalogo;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
   onCrearHijo: () => void;
@@ -732,26 +908,99 @@ function PanelClado({
   const [nombre, setNombre] = useState(clado.nombre);
   const [sinapomorfia, setSinapomorfia] = useState(clado.sinapomorfia ?? "");
   const [descripcion, setDescripcion] = useState(clado.descripcion ?? "");
+  const [tipoNodo, setTipoNodo] = useState<string | null>(clado.tipo_nodo);
+  const [padreId, setPadreId] = useState<string | null>(clado.padre_id);
+  const [relacionPadre, setRelacionPadre] = useState<string | null>(clado.relacion_padre);
+  const [rango, setRango] = useState<string | null>(clado.rango);
+  const [estado, setEstado] = useState(clado.estado);
+  const [errorValidacion, setErrorValidacion] = useState<string | null>(null);
   const [status, setStatus] = useState<SaveStatus>("idle");
 
   React.useEffect(() => {
     setNombre(clado.nombre);
     setSinapomorfia(clado.sinapomorfia ?? "");
     setDescripcion(clado.descripcion ?? "");
+    setTipoNodo(clado.tipo_nodo);
+    setPadreId(clado.padre_id);
+    setRelacionPadre(clado.relacion_padre);
+    setRango(clado.rango);
+    setEstado(clado.estado);
+    setErrorValidacion(null);
     setStatus("idle");
   }, [clado.id]);
 
+  // Tipo de nodo del padre ELEGIDO en el formulario (no el `padre` prop, que
+  // sigue siendo el padre guardado hasta que el guardado se confirme) — la
+  // matriz de reglas necesita esto para filtrar relacion_padre en vivo
+  // mientras el escritor todavía está eligiendo.
+  const padreElegido = padreId ? (cladoPorId.get(padreId) ?? null) : null;
+  const tipoNodoPadreElegido = padreElegido?.tipo_nodo ?? null;
+
+  const opcionesTipoNodo = cladoEditor.opcionesDe("tipo_nodo", clado.tipo_nodo);
+  const opcionesRango = cladoEditor.opcionesDe("rango", clado.rango);
+  const opcionesEstado = cladoEditor.opcionesDe("estado", clado.estado);
+  const relacionesValidas = padreId ? cladoEditor.relacionesPermitidas(tipoNodo, tipoNodoPadreElegido) : [];
+
+  const etiquetaOpcion = (campo: CampoEditorClado, clave: string | null, fallback: string) =>
+    clave ? (cladoEditor.opcionesDe(campo, clave).find((o) => o.clave === clave)?.etiqueta ?? clave) : fallback;
+
+  const descripcionTipoNodoElegido = tipoNodo
+    ? (cladoEditor.opcionesDe("tipo_nodo", tipoNodo).find((o) => o.clave === tipoNodo)?.descripcion ?? null)
+    : null;
+  const descripcionRelacionElegida = cladoEditor.descripcionRegla(
+    tipoNodo,
+    relacionPadre,
+    tipoNodoPadreElegido,
+  );
+
+  const [buscadorPadreAbierto, setBuscadorPadreAbierto] = useState(false);
+  const [buscadorPadreTexto, setBuscadorPadreTexto] = useState("");
+
   const guardar = () => {
+    setErrorValidacion(null);
+    // Validaciones de forma antes de tocar Supabase — no reemplazan al
+    // trigger (que es la autoridad real), pero evitan un viaje de red para
+    // errores que ya podemos detectar acá con los datos del catálogo.
+    if (padreId && !cladoPorId.has(padreId)) {
+      setErrorValidacion("El padre elegido ya no existe. Volvé a buscarlo.");
+      setStatus("error");
+      return;
+    }
+    if (tipoNodo && relacionPadre) {
+      const combinacionValida = cladoEditor.relacionesPermitidas(tipoNodo, tipoNodoPadreElegido).some(
+        (r) => r.relacion_padre === relacionPadre,
+      );
+      if (!combinacionValida) {
+        setErrorValidacion(
+          "Esa combinación de tipo de nodo y unión con el padre no está permitida. Elegí una unión de la lista.",
+        );
+        setStatus("error");
+        return;
+      }
+    }
     setStatus("saving");
     try {
       onSave({
         nombre: nombre.trim() || clado.nombre,
         sinapomorfia: sinapomorfia.trim(),
         descripcion,
+        tipo_nodo: (tipoNodo as TipoNodoClado | null) ?? null,
+        padre_id: padreId,
+        // Sin padre, la relación no tiene sentido — se limpia acá además
+        // del guard que ya tiene useClados().actualizar() por si acaso.
+        relacion_padre: padreId ? ((relacionPadre as RelacionPadreClado | null) ?? null) : null,
+        rango,
+        estado,
       });
       setStatus("saved");
     } catch (e) {
       console.error("[PanelClado] error guardando:", e);
+      // Supabase/el trigger puede rechazar la combinación con un mensaje
+      // técnico (nombre de constraint, texto en inglés/SQL) — nunca se
+      // muestra crudo al escritor, se traduce a algo accionable.
+      setErrorValidacion(
+        "Supabase rechazó estos cambios. Revisá el tipo de nodo, la unión con el padre y el padre elegido.",
+      );
       setStatus("error");
     }
   };
@@ -782,55 +1031,164 @@ function PanelClado({
           uso del ancho horizontal disponible en el panel max-w-6xl, en vez
           de todo apilado en una sola columna angosta. */}
       <div className="flex flex-col gap-3.5 min-w-0">
-        {/* Contrato de Supabase — solo lectura: se muestra lo que la base
-            declara, sin inferir. */}
-        <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-1.5">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Representa
+        {/* Editor guiado: controles respaldados por el catálogo real de
+            Supabase (clado_editor_catalogo / clado_editor_reglas vía
+            v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1). El
+            escritor elige entre opciones válidas; nunca escribe texto
+            libre para estos campos. */}
+        <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-2.5">
+          <div>
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              ¿Qué representa?
             </span>
-            <span className="text-xs font-bold text-primary/80 text-right">
-              {etiquetaTipoNodo(clado.tipo_nodo)}
-            </span>
+            <select
+              className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none focus:border-primary/25"
+              value={tipoNodo ?? ""}
+              onChange={(e) => {
+                const nuevo = e.target.value || null;
+                setTipoNodo(nuevo);
+                // Al cambiar tipo_nodo, la relacion_padre elegida puede
+                // dejar de ser válida para la nueva combinación — se
+                // limpia en vez de dejar guardar algo que el escritor ya
+                // no ve reflejado en el desplegable de abajo.
+                if (
+                  relacionPadre &&
+                  !cladoEditor
+                    .relacionesPermitidas(nuevo, tipoNodoPadreElegido)
+                    .some((r) => r.relacion_padre === relacionPadre)
+                ) {
+                  setRelacionPadre(null);
+                }
+              }}
+              onBlur={guardar}
+            >
+              <option value="">— Sin clasificar —</option>
+              {opcionesTipoNodo.map((o) => (
+                <option key={o.clave} value={o.clave}>
+                  {o.etiqueta}
+                  {o.legado ? " (legado)" : ""}
+                </option>
+              ))}
+            </select>
+            {descripcionTipoNodoElegido && (
+              <p className="text-micro text-primary/35 leading-snug mt-1">{descripcionTipoNodoElegido}</p>
+            )}
           </div>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Unión con el padre
+
+          <div className="relative">
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              Padre
             </span>
-            <span className="text-xs font-bold text-primary/80 text-right">
-              {padre ? etiquetaRelacionPadre(clado.relacion_padre) : "— (raíz)"}
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setBuscadorPadreTexto("");
+                setBuscadorPadreAbierto((prev) => !prev);
+              }}
+              className="w-full flex items-center justify-between gap-2 bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none hover:border-primary/25 transition-colors text-left"
+            >
+              {padreElegido ? padreElegido.nombre || "Sin nombre" : "— Raíz (sin padre) —"}
+              <ChevronDown size={12} className="text-primary/30 shrink-0" />
+            </button>
+            <p className="text-micro text-primary/35 leading-snug mt-1">
+              El padre define la posición del clado dentro del árbol.
+            </p>
+
+            {buscadorPadreAbierto && (
+              <BuscadorPadreClado
+                clados={clados}
+                cladoActualId={clado.id}
+                texto={buscadorPadreTexto}
+                onTexto={setBuscadorPadreTexto}
+                onElegir={(id) => {
+                  setPadreId(id);
+                  setBuscadorPadreAbierto(false);
+                  // Mismo criterio que useClados().actualizar(): sin padre
+                  // no hay unión que declarar.
+                  if (!id) setRelacionPadre(null);
+                }}
+                onClose={() => setBuscadorPadreAbierto(false)}
+              />
+            )}
           </div>
-          {padre && (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-                Padre
+
+          {padreId && (
+            <div>
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+                Unión con el padre
               </span>
-              <button
-                type="button"
-                onClick={() => onSelectClado(padre.id)}
-                className="text-xs font-bold text-accent/80 hover:text-accent transition-colors text-right"
+              <select
+                className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none focus:border-primary/25 disabled:opacity-40"
+                disabled={!tipoNodo || relacionesValidas.length === 0}
+                value={relacionPadre ?? ""}
+                onChange={(e) => setRelacionPadre(e.target.value || null)}
+                onBlur={guardar}
               >
-                {padre.nombre || "Sin nombre"}
-              </button>
+                <option value="">— Sin clasificar —</option>
+                {relacionesValidas.map((r) => (
+                  <option key={r.relacion_padre} value={r.relacion_padre}>
+                    {RELACION_PADRE_CLADO_LABEL[r.relacion_padre] ?? r.relacion_padre}
+                  </option>
+                ))}
+              </select>
+              {!tipoNodo && (
+                <p className="text-micro text-primary/35 leading-snug mt-1">
+                  Elegí primero qué representa este clado — la unión válida depende de eso.
+                </p>
+              )}
+              {tipoNodo && relacionesValidas.length === 0 && (
+                <p className="text-micro text-primary/35 leading-snug mt-1">
+                  No hay uniones válidas registradas para esta combinación de tipos todavía.
+                </p>
+              )}
+              {descripcionRelacionElegida && (
+                <p className="text-micro text-primary/35 leading-snug mt-1">{descripcionRelacionElegida}</p>
+              )}
+              <p className="text-micro text-primary/30 leading-snug mt-1">
+                El padre define la posición visual. La unión explica por qué están conectados.
+              </p>
             </div>
           )}
-          {clado.rango && (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
                 Rango
               </span>
-              <span className="text-xs font-bold text-primary/60 text-right">{clado.rango}</span>
+              <select
+                className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/60 outline-none focus:border-primary/25"
+                value={rango ?? ""}
+                onChange={(e) => setRango(e.target.value || null)}
+                onBlur={guardar}
+              >
+                <option value="">—</option>
+                {opcionesRango.map((o) => (
+                  <option key={o.clave} value={o.clave}>
+                    {o.etiqueta}
+                    {o.legado ? " (legado)" : ""}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-          {clado.estado && (
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+            <div>
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
                 Estado
               </span>
-              <span className="text-xs font-bold text-primary/60 text-right">{clado.estado}</span>
+              <select
+                className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/60 outline-none focus:border-primary/25"
+                value={estado}
+                onChange={(e) => setEstado(e.target.value)}
+                onBlur={guardar}
+              >
+                {opcionesEstado.map((o) => (
+                  <option key={o.clave} value={o.clave}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
+          </div>
+
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
               Hijos
@@ -852,13 +1210,26 @@ function PanelClado({
               </span>
             )}
           </div>
-          {padre && (
+          {padreId && (
             <p className="text-micro text-primary/35 leading-snug">
               El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
               «Ascendencia».
             </p>
           )}
+          {errorValidacion && (
+            <p className="text-micro font-bold text-red-500/80 leading-snug">{errorValidacion}</p>
+          )}
         </div>
+
+        <VistaPreviaSignificado
+          nombre={nombre}
+          tipoNodo={tipoNodo}
+          padreElegido={padreElegido}
+          relacionPadre={relacionPadre}
+          rango={rango}
+          opcionesTipoNodo={opcionesTipoNodo}
+          opcionesRango={opcionesRango}
+        />
 
         <div>
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
@@ -1050,6 +1421,8 @@ function CladoPanelFlotante({
   organismos,
   criaturasDe,
   cladoPorId,
+  clados,
+  cladoEditor,
   onCerrar,
   onSave,
   onDelete,
@@ -1065,6 +1438,9 @@ function CladoPanelFlotante({
   organismos: CladoOrganismo[];
   criaturasDe: (organismoId: string) => OrganismoCriatura[];
   cladoPorId: Map<string, Clado>;
+  /** Todos los clados del proyecto, para el selector buscable de padre. */
+  clados: Clado[];
+  cladoEditor: CladoEditorCatalogo;
   onCerrar: () => void;
   onSave: (updates: Partial<Clado>) => void;
   onDelete: () => void;
@@ -1121,6 +1497,8 @@ function CladoPanelFlotante({
             organismos={organismos}
             criaturasDe={criaturasDe}
             cladoPorId={cladoPorId}
+            clados={clados}
+            cladoEditor={cladoEditor}
             onSave={onSave}
             onDelete={onDelete}
             onCrearHijo={onCrearHijo}
@@ -1143,6 +1521,7 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
   const { relacionesDe } = useCladoRelaciones();
   const { organismosDe, conteoPorClado } = useCladosOrganismos();
   const { criaturasDe } = useOrganismosCriaturas();
+  const cladoEditor = useCladoEditorCatalogo();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [seleccionMultiple, setSeleccionMultiple] = useState<Set<string>>(new Set());
 
@@ -1247,6 +1626,8 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
           relaciones={relacionesDe(seleccionado.id)}
           organismos={organismosDe(seleccionado.id)}
           criaturasDe={criaturasDe}
+          clados={clados}
+          cladoEditor={cladoEditor}
           onAbrirOrganismo={
             onAbrirOrganismo
               ? (organismoId) => {

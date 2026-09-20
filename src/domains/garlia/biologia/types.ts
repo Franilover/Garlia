@@ -139,6 +139,49 @@ export const RELACION_PADRE_CLADO_LABEL: Record<RelacionPadreClado, string> = {
   clasificacion_ontologica: "Clasificación ontológica",
 };
 
+// ─── Editor guiado de clados (v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1) ──
+// Fuente de verdad para lo que el escritor puede elegir en el editor: el
+// catálogo de opciones por campo (tipo_nodo, relacion_padre, rango, estado)
+// y la matriz de combinaciones válidas de tipo_nodo/relacion_padre según el
+// tipo_nodo del padre. El frontend NUNCA hardcodea estas listas — las lee
+// de estas dos vistas y respeta `activo`/`permitida` tal cual vienen.
+
+/** Campos del editor de clados cubiertos por el catálogo (v_clado_editor_opciones_v1.campo). */
+export type CampoEditorClado = "tipo_nodo" | "relacion_padre" | "rango" | "estado";
+
+/** Fila de la vista v_clado_editor_opciones_v1: una opción seleccionable de un campo. */
+export interface CladoEditorOpcion {
+  id: string;
+  campo: CampoEditorClado;
+  /** Valor que se guarda en `clados`. */
+  clave: string;
+  /** Texto que se muestra en el dropdown. */
+  etiqueta: string;
+  descripcion: string | null;
+  orden: number;
+  /** Si es false, la opción no se ofrece para clados nuevos (ver `legado`). */
+  activo: boolean;
+  /** true = valor histórico que ya no se ofrece para elegir, pero que un
+   *  registro existente puede seguir teniendo — se mantiene disponible al
+   *  editar ESE registro para no forzar una migración de datos desde acá. */
+  legado: boolean;
+  metadata: Record<string, unknown>;
+}
+
+/** Fila de la vista v_clado_editor_reglas_v1: una combinación tipo_nodo/relacion_padre válida. */
+export interface CladoEditorRegla {
+  id: string;
+  tipo_nodo: TipoNodoClado;
+  relacion_padre: RelacionPadreClado;
+  /** Tipo de nodo que debe tener el padre para que esta regla aplique.
+   *  null = la regla no restringe el tipo del padre (cualquier tipo vale). */
+  tipo_nodo_padre: TipoNodoClado | null;
+  permitida: boolean;
+  descripcion: string | null;
+  orden: number;
+  activo: boolean;
+}
+
 /** Fila cruda tal cual vive en Supabase (tabla "clados"). */
 export interface Clado {
   id: string;
