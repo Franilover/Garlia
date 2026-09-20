@@ -127,6 +127,32 @@ async function persist(tableName: string, rows: any[]): Promise<void> {
 }
 
 /**
+ * Como persist(), pero para consultas PARCIALES (catálogo mínimo: solo
+ * algunas columnas, ej. "id, nombre, imagen_url").
+ *
+ * persist() usa bulkPut, que REEMPLAZA la fila completa: si `rows` no trae
+ * `descripcion`, la fila entera de la entidad (que otras pantallas cargaron
+ * completa) queda sin `descripcion` ni `status` en Dexie. Acá se mezcla campo
+ * a campo sobre lo que ya hay y se salta cualquier fila `pending` (edición
+ * local sin sincronizar, que no debe tocarse).
+ * Si la fila no existía todavía, se inserta tal cual llegó.
+ */
+async function persistMerge(tableName: string, rows: any[]): Promise<void> {
+  try {
+    const table = (db as any)[tableName];
+    if (!table || rows.length === 0) return;
+    const existentes: any[] = await table.bulkGet(rows.map((r) => r.id));
+    const aEscribir = rows.flatMap((r, i) => {
+      const prev = existentes[i];
+      if (!prev) return [r];
+      if (prev.status === "pending") return [];
+      return [{ ...prev, ...r }];
+    });
+    if (aEscribir.length > 0) await table.bulkPut(aEscribir);
+  } catch {}
+}
+
+/**
  * Igual que persist(), pero además BORRA de Dexie las filas que ya no
  * vinieron en el resultado fresco de Supabase. Necesario para catálogos
  * donde se eliminan filas activamente (ej. el admin borrando una misión):
@@ -506,7 +532,9 @@ async function fetchCriaturasPorCiudad(
       .order("nombre");
     if (error || !data) return [];
     memSet(cacheKey, data);
-    await persist("criaturas", data);
+    // Consulta PARCIAL (id, nombre, imagen_url): no usar persist() (bulkPut)
+    // porque borraría `descripcion` y `status` de la fila completa en Dexie.
+    await persistMerge("criaturas", data);
     onUpdate?.(data);
     return data;
   } catch {

@@ -387,15 +387,21 @@ async function writeToDexie(tabla: string, rows: any[]): Promise<void> {
 async function syncDexieWithRemote(
   tabla: string,
   remoteRows: any[],
+  huerfanas: Set<string> = new Set(),
 ): Promise<void> {
   try {
     if (!db || !DEXIE_TABLES.has(tabla)) return;
     const table = (db as any)[tabla];
     if (!table) return;
     const localRows: any[] = await table.toArray();
+    // `pending` huérfanas (sin op en offline_queue) NO se protegen: Supabase
+    // las sobrescribe. Ver idsPendientesHuerfanas.
     const pendingIds = new Set(
       localRows
-        .filter((r: any) => r.status === "pending")
+        .filter(
+          (r: any) =>
+            r.status === "pending" && !huerfanas.has(String(r.id)),
+        )
         .map((r: any) => String(r.id)),
     );
     const remoteIds = new Set(remoteRows.map((r: any) => String(r.id)));
@@ -407,13 +413,48 @@ async function syncDexieWithRemote(
     if (remoteRows.length === 0 && hasSynced) return;
     const toDelete = localRows
       .filter(
-        (r: any) => !remoteIds.has(String(r.id)) && r.status !== "pending",
+        (r: any) =>
+          !remoteIds.has(String(r.id)) &&
+          (r.status !== "pending" || huerfanas.has(String(r.id))),
       )
       .map((r: any) => r.id);
     if (toDelete.length > 0) await table.bulkDelete(toDelete);
   } catch (e) {
     console.warn(`[Dexie] No se pudo sincronizar '${tabla}':`, e);
   }
+}
+
+// Una fila local `status:"pending"` solo tiene sentido mientras exista una
+// operación en `offline_queue` que la vaya a subir (addRow/updateRow/deleteRow
+// offline la encolan a la vez que la marcan). runSync descarta la operación
+// tras MAX_RETRIES fallos pero NO revierte la fila local: queda `pending`
+// huérfana, y como mergeWithPending/syncDexieWithRemote protegen SIEMPRE a
+// las `pending`, esa copia local le ganaba a Supabase para siempre (la
+// descripción vieja "a" sobrevivía incluso a un hard reload).
+// Con conexión y una respuesta fresca de Supabase, una `pending` sin op en
+// cola ya no es un borrador por sincronizar: Supabase manda. Devuelve los ids
+// de las huérfanas para que el llamador las deje de proteger.
+async function idsPendientesHuerfanas(
+  tabla: string,
+  localRows: any[],
+): Promise<Set<string>> {
+  const huerfanas = new Set<string>();
+  try {
+    const pendientes = localRows.filter((r: any) => r.status === "pending");
+    if (pendientes.length === 0 || !db) return huerfanas;
+    const enCola = new Set<string>(
+      (await (db as any).offline_queue.where("table").equals(tabla).toArray())
+        .map((op: any) => String(op.recordId)),
+    );
+    for (const r of pendientes) {
+      if (!enCola.has(String(r.id))) huerfanas.add(String(r.id));
+    }
+  } catch {
+    // Ante cualquier duda (no se pudo leer la cola) no se libera nada:
+    // preferimos conservar un borrador local antes que perder una edición.
+    return new Set<string>();
+  }
+  return huerfanas;
 }
 
 function mergeWithPending<T>(remoteData: T[], localData: T[]): T[] {
@@ -623,7 +664,18 @@ export function useSupabaseData<T = any>(
       const freshLocal = await readFromDexie<T>(tabla, opts.order);
       if (isStale()) return;
 
-      let merged = mergeWithPending<T>(finalData, freshLocal);
+      // Respuesta fresca de Supabase (hay conexión): las `pending` sin op en
+      // offline_queue son huérfanas y no deben ganarle a Supabase.
+      const huerfanas = await idsPendientesHuerfanas(tabla, freshLocal as any[]);
+      if (isStale()) return;
+      const localProtegido =
+        huerfanas.size === 0
+          ? freshLocal
+          : (freshLocal as any[]).filter(
+              (r: any) => !huerfanas.has(String(r.id)),
+            );
+
+      let merged = mergeWithPending<T>(finalData, localProtegido as T[]);
       // mergeWithPending antepone remoto y agrega los pending al final —
       // eso puede desordenar el resultado final respecto a `opts.order`
       // (ej. un pending viejo terminando después de items más nuevos).
@@ -665,7 +717,7 @@ export function useSupabaseData<T = any>(
       lastFetchRef.current = Date.now();
       setLoading(false);
       setIsOffline(false);
-      syncDexieWithRemote(tabla, finalData).catch(() => {});
+      syncDexieWithRemote(tabla, finalData, huerfanas).catch(() => {});
     } catch (err: any) {
       clearTimer(fetchTimeoutRef);
       if (isStale()) return;
