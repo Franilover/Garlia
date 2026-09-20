@@ -734,6 +734,13 @@ export function useSupabaseData<T = any>(
         return;
       }
 
+      // Un error NO de red (ej. HTTP 400 por un embed/columna que ya no existe)
+      // con datos locales presentes antes se tragaba en silencio: la UI se
+      // quedaba con Dexie para siempre sin ningún aviso. Se registra para que
+      // no vuelva a pasar desapercibido.
+      if (!isNetworkError(err)) {
+        console.error(`[useSupabaseData] Falló la carga remota de '${tabla}':`, err);
+      }
       if (!hasLocalData) setError(err.message);
       if (isNetworkError(err)) setIsOffline(true);
       setLoading(false);

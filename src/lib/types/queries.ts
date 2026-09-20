@@ -28,8 +28,12 @@ export const personajeFullQuery = () =>
   `);
 export type PersonajeFull = QueryData<ReturnType<typeof personajeFullQuery>>[number];
 
+// NOTA: antes incluía el embed `variantes:criatura_variantes (*)`. Esa tabla ya
+// no existe en Supabase, y PostgREST respondía HTTP 400 en CADA carga, con lo
+// que useSupabaseData nunca recibía datos remotos y se quedaba con Dexie
+// (descripción vieja incluida). Nadie en la UI leía `.variantes`.
 export const criaturaFullQuery = () =>
-  supabase.from('criaturas').select(`*, variantes:criatura_variantes (*)`);
+  supabase.from('criaturas').select('*');
 export type CriaturaFull = QueryData<ReturnType<typeof criaturaFullQuery>>[number];
 
 export const libroFullQuery = () =>
