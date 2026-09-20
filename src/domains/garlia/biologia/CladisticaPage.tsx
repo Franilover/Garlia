@@ -970,18 +970,6 @@ function PanelClado({
   const opcionesEstado = cladoEditor.opcionesDe("estado", clado.estado);
   const relacionesValidas = padreId ? cladoEditor.relacionesPermitidas(tipoNodo, tipoNodoPadreElegido) : [];
 
-  const etiquetaOpcion = (campo: CampoEditorClado, clave: string | null, fallback: string) =>
-    clave ? (cladoEditor.opcionesDe(campo, clave).find((o) => o.clave === clave)?.etiqueta ?? clave) : fallback;
-
-  const descripcionTipoNodoElegido = tipoNodo
-    ? (cladoEditor.opcionesDe("tipo_nodo", tipoNodo).find((o) => o.clave === tipoNodo)?.descripcion ?? null)
-    : null;
-  const descripcionRelacionElegida = cladoEditor.descripcionRegla(
-    tipoNodo,
-    relacionPadre,
-    tipoNodoPadreElegido,
-  );
-
   const [buscadorPadreAbierto, setBuscadorPadreAbierto] = useState(false);
   const [buscadorPadreTexto, setBuscadorPadreTexto] = useState("");
 
@@ -1099,9 +1087,6 @@ function PanelClado({
                 </option>
               ))}
             </select>
-            {descripcionTipoNodoElegido && (
-              <p className="text-micro text-primary/35 leading-snug mt-1">{descripcionTipoNodoElegido}</p>
-            )}
           </div>
 
           <div className="relative">
@@ -1157,22 +1142,6 @@ function PanelClado({
                   </option>
                 ))}
               </select>
-              {!tipoNodo && (
-                <p className="text-micro text-primary/35 leading-snug mt-1">
-                  Elegí primero qué representa este clado — la unión válida depende de eso.
-                </p>
-              )}
-              {tipoNodo && relacionesValidas.length === 0 && (
-                <p className="text-micro text-primary/35 leading-snug mt-1">
-                  No hay uniones válidas registradas para esta combinación de tipos todavía.
-                </p>
-              )}
-              {descripcionRelacionElegida && (
-                <p className="text-micro text-primary/35 leading-snug mt-1">{descripcionRelacionElegida}</p>
-              )}
-              <p className="text-micro text-primary/30 leading-snug mt-1">
-                El padre define la posición visual. La unión explica por qué están conectados.
-              </p>
             </div>
           )}
 
@@ -1215,33 +1184,6 @@ function PanelClado({
             </div>
           </div>
 
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Hijos
-            </span>
-            {hijos.length === 0 ? (
-              <span className="text-xs text-primary/35 text-right">—</span>
-            ) : (
-              <span className="flex flex-wrap justify-end gap-x-2 gap-y-0.5">
-                {hijos.map((h) => (
-                  <button
-                    key={h.id}
-                    type="button"
-                    onClick={() => onSelectClado(h.id)}
-                    className="text-xs font-bold text-accent/80 hover:text-accent transition-colors"
-                  >
-                    {h.nombre || "Sin nombre"}
-                  </button>
-                ))}
-              </span>
-            )}
-          </div>
-          {padreId && (
-            <p className="text-micro text-primary/35 leading-snug">
-              El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
-              «Ascendencia».
-            </p>
-          )}
           {errorValidacion && (
             <p className="text-micro font-bold text-red-500/80 leading-snug">{errorValidacion}</p>
           )}
@@ -1261,11 +1203,6 @@ function PanelClado({
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
             {esLinajeFilogenetico ? "Sinapomorfía" : "Carácter definitorio"}
           </span>
-          <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-            {esLinajeFilogenetico
-              ? "Carácter derivado compartido por todos los descendientes."
-              : "Qué define a este grupo — no implica ascendencia compartida."}
-          </p>
           <input
             className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none placeholder:text-primary/30 placeholder:font-normal focus:border-primary/25"
             placeholder={
@@ -1311,9 +1248,6 @@ function PanelClado({
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
               Otras relaciones
             </span>
-            <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-              Conexiones que no son hijos del árbol: el otro clado sigue en su propia rama.
-            </p>
             <ul className="flex flex-col gap-1.5">
               {relaciones.map((r) => {
                 const esOrigen = r.clado_origen_id === clado.id;
@@ -1354,9 +1288,6 @@ function PanelClado({
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
             Organismos del clado
           </span>
-          <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-            La biología efectiva vive en el organismo; el clado aporta el linaje y la herencia.
-          </p>
           {organismos.length === 0 ? (
             <p className="text-xs text-primary/30 italic">
               Este clado todavía no tiene organismos asignados.
@@ -1431,10 +1362,6 @@ function PanelClado({
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
               Clados hijos / descendencia
             </span>
-            <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-              Todo el subárbol desde este clado — cada tramo muestra su propia unión con el padre,
-              no todas implican ascendencia biológica.
-            </p>
             <ul className="rounded-lg border border-primary/10 px-2.5 py-1.5 flex flex-col gap-1">
               {descendencia.map(({ clado: hijo, nivel }) => (
                 <li
