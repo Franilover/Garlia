@@ -43,6 +43,7 @@ import { FisicaPage } from "@/domains/garlia/fisica/FisicaPage";
 import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
 import {
+  useEnergias,
   useFisicaConceptos,
   usePolaridades,
   useParticulas,
@@ -396,6 +397,11 @@ function BloqueFisica({
     eliminar: eliminarSubsistema,
   } = useSubsistemasMagia();
 
+  // Energías (Eterium/Garin) — chips al final de Física, después de
+  // Subsistemas. Fichas reales de contexto_humano (no catálogo propio),
+  // filtradas por concepto — ver useEnergias().
+  const { items: energias, loading: loadingEnergias } = useEnergias();
+
   async function handleCreate() {
     setCreating(true);
     try {
@@ -564,6 +570,8 @@ function BloqueFisica({
         onActualizarSubsistema={(id, updates) => void actualizarSubsistema(id, updates)}
         onEliminarSubsistema={(id) => void eliminarSubsistema(id)}
         onSelectCriatura={onSelectCriatura}
+        energias={energias}
+        loadingEnergias={loadingEnergias}
       />
     </div>
   );

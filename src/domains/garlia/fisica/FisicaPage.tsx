@@ -31,6 +31,7 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { OrisEditor } from "./OrisEditor";
 import { IumVisual, ParticulaVisual } from "./ParticulaVisual";
 import {
+  contextoHumanoAFilaEnergia,
   FISICA_CONCEPTOS_CONFIG,
   iumAFilaIum,
   orisAFilaCatalogo,
@@ -38,7 +39,9 @@ import {
   particulaBaseAFilaCatalogo,
   particulasDeIum,
   polaridadAFilaCatalogo,
+  type ContextoHumano,
   type FilaCatalogo,
+  type FilaEnergia,
   type FilaIum,
   type FilaParticulaBase,
   type FilaPolaridad,
@@ -121,6 +124,12 @@ interface Props {
   onEliminarSubsistema: (id: string) => void;
   /** Se dispara al clickear una criatura dentro del editor de subsistema. */
   onSelectCriatura?: (id: string) => void;
+
+  /** Energías (Eterium/Garin) — quinto ítem de la barra lateral de Física,
+   *  después de Subsistemas. Fichas reales de "contexto_humano" (no
+   *  catálogo propio de Física), filtradas por concepto — ver types.ts. */
+  energias: ContextoHumano[];
+  loadingEnergias?: boolean;
 }
 
 /**
@@ -250,7 +259,14 @@ export function parsearArchivoFisicaJSON(
 // ─── Filas de navegación (columna izquierda) ───────────────────────────────
 
 
-type ClaveCatalogo = "polaridades" | "particula-base" | "particulas" | "iums" | "oris" | "subsistemas";
+type ClaveCatalogo =
+  | "polaridades"
+  | "particula-base"
+  | "particulas"
+  | "iums"
+  | "oris"
+  | "subsistemas"
+  | "energias";
 
 function catalogosBases(
   polaridades: Polaridad[],
@@ -259,6 +275,7 @@ function catalogosBases(
   iums: Ium[],
   oris: Oris[],
   subsistemas: SubsistemaMagia[],
+  energias: ContextoHumano[],
 ): { key: ClaveCatalogo; titulo: string; filas: FilaCatalogo[] }[] {
   return [
     {
@@ -279,6 +296,7 @@ function catalogosBases(
     { key: "iums", titulo: "Iums", filas: iums.map(iumAFilaIum) },
     { key: "oris", titulo: "Oris", filas: oris.map(orisAFilaCatalogo) },
     { key: "subsistemas", titulo: "Subsistemas", filas: subsistemas.map(subsistemaAFilaCatalogo) },
+    { key: "energias", titulo: "Energías", filas: energias.map(contextoHumanoAFilaEnergia) },
   ];
 }
 
@@ -370,6 +388,7 @@ function TodasLasBasesView({
   iums,
   oris,
   subsistemas,
+  energias,
   onActualizarOris,
   onEliminarOris,
   onActualizarSubsistema,
@@ -384,6 +403,7 @@ function TodasLasBasesView({
   iums: Ium[];
   oris: Oris[];
   subsistemas: SubsistemaMagia[];
+  energias: ContextoHumano[];
   onActualizarOris: (id: string, cambios: Partial<Oris>) => void;
   onEliminarOris?: (id: string) => void;
   onActualizarSubsistema: (id: string, updates: Partial<SubsistemaMagia>) => void;
@@ -392,7 +412,7 @@ function TodasLasBasesView({
   onCrearSubsistema: (nombre: string) => Promise<SubsistemaMagia | null>;
   creandoSubsistema?: boolean;
 }) {
-  const catalogos = catalogosBases(polaridades, particulaBase, particulas, iums, oris, subsistemas);
+  const catalogos = catalogosBases(polaridades, particulaBase, particulas, iums, oris, subsistemas, energias);
 
   const [nombreNuevoSubsistema, setNombreNuevoSubsistema] = useState("");
   const [creandoAbierto, setCreandoAbierto] = useState(false);
@@ -512,6 +532,51 @@ function TodasLasBasesView({
 }
 
 /**
+ * Contenido del popover de una Energía (Eterium/Garin): ficha completa de
+ * "contexto_humano" — resumen, explicación simple, fórmula de referencia,
+ * analogía y propiedades clave — en vez del layout genérico nombre/detalle
+ * que usan Oris/Subsistemas/Partícula Base. Solo lectura: no hay edición
+ * desde acá, la ficha vive y se edita en contexto_humano directamente.
+ */
+function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <p className="text-xs font-black uppercase tracking-wide text-primary">{contexto.concepto}</p>
+        {contexto.resumen && (
+          <p className="mt-1 text-xs text-primary/70 leading-relaxed">{contexto.resumen}</p>
+        )}
+      </div>
+
+      {contexto.explicacion_simple && (
+        <p className="text-xs text-primary/70 leading-relaxed">{contexto.explicacion_simple}</p>
+      )}
+
+      {contexto.formula_referencia && (
+        <p className="text-xs font-mono text-primary/60 bg-primary/5 rounded px-2 py-1 truncate">
+          {contexto.formula_referencia}
+        </p>
+      )}
+
+      {contexto.analogia_o_ejemplo && (
+        <p className="text-xs text-primary/50 leading-relaxed italic">{contexto.analogia_o_ejemplo}</p>
+      )}
+
+      {contexto.propiedades_clave && contexto.propiedades_clave.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {contexto.propiedades_clave.map((p, i) => (
+            <div key={i} className="flex items-baseline gap-1.5 text-micro">
+              <span className="text-primary/40 uppercase tracking-wide shrink-0">{p.clave}</span>
+              <span className="text-primary/70 truncate">{p.valor}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Tarjeta compacta de una fila de catálogo base (partícula, IUM, Oris,
  * Subsistema, etc.): muestra solo el nombre. Por defecto, al hacer click
  * abre un popover flotante anclado a la tarjeta con el detalle completo —
@@ -567,6 +632,7 @@ function BasesItemCard({
     bloque === "polaridades" || bloque === "particula-base" || bloque === "particulas" || bloque === "iums";
   const esOris = bloque === "oris" && !!original;
   const esSubsistema = bloque === "subsistemas" && !!originalSubsistema;
+  const esEnergia = bloque === "energias";
 
   useEffect(() => {
     if (autoAbrir && botonRef.current) {
@@ -621,6 +687,10 @@ function BasesItemCard({
             onSelectCriatura={onSelectCriatura}
             oris={oris}
           />
+        </PopoverFlotante>
+      ) : esEnergia ? (
+        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={360} maxHeight={480}>
+          <EnergiaFichaContent contexto={(fila as FilaEnergia).contexto} />
         </PopoverFlotante>
       ) : (
         <PopoverFlotante
@@ -878,6 +948,8 @@ export function FisicaPage({
   onEliminarSubsistema,
   onSelectCriatura,
   onOrisSeleccionadoChange,
+  energias,
+  loadingEnergias,
 }: Props) {
   const [seleccion, setSeleccionRaw] = useState<Seleccion>(
     seleccionarOrisId ? { tipo: "oris", id: seleccionarOrisId } : null,
@@ -1112,6 +1184,7 @@ export function FisicaPage({
               iums={iums}
               oris={oris}
               subsistemas={subsistemas}
+              energias={energias}
               onActualizarOris={onActualizarOris}
               onEliminarOris={onEliminarOris}
               onActualizarSubsistema={onActualizarSubsistema}

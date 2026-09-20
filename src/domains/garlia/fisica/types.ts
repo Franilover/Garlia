@@ -135,6 +135,62 @@ export function polaridadAFilaCatalogo(p: Polaridad): FilaPolaridad {
   return { nombre: p.nombre, detalle: p.detalle, signo: p.signo };
 }
 
+// ─── Catálogo: Energías (Eterium / Garin) — después de Subsistemas ─────────
+// A diferencia de Polaridad/ParticulaBase/Ium/Oris, Eterium y Garin NO
+// viven en una tabla propia de Física: son filas de "contexto_humano"
+// (tabla compartida de fichas conceptuales — capa "Magia"), identificadas
+// por su nombre canónico en la columna "concepto" (concepto='Eterium' /
+// concepto='Garin'). El frontend consulta por ese identificador humano en
+// vez de un id fijo hardcodeado. Mismo par S(emisión)/I(recepción) que ya
+// se dibuja como diagrama conceptual en la Rama 3 del Mapa Universal
+// (ver RamaLibres en visualizador/MapaUniversalSection.tsx), pero acá con
+// la ficha completa real en vez de solo el diagrama.
+
+/** Fila cruda tal cual vive en Supabase (tabla "contexto_humano") — shape
+ *  completo de la ficha, no solo lo que necesita el catálogo de Física. */
+export interface ContextoHumano {
+  id: string;
+  concepto: string;
+  explicacion_simple: string | null;
+  formula_referencia: string | null;
+  fuente_documentacion_sistema_concepto: string | null;
+  analogia_o_ejemplo: string | null;
+  capa: string | null;
+  resumen: string | null;
+  que_es: string | null;
+  como_se_forma: string | null;
+  que_hace: string | null;
+  propiedades_clave: { tipo: string; clave: string; valor: string }[] | null;
+  informacion_adicional: string | null;
+  orden_visual: number | null;
+}
+
+export const CONTEXTO_HUMANO_CONFIG = {
+  tabla: "contexto_humano",
+  select:
+    "id, concepto, explicacion_simple, formula_referencia, fuente_documentacion_sistema_concepto, analogia_o_ejemplo, capa, resumen, que_es, como_se_forma, que_hace, propiedades_clave, informacion_adicional, orden_visual",
+};
+
+/** Nombres canónicos de los conceptos de Energías, tal como viven en
+ *  contexto_humano.concepto — usado tanto para el filtro de la query como
+ *  para fijar el orden de la fila (Eterium primero, Garin después, mismo
+ *  orden que ya usa RamaLibres en el Mapa Universal). */
+export const ENERGIAS_CONCEPTOS = ["Eterium", "Garin"] as const;
+
+/** Fila de Energía: reusa FilaCatalogo (nombre/detalle) con el resumen
+ *  como detalle, y trae el registro completo de ContextoHumano para que el
+ *  popover pueda mostrar la ficha rica (explicación, fórmula, analogía,
+ *  propiedades clave) en vez de solo nombre/detalle genérico. */
+export interface FilaEnergia extends FilaCatalogo {
+  contexto: ContextoHumano;
+}
+
+/** Adapta un ContextoHumano (Supabase) al shape FilaEnergia usado por el
+ *  catálogo de Física. */
+export function contextoHumanoAFilaEnergia(c: ContextoHumano): FilaEnergia {
+  return { nombre: c.concepto, detalle: c.resumen ?? c.explicacion_simple ?? "", contexto: c };
+}
+
 // ─── Catálogos: Partícula Base e Iums ──────────────────────────────────────
 // Viven en Supabase (tablas "particulas_base" e "iums") — mismo criterio que
 // "particulas": son catálogos fijos en contenido pero editables desde ahí,

@@ -9,17 +9,21 @@
  * "orden".
  */
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
+import { supabase } from "@/infra/supabase/supabase";
 
 import {
+  CONTEXTO_HUMANO_CONFIG,
+  ENERGIAS_CONCEPTOS,
   FISICA_CONCEPTOS_CONFIG,
   IUMS_CONFIG,
   ORIS_CONFIG,
   PARTICULAS_BASE_CONFIG,
   PARTICULAS_CONFIG,
   POLARIDADES_CONFIG,
+  type ContextoHumano,
   type FisicaConcepto,
   type Ium,
   type Oris,
@@ -27,6 +31,48 @@ import {
   type ParticulaBase,
   type Polaridad,
 } from "./types";
+
+/** Trae las fichas de Eterium/Garin desde "contexto_humano" filtrando por
+ *  concepto (identificador humano/canónico — ver comentario en types.ts),
+ *  no por id fijo. No usa useSupabaseData (pensado para catálogos propios
+ *  de Física con "orden") porque contexto_humano es una tabla compartida
+ *  filtrada por IN, así que se hace el fetch acá directo con supabase. */
+export function useEnergias() {
+  const [items, setItems] = useState<ContextoHumano[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+    supabase
+      .from(CONTEXTO_HUMANO_CONFIG.tabla)
+      .select(CONTEXTO_HUMANO_CONFIG.select)
+      .in("concepto", ENERGIAS_CONCEPTOS)
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) {
+          console.error("[useEnergias] error cargando contexto_humano:", error);
+          setItems([]);
+        } else {
+          // Orden fijo (Eterium, Garin) según ENERGIAS_CONCEPTOS, no el
+          // orden que devuelva Supabase — mismo criterio visual que
+          // RamaLibres en el Mapa Universal.
+          const porConcepto = new Map((data as ContextoHumano[]).map((c) => [c.concepto, c]));
+          setItems(
+            ENERGIAS_CONCEPTOS.map((nombre) => porConcepto.get(nombre)).filter(
+              (c): c is ContextoHumano => !!c,
+            ),
+          );
+        }
+        setLoading(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  return { items, loading };
+}
 
 export function usePolaridades() {
   const { data, setData, loading } = useSupabaseData<Polaridad>(POLARIDADES_CONFIG.tabla, {
