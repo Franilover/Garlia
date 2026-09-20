@@ -428,8 +428,40 @@ function TodasLasBasesView({
             tarjeta ancha apilada verticalmente, así que una columna con
             pocos ítems reparte en una o dos líneas cortas en vez de
             ocupar todo el alto disponible en una lista de 1 columna. */}
+        {/* Polaridades Fundamentales + Partícula Base van apiladas en una
+            sola columna angosta (ambas con muy pocos ítems: 2 y 3-4) en
+            vez de cada una llevarse su propio ancho de columna en el
+            flex-wrap — evita el hueco vacío enorme que dejaban al ir
+            sueltas. El resto (Partículas / Iums / Oris / Subsistemas)
+            sigue en su propia columna proporcional a su cantidad de
+            ítems, como antes. */}
         <div className="flex flex-wrap gap-3 items-start">
-          {catalogos.map(({ key, titulo, filas }) => (
+          <div className="flex flex-col gap-4 min-w-[180px]" style={{ flexGrow: 1, flexBasis: 0 }}>
+            {catalogos
+              .filter(({ key }) => key === "polaridades" || key === "particula-base")
+              .map(({ key, titulo, filas }) => (
+                <div key={key} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
+                    <BasesRowTitle titulo={titulo} cantidad={filas.length} />
+                  </div>
+                  {filas.length === 0 ? (
+                    <div className="py-4 text-micro text-primary/25 text-center border border-dashed border-primary/10 rounded-md">
+                      Sin {titulo.toLowerCase()} todavía
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {filas.map((f, i) => (
+                        <BasesItemCard key={f.nombre + i} fila={f} bloque={key} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+          </div>
+
+          {catalogos
+            .filter(({ key }) => key !== "polaridades" && key !== "particula-base")
+            .map(({ key, titulo, filas }) => (
             <div
               key={key}
               className="flex flex-col gap-2 min-w-[180px]"
