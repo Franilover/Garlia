@@ -33,7 +33,7 @@
  * backdrop blur), no una barra lateral fija.
  */
 
-import { ChevronDown, ChevronRight, Dna, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Dna, Info, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -200,6 +200,9 @@ function etiquetaRelacionPadre(rel: string | null): string {
 // que el árbol actual no usa.
 
 function LeyendaCladograma({ clados }: { clados: Clado[] }) {
+  const [abierta, setAbierta] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
   const relaciones = useMemo(() => {
     const set = new Set<RelacionPadreClado>();
     for (const c of clados) if (c.padre_id && c.relacion_padre) set.add(c.relacion_padre);
@@ -214,33 +217,80 @@ function LeyendaCladograma({ clados }: { clados: Clado[] }) {
     );
   }, [clados]);
 
+  React.useEffect(() => {
+    if (!abierta) return;
+    function onClickFuera(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setAbierta(false);
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbierta(false);
+    }
+    document.addEventListener("mousedown", onClickFuera);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onClickFuera);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [abierta]);
+
   if (relaciones.length === 0 && tipos.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2 px-1">
-      {relaciones.map((r) => (
-        <span key={r} className="flex items-center gap-1.5 text-micro text-primary/45">
-          <svg width={26} height={6} aria-hidden>
-            <line
-              x1={0}
-              y1={3}
-              x2={26}
-              y2={3}
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeDasharray={dashDeRama(r)}
-              className="text-primary/40"
-            />
-          </svg>
-          {RELACION_PADRE_CLADO_LABEL[r]}
-        </span>
-      ))}
-      {tipos.map((t) => (
-        <span key={t} className="flex items-center gap-1 text-micro text-primary/45">
-          <span className="font-black text-accent/60 text-[10px]">{TIPO_NODO_GLIFO[t]}</span>
-          {TIPO_NODO_CLADO_LABEL[t]}
-        </span>
-      ))}
+    <div ref={containerRef} className="relative inline-block mb-2">
+      <button
+        type="button"
+        onClick={() => setAbierta((prev) => !prev)}
+        title="Leyenda del cladograma"
+        className="flex items-center justify-center w-5 h-5 rounded-full border border-primary/20 text-primary/40 hover:text-primary hover:border-primary/40 transition-colors cursor-pointer"
+      >
+        <Info size={11} />
+      </button>
+
+      {abierta && (
+        <div
+          className="absolute z-30 mt-1 left-0 min-w-[16rem] rounded-lg border p-2.5 flex flex-col gap-2"
+          style={{
+            background: "var(--bg-main)",
+            borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+            animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {relaciones.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {relaciones.map((r) => (
+                <span key={r} className="flex items-center gap-1.5 text-micro text-primary/60">
+                  <svg width={26} height={6} aria-hidden>
+                    <line
+                      x1={0}
+                      y1={3}
+                      x2={26}
+                      y2={3}
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeDasharray={dashDeRama(r)}
+                      className="text-primary/40"
+                    />
+                  </svg>
+                  {RELACION_PADRE_CLADO_LABEL[r]}
+                </span>
+              ))}
+            </div>
+          )}
+          {tipos.length > 0 && (
+            <div className="flex flex-col gap-1 pt-1.5 border-t border-primary/8">
+              {tipos.map((t) => (
+                <span key={t} className="flex items-center gap-1.5 text-micro text-primary/60">
+                  <span className="font-black text-accent/60 text-[10px] w-[26px] text-center">
+                    {TIPO_NODO_GLIFO[t]}
+                  </span>
+                  {TIPO_NODO_CLADO_LABEL[t]}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
