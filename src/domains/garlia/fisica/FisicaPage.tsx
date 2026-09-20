@@ -29,7 +29,7 @@ import { useConfirm } from "@/ui/ConfirmModal";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 
 import { OrisEditor } from "./OrisEditor";
-import { IumVisual, ParticulaVisual } from "./ParticulaVisual";
+import { IumVisual, ParticulaVisual, type LetraATS } from "./ParticulaVisual";
 import {
   contextoHumanoAFilaEnergia,
   FISICA_CONCEPTOS_CONFIG,
@@ -566,15 +566,94 @@ function TodasLasBasesView({
 }
 
 /**
+ * Extrae la letra TASI de fundamento (S para Eterium, I para Garin) desde
+ * propiedades_clave (clave="fundamento_tasi") — dato real de Supabase, no
+ * hardcodeado, así que si mañana cambia el fundamento de un concepto acá
+ * se sigue solo. Fallback a null si no está la propiedad o no es una letra
+ * TASI válida — en ese caso no se dibuja el diagrama.
+ */
+function letraFundamentoDe(contexto: ContextoHumano): LetraATS | null {
+  const prop = contexto.propiedades_clave?.find((p) => p.clave === "fundamento_tasi");
+  const letra = prop?.valor?.trim().toUpperCase();
+  return letra === "A" || letra === "T" || letra === "S" || letra === "I" ? letra : null;
+}
+
+/**
+ * Diagrama de la letra de fundamento repetida, con dos layouts opuestos
+ * según polaridad — no es un grid prolijo, la disposición ES el
+ * significado:
+ *   - S (Eterium, emisión + → −): las 9 se dibujan pegadas, tocándose,
+ *     como imantadas hacia el centro — "atracción".
+ *   - I (Garin, recepción − → +): las 9 se dispersan lejos unas de otras
+ *     dentro del mismo lienzo, con posiciones irregulares (no una grilla
+ *     regular) para leerse como que se empujan — "repulsión".
+ * Posiciones fijas a mano (no una simulación física real) porque son
+ * siempre 9 círculos del mismo tamaño en el mismo lienzo — alcanza con
+ * dos layouts estáticos que se lean claramente distintos de un vistazo.
+ */
+const LIENZO = 180;
+const R_CIRCULO = 34;
+
+// S: 9 círculos apretados unos contra otros en un empaquetado hexagonal
+// (3 filas de 3, offset alternado) — el radio de paso es casi igual al
+// diámetro, así que se tocan entre sí.
+const POSICIONES_ATRAIDAS: { x: number; y: number }[] = [
+  { x: -1, y: -1 }, { x: 0, y: -1 }, { x: 1, y: -1 },
+  { x: -1, y: 0 },  { x: 0, y: 0 },  { x: 1, y: 0 },
+  { x: -1, y: 1 },  { x: 0, y: 1 },  { x: 1, y: 1 },
+].map((p) => ({ x: p.x * R_CIRCULO * 1.05, y: p.y * R_CIRCULO * 1.05 }));
+
+// I: 9 círculos empujados hacia los bordes/esquinas del lienzo, con
+// separación irregular entre sí (nunca dos muy cerca) — sensación de
+// "se repelen y no pueden juntarse".
+const POSICIONES_REPELIDAS: { x: number; y: number }[] = [
+  { x: -68, y: -68 }, { x: 0, y: -76 },  { x: 68, y: -64 },
+  { x: -78, y: 4 },                       { x: 74, y: 10 },
+  { x: -60, y: 70 },  { x: 8, y: 78 },   { x: 66, y: 66 },
+  { x: -6, y: 0 },
+];
+
+function GridLetraFundamento({ letra }: { letra: LetraATS }) {
+  const atraccion = letra === "S";
+  const posiciones = atraccion ? POSICIONES_ATRAIDAS : POSICIONES_REPELIDAS;
+  const size = atraccion ? R_CIRCULO * 1.15 : R_CIRCULO * 0.75;
+  return (
+    <div className="relative" style={{ width: LIENZO, height: LIENZO }}>
+      {posiciones.map((p, i) => (
+        <div
+          key={i}
+          className="absolute"
+          style={{
+            left: LIENZO / 2 + p.x - size / 2,
+            top: LIENZO / 2 + p.y - size / 2,
+          }}
+        >
+          <ParticulaVisual formula={letra} size={size} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * Contenido del popover de una Energía (Eterium/Garin): ficha completa de
  * "contexto_humano" — resumen, explicación simple, fórmula de referencia,
  * analogía y propiedades clave — en vez del layout genérico nombre/detalle
- * que usan Oris/Subsistemas/Partícula Base. Solo lectura: no hay edición
- * desde acá, la ficha vive y se edita en contexto_humano directamente.
+ * que usan Oris/Subsistemas/Partícula Base. Encabeza con el grid de la
+ * letra de fundamento (S para Eterium, I para Garin) repetida, derivada de
+ * propiedades_clave (no hardcodeada). Solo lectura: no hay edición desde
+ * acá, la ficha vive y se edita en contexto_humano directamente.
  */
 function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
+  const letraFundamento = letraFundamentoDe(contexto);
   return (
     <div className="flex flex-col gap-3">
+      {letraFundamento && (
+        <div className="flex justify-center py-1">
+          <GridLetraFundamento letra={letraFundamento} />
+        </div>
+      )}
+
       <div>
         <p className="text-xs font-black uppercase tracking-wide text-primary">{contexto.concepto}</p>
         {contexto.resumen && (
