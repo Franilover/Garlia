@@ -1084,7 +1084,17 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
           relaciones={relacionesDe(seleccionado.id)}
           organismos={organismosDe(seleccionado.id)}
           criaturasDe={criaturasDe}
-          onAbrirOrganismo={onAbrirOrganismo}
+          onAbrirOrganismo={
+            onAbrirOrganismo
+              ? (organismoId) => {
+                  // Al abrir el organismo, este panel de clado se cierra:
+                  // el flotante de Organismo pasa a ser el único panel
+                  // visible, en vez de apilarse encima del de Clado.
+                  setSeleccionadoId(null);
+                  onAbrirOrganismo(organismoId);
+                }
+              : undefined
+          }
           cladoPorId={cladoPorId}
           onSelectClado={setSeleccionadoId}
           onCerrar={() => setSeleccionadoId(null)}

@@ -720,6 +720,30 @@ export function BiologiaCladograma({ onSelectCriatura, onAbrirOrganismo }: Props
   const [importando, setImportando] = useState(false);
   const [mensajeImportacion, setMensajeImportacion] = useState<string | null>(null);
 
+  // Panel de Organismo propio de este bloque: cuando no viene un
+  // onAbrirOrganismo desde afuera (ej. RunasPage no lo conecta todavía),
+  // el cladograma resuelve la apertura por su cuenta con el mismo editor
+  // que usa BiologiaCatalogos (PanelEditorOrganismo) — self-contained,
+  // como el resto de este componente. CladisticaPage ya cierra el panel
+  // de Clado seleccionado antes de llamar a onAbrirOrganismo, así que acá
+  // solo queda un panel visible a la vez.
+  const organismosCladograma = useOrganismos();
+  const sistemasCladograma = useSistemas();
+  const [organismoAbiertoId, setOrganismoAbiertoId] = useState<string | null>(null);
+
+  async function actualizarOrganismoCladograma(id: string, cambios: Partial<Organismo>) {
+    organismosCladograma.setItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
+    const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
+    if (error) console.error("[BiologiaCladograma] error actualizando organismo:", error);
+  }
+
+  async function eliminarOrganismoCladograma(id: string): Promise<{ ok: boolean; error: unknown }> {
+    const { error } = await supabase.from("organismos").delete().eq("id", id);
+    if (error) return { ok: false, error };
+    organismosCladograma.setItems((prev) => prev.filter((o) => o.id !== id));
+    return { ok: true, error: null };
+  }
+
   async function handleArchivoSeleccionado(e: React.ChangeEvent<HTMLInputElement>) {
     const archivo = e.target.files?.[0];
     e.target.value = "";
@@ -792,8 +816,83 @@ export function BiologiaCladograma({ onSelectCriatura, onAbrirOrganismo }: Props
         </div>
       )}
 
-      <CladisticaPage onSelectCriatura={onSelectCriatura} onAbrirOrganismo={onAbrirOrganismo} />
+      <CladisticaPage
+        onSelectCriatura={onSelectCriatura}
+        onAbrirOrganismo={onAbrirOrganismo ?? ((id) => setOrganismoAbiertoId(id))}
+      />
+
+      {organismoAbiertoId &&
+        (() => {
+          const organismo = organismosCladograma.items.find((o) => o.id === organismoAbiertoId);
+          if (!organismo) return null;
+          return (
+            <OrganismoPanelFlotanteCladograma onCerrar={() => setOrganismoAbiertoId(null)}>
+              <PanelEditorOrganismo
+                item={organismo}
+                sistemas={sistemasCladograma.items}
+                loadingSistemas={sistemasCladograma.loading}
+                onCerrar={() => setOrganismoAbiertoId(null)}
+                onActualizar={actualizarOrganismoCladograma}
+                onEliminar={async (id) => {
+                  const res = await eliminarOrganismoCladograma(id);
+                  if (res.ok) setOrganismoAbiertoId(null);
+                  return res;
+                }}
+                onAbrirCriatura={
+                  onSelectCriatura
+                    ? (id) => {
+                        setOrganismoAbiertoId(null);
+                        onSelectCriatura(id);
+                      }
+                    : undefined
+                }
+              />
+            </OrganismoPanelFlotanteCladograma>
+          );
+        })()}
     </div>
+  );
+}
+
+// Portal + backdrop mínimo para el panel de Organismo del cladograma —
+// mismo patrón visual que CladoPanelFlotante (CladisticaPage.tsx): fondo
+// difuminado, click afuera y Escape cierran.
+function OrganismoPanelFlotanteCladograma({
+  children,
+  onCerrar,
+}: {
+  children: React.ReactNode;
+  onCerrar: () => void;
+}) {
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
   );
 }
 
