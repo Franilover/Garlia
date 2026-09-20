@@ -463,6 +463,62 @@ export function EditorCriatura({
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
+        {/* Breadcrumb completo Célula ⇄ … ⇄ Organismo ⇄ Criatura, parado
+            en Criatura. Vive FUERA de las secciones Normal/Biología/Extra
+            para verse siempre: cada nivel abre un popover con TODO lo
+            alcanzable en ese nivel (unión de los Organismos de esta
+            Criatura) y salta directo, sin pasar nivel por nivel. */}
+        <div className="shrink-0 px-3 pt-2 relative z-30">
+          <BreadcrumbJerarquia
+            niveles={[
+              {
+                label: "Célula",
+                icono: <Beaker size={10} />,
+                activo: false,
+                items: composicionCriatura.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
+                loading: composicionCriatura.loading,
+                onNavegar: saltarACelula,
+              },
+              {
+                label: "Tejido",
+                icono: <Layers size={10} />,
+                activo: false,
+                items: composicionCriatura.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
+                loading: composicionCriatura.loading,
+                onNavegar: saltarATejido,
+              },
+              {
+                label: "Órgano",
+                icono: <Boxes size={10} />,
+                activo: false,
+                items: composicionCriatura.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
+                loading: composicionCriatura.loading,
+                onNavegar: saltarAOrgano,
+              },
+              {
+                label: "Sistema",
+                icono: <Layers size={10} />,
+                activo: false,
+                items: composicionCriatura.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
+                loading: composicionCriatura.loading,
+                onNavegar: saltarASistema,
+              },
+              {
+                label: "Organismo",
+                icono: <Boxes size={10} />,
+                activo: false,
+                items: organismosCriatura.items.map((v) => ({
+                  id: v.organismo_id,
+                  nombre: v.organismo.nombre,
+                })),
+                loading: organismosCriatura.loading,
+                onNavegar: saltarAOrganismo,
+              },
+              { label: "Criatura", icono: <PawPrint size={10} />, activo: true },
+            ]}
+          />
+        </div>
+
         {/* ── Contenido superior ───────────────────────────────────────────── */}
         <div
           className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
@@ -559,61 +615,6 @@ export function EditorCriatura({
                 reinicie al ir y volver entre secciones. */}
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
               <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
-                {/* Breadcrumb completo Célula ⇄ … ⇄ Organismo ⇄ Criatura, parado
-                    en Criatura: cada nivel abre un popover con TODO lo
-                    alcanzable en ese nivel (unión de los Organismos de esta
-                    Criatura) y salta directo, sin pasar nivel por nivel. */}
-                <div className="shrink-0">
-                  <BreadcrumbJerarquia
-                    niveles={[
-                      {
-                        label: "Célula",
-                        icono: <Beaker size={10} />,
-                        activo: false,
-                        items: composicionCriatura.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
-                        loading: composicionCriatura.loading,
-                        onNavegar: saltarACelula,
-                      },
-                      {
-                        label: "Tejido",
-                        icono: <Layers size={10} />,
-                        activo: false,
-                        items: composicionCriatura.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
-                        loading: composicionCriatura.loading,
-                        onNavegar: saltarATejido,
-                      },
-                      {
-                        label: "Órgano",
-                        icono: <Boxes size={10} />,
-                        activo: false,
-                        items: composicionCriatura.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
-                        loading: composicionCriatura.loading,
-                        onNavegar: saltarAOrgano,
-                      },
-                      {
-                        label: "Sistema",
-                        icono: <Layers size={10} />,
-                        activo: false,
-                        items: composicionCriatura.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
-                        loading: composicionCriatura.loading,
-                        onNavegar: saltarASistema,
-                      },
-                      {
-                        label: "Organismo",
-                        icono: <Boxes size={10} />,
-                        activo: false,
-                        items: organismosCriatura.items.map((v) => ({
-                          id: v.organismo_id,
-                          nombre: v.organismo.nombre,
-                        })),
-                        loading: organismosCriatura.loading,
-                        onNavegar: saltarAOrganismo,
-                      },
-                      { label: "Criatura", icono: <PawPrint size={10} />, activo: true },
-                    ]}
-                  />
-                </div>
-
                 {/* Fila 1: Organismo — vínculo criatura→organismo (rol,
                     cantidad, principal). El bloque "Rasgos evolutivos"
                     (Perfil atómico, tabla perfiles_atomicos_criatura) se
