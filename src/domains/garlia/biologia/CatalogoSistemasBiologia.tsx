@@ -23,7 +23,7 @@
  * Mismo lenguaje visual que CatalogoTejidosBiologia/GridCatalogoGrupo.
  */
 
-import { Beaker, Boxes, ChevronLeft, Layers, Plus, Save, Trash2, X, Search } from "lucide-react";
+import { Beaker, Boxes, ChevronLeft, Layers, PawPrint, Plus, Save, Trash2, X, Search } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -38,6 +38,7 @@ import { useSistemasDeUnOrgano } from "@/domains/garlia/elementos/useSistemasDeU
 import { useComposicionDeUnSistema } from "@/domains/garlia/elementos/useComposicionDeUnSistema";
 import { useOrganismosDeUnSistema } from "@/domains/garlia/elementos/useOrganismosDeUnSistema";
 import { useComposicionDeUnOrganismo } from "@/domains/garlia/elementos/useComposicionDeUnOrganismo";
+import { useCriaturasDeUnOrganismo } from "@/domains/garlia/elementos/useCriaturasDeUnOrganismo";
 import type { Organismo, Organo, Sistema } from "@/domains/garlia/elementos/types";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
 import {
@@ -342,6 +343,7 @@ export function PanelEditorOrganismo({
   onAbrirCelula,
   onAbrirTejido,
   onAbrirOrgano,
+  onAbrirCriatura,
   sinAnimacion,
 }: {
   item: Organismo;
@@ -359,6 +361,16 @@ export function PanelEditorOrganismo({
   onAbrirTejido?: (tejidoId: string) => void;
   /** Misma unión transitiva, un nivel más arriba todavía. */
   onAbrirOrgano?: (organoId: string) => void;
+  /**
+   * Cierra este panel (y todo el shell de Biología) y navega a la Criatura
+   * elegida — techo de la cadena completa:
+   *   Célula ⇄ Tejido ⇄ Órgano ⇄ Sistema ⇄ Organismo ⇄ Criatura
+   * A diferencia de onAbrirSistema/onAbrirOrgano/etc., esto sale del shell
+   * de edición de Biología: Criatura vive en otro dominio (domains/garlia/
+   * criaturas), así que el padre (BiologiaPage vía onSelectCriatura)
+   * decide qué hacer — típicamente abrir el editor de esa Criatura.
+   */
+  onAbrirCriatura?: (criaturaId: string) => void;
   /** true cuando este panel se abrió como salto desde OTRO nivel del
    *  breadcrumb — suprime la animación de entrada. */
   sinAnimacion?: boolean;
@@ -369,6 +381,7 @@ export function PanelEditorOrganismo({
 
   const vinculosSistema = useOrganismoSistemas(item.id);
   const composicion = useComposicionDeUnOrganismo(item.id);
+  const criaturasQueUsanEsteOrganismo = useCriaturasDeUnOrganismo(item.id);
 
   async function handleEliminar() {
     const ok = await confirm({
@@ -433,6 +446,17 @@ export function PanelEditorOrganismo({
               onNavegar: onAbrirSistema,
             },
             { label: "Organismo", icono: <Boxes size={10} />, activo: true },
+            {
+              label: "Criatura",
+              icono: <PawPrint size={10} />,
+              activo: false,
+              items: criaturasQueUsanEsteOrganismo.items.map((c) => ({
+                id: c.criatura_id,
+                nombre: c.criatura.nombre,
+              })),
+              loading: criaturasQueUsanEsteOrganismo.loading,
+              onNavegar: onAbrirCriatura,
+            },
           ]}
         />
       </div>

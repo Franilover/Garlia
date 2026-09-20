@@ -215,6 +215,7 @@ function PanelEditorActivoBiologia({
   onAbrirOrgano,
   onAbrirSistema,
   onAbrirOrganismo,
+  onAbrirCriatura,
 }: {
   panelActivo: { tipo: "celula" | "tejido" | "organo" | "sistema" | "organismo"; id: string };
   sinAnimacion: boolean;
@@ -243,6 +244,9 @@ function PanelEditorActivoBiologia({
   onAbrirOrgano: (id: string) => void;
   onAbrirSistema: (id: string) => void;
   onAbrirOrganismo: (id: string) => void;
+  /** Sale del shell de Biología hacia el dominio Criatura — ver comentario
+   *  en PanelEditorOrganismo.onAbrirCriatura (CatalogoSistemasBiologia). */
+  onAbrirCriatura?: (id: string) => void;
 }) {
   if (panelActivo.tipo === "celula") {
     const item = celulas.find((c) => c.id === panelActivo.id);
@@ -324,6 +328,7 @@ function PanelEditorActivoBiologia({
         onAbrirCelula={onAbrirCelula}
         onAbrirTejido={onAbrirTejido}
         onAbrirOrgano={onAbrirOrgano}
+        onAbrirCriatura={onAbrirCriatura}
       />
     );
   }
@@ -604,6 +609,17 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAbrirOrgano={(id) => abrirPanel("organo", id, true)}
             onAbrirSistema={(id) => abrirPanel("sistema", id, true)}
             onAbrirOrganismo={(id) => abrirPanel("organismo", id, true)}
+            onAbrirCriatura={
+              onSelectCriatura
+                ? (id) => {
+                    // Sale del shell de Biología (Criatura vive en otro
+                    // dominio) — mismo patrón que onAbrirCompuesto arriba:
+                    // cierra el panel actual antes de delegar al padre.
+                    cerrarPanel();
+                    onSelectCriatura(id);
+                  }
+                : undefined
+            }
           />
         </PanelFlotanteShellBiologia>
       )}
