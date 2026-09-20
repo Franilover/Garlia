@@ -720,21 +720,64 @@ export function BiologiaCladograma({ onSelectCriatura, onAbrirOrganismo }: Props
   const [importando, setImportando] = useState(false);
   const [mensajeImportacion, setMensajeImportacion] = useState<string | null>(null);
 
-  // Panel de Organismo propio de este bloque: cuando no viene un
-  // onAbrirOrganismo desde afuera (ej. RunasPage no lo conecta todavía),
-  // el cladograma resuelve la apertura por su cuenta con el mismo editor
-  // que usa BiologiaCatalogos (PanelEditorOrganismo) — self-contained,
-  // como el resto de este componente. CladisticaPage ya cierra el panel
-  // de Clado seleccionado antes de llamar a onAbrirOrganismo, así que acá
-  // solo queda un panel visible a la vez.
-  const organismosCladograma = useOrganismos();
+  // Panel de nivel raíz propio de este bloque (Célula/Tejido/Órgano/
+  // Sistema/Organismo) — mismo motor que panelActivo en BiologiaCatalogos
+  // (PanelEditorActivoBiologia + PanelFlotanteShellBiologia), así que al
+  // bajar desde Organismo el click en Sistema/Célula/Tejido/Órgano navega
+  // igual que en el resto de Biología, en vez de quedar deshabilitado.
+  // Se usa solo cuando no viene un onAbrirOrganismo desde afuera (ej.
+  // RunasPage no lo conecta todavía) — self-contained, como el resto de
+  // este componente. CladisticaPage ya cierra el panel de Clado
+  // seleccionado antes de llamar a onAbrirOrganismo, así que acá solo
+  // queda un panel visible a la vez.
+  // Nota: esto trae su propia copia de useCelulas/useTejidos/useSistemas/
+  // useOrganismos/useOrganos, independiente de la de BiologiaCatalogos —
+  // mismo criterio "self-contained" que ya tenía este componente para
+  // clados (ver comentario de useClados arriba), así que no le agrega
+  // acoplamiento nuevo a BiologiaCatalogos ni depende de su estado.
+  type TipoPanelBiologia = "celula" | "tejido" | "organo" | "sistema" | "organismo";
+  const celulasCladograma = useCelulas();
+  const tejidosCladograma = useTejidos();
   const sistemasCladograma = useSistemas();
-  const [organismoAbiertoId, setOrganismoAbiertoId] = useState<string | null>(null);
+  const organismosCladograma = useOrganismos();
+  const organosCladograma = useOrganos();
+  const { items: elementosCladograma } = useElementos();
+  const { items: compuestosCladograma, loading: loadingCompuestosCladograma, setItems: setCompuestosCladograma } = useCompuestosConElementos();
+  const [panelActivo, setPanelActivo] = useState<{ tipo: TipoPanelBiologia; id: string } | null>(null);
+  const [compuestoAbiertoIdCladograma, setCompuestoAbiertoIdCladograma] = useState<string | null>(null);
+  const [navegandoEntreNiveles, setNavegandoEntreNiveles] = useState(false);
+  const abrirPanel = (tipo: TipoPanelBiologia, id: string, esNavegacion = false) => {
+    if (esNavegacion) {
+      setNavegandoEntreNiveles(true);
+      requestAnimationFrame(() => setNavegandoEntreNiveles(false));
+    }
+    setPanelActivo({ tipo, id });
+  };
+  const cerrarPanel = () => setPanelActivo(null);
+
+  async function actualizarOrganoCladograma(id: string, cambios: Partial<Organo>) {
+    organosCladograma.setItems((prev) => prev.map((g) => (g.id === id ? { ...g, ...cambios } : g)));
+    const { error } = await supabase.from("organos").update(cambios).eq("id", id);
+    if (error) console.error("[BiologiaCladograma] error guardando órgano:", error);
+  }
+
+  async function actualizarSistemaCladograma(id: string, cambios: Partial<Sistema>) {
+    sistemasCladograma.setItems((prev) => prev.map((s) => (s.id === id ? { ...s, ...cambios } : s)));
+    const { error } = await supabase.from("sistemas").update(cambios).eq("id", id);
+    if (error) console.error("[BiologiaCladograma] error actualizando sistema:", error);
+  }
 
   async function actualizarOrganismoCladograma(id: string, cambios: Partial<Organismo>) {
     organismosCladograma.setItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
     const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
     if (error) console.error("[BiologiaCladograma] error actualizando organismo:", error);
+  }
+
+  async function eliminarSistemaCladograma(id: string): Promise<{ ok: boolean; error: unknown }> {
+    const { error } = await supabase.from("sistemas").delete().eq("id", id);
+    if (error) return { ok: false, error };
+    sistemasCladograma.setItems((prev) => prev.filter((s) => s.id !== id));
+    return { ok: true, error: null };
   }
 
   async function eliminarOrganismoCladograma(id: string): Promise<{ ok: boolean; error: unknown }> {
@@ -818,81 +861,92 @@ export function BiologiaCladograma({ onSelectCriatura, onAbrirOrganismo }: Props
 
       <CladisticaPage
         onSelectCriatura={onSelectCriatura}
-        onAbrirOrganismo={onAbrirOrganismo ?? ((id) => setOrganismoAbiertoId(id))}
+        onAbrirOrganismo={onAbrirOrganismo ?? ((id) => abrirPanel("organismo", id))}
       />
 
-      {organismoAbiertoId &&
+      {panelActivo && (
+        <PanelFlotanteShellBiologia onCerrar={cerrarPanel}>
+          <PanelEditorActivoBiologia
+            panelActivo={panelActivo}
+            sinAnimacion={navegandoEntreNiveles}
+            celulas={celulasCladograma.items}
+            onActualizarCelula={celulasCladograma.actualizar}
+            onEliminarCelula={async (id) => {
+              const res = await celulasCladograma.eliminar(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            tejidos={tejidosCladograma.items}
+            loadingTejidos={tejidosCladograma.loading}
+            onActualizarTejido={tejidosCladograma.actualizar}
+            onEliminarTejido={async (id) => {
+              const res = await tejidosCladograma.eliminar(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            sistemas={sistemasCladograma.items}
+            loadingSistemas={sistemasCladograma.loading}
+            onActualizarSistema={actualizarSistemaCladograma}
+            onEliminarSistema={async (id) => {
+              const res = await eliminarSistemaCladograma(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            organismos={organismosCladograma.items}
+            onActualizarOrganismo={actualizarOrganismoCladograma}
+            onEliminarOrganismo={async (id) => {
+              const res = await eliminarOrganismoCladograma(id);
+              if (res.ok) cerrarPanel();
+              return res;
+            }}
+            organos={organosCladograma.items}
+            onActualizarOrgano={actualizarOrganoCladograma}
+            compuestos={compuestosCladograma}
+            loadingCompuestos={loadingCompuestosCladograma}
+            onCerrar={cerrarPanel}
+            onAbrirCompuesto={(id) => {
+              // Mismo criterio que BiologiaCatalogos.onAbrirCompuesto: cierra
+              // el panel de nivel raíz antes de subir el id, para que no
+              // queden dos paneles (z-[9999] fijo en ambos) apilados.
+              cerrarPanel();
+              setCompuestoAbiertoIdCladograma(id);
+            }}
+            onAbrirCelula={(id) => abrirPanel("celula", id, true)}
+            onAbrirTejido={(id) => abrirPanel("tejido", id, true)}
+            onAbrirOrgano={(id) => abrirPanel("organo", id, true)}
+            onAbrirSistema={(id) => abrirPanel("sistema", id, true)}
+            onAbrirOrganismo={(id) => abrirPanel("organismo", id, true)}
+            onAbrirCriatura={
+              onSelectCriatura
+                ? (id) => {
+                    cerrarPanel();
+                    onSelectCriatura(id);
+                  }
+                : undefined
+            }
+          />
+        </PanelFlotanteShellBiologia>
+      )}
+
+      {compuestoAbiertoIdCladograma &&
         (() => {
-          const organismo = organismosCladograma.items.find((o) => o.id === organismoAbiertoId);
-          if (!organismo) return null;
+          const compuesto = compuestosCladograma.find((c) => c.id === compuestoAbiertoIdCladograma);
+          if (!compuesto) return null;
           return (
-            <OrganismoPanelFlotanteCladograma onCerrar={() => setOrganismoAbiertoId(null)}>
-              <PanelEditorOrganismo
-                item={organismo}
-                sistemas={sistemasCladograma.items}
-                loadingSistemas={sistemasCladograma.loading}
-                onCerrar={() => setOrganismoAbiertoId(null)}
-                onActualizar={actualizarOrganismoCladograma}
-                onEliminar={async (id) => {
-                  const res = await eliminarOrganismoCladograma(id);
-                  if (res.ok) setOrganismoAbiertoId(null);
-                  return res;
-                }}
-                onAbrirCriatura={
-                  onSelectCriatura
-                    ? (id) => {
-                        setOrganismoAbiertoId(null);
-                        onSelectCriatura(id);
-                      }
-                    : undefined
-                }
-              />
-            </OrganismoPanelFlotanteCladograma>
+            <CompuestoPanelFlotante
+              compuesto={compuesto}
+              elementos={elementosCladograma}
+              todosLosCompuestos={compuestosCladograma}
+              onCerrar={() => setCompuestoAbiertoIdCladograma(null)}
+              onActualizar={(id, cambios) =>
+                setCompuestosCladograma((prev) =>
+                  prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)),
+                )
+              }
+            />
           );
         })()}
     </div>
-  );
-}
-
-// Portal + backdrop mínimo para el panel de Organismo del cladograma —
-// mismo patrón visual que CladoPanelFlotante (CladisticaPage.tsx): fondo
-// difuminado, click afuera y Escape cierran.
-function OrganismoPanelFlotanteCladograma({
-  children,
-  onCerrar,
-}: {
-  children: React.ReactNode;
-  onCerrar: () => void;
-}) {
-  React.useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onCerrar]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
-      style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
-    >
-      {children}
-    </div>,
-    document.body,
   );
 }
 
