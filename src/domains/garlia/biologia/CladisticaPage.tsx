@@ -632,243 +632,255 @@ function PanelClado({
   );
 
   return (
-    <div className="flex flex-col gap-3.5">
-      {/* Contrato de Supabase — solo lectura: se muestra lo que la base
-          declara, sin inferir. */}
-      <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-1.5">
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Representa
-          </span>
-          <span className="text-xs font-bold text-primary/80 text-right">
-            {etiquetaTipoNodo(clado.tipo_nodo)}
-          </span>
-        </div>
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Unión con el padre
-          </span>
-          <span className="text-xs font-bold text-primary/80 text-right">
-            {padre ? etiquetaRelacionPadre(clado.relacion_padre) : "— (raíz)"}
-          </span>
-        </div>
-        {padre && (
+    <div className="flex flex-col gap-3.5 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-3.5 md:items-start">
+      {/* Columna izquierda: metadatos de solo lectura + campos editables
+          (Sinapomorfía, Descripción). Mismo criterio de 2 columnas que
+          CompuestoEditor (gráfico+propiedades / composición+enlaces): más
+          uso del ancho horizontal disponible en el panel max-w-6xl, en vez
+          de todo apilado en una sola columna angosta. */}
+      <div className="flex flex-col gap-3.5 min-w-0">
+        {/* Contrato de Supabase — solo lectura: se muestra lo que la base
+            declara, sin inferir. */}
+        <div className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-2 flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Padre
+              Representa
             </span>
-            <button
-              type="button"
-              onClick={() => onSelectClado(padre.id)}
-              className="text-xs font-bold text-accent/80 hover:text-accent transition-colors text-right"
-            >
-              {padre.nombre || "Sin nombre"}
-            </button>
+            <span className="text-xs font-bold text-primary/80 text-right">
+              {etiquetaTipoNodo(clado.tipo_nodo)}
+            </span>
           </div>
-        )}
-        {clado.rango && (
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Rango
+              Unión con el padre
             </span>
-            <span className="text-xs font-bold text-primary/60 text-right">{clado.rango}</span>
+            <span className="text-xs font-bold text-primary/80 text-right">
+              {padre ? etiquetaRelacionPadre(clado.relacion_padre) : "— (raíz)"}
+            </span>
           </div>
-        )}
-        {clado.estado && (
+          {padre && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+                Padre
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectClado(padre.id)}
+                className="text-xs font-bold text-accent/80 hover:text-accent transition-colors text-right"
+              >
+                {padre.nombre || "Sin nombre"}
+              </button>
+            </div>
+          )}
+          {clado.rango && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+                Rango
+              </span>
+              <span className="text-xs font-bold text-primary/60 text-right">{clado.rango}</span>
+            </div>
+          )}
+          {clado.estado && (
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
+                Estado
+              </span>
+              <span className="text-xs font-bold text-primary/60 text-right">{clado.estado}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-              Estado
+              Hijos
             </span>
-            <span className="text-xs font-bold text-primary/60 text-right">{clado.estado}</span>
+            {hijos.length === 0 ? (
+              <span className="text-xs text-primary/35 text-right">—</span>
+            ) : (
+              <span className="flex flex-wrap justify-end gap-x-2 gap-y-0.5">
+                {hijos.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => onSelectClado(h.id)}
+                    className="text-xs font-bold text-accent/80 hover:text-accent transition-colors"
+                  >
+                    {h.nombre || "Sin nombre"}
+                  </button>
+                ))}
+              </span>
+            )}
           </div>
-        )}
-        <div className="flex items-baseline justify-between gap-3">
-          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
-            Hijos
-          </span>
-          {hijos.length === 0 ? (
-            <span className="text-xs text-primary/35 text-right">—</span>
-          ) : (
-            <span className="flex flex-wrap justify-end gap-x-2 gap-y-0.5">
-              {hijos.map((h) => (
-                <button
-                  key={h.id}
-                  type="button"
-                  onClick={() => onSelectClado(h.id)}
-                  className="text-xs font-bold text-accent/80 hover:text-accent transition-colors"
-                >
-                  {h.nombre || "Sin nombre"}
-                </button>
-              ))}
-            </span>
+          {padre && (
+            <p className="text-micro text-primary/35 leading-snug">
+              El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
+              «Ascendencia».
+            </p>
           )}
         </div>
-        {padre && (
-          <p className="text-micro text-primary/35 leading-snug">
-            El padre es la posición en el árbol; no implica descendencia salvo que la unión sea
-            «Ascendencia».
-          </p>
-        )}
-      </div>
 
-      <div>
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
-          Sinapomorfía
-        </span>
-        <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-          Carácter derivado compartido por todos los descendientes.
-        </p>
-        <input
-          className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none placeholder:text-primary/30 placeholder:font-normal focus:border-primary/25"
-          placeholder="Ej. vejiga de veneno dorsal…"
-          value={sinapomorfia}
-          onChange={(e) => setSinapomorfia(e.target.value)}
-          onBlur={guardar}
-        />
-      </div>
-
-      <div>
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
-          Descripción
-        </span>
-        <RichEditor
-          minHeight="4.5rem"
-          placeholder="Notas evolutivas, contexto del linaje…"
-          value={descripcion}
-          onChange={setDescripcion}
-        />
-      </div>
-
-      {relaciones.length > 0 && (
         <div>
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
-            Otras relaciones
+            Sinapomorfía
           </span>
           <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-            Conexiones que no son hijos del árbol: el otro clado sigue en su propia rama.
+            Carácter derivado compartido por todos los descendientes.
           </p>
-          <ul className="flex flex-col gap-1.5">
-            {relaciones.map((r) => {
-              const esOrigen = r.clado_origen_id === clado.id;
-              const otro = cladoPorId.get(esOrigen ? r.clado_destino_id : r.clado_origen_id);
-              return (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
-                >
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-micro font-black uppercase tracking-widest text-accent/60">
-                      {TIPO_RELACION_CLADO_LABEL[r.tipo] ?? r.tipo}
-                    </span>
-                    <span className="text-micro text-primary/30">{esOrigen ? "→" : "←"}</span>
-                    {otro ? (
+          <input
+            className="w-full bg-primary/[0.02] border border-primary/10 rounded-lg px-2 py-1.5 text-xs font-bold text-primary/80 outline-none placeholder:text-primary/30 placeholder:font-normal focus:border-primary/25"
+            placeholder="Ej. vejiga de veneno dorsal…"
+            value={sinapomorfia}
+            onChange={(e) => setSinapomorfia(e.target.value)}
+            onBlur={guardar}
+          />
+        </div>
+
+        <div>
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+            Descripción
+          </span>
+          <RichEditor
+            minHeight="4.5rem"
+            placeholder="Notas evolutivas, contexto del linaje…"
+            value={descripcion}
+            onChange={setDescripcion}
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={onCrearHijo}
+          className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+          }}
+        >
+          <Plus size={10} /> Añadir clado hijo
+        </button>
+      </div>
+
+      {/* Columna derecha: Otras relaciones + Organismos del clado — listas
+          más largas que se benefician de tener su propia columna en vez de
+          seguir apilándose debajo de todo lo de la izquierda. */}
+      <div className="flex flex-col gap-3.5 min-w-0">
+        {relaciones.length > 0 && (
+          <div>
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+              Otras relaciones
+            </span>
+            <p className="text-micro text-primary/35 mb-1.5 leading-snug">
+              Conexiones que no son hijos del árbol: el otro clado sigue en su propia rama.
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {relaciones.map((r) => {
+                const esOrigen = r.clado_origen_id === clado.id;
+                const otro = cladoPorId.get(esOrigen ? r.clado_destino_id : r.clado_origen_id);
+                return (
+                  <li
+                    key={r.id}
+                    className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
+                  >
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-micro font-black uppercase tracking-widest text-accent/60">
+                        {TIPO_RELACION_CLADO_LABEL[r.tipo] ?? r.tipo}
+                      </span>
+                      <span className="text-micro text-primary/30">{esOrigen ? "→" : "←"}</span>
+                      {otro ? (
+                        <button
+                          type="button"
+                          onClick={() => onSelectClado(otro.id)}
+                          className="text-xs font-bold text-primary/80 hover:text-accent transition-colors"
+                        >
+                          {otro.nombre || "Sin nombre"}
+                        </button>
+                      ) : (
+                        <span className="text-xs italic text-primary/30">clado no disponible</span>
+                      )}
+                    </div>
+                    {r.descripcion && (
+                      <p className="text-micro text-primary/45 leading-snug mt-1">{r.descripcion}</p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        <div>
+          <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
+            Organismos del clado
+          </span>
+          <p className="text-micro text-primary/35 mb-1.5 leading-snug">
+            La biología efectiva vive en el organismo; el clado aporta el linaje y la herencia.
+          </p>
+          {organismos.length === 0 ? (
+            <p className="text-xs text-primary/30 italic">
+              Este clado todavía no tiene organismos asignados.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {organismos.map((o) => {
+                const criaturas = criaturasDe(o.organismo_id);
+                const base = o.organismo_base_id ? organismoPorId.get(o.organismo_base_id) : null;
+                return (
+                  <li
+                    key={o.organismo_id}
+                    className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
+                  >
+                    <div className="flex items-baseline gap-2 flex-wrap">
                       <button
                         type="button"
-                        onClick={() => onSelectClado(otro.id)}
-                        className="text-xs font-bold text-primary/80 hover:text-accent transition-colors"
+                        disabled={!onAbrirOrganismo}
+                        onClick={() => onAbrirOrganismo?.(o.organismo_id)}
+                        className="text-xs font-bold text-primary/80 hover:text-accent transition-colors disabled:hover:text-primary/80 disabled:cursor-default"
                       >
-                        {otro.nombre || "Sin nombre"}
+                        {o.organismo || "Sin nombre"}
                       </button>
-                    ) : (
-                      <span className="text-xs italic text-primary/30">clado no disponible</span>
-                    )}
-                  </div>
-                  {r.descripcion && (
-                    <p className="text-micro text-primary/45 leading-snug mt-1">{r.descripcion}</p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={onCrearHijo}
-        className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-          color: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        }}
-      >
-        <Plus size={10} /> Añadir clado hijo
-      </button>
-
-      <div>
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
-          Organismos del clado
-        </span>
-        <p className="text-micro text-primary/35 mb-1.5 leading-snug">
-          La biología efectiva vive en el organismo; el clado aporta el linaje y la herencia.
-        </p>
-        {organismos.length === 0 ? (
-          <p className="text-xs text-primary/30 italic">
-            Este clado todavía no tiene organismos asignados.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {organismos.map((o) => {
-              const criaturas = criaturasDe(o.organismo_id);
-              const base = o.organismo_base_id ? organismoPorId.get(o.organismo_base_id) : null;
-              return (
-                <li
-                  key={o.organismo_id}
-                  className="rounded-lg border border-primary/10 bg-primary/[0.02] px-2.5 py-1.5"
-                >
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      disabled={!onAbrirOrganismo}
-                      onClick={() => onAbrirOrganismo?.(o.organismo_id)}
-                      className="text-xs font-bold text-primary/80 hover:text-accent transition-colors disabled:hover:text-primary/80 disabled:cursor-default"
-                    >
-                      {o.organismo || "Sin nombre"}
-                    </button>
-                    {o.tipo_organismo && (
-                      <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                        {o.tipo_organismo}
-                      </span>
-                    )}
-                    {o.variante_tipo && (
-                      <span className="text-micro text-primary/40">
-                        variante: {o.variante_tipo}
-                        {o.sexo_biologico ? ` · ${o.sexo_biologico}` : ""}
-                        {base ? ` de ${base.organismo}` : ""}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1">
-                    {criaturas.length === 0 ? (
-                      <span className="text-micro text-primary/30 italic">
-                        Ninguna criatura usa este organismo todavía.
-                      </span>
-                    ) : (
-                      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      {o.tipo_organismo && (
                         <span className="text-micro font-black uppercase tracking-widest text-primary/35">
-                          Criaturas
+                          {o.tipo_organismo}
                         </span>
-                        {criaturas.map((c) => (
-                          <button
-                            key={`${c.organismo_id}-${c.criatura_id}`}
-                            type="button"
-                            disabled={!onSelectCriatura}
-                            onClick={() => onSelectCriatura?.(c.criatura_id)}
-                            title={c.es_principal ? "Organismo principal de esta criatura" : undefined}
-                            className="text-xs font-bold text-accent/80 hover:text-accent transition-colors disabled:hover:text-accent/80 disabled:cursor-default"
-                          >
-                            {c.criatura}
-                            {c.es_principal ? " ★" : ""}
-                          </button>
-                        ))}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                      )}
+                      {o.variante_tipo && (
+                        <span className="text-micro text-primary/40">
+                          variante: {o.variante_tipo}
+                          {o.sexo_biologico ? ` · ${o.sexo_biologico}` : ""}
+                          {base ? ` de ${base.organismo}` : ""}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1">
+                      {criaturas.length === 0 ? (
+                        <span className="text-micro text-primary/30 italic">
+                          Ninguna criatura usa este organismo todavía.
+                        </span>
+                      ) : (
+                        <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                          <span className="text-micro font-black uppercase tracking-widest text-primary/35">
+                            Criaturas
+                          </span>
+                          {criaturas.map((c) => (
+                            <button
+                              key={`${c.organismo_id}-${c.criatura_id}`}
+                              type="button"
+                              disabled={!onSelectCriatura}
+                              onClick={() => onSelectCriatura?.(c.criatura_id)}
+                              title={c.es_principal ? "Organismo principal de esta criatura" : undefined}
+                              className="text-xs font-bold text-accent/80 hover:text-accent transition-colors disabled:hover:text-accent/80 disabled:cursor-default"
+                            >
+                              {c.criatura}
+                              {c.es_principal ? " ★" : ""}
+                            </button>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -878,7 +890,10 @@ function PanelClado({
 // Química: EditorHeaderBar única + backdrop blur), en vez del sidebar fijo
 // o de un header custom propio — así el "menú" de Clados queda visualmente
 // idéntico a Elementos/Compuestos: mismos colores, mismo borde de 1px, la
-// misma barra con SaveIndicator y confirmación inline de borrado.
+// misma barra con SaveIndicator y confirmación inline de borrado. Mismo
+// ancho máximo (max-w-6xl) y cuerpo en 2 columnas que CompuestoPanelFlotante/
+// CompuestoEditor — más uso del espacio horizontal en desktop, en vez de
+// una sola columna angosta con todo apilado verticalmente (ver PanelClado).
 function CladoPanelFlotante({
   clado,
   padre,
@@ -939,7 +954,7 @@ function CladoPanelFlotante({
       }}
     >
       <div
-        className="w-full h-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         style={{
           background: "var(--bg-main)",
           border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
