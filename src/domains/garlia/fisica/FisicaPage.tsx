@@ -591,8 +591,8 @@ function letraFundamentoDe(contexto: ContextoHumano): LetraATS | null {
  * siempre 9 círculos del mismo tamaño en el mismo lienzo — alcanza con
  * dos layouts estáticos que se lean claramente distintos de un vistazo.
  */
-const LIENZO = 180;
-const R_CIRCULO = 34;
+const LIENZO = 140;
+const R_CIRCULO = 26;
 
 // S: 9 círculos apretados unos contra otros en un empaquetado hexagonal
 // (3 filas de 3, offset alternado) — el radio de paso es casi igual al
@@ -607,10 +607,10 @@ const POSICIONES_ATRAIDAS: { x: number; y: number }[] = [
 // separación irregular entre sí (nunca dos muy cerca) — sensación de
 // "se repelen y no pueden juntarse".
 const POSICIONES_REPELIDAS: { x: number; y: number }[] = [
-  { x: -68, y: -68 }, { x: 0, y: -76 },  { x: 68, y: -64 },
-  { x: -78, y: 4 },                       { x: 74, y: 10 },
-  { x: -60, y: 70 },  { x: 8, y: 78 },   { x: 66, y: 66 },
-  { x: -6, y: 0 },
+  { x: -53, y: -53 }, { x: 0, y: -59 },  { x: 53, y: -50 },
+  { x: -61, y: 3 },                       { x: 58, y: 8 },
+  { x: -47, y: 55 },  { x: 6, y: 61 },   { x: 51, y: 51 },
+  { x: -5, y: 0 },
 ];
 
 function GridLetraFundamento({ letra }: { letra: LetraATS }) {
@@ -647,44 +647,46 @@ function GridLetraFundamento({ letra }: { letra: LetraATS }) {
 function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
   const letraFundamento = letraFundamentoDe(contexto);
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-row gap-3">
       {letraFundamento && (
-        <div className="flex justify-center py-1">
+        <div className="shrink-0 flex items-start justify-center pt-1">
           <GridLetraFundamento letra={letraFundamento} />
         </div>
       )}
 
-      <div>
-        <p className="text-xs font-black uppercase tracking-wide text-primary">{contexto.concepto}</p>
-        {contexto.resumen && (
-          <p className="mt-1 text-xs text-primary/70 leading-relaxed">{contexto.resumen}</p>
+      <div className="flex-1 min-w-0 flex flex-col gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-primary">{contexto.concepto}</p>
+          {contexto.resumen && (
+            <p className="mt-1 text-xs text-primary/70 leading-relaxed">{contexto.resumen}</p>
+          )}
+        </div>
+
+        {contexto.explicacion_simple && (
+          <p className="text-xs text-primary/70 leading-relaxed">{contexto.explicacion_simple}</p>
+        )}
+
+        {contexto.formula_referencia && (
+          <p className="text-xs font-mono text-primary/60 bg-primary/5 rounded px-2 py-1 truncate">
+            {contexto.formula_referencia}
+          </p>
+        )}
+
+        {contexto.analogia_o_ejemplo && (
+          <p className="text-xs text-primary/50 leading-relaxed italic">{contexto.analogia_o_ejemplo}</p>
+        )}
+
+        {contexto.propiedades_clave && contexto.propiedades_clave.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {contexto.propiedades_clave.map((p, i) => (
+              <div key={i} className="flex items-baseline gap-1.5 text-micro">
+                <span className="text-primary/40 uppercase tracking-wide shrink-0">{p.clave}</span>
+                <span className="text-primary/70 truncate">{p.valor}</span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-
-      {contexto.explicacion_simple && (
-        <p className="text-xs text-primary/70 leading-relaxed">{contexto.explicacion_simple}</p>
-      )}
-
-      {contexto.formula_referencia && (
-        <p className="text-xs font-mono text-primary/60 bg-primary/5 rounded px-2 py-1 truncate">
-          {contexto.formula_referencia}
-        </p>
-      )}
-
-      {contexto.analogia_o_ejemplo && (
-        <p className="text-xs text-primary/50 leading-relaxed italic">{contexto.analogia_o_ejemplo}</p>
-      )}
-
-      {contexto.propiedades_clave && contexto.propiedades_clave.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {contexto.propiedades_clave.map((p, i) => (
-            <div key={i} className="flex items-baseline gap-1.5 text-micro">
-              <span className="text-primary/40 uppercase tracking-wide shrink-0">{p.clave}</span>
-              <span className="text-primary/70 truncate">{p.valor}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -802,7 +804,7 @@ function BasesItemCard({
           />
         </PopoverFlotante>
       ) : esEnergia ? (
-        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={360} maxHeight={480}>
+        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={520} maxHeight={480}>
           <EnergiaFichaContent contexto={(fila as FilaEnergia).contexto} />
         </PopoverFlotante>
       ) : (
