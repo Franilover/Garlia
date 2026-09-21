@@ -89,11 +89,13 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
     // explícitas (no interpoladas) porque Tailwind purga clases armadas
     // por template string en runtime.
     const colsClase =
-      columnas === 2
-        ? "md:grid-cols-2"
-        : columnas === 3
-          ? "md:grid-cols-3"
-          : "md:grid-cols-2 lg:grid-cols-4";
+      columnas === 1
+        ? ""
+        : columnas === 2
+          ? "md:grid-cols-2"
+          : columnas === 3
+            ? "md:grid-cols-3"
+            : "md:grid-cols-2 lg:grid-cols-4";
     return (
       <div className={`grid grid-cols-1 ${colsClase}`}>
         {bloques.map((bloque) => (
