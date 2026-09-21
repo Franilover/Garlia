@@ -1263,6 +1263,39 @@ export default function EstructurasPage({
  *  título y sus chips. Cada chip muestra solo el nombre — la clase de
  *  entrada la da la sección, y el tipo/función/geometría/tags se ven al
  *  abrir la estructura o se usan para filtrar arriba. */
+/** Mismo lenguaje visual que ElementoCasilla/CompuestoCasilla: tarjeta de
+ *  grilla con bordes compartidos (sin fondo, sin rounded), en vez de pill
+ *  suelta — pedido 2026-09-20: unificar estética de catálogo entre
+ *  Elementos/Compuestos/Estructuras/Materiales. Estructura no tiene un
+ *  "símbolo" corto propio (a diferencia de Elemento/Compuesto), así que el
+ *  nombre ocupa el lugar central en vez de un símbolo + nombre separados. */
+function EstructuraCasilla({
+  estructura,
+  seleccionada,
+  onClick,
+}: {
+  estructura: Estructura;
+  seleccionada: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={estructura.nombre}
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
+        seleccionada
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
+      }`}
+    >
+      <span className="text-sm font-black leading-tight text-accent line-clamp-2">
+        {estructura.nombre}
+      </span>
+    </button>
+  );
+}
+
 function ChipGrupoEstructuras({
   titulo,
   items,
@@ -1277,21 +1310,17 @@ function ChipGrupoEstructuras({
   return (
     <div className="flex flex-col">
       <TituloCategoria titulo={titulo} total={items.length} />
-      <div className="flex flex-wrap gap-1">
+      <div
+        className="grid gap-0 border-t border-l border-primary/10"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+      >
         {items.map((estructura) => (
-          <button
+          <EstructuraCasilla
             key={estructura.id}
-            type="button"
+            estructura={estructura}
+            seleccionada={estructura.id === seleccionadaId}
             onClick={() => onSeleccionar(estructura.id)}
-            title={estructura.nombre}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
-              estructura.id === seleccionadaId
-                ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-                : "hover:bg-primary/10 text-primary/70 border border-primary/15"
-            }`}
-          >
-            <span className="truncate">{estructura.nombre}</span>
-          </button>
+          />
         ))}
       </div>
     </div>

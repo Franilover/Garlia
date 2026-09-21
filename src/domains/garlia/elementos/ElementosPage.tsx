@@ -1313,13 +1313,9 @@ export function ElementosPage({
         ]}
       />
 
-      {/* Estructuras / Materiales / Geometrías — layout adaptativo (ver
-          _shared/FilaAsimetrica.tsx) entre estos 3 bloques, ya separados de
-          Compuestos (arriba, fila propia). Geometrías reusa ListaFormas de
-          fisica/GeometriasPage.tsx en vez de la fila Formas/Variables/Leyes
-          completa — acá solo mostramos el catálogo de Formas, que es lo
-          accionable a nivel Química; Variables/Leyes quedan en la sección
-          Física → Geometrías dedicada. */}
+      {/* Estructuras — fila completa propia (pedido 2026-09-20: mismo
+          criterio que Compuestos arriba, separado de Materiales/Geometrías
+          para que use todo el ancho horizontal). */}
       <FilaAsimetrica
         bloques={[
           {
@@ -1385,6 +1381,12 @@ export function ElementosPage({
               />
             ),
           },
+        ]}
+      />
+
+      {/* Materiales — fila completa propia (mismo criterio que arriba). */}
+      <FilaAsimetrica
+        bloques={[
           {
             key: "materiales",
             titulo: "Materiales",
@@ -1406,6 +1408,14 @@ export function ElementosPage({
             ),
             contenido: <MaterialesPage ordenGlobal={agrupacionMateriales} />,
           },
+        ]}
+      />
+
+      {/* Geometrías — se queda como bloque suelto (sigue abajo, no en fila
+          completa: es una lista corta de formas, no un catálogo grande
+          como Estructuras/Materiales). */}
+      <FilaAsimetrica
+        bloques={[
           {
             key: "geometrias",
             titulo: "Geometrías",

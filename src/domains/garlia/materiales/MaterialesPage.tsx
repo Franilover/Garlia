@@ -749,22 +749,26 @@ function MaterialDetail({
   );
 }
 
-/** Mismo diseño que CompuestoCasilla (elementos/CompuestosPage.tsx): chip
- *  compacto rounded-full, px-2.5 py-1, text-micro font-bold tracking-wide,
- *  mismos estados seleccionado/hover. */
+/** Mismo lenguaje visual que ElementoCasilla/CompuestoCasilla: tarjeta de
+ *  grilla con bordes compartidos (sin fondo, sin rounded), en vez de pill
+ *  suelta — pedido 2026-09-20: unificar estética de catálogo entre
+ *  Elementos/Compuestos/Estructuras/Materiales. Material no tiene un
+ *  "símbolo" corto propio, así que el nombre ocupa el lugar central. */
 function MaterialPill({ material, selected, onClick }: { material: Material; selected: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={material.nombre}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
         selected
-          ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-          : "hover:bg-primary/10 text-primary/70 border border-primary/15"
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <span className="truncate">{material.nombre}</span>
+      <span className="text-sm font-black leading-tight text-accent line-clamp-2">
+        {material.nombre}
+      </span>
     </button>
   );
 }
@@ -1212,7 +1216,10 @@ export function MaterialesPage({ ordenGlobal = null }: MaterialesPageProps = {})
                 }
                 propiedadGlobal={ordenGlobal}
               />
-              <div className="flex flex-wrap gap-1">
+              <div
+                className="grid gap-0 border-t border-l border-primary/10"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+              >
                 {ordenarPorPropiedad(
                   grupo.materiales,
                   ordenPorGrupo[grupo.id] ?? ordenGlobal,
