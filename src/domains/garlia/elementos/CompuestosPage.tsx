@@ -2409,7 +2409,7 @@ function MasonryGruposCategoria({
   const anchoPill = (nombre: string) => Math.min(Math.max(nombre.length * 5 + 32, 60), anchoColumna);
 
   const altoGrupo = (grupo: { nombre: string; compuestos: Compuesto[] }) => {
-    const tituloAlto = 20;
+    const tituloAlto = 24; // TituloCategoria: texto + líneas + mb-1.5
     let filas = 1;
     let anchoFila = 0;
     for (const c of grupo.compuestos) {
@@ -2467,6 +2467,7 @@ function MasonryGruposCategoria({
               <div key={grupo.id}>
                 <OrdenarPorPropiedadPopover
                   titulo={grupo.nombre}
+                  total={grupo.compuestos.length}
                   propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
                   onSeleccionar={(clave) =>
                     setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))

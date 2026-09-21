@@ -6,7 +6,8 @@
  * Dropdown de filtro compacto para barras de catálogo (ej. Estructuras:
  * Tipo / Función / Geometría / Tags). Mismo lenguaje visual que
  * GrupoFiltroDropdown (pill con chevron, panel flotante, "Todos" primero,
- * estado activo en acento), pero con opciones planas {value, label} en vez
+ * estado activo en acento — SIN color de fondo en el botón: solo borde
+ * y color de letra, pedido 2026-09-20), pero con opciones planas {value, label} en vez
  * de grupos con miembros — acá el filtrado real lo hace el padre.
  *
  * Controlado: el padre guarda `value` (null = "Todos"). Cierra al hacer
@@ -57,8 +58,8 @@ export function FiltroDropdown({
         title={etiqueta}
         className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wide transition-colors max-w-[160px] cursor-pointer ${
           seleccionada
-            ? "bg-accent/15 text-accent border border-accent/25"
-            : "bg-primary/10 hover:bg-primary/20 text-primary/70 border border-primary/15"
+            ? "text-accent border border-accent/60"
+            : "text-primary/70 hover:text-primary border border-primary/25 hover:border-primary/50"
         }`}
       >
         <span className="truncate">{seleccionada ? seleccionada.label : etiqueta}</span>
@@ -73,7 +74,7 @@ export function FiltroDropdown({
               setOpen(false);
             }}
             className={`w-full text-left px-3 py-1.5 text-micro font-semibold truncate transition-colors cursor-pointer ${
-              !seleccionada ? "text-accent bg-accent/10" : "text-primary/50 hover:bg-primary/5"
+              !seleccionada ? "text-accent" : "text-primary/50 hover:text-primary"
             }`}
           >
             Todos
@@ -88,8 +89,8 @@ export function FiltroDropdown({
               }}
               className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-micro font-semibold transition-colors cursor-pointer ${
                 o.value === value
-                  ? "text-accent bg-accent/10"
-                  : "text-primary/70 hover:bg-primary/5"
+                  ? "text-accent"
+                  : "text-primary/70 hover:text-primary"
               }`}
             >
               <span className="flex-1 min-w-0 truncate">{o.label}</span>

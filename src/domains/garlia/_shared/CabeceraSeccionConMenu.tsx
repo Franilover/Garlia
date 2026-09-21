@@ -80,11 +80,11 @@ export interface CabeceraSeccionConMenuProps {
    *  OrdenarPorPropiedadPopover. */
   onSeleccionarAgrupacion?: (clave: string | null) => void;
   /**
-   * Slot opcional de filtros (dropdowns) que se dibuja A LA IZQUIERDA del
-   * título, en la misma fila. 2026-09-20: pedido para Estructuras — los
-   * filtros Tipo/Función/Geometría/Tags viven junto al título de la sección
-   * en vez de dentro del contenido. Si se omite, la cabecera queda idéntica
-   * a antes (título centrado) — Compuestos/Materiales/Geometrías no cambian.
+   * Slot opcional de filtros (dropdowns) que se dibuja DEBAJO del título,
+   * centrado. 2026-09-20: pedido para Estructuras — los filtros
+   * Tipo/Función/Geometría/Tags viven bajo el título de la sección en vez de
+   * dentro del contenido. Si se omite, la cabecera queda idéntica a antes
+   * (solo título centrado) — Compuestos/Materiales/Geometrías no cambian.
    */
   filtros?: React.ReactNode;
 }
@@ -191,9 +191,7 @@ export function CabeceraSeccionConMenu({
 
   const menuFlotante = (
     <div
-          className={`absolute z-50 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left ${
-            filtros ? "left-0" : "left-1/2 -translate-x-1/2"
-          }`}
+          className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left"
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -241,30 +239,21 @@ export function CabeceraSeccionConMenu({
   );
 
   return (
-    <div
-      className={`px-3 pt-3 relative ${filtros ? "text-left" : "text-center"}`}
-      ref={anclaRef}
-    >
-      {filtros ? (
-        // Con filtros: filtros + título en una fila. Los filtros van a la
-        // IZQUIERDA del título (pedido explícito 2026-09-20: "los filtros
-        // al lado del título, a la izquierda"), el título queda a su
-        // derecha. El menú Añadir/Editar sigue anclado al título.
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          {filtros}
-          {/* Wrapper relative propio del título: el menú Añadir/Editar
-              cuelga de ACÁ (left-0) y no del borde izquierdo de la fila,
-              que ahora ocupan los filtros. */}
-          <div className="relative" data-ancla-titulo>
-            {botonTitulo}
-            {menuAbierto && menuFlotante}
-          </div>
-        </div>
-      ) : (
-        botonTitulo
-      )}
+    <div className="px-3 pt-3 text-center">
+      {/* Título arriba y centrado (pedido 2026-09-20). anclaRef vive en este
+          wrapper —no en todo el bloque— para que el menú Añadir/Editar
+          cuelgue centrado del título y un click en los filtros de abajo
+          cuente como "afuera" y lo cierre. */}
+      <div className="relative inline-block" ref={anclaRef}>
+        {botonTitulo}
+        {menuAbierto && menuFlotante}
+      </div>
 
-      {!filtros && menuAbierto && menuFlotante}
+      {/* Filtros DEBAJO del título, centrados. Sin filtros la cabecera
+          queda idéntica a antes (solo título). */}
+      {filtros && (
+        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">{filtros}</div>
+      )}
 
       {/* Segundo nivel: Por categorías (vuelve a null) / Por Propiedades
           (abre el tercer nivel con las 12 propiedades) — se ancla al botón

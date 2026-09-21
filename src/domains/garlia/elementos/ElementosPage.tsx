@@ -1347,7 +1347,7 @@ export function ElementosPage({
                     type="button"
                     onClick={() => setFiltrosEstructuras(FILTROS_VACIOS)}
                     title="Quitar todos los filtros"
-                    className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-micro font-bold text-primary/40 hover:text-primary/70 hover:bg-primary/8 transition-colors cursor-pointer"
+                    className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-micro font-bold text-primary/40 hover:text-primary/70 transition-colors cursor-pointer"
                   >
                     <X size={10} /> Limpiar
                   </button>

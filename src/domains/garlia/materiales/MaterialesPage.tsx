@@ -1205,6 +1205,7 @@ export function MaterialesPage({ ordenGlobal = null }: MaterialesPageProps = {})
             <div key={grupo.id}>
               <OrdenarPorPropiedadPopover
                 titulo={grupo.nombre}
+                total={grupo.materiales.length}
                 propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
                 onSeleccionar={(clave) =>
                   setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))

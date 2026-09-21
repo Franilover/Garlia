@@ -29,6 +29,7 @@ import { ArrowDownWideNarrow, X } from "lucide-react";
 import React, { useState } from "react";
 
 import { PopoverFlotante } from "./PopoverFlotante";
+import { TituloCategoria } from "./TituloCategoria";
 
 export interface PropiedadOrdenable {
   clave: string;
@@ -135,9 +136,12 @@ export function OrdenarPorPropiedadPopover({
   propiedadActiva,
   onSeleccionar,
   propiedadGlobal = null,
+  total,
 }: {
   /** Texto del título de la sección (ej. "Mineral"). */
   titulo: string;
+  /** Cantidad de entradas de la sección; se muestra junto al título. */
+  total?: number;
   /** Clave de la propiedad por la que está ordenado ESTE grupo, o null. */
   propiedadActiva: string | null;
   onSeleccionar: (clave: string | null) => void;
@@ -155,23 +159,27 @@ export function OrdenarPorPropiedadPopover({
   const efectiva = activa ?? global;
 
   return (
-    <div className="mb-1 flex items-center gap-1 px-1">
-      <button
-        type="button"
-        onClick={(e) => setAnchorSeccion(e.currentTarget.parentElement)}
+    <div>
+      {/* Título centrado con líneas a los lados (TituloCategoria). El click
+          sigue abriendo "ordenar solo esta sección"; el popover se ancla al
+          contenedor del título para que quede centrado bajo la línea. */}
+      <TituloCategoria
+        titulo={titulo}
+        total={total}
+        activo={Boolean(efectiva)}
         title="Ordenar solo esta sección por propiedad"
-        className={`flex min-w-0 flex-1 items-center gap-1.5 text-left text-micro font-bold uppercase tracking-[0.12em] transition-colors cursor-pointer ${
-          efectiva ? "text-accent" : "text-primary/40 hover:text-primary/70"
-        }`}
-      >
-        <span className="truncate">{titulo}</span>
-        {efectiva && (
-          <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] normal-case tracking-normal">
-            ↓ {efectiva.label}
-          </span>
-        )}
-        <ArrowDownWideNarrow size={11} className="ml-auto shrink-0 opacity-60" />
-      </button>
+        onClick={(e) => setAnchorSeccion(e.currentTarget.parentElement)}
+        extra={
+          <>
+            {efectiva && (
+              <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[9px] normal-case tracking-normal">
+                ↓ {efectiva.label}
+              </span>
+            )}
+            <ArrowDownWideNarrow size={11} className="shrink-0 opacity-60" />
+          </>
+        }
+      />
 
       <PopoverFlotante anchor={anchorSeccion} onClose={() => setAnchorSeccion(null)} width={200} maxHeight={380}>
         <ListaPropiedades

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 
 import { PropiedadesFisicasGenerico } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { GeometriaBloque } from "@/domains/garlia/_shared/GeometriaBloque";
+import { TituloCategoria } from "@/domains/garlia/_shared/TituloCategoria";
 import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
 import { type SaveStatus } from "@/ui/saveStatus";
 import { ComboSelector } from "@/ui/ComboSelector";
@@ -1274,13 +1275,8 @@ function ChipGrupoEstructuras({
   onSeleccionar: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="flex items-baseline gap-1.5 text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-        {titulo}
-        <span className="tabular-nums font-bold tracking-normal text-primary/20">
-          {items.length}
-        </span>
-      </span>
+    <div className="flex flex-col">
+      <TituloCategoria titulo={titulo} total={items.length} />
       <div className="flex flex-wrap gap-1">
         {items.map((estructura) => (
           <button
