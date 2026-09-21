@@ -263,17 +263,14 @@ function CompuestoCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <div className="flex items-start justify-between">
-        <span className="text-micro font-black text-primary/30 truncate">
-          {compuesto.categoria || "\u00A0"}
-        </span>
-        {estable && (
+      {estable && (
+        <div className="flex justify-end">
           <span
             title="Estructura atómica completa"
-            className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0 mt-0.5"
+            className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0"
           />
-        )}
-      </div>
+        </div>
+      )}
 
       <span className="text-sm font-black text-center leading-none py-0.5 text-accent truncate">
         {compuesto.formula_canonica || compuesto.simbolo || "?"}
