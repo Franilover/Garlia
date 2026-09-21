@@ -1255,14 +1255,15 @@ export function ElementosPage({
         </div>
       </div>
 
-      {/* Compuestos / Estructuras / Materiales / Geometrías — layout
-          adaptativo (ver _shared/FilaAsimetrica.tsx). Con 4 bloques se usa
-          siempre 2 columnas × 2 filas (sin lógica de "bloque dominante",
-          que solo aplica a 2/3 bloques). Geometrías reusa ListaFormas de
-          fisica/GeometriasPage.tsx en vez de la fila Formas/Variables/Leyes
-          completa — acá solo mostramos el catálogo de Formas, que es lo
-          accionable a nivel Química; Variables/Leyes quedan en la sección
-          Física → Geometrías dedicada. */}
+      {/* Compuestos en su propia fila completa (pedido 2026-09-20: antes
+          compartía grid 2×2 con Estructuras/Materiales/Geometrías vía
+          FilaAsimetrica — ahora ocupa todo el ancho horizontal, aparte, así
+          las tarjetas cuadradas nuevas tienen más columnas para acomodarse
+          en vez de competir por espacio con los otros 3 bloques). Se sigue
+          usando FilaAsimetrica (con un solo bloque) para no duplicar el
+          armado de CabeceraSeccionConMenu — con un bloque el layout
+          simétrico de FilaAsimetrica ya da una sola columna a ancho
+          completo. */}
       <FilaAsimetrica
         bloques={[
           {
@@ -1309,6 +1310,18 @@ export function ElementosPage({
               />
             ),
           },
+        ]}
+      />
+
+      {/* Estructuras / Materiales / Geometrías — layout adaptativo (ver
+          _shared/FilaAsimetrica.tsx) entre estos 3 bloques, ya separados de
+          Compuestos (arriba, fila propia). Geometrías reusa ListaFormas de
+          fisica/GeometriasPage.tsx en vez de la fila Formas/Variables/Leyes
+          completa — acá solo mostramos el catálogo de Formas, que es lo
+          accionable a nivel Química; Variables/Leyes quedan en la sección
+          Física → Geometrías dedicada. */}
+      <FilaAsimetrica
+        bloques={[
           {
             key: "estructuras",
             titulo: "Estructuras",
