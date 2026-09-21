@@ -1227,11 +1227,14 @@ export default function EstructurasPage({
         </p>
       ) : (
         <div
-          className="w-full"
-          style={{ columnWidth: 260, columnGap: 16 }}
+          className="grid w-full items-start"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 16,
+          }}
         >
           {secciones.map((seccion) => (
-            <div key={seccion.clave} className="mb-4 break-inside-avoid">
+            <div key={seccion.clave} className="mb-4">
               <ChipGrupoEstructuras
                 titulo={seccion.titulo}
                 items={seccion.items}

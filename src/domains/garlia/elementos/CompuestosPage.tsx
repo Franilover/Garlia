@@ -2400,14 +2400,14 @@ function MasonryGruposCategoria({
 
   return (
     <div
-      className="w-full"
+      className="grid w-full items-start"
       style={{
-        columnWidth: ANCHO_MIN_COLUMNA,
-        columnGap: 16,
+        gridTemplateColumns: `repeat(auto-fit, minmax(${ANCHO_MIN_COLUMNA}px, 1fr))`,
+        gap: 16,
       }}
     >
       {grupos.map((grupo) => (
-        <div key={grupo.id} className="mb-4 break-inside-avoid">
+        <div key={grupo.id} className="mb-4">
           <OrdenarPorPropiedadPopover
             titulo={grupo.nombre}
             total={grupo.compuestos.length}
