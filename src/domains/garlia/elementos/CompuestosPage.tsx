@@ -30,7 +30,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -2398,11 +2398,18 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
 /**
  * MasonryGruposCategoria
  * ───────────────────────────────────────────────────────────────────────────
- * Grupos de compuestos (por categoria), cada uno con su propio grid de
- * tarjetas cuadradas de tamaño fijo (auto-fill, sin masonry: al ser todas
- * iguales no hace falta empaquetar alturas variables como con las pills de
- * antes — ver diseño "tarjeta cuadrada" 2026-09-20). Los grupos se apilan
- * en una sola columna, de arriba hacia abajo.
+ * Grupos de compuestos (por categoria) repartidos en columnas de igual
+ * ancho que ocupan TODO el ancho disponible del bloque (se miden con
+ * ResizeObserver, no un máximo fijo) — mismo criterio de masonry greedy
+ * que la versión anterior (pills) y que distribuirEnColumnas en
+ * GeografiaJerarquica.tsx: cada grupo completo (título + su grid de
+ * tarjetas) se asigna a la columna con menor altura acumulada, para que
+ * las columnas queden parejas aunque los grupos tengan tamaños distintos.
+ *
+ * A diferencia de las pills viejas, las tarjetas ahora son cuadradas de
+ * tamaño fijo, así que la altura de un grupo es exacta (no una estimación
+ * de wrap de texto): con anchoColumna ya conocido, cuántas tarjetas entran
+ * por fila es aritmética simple.
  * (Antes agrupaba por el eje "naturaleza" del sistema de tags — renombrado
  * 2026-09-17 al pasar el catálogo a agrupar por compuestos.categoria.)
  */
@@ -2421,44 +2428,122 @@ function MasonryGruposCategoria({
    *  en Props (arriba) de CompuestosPage. */
   ordenGlobal: string | null;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  // Igual que el masonry viejo de pills: no se pinta con un ancho estimado
+  // y después se salta al real — se espera a medir antes de renderizar.
+  const [medido, setMedido] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) {
+        setContainerWidth(width);
+        setMedido(true);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
   // ordenGlobal (todas las categorías a la vez) llega por prop — ver
   // comentario en Props, arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
 
+  const GAP = 16;
+  const TARJETA_GAP = 8;
+  const ANCHO_MIN_COLUMNA = 260;
+  const anchoDisponible = containerWidth || 900;
+  const numColumnas = Math.max(
+    1,
+    Math.floor((anchoDisponible + GAP) / (ANCHO_MIN_COLUMNA + GAP)),
+  );
+  const anchoColumna = (anchoDisponible - GAP * (numColumnas - 1)) / numColumnas;
+
+  // Cuántas tarjetas cuadradas de ~108px entran por fila dado el ancho real
+  // de la columna (auto-fill real, no una constante fija) — así el masonry
+  // aprovecha todo el ancho horizontal en vez de dejar aire a los costados.
+  const TARJETA_MIN = 100;
+  const tarjetasPorFila = Math.max(1, Math.floor((anchoColumna + TARJETA_GAP) / (TARJETA_MIN + TARJETA_GAP)));
+  const anchoTarjeta = (anchoColumna - TARJETA_GAP * (tarjetasPorFila - 1)) / tarjetasPorFila;
+
+  const altoGrupo = (grupo: { nombre: string; compuestos: Compuesto[] }) => {
+    const tituloAlto = 24; // OrdenarPorPropiedadPopover: texto + mb
+    const filas = Math.ceil(grupo.compuestos.length / tarjetasPorFila);
+    return tituloAlto + filas * anchoTarjeta + Math.max(0, filas - 1) * TARJETA_GAP;
+  };
+
+  function distribuirEnColumnas() {
+    const columnas: { id: string; nombre: string; compuestos: Compuesto[] }[][] = Array.from(
+      { length: numColumnas },
+      () => [],
+    );
+    const alturas = new Array(numColumnas).fill(0);
+    for (const grupo of grupos) {
+      let idxMin = 0;
+      for (let i = 1; i < numColumnas; i++) {
+        if (alturas[i] < alturas[idxMin]) idxMin = i;
+      }
+      columnas[idxMin].push(grupo);
+      alturas[idxMin] += altoGrupo(grupo) + GAP;
+    }
+    return columnas;
+  }
+
+  const columnas = useMemo(
+    () => distribuirEnColumnas(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [grupos, numColumnas, tarjetasPorFila],
+  );
+
   return (
-    <div className="flex flex-col gap-5">
-      {grupos.map((grupo) => (
-        <div key={grupo.id}>
-          <OrdenarPorPropiedadPopover
-            titulo={grupo.nombre}
-            total={grupo.compuestos.length}
-            propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
-            onSeleccionar={(clave) =>
-              setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
-            }
-            propiedadGlobal={ordenGlobal}
-          />
+    <div ref={containerRef} className="flex gap-4 items-start w-full">
+      {!medido ? (
+        <div className="flex-1 py-6 text-center text-micro text-primary/30">Cargando…</div>
+      ) : (
+        columnas.map((columna, i) => (
           <div
-            className="grid gap-2"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(108px, 1fr))" }}
+            key={i}
+            className="flex flex-col gap-4 min-w-0"
+            style={{ width: anchoColumna }}
           >
-            {ordenarPorPropiedad(
-              grupo.compuestos,
-              ordenPorGrupo[grupo.id] ?? ordenGlobal,
-              (c, clave) => (c as unknown as Record<string, unknown>)[clave],
-            ).map((c) => (
-              <CompuestoCasilla
-                key={c.id}
-                compuesto={c}
-                elementos={elementos}
-                seleccionado={c.id === activoId}
-                onClick={() => onSeleccionar(c.id)}
-              />
+            {columna.map((grupo) => (
+              <div key={grupo.id}>
+                <OrdenarPorPropiedadPopover
+                  titulo={grupo.nombre}
+                  total={grupo.compuestos.length}
+                  propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+                  onSeleccionar={(clave) =>
+                    setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+                  }
+                  propiedadGlobal={ordenGlobal}
+                />
+                <div
+                  className="grid"
+                  style={{ gridTemplateColumns: `repeat(${tarjetasPorFila}, 1fr)`, gap: TARJETA_GAP }}
+                >
+                  {ordenarPorPropiedad(
+                    grupo.compuestos,
+                    ordenPorGrupo[grupo.id] ?? ordenGlobal,
+                    (c, clave) => (c as unknown as Record<string, unknown>)[clave],
+                  ).map((c) => (
+                    <CompuestoCasilla
+                      key={c.id}
+                      compuesto={c}
+                      elementos={elementos}
+                      seleccionado={c.id === activoId}
+                      onClick={() => onSeleccionar(c.id)}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
