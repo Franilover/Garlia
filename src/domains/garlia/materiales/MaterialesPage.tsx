@@ -1204,9 +1204,12 @@ export function MaterialesPage({ ordenGlobal = null }: MaterialesPageProps = {})
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div
+          className="w-full"
+          style={{ columnWidth: 260, columnGap: 16 }}
+        >
           {gruposPorCategoria.map((grupo) => (
-            <div key={grupo.id}>
+            <div key={grupo.id} className="mb-4 break-inside-avoid">
               <OrdenarPorPropiedadPopover
                 titulo={grupo.nombre}
                 total={grupo.materiales.length}

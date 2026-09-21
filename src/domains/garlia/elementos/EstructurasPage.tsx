@@ -1226,15 +1226,19 @@ export default function EstructurasPage({
             : "Sin estructuras todavía."}
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div
+          className="w-full"
+          style={{ columnWidth: 260, columnGap: 16 }}
+        >
           {secciones.map((seccion) => (
-            <ChipGrupoEstructuras
-              key={seccion.clave}
-              titulo={seccion.titulo}
-              items={seccion.items}
-              seleccionadaId={seleccionadaId}
-              onSeleccionar={setSeleccionadaId}
-            />
+            <div key={seccion.clave} className="mb-4 break-inside-avoid">
+              <ChipGrupoEstructuras
+                titulo={seccion.titulo}
+                items={seccion.items}
+                seleccionadaId={seleccionadaId}
+                onSeleccionar={setSeleccionadaId}
+              />
+            </div>
           ))}
         </div>
       )}
