@@ -30,7 +30,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -271,42 +271,42 @@ function CompuestoCasilla({
       type="button"
       onClick={onClick}
       title={compuesto.nombre}
-      className={`aspect-square w-full flex flex-col rounded-xl bg-white-custom/60 p-2.5 text-left transition-colors ${
+      className={`aspect-square w-full flex flex-col rounded-lg bg-white-custom/60 p-1.5 text-left transition-colors ${
         seleccionado
           ? "border-2 border-primary ring-2 ring-primary/20"
           : estable
-            ? "border-2 border-accent/60 hover:border-accent"
+            ? "border border-accent/60 hover:border-accent"
             : "border border-primary/15 hover:border-primary/35"
       }`}
     >
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-[9px] font-semibold tracking-wide text-primary/40 truncate">
+      <div className="flex items-center justify-between gap-0.5">
+        <span className="text-[7px] font-semibold tracking-wide text-primary/40 truncate">
           {compuesto.categoria || "\u00A0"}
         </span>
-        <span className="text-[9px] font-semibold tracking-wide text-primary/40 truncate shrink-0">
+        <span className="text-[7px] font-semibold tracking-wide text-primary/40 truncate shrink-0">
           {estadoLabel}
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 flex items-center justify-center px-1">
-        <span className="text-2xl font-bold text-primary truncate">
+      <div className="flex-1 min-h-0 flex items-center justify-center px-0.5">
+        <span className="text-base font-black text-primary truncate">
           {compuesto.simbolo || "?"}
         </span>
       </div>
 
       <div className="text-center">
-        <div className="text-xs font-bold text-primary truncate">{compuesto.nombre}</div>
+        <div className="text-[10px] font-bold text-primary truncate">{compuesto.nombre}</div>
         {compuesto.formula_canonica && (
-          <div className="text-[10px] text-primary/50 truncate">{compuesto.formula_canonica}</div>
+          <div className="text-[8px] text-primary/50 truncate">{compuesto.formula_canonica}</div>
         )}
       </div>
 
-      <div className="mt-1.5 pt-1.5 border-t border-primary/10">
+      <div className="mt-1 pt-1 border-t border-primary/10">
         {composicion && (
-          <div className="text-[9px] text-primary/45 text-center truncate">{composicion}</div>
+          <div className="text-[7px] text-primary/45 text-center truncate">{composicion}</div>
         )}
         {(densidad || estabilidad) && (
-          <div className="mt-1 flex items-center justify-between text-[10px] text-primary/50">
+          <div className="mt-0.5 flex items-center justify-between text-[8px] text-primary/50">
             <span title="Densidad">
               ρ <span className="font-bold text-primary/75">{densidad ?? "—"}</span>
             </span>
@@ -2398,20 +2398,20 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
 /**
  * MasonryGruposCategoria
  * ───────────────────────────────────────────────────────────────────────────
- * Grupos de compuestos (por categoria) repartidos en columnas de igual
- * ancho que ocupan TODO el ancho disponible del bloque (se miden con
- * ResizeObserver, no un máximo fijo) — mismo criterio de masonry greedy
- * que la versión anterior (pills) y que distribuirEnColumnas en
- * GeografiaJerarquica.tsx: cada grupo completo (título + su grid de
- * tarjetas) se asigna a la columna con menor altura acumulada, para que
- * las columnas queden parejas aunque los grupos tengan tamaños distintos.
- *
- * A diferencia de las pills viejas, las tarjetas ahora son cuadradas de
- * tamaño fijo, así que la altura de un grupo es exacta (no una estimación
- * de wrap de texto): con anchoColumna ya conocido, cuántas tarjetas entran
- * por fila es aritmética simple.
- * (Antes agrupaba por el eje "naturaleza" del sistema de tags — renombrado
- * 2026-09-17 al pasar el catálogo a agrupar por compuestos.categoria.)
+ * Grupos de compuestos (por categoria), cada uno con su grid de tarjetas
+ * cuadradas. A diferencia de la versión anterior (columnas calculadas a
+ * mano con ResizeObserver + JS), esto usa `columns` de CSS nativo: el
+ * propio navegador reparte los grupos en columnas por altura, y las
+ * recalcula de forma síncrona en cada resize — sin depender de un
+ * observer async que puede quedar un frame atrás del layout real (esa
+ * desincronización entre "ancho medido" y "ancho ya renderizado" era la
+ * causa de que las tarjetas se superpusieran/rompieran al redimensionar
+ * la ventana: se recalculaban columnas para un ancho que todavía no
+ * coincidía con el que el CSS ya había aplicado).
+ * Cada grupo entero (título + su grid) se mete en un `break-inside: avoid`
+ * para que no se corte a la mitad entre columnas.
+ * Tarjetas más chicas ahora (mismo mínimo ~68px que usa ElementosPage,
+ * antes 100px) — pedido 2026-09-20: "hacerlos más pequeños como elementos".
  */
 function MasonryGruposCategoria({
   grupos,
@@ -2428,132 +2428,56 @@ function MasonryGruposCategoria({
    *  en Props (arriba) de CompuestosPage. */
   ordenGlobal: string | null;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  // Igual que el masonry viejo de pills: no se pinta con un ancho estimado
-  // y después se salta al real — se espera a medir antes de renderizar.
-  const [medido, setMedido] = useState(false);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    // OJO: se observa el PADRE (el bloque flex-1 que ya ocupa todo el
-    // ancho del layout), no este mismo div de columnas. Este div es un
-    // `flex` cuyos hijos usan `width: anchoColumna` (un valor derivado de
-    // containerWidth) — si se auto-observara, el ancho medido sería el que
-    // el propio div "decide" tener según su contenido (un ciclo que se
-    // resuelve angosto, ~260px, la primera vez que corre el observer),
-    // en vez del ancho real disponible en el layout. El padre no depende
-    // de esta medición, así que da el ancho real sin ese ciclo.
-    const parent = el.parentElement;
-    const target = parent ?? el;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width) {
-        setContainerWidth(width);
-        setMedido(true);
-      }
-    });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
-
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
   // ordenGlobal (todas las categorías a la vez) llega por prop — ver
   // comentario en Props, arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
 
-  const GAP = 16;
   const TARJETA_GAP = 8;
   const ANCHO_MIN_COLUMNA = 260;
-  const anchoDisponible = containerWidth || 900;
-  const numColumnas = Math.max(
-    1,
-    Math.floor((anchoDisponible + GAP) / (ANCHO_MIN_COLUMNA + GAP)),
-  );
-  const anchoColumna = (anchoDisponible - GAP * (numColumnas - 1)) / numColumnas;
-
-  // Cuántas tarjetas cuadradas de ~108px entran por fila dado el ancho real
-  // de la columna (auto-fill real, no una constante fija) — así el masonry
-  // aprovecha todo el ancho horizontal en vez de dejar aire a los costados.
-  const TARJETA_MIN = 100;
-  const tarjetasPorFila = Math.max(1, Math.floor((anchoColumna + TARJETA_GAP) / (TARJETA_MIN + TARJETA_GAP)));
-  const anchoTarjeta = (anchoColumna - TARJETA_GAP * (tarjetasPorFila - 1)) / tarjetasPorFila;
-
-  const altoGrupo = (grupo: { nombre: string; compuestos: Compuesto[] }) => {
-    const tituloAlto = 24; // OrdenarPorPropiedadPopover: texto + mb
-    const filas = Math.ceil(grupo.compuestos.length / tarjetasPorFila);
-    return tituloAlto + filas * anchoTarjeta + Math.max(0, filas - 1) * TARJETA_GAP;
-  };
-
-  function distribuirEnColumnas() {
-    const columnas: { id: string; nombre: string; compuestos: Compuesto[] }[][] = Array.from(
-      { length: numColumnas },
-      () => [],
-    );
-    const alturas = new Array(numColumnas).fill(0);
-    for (const grupo of grupos) {
-      let idxMin = 0;
-      for (let i = 1; i < numColumnas; i++) {
-        if (alturas[i] < alturas[idxMin]) idxMin = i;
-      }
-      columnas[idxMin].push(grupo);
-      alturas[idxMin] += altoGrupo(grupo) + GAP;
-    }
-    return columnas;
-  }
-
-  const columnas = useMemo(
-    () => distribuirEnColumnas(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grupos, numColumnas, tarjetasPorFila],
-  );
 
   return (
-    <div ref={containerRef} className="flex gap-4 items-start w-full min-w-0">
-      {!medido ? (
-        <div className="flex-1 py-6 text-center text-micro text-primary/30">Cargando…</div>
-      ) : (
-        columnas.map((columna, i) => (
+    <div
+      className="w-full"
+      style={{
+        columnWidth: ANCHO_MIN_COLUMNA,
+        columnGap: 16,
+      }}
+    >
+      {grupos.map((grupo) => (
+        <div key={grupo.id} className="mb-4 break-inside-avoid">
+          <OrdenarPorPropiedadPopover
+            titulo={grupo.nombre}
+            total={grupo.compuestos.length}
+            propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+            onSeleccionar={(clave) =>
+              setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+            }
+            propiedadGlobal={ordenGlobal}
+          />
           <div
-            key={i}
-            className="flex flex-col gap-4 min-w-0"
-            style={{ width: anchoColumna }}
+            className="grid"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))",
+              gap: TARJETA_GAP,
+            }}
           >
-            {columna.map((grupo) => (
-              <div key={grupo.id}>
-                <OrdenarPorPropiedadPopover
-                  titulo={grupo.nombre}
-                  total={grupo.compuestos.length}
-                  propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
-                  onSeleccionar={(clave) =>
-                    setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
-                  }
-                  propiedadGlobal={ordenGlobal}
-                />
-                <div
-                  className="grid"
-                  style={{ gridTemplateColumns: `repeat(${tarjetasPorFila}, 1fr)`, gap: TARJETA_GAP }}
-                >
-                  {ordenarPorPropiedad(
-                    grupo.compuestos,
-                    ordenPorGrupo[grupo.id] ?? ordenGlobal,
-                    (c, clave) => (c as unknown as Record<string, unknown>)[clave],
-                  ).map((c) => (
-                    <CompuestoCasilla
-                      key={c.id}
-                      compuesto={c}
-                      elementos={elementos}
-                      seleccionado={c.id === activoId}
-                      onClick={() => onSeleccionar(c.id)}
-                    />
-                  ))}
-                </div>
-              </div>
+            {ordenarPorPropiedad(
+              grupo.compuestos,
+              ordenPorGrupo[grupo.id] ?? ordenGlobal,
+              (c, clave) => (c as unknown as Record<string, unknown>)[clave],
+            ).map((c) => (
+              <CompuestoCasilla
+                key={c.id}
+                compuesto={c}
+                elementos={elementos}
+                seleccionado={c.id === activoId}
+                onClick={() => onSeleccionar(c.id)}
+              />
             ))}
           </div>
-        ))
-      )}
+        </div>
+      ))}
     </div>
   );
 }
