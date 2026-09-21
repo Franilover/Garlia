@@ -47,6 +47,7 @@ import { useFenomenos } from "./useFenomenos";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
 import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
 import { FiltroDropdown } from "../_shared/FiltroDropdown";
+import { PROPIEDADES_ORDENABLES } from "../_shared/OrdenarPorPropiedadPopover";
 import { useFiltrosEstructuras } from "./useFiltrosEstructuras";
 import {
   etiquetaFuncion,
@@ -1024,14 +1025,14 @@ export function ElementosPage({
   const [creatingMaterial, setCreatingMaterial] = useState(false);
   const [creatingForma, setCreatingForma] = useState(false);
 
-  // ── "Seleccionar agrupación" del título de sección (ver
-  // CabeceraSeccionConMenu / FilaAsimetrica): propiedad por la que se
-  // ordenan TODAS las categorías de Compuestos o de Materiales a la vez,
-  // o null en modo "Por categorías" normal. Reemplaza al botón
-  // "ordenar todas las secciones" que antes vivía en
-  // OrdenarPorPropiedadPopover (rediseño Química 2026-09-20). Estado
-  // propio por bloque — elegir agrupación en Compuestos no toca Materiales
-  // y viceversa. ──────────────────────────────────────────────────────
+  // ── Propiedad por la que se ordenan TODAS las categorías de Compuestos
+  // o de Materiales a la vez, o null en modo "Por categorías" normal.
+  // Antes se elegía desde "Seleccionar agrupación" en el menú del título
+  // (CabeceraSeccionConMenu); ahora es un FiltroDropdown "Propiedad" junto
+  // al título (ver bloques "compuestos"/"materiales" de FilaAsimetrica más
+  // abajo), mismo estilo que los dropdowns de Estructuras (rediseño Química
+  // 2026-09-20). Estado propio por bloque — elegir en Compuestos no toca
+  // Materiales y viceversa. ──────────────────────────────────────────────
   const [agrupacionCompuestos, setAgrupacionCompuestos] = useState<string | null>(null);
   const [agrupacionMateriales, setAgrupacionMateriales] = useState<string | null>(null);
 
@@ -1273,8 +1274,18 @@ export function ElementosPage({
             añadiendo: creatingCompuesto,
             onRenombrar: handleRenombrarCompuesto,
             onEliminar: handleEliminarCompuesto,
-            agrupacionActiva: agrupacionCompuestos,
-            onSeleccionarAgrupacion: setAgrupacionCompuestos,
+            // "Seleccionar agrupación" (menú del título) se reemplaza acá
+            // por un FiltroDropdown de Propiedad, junto a los de Estructuras
+            // (pedido 2026-09-20) — mismo valor (agrupacionCompuestos) y
+            // mismo efecto (ordenGlobal más abajo), solo cambia la UI.
+            filtros: (
+              <FiltroDropdown
+                etiqueta="Propiedad"
+                opciones={PROPIEDADES_ORDENABLES.map((p) => ({ value: p.clave, label: p.label }))}
+                value={agrupacionCompuestos}
+                onChange={setAgrupacionCompuestos}
+              />
+            ),
             contenido: (
               <CompuestosPage
                 compuestos={compuestos}
@@ -1370,8 +1381,16 @@ export function ElementosPage({
             añadiendo: creatingMaterial,
             onRenombrar: renombrarMaterial,
             onEliminar: eliminarMaterial,
-            agrupacionActiva: agrupacionMateriales,
-            onSeleccionarAgrupacion: setAgrupacionMateriales,
+            // Mismo criterio que Compuestos arriba: dropdown de Propiedad
+            // en vez de "Seleccionar agrupación" en el menú del título.
+            filtros: (
+              <FiltroDropdown
+                etiqueta="Propiedad"
+                opciones={PROPIEDADES_ORDENABLES.map((p) => ({ value: p.clave, label: p.label }))}
+                value={agrupacionMateriales}
+                onChange={setAgrupacionMateriales}
+              />
+            ),
             contenido: <MaterialesPage ordenGlobal={agrupacionMateriales} />,
           },
           {
