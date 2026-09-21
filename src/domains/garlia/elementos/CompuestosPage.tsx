@@ -252,39 +252,36 @@ function CompuestoCasilla({
   const balance = useMemo(() => calcularBalancePorCapa(perfil), [perfil]);
   const estable = balance.every((b) => b.balance === 0);
 
-  const estadoLabel = compuesto.estado ? ESTADO_LABEL[compuesto.estado] ?? compuesto.estado : null;
-
   return (
     <button
       type="button"
       onClick={onClick}
       title={compuesto.nombre}
-      className={`aspect-square w-full flex flex-col rounded-lg bg-white-custom/60 p-1.5 text-left transition-colors ${
+      className={`group flex flex-col items-stretch gap-0.5 p-1.5 border-r border-b transition-colors text-left ${
         seleccionado
-          ? "border-2 border-primary ring-2 ring-primary/20"
-          : estable
-            ? "border border-accent/60 hover:border-accent"
-            : "border border-primary/15 hover:border-primary/35"
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <div className="flex items-center justify-between gap-0.5">
-        <span className="text-[7px] font-semibold tracking-wide text-primary/40 truncate">
+      <div className="flex items-start justify-between">
+        <span className="text-micro font-black text-primary/30 truncate">
           {compuesto.categoria || "\u00A0"}
         </span>
-        <span className="text-[7px] font-semibold tracking-wide text-primary/40 truncate shrink-0">
-          {estadoLabel}
-        </span>
+        {estable && (
+          <span
+            title="Estructura atómica completa"
+            className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0 mt-0.5"
+          />
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 flex items-center justify-center px-0.5">
-        <span className="text-xl font-black text-accent truncate">
-          {compuesto.formula_canonica || compuesto.simbolo || "?"}
-        </span>
-      </div>
+      <span className="text-sm font-black text-center leading-none py-0.5 text-accent truncate">
+        {compuesto.formula_canonica || compuesto.simbolo || "?"}
+      </span>
 
-      <div className="text-center">
-        <div className="text-[10px] font-bold text-primary truncate">{compuesto.nombre}</div>
-      </div>
+      <span className="text-micro font-bold text-primary/80 truncate text-center leading-tight">
+        {compuesto.nombre}
+      </span>
     </button>
   );
 }
@@ -2402,7 +2399,6 @@ function MasonryGruposCategoria({
   // comentario en Props, arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
 
-  const TARJETA_GAP = 8;
   const ANCHO_MIN_COLUMNA = 260;
 
   return (
@@ -2425,11 +2421,8 @@ function MasonryGruposCategoria({
             propiedadGlobal={ordenGlobal}
           />
           <div
-            className="grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))",
-              gap: TARJETA_GAP,
-            }}
+            className="grid gap-0 border-t border-l border-primary/10"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
           >
             {ordenarPorPropiedad(
               grupo.compuestos,
