@@ -15,7 +15,68 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px) caben en el ancho
+ * actual del contenedor referenciado, recalculando con ResizeObserver.
+ * Misma función que en elementos/EstructurasPage.tsx y CompuestosPage.tsx.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista en `numColumnas` columnas con algoritmo greedy: cada
+ * elemento va a la columna con menor "altura" acumulada (según `getPeso`).
+ * Evita los huecos grandes de CSS columns/grid auto-fit con grupos de
+ * tamaños muy dispares (p.ej. Mineral: 9 items vs Gas: 1 item).
+ */
+function distribuirEnColumnas<T>(
+  items: T[],
+  numColumnas: number,
+  getPeso: (item: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const item of items) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(item);
+    alturas[colMenor] += getPeso(item) + OVERHEAD;
+  }
+
+  return columnas;
+}
 import { createPortal } from "react-dom";
 
 import {
@@ -1199,43 +1260,51 @@ export function MaterialesPage({ ordenGlobal = null }: MaterialesPageProps = {})
     return grupos;
   }, [materiales]);
 
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(gruposPorCategoria, numColumnas, (g) => g.materiales.length),
+    [gruposPorCategoria, numColumnas],
+  );
+
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
       ) : (
-        <div
-          className="w-full"
-          style={{ columnWidth: 260, columnGap: 16 }}
-        >
-          {gruposPorCategoria.map((grupo) => (
-            <div key={grupo.id} className="mb-4 break-inside-avoid">
-              <OrdenarPorPropiedadPopover
-                titulo={grupo.nombre}
-                total={grupo.materiales.length}
-                propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
-                onSeleccionar={(clave) =>
-                  setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
-                }
-                propiedadGlobal={ordenGlobal}
-              />
-              <div
-                className="grid gap-0 border-t border-l border-primary/10"
-                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
-              >
-                {ordenarPorPropiedad(
-                  grupo.materiales,
-                  ordenPorGrupo[grupo.id] ?? ordenGlobal,
-                  (m, clave) => m.propiedades_calculadas?.[clave],
-                ).map((material) => (
-                  <MaterialPill
-                    key={material.id}
-                    material={material}
-                    selected={material.id === seleccionadoId}
-                    onClick={() => setSeleccionadoId(material.id)}
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeGrupos.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((grupo) => (
+                <div key={grupo.id} className="mb-4">
+                  <OrdenarPorPropiedadPopover
+                    titulo={grupo.nombre}
+                    total={grupo.materiales.length}
+                    propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+                    onSeleccionar={(clave) =>
+                      setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+                    }
+                    propiedadGlobal={ordenGlobal}
                   />
-                ))}
-              </div>
+                  <div
+                    className="grid gap-0 border-t border-l border-primary/10"
+                    style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+                  >
+                    {ordenarPorPropiedad(
+                      grupo.materiales,
+                      ordenPorGrupo[grupo.id] ?? ordenGlobal,
+                      (m, clave) => m.propiedades_calculadas?.[clave],
+                    ).map((material) => (
+                      <MaterialPill
+                        key={material.id}
+                        material={material}
+                        selected={material.id === seleccionadoId}
+                        onClick={() => setSeleccionadoId(material.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>

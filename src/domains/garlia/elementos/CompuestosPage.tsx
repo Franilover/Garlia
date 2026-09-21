@@ -30,7 +30,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -2376,6 +2376,68 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
  * Tarjetas más chicas ahora (mismo mínimo ~68px que usa ElementosPage,
  * antes 100px) — pedido 2026-09-20: "hacerlos más pequeños como elementos".
  */
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px) caben en el ancho
+ * actual del contenedor referenciado, recalculando con ResizeObserver.
+ * Ver misma función en elementos/EstructurasPage.tsx.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista en `numColumnas` columnas con un algoritmo greedy: cada
+ * elemento va a la columna con menor "altura" acumulada (según `getPeso`),
+ * no a una posición fija por índice. Evita los huecos grandes que dejaba
+ * CSS columns/grid auto-fit con grupos de tamaños muy dispares.
+ * Ver misma función en elementos/EstructurasPage.tsx.
+ */
+function distribuirEnColumnas<T>(
+  items: T[],
+  numColumnas: number,
+  getPeso: (item: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const item of items) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(item);
+    alturas[colMenor] += getPeso(item) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
 function MasonryGruposCategoria({
   grupos,
   elementos,
@@ -2398,43 +2460,52 @@ function MasonryGruposCategoria({
 
   const ANCHO_MIN_COLUMNA = 260;
 
+  // Mampostería real: cada grupo va a la columna con menor "altura"
+  // acumulada (estimada por cantidad de compuestos), no a una posición fija.
+  // Reemplaza el grid auto-fit anterior, que dejaba columnas enteras vacías
+  // cuando un grupo (p.ej. 27 items) quedaba junto a varios chicos (1-5).
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, ANCHO_MIN_COLUMNA, 16);
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupos, numColumnas, (g) => g.compuestos.length),
+    [grupos, numColumnas],
+  );
+
   return (
-    <div
-      className="grid w-full items-start"
-      style={{
-        gridTemplateColumns: `repeat(auto-fit, minmax(${ANCHO_MIN_COLUMNA}px, 1fr))`,
-        gap: 16,
-      }}
-    >
-      {grupos.map((grupo) => (
-        <div key={grupo.id} className="mb-4">
-          <OrdenarPorPropiedadPopover
-            titulo={grupo.nombre}
-            total={grupo.compuestos.length}
-            propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
-            onSeleccionar={(clave) =>
-              setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
-            }
-            propiedadGlobal={ordenGlobal}
-          />
-          <div
-            className="grid gap-0 border-t border-l border-primary/10"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
-          >
-            {ordenarPorPropiedad(
-              grupo.compuestos,
-              ordenPorGrupo[grupo.id] ?? ordenGlobal,
-              (c, clave) => (c as unknown as Record<string, unknown>)[clave],
-            ).map((c) => (
-              <CompuestoCasilla
-                key={c.id}
-                compuesto={c}
-                elementos={elementos}
-                seleccionado={c.id === activoId}
-                onClick={() => onSeleccionar(c.id)}
+    <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+      {columnasDeGrupos.map((columna, colIdx) => (
+        <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+          {columna.map((grupo) => (
+            <div key={grupo.id} className="mb-4">
+              <OrdenarPorPropiedadPopover
+                titulo={grupo.nombre}
+                total={grupo.compuestos.length}
+                propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+                onSeleccionar={(clave) =>
+                  setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+                }
+                propiedadGlobal={ordenGlobal}
               />
-            ))}
-          </div>
+              <div
+                className="grid gap-0 border-t border-l border-primary/10"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+              >
+                {ordenarPorPropiedad(
+                  grupo.compuestos,
+                  ordenPorGrupo[grupo.id] ?? ordenGlobal,
+                  (c, clave) => (c as unknown as Record<string, unknown>)[clave],
+                ).map((c) => (
+                  <CompuestoCasilla
+                    key={c.id}
+                    compuesto={c}
+                    elementos={elementos}
+                    seleccionado={c.id === activoId}
+                    onClick={() => onSeleccionar(c.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       ))}
     </div>

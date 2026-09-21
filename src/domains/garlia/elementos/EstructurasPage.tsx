@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, ChevronLeft, Link2, Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PropiedadesFisicasGenerico } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
@@ -39,6 +39,73 @@ const ESTADO_LABEL: Record<string, string> = {
   calculable: "Calculado",
   pendiente: "Pendiente",
 };
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Se recalcula con un
+ * ResizeObserver para que la distribución en mampostería responda al resize
+ * de la ventana o del panel lateral, igual que auto-fit/auto-fill lo hacían
+ * de forma nativa con CSS Grid.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas usando un
+ * algoritmo greedy: cada sección se asigna a la columna con menor "altura"
+ * acumulada (según `getPeso`, p.ej. cantidad de items), y no a una posición
+ * fija por índice. Esto es lo que evita los huecos grandes que dejaba
+ * CSS columns / grid auto-fit cuando las secciones tienen tamaños muy
+ * dispares (p.ej. un grupo de 50 items junto a uno de 1).
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  // Overhead fijo por sección (encabezado + márgenes) para que una sección
+  // de 1 item no se considere "gratis" frente a una de 0.
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
 
 /** Selector de tipo polimórfico (compuesto/estructura/material) — mismo
  *  criterio visual compacto que el resto de los controles micro del panel. */
@@ -1215,6 +1282,16 @@ export default function EstructurasPage({
     return agruparPorSeccion(visibles);
   }, [items, filtros, relaciones, relacionesVacias]);
 
+  // Distribución tipo "mampostería": cada sección va a la columna con menor
+  // altura acumulada (estimada por cantidad de items + overhead de encabezado),
+  // en vez de una posición fija por índice — evita huecos verticales grandes.
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const columnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const columnasDeSecciones = useMemo(
+    () => distribuirEnColumnas(secciones, columnas, (s) => s.items.length),
+    [secciones, columnas],
+  );
+
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
@@ -1226,21 +1303,19 @@ export default function EstructurasPage({
             : "Sin estructuras todavía."}
         </p>
       ) : (
-        <div
-          className="grid w-full items-start"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 16,
-          }}
-        >
-          {secciones.map((seccion) => (
-            <div key={seccion.clave} className="mb-4">
-              <ChipGrupoEstructuras
-                titulo={seccion.titulo}
-                items={seccion.items}
-                seleccionadaId={seleccionadaId}
-                onSeleccionar={setSeleccionadaId}
-              />
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeSecciones.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((seccion) => (
+                <div key={seccion.clave} className="mb-4">
+                  <ChipGrupoEstructuras
+                    titulo={seccion.titulo}
+                    items={seccion.items}
+                    seleccionadaId={seleccionadaId}
+                    onSeleccionar={setSeleccionadaId}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </div>
