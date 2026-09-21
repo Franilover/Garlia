@@ -2437,6 +2437,16 @@ function MasonryGruposCategoria({
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    // OJO: se observa el PADRE (el bloque flex-1 que ya ocupa todo el
+    // ancho del layout), no este mismo div de columnas. Este div es un
+    // `flex` cuyos hijos usan `width: anchoColumna` (un valor derivado de
+    // containerWidth) — si se auto-observara, el ancho medido sería el que
+    // el propio div "decide" tener según su contenido (un ciclo que se
+    // resuelve angosto, ~260px, la primera vez que corre el observer),
+    // en vez del ancho real disponible en el layout. El padre no depende
+    // de esta medición, así que da el ancho real sin ese ciclo.
+    const parent = el.parentElement;
+    const target = parent ?? el;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width) {
@@ -2444,7 +2454,7 @@ function MasonryGruposCategoria({
         setMedido(true);
       }
     });
-    observer.observe(el);
+    observer.observe(target);
     return () => observer.disconnect();
   }, []);
 
@@ -2500,7 +2510,7 @@ function MasonryGruposCategoria({
   );
 
   return (
-    <div ref={containerRef} className="flex gap-4 items-start w-full">
+    <div ref={containerRef} className="flex gap-4 items-start w-full min-w-0">
       {!medido ? (
         <div className="flex-1 py-6 text-center text-micro text-primary/30">Cargando…</div>
       ) : (
