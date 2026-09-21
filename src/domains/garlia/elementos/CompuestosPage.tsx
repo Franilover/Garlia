@@ -30,7 +30,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -211,11 +211,28 @@ function nombreElemento(elementos: Elemento[], id: string): string {
   return el ? `${el.simbolo || "??"} · ${el.nombre}` : "(elemento eliminado)";
 }
 
+/** Etiqueta de estado de materia para la esquina superior de la tarjeta —
+ *  ver EstadoMateria en types.ts. Sin dato, no se muestra nada (mismo
+ *  criterio que categoría). */
+const ESTADO_LABEL: Record<string, string> = {
+  solido: "sólido",
+  liquido: "líquido",
+  gas: "gas",
+};
+
 /**
- * Pill de compuesto: solo el nombre, formato chip compacto (mismo espíritu
- * que NodoTitulo en GeografiaJerarquica) — se prioriza legibilidad y
- * densidad sobre el detalle de componentes, que ya se ve al abrir el panel.
- * El punto de "estable" se conserva como señal rápida sin abrir nada.
+ * Tarjeta cuadrada de compuesto — reemplaza la pill horizontal anterior.
+ * No intenta describir el compuesto, solo identificarlo: la jerarquía es
+ * categoría/estado arriba, símbolo grande al centro, nombre + fórmula
+ * debajo, y una franja inferior con composición resumida + 2 propiedades
+ * físicas clave (densidad/estabilidad). El resto (enlaces, energía,
+ * topología, auditoría...) vive en el panel de detalle al hacer click —
+ * mismo espíritu que EntityCard en Elementos/Runas, pero con más
+ * información porque acá sí hay suficiente para identificar sin abrir.
+ *
+ * El borde acentuado (2px, --border-accent) marca "estructura atómica
+ * completa" — mismo significado que el puntito accent que tenía la pill
+ * vieja, solo que ahora es el borde entero de la tarjeta.
  */
 function CompuestoCasilla({
   compuesto,
@@ -235,24 +252,70 @@ function CompuestoCasilla({
   const balance = useMemo(() => calcularBalancePorCapa(perfil), [perfil]);
   const estable = balance.every((b) => b.balance === 0);
 
+  // Composición resumida: símbolos de los elementos componentes, sin
+  // cantidades ni nombres completos (esos van en el detalle) — ej. "Am · So".
+  const composicion = useMemo(() => {
+    const simbolos = (compuesto.componentes ?? []).map((comp) => {
+      const el = elementos.find((e) => e.id === comp.elemento_id);
+      return el?.simbolo || "??";
+    });
+    return simbolos.join(" · ");
+  }, [compuesto.componentes, elementos]);
+
+  const densidad = compuesto.densidad != null ? compuesto.densidad.toFixed(2) : null;
+  const estabilidad = compuesto.estabilidad != null ? compuesto.estabilidad.toFixed(2) : null;
+  const estadoLabel = compuesto.estado ? ESTADO_LABEL[compuesto.estado] ?? compuesto.estado : null;
+
   return (
     <button
       type="button"
       onClick={onClick}
       title={compuesto.nombre}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
+      className={`aspect-square w-full flex flex-col rounded-xl bg-white-custom/60 p-2.5 text-left transition-colors ${
         seleccionado
-          ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-          : "hover:bg-primary/10 text-primary/70 border border-primary/15"
+          ? "border-2 border-primary ring-2 ring-primary/20"
+          : estable
+            ? "border-2 border-accent/60 hover:border-accent"
+            : "border border-primary/15 hover:border-primary/35"
       }`}
     >
-      {estable && (
-        <span
-          title="Estructura atómica completa"
-          className="w-1 h-1 rounded-full bg-accent/70 shrink-0"
-        />
-      )}
-      <span className="truncate">{compuesto.nombre}</span>
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] font-semibold tracking-wide text-primary/40 truncate">
+          {compuesto.categoria || "\u00A0"}
+        </span>
+        <span className="text-[9px] font-semibold tracking-wide text-primary/40 truncate shrink-0">
+          {estadoLabel}
+        </span>
+      </div>
+
+      <div className="flex-1 min-h-0 flex items-center justify-center px-1">
+        <span className="text-2xl font-bold text-primary truncate">
+          {compuesto.simbolo || "?"}
+        </span>
+      </div>
+
+      <div className="text-center">
+        <div className="text-xs font-bold text-primary truncate">{compuesto.nombre}</div>
+        {compuesto.formula_canonica && (
+          <div className="text-[10px] text-primary/50 truncate">{compuesto.formula_canonica}</div>
+        )}
+      </div>
+
+      <div className="mt-1.5 pt-1.5 border-t border-primary/10">
+        {composicion && (
+          <div className="text-[9px] text-primary/45 text-center truncate">{composicion}</div>
+        )}
+        {(densidad || estabilidad) && (
+          <div className="mt-1 flex items-center justify-between text-[10px] text-primary/50">
+            <span title="Densidad">
+              ρ <span className="font-bold text-primary/75">{densidad ?? "—"}</span>
+            </span>
+            <span title="Estabilidad">
+              S <span className="font-bold text-primary/75">{estabilidad ?? "—"}</span>
+            </span>
+          </div>
+        )}
+      </div>
     </button>
   );
 }
@@ -2335,14 +2398,11 @@ const ETIQUETAS_CATEGORIA: Record<string, string> = {
 /**
  * MasonryGruposCategoria
  * ───────────────────────────────────────────────────────────────────────────
- * Reparte los grupos de compuestos (por categoria) en columnas de igual
- * ancho, cada grupo asignado a la columna con menor altura acumulada
- * (masonry greedy, mismo criterio que distribuirEnColumnas en
- * GeografiaJerarquica.tsx). Como ahora cada compuesto es solo una pill de
- * texto, la altura de un grupo depende de cuántas pills entran por fila
- * dado el ancho de columna — se estima con el mismo enfoque de "simular el
- * wrap" en vez de medir el DOM, para poder recalcular las columnas antes
- * de pintar.
+ * Grupos de compuestos (por categoria), cada uno con su propio grid de
+ * tarjetas cuadradas de tamaño fijo (auto-fill, sin masonry: al ser todas
+ * iguales no hace falta empaquetar alturas variables como con las pills de
+ * antes — ver diseño "tarjeta cuadrada" 2026-09-20). Los grupos se apilan
+ * en una sola columna, de arriba hacia abajo.
  * (Antes agrupaba por el eje "naturaleza" del sistema de tags — renombrado
  * 2026-09-17 al pasar el catálogo a agrupar por compuestos.categoria.)
  */
@@ -2361,139 +2421,44 @@ function MasonryGruposCategoria({
    *  en Props (arriba) de CompuestosPage. */
   ordenGlobal: string | null;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  // Antes: containerWidth arrancaba en 0 y el layout se pintaba con un
-  // ancho estimado (900px, ver fallback más abajo) hasta que el
-  // ResizeObserver medía el ancho real — un reflow grande y visible del
-  // masonry entero apenas cargaba (más notorio ahora que la columna mide
-  // ~1/3 del panel por el grid de 3 columnas, no el ancho completo). Con
-  // "medido" no se renderiza el masonry hasta tener el ancho real, así
-  // que no hay salto: solo aparece ya con el layout correcto.
-  const [medido, setMedido] = useState(false);
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width;
-      if (width) {
-        setContainerWidth(width);
-        setMedido(true);
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   // Propiedad emergente por la que está ordenado cada grupo (clave = grupo.id).
-  // Solo cambia el orden de las pills dentro del grupo, no su tamaño, así que
-  // no afecta la distribución masonry de abajo. ordenGlobal (todas las
-  // categorías a la vez) llega por prop — ver comentario en Props, arriba.
+  // ordenGlobal (todas las categorías a la vez) llega por prop — ver
+  // comentario en Props, arriba.
   const [ordenPorGrupo, setOrdenPorGrupo] = useState<Record<string, string | null>>({});
 
-  const GAP = 16;
-  const ANCHO_MIN_COLUMNA = 240;
-  const anchoDisponible = containerWidth || 900;
-  const numColumnas = Math.max(
-    1,
-    Math.floor((anchoDisponible + GAP) / (ANCHO_MIN_COLUMNA + GAP)),
-  );
-  const anchoColumna = (anchoDisponible - GAP * (numColumnas - 1)) / numColumnas;
-
-  // Estimación de altura de una pill según su ancho de texto (aprox. 5px
-  // por carácter a text-micro + padding del chip), para simular el
-  // flex-wrap real sin medir el DOM.
-  const PILL_ALTO = 26;
-  const PILL_GAP = 4;
-  const anchoPill = (nombre: string) => Math.min(Math.max(nombre.length * 5 + 32, 60), anchoColumna);
-
-  const altoGrupo = (grupo: { nombre: string; compuestos: Compuesto[] }) => {
-    const tituloAlto = 24; // TituloCategoria: texto + líneas + mb-1.5
-    let filas = 1;
-    let anchoFila = 0;
-    for (const c of grupo.compuestos) {
-      const w = anchoPill(c.nombre);
-      const necesario = anchoFila === 0 ? w : anchoFila + PILL_GAP + w;
-      if (anchoFila === 0 || necesario <= anchoColumna) {
-        anchoFila = necesario;
-      } else {
-        filas += 1;
-        anchoFila = w;
-      }
-    }
-    return tituloAlto + filas * PILL_ALTO + (filas - 1) * PILL_GAP;
-  };
-
-  function distribuirEnColumnas() {
-    const columnas: { id: string; nombre: string; compuestos: Compuesto[] }[][] = Array.from(
-      { length: numColumnas },
-      () => [],
-    );
-    const alturas = new Array(numColumnas).fill(0);
-    for (const grupo of grupos) {
-      let idxMin = 0;
-      for (let i = 1; i < numColumnas; i++) {
-        if (alturas[i] < alturas[idxMin]) idxMin = i;
-      }
-      columnas[idxMin].push(grupo);
-      alturas[idxMin] += altoGrupo(grupo) + GAP;
-    }
-    return columnas;
-  }
-
-  const columnas = useMemo(
-    () => distribuirEnColumnas(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [grupos, numColumnas, anchoColumna],
-  );
-
   return (
-    <div ref={containerRef} className="flex gap-4 items-start">
-      {!medido ? (
-        // Placeholder mientras se mide el contenedor real — evita pintar
-        // con el ancho estimado (900) y después saltar al recalcular con
-        // el ancho verdadero. Altura aproximada para que no haya salto de
-        // scroll cuando el masonry real aparece encima.
-        <div className="flex-1 py-6 text-center text-micro text-primary/30">Cargando…</div>
-      ) : (
-        columnas.map((columna, i) => (
+    <div className="flex flex-col gap-5">
+      {grupos.map((grupo) => (
+        <div key={grupo.id}>
+          <OrdenarPorPropiedadPopover
+            titulo={grupo.nombre}
+            total={grupo.compuestos.length}
+            propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
+            onSeleccionar={(clave) =>
+              setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
+            }
+            propiedadGlobal={ordenGlobal}
+          />
           <div
-            key={i}
-            className="flex flex-col gap-4 min-w-0"
-            style={{ width: anchoColumna }}
+            className="grid gap-2"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(108px, 1fr))" }}
           >
-            {columna.map((grupo) => (
-              <div key={grupo.id}>
-                <OrdenarPorPropiedadPopover
-                  titulo={grupo.nombre}
-                  total={grupo.compuestos.length}
-                  propiedadActiva={ordenPorGrupo[grupo.id] ?? null}
-                  onSeleccionar={(clave) =>
-                    setOrdenPorGrupo((prev) => ({ ...prev, [grupo.id]: clave }))
-                  }
-                  propiedadGlobal={ordenGlobal}
-                />
-                <div className="flex flex-wrap gap-1">
-                  {ordenarPorPropiedad(
-                    grupo.compuestos,
-                    ordenPorGrupo[grupo.id] ?? ordenGlobal,
-                    (c, clave) => (c as unknown as Record<string, unknown>)[clave],
-                  ).map((c) => (
-                    <CompuestoCasilla
-                      key={c.id}
-                      compuesto={c}
-                      elementos={elementos}
-                      seleccionado={c.id === activoId}
-                      onClick={() => onSeleccionar(c.id)}
-                    />
-                  ))}
-                </div>
-              </div>
+            {ordenarPorPropiedad(
+              grupo.compuestos,
+              ordenPorGrupo[grupo.id] ?? ordenGlobal,
+              (c, clave) => (c as unknown as Record<string, unknown>)[clave],
+            ).map((c) => (
+              <CompuestoCasilla
+                key={c.id}
+                compuesto={c}
+                elementos={elementos}
+                seleccionado={c.id === activoId}
+                onClick={() => onSeleccionar(c.id)}
+              />
             ))}
           </div>
-        ))
-      )}
+        </div>
+      ))}
     </div>
   );
 }
