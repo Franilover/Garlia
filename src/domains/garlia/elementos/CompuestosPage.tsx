@@ -252,18 +252,6 @@ function CompuestoCasilla({
   const balance = useMemo(() => calcularBalancePorCapa(perfil), [perfil]);
   const estable = balance.every((b) => b.balance === 0);
 
-  // Composición resumida: símbolos de los elementos componentes, sin
-  // cantidades ni nombres completos (esos van en el detalle) — ej. "Am · So".
-  const composicion = useMemo(() => {
-    const simbolos = (compuesto.componentes ?? []).map((comp) => {
-      const el = elementos.find((e) => e.id === comp.elemento_id);
-      return el?.simbolo || "??";
-    });
-    return simbolos.join(" · ");
-  }, [compuesto.componentes, elementos]);
-
-  const densidad = compuesto.densidad != null ? compuesto.densidad.toFixed(2) : null;
-  const estabilidad = compuesto.estabilidad != null ? compuesto.estabilidad.toFixed(2) : null;
   const estadoLabel = compuesto.estado ? ESTADO_LABEL[compuesto.estado] ?? compuesto.estado : null;
 
   return (
@@ -289,32 +277,13 @@ function CompuestoCasilla({
       </div>
 
       <div className="flex-1 min-h-0 flex items-center justify-center px-0.5">
-        <span className="text-base font-black text-primary truncate">
-          {compuesto.simbolo || "?"}
+        <span className="text-xl font-black text-accent truncate">
+          {compuesto.formula_canonica || compuesto.simbolo || "?"}
         </span>
       </div>
 
       <div className="text-center">
         <div className="text-[10px] font-bold text-primary truncate">{compuesto.nombre}</div>
-        {compuesto.formula_canonica && (
-          <div className="text-[8px] text-primary/50 truncate">{compuesto.formula_canonica}</div>
-        )}
-      </div>
-
-      <div className="mt-1 pt-1 border-t border-primary/10">
-        {composicion && (
-          <div className="text-[7px] text-primary/45 text-center truncate">{composicion}</div>
-        )}
-        {(densidad || estabilidad) && (
-          <div className="mt-0.5 flex items-center justify-between text-[8px] text-primary/50">
-            <span title="Densidad">
-              ρ <span className="font-bold text-primary/75">{densidad ?? "—"}</span>
-            </span>
-            <span title="Estabilidad">
-              S <span className="font-bold text-primary/75">{estabilidad ?? "—"}</span>
-            </span>
-          </div>
-        )}
       </div>
     </button>
   );
