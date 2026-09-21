@@ -58,6 +58,9 @@ interface Bloque {
    *  omite, esa opción no aparece en el menú de este bloque. */
   agrupacionActiva?: string | null;
   onSeleccionarAgrupacion?: (clave: string | null) => void;
+  /** Filtros (dropdowns) a la izquierda del título — ver
+   *  CabeceraSeccionConMenu.filtros. Si se omite, título centrado como antes. */
+  filtros?: React.ReactNode;
 }
 
 const UMBRAL_DOMINANCIA = 1.5;
@@ -104,6 +107,7 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
               añadiendo={bloque.añadiendo}
               agrupacionActiva={bloque.agrupacionActiva}
               onSeleccionarAgrupacion={bloque.onSeleccionarAgrupacion}
+              filtros={bloque.filtros}
             />
             {bloque.contenido}
           </div>
@@ -127,6 +131,7 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
           añadiendo={grande.añadiendo}
           agrupacionActiva={grande.agrupacionActiva}
           onSeleccionarAgrupacion={grande.onSeleccionarAgrupacion}
+          filtros={grande.filtros}
         />
         {grande.contenido}
       </div>
@@ -142,6 +147,7 @@ export function FilaAsimetrica({ bloques }: { bloques: Bloque[] }) {
               añadiendo={bloque.añadiendo}
               agrupacionActiva={bloque.agrupacionActiva}
               onSeleccionarAgrupacion={bloque.onSeleccionarAgrupacion}
+              filtros={bloque.filtros}
             />
             {bloque.contenido}
           </div>

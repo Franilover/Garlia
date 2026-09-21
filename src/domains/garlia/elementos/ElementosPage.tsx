@@ -46,6 +46,16 @@ import { useProcesos } from "./useProcesos";
 import { useFenomenos } from "./useFenomenos";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
 import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
+import { FiltroDropdown } from "../_shared/FiltroDropdown";
+import { useFiltrosEstructuras } from "./useFiltrosEstructuras";
+import {
+  etiquetaFuncion,
+  FILTROS_VACIOS,
+  funcionClave,
+  hayFiltrosActivos,
+  opcionesUnicas,
+  type FiltrosEstructuras,
+} from "./estructurasBiblioteca";
 import {
   type EditorHeaderControls,
 } from "../_shared/useEditorHeaderControls";
@@ -940,6 +950,59 @@ export function ElementosPage({
     renombrarEstructura,
     eliminarEstructura,
   } = useEstructuras();
+
+  // ── Filtros de la biblioteca de Estructuras (canon 2026-09-20). El estado
+  // vive ACÁ (no en EstructurasPage) porque los dropdowns se dibujan junto al
+  // título "Estructuras" — fuera del contenido — pero actúan sobre el grid de
+  // adentro, así que se le bajan a EstructurasPage como props. Las opciones
+  // se calculan sobre el catálogo COMPLETO (no el filtrado) para que no
+  // desaparezcan al combinar dropdowns.
+  const [filtrosEstructuras, setFiltrosEstructuras] =
+    useState<FiltrosEstructuras>(FILTROS_VACIOS);
+  const {
+    tagsEnUso: tagsFiltro,
+    formasEnUso: formasFiltro,
+    tagIdsPorEstructura,
+    formaIdPorEstructura,
+  } = useFiltrosEstructuras();
+  const relacionesFiltroEstructuras = useMemo(
+    () => ({ tagIdsPorEstructura, formaIdPorEstructura }),
+    [tagIdsPorEstructura, formaIdPorEstructura],
+  );
+  const opcionesTipoEstructura = useMemo(
+    () =>
+      opcionesUnicas(estructurasParaConteo, (e) => e.tipo, (v) =>
+        v === "patron_estructural" ? "Patrón estructural" : etiquetaFuncion(v.replace(/_/g, " ")),
+      ),
+    [estructurasParaConteo],
+  );
+  const opcionesFuncionEstructura = useMemo(
+    () => opcionesUnicas(estructurasParaConteo, (e) => funcionClave(e.funcion), etiquetaFuncion),
+    [estructurasParaConteo],
+  );
+  const opcionesGeometriaEstructura = useMemo(
+    () =>
+      formasFiltro.map((f) => ({
+        value: f.id,
+        label: f.nombre,
+        count: estructurasParaConteo.filter((e) => formaIdPorEstructura.get(e.id) === f.id)
+          .length,
+      })),
+    [formasFiltro, estructurasParaConteo, formaIdPorEstructura],
+  );
+  const opcionesTagEstructura = useMemo(
+    () =>
+      tagsFiltro.map((t) => ({
+        value: t.id,
+        label: t.nombre,
+        count: estructurasParaConteo.filter((e) => tagIdsPorEstructura.get(e.id)?.has(t.id))
+          .length,
+      })),
+    [tagsFiltro, estructurasParaConteo, tagIdsPorEstructura],
+  );
+  const setFiltroEstructura = (campo: keyof FiltrosEstructuras) => (valor: string | null) =>
+    setFiltrosEstructuras((prev) => ({ ...prev, [campo]: valor }));
+
   const {
     items: materialesParaConteo,
     crearMaterial,
@@ -1249,7 +1312,54 @@ export function ElementosPage({
             // agrupacionActiva/onSeleccionarAgrupacion — la opción
             // "Seleccionar agrupación" simplemente no aparece en su menú
             // hasta que EstructurasPage lo soporte.
-            contenido: <EstructurasPage />,
+            //
+            // filtros: dropdowns Tipo / Función / Geometría / Tags A LA
+            // IZQUIERDA del título (pedido 2026-09-20) — ver
+            // CabeceraSeccionConMenu.filtros. Actúan sobre todo el grid.
+            filtros: (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <FiltroDropdown
+                  etiqueta="Tipo"
+                  opciones={opcionesTipoEstructura}
+                  value={filtrosEstructuras.tipo}
+                  onChange={setFiltroEstructura("tipo")}
+                />
+                <FiltroDropdown
+                  etiqueta="Función"
+                  opciones={opcionesFuncionEstructura}
+                  value={filtrosEstructuras.funcion}
+                  onChange={setFiltroEstructura("funcion")}
+                />
+                <FiltroDropdown
+                  etiqueta="Geometría"
+                  opciones={opcionesGeometriaEstructura}
+                  value={filtrosEstructuras.geometria}
+                  onChange={setFiltroEstructura("geometria")}
+                />
+                <FiltroDropdown
+                  etiqueta="Tags"
+                  opciones={opcionesTagEstructura}
+                  value={filtrosEstructuras.tag}
+                  onChange={setFiltroEstructura("tag")}
+                />
+                {hayFiltrosActivos(filtrosEstructuras) && (
+                  <button
+                    type="button"
+                    onClick={() => setFiltrosEstructuras(FILTROS_VACIOS)}
+                    title="Quitar todos los filtros"
+                    className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-micro font-bold text-primary/40 hover:text-primary/70 hover:bg-primary/8 transition-colors cursor-pointer"
+                  >
+                    <X size={10} /> Limpiar
+                  </button>
+                )}
+              </div>
+            ),
+            contenido: (
+              <EstructurasPage
+                filtros={filtrosEstructuras}
+                relaciones={relacionesFiltroEstructuras}
+              />
+            ),
           },
           {
             key: "materiales",

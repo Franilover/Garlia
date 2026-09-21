@@ -79,6 +79,14 @@ export interface CabeceraSeccionConMenuProps {
    *  global sobre sus grupos — ver propiedadGlobal en
    *  OrdenarPorPropiedadPopover. */
   onSeleccionarAgrupacion?: (clave: string | null) => void;
+  /**
+   * Slot opcional de filtros (dropdowns) que se dibuja A LA IZQUIERDA del
+   * título, en la misma fila. 2026-09-20: pedido para Estructuras — los
+   * filtros Tipo/Función/Geometría/Tags viven junto al título de la sección
+   * en vez de dentro del contenido. Si se omite, la cabecera queda idéntica
+   * a antes (título centrado) — Compuestos/Materiales/Geometrías no cambian.
+   */
+  filtros?: React.ReactNode;
 }
 
 /** Submenú "Seleccionar agrupación → Por Propiedades": lista de las mismas
@@ -129,6 +137,7 @@ export function CabeceraSeccionConMenu({
   añadiendo,
   agrupacionActiva = null,
   onSeleccionarAgrupacion,
+  filtros,
 }: CabeceraSeccionConMenuProps) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -162,27 +171,29 @@ export function CabeceraSeccionConMenu({
   const propiedadActivaLabel =
     PROPIEDADES_ORDENABLES.find((p) => p.clave === agrupacionActiva)?.label ?? null;
 
-  return (
-    <div className="px-3 pt-3 text-center relative" ref={anclaRef}>
-      <button
-        type="button"
-        disabled={!hayAlgoQueMostrar}
-        onClick={() => hayAlgoQueMostrar && setMenuAbierto((v) => !v)}
-        className={`text-micro font-black uppercase tracking-widest text-primary/40 ${
-          hayAlgoQueMostrar ? "hover:text-primary/70 cursor-pointer" : "cursor-default"
-        } transition-colors`}
-      >
-        {titulo}
-        {propiedadActivaLabel && (
-          <span className="ml-1.5 normal-case tracking-normal text-accent">
-            ↓ {propiedadActivaLabel}
-          </span>
-        )}
-      </button>
+  const botonTitulo = (
+    <button
+      type="button"
+      disabled={!hayAlgoQueMostrar}
+      onClick={() => hayAlgoQueMostrar && setMenuAbierto((v) => !v)}
+      className={`text-micro font-black uppercase tracking-widest text-primary/40 ${
+        hayAlgoQueMostrar ? "hover:text-primary/70 cursor-pointer" : "cursor-default"
+      } transition-colors`}
+    >
+      {titulo}
+      {propiedadActivaLabel && (
+        <span className="ml-1.5 normal-case tracking-normal text-accent">
+          ↓ {propiedadActivaLabel}
+        </span>
+      )}
+    </button>
+  );
 
-      {menuAbierto && (
-        <div
-          className="absolute z-50 left-1/2 -translate-x-1/2 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left"
+  const menuFlotante = (
+    <div
+          className={`absolute z-50 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left ${
+            filtros ? "left-0" : "left-1/2 -translate-x-1/2"
+          }`}
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -227,7 +238,33 @@ export function CabeceraSeccionConMenu({
             </button>
           )}
         </div>
+  );
+
+  return (
+    <div
+      className={`px-3 pt-3 relative ${filtros ? "text-left" : "text-center"}`}
+      ref={anclaRef}
+    >
+      {filtros ? (
+        // Con filtros: filtros + título en una fila. Los filtros van a la
+        // IZQUIERDA del título (pedido explícito 2026-09-20: "los filtros
+        // al lado del título, a la izquierda"), el título queda a su
+        // derecha. El menú Añadir/Editar sigue anclado al título.
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {filtros}
+          {/* Wrapper relative propio del título: el menú Añadir/Editar
+              cuelga de ACÁ (left-0) y no del borde izquierdo de la fila,
+              que ahora ocupan los filtros. */}
+          <div className="relative" data-ancla-titulo>
+            {botonTitulo}
+            {menuAbierto && menuFlotante}
+          </div>
+        </div>
+      ) : (
+        botonTitulo
       )}
+
+      {!filtros && menuAbierto && menuFlotante}
 
       {/* Segundo nivel: Por categorías (vuelve a null) / Por Propiedades
           (abre el tercer nivel con las 12 propiedades) — se ancla al botón

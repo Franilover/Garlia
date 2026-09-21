@@ -1018,12 +1018,21 @@ export interface Estructura {
    *  el catálogo en "Patrones estructurales" (tipo="patron_estructural") y
    *  "Estructuras concretas" (agrupadas por patron_estructural_id). */
   patron_estructural_id: string | null;
+  /** 2026-09-20: escala física de la estructura — "micro" | "macro" | null.
+   *  Columna que ya existía en Supabase pero no se leía desde el frontend.
+   *  Junto con tipo="patron_estructural" define la AGRUPACIÓN VISUAL de la
+   *  biblioteca (Micro / Macro / Patrones estructurales). Null en los
+   *  patrones (no tienen escala propia: un patrón es un modelo abstracto
+   *  reutilizable por estructuras micro o macro) y en las pocas concretas
+   *  todavía sin clasificar (van a "Sin escala definida", sección de
+   *  auditoría, no categoría científica). */
+  escala: string | null;
 }
 
 export const CONFIG_ESTRUCTURAS = {
   tabla: "estructuras",
   select:
-    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, patron_estructural_id",
+    "id, nombre, tipo, descripcion, funcion, notas, propiedades_calculadas, estado_calculo, calculado_at, created_at, updated_at, patron_estructural_id, escala",
 };
 
 /**

@@ -23,6 +23,14 @@ import {
 import { useEstructuraComposicion, type CompuestoDeEstructura } from "./useEstructuraComposicion";
 import { useEstructuras } from "./useEstructuras";
 import { useCompuestos } from "./useCompuestos";
+import {
+  agruparPorSeccion,
+  cumpleFiltros,
+  FILTROS_VACIOS,
+  hayFiltrosActivos,
+  type FiltrosEstructuras,
+  type RelacionesFiltro,
+} from "./estructurasBiblioteca";
 import type { Estructura } from "./types";
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -961,6 +969,11 @@ function EstructuraDetail({ estructura }: { estructura: Estructura }) {
       <header className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5 text-micro text-primary/40">
+            {estructura.escala && (
+              <span className="rounded px-1.5 py-0.5 bg-primary/5 font-bold capitalize">
+                {estructura.escala}
+              </span>
+            )}
             {estructura.tipo && (
               <span className="rounded px-1.5 py-0.5 bg-primary/5 font-bold">{estructura.tipo}</span>
             )}
@@ -1164,88 +1177,64 @@ function EstructuraPanelFlotante({
   );
 }
 
-export default function EstructurasPage() {
+/** Grilla de la biblioteca de Estructuras — canon 2026-09-20.
+ *
+ *  Las entradas se agrupan VISUALMENTE en Micro / Macro / Patrones
+ *  estructurales (+ "Sin escala definida", sección de excepción/auditoría
+ *  que solo aparece mientras haya concretas sin clasificar). Ver
+ *  estructurasBiblioteca.ts para el porqué de cada eje (agrupación vs Tipo
+ *  vs Función vs Geometría vs Tags).
+ *
+ *  Los filtros NO se dibujan acá: viven junto al título "Estructuras" (en
+ *  ElementosPage, vía CabeceraSeccionConMenu.filtros) y llegan como props
+ *  `filtros` + `relaciones`. Actúan sobre TODO el grid a la vez — sin
+ *  pestañas, sin esconder secciones enteras salvo que queden en cero. */
+export default function EstructurasPage({
+  filtros = FILTROS_VACIOS,
+  relaciones,
+}: {
+  filtros?: FiltrosEstructuras;
+  relaciones?: RelacionesFiltro;
+}) {
   const { items, loading, renombrarEstructura, eliminarEstructura } = useEstructuras();
   const { confirm, ConfirmModal } = useConfirm();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
   const seleccionada = items.find((e) => e.id === seleccionadaId) ?? null;
 
-  // Separa el catálogo en Patrones estructurales (tipo="patron_estructural",
-  // ej. Lámina/Fibra/Tubular — renombrado 2026-09 desde "base_estructural")
-  // y Estructuras concretas (todo lo demás, ej. Hoja/Pétalo/Raquis) — antes
-  // se mostraban todas mezcladas en una sola lista plana. Las concretas se
-  // subagrupan por su patron_estructural_id (renombrado desde
-  // estructura_base_id; nombre del patrón como subtítulo), y las que no
-  // tienen patrón asignado (anatómica/celular/molecular/vegetal/cristalina
-  // sueltas) van al final bajo "Sin patrón asignado" en vez de perderse.
-  const { bases, gruposConcretas, sinBase } = useMemo(() => {
-    const bases = items.filter((e) => e.tipo === "patron_estructural");
-    const concretas = items.filter((e) => e.tipo !== "patron_estructural");
-    const basesPorId = new Map(bases.map((b) => [b.id, b]));
+  const relacionesVacias = useMemo<RelacionesFiltro>(
+    () => ({ tagIdsPorEstructura: new Map(), formaIdPorEstructura: new Map() }),
+    [],
+  );
 
-    const porBase = new Map<string, Estructura[]>();
-    const sinBase: Estructura[] = [];
-    for (const e of concretas) {
-      if (e.patron_estructural_id && basesPorId.has(e.patron_estructural_id)) {
-        const lista = porBase.get(e.patron_estructural_id) ?? [];
-        lista.push(e);
-        porBase.set(e.patron_estructural_id, lista);
-      } else {
-        sinBase.push(e);
-      }
-    }
-    // Mismo orden que las bases aparecen en su propia sección, para que el
-    // subtítulo de cada grupo de concretas sea fácil de ubicar arriba.
-    const gruposConcretas = bases
-      .map((b) => ({ base: b, items: porBase.get(b.id) ?? [] }))
-      .filter((g) => g.items.length > 0);
-
-    return { bases, gruposConcretas, sinBase };
-  }, [items]);
+  const secciones = useMemo(() => {
+    const rel = relaciones ?? relacionesVacias;
+    const visibles = hayFiltrosActivos(filtros)
+      ? items.filter((e) => cumpleFiltros(e, filtros, rel))
+      : items;
+    return agruparPorSeccion(visibles);
+  }, [items, filtros, relaciones, relacionesVacias]);
 
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
+      ) : secciones.length === 0 ? (
+        <p className="py-5 text-center text-micro text-primary/35">
+          {hayFiltrosActivos(filtros)
+            ? "Ninguna estructura coincide con los filtros."
+            : "Sin estructuras todavía."}
+        </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {bases.length > 0 && (
+          {secciones.map((seccion) => (
             <ChipGrupoEstructuras
-              titulo="Bases estructurales"
-              items={bases}
+              key={seccion.clave}
+              titulo={seccion.titulo}
+              items={seccion.items}
               seleccionadaId={seleccionadaId}
               onSeleccionar={setSeleccionadaId}
             />
-          )}
-
-          {gruposConcretas.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                Estructuras concretas
-              </span>
-              <div className="flex flex-col gap-2 pl-0.5">
-                {gruposConcretas.map(({ base, items: itemsBase }) => (
-                  <ChipGrupoEstructuras
-                    key={base.id}
-                    titulo={base.nombre}
-                    tituloVariante="subgrupo"
-                    items={itemsBase}
-                    seleccionadaId={seleccionadaId}
-                    onSeleccionar={setSeleccionadaId}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {sinBase.length > 0 && (
-            <ChipGrupoEstructuras
-              titulo="Sin base asignada"
-              items={sinBase}
-              seleccionadaId={seleccionadaId}
-              onSeleccionar={setSeleccionadaId}
-            />
-          )}
+          ))}
         </div>
       )}
       {seleccionada && (
@@ -1269,34 +1258,28 @@ export default function EstructurasPage() {
   );
 }
 
-/** Un grupo de chips con su título — extraído para no repetir el mismo
- *  JSX 3 veces en EstructurasPage (Bases / cada base de Concretas / Sin
- *  base). "subgrupo" usa una etiqueta más chica/tenue que el título de
- *  sección normal, para que se note la jerarquía (sección → subgrupo por
- *  base) sin agregar otro nivel visual pesado. */
+/** Una sección del grid (Micro / Macro / Patrones / Sin escala) con su
+ *  título y sus chips. Cada chip muestra solo el nombre — la clase de
+ *  entrada la da la sección, y el tipo/función/geometría/tags se ven al
+ *  abrir la estructura o se usan para filtrar arriba. */
 function ChipGrupoEstructuras({
   titulo,
-  tituloVariante = "seccion",
   items,
   seleccionadaId,
   onSeleccionar,
 }: {
   titulo: string;
-  tituloVariante?: "seccion" | "subgrupo";
   items: Estructura[];
   seleccionadaId: string | null;
   onSeleccionar: (id: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span
-        className={
-          tituloVariante === "seccion"
-            ? "text-micro font-black uppercase tracking-[0.2em] text-primary/30"
-            : "text-[10px] font-black uppercase tracking-widest text-primary/35"
-        }
-      >
+      <span className="flex items-baseline gap-1.5 text-micro font-black uppercase tracking-[0.2em] text-primary/30">
         {titulo}
+        <span className="tabular-nums font-bold tracking-normal text-primary/20">
+          {items.length}
+        </span>
       </span>
       <div className="flex flex-wrap gap-1">
         {items.map((estructura) => (
