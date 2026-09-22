@@ -24,7 +24,7 @@
  * click en el backdrop.
  */
 
-import { Bug, Check, Crown, Diamond, Gem, Leaf, Save, Trash2, Users, X } from "lucide-react";
+import { Bug, Check, Crown, Diamond, Gem, Leaf, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -32,6 +32,7 @@ import { SaveIndicator as SaveIndicatorInline } from "@/domains/garlia/_shared/U
 
 import { type EditorHeaderControls } from "./useEditorHeaderControls";
 
+import { useMobileAsidePanel } from "@/hooks/ui/useMobileAsidePanel";
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { PersonajeEditor } from "@/domains/garlia/personajes/PersonajeEditor";
 import { CriaturaEditor } from "@/domains/garlia/criaturas/CriaturaEditor";
@@ -62,6 +63,17 @@ export function PanelFlotanteGlobal() {
   // Confirmación inline (ver EditorHeaderBar): evita el modal centrado que
   // parpadeaba al chocar con el backdrop-filter de este mismo panel.
   const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+
+  // Botón "Entidades" (SlidersHorizontal) para el panel lateral de
+  // secciones que EditorPersonaje/EditorCriatura/EditorReino registran
+  // mientras están montados (ver useMobileAsidePanel). Antes ese botón
+  // vivía en la navbar mobile, pero esta vista se abre como panel
+  // flotante por encima de todo (z-[9999]) y el navbar mobile se oculta
+  // detrás — el botón quedaba disponible (available=true) pero invisible.
+  // Acá se muestra la misma lógica, junto a la X de este panel.
+  const asideAvailable = useMobileAsidePanel((s) => s.available);
+  const asideOpen = useMobileAsidePanel((s) => s.open);
+  const toggleAside = useMobileAsidePanel((s) => s.toggle);
 
   // Al cambiar de entidad (o cerrar), se limpia lo publicado por la
   // anterior para no arrastrar controles obsoletos mientras el nuevo
@@ -259,6 +271,30 @@ export function PanelFlotanteGlobal() {
             </>
           ) : (
             <p className="flex-1 min-w-0 text-xs font-bold text-primary truncate">{nombre}</p>
+          )}
+
+          {/* Panel lateral de secciones del editor activo (si expone uno vía
+              useRegisterMobileAside) — solo en mobile, ya que en desktop el
+              panel lateral ya se ve siempre fijo dentro del editor. */}
+          {asideAvailable && (
+            <button
+              type="button"
+              onClick={toggleAside}
+              title="Entidades"
+              aria-label="Entidades"
+              aria-pressed={asideOpen}
+              className="sm:hidden shrink-0 p-1.5 rounded-lg transition-colors"
+              style={{
+                background: asideOpen
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "transparent",
+                color: asideOpen
+                  ? "var(--primary)"
+                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
+              }}
+            >
+              <SlidersHorizontal size={16} />
+            </button>
           )}
 
           <button
