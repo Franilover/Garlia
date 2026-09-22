@@ -133,6 +133,11 @@ function claveDia(iso: string): number {
   return d.getTime();
 }
 
+/** Hora corta tipo "14:32" para el indicador debajo de la burbuja. */
+function horaCorta(iso: string): string {
+  return new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+}
+
 function claseAnimacion(animacion: AnimacionBurbuja | null | undefined): string {
   if (animacion === "flotar") return "animate-kaomoji-flotar";
   if (animacion === "latido") return "animate-kaomoji-latido";
@@ -1802,6 +1807,25 @@ export default function DetalleConversacion() {
     return set;
   }, [mensajes]);
 
+  // Set de ids que son el ÚLTIMO mensaje de una racha consecutiva del mismo
+  // remitente — ahí (y solo ahí) se muestra la hora abajo de la burbuja,
+  // mismo criterio que WhatsApp/Telegram: no hace falta repetir la hora en
+  // cada mensaje si vinieron todos seguidos de la misma persona, alcanza
+  // con la del último. Una racha se corta por cambio de remitente O cambio
+  // de día calendario (si no, "Hoy 23:58" y "Ayer 00:02" del mismo
+  // remitente se verían como una sola racha sin hora en el de ayer).
+  const idsUltimoDeRacha = useMemo(() => {
+    const set = new Set<string>();
+    for (let i = 0; i < mensajes.length; i++) {
+      const actual = mensajes[i];
+      const siguiente = mensajes[i + 1];
+      const cambiaDeRemitente = !siguiente || siguiente.remitente_id !== actual.remitente_id;
+      const cambiaDeDia = !siguiente || claveDia(siguiente.created_at) !== claveDia(actual.created_at);
+      if (cambiaDeRemitente || cambiaDeDia) set.add(actual.id);
+    }
+    return set;
+  }, [mensajes]);
+
   if (!user) {
     return (
       <div className="min-h-screen md:min-h-0 md:h-full bg-bg-main flex items-center justify-center">
@@ -1940,15 +1964,31 @@ export default function DetalleConversacion() {
             const disenoBurbuja = estiloExtraBurbuja(m.estilo, esMio, m.id);
             const esKaomoji = m.estilo === "kaomoji";
             const mostrarSeparadorFecha = idsInicioDeDia.has(m.id);
+            const esUltimoDeRacha = idsUltimoDeRacha.has(m.id);
 
             return (
               <React.Fragment key={m.id}>
                 {mostrarSeparadorFecha && (
-                  <div className="flex justify-center my-2 select-none" aria-hidden="true">
+                  // sticky top-0 (no un simple flex suelto): así el
+                  // separador de cada día queda flotando pegado arriba del
+                  // scroll mientras esa sección de mensajes está pasando —
+                  // igual que WhatsApp/Telegram — y el navegador mismo lo
+                  // "suelta" y empalma con el separador del día siguiente
+                  // apenas ese entra en escena, sin necesitar ningún
+                  // listener de scroll ni estado extra. z-10 para que quede
+                  // por encima de las burbujas que siguen scrolleando
+                  // debajo; py-1.5 (en vez de solo el my-2 que tenía antes)
+                  // le da un colchón propio para no pegarse literalmente al
+                  // borde del contenedor cuando está stuck.
+                  <div
+                    className="sticky top-0 z-10 flex justify-center py-1.5 pointer-events-none select-none"
+                    aria-hidden="true"
+                  >
                     <span
-                      className="text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full"
+                      className="text-[11px] font-bold uppercase tracking-wide px-3 py-1 rounded-full shadow-sm"
                       style={{
-                        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        background: "color-mix(in srgb, var(--bg-main) 85%, var(--primary) 8%)",
+                        backdropFilter: "blur(8px)",
                         color: "color-mix(in srgb, var(--foreground) 55%, transparent)",
                       }}
                     >
@@ -2270,13 +2310,23 @@ export default function DetalleConversacion() {
                   </div>
                 )}
 
-                {/* Doble check / visto, solo en el último mensaje propio */}
-                {esUltimoPropio && (
-                  <span className="mt-0.5 flex items-center gap-0.5 text-primary/30">
-                    {visto ? (
-                      <CheckCheck size={12} style={{ color: "var(--primary)" }} />
-                    ) : (
-                      <Check size={12} />
+                {/* Hora, solo en el último mensaje de una racha consecutiva
+                    del mismo remitente (ver idsUltimoDeRacha) — y doble
+                    check/visto, solo en el último mensaje propio de toda la
+                    conversación. Cuando coinciden (última racha propia)
+                    quedan en la misma línea, hora primero y check al lado,
+                    mismo patrón que WhatsApp. */}
+                {(esUltimoDeRacha || esUltimoPropio) && (
+                  <span className="mt-0.5 flex items-center gap-1 text-primary/30">
+                    {esUltimoDeRacha && (
+                      <span className="text-micro tabular-nums">{horaCorta(m.created_at)}</span>
+                    )}
+                    {esUltimoPropio && (
+                      visto ? (
+                        <CheckCheck size={12} style={{ color: "var(--primary)" }} />
+                      ) : (
+                        <Check size={12} />
+                      )
                     )}
                   </span>
                 )}
