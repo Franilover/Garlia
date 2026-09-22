@@ -1371,7 +1371,7 @@ function EstructuraCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <span className="text-sm font-black leading-tight text-accent line-clamp-2">
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
         {estructura.nombre}
       </span>
     </button>

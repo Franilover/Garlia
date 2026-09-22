@@ -45,8 +45,8 @@ export function TituloCategoria({
   const color = activo
     ? "text-accent"
     : onClick
-      ? "text-primary/40 hover:text-primary/70"
-      : "text-primary/40";
+      ? "text-accent/70 hover:text-accent"
+      : "text-accent/70";
 
   const contenido = (
     <>

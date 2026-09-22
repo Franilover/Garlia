@@ -272,7 +272,7 @@ function CompuestoCasilla({
         </div>
       )}
 
-      <span className="text-sm font-black text-center leading-none py-0.5 text-accent truncate">
+      <span className="text-sm font-black text-center leading-none py-0.5 text-primary/70 truncate">
         {compuesto.formula_canonica || compuesto.simbolo || "?"}
       </span>
 
