@@ -131,7 +131,16 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased bg-bg-main min-h-screen flex flex-col selection:bg-primary/20">
+      {/* h-dvh (no min-h-screen) + overflow-hidden: el documento entero NO
+          debe poder scrollear. Cada sección de la app (como el chat de
+          mensajes, que ya trae su propio h-dvh + overflow-y-auto interno)
+          maneja su propio scroll puertas adentro. Con min-h-screen (como
+          estaba antes) el body podía crecer más allá de la pantalla y
+          scrollear como documento — en mobile, al abrir el teclado, el
+          navegador terminaba scrolleando ESTE body en vez de (o además
+          de) el contenedor interno del chat, empujando el header del chat
+          (que es sticky solo dentro de SU contenedor) fuera de la vista. */}
+      <body className="antialiased bg-bg-main h-dvh overflow-hidden flex flex-col selection:bg-primary/20">
         <ServiceWorkerManager />
         <OfflineSyncActivator />
         <AuthProvider>
@@ -145,8 +154,8 @@ export default function RootLayout({
                 <PushActivator />
                 <ActualizacionDisponible />
                 <Navbar />
-                <div className="flex-grow flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
-                  <main className="flex-grow custom-scrollbar">
+                <div className="flex-1 min-h-0 flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
+                  <main className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                     <AppLogic>
                       {children}
                     </AppLogic>

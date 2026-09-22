@@ -555,6 +555,32 @@ const Navbar = () => {
   // para "Arte": reemplaza Personal/Garlia mientras está abierto, es puramente
   // de UI (no depende de la ruta) y cambia de sección sin navegar.
   const [escritorioSubmenuOpen, setEscritorioSubmenuOpen] = useState(false);
+
+  // ── Ocultar la navbar mobile cuando el teclado táctil está abierto ──
+  // Sin esto, la navbar (fixed bottom-0, z-[1000]) queda flotando por
+  // encima de CUALQUIER composer de la app (chat, comentarios, etc.) en
+  // cuanto el teclado empuja el viewport visual: como es fixed, sigue
+  // "pegada abajo de la pantalla" en vez de abajo del contenido, tapando
+  // el input justo donde el usuario está escribiendo. Comparamos el alto
+  // del viewport VISUAL (que sí encoge cuando aparece el teclado) contra
+  // el alto del viewport de LAYOUT (que no encoge) — una diferencia
+  // notoria entre ambos es la señal más confiable de "hay un teclado
+  // táctil abierto ahora mismo", sin depender de qué input specific tiene
+  // el foco en cada pantalla de la app.
+  const [tecladoAbierto, setTecladoAbierto] = useState(false);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const UMBRAL_PX = 120; // margen para no confundir con la propia UI del navegador (barra de direcciones, etc.)
+    const detectar = () => {
+      const diferencia = window.innerHeight - vv.height;
+      setTecladoAbierto(diferencia > UMBRAL_PX);
+    };
+    detectar();
+    vv.addEventListener("resize", detectar);
+    return () => vv.removeEventListener("resize", detectar);
+  }, []);
+
   const { dark, toggleDark, theme } = useTheme();
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
@@ -1213,7 +1239,17 @@ const Navbar = () => {
       </aside>
 
       {/* ── MOBILE NAVBAR ────────────────────────────────────────── */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full z-[1000]">
+      {/* translate-y (no display:none) para poder animar la salida; el
+          teclado abierto la empuja fuera de la pantalla en vez de dejarla
+          flotando encima de lo que el usuario está escribiendo.
+          pointer-events-none mientras está oculta evita que un dedo que
+          roza esa franja (ahora ocupada por el teclado o el composer)
+          dispare sin querer un botón invisible de la navbar. */}
+      <div
+        className={`md:hidden fixed bottom-0 left-0 w-full z-[1000] transition-transform duration-200 ${
+          tecladoAbierto ? "translate-y-full pointer-events-none" : "translate-y-0"
+        }`}
+      >
         <AnimatePresence>
           {themeMenuOpen && (
             <>
