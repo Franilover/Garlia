@@ -3209,6 +3209,21 @@ export function EditorCapitulosPanel() {
   const [focusMode, setFocusMode] = useState(false);
   const [showNuevoCap, setShowNuevoCap] = useState(false);
   const [showNuevoLibro, setShowNuevoLibro] = useState(false);
+  // En celular, el editor arranca mostrando la lista de libros/capítulos
+  // (sidebar a pantalla completa, ver SidebarLibros/`open`) y al elegir un
+  // capítulo se oculta para dejar solo el bloque de escritura — con el
+  // botón PanelRight del header (ya existente) para volver a la lista. En
+  // desktop (sm+) la sidebar se queda siempre abierta al lado, como antes.
+  const esMobileRef = useRef(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => {
+      esMobileRef.current = mq.matches;
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   // El botón "documento completo" de un libro solo dispara openEntity acá —
   // el documento en sí (LibroDocumentoPanel) ya NO se renderiza dentro de
   // EstudioCapitulos. Vive como su propia pestaña a nivel de EditorMundoRoot
@@ -3341,7 +3356,7 @@ export function EditorCapitulosPanel() {
         setSelectedLibroId(libroId);
         setSelectedCapId(capId);
         setFocusMode(false);
-        setSidebarOpen(true);
+        setSidebarOpen(!esMobileRef.current);
       }
       if (!action) return;
       localStorage.removeItem("estudio-caps-action");
@@ -3396,7 +3411,10 @@ export function EditorCapitulosPanel() {
     setSelectedLibroId(libroId);
     setSelectedCapId(capId);
     setFocusMode(false);
-    setSidebarOpen(true);
+    // En celular, elegir un capítulo oculta la lista y deja solo el editor
+    // (se vuelve con el botón PanelRight del header). En desktop la sidebar
+    // se mantiene siempre visible, como antes.
+    setSidebarOpen(!esMobileRef.current);
   };
 
   const handleCapCreada = (cap: Capitulo) => {
@@ -3407,6 +3425,9 @@ export function EditorCapitulosPanel() {
     setSelectedLibroId(cap.libro_id);
     setSelectedCapId(cap.id);
     setCapRefreshKey((k) => k + 1);
+    // Mismo comportamiento que elegir un capítulo existente: en celular pasa
+    // directo al editor, ocultando la lista.
+    setSidebarOpen(!esMobileRef.current);
   };
 
   const handleLibroCreado = async (titulo: string) => {
