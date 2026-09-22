@@ -581,6 +581,15 @@ const Navbar = () => {
     return () => vv.removeEventListener("resize", detectar);
   }, []);
 
+  // Dentro de una conversación (detalle de chat) la navbar se oculta
+  // siempre en mobile, no solo cuando el teclado está abierto: esa
+  // pantalla ya tiene su propio composer fijo abajo, y la navbar
+  // (fixed bottom-0, z-[1000]) queda por encima chocando visualmente con
+  // él incluso con el teclado cerrado — WhatsApp/Telegram tampoco
+  // muestran una tab bar propia mientras estás adentro de un chat.
+  const dentroDeUnChat = currentPath?.startsWith("/personal/mensajes/detalle") ?? false;
+  const ocultarNavbarMobile = tecladoAbierto || dentroDeUnChat;
+
   const { dark, toggleDark, theme } = useTheme();
   const useOutline = OUTLINE_THEMES.has(theme);
   const isDark = dark === "dark";
@@ -1247,7 +1256,7 @@ const Navbar = () => {
           dispare sin querer un botón invisible de la navbar. */}
       <div
         className={`md:hidden fixed bottom-0 left-0 w-full z-[1000] transition-transform duration-200 ${
-          tecladoAbierto ? "translate-y-full pointer-events-none" : "translate-y-0"
+          ocultarNavbarMobile ? "translate-y-full pointer-events-none" : "translate-y-0"
         }`}
       >
         <AnimatePresence>
