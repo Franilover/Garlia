@@ -172,7 +172,8 @@ export function agruparPorEje(
 
   const extraerClaves = (e: Estructura): { clave: string; titulo: string }[] => {
     if (eje === "tipo") {
-      return [{ clave: e.tipo, titulo: etiquetaTipo(e.tipo) }];
+      const tipo = e.tipo;
+      return tipo ? [{ clave: tipo, titulo: etiquetaTipo(tipo) }] : [];
     }
     if (eje === "funcion") {
       const clave = funcionClave(e.funcion);
