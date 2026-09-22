@@ -8,7 +8,6 @@
  *
  * Componentes extraídos a components/criaturas/:
  *   PickerImagenCriaturaBtn  → botón mobile de imagen
- *   BloqueGrupoCategoria     → selector de grupo por subtipo (Clasificación)
  *
  * Hooks extraídos a components/criaturas/:
  *   usePersonajesDeCriatura  → personajes de la especie + toggle
@@ -23,7 +22,6 @@ import {
   Beaker,
   Boxes,
   Bug,
-  Brain,
   ChevronDown,
   Dices,
   Globe,
@@ -36,7 +34,6 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
-  Tags,
   UserCircle2,
   Users,
   Wand2,
@@ -55,11 +52,6 @@ import {
 import type { WikiEntity } from "@/ui/Markdown/commandItems";
 import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
-import {
-  BloqueGrupoCategoria,
-  type GrupoMinExt,
-} from "@/domains/garlia/criaturas/BloqueGruposCriatura";
-import { BloqueSubsistemaMagicoCriatura } from "@/domains/garlia/criaturas/BloqueSubsistemaMagicoCriatura";
 import {
   useCriaturaReinos,
   useCriaturaCiudades,
@@ -81,9 +73,7 @@ import { useCriaturaOrganos } from "@/domains/garlia/criaturas/useCriaturaOrgano
 import { useCriaturaOrganismos } from "@/domains/garlia/criaturas/useCriaturaOrganismos";
 import { useComposicionDeOrganismos } from "@/domains/garlia/elementos/useComposicionDeOrganismos";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
-import { useMembresiaSubsistemaCriatura } from "@/domains/garlia/criaturas/useMembresiaSubsistemaCriatura";
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
-import { useMembresiaGruposCriatura } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { PanelEditorOrganismo } from "@/domains/garlia/biologia/CatalogoSistemasBiologia";
 import { SistemaPanelFlotante } from "@/domains/garlia/criaturas/SistemaPanelFlotante";
@@ -113,8 +103,6 @@ export function EditorCriatura({
   entities = [],
   onSelectItem,
   onSelectPersonaje,
-  onSelectGrupo,
-  onSelectSubsistema,
   onSelectCriatura,
   onNavigateCiudad,
   onNavigateReino,
@@ -126,8 +114,6 @@ export function EditorCriatura({
   entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
-  onSelectGrupo?: (grupoId: string) => void;
-  onSelectSubsistema?: (subsistemaId: string) => void;
   /** Salto DIRECTO a OTRA Criatura desde el nivel "Criatura" del breadcrumb
    *  de cualquier panel apilado (Célula/Tejido/Órgano/Sistema/Organismo). */
   onSelectCriatura?: (criaturaId: string) => void;
@@ -140,28 +126,13 @@ export function EditorCriatura({
   // ── Secciones del editor ────────────────────────────────────────────────
   // Solo 3 opciones en el selector: "normal" (detalles + reino/ciudades/
   // personajes/creaciones), "biologia" (Perfil atómico + Órganos + Organismo,
-  // todos juntos) y "extra" (Clasificación + Ilustraciones + Perfil DND,
+  // todos juntos) y "extra" (Ilustraciones + Perfil DND,
   // todos juntos). Elegir cualquiera que no sea "normal" oculta el panel
   // por defecto y muestra los 3 sub-bloques de esa sección apilados.
   const [seccionActiva, setSeccionActiva] = useState<"normal" | "biologia" | "extra">(
     "normal",
   );
   const { onWikilink } = useWikilink();
-
-  // ── Grupos ────────────────────────────────────────────────────────────────
-  const {
-    grupos: gruposActuales,
-    todosGrupos,
-    addToGrupo,
-    removeFromGrupo,
-  } = useMembresiaGruposCriatura(form.id);
-
-  // ── Subsistema mágico ────────────────────────────────────────────────────
-  const {
-    subsistemaActual,
-    todosSubsistemas,
-    setSubsistema,
-  } = useMembresiaSubsistemaCriatura(form.id);
 
   // ── Personajes de la especie ───────────────────────────────────────────────
   const {
@@ -757,59 +728,6 @@ export function EditorCriatura({
               </div>
 
               <div className={`flex flex-col gap-4 ${seccionActiva !== "extra" ? "hidden" : ""}`}>
-                {/* Clasificación */}
-                <section className="flex flex-col gap-2">
-                  <header className="flex items-center gap-1.5">
-                    <Tags size={10} className="text-primary/35" />
-                    <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                      Clasificación
-                    </h3>
-                  </header>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {(
-                      [
-                        { label: "Hábitat", subtipo: "Hábitat", icon: Globe },
-                        { label: "Inteligencia", subtipo: "Inteligencia", icon: Brain },
-                        { label: "Alma", subtipo: "Alma", icon: Wand2 },
-                        { label: "Usar Mana", subtipo: "Usar Mana", icon: Sparkles },
-                        { label: "Produce Mana", subtipo: "Produce Mana", icon: Star },
-                      ] as const
-                    ).map(({ label, subtipo, icon }) => (
-                      <div key={subtipo} className="flex flex-col gap-0.5">
-                        <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
-                          {React.createElement(icon, { size: 7 })} {label}
-                        </span>
-                        <BloqueGrupoCategoria
-                          gruposActuales={gruposActuales as GrupoMinExt[]}
-                          icon={icon}
-                          label={label}
-                          subtipo={subtipo}
-                          todosGrupos={todosGrupos as GrupoMinExt[]}
-                          onAdd={addToGrupo}
-                          onRemove={removeFromGrupo}
-                          onSelectGrupo={onSelectGrupo}
-                        />
-                      </div>
-                    ))}
-                    <div className="flex flex-col gap-0.5">
-                      <span className="flex items-center gap-1 text-micro font-black uppercase tracking-widest text-primary/30 mb-0.5">
-                        <Atom size={7} /> Subsistema Mágico
-                      </span>
-                      <BloqueSubsistemaMagicoCriatura
-                        subsistemaActual={subsistemaActual}
-                        todosSubsistemas={todosSubsistemas}
-                        onChange={setSubsistema}
-                        onSelectSubsistema={onSelectSubsistema}
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <div
-                  className="border-t"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-                />
-
                 {/* Ilustraciones + Perfil DND, lado a lado — un solo
                     divisor vertical entre columnas, sin tarjetas anidadas. */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
@@ -1359,7 +1277,7 @@ function SelectorSeccionCriatura({
     OPCIONES_SECCION_CRIATURA[0];
 
   return (
-    <div className="relative shrink-0" ref={ref}>
+    <div className="relative shrink-0 z-40" ref={ref}>
       <button
         className={`flex items-center gap-1.5 px-2.5 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
           seccionActiva !== "normal"
@@ -1382,7 +1300,7 @@ function SelectorSeccionCriatura({
       {abierto && (
         <div
           role="listbox"
-          className="absolute right-0 top-full mt-1.5 z-30 w-40 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
+          className="absolute right-0 top-full mt-1.5 z-40 w-40 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",

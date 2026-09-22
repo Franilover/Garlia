@@ -29,8 +29,6 @@ export function CriaturaEditor({
       onDeleted={() => openEntity("criaturas", "")}
       onSelectItem={(id) => abrirPanel("item", id)}
       onSelectPersonaje={(id) => abrirPanel("personaje", id)}
-      onSelectGrupo={(id) => openEntity("grupos", id)}
-      onSelectSubsistema={(id) => openEntity("runas", id)}
       onSelectCriatura={(id) => openEntity("criaturas", id)}
       onNavigateCiudad={(id) => openEntity("ciudades", id)}
       onNavigateReino={(id) => abrirPanel("reino", id)}
