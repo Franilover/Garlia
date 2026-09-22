@@ -13,8 +13,7 @@
  *      letras T/A/S/I, que a su vez arman las 27 Partículas reales.
  *
  *   2. GaleriaResultadoReal: el resultado tal cual vive en Supabase — las
- *      Polaridades reales (usePolaridades) y las 27 Partículas reales
- *      (useParticulas), dibujadas con los mismos componentes visuales que
+ *      27 Partículas reales (useParticulas), dibujadas con los mismos componentes visuales que
  *      ya usa el panel de Física (ParticulaVisual) para que se sientan
  *      "la misma cosa", no una reconstrucción aparte.
  *
@@ -23,9 +22,13 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
-import { usePolaridades, useParticulas } from "@/domains/garlia/fisica/useFisica";
+import { useAuth } from "@/providers/AuthProvider";
+import { useParticulas } from "@/domains/garlia/fisica/useFisica";
 import { ParticulaVisual, LETRA_COLOR, LETRA_NOMBRE, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
+import { useVisibilidadExplicacion } from "./useVisibilidadExplicacion";
+import { ToggleMaestroAdmin } from "./ToggleMaestroAdmin";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -195,69 +198,63 @@ function FlechaAbajo() {
 // ─── Bloque 2: resultado real desde Supabase ───────────────────────────────
 
 function GaleriaResultadoReal() {
-  const { items: polaridades, loading: loadingPolaridades } = usePolaridades();
   const { items: particulas, loading: loadingParticulas } = useParticulas();
+  const { perfil } = useAuth() as any;
+  const isAdmin = perfil?.rol === "admin";
+
+  const vis = useVisibilidadExplicacion("particula");
+  const particulasVisibles = isAdmin ? particulas : vis.filtrarVisibles(particulas);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Polaridades reales */}
-      <div>
-        <p className="mb-2 text-micro font-bold uppercase tracking-[0.2em] opacity-50">
-          Las Polaridades reales · {loadingPolaridades ? "…" : polaridades.length}
-        </p>
-        {loadingPolaridades ? (
-          <PlaceholderCargando />
-        ) : polaridades.length === 0 ? (
-          <PlaceholderVacio texto="Sin Polaridades cargadas todavía." />
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {polaridades.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center gap-2 rounded-lg px-2.5 py-2"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                }}
-              >
-                <Polo signo={p.signo} size={30} orbitando={p.signo === "+"} />
-                <div className="min-w-0">
-                  <p className="truncate text-[11px] font-black">{p.nombre}</p>
-                  <p className="truncate text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                    {p.detalle}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Las 27 Partículas reales */}
       <div>
-        <p className="mb-2 text-micro font-bold uppercase tracking-[0.2em] opacity-50">
-          Las Partículas reales · {loadingParticulas ? "…" : particulas.length}
-        </p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">
+            Las Partículas reales · {loadingParticulas ? "…" : particulasVisibles.length}
+          </p>
+          {isAdmin && (
+            <ToggleMaestroAdmin visible={vis.maestroVisible} onToggle={vis.toggleMaestro} etiqueta="Partículas" />
+          )}
+        </div>
         {loadingParticulas ? (
           <PlaceholderCargando />
-        ) : particulas.length === 0 ? (
+        ) : particulasVisibles.length === 0 ? (
           <PlaceholderVacio texto="Sin Partículas cargadas todavía." />
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {particulas.map((p) => (
-              <div
-                key={p.id}
-                className="flex flex-col items-center gap-1 rounded-lg p-2 text-center"
-                style={{
-                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-                title={`${p.nombre} (${p.formula})`}
-              >
-                <ParticulaVisual formula={p.formula} size={52} />
-                <p className="w-full truncate text-[10px] font-bold">{p.nombre}</p>
-              </div>
-            ))}
+            {particulasVisibles.map((p) => {
+              const visibleItem = vis.esVisible(p.id);
+              return (
+                <div
+                  key={p.id}
+                  className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                    opacity: isAdmin && !visibleItem ? 0.4 : 1,
+                  }}
+                  title={`${p.nombre} (${p.formula})`}
+                >
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => vis.toggleIndividual(p.id)}
+                      title={visibleItem ? "Ocultar esta Partícula al público" : "Mostrar esta Partícula al público"}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
+                      style={{
+                        background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+                        color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
+                      }}
+                    >
+                      {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
+                    </button>
+                  )}
+                  <ParticulaVisual formula={p.formula} size={52} />
+                  <p className="w-full truncate text-[10px] font-bold">{p.nombre}</p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -324,9 +321,6 @@ export default function EtapaPolaridades() {
 
       <div className="mb-4">
         <h2 className="text-base font-black uppercase tracking-wide">Polaridades → TASI → Partículas</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Todo en Garlia arranca de la diferencia más simple posible: algo que emite y algo que recibe.
-        </p>
       </div>
 
       <div

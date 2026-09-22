@@ -19,11 +19,14 @@
  */
 
 import React, { useEffect, useState } from "react";
-import { Gem, Link2, Scale, Wind, CircleOff } from "lucide-react";
+import { Gem, Link2, Scale, Wind, CircleOff, Eye, EyeOff } from "lucide-react";
 
+import { useAuth } from "@/providers/AuthProvider";
 import { useElementos } from "@/domains/garlia/elementos/useElementos";
 import { AtomoVisual } from "@/domains/garlia/elementos/ElementoEditor";
 import { FAMILY_COLOR, type ElementFamily } from "@/domains/garlia/elementos/types";
+import { useVisibilidadExplicacion } from "./useVisibilidadExplicacion";
+import { ToggleMaestroAdmin } from "./ToggleMaestroAdmin";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -140,28 +143,57 @@ const FAMILIA_ICON: Record<ElementFamily, React.ElementType> = {
 
 function GaleriaElementosReales() {
   const { items: elementos, loading } = useElementos();
+  const { perfil } = useAuth() as any;
+  const isAdmin = perfil?.rol === "admin";
+
+  const vis = useVisibilidadExplicacion("elemento");
+  const elementosVisibles = isAdmin ? elementos : vis.filtrarVisibles(elementos);
 
   return (
     <div>
-      <p className="mb-2 text-micro font-bold uppercase tracking-[0.2em] opacity-50">
-        Los Elementos reales · {loading ? "…" : elementos.length}
-      </p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">
+          Los Elementos reales · {loading ? "…" : elementosVisibles.length}
+        </p>
+        {isAdmin && (
+          <ToggleMaestroAdmin visible={vis.maestroVisible} onToggle={vis.toggleMaestro} etiqueta="Elementos" />
+        )}
+      </div>
       {loading ? (
         <PlaceholderCargando />
-      ) : elementos.length === 0 ? (
+      ) : elementosVisibles.length === 0 ? (
         <PlaceholderVacio texto="Sin Elementos cargados todavía." />
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-          {elementos.map((el) => {
+          {elementosVisibles.map((el) => {
             const color = FAMILY_COLOR[el.familia];
             const Icon = FAMILIA_ICON[el.familia];
+            const visibleItem = vis.esVisible(el.id);
             return (
               <div
                 key={el.id}
-                className="flex flex-col items-center gap-1 rounded-lg p-2 text-center"
-                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", border: `1px solid ${color.border}` }}
+                className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+                  border: `1px solid ${color.border}`,
+                  opacity: isAdmin && !visibleItem ? 0.4 : 1,
+                }}
                 title={`${el.nombre} (${el.simbolo}) · ${el.familia}`}
               >
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => vis.toggleIndividual(el.id)}
+                    title={visibleItem ? "Ocultar este Elemento al público" : "Mostrar este Elemento al público"}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
+                    style={{
+                      background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+                      color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
+                    }}
+                  >
+                    {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
+                  </button>
+                )}
                 <AtomoVisual elemento={el} className="h-16 w-16 shrink-0" />
                 <p className="w-full truncate text-[11px] font-black">{el.nombre}</p>
                 <div className="flex items-center gap-1" style={{ color: color.text }}>
