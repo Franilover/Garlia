@@ -35,13 +35,21 @@ export const LightboxProvider = ({ children }: { children: React.ReactNode }) =>
     setGallery(images);
     setCurrentIndex(index);
     setTableContext(table);
+    // Solo bloquea el scroll del documento; no toca overflow si ya estaba
+    // vacío (heredando de la clase del body) para no dejar un inline style
+    // permanente una vez que el lightbox cierra.
     if (typeof window !== 'undefined') document.body.style.overflow = 'hidden';
   }, []);
 
   const closeLightbox = useCallback(() => {
     setCurrentIndex(-1);
     setGallery([]);
-    if (typeof window !== 'undefined') document.body.style.overflow = 'auto';
+    // Limpiar el inline style (no forzar 'auto'): el body ya trae su
+    // propio overflow-hidden por clase en app/layout.tsx para que el
+    // documento nunca scrollee — cada pantalla maneja su scroll puertas
+    // adentro. Forzar 'auto' acá pisaba esa clase para siempre después de
+    // abrir un lightbox una sola vez en toda la sesión.
+    if (typeof window !== 'undefined') document.body.style.removeProperty('overflow');
   }, []);
 
   const updateGalleryItem = useCallback((index: number, newTitle: string) => {
