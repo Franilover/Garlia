@@ -25,10 +25,12 @@ import { useEstructuraComposicion, type CompuestoDeEstructura } from "./useEstru
 import { useEstructuras } from "./useEstructuras";
 import { useCompuestos } from "./useCompuestos";
 import {
+  agruparPorEje,
   agruparPorSeccion,
   cumpleFiltros,
   FILTROS_VACIOS,
   hayFiltrosActivos,
+  type EjeAgrupacionEstructuras,
   type FiltrosEstructuras,
   type RelacionesFiltro,
 } from "./estructurasBiblioteca";
@@ -1260,9 +1262,22 @@ function EstructuraPanelFlotante({
 export default function EstructurasPage({
   filtros = FILTROS_VACIOS,
   relaciones,
+  eje = "canon",
+  formasNombrePorId,
+  tagsNombrePorId,
 }: {
   filtros?: FiltrosEstructuras;
   relaciones?: RelacionesFiltro;
+  /** Eje de agrupación activo — "canon" (Micro/Macro/Patrones/Sin escala,
+   *  default) o Tipo/Función/Geometría/Tags. Cuando no es "canon", `filtros`
+   *  deja de usarse: el eje reagrupa TODO el grid en vez de ocultar lo que
+   *  no coincide con un valor único. */
+  eje?: EjeAgrupacionEstructuras;
+  /** id de Forma geométrica → nombre, para titular los grupos con eje
+   *  "geometria" (la relación en `relaciones` solo trae ids). */
+  formasNombrePorId?: Map<string, string>;
+  /** id de tag → nombre, para titular los grupos con eje "tag". */
+  tagsNombrePorId?: Map<string, string>;
 }) {
   const { items, loading, renombrarEstructura, eliminarEstructura } = useEstructuras();
   const { confirm, ConfirmModal } = useConfirm();
@@ -1273,14 +1288,26 @@ export default function EstructurasPage({
     () => ({ tagIdsPorEstructura: new Map(), formaIdPorEstructura: new Map() }),
     [],
   );
+  const mapasVacios = useMemo(() => new Map<string, string>(), []);
 
   const secciones = useMemo(() => {
     const rel = relaciones ?? relacionesVacias;
+    if (eje !== "canon") {
+      // Con un eje activo se agrupa TODO el catálogo por esa dimensión —
+      // no se filtra a un solo valor, así que `filtros` no aplica acá.
+      return agruparPorEje(
+        items,
+        eje,
+        rel,
+        formasNombrePorId ?? mapasVacios,
+        tagsNombrePorId ?? mapasVacios,
+      );
+    }
     const visibles = hayFiltrosActivos(filtros)
       ? items.filter((e) => cumpleFiltros(e, filtros, rel))
       : items;
     return agruparPorSeccion(visibles);
-  }, [items, filtros, relaciones, relacionesVacias]);
+  }, [items, filtros, relaciones, relacionesVacias, eje, formasNombrePorId, tagsNombrePorId, mapasVacios]);
 
   // Distribución tipo "mampostería": cada sección va a la columna con menor
   // altura acumulada (estimada por cantidad de items + overhead de encabezado),

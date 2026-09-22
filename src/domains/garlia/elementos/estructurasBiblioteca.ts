@@ -136,6 +136,98 @@ export function agruparPorSeccion(
   })).filter((s) => s.items.length > 0);
 }
 
+/**
+ * Eje de agrupación activo para el grid de Estructuras. "canon" es el
+ * agrupado fijo Micro/Macro/Patrones/Sin escala (el de siempre); los otros
+ * cuatro reagrupan TODO el grid por esa dimensión en lugar de filtrar —
+ * pedido 2026-09-21: botones que agrupan, no dropdowns que ocultan.
+ */
+export type EjeAgrupacionEstructuras = "canon" | "tipo" | "funcion" | "geometria" | "tag";
+
+/** Etiqueta legible del tipo (misma normalización que ya usaba el dropdown
+ *  de Tipo en ElementosPage: patron_estructural → "Patrón estructural",
+ *  el resto con guiones bajos → espacios y primera letra en mayúscula). */
+export function etiquetaTipo(tipo: string): string {
+  if (tipo === TIPO_PATRON) return "Patrón estructural";
+  return etiquetaFuncion(tipo.replace(/_/g, " "));
+}
+
+/**
+ * Agrupa TODAS las estructuras (ya filtradas por texto de búsqueda si
+ * hubiera) por el eje activo. Con eje "canon" delega en agruparPorSeccion
+ * (comportamiento de siempre). Con cualquier otro eje, reparte por el valor
+ * de esa dimensión — Geometría y Tags necesitan `rel` para resolver la
+ * relación (no son columnas directas de Estructura). Las estructuras sin
+ * valor en el eje elegido (p.ej. sin Función, sin Tag) caen en un grupo
+ * "Sin asignar" al final, igual que "Sin escala definida" en el canon.
+ */
+export function agruparPorEje(
+  items: Estructura[],
+  eje: EjeAgrupacionEstructuras,
+  rel: RelacionesFiltro,
+  formasNombrePorId: Map<string, string>,
+  tagsNombrePorId: Map<string, string>,
+): { clave: string; titulo: string; items: Estructura[] }[] {
+  if (eje === "canon") return agruparPorSeccion(items);
+
+  const extraerClaves = (e: Estructura): { clave: string; titulo: string }[] => {
+    if (eje === "tipo") {
+      return [{ clave: e.tipo, titulo: etiquetaTipo(e.tipo) }];
+    }
+    if (eje === "funcion") {
+      const clave = funcionClave(e.funcion);
+      return clave ? [{ clave, titulo: etiquetaFuncion(clave) }] : [];
+    }
+    if (eje === "geometria") {
+      const formaId = rel.formaIdPorEstructura.get(e.id);
+      if (!formaId) return [];
+      return [{ clave: formaId, titulo: formasNombrePorId.get(formaId) ?? formaId }];
+    }
+    // eje === "tag": una estructura puede tener varios tags, así que
+    // aparece repetida bajo cada uno — mismo criterio que "many-to-many
+    // muestra en todos los grupos a los que pertenece" del resto de la app.
+    const tagIds = rel.tagIdsPorEstructura.get(e.id);
+    if (!tagIds || tagIds.size === 0) return [];
+    return [...tagIds].map((tagId) => ({
+      clave: tagId,
+      titulo: tagsNombrePorId.get(tagId) ?? tagId,
+    }));
+  };
+
+  const porGrupo = new Map<string, { titulo: string; items: Estructura[] }>();
+  const sinAsignar: Estructura[] = [];
+
+  for (const e of items) {
+    const claves = extraerClaves(e);
+    if (claves.length === 0) {
+      sinAsignar.push(e);
+      continue;
+    }
+    for (const { clave, titulo } of claves) {
+      if (!porGrupo.has(clave)) porGrupo.set(clave, { titulo, items: [] });
+      porGrupo.get(clave)!.items.push(e);
+    }
+  }
+
+  const grupos = [...porGrupo.entries()]
+    .map(([clave, { titulo, items }]) => ({
+      clave,
+      titulo,
+      items: items.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    }))
+    .sort((a, b) => a.titulo.localeCompare(b.titulo, "es"));
+
+  if (sinAsignar.length > 0) {
+    grupos.push({
+      clave: "__sin_asignar__",
+      titulo: "Sin asignar",
+      items: sinAsignar.sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    });
+  }
+
+  return grupos;
+}
+
 /** Opciones únicas (con conteo) de un campo derivado, ordenadas por
  *  etiqueta. Se calculan sobre el catálogo COMPLETO (no el filtrado) para
  *  que las opciones no desaparezcan al elegir otro filtro. */

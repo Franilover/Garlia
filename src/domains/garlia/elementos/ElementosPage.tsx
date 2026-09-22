@@ -49,14 +49,7 @@ import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
 import { FiltroDropdown } from "../_shared/FiltroDropdown";
 import { PROPIEDADES_ORDENABLES } from "../_shared/OrdenarPorPropiedadPopover";
 import { useFiltrosEstructuras } from "./useFiltrosEstructuras";
-import {
-  etiquetaFuncion,
-  FILTROS_VACIOS,
-  funcionClave,
-  hayFiltrosActivos,
-  opcionesUnicas,
-  type FiltrosEstructuras,
-} from "./estructurasBiblioteca";
+import { type EjeAgrupacionEstructuras } from "./estructurasBiblioteca";
 import {
   type EditorHeaderControls,
 } from "../_shared/useEditorHeaderControls";
@@ -952,14 +945,16 @@ export function ElementosPage({
     eliminarEstructura,
   } = useEstructuras();
 
-  // ── Filtros de la biblioteca de Estructuras (canon 2026-09-20). El estado
-  // vive ACÁ (no en EstructurasPage) porque los dropdowns se dibujan junto al
-  // título "Estructuras" — fuera del contenido — pero actúan sobre el grid de
-  // adentro, así que se le bajan a EstructurasPage como props. Las opciones
-  // se calculan sobre el catálogo COMPLETO (no el filtrado) para que no
-  // desaparezcan al combinar dropdowns.
-  const [filtrosEstructuras, setFiltrosEstructuras] =
-    useState<FiltrosEstructuras>(FILTROS_VACIOS);
+  // ── Agrupación de la biblioteca de Estructuras (2026-09-21). El estado
+  // vive ACÁ (no en EstructurasPage) porque los 4 botones se dibujan junto
+  // al título "Estructuras" — fuera del contenido — pero actúan sobre el
+  // grid de adentro, así que se le baja a EstructurasPage como prop `eje`.
+  //
+  // Eje de agrupación activo: "canon" (default, Micro/Macro/Patrones/Sin
+  // escala) o uno de Tipo/Función/Geometría/Tags. Los botones ya NO filtran
+  // a un solo valor — al activar uno, reagrupan TODO el grid por esa
+  // dimensión. Un solo eje a la vez.
+  const [ejeEstructuras, setEjeEstructuras] = useState<EjeAgrupacionEstructuras>("canon");
   const {
     tagsEnUso: tagsFiltro,
     formasEnUso: formasFiltro,
@@ -970,39 +965,17 @@ export function ElementosPage({
     () => ({ tagIdsPorEstructura, formaIdPorEstructura }),
     [tagIdsPorEstructura, formaIdPorEstructura],
   );
-  const opcionesTipoEstructura = useMemo(
-    () =>
-      opcionesUnicas(estructurasParaConteo, (e) => e.tipo, (v) =>
-        v === "patron_estructural" ? "Patrón estructural" : etiquetaFuncion(v.replace(/_/g, " ")),
-      ),
-    [estructurasParaConteo],
+
+  // Mapas id → nombre para titular los grupos cuando el eje activo es
+  // Geometría o Tags (agruparPorEje solo recibe ids en `relaciones`).
+  const formasNombrePorId = useMemo(
+    () => new Map(formasFiltro.map((f) => [f.id, f.nombre])),
+    [formasFiltro],
   );
-  const opcionesFuncionEstructura = useMemo(
-    () => opcionesUnicas(estructurasParaConteo, (e) => funcionClave(e.funcion), etiquetaFuncion),
-    [estructurasParaConteo],
+  const tagsNombrePorId = useMemo(
+    () => new Map(tagsFiltro.map((t) => [t.id, t.nombre])),
+    [tagsFiltro],
   );
-  const opcionesGeometriaEstructura = useMemo(
-    () =>
-      formasFiltro.map((f) => ({
-        value: f.id,
-        label: f.nombre,
-        count: estructurasParaConteo.filter((e) => formaIdPorEstructura.get(e.id) === f.id)
-          .length,
-      })),
-    [formasFiltro, estructurasParaConteo, formaIdPorEstructura],
-  );
-  const opcionesTagEstructura = useMemo(
-    () =>
-      tagsFiltro.map((t) => ({
-        value: t.id,
-        label: t.nombre,
-        count: estructurasParaConteo.filter((e) => tagIdsPorEstructura.get(e.id)?.has(t.id))
-          .length,
-      })),
-    [tagsFiltro, estructurasParaConteo, tagIdsPorEstructura],
-  );
-  const setFiltroEstructura = (campo: keyof FiltrosEstructuras) => (valor: string | null) =>
-    setFiltrosEstructuras((prev) => ({ ...prev, [campo]: valor }));
 
   const {
     items: materialesParaConteo,
@@ -1333,40 +1306,48 @@ export function ElementosPage({
             // "Seleccionar agrupación" simplemente no aparece en su menú
             // hasta que EstructurasPage lo soporte.
             //
-            // filtros: dropdowns Tipo / Función / Geometría / Tags A LA
-            // IZQUIERDA del título (pedido 2026-09-20) — ver
-            // CabeceraSeccionConMenu.filtros. Actúan sobre todo el grid.
+            // filtros: 4 botones Tipo / Función / Geometría / Tags A LA
+            // IZQUIERDA del título — pedido 2026-09-21: ya NO son dropdowns
+            // que filtran a un valor único, sino toggles que reagrupan TODO
+            // el grid por esa dimensión (reemplaza el canon Micro/Macro/
+            // Patrones mientras estén activos). Clic de nuevo en el mismo
+            // botón, o "Agrupación original", vuelve al canon.
             filtros: (
               <div className="flex flex-wrap items-center gap-1.5">
-                <FiltroDropdown
-                  etiqueta="Tipo"
-                  opciones={opcionesTipoEstructura}
-                  value={filtrosEstructuras.tipo}
-                  onChange={setFiltroEstructura("tipo")}
-                />
-                <FiltroDropdown
-                  etiqueta="Función"
-                  opciones={opcionesFuncionEstructura}
-                  value={filtrosEstructuras.funcion}
-                  onChange={setFiltroEstructura("funcion")}
-                />
-                <FiltroDropdown
-                  etiqueta="Geometría"
-                  opciones={opcionesGeometriaEstructura}
-                  value={filtrosEstructuras.geometria}
-                  onChange={setFiltroEstructura("geometria")}
-                />
-                <FiltroDropdown
-                  etiqueta="Tags"
-                  opciones={opcionesTagEstructura}
-                  value={filtrosEstructuras.tag}
-                  onChange={setFiltroEstructura("tag")}
-                />
-                {hayFiltrosActivos(filtrosEstructuras) && (
+                {(
+                  [
+                    ["tipo", "Tipo"],
+                    ["funcion", "Función"],
+                    ["geometria", "Geometría"],
+                    ["tag", "Tags"],
+                  ] as [EjeAgrupacionEstructuras, string][]
+                ).map(([valor, etiqueta]) => {
+                  const activo = ejeEstructuras === valor;
+                  return (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setEjeEstructuras(activo ? "canon" : valor)}
+                      title={
+                        activo
+                          ? `Volver a la agrupación original (Micro/Macro/Patrones)`
+                          : `Agrupar por ${etiqueta}`
+                      }
+                      className={`px-2.5 py-1 rounded-lg text-micro font-bold uppercase tracking-wide transition-colors cursor-pointer border ${
+                        activo
+                          ? "border-accent/40 bg-accent/10 text-accent"
+                          : "border-primary/25 text-primary/70 hover:text-primary hover:border-primary/50"
+                      }`}
+                    >
+                      {etiqueta}
+                    </button>
+                  );
+                })}
+                {ejeEstructuras !== "canon" && (
                   <button
                     type="button"
-                    onClick={() => setFiltrosEstructuras(FILTROS_VACIOS)}
-                    title="Quitar todos los filtros"
+                    onClick={() => setEjeEstructuras("canon")}
+                    title="Quitar la agrupación por eje"
                     className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-micro font-bold text-primary/40 hover:text-primary/70 transition-colors cursor-pointer"
                   >
                     <X size={10} /> Limpiar
@@ -1376,8 +1357,10 @@ export function ElementosPage({
             ),
             contenido: (
               <EstructurasPage
-                filtros={filtrosEstructuras}
                 relaciones={relacionesFiltroEstructuras}
+                eje={ejeEstructuras}
+                formasNombrePorId={formasNombrePorId}
+                tagsNombrePorId={tagsNombrePorId}
               />
             ),
           },
