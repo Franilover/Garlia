@@ -77,7 +77,6 @@ function Polo({ signo, size = 40, orbitando = false }: { signo: "+" | "-"; size?
  *  posibles, no 3 polos por fila. El polo activo (+) siempre orbita; el −
  *  queda quieto. */
 function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index: number }) {
-  const esTransicion = rel.par.includes("→");
   const signos = rel.par.replace("→", "").trim().split(/\s+/) as ("+" | "-")[];
   const color = LETRA_COLOR[rel.resultado];
 
@@ -93,13 +92,6 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
     >
       <div className="flex items-center gap-1">
         <Polo signo={signos[0]} size={28} orbitando={signos[0] === "+"} />
-        {esTransicion ? (
-          <svg width="14" height="10" viewBox="0 0 14 10" className="shrink-0 opacity-50">
-            <path d="M0 5 H10 M6 1 L10 5 L6 9" stroke="var(--primary)" strokeWidth={1.3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        ) : (
-          <span className="text-[10px] font-black opacity-30">+</span>
-        )}
         <Polo signo={signos[1]} size={28} orbitando={signos[1] === "+"} />
       </div>
       <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0 opacity-40">
@@ -136,9 +128,9 @@ function DiagramaPolaridadesTASI() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="mx-auto flex max-w-md flex-col items-center gap-5">
       {/* Paso A: los dos polos base */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 1 · Dos polos</p>
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-center gap-1.5">
@@ -158,9 +150,9 @@ function DiagramaPolaridadesTASI() {
       <FlechaAbajo />
 
       {/* Paso B: las 4 relaciones polares → TASI */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 2 · Se combinan</p>
-        <div className="grid w-full max-w-md grid-cols-1 gap-2">
+        <div className="grid w-full grid-cols-1 gap-2">
           {RELACIONES.map((rel, i) => (
             <FilaRelacion key={rel.resultado} rel={rel} index={i} />
           ))}
@@ -170,7 +162,7 @@ function DiagramaPolaridadesTASI() {
       <FlechaAbajo />
 
       {/* Paso C: una Partícula = 3 letras TASI juntas, ciclando ejemplos */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 3 · 3 letras = 1 Partícula</p>
         <div className="flex items-center gap-4">
           <div key={ejemploIdx} style={{ animation: "explicacion-pop-in 0.4s ease-out both" }}>

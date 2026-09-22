@@ -34,7 +34,7 @@ import { SidebarExplicacion } from "./SidebarExplicacion";
 
 export default function ExplicacionPage() {
   return (
-    <div className="mx-auto flex max-w-5xl items-start gap-8">
+    <div className="mx-auto flex max-w-[1600px] items-start gap-10 px-2 lg:px-6">
       <div className="min-w-0 flex-1">
         <header className="px-1 pt-2 pb-6 text-center">
           <div
