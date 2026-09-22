@@ -647,9 +647,9 @@ function GridLetraFundamento({ letra }: { letra: LetraATS }) {
 function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
   const letraFundamento = letraFundamentoDe(contexto);
   return (
-    <div className="flex flex-row gap-3">
+    <div className="flex flex-col md:flex-row gap-3">
       {letraFundamento && (
-        <div className="shrink-0 flex items-start justify-center pt-1">
+        <div className="shrink-0 flex items-center justify-center md:items-start md:justify-center pt-1">
           <GridLetraFundamento letra={letraFundamento} />
         </div>
       )}
@@ -815,8 +815,8 @@ function BasesItemCard({
           maxHeight={340}
         >
           {conVisual ? (
-            <div className="flex flex-row gap-3">
-              <div className="shrink-0 flex items-center justify-center w-[140px]">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="shrink-0 flex items-center justify-center w-full md:w-[140px]">
                 {bloque === "iums" ? (
                   <IumVisual particulas={particulasDeIum(fila as FilaIum)} size={140} />
                 ) : bloque === "polaridades" ? (

@@ -1418,8 +1418,10 @@ function CompuestoEditor({
             propios de Química — y a los 4 cuadros de Reactividad/Peso/
             Carga/Enlace que vivían debajo del átomo, ya antiguos y
             redundantes con Propiedades físicas + Estabilidad. */}
-        <div className="grid grid-cols-[minmax(11rem,14rem)_1fr] gap-3 items-start">
-          <AtomoVisualCompuesto compuesto={local} elementos={elementos} />
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(11rem,14rem)_1fr] gap-3 items-start">
+          <div className="w-full max-w-[16rem] mx-auto md:max-w-none md:mx-0">
+            <AtomoVisualCompuesto compuesto={local} elementos={elementos} />
+          </div>
           <PropiedadesFisicasCompuestoBloque
             propiedades={propiedadesFisicas}
             modo={modoVista}
@@ -1428,7 +1430,7 @@ function CompuestoEditor({
         </div>
 
         {/* Composición real (izquierda) · Enlaces (derecha). */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
           <ComposicionRealBloque
             compuestoId={compuesto.id}
             proporciones={proporcionElementos}

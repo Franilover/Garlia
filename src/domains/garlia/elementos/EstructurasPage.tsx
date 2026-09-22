@@ -1063,7 +1063,7 @@ function EstructuraDetail({ estructura }: { estructura: Estructura }) {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
         <div className="flex flex-col gap-2 min-w-0">
           <PropiedadesFisicasGenerico propiedades={propiedades} columnas={2} />
           <GeometriaBloque estructuraId={estructura.id} />

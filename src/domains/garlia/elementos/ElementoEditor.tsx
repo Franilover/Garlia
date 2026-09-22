@@ -310,7 +310,7 @@ export function ElementoEditor({
             y Catalizador ya se editan/derivan en otro lado, y N° atómico/
             Familia son metadatos de catálogo, no algo que se ajuste
             seguido comparado con las partículas de las 3 capas. */}
-        <div className="grid grid-cols-[0.85fr_1.3fr] gap-3 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[0.85fr_1.3fr] gap-3 items-start">
           <div className="flex flex-col gap-2 min-w-0">
             <PropiedadesFisicasBloque
               propiedades={propiedadesFisicas}
@@ -343,7 +343,7 @@ export function ElementoEditor({
               </div>
             </div>
 
-            <div className="grid grid-cols-[auto_13.5rem] gap-2 items-stretch justify-start">
+            <div className="grid grid-cols-1 md:grid-cols-[auto_13.5rem] gap-2 items-stretch justify-start">
               {/* Visualización tipo átomo real: núcleo + capas orbitales,
                   con las partículas propias del mundo (Masa, Cinética,
                   Voluntad…) en vez de protones/neutrones/electrones
@@ -353,7 +353,10 @@ export function ElementoEditor({
                   a la altura de la pila de partículas de al lado
                   (aspect-square h-full, por defecto en AtomoVisual sin
                   className angosto). */}
-              <AtomoVisual elemento={local} />
+              <AtomoVisual
+                elemento={local}
+                className="w-full aspect-square h-auto max-w-[16rem] mx-auto md:w-auto md:aspect-auto md:h-full md:max-w-none md:mx-0"
+              />
 
               {/* Ancho fijo (13.5rem, ya no "minmax(6.5rem, auto)"): con 9
                   partículas por capa (sistema TASI, 2026-09-12) una lista
@@ -362,7 +365,7 @@ export function ElementoEditor({
                   scroll horizontal. Cada capa ahora se pinta en grid 3×3
                   (orden por columna: 1,4,7 / 2,5,8 / 3,6,9 — layout pedido
                   explícitamente) para crecer en alto, no en ancho. */}
-              <div className="flex flex-col gap-2 shrink-0 w-[13.5rem]">
+              <div className="flex flex-col gap-2 shrink-0 w-full md:w-[13.5rem]">
                 {(["nucleo", "media", "externa"] as LayerName[]).map((layer, i) => (
                   <div
                     key={layer}

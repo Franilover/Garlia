@@ -627,7 +627,7 @@ function MaterialDetail({
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
         <div className="flex flex-col gap-2 min-w-0">
           {fuente && (
             <div className="flex justify-end">
