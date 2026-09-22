@@ -22,6 +22,7 @@
 
 import {
   BookOpen,
+  Cake,
   CalendarDays,
   Check,
   ChevronDown,
@@ -4450,7 +4451,7 @@ function SidebarCumpleanosCanciones({
 
   return (
     <div
-      className="shrink-0 w-[196px] border-l overflow-y-auto flex flex-col gap-4 px-3 py-3"
+      className="shrink-0 w-full sm:w-[196px] border-l overflow-y-auto flex flex-col gap-4 px-3 py-3"
       style={{
         borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
@@ -5205,6 +5206,11 @@ export function PanelHistoriaMundo({
   // ESE personaje).
   const showCanciones = true;
   const showCumpleanos = true;
+  // Barra lateral de cumpleaños/canciones: en celular ocupa espacio valioso
+  // apretando la pista principal, así que arranca oculta ahí y se muestra
+  // con el botón junto a "+ Evento". En desktop (sm+) esto no aplica: la
+  // barra siempre se ve, controlado vía CSS (ver className más abajo).
+  const [showSidebarMobile, setShowSidebarMobile] = useState(false);
   const [showEventos, setShowEventos] = useState(true);
   const [evtSeleccionado, setEvtSeleccionado] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -5969,6 +5975,36 @@ export function PanelHistoriaMundo({
               <Plus size={9} /> Evento
             </button>
 
+            {/* Toggle de la barra lateral de cumpleaños/canciones — solo
+                visible en celular (sm:hidden), porque en desktop la barra
+                siempre está a la vista (ver className de
+                SidebarCumpleanosCanciones más abajo). */}
+            {!filterPersonaje && (
+              <button
+                className="sm:hidden flex items-center justify-center w-6 h-6 rounded-lg transition-all"
+                style={{
+                  background: showSidebarMobile
+                    ? "color-mix(in srgb, var(--primary) 12%, transparent)"
+                    : "transparent",
+                  border:
+                    "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+                  color: showSidebarMobile
+                    ? "var(--primary)"
+                    : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                }}
+                title={
+                  showSidebarMobile
+                    ? "Ocultar cumpleaños y canciones"
+                    : "Mostrar cumpleaños y canciones"
+                }
+                type="button"
+                aria-pressed={showSidebarMobile}
+                onClick={() => setShowSidebarMobile((v) => !v)}
+              >
+                <Cake size={11} />
+              </button>
+            )}
+
             {/* Historia completa — toda la línea de tiempo como documento,
                 ahora como su propia pestaña (ver LineaTiempoSection). */}
             {onOpenHistoriaCompleta && (
@@ -6083,22 +6119,26 @@ export function PanelHistoriaMundo({
 
         {/* Barra lateral: solo tiene sentido sin un personaje filtrado —
             con un personaje seleccionado, su cumpleaños y canciones ya
-            aparecen en la pista principal (ver allEvents). */}
+            aparecen en la pista principal (ver allEvents). En celular
+            arranca oculta (aprieta la pista principal) y se muestra con
+            el botón junto a "+ Evento"; en desktop siempre visible. */}
         {!filterPersonaje && (
-          <SidebarCumpleanosCanciones
-            cumpleanos={cumpleanosSidebar}
-            canciones={cancionesSidebar}
-            diasAnioLista={diasAnioBarra}
-            showCanciones={showCanciones}
-            showCumpleanos={showCumpleanos}
-            onDiaChangeCancion={handleCancionDiaChange}
-            onDiaChangeCumpleanos={handleCumpleanosDiaChange}
-            onSelectCancion={onSelectCancion}
-            onSelectPersonaje={(id) => {
-              setFilterPersonaje(id);
-              onSelectPersonaje?.(id);
-            }}
-          />
+          <div className={showSidebarMobile ? "flex" : "hidden sm:flex"}>
+            <SidebarCumpleanosCanciones
+              cumpleanos={cumpleanosSidebar}
+              canciones={cancionesSidebar}
+              diasAnioLista={diasAnioBarra}
+              showCanciones={showCanciones}
+              showCumpleanos={showCumpleanos}
+              onDiaChangeCancion={handleCancionDiaChange}
+              onDiaChangeCumpleanos={handleCumpleanosDiaChange}
+              onSelectCancion={onSelectCancion}
+              onSelectPersonaje={(id) => {
+                setFilterPersonaje(id);
+                onSelectPersonaje?.(id);
+              }}
+            />
+          </div>
         )}
       </div>
     </div>
