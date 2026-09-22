@@ -26,7 +26,6 @@
  */
 
 import React from "react";
-import { Sprout } from "lucide-react";
 
 import EtapaPolaridades from "./EtapaPolaridades";
 import EtapaElementos from "./EtapaElementos";
@@ -36,20 +35,7 @@ export default function ExplicacionPage() {
   return (
     <div className="mx-auto flex max-w-[1600px] items-start gap-10 px-2 lg:px-6">
       <div className="min-w-0 flex-1">
-        <header className="px-1 pt-2 pb-6 text-center">
-          <div
-            className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
-            }}
-          >
-            <Sprout size={18} strokeWidth={2} />
-          </div>
-          <h1 className="text-lg font-black uppercase tracking-wide">Cómo surge cada cosa</h1>
-        </header>
-
-        <div className="flex flex-col gap-14 pb-24">
+        <div className="flex flex-col gap-14 pt-4 pb-24">
           <EtapaPolaridades />
           <EtapaElementos />
         </div>
