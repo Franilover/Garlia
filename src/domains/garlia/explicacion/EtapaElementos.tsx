@@ -100,7 +100,7 @@ function DiagramaCapas() {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <svg viewBox="0 0 200 200" width={200} height={200}>
+      <svg viewBox="0 0 200 200" width={240} height={240}>
         <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} />
         <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} />
         <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
@@ -167,7 +167,7 @@ function GaleriaElementosReales() {
   ) : elementosVisibles.length === 0 ? (
     <PlaceholderVacio texto="Sin Elementos cargados todavía." />
   ) : (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+    <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
       {elementosVisibles.map((el) => {
         const color = FAMILY_COLOR[el.familia];
         const Icon = FAMILIA_ICON[el.familia];
@@ -175,7 +175,7 @@ function GaleriaElementosReales() {
         return (
           <div
             key={el.id}
-            className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+            className="group relative flex flex-col items-center gap-1.5 rounded-lg p-3 text-center"
             style={{
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
               border: `1px solid ${color.border}`,
@@ -197,7 +197,7 @@ function GaleriaElementosReales() {
                 {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
               </button>
             )}
-            <AtomoVisual elemento={el} className="h-16 w-16 shrink-0" />
+                <AtomoVisual elemento={el} className="h-20 w-20 shrink-0" />
             <p className="w-full truncate text-[11px] font-black">{el.nombre}</p>
             <div className="flex items-center gap-1" style={{ color: color.text }}>
               <Icon size={10} />
@@ -263,21 +263,18 @@ export default function EtapaElementos() {
         }
       `}</style>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2>
         <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
           27 Partículas no forman un caos: se reparten en 3 capas y nace un Elemento, como un átomo con núcleo y electrones.
         </p>
       </div>
 
-      <div
-        className="rounded-xl p-4 md:p-6"
-        style={{ background: "color-mix(in srgb, var(--primary) 2.5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-      >
+      <div className="py-2 md:py-4">
         <DiagramaCapas />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         <GaleriaElementosReales />
       </div>
     </section>

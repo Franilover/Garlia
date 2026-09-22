@@ -142,11 +142,11 @@ function DiagramaPolaridadesTASI() {
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 1 · Dos polos</p>
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-center gap-1.5">
-            <Polo signo="+" size={48} orbitando />
+            <Polo signo="+" size={56} orbitando />
             <span className="text-[10px] font-bold uppercase tracking-wide opacity-50">Activo</span>
           </div>
           <div className="flex flex-col items-center gap-1.5">
-            <Polo signo="-" size={48} />
+            <Polo signo="-" size={56} />
             <span className="text-[10px] font-bold uppercase tracking-wide opacity-50">Receptivo</span>
           </div>
         </div>
@@ -174,7 +174,7 @@ function DiagramaPolaridadesTASI() {
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 3 · 3 letras = 1 Partícula</p>
         <div className="flex items-center gap-4">
           <div key={ejemploIdx} style={{ animation: "explicacion-pop-in 0.4s ease-out both" }}>
-            <ParticulaVisual formula={EJEMPLOS[ejemploIdx]} size={84} />
+            <ParticulaVisual formula={EJEMPLOS[ejemploIdx]} size={96} />
           </div>
           <div>
             <p className="font-mono text-lg font-black tracking-widest">{EJEMPLOS[ejemploIdx]}</p>
@@ -224,13 +224,13 @@ function GaleriaResultadoReal() {
   ) : particulasVisibles.length === 0 ? (
     <PlaceholderVacio texto="Sin Partículas cargadas todavía." />
   ) : (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+    <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8">
       {particulasVisibles.map((p) => {
         const visibleItem = vis.esVisible(p.id);
         return (
           <div
             key={p.id}
-            className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+            className="group relative flex flex-col items-center gap-1.5 rounded-lg p-3 text-center"
             style={{
               background: "color-mix(in srgb, var(--primary) 3%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -252,7 +252,7 @@ function GaleriaResultadoReal() {
                 {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
               </button>
             )}
-            <ParticulaVisual formula={p.formula} size={52} />
+            <ParticulaVisual formula={p.formula} size={60} />
             <p className="w-full truncate text-[10px] font-bold">{p.nombre}</p>
           </div>
         );
@@ -347,21 +347,15 @@ export default function EtapaPolaridades() {
         }
       `}</style>
 
-      <div className="mb-4">
+      <div className="mb-5">
         <h2 className="text-base font-black uppercase tracking-wide">Polaridades → TASI → Partículas</h2>
       </div>
 
-      <div
-        className="rounded-xl p-4 md:p-6"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 2.5%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
+      <div className="py-2 md:py-4">
         <DiagramaPolaridadesTASI />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         <GaleriaResultadoReal />
       </div>
     </section>
