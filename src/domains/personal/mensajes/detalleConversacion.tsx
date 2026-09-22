@@ -747,6 +747,10 @@ export default function DetalleConversacion() {
   const [animacionSeleccionada, setAnimacionSeleccionada] = useState<AnimacionBurbuja | null>(null);
   const [selectorDisenoAbierto, setSelectorDisenoAbierto] = useState(false);
   const [constructorKaomojiAbierto, setConstructorKaomojiAbierto] = useState(false);
+  // Menú "+" que agrupa Adjuntar/Kaomoji/Diseño de burbuja en un solo botón
+  // (antes eran 3 botones sueltos ocupando ancho fijo al lado del texto) —
+  // le da más espacio horizontal al textarea, sobre todo en mobile.
+  const [menuMasAbierto, setMenuMasAbierto] = useState(false);
 
   // ── Paginación "cargar mensajes anteriores" ─────────────────────────
   const [cargandoAnteriores, setCargandoAnteriores] = useState(false);
@@ -2470,41 +2474,91 @@ export default function DetalleConversacion() {
           </div>
         ) : (
           <>
-            <button
-              disabled={subiendoArchivo}
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Adjuntar archivo"
-              className="flex-shrink-0 self-center"
-            >
-              <Paperclip
-                className={subiendoArchivo ? "text-primary/20 animate-pulse" : "text-primary/50"}
-                size={18}
-              />
-            </button>
-            <button
-              onClick={() => setConstructorKaomojiAbierto(true)}
-              aria-label="Armar kaomoji"
-              className="flex items-center justify-center flex-shrink-0 self-center"
-            >
-              <span className="text-primary/50 text-base leading-none select-none">⁠(⁠･⁠ω⁠･⁠)⁠</span>
-            </button>
+            {/* Botón "+" único: agrupa Adjuntar archivo, Armar kaomoji y
+                Elegir diseño de burbuja en un dropdown — antes eran 3
+                botones sueltos compitiendo por ancho con el textarea, sobre
+                todo notorio en mobile. El popover de "Elegir diseño" (con
+                su propio submenú de animación de kaomoji) se mantiene
+                exactamente igual que antes, solo que ahora se abre desde
+                acá en vez de tener su propio botón visible todo el tiempo. */}
             <div className="relative flex-shrink-0 self-center">
               <button
-                aria-label="Elegir diseño de burbuja"
-                className="flex items-center justify-center"
-                onClick={() => setSelectorDisenoAbierto((v) => !v)}
+                onClick={() => setMenuMasAbierto((v) => !v)}
+                aria-label="Más opciones"
+                className="flex items-center justify-center flex-shrink-0"
               >
-                {(() => {
-                  const activo = DISENOS_BURBUJA.find((d) => d.id === estiloSeleccionado);
-                  const IconoActivo = activo?.Icono ?? MessageSquareText;
-                  return (
-                    <IconoActivo
-                      className={estiloSeleccionado ? "text-primary" : "text-primary/50"}
-                      size={18}
-                    />
-                  );
-                })()}
+                <Plus
+                  className={`transition-transform ${menuMasAbierto ? "rotate-45 text-primary" : "text-primary/50"}`}
+                  size={20}
+                />
               </button>
+              {menuMasAbierto && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuMasAbierto(false)} />
+                  <div
+                    className="absolute bottom-full left-0 mb-2 z-20 rounded-[var(--radius-btn)] overflow-hidden flex-shrink-0"
+                    style={{
+                      width: 200,
+                      background: "var(--bg-main)",
+                      boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    }}
+                  >
+                    <button
+                      disabled={subiendoArchivo}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm font-medium disabled:opacity-40"
+                      onClick={() => {
+                        setMenuMasAbierto(false);
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <Paperclip
+                        className={subiendoArchivo ? "text-primary/20 animate-pulse flex-shrink-0" : "text-primary/60 flex-shrink-0"}
+                        size={16}
+                      />
+                      Adjuntar archivo
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm font-medium"
+                      onClick={() => {
+                        setMenuMasAbierto(false);
+                        setConstructorKaomojiAbierto(true);
+                      }}
+                    >
+                      <span className="text-primary/60 text-base leading-none select-none flex-shrink-0 w-4 text-center">
+                        ⁠(⁠･⁠ω⁠･⁠)⁠
+                      </span>
+                      Armar kaomoji
+                    </button>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm font-medium"
+                      onClick={() => {
+                        setMenuMasAbierto(false);
+                        setSelectorDisenoAbierto(true);
+                      }}
+                    >
+                      {(() => {
+                        const activo = DISENOS_BURBUJA.find((d) => d.id === estiloSeleccionado);
+                        const IconoActivo = activo?.Icono ?? MessageSquareText;
+                        return (
+                          <IconoActivo
+                            className={estiloSeleccionado ? "text-primary flex-shrink-0" : "text-primary/60 flex-shrink-0"}
+                            size={16}
+                          />
+                        );
+                      })()}
+                      Diseño de burbuja
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Popover de "Elegir diseño de burbuja", sin cambios respecto
+                  a como funcionaba antes — solo que ya no cuelga de su
+                  propio botón visible, sino que setSelectorDisenoAbierto se
+                  dispara desde la opción de arriba. Se sigue anclando a
+                  este mismo div.relative (el botón "+"), así que su
+                  posición en pantalla no cambia. */}
               {selectorDisenoAbierto && (
                 <>
                   <div
