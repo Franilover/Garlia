@@ -21,7 +21,6 @@
 import { Gem, Leaf, Mountain, Music, Plus, Sprout, StickyNote } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
-import { DescargarDatosDropdown } from "./DescargarDatosDropdown";
 import { PanelEditor } from "@/domains/garlia/canciones/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/domains/garlia/canciones/modals/ModalNuevaCancion";
 import { useCanciones } from "@/domains/garlia/canciones/useCanciones";
@@ -103,47 +102,6 @@ interface Ciudad {
 interface Props {
   section: SectionKey;
   selectedId: string | null;
-}
-
-// ─── Descarga: dataset de Criaturas (agrupación por ecosistema) ───────────
-// Mismo patrón que descargarDatosElementos/descargarDatosFisica/
-// descargarDatosBiologia — un solo archivo JSON autocontenido.
-function descargarUtil(nombreBase: string, payload: Record<string, unknown>) {
-  const blob = new Blob(
-    [JSON.stringify({ exportado_en: new Date().toISOString(), ...payload }, null, 2)],
-    { type: "application/json" },
-  );
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${nombreBase}-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-function descargarDatosCriaturas(datos: {
-  criaturas: Criatura[];
-  personajes: Personaje[];
-  ecosistemas: unknown[];
-  biomas: unknown[];
-  flora: unknown[];
-  minerales: unknown[];
-}) {
-  descargarUtil("criaturas", datos);
-}
-
-function descargarDatosReinos(datos: {
-  reinos: Reino[];
-  ciudades: Ciudad[];
-  personajes: Personaje[];
-}) {
-  descargarUtil("reinos", datos);
-}
-
-function descargarDatosItems(datos: { items: Item[] }) {
-  descargarUtil("items", datos);
 }
 
 export function EntidadesPage({ section, selectedId }: Props) {
@@ -1005,18 +963,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
     </div>
   );
 
-  // Ícono compartido de descarga (Items / Criaturas / Personajes), se ubica
-  // pegado a la izquierda del botón "Añadir" en las 3 vistas jerárquicas.
-  const descargarDatosBoton = (
-    <DescargarDatosDropdown
-      onDescargarItems={() => descargarDatosItems({ items })}
-      onDescargarCriaturas={() =>
-        descargarDatosCriaturas({ criaturas, personajes, ecosistemas: ecosistemasConFloraIds, biomas: biomasConReinoIds, flora, minerales })
-      }
-      onDescargarPersonajes={() => descargarDatosReinos({ reinos, ciudades, personajes })}
-    />
-  );
-
   return (
     <div className="flex-1 min-h-0 overflow-y-auto p-4">
       {agrupacionPersonajes === "items" ? (
@@ -1044,7 +990,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
           busqueda={busquedaItem}
           onBusquedaChange={setBusquedaItem}
           agrupacionSelector={agrupacionSelector}
-          descargarDatosBoton={descargarDatosBoton}
         />
       ) : agrupacionPersonajes === "criatura" ? (
         <CriaturasJerarquica
@@ -1070,7 +1015,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
           busqueda={busquedaCriatura}
           onBusquedaChange={setBusquedaCriatura}
           agrupacionSelector={agrupacionSelector}
-          descargarDatosBoton={descargarDatosBoton}
           onCreateCriatura={async () => {
             const { data } = await addCriatura({ nombre: "Nueva criatura" });
             if (data?.id) openEntity("criaturas", data.id);
@@ -1135,7 +1079,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
           busqueda={busquedaReino}
           onBusquedaChange={setBusquedaReino}
           agrupacionSelector={agrupacionSelector}
-          descargarDatosBoton={descargarDatosBoton}
           onCreateReino={async () => {
             const { data } = await addReino({ nombre: "Nuevo reino" });
             if (data?.id) abrirPanel("reino", data.id);

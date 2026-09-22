@@ -196,9 +196,6 @@ interface Props {
   /** Elemento opcional pegado a la izquierda del buscador — usado por
    *  EntidadesPage para el dropdown de agrupación (Reino/Criatura). */
   agrupacionSelector?: React.ReactNode;
-  /** Ícono de descarga de datos (Items/Criaturas/Personajes), pegado a la
-   *  izquierda del AñadirDropdown — provisto por EntidadesPage. */
-  descargarDatosBoton?: React.ReactNode;
 }
 
 function NodoTitulo({
@@ -490,7 +487,6 @@ export function CriaturasJerarquica({
   busqueda = "",
   onBusquedaChange,
   agrupacionSelector,
-  descargarDatosBoton,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -908,8 +904,14 @@ export function CriaturasJerarquica({
 
   return (
     <div className="mb-8 last:mb-0">
-      <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
-        <div className="flex-1 flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col gap-2 mb-4 px-1">
+        {/* Fila 1, siempre en una sola línea (incluso en mobile): selector
+            de agrupación + toggle, buscador (se encoge/crece con flex-1) y
+            botón añadir a la derecha. Antes todo esto vivía en un único
+            flex-wrap junto con los filtros de grupo, así que en pantallas
+            angostas el selector, el toggle, la búsqueda y "Añadir" se
+            apilaban sueltos en cualquier orden. */}
+        <div className="flex items-center gap-1.5">
           {agrupacionSelector}
           {onBusquedaChange && (
             <BuscadorInline
@@ -918,15 +920,6 @@ export function CriaturasJerarquica({
               placeholder="Buscar ecosistema, criatura o personaje…"
             />
           )}
-          <GrupoFiltroBarra
-            bloques={gruposCriaturasPorSubtipo}
-            grupoSeleccionadoId={grupoSeleccionadoId}
-            onSeleccionarGrupo={onSeleccionarGrupo}
-            onOpenGrupo={onOpenGrupo}
-          />
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {descargarDatosBoton}
           <AñadirDropdown
             onCreateCriatura={onCreateCriatura}
             creatingCriatura={creatingCriatura}
@@ -938,6 +931,17 @@ export function CriaturasJerarquica({
             creatingFlora={creatingFlora}
             onCreateMineral={onCreateMineral}
             creatingMineral={creatingMineral}
+          />
+        </div>
+        {/* Fila 2: dropdowns de filtro por grupo — sí pueden envolver en
+            varias líneas si no entran, pero ya no compiten por espacio con
+            el buscador ni con "Añadir". */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <GrupoFiltroBarra
+            bloques={gruposCriaturasPorSubtipo}
+            grupoSeleccionadoId={grupoSeleccionadoId}
+            onSeleccionarGrupo={onSeleccionarGrupo}
+            onOpenGrupo={onOpenGrupo}
           />
         </div>
       </div>

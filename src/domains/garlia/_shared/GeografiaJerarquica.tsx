@@ -154,9 +154,6 @@ interface Props {
   /** Elemento opcional pegado a la izquierda del buscador — usado por
    *  EntidadesPage para el dropdown de agrupación (Reino/Criatura). */
   agrupacionSelector?: React.ReactNode;
-  /** Ícono de descarga de datos (Items/Criaturas/Personajes), pegado a la
-   *  izquierda del AñadirDropdown — provisto por EntidadesPage. */
-  descargarDatosBoton?: React.ReactNode;
 }
 
 function NodoTitulo({
@@ -335,7 +332,6 @@ export function GeografiaJerarquica({
   busqueda = "",
   onBusquedaChange,
   agrupacionSelector,
-  descargarDatosBoton,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -731,8 +727,11 @@ export function GeografiaJerarquica({
 
   return (
     <div className="mb-8 last:mb-0">
-      <div className="flex items-center gap-2 mb-4 px-1 flex-wrap">
-        <div className="flex-1 flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col gap-2 mb-4 px-1">
+        {/* Fila 1, siempre en una sola línea: selector de agrupación +
+            toggle, buscador y "Añadir" a la derecha. Los filtros de grupo
+            (Personajes / Reinos) van en la fila 2, debajo. */}
+        <div className="flex items-center gap-1.5">
           {agrupacionSelector}
           {onBusquedaChange && (
             <BuscadorInline
@@ -741,6 +740,15 @@ export function GeografiaJerarquica({
               placeholder="Buscar reino, ciudad o personaje…"
             />
           )}
+          {(onCreateReino || onCreatePersonaje) && (
+            <AñadirDropdown
+              onCreateReino={onCreateReino}
+              creatingReino={creatingReino}
+              onCreatePersonaje={onCreatePersonaje ? () => onCreatePersonaje(null) : undefined}
+            />
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
           <GrupoFiltroBarra
             bloques={gruposPersonajesPorSubtipo}
             grupoSeleccionadoId={grupoSeleccionadoId}
@@ -756,16 +764,6 @@ export function GeografiaJerarquica({
             onSeleccionarGrupo={onSeleccionarGrupoReino}
             onOpenGrupo={onOpenGrupo}
           />
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {descargarDatosBoton}
-          {(onCreateReino || onCreatePersonaje) && (
-            <AñadirDropdown
-              onCreateReino={onCreateReino}
-              creatingReino={creatingReino}
-              onCreatePersonaje={onCreatePersonaje ? () => onCreatePersonaje(null) : undefined}
-            />
-          )}
         </div>
       </div>
 

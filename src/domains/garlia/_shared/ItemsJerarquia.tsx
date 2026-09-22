@@ -118,11 +118,6 @@ interface Props {
    *  se renderiza pegado al buscador, igual que en GeografiaJerarquica y
    *  CriaturasJerarquica. */
   agrupacionSelector?: React.ReactNode;
-  /** Ícono de descarga de datos (Items/Criaturas/Personajes), pegado a la
-   *  izquierda del botón "+ Añadir" — provisto por EntidadesPage. Como esta
-   *  vista no tiene un AñadirDropdown global (usa "+ Añadir" por bloque de
-   *  categoría), se renderiza en la barra superior. */
-  descargarDatosBoton?: React.ReactNode;
 }
 
 /** Bloque "título + grid" de una categoría, con soporte de drag & drop
@@ -326,7 +321,6 @@ export function ItemsJerarquia({
   busqueda,
   onBusquedaChange,
   agrupacionSelector,
-  descargarDatosBoton,
 }: Props) {
   const abrirPanel = usePanelFlotante((s) => s.abrir);
   const [porEcosistema, setPorEcosistema] = useState(false);
@@ -430,8 +424,11 @@ export function ItemsJerarquia({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3 px-1 flex-wrap">
-        <div className="flex-1 flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col gap-2 mb-3 px-1">
+        {/* Fila 1: selector de agrupación + toggle propio + buscador, todo
+            en una sola línea. Sin botón "Añadir" acá — en Items se crea
+            por bloque (ver onCreate más abajo), no con un dropdown global. */}
+        <div className="flex items-center gap-1.5">
           {agrupacionSelector}
           {(ecosistemas || criaturas) && (
             <button
@@ -457,16 +454,19 @@ export function ItemsJerarquia({
             onChange={onBusquedaChange}
             placeholder="Buscar item por nombre…"
           />
-          {gruposItemsPorSubtipo && (
+        </div>
+        {/* Fila 2: filtro por grupo — envuelve aparte, no compite con la
+            fila de arriba. */}
+        {gruposItemsPorSubtipo && (
+          <div className="flex items-center gap-2 flex-wrap">
             <GrupoFiltroBarra
               bloques={gruposItemsPorSubtipo}
               grupoSeleccionadoId={grupoSeleccionadoId ?? null}
               onSeleccionarGrupo={onSeleccionarGrupo ?? (() => {})}
               onOpenGrupo={onOpenGrupo}
             />
-          )}
-        </div>
-        {descargarDatosBoton}
+          </div>
+        )}
       </div>
 
 
