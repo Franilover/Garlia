@@ -46,6 +46,7 @@
  */
 
 import {
+  ArrowUp,
   CalendarPlus,
   Check,
   Clock,
@@ -92,8 +93,6 @@ function momentoParaEdad(
 
 const LINE_COLOR = "color-mix(in srgb, var(--primary) 10%, transparent)";
 const FIELD_BG = "color-mix(in srgb, var(--primary) 3%, transparent)";
-
-const SIDEBAR_WIDTH = 240;
 
 type GranEra = { id: string; label: string; min: number; max: number | null };
 
@@ -772,10 +771,17 @@ export function PersonajeLineaDeTiempo({
           <Loader2 className="animate-spin text-primary/20" size={14} />
         </div>
       ) : (
-        <div className="flex flex-row items-start gap-3">
+        <div className="flex flex-col md:flex-row items-start gap-3">
+          {/* Sidebar de eras: en mobile ocupa todo el ancho (sin la
+              división horizontal fija) y se OCULTA por
+              completo en cuanto hay una sub-era seleccionada — evita tener
+              la lista larga de eras y el detalle compitiendo por el mismo
+              scroll vertical angosto. En desktop (md+) es la barra lateral
+              angosta de siempre, visible en todo momento junto al panel. */}
           <div
-            className="flex flex-col gap-2 shrink-0"
-            style={{ width: SIDEBAR_WIDTH }}
+            className={`flex flex-col gap-2 shrink-0 w-full md:w-[240px] ${
+              selId ? "hidden md:flex" : ""
+            }`}
           >
             {fechaNacimiento != null && (
               <div className="relative">
@@ -897,7 +903,16 @@ export function PersonajeLineaDeTiempo({
             )}
           </div>
 
-          <div className="flex-1 min-w-0" style={{ minHeight: 200 }}>
+          <div className="flex-1 min-w-0 w-full" style={{ minHeight: 200 }}>
+            {selEra && (
+              <button
+                type="button"
+                onClick={() => setSelId(null)}
+                className="md:hidden mb-2 flex items-center gap-1 px-2 py-1 rounded-md text-micro font-bold text-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+              >
+                <ArrowUp size={11} /> Volver a las eras
+              </button>
+            )}
             {selEra ? (
               <EraDetallePanel
                 diasPorAnio={diasPorAnio}
@@ -917,7 +932,7 @@ export function PersonajeLineaDeTiempo({
               />
             ) : (
               <div
-                className="flex items-center justify-center h-full rounded-xl border border-dashed text-micro text-primary/25 py-10"
+                className="hidden md:flex items-center justify-center h-full rounded-xl border border-dashed text-micro text-primary/25 py-10"
                 style={{ borderColor: LINE_COLOR }}
               >
                 Selecciona una sub-era para ver y editar su detalle
