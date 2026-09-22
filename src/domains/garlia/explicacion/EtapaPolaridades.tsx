@@ -29,6 +29,7 @@ import { useParticulas } from "@/domains/garlia/fisica/useFisica";
 import { ParticulaVisual, LETRA_COLOR, LETRA_NOMBRE, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
 import { useVisibilidadExplicacion } from "./useVisibilidadExplicacion";
 import { ToggleMaestroAdmin } from "./ToggleMaestroAdmin";
+import { BloqueColapsableAdmin } from "./BloqueColapsableAdmin";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -205,59 +206,86 @@ function GaleriaResultadoReal() {
   const vis = useVisibilidadExplicacion("particula");
   const particulasVisibles = isAdmin ? particulas : vis.filtrarVisibles(particulas);
 
+  // Para el público: si la sección quedó sin nada que mostrar (maestro
+  // apagado y sin excepciones visibles), el bloque completo desaparece
+  // en vez de quedar con el título vacío ("· 0"). El admin sigue viendo
+  // el bloque siempre — si no, no tendría desde dónde reactivarlo.
+  const ocultarBloquePublico = !isAdmin && !loadingParticulas && particulasVisibles.length === 0;
+  if (ocultarBloquePublico) return null;
+
+  const header = (
+    <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">
+      Las Partículas reales · {loadingParticulas ? "…" : particulasVisibles.length}
+    </p>
+  );
+
+  const grid = loadingParticulas ? (
+    <PlaceholderCargando />
+  ) : particulasVisibles.length === 0 ? (
+    <PlaceholderVacio texto="Sin Partículas cargadas todavía." />
+  ) : (
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+      {particulasVisibles.map((p) => {
+        const visibleItem = vis.esVisible(p.id);
+        return (
+          <div
+            key={p.id}
+            className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+              opacity: isAdmin && !visibleItem ? 0.4 : 1,
+            }}
+            title={`${p.nombre} (${p.formula})`}
+          >
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => vis.toggleIndividual(p.id)}
+                title={visibleItem ? "Ocultar esta Partícula al público" : "Mostrar esta Partícula al público"}
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
+                style={{
+                  background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+                  color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
+                }}
+              >
+                {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
+              </button>
+            )}
+            <ParticulaVisual formula={p.formula} size={52} />
+            <p className="w-full truncate text-[10px] font-bold">{p.nombre}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       {/* Las 27 Partículas reales */}
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">
-            Las Partículas reales · {loadingParticulas ? "…" : particulasVisibles.length}
-          </p>
-          {isAdmin && (
-            <ToggleMaestroAdmin visible={vis.maestroVisible} onToggle={vis.toggleMaestro} etiqueta="Partículas" />
-          )}
+      {isAdmin ? (
+        <BloqueColapsableAdmin
+          maestroVisible={vis.maestroVisible}
+          header={
+            <div className="flex w-full items-center justify-between gap-2">
+              {header}
+              <span
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <ToggleMaestroAdmin visible={vis.maestroVisible} onToggle={vis.toggleMaestro} etiqueta="Partículas" />
+              </span>
+            </div>
+          }
+        >
+          {grid}
+        </BloqueColapsableAdmin>
+      ) : (
+        <div>
+          <div className="mb-2">{header}</div>
+          {grid}
         </div>
-        {loadingParticulas ? (
-          <PlaceholderCargando />
-        ) : particulasVisibles.length === 0 ? (
-          <PlaceholderVacio texto="Sin Partículas cargadas todavía." />
-        ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {particulasVisibles.map((p) => {
-              const visibleItem = vis.esVisible(p.id);
-              return (
-                <div
-                  key={p.id}
-                  className="group relative flex flex-col items-center gap-1 rounded-lg p-2 text-center"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                    opacity: isAdmin && !visibleItem ? 0.4 : 1,
-                  }}
-                  title={`${p.nombre} (${p.formula})`}
-                >
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => vis.toggleIndividual(p.id)}
-                      title={visibleItem ? "Ocultar esta Partícula al público" : "Mostrar esta Partícula al público"}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
-                      style={{
-                        background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-                        color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
-                      }}
-                    >
-                      {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
-                    </button>
-                  )}
-                  <ParticulaVisual formula={p.formula} size={52} />
-                  <p className="w-full truncate text-[10px] font-bold">{p.nombre}</p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Leyenda de letras */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
