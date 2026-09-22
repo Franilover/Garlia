@@ -6,6 +6,7 @@
 
 import { useMundoNavigation } from "@/domains/garlia/_shared/useMundoNavigationStore";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+import { type OnHeaderControlsChange } from "@/domains/garlia/_shared/useEditorHeaderControls";
 
 import { EditorCiudad } from "./EditorCiudad";
 
@@ -15,7 +16,13 @@ interface Ciudad {
   [key: string]: any;
 }
 
-export function CiudadEditor({ ciudad }: { ciudad: Ciudad }) {
+export function CiudadEditor({
+  ciudad,
+  onHeaderControlsChange,
+}: {
+  ciudad: Ciudad;
+  onHeaderControlsChange?: OnHeaderControlsChange;
+}) {
   const openEntity = useMundoNavigation((s) => s.openEntity);
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
@@ -28,6 +35,7 @@ export function CiudadEditor({ ciudad }: { ciudad: Ciudad }) {
       onSelectCriatura={(id) => abrirPanel("criatura", id)}
       onSelectItem={(id) => abrirPanel("item", id)}
       onNavigateReino={(id) => abrirPanel("reino", id)}
+      onHeaderControlsChange={onHeaderControlsChange}
     />
   );
 }

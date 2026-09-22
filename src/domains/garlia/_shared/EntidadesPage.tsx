@@ -532,7 +532,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
         <PanelEditor
           key={selectedCancion.id}
           cancionId={selectedCancion.id}
-          onNavigateCiudad={(id) => openEntity("ciudades", id)}
+          onNavigateCiudad={(id) => abrirPanel("ciudad", id)}
           onNavigateGrupo={(id) => openEntity("grupos", id)}
           onNavigatePersonaje={(id) => abrirPanel("personaje", id)}
           onNavigateReino={(id) => abrirPanel("reino", id)}
@@ -1085,7 +1085,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
           }}
           onCreateCiudad={async (reinoId) => {
             const { data } = await addCiudad({ nombre: "Nueva ciudad", reino_id: reinoId });
-            if (data?.id) openEntity("ciudades", data.id);
+            if (data?.id) abrirPanel("ciudad", data.id);
           }}
           onCreatePersonaje={async (ciudadId) => {
             const { data } = await addPersonaje({

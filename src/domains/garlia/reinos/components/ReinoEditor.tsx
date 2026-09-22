@@ -32,7 +32,7 @@ export function ReinoEditor({
       onSaved={() => {}}
       onDeleted={() => openEntity("reinos", "")}
       onSelectPersonaje={(personaje) => abrirPanel("personaje", personaje.id)}
-      onSelectCiudad={(id) => openEntity("ciudades", id)}
+      onSelectCiudad={(id) => abrirPanel("ciudad", id)}
       onSelectCriatura={(id) => abrirPanel("criatura", id)}
       onSelectItem={(id) => abrirPanel("item", id)}
       onHeaderControlsChange={onHeaderControlsChange}

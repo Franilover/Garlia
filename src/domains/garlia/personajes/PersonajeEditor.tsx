@@ -50,7 +50,7 @@ export function PersonajeEditor({
       onNavigate={(_tab, nombre) => navigateByName(nombre)}
       onSelectPersonaje={(id) => abrirPanel("personaje", id)}
       onOpenGrupo={(id) => openEntity("grupos", id)}
-      onNavigateCiudad={(id) => openEntity("ciudades", id)}
+      onNavigateCiudad={(id) => abrirPanel("ciudad", id)}
       onNavigateCapitulo={(capituloId) => openEntity("capitulos", capituloId)}
       onSelectCancion={(id) => openEntity("letras", id)}
       onHeaderControlsChange={onHeaderControlsChange}

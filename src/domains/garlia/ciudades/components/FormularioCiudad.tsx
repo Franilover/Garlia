@@ -71,6 +71,7 @@ export function FormularioCiudad({
   onSave,
   onDelete,
   entities = [],
+  hideOwnHeader = false,
   onSelectPersonaje,
   onSelectCriatura,
   onSelectItem,
@@ -82,6 +83,10 @@ export function FormularioCiudad({
   onSave: () => void;
   onDelete: () => void;
   entities?: WikiEntity[];
+  // true cuando el header ya lo renderiza el contenedor (EditorHeaderBar
+  // dentro de EditorCiudad, mismo patrón que Item/Reino/Criatura al usarse
+  // en el panel flotante) — evita la barra duplicada.
+  hideOwnHeader?: boolean;
   onSelectPersonaje?: (id: string) => void;
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
@@ -185,53 +190,57 @@ export function FormularioCiudad({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      {/* ── Header fijo ───────────────────────────────────────────────────── */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-        }}
-      >
-        {/* Thumbnail */}
-        <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
-          {form.imagen_url ? (
-            <Image
-              alt={form.nombre}
-              className="w-full h-full object-cover"
-              src={form.imagen_url}
-            />
-          ) : (
-            <MapPin className="text-primary/25" size={16} />
-          )}
-        </div>
+      {/* ── Header fijo ─────────────────────────────────────────────────────
+          Se omite cuando el contenedor (panel flotante) ya renderiza el suyo
+          vía EditorHeaderBar, mismo patrón que Item/Reino/Criatura. */}
+      {!hideOwnHeader && (
+        <div
+          className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          {/* Thumbnail */}
+          <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden border border-primary/15 bg-primary/5 flex items-center justify-center">
+            {form.imagen_url ? (
+              <Image
+                alt={form.nombre}
+                className="w-full h-full object-cover"
+                src={form.imagen_url}
+              />
+            ) : (
+              <MapPin className="text-primary/25" size={16} />
+            )}
+          </div>
 
-        {/* Nombre editable */}
-        <input
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-          placeholder="Nombre de la ciudad"
-          value={form.nombre ?? ""}
-          onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-        />
+          {/* Nombre editable */}
+          <input
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+            placeholder="Nombre de la ciudad"
+            value={form.nombre ?? ""}
+            onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+          />
 
-        {/* Acciones */}
-        <div className="shrink-0 flex items-center gap-1.5">
-          <SaveIndicator status={status} />
-          <button
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
-            onClick={onDelete}
-          >
-            <Trash2 size={10} />
-          </button>
-          <button
-            className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            disabled={status === "saving"}
-            onClick={onSave}
-          >
-            <Save size={10} /> Guardar
-          </button>
+          {/* Acciones */}
+          <div className="shrink-0 flex items-center gap-1.5">
+            <SaveIndicator status={status} />
+            <button
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+              onClick={onDelete}
+            >
+              <Trash2 size={10} />
+            </button>
+            <button
+              className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              disabled={status === "saving"}
+              onClick={onSave}
+            >
+              <Save size={10} /> Guardar
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Cuerpo scrolleable ────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto min-h-0">

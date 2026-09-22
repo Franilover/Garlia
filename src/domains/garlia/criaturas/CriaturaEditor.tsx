@@ -30,7 +30,7 @@ export function CriaturaEditor({
       onSelectItem={(id) => abrirPanel("item", id)}
       onSelectPersonaje={(id) => abrirPanel("personaje", id)}
       onSelectCriatura={(id) => openEntity("criaturas", id)}
-      onNavigateCiudad={(id) => openEntity("ciudades", id)}
+      onNavigateCiudad={(id) => abrirPanel("ciudad", id)}
       onNavigateReino={(id) => abrirPanel("reino", id)}
       onHeaderControlsChange={onHeaderControlsChange}
     />

@@ -15,9 +15,15 @@
 import React, { useEffect, useState } from "react";
 
 import type { WikiEntity } from "@/ui/Markdown/commandItems";
-import { useConfirm } from "@/ui/ConfirmModal";
 import { type SaveStatus } from "@/domains/garlia/_shared/types";
 import { dexiePut, dexieDelete } from "@/infra/sync/useOfflineSync";
+import { MapPin } from "lucide-react";
+
+import { EditorHeaderBar } from "@/domains/garlia/_shared/EditorHeaderBar";
+import {
+  usePublishHeaderControls,
+  type OnHeaderControlsChange,
+} from "@/domains/garlia/_shared/useEditorHeaderControls";
 
 import { FormularioCiudad } from "./FormularioCiudad";
 import { type Ciudad } from "../types";
@@ -33,6 +39,7 @@ export function EditorCiudad({
   onSelectCriatura,
   onSelectItem,
   onNavigateReino,
+  onHeaderControlsChange,
 }: {
   item: Ciudad;
   onSaved: (l: Ciudad) => void;
@@ -42,10 +49,10 @@ export function EditorCiudad({
   onSelectCriatura?: (id: string) => void;
   onSelectItem?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
+  onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
   const [form, setForm] = useState<Ciudad>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const { confirm, ConfirmModal } = useConfirm();
 
   useEffect(() => {
     setForm(item);
@@ -65,23 +72,34 @@ export function EditorCiudad({
     }
   };
 
+  // Confirmación inline en el header compartido (ver EditorHeaderBar) — el
+  // modal de useConfirm quedaba atrapado por el backdrop-filter del panel
+  // flotante ancestro, igual que en Reino/Item.
   const del = async () => {
-    const ok = await confirm({
-      message: `¿Eliminar "${form.nombre}"?`,
-      danger: true,
-    });
-    if (!ok) return;
     await ciudadesQueries.delete(form.id);
     void dexieDelete("ciudades", form.id);
     onDeleted(form.id);
   };
 
+  const headerControls = {
+    imagenUrl: form.imagen_url,
+    IconoFallback: MapPin,
+    nombre: form.nombre ?? "",
+    placeholderNombre: "Nombre de la ciudad",
+    onChangeNombre: (nombre: string) => setForm((f) => ({ ...f, nombre })),
+    status,
+    onGuardar: save,
+    onEliminar: del,
+  };
+  usePublishHeaderControls(headerControls, onHeaderControlsChange);
+
   return (
     <>
-      <ConfirmModal />
+      {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
       <FormularioCiudad
         entities={entities}
         form={form}
+        hideOwnHeader={!!onHeaderControlsChange}
         setForm={setForm}
         status={status}
         onDelete={del}

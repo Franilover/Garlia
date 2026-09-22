@@ -13,12 +13,10 @@
  *   ...
  *
  * Cada nodo (reino / ciudad) se muestra como un botón tipo "chip" temático
- * (sin corchetes). El reino abre su editor completo en el panel flotante
- * (abrirPanel("reino", id) — mismo comportamiento que Personaje/Criatura,
- * ver usePanelFlotanteStore); la ciudad sigue navegando a página completa
- * (openEntity("ciudades", id)), que ya trae adentro sus propios personajes.
- * Los personajes sí usan la tarjeta normal (imagen + nombre) porque son la
- * hoja del árbol.
+ * (sin corchetes). Reino y Ciudad abren su editor completo en el panel
+ * flotante (abrirPanel("reino"|"ciudad", id) — mismo comportamiento que
+ * Personaje/Criatura, ver usePanelFlotanteStore). Los personajes sí usan la
+ * tarjeta normal (imagen + nombre) porque son la hoja del árbol.
  *
  * Relaciones usadas:
  *  - Ciudad.reino_id   → agrupa ciudades bajo su reino (obligatorio: toda
@@ -672,7 +670,7 @@ export function GeografiaJerarquica({
       key: ciudad.id,
       nombre: ciudad.nombre,
       habitantes: personajesDe(ciudad.id),
-      onClick: () => onOpen("ciudades", ciudad.id),
+      onClick: () => abrirPanel("ciudad", ciudad.id),
       onCreate: onCreatePersonaje
         ? () => onCreatePersonaje!(ciudad.id)
         : undefined,

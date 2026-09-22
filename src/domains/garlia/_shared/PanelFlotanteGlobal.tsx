@@ -24,7 +24,7 @@
  * click en el backdrop.
  */
 
-import { Bug, Check, Crown, Diamond, Gem, Leaf, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
+import { Bug, Check, Crown, Diamond, Gem, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -38,6 +38,7 @@ import { PersonajeEditor } from "@/domains/garlia/personajes/PersonajeEditor";
 import { CriaturaEditor } from "@/domains/garlia/criaturas/CriaturaEditor";
 import { ReinoEditor } from "@garlia/reinos";
 import { ItemEditor } from "@garlia/items";
+import { CiudadEditor } from "@garlia/ciudades";
 import { FloraEditor } from "@/domains/garlia/flora/FloraEditor";
 import { useFlora } from "@/domains/garlia/flora/useFlora";
 import { type Flora } from "@/domains/garlia/flora/types";
@@ -48,6 +49,7 @@ import type { Personaje } from "@garlia/personajes";
 import type { Criatura } from "@/domains/garlia/criaturas/types";
 import type { Reino } from "@garlia/reinos";
 import type { Item } from "@garlia/items";
+import type { Ciudad } from "@garlia/ciudades";
 
 import { usePanelFlotante } from "./usePanelFlotanteStore";
 
@@ -87,6 +89,7 @@ export function PanelFlotanteGlobal() {
   const { data: criaturas } = useSupabaseData<Criatura>("criaturas");
   const { data: reinos } = useSupabaseData<Reino>("reinos");
   const { data: items } = useSupabaseData<Item>("items");
+  const { data: ciudades } = useSupabaseData<Ciudad>("ciudades");
   const { flora } = useFlora();
   const { minerales } = useMinerales();
 
@@ -113,12 +116,14 @@ export function PanelFlotanteGlobal() {
   const item = entidad.kind === "item" ? items.find((x) => x.id === entidad.id) : null;
   const floraSel = entidad.kind === "flora" ? flora.find((x) => x.id === entidad.id) : null;
   const mineralSel = entidad.kind === "mineral" ? minerales.find((x) => x.id === entidad.id) : null;
+  const ciudad = entidad.kind === "ciudad" ? ciudades.find((x) => x.id === entidad.id) : null;
   if (entidad.kind === "personaje" && !personaje) return null;
   if (entidad.kind === "criatura" && !criatura) return null;
   if (entidad.kind === "reino" && !reino) return null;
   if (entidad.kind === "item" && !item) return null;
   if (entidad.kind === "flora" && !floraSel) return null;
   if (entidad.kind === "mineral" && !mineralSel) return null;
+  if (entidad.kind === "ciudad" && !ciudad) return null;
 
   const Icon =
     entidad.kind === "personaje"
@@ -131,7 +136,9 @@ export function PanelFlotanteGlobal() {
             ? Gem
             : entidad.kind === "flora"
               ? Leaf
-              : Diamond;
+              : entidad.kind === "mineral"
+                ? Diamond
+                : MapPin;
   const label =
     entidad.kind === "personaje"
       ? "Personaje"
@@ -143,7 +150,9 @@ export function PanelFlotanteGlobal() {
             ? "Item"
             : entidad.kind === "flora"
               ? "Flora"
-              : "Mineral";
+              : entidad.kind === "mineral"
+                ? "Mineral"
+                : "Ciudad";
   const nombre =
     entidad.kind === "personaje"
       ? personaje!.nombre
@@ -155,7 +164,9 @@ export function PanelFlotanteGlobal() {
             ? item!.nombre
             : entidad.kind === "flora"
               ? floraSel!.nombre
-              : mineralSel!.nombre;
+              : entidad.kind === "mineral"
+                ? mineralSel!.nombre
+                : ciudad!.nombre;
 
   return createPortal(
     <div
@@ -340,11 +351,17 @@ export function PanelFlotanteGlobal() {
               onDeleted={() => cerrar()}
               onHeaderControlsChange={setHeaderControls}
             />
-          ) : (
+          ) : entidad.kind === "mineral" ? (
             <MineralEditor
               key={mineralSel!.id}
               mineral={mineralSel as Mineral}
               onDeleted={() => cerrar()}
+              onHeaderControlsChange={setHeaderControls}
+            />
+          ) : (
+            <CiudadEditor
+              key={ciudad!.id}
+              ciudad={ciudad!}
               onHeaderControlsChange={setHeaderControls}
             />
           )}
