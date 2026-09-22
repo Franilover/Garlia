@@ -26,7 +26,7 @@ export const ETAPAS: EtapaInfo[] = [
     id: "elementos",
     titulo: "Elementos",
     resumen: "Las Partículas se organizan en 3 capas y nace un Elemento.",
-    disponible: false,
+    disponible: true,
   },
   {
     id: "compuestos",

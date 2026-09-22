@@ -23,9 +23,10 @@
  */
 
 import React from "react";
-import { Sparkles } from "lucide-react";
+import { Sprout } from "lucide-react";
 
 import EtapaPolaridades from "./EtapaPolaridades";
+import EtapaElementos from "./EtapaElementos";
 import EtapaProximamente from "./EtapaProximamente";
 import { ETAPAS } from "./etapas";
 
@@ -40,16 +41,9 @@ export default function ExplicacionPage() {
             color: "var(--primary)",
           }}
         >
-          <Sparkles size={18} strokeWidth={2} />
+          <Sprout size={18} strokeWidth={2} />
         </div>
         <h1 className="text-lg font-black uppercase tracking-wide">Cómo surge cada cosa</h1>
-        <p
-          className="mx-auto mt-1.5 max-w-md text-micro leading-relaxed"
-          style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-        >
-          Desde la primera diferencia entre + y − hasta las criaturas que caminan por Garlia.
-          Un recorrido visual, paso a paso.
-        </p>
       </header>
 
       {/* Índice rápido — misma barra de tabs/pills que el resto del Universo */}
@@ -83,6 +77,7 @@ export default function ExplicacionPage() {
 
       <div className="flex flex-col gap-14 pb-24">
         <EtapaPolaridades />
+        <EtapaElementos />
 
         {ETAPAS.filter((e) => !e.disponible).map((e) => (
           <EtapaProximamente key={e.id} etapa={e} />

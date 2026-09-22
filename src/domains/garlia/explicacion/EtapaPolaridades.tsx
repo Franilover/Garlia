@@ -30,8 +30,8 @@ import { ParticulaVisual, LETRA_COLOR, LETRA_NOMBRE, type LetraATS } from "@/dom
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
 const RELACIONES: { par: string; resultado: LetraATS; nombre: string }[] = [
-  { par: "+ + +", resultado: "T", nombre: "Tesis" },
-  { par: "− + −", resultado: "A", nombre: "Antítesis" },
+  { par: "+ +", resultado: "T", nombre: "Tesis" },
+  { par: "− −", resultado: "A", nombre: "Antítesis" },
   { par: "+ → −", resultado: "S", nombre: "Síntesis" },
   { par: "− → +", resultado: "I", nombre: "Invertisis" },
 ];
@@ -66,12 +66,15 @@ function Polo({ signo, size = 40, orbitando = false }: { signo: "+" | "-"; size?
   );
 }
 
-/** Fila de 3 polos representando una Relación Polar (ej. "+ + +" = Tesis),
- *  con una flechita hacia la letra resultante. El polo activo (+) siempre
- *  se dibuja orbitando; el − queda quieto — así cada fila "actúa" su propio
- *  significado (una relación con más + se ve con más movimiento). */
+/** Fila representando una Relación Polar: dos Polos combinados (par
+ *  estático "+ +" / "− −" para T/A, o transición "+ → −" / "− → +" para
+ *  S/I), con una flecha hacia la letra TASI resultante. Son solo 2 Polos
+ *  (+/−) combinados en pares ordenados — de ahí las 4 combinaciones
+ *  posibles, no 3 polos por fila. El polo activo (+) siempre orbita; el −
+ *  queda quieto. */
 function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index: number }) {
-  const signos = rel.par.replace("→", "").trim().split(" ") as ("+" | "-")[];
+  const esTransicion = rel.par.includes("→");
+  const signos = rel.par.replace("→", "").trim().split(/\s+/) as ("+" | "-")[];
   const color = LETRA_COLOR[rel.resultado];
 
   return (
@@ -85,9 +88,15 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
       }}
     >
       <div className="flex items-center gap-1">
-        {signos.map((s, i) => (
-          <Polo key={i} signo={s} size={28} orbitando={s === "+"} />
-        ))}
+        <Polo signo={signos[0]} size={28} orbitando={signos[0] === "+"} />
+        {esTransicion ? (
+          <svg width="14" height="10" viewBox="0 0 14 10" className="shrink-0 opacity-50">
+            <path d="M0 5 H10 M6 1 L10 5 L6 9" stroke="var(--primary)" strokeWidth={1.3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span className="text-[10px] font-black opacity-30">+</span>
+        )}
+        <Polo signo={signos[1]} size={28} orbitando={signos[1] === "+"} />
       </div>
       <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0 opacity-40">
         <path d="M0 6 H16 M11 1 L16 6 L11 11" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />

@@ -1,0 +1,227 @@
+"use client";
+
+/**
+ * EtapaElementos.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Segundo tramo: Partículas → Elemento. Mismo criterio que EtapaPolaridades:
+ * un diagrama animado que explica la lógica + una galería con datos reales.
+ *
+ *   1. DiagramaCapas: las 27 Partículas no se mezclan al azar — se reparten
+ *      en 3 capas (núcleo/media/externa) que giran a velocidades distintas:
+ *      el núcleo gira lento (es la base estable), la capa externa gira
+ *      rápido (es la más reactiva/expuesta) — otra vez la animación ES la
+ *      explicación, no decoración. Se arma en vivo, capa por capa.
+ *
+ *   2. GaleriaElementosReales: usa AtomoVisual (el mismo componente que ya
+ *      dibuja el átomo en el editor de Elementos) sobre useElementos() real
+ *      — así la explicación queda pegada 1:1 al dato real, sin duplicar el
+ *      dibujo del átomo en un componente aparte.
+ */
+
+import React, { useEffect, useState } from "react";
+import { Gem, Link2, Scale, Wind, CircleOff } from "lucide-react";
+
+import { useElementos } from "@/domains/garlia/elementos/useElementos";
+import { AtomoVisual } from "@/domains/garlia/elementos/ElementoEditor";
+import { FAMILY_COLOR, type ElementFamily } from "@/domains/garlia/elementos/types";
+
+// ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
+
+const CAPAS = [
+  { id: "nucleo" as const, titulo: "Núcleo", detalle: "9 Partículas ancla — la base estable.", velocidad: "28s" },
+  { id: "media" as const, titulo: "Media", detalle: "9 Partículas motor — la energía interna.", velocidad: "16s" },
+  { id: "externa" as const, titulo: "Externa", detalle: "9 Partículas de contacto — lo más reactivo.", velocidad: "8s" },
+];
+
+/** Anillo simple animado con puntos girando — representa una capa
+ *  llenándose de Partículas sin necesitar datos reales todavía (eso vive
+ *  en el bloque 2, con AtomoVisual). La velocidad de giro es distinta por
+ *  capa y coincide con `CAPAS`: núcleo lento, externa rápido. */
+function AnilloCapa({
+  radio,
+  puntos,
+  duracion,
+  colorSeed,
+  activa,
+}: {
+  radio: number;
+  puntos: number;
+  duracion: string;
+  colorSeed: number;
+  activa: boolean;
+}) {
+  const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
+  return (
+    <g
+      style={{
+        transformOrigin: "100px 100px",
+        animation: activa ? `explicacion-girar ${duracion} linear infinite` : undefined,
+        opacity: activa ? 1 : 0.15,
+        transition: "opacity 0.4s ease-out",
+      }}
+    >
+      <circle cx={100} cy={100} r={radio} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+      {activa &&
+        Array.from({ length: puntos }).map((_, i) => {
+          const angulo = (i / puntos) * Math.PI * 2;
+          const x = 100 + Math.cos(angulo) * radio;
+          const y = 100 + Math.sin(angulo) * radio;
+          const tono = tonos[(i + colorSeed) % tonos.length];
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={5}
+              style={{ fill: `color-mix(in srgb, ${tono} 65%, var(--bg-main))`, stroke: `color-mix(in srgb, ${tono} 90%, black)` }}
+              strokeWidth={0.8}
+            />
+          );
+        })}
+    </g>
+  );
+}
+
+function DiagramaCapas() {
+  // Ciclo automático: se arma capa por capa (núcleo, luego media, luego
+  // externa), se queda un momento completo, y vuelve a empezar.
+  const [paso, setPaso] = useState(0); // 0=solo núcleo, 1=+media, 2=+externa
+  useEffect(() => {
+    const t = setInterval(() => setPaso((p) => (p + 1) % 4), 1900); // 1 paso extra de "pausa completa"
+    return () => clearInterval(t);
+  }, []);
+
+  const capaActiva = { nucleo: paso >= 0, media: paso >= 1, externa: paso >= 2 };
+  const capaActual = CAPAS[Math.min(paso, 2)];
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <svg viewBox="0 0 200 200" width={200} height={200}>
+        <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} />
+        <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} />
+        <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
+      </svg>
+
+      <div key={capaActual.id} className="text-center" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
+        <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+          {paso < 3 ? `Capa ${capaActual.titulo}` : "Un Elemento completo"}
+        </p>
+        <p className="mx-auto mt-1 max-w-xs text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+          {paso < 3
+            ? capaActual.detalle
+            : "Las 3 capas juntas, cada una con sus 9 Partículas propias, forman un Elemento — igual que un átomo real con núcleo y electrones."}
+        </p>
+      </div>
+
+      <div className="flex gap-1.5">
+        {CAPAS.map((c, i) => (
+          <div
+            key={c.id}
+            className="h-1 w-8 rounded-full transition-colors"
+            style={{ background: paso >= i ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Bloque 2: familias (clasificación derivada) ───────────────────────────
+
+const FAMILIA_ICON: Record<ElementFamily, React.ElementType> = {
+  Noble: Gem,
+  Rígido: Link2,
+  Intermedio: Scale,
+  Reactivo: Wind,
+  Inerte: CircleOff,
+};
+
+// ─── Bloque 3: resultado real desde Supabase ───────────────────────────────
+
+function GaleriaElementosReales() {
+  const { items: elementos, loading } = useElementos();
+
+  return (
+    <div>
+      <p className="mb-2 text-micro font-bold uppercase tracking-[0.2em] opacity-50">
+        Los Elementos reales · {loading ? "…" : elementos.length}
+      </p>
+      {loading ? (
+        <PlaceholderCargando />
+      ) : elementos.length === 0 ? (
+        <PlaceholderVacio texto="Sin Elementos cargados todavía." />
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+          {elementos.map((el) => {
+            const color = FAMILY_COLOR[el.familia];
+            const Icon = FAMILIA_ICON[el.familia];
+            return (
+              <div
+                key={el.id}
+                className="flex flex-col items-center gap-1 rounded-lg p-2 text-center"
+                style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", border: `1px solid ${color.border}` }}
+                title={`${el.nombre} (${el.simbolo}) · ${el.familia}`}
+              >
+                <AtomoVisual elemento={el} className="h-16 w-16 shrink-0" />
+                <p className="w-full truncate text-[11px] font-black">{el.nombre}</p>
+                <div className="flex items-center gap-1" style={{ color: color.text }}>
+                  <Icon size={10} />
+                  <span className="text-[9px] font-bold uppercase tracking-wide">{el.familia}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PlaceholderCargando() {
+  return (
+    <div className="flex h-16 items-center justify-center rounded-lg text-micro" style={{ background: "color-mix(in srgb, var(--primary) 3%, transparent)", color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+      Cargando…
+    </div>
+  );
+}
+
+function PlaceholderVacio({ texto }: { texto: string }) {
+  return (
+    <div className="flex h-16 items-center justify-center rounded-lg border border-dashed text-micro" style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+      {texto}
+    </div>
+  );
+}
+
+// ─── Export principal de la etapa ──────────────────────────────────────────
+
+export default function EtapaElementos() {
+  return (
+    <section id="elementos" className="scroll-mt-20 px-1">
+      <style>{`
+        @keyframes explicacion-girar {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
+      <div className="mb-4">
+        <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2>
+        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+          27 Partículas no forman un caos: se reparten en 3 capas y nace un Elemento, como un átomo con núcleo y electrones.
+        </p>
+      </div>
+
+      <div
+        className="rounded-xl p-4 md:p-6"
+        style={{ background: "color-mix(in srgb, var(--primary) 2.5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+      >
+        <DiagramaCapas />
+      </div>
+
+      <div className="mt-5">
+        <GaleriaElementosReales />
+      </div>
+    </section>
+  );
+}
