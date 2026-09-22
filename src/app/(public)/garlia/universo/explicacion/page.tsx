@@ -1,10 +1,10 @@
 import PaginaUniversoPlantilla from "@/domains/garlia/universo/public/PaginaUniversoPlantilla";
-import TeoriasPage from "@/domains/garlia/teorias/TeoriasPage";
+import ExplicacionPage from "@/domains/garlia/explicacion/ExplicacionPage";
 
 export default function Page() {
   return (
-    <PaginaUniversoPlantilla slug="teorias">
-      <TeoriasPage />
+    <PaginaUniversoPlantilla slug="explicacion">
+      <ExplicacionPage />
     </PaginaUniversoPlantilla>
   );
 }

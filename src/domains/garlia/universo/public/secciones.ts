@@ -2,7 +2,7 @@ import {
   BookMarked,
   CircleUser,
   Compass,
-  Lightbulb,
+  Sparkles,
   Sprout,
   Telescope,
 } from "lucide-react";
@@ -43,12 +43,12 @@ export const SECCIONES_UNIVERSO: SeccionUniverso[] = [
     pageKey: "biblioteca_descubrimientos",
   },
   {
-    slug: "teorias",
-    href: "/garlia/universo/teorias",
-    titulo: "Teorías",
-    descripcion: "Explicaciones propuestas, aún sin confirmar del todo.",
-    icon: Lightbulb,
-    pageKey: "biblioteca_teorias",
+    slug: "explicacion",
+    href: "/garlia/universo/explicacion",
+    titulo: "Explicación",
+    descripcion: "Cómo surge cada cosa: de Polaridades a Criaturas.",
+    icon: Sparkles,
+    pageKey: "universo_explicacion",
   },
   {
     slug: "libros",
