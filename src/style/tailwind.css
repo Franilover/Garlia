@@ -396,6 +396,24 @@
 }
 
 @layer base {
+  /* position: fixed + inset: 0 en html Y body (no solo overflow-hidden):
+     en mobile, overflow:hidden por sí solo NO alcanza para bloquear el
+     "rebote"/scroll táctil del documento — Safari iOS en particular sigue
+     dejando arrastrar toda la página con el dedo aunque el CSS diga que no
+     hay overflow, porque ese gesto vive a nivel del viewport del navegador,
+     no del layout normal. Fijar ambos elementos en el viewport es el único
+     método que de verdad lo bloquea. overscroll-behavior es un refuerzo
+     para navegadores que sí lo respetan (Chrome Android). Cada pantalla de
+     la app (como el chat de mensajes) sigue manejando su propio scroll
+     puertas adentro con overflow-y-auto en sus propios contenedores; nada
+     de esto les afecta a ellos, solo al documento en sí. */
+  html, body {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-[var(--bg-main)] text-[var(--foreground)] antialiased;
     transition: background-color 0.3s ease, color 0.3s ease;
