@@ -4,6 +4,7 @@ import localFont from 'next/font/local';
 
 import { GlobalCommandPalette } from "@/ui/command";
 import Navbar from "@/layout/navbar";
+import MainContentArea from "@/layout/MainContentArea";
 import LlamadaGlobal from "@/domains/personal/mensajes/LlamadaGlobal";
 import { LightboxProvider } from "@/ui/modal/lightbox/";
 import { cn } from "@/lib/utils/index";
@@ -154,13 +155,13 @@ export default function RootLayout({
                 <PushActivator />
                 <ActualizacionDisponible />
                 <Navbar />
-                <div className="flex-1 min-h-0 flex flex-col md:pl-[68px] pb-[56px] md:pb-0">
+                <MainContentArea>
                   <main className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                     <AppLogic>
                       {children}
                     </AppLogic>
                   </main>
-                </div>
+                </MainContentArea>
               </LightboxProvider>
             </ThemeProvider>
           </DataProvider>
