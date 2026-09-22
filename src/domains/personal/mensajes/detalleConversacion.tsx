@@ -740,6 +740,94 @@ export default function DetalleConversacion() {
   // ── Responder a un mensaje (quote/reply) ────────────────────────────
   const [respondiendoA, setRespondiendoA] = useState<Mensaje | null>(null);
 
+  // ── Swipe horizontal para responder (patrón WhatsApp/Telegram) ──────
+  // Arrastrar la burbuja hacia el lado (izquierda o derecha, cualquiera de
+  // los dos: no todos sostienen el celular con la misma mano) la desplaza
+  // visualmente y, al pasar el umbral, dispara "responder" igual que el
+  // botón del menú. swipeDx vive en un ref (no en un state) porque cambia
+  // en cada pixel de movimiento — usar state ahí re-renderizaría toda la
+  // lista de mensajes en cada frame del gesto. Lo que SÍ es state es
+  // mensajeSwipeando: solo ese mensaje puntual necesita re-render (para
+  // mover su transform y mostrar el ícono), así que measuring vive fuera
+  // de React y solo empujamos al DOM directamente vía ref del elemento.
+  const SWIPE_UMBRAL_PX = 64; // distancia mínima para que "cuente" como reply
+  const SWIPE_MAX_PX = 84; // tope visual: no lo dejamos arrastrar más lejos que esto
+  const swipeInicioRef = useRef<{ x: number; y: number; mensajeId: string; el: HTMLElement } | null>(null);
+  const swipeEsHorizontalRef = useRef<boolean | null>(null); // null = aún sin decidir
+  const [mensajeSwipeando, setMensajeSwipeando] = useState<string | null>(null);
+
+  const resetearSwipeVisual = (el: HTMLElement | null) => {
+    if (!el) return;
+    el.style.transform = "";
+    el.style.transition = "transform 180ms ease-out";
+  };
+
+  const handleSwipeTouchStart = (e: React.TouchEvent<HTMLDivElement>, mensajeId: string) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    swipeInicioRef.current = { x: touch.clientX, y: touch.clientY, mensajeId, el: e.currentTarget };
+    swipeEsHorizontalRef.current = null;
+  };
+
+  const handleSwipeTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const inicio = swipeInicioRef.current;
+    const touch = e.touches[0];
+    if (!inicio || !touch) return;
+    const dx = touch.clientX - inicio.x;
+    const dy = touch.clientY - inicio.y;
+
+    // Primera vez que nos movemos lo suficiente para saber la intención:
+    // si el gesto es más vertical que horizontal, es scroll normal de la
+    // lista — soltamos el swipe del todo y dejamos que el navegador
+    // scrollee como siempre (no llamamos preventDefault en ese caso).
+    if (swipeEsHorizontalRef.current === null) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; // todavía no está claro
+      swipeEsHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
+      if (swipeEsHorizontalRef.current) {
+        // Es un swipe horizontal real: cancelamos el long-press (que
+        // también escucha touchmove) para que no se dispare el picker de
+        // reacciones a mitad del arrastre.
+        cancelarLongPress();
+        setMensajeSwipeando(inicio.mensajeId);
+        inicio.el.style.transition = "none";
+      }
+    }
+    if (!swipeEsHorizontalRef.current) return;
+
+    e.preventDefault(); // evita que la página scrollee mientras arrastramos
+    // Resistencia progresiva: cuanto más lejos, más cuesta seguir
+    // arrastrando (como el "rubber band" nativo), en vez de un tope seco.
+    const dxAcotado = Math.sign(dx) * Math.min(Math.abs(dx), SWIPE_MAX_PX * 1.6);
+    const dxVisual =
+      Math.sign(dxAcotado) * SWIPE_MAX_PX * (1 - Math.exp(-Math.abs(dxAcotado) / SWIPE_MAX_PX));
+    inicio.el.style.transform = `translateX(${dxVisual}px)`;
+  };
+
+  const handleSwipeTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const inicio = swipeInicioRef.current;
+    const touch = e.changedTouches[0];
+    if (!inicio || !touch) {
+      swipeInicioRef.current = null;
+      swipeEsHorizontalRef.current = null;
+      return;
+    }
+    const dx = touch.clientX - inicio.x;
+    const fueSwipeHorizontal = swipeEsHorizontalRef.current === true;
+
+    resetearSwipeVisual(inicio.el);
+    setMensajeSwipeando(null);
+    swipeInicioRef.current = null;
+    swipeEsHorizontalRef.current = null;
+
+    if (fueSwipeHorizontal && Math.abs(dx) >= SWIPE_UMBRAL_PX) {
+      const m = mensajes.find((msg) => msg.id === inicio.mensajeId);
+      if (m) {
+        if (navigator.vibrate) navigator.vibrate(10);
+        handleResponder(m);
+      }
+    }
+  };
+
   // ── Diseño de burbuja (pensamiento/grito/experimental) para el próximo
   //    mensaje de texto a enviar. Se elige desde un mini-selector en la
   //    barra de input y se resetea a "normal" después de cada envío.
@@ -1795,6 +1883,15 @@ export default function DetalleConversacion() {
     return mapa;
   }, [mensajes]);
 
+  // Objeto completo del mensaje activo por long-press (menuTactilPara solo
+  // guarda el id) — lo necesitamos en el header para decidir qué botones
+  // mostrar (Editar/Eliminar solo si es propio) sin recorrer `mensajes` en
+  // cada render del header.
+  const mensajeSeleccionado = useMemo(
+    () => (menuTactilPara ? (mensajesPorId.get(menuTactilPara) ?? null) : null),
+    [menuTactilPara, mensajesPorId],
+  );
+
   // Set de ids de mensajes que son el primero de su día calendario —
   // adelante de esos va el separador "Hoy" / "Ayer" / etc, como WhatsApp.
   // Se calcula una sola vez por cambio de `mensajes`, no por mensaje.
@@ -1845,74 +1942,150 @@ export default function DetalleConversacion() {
   return (
     <div className="h-dvh md:min-h-0 md:h-full flex flex-col overflow-hidden bg-bg-main">
       {/* ── Header ── */}
+      {/* Modo normal (avatar/nombre/llamar) vs modo selección: cuando un
+          mensaje quedó "activo" por long-press, esta misma barra se
+          transforma para mostrar sus acciones (responder/editar/eliminar)
+          en vez del header de siempre — igual que WhatsApp. Es la misma
+          barra (mismo alto, mismo sticky) para no generar un salto de
+          layout al entrar o salir del modo selección. */}
       <div
-        className="flex items-center gap-3 px-4 py-3 sticky top-0 z-10"
+        className="flex items-center gap-3 px-4 py-3 sticky top-0 z-20 flex-shrink-0"
         style={{
           background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
           backdropFilter: "blur(12px)",
           borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         }}
       >
-        {/* La flecha "volver" solo hace falta en mobile: en desktop la
-            sidebar de conversaciones ya está siempre visible al costado. */}
-        <button
-          className="md:hidden"
-          onClick={() => router.push("/personal/mensajes")}
-          aria-label="Volver"
-        >
-          <ArrowLeft className="text-primary/50" size={18} />
-        </button>
+        {mensajeSeleccionado ? (
+          <>
+            <button
+              onClick={() => setMenuTactilPara(null)}
+              aria-label="Cancelar selección"
+            >
+              <X className="text-primary/50" size={18} />
+            </button>
 
-        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
-          <SmartImage
-            alt={otroParticipante?.username ?? "Usuario"}
-            className="w-full h-full"
-            src={otroParticipante?.avatar_url || "/icon.jpg"}
-          />
-          {otroEnLinea && (
-            <span
-              className="absolute bottom-0 right-0 rounded-full"
-              style={{
-                width: 9,
-                height: 9,
-                background: "#22c55e",
-                border: "2px solid var(--bg-main)",
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm text-primary uppercase tracking-wide truncate">
+                1 mensaje
+              </p>
+            </div>
+
+            <button
+              aria-label="Responder"
+              onClick={() => {
+                handleResponder(mensajeSeleccionado);
+                setMenuTactilPara(null);
               }}
-            />
-          )}
-        </div>
+              className="flex items-center justify-center rounded-full flex-shrink-0"
+              style={{
+                width: 34,
+                height: 34,
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              }}
+            >
+              <Reply className="text-primary" size={15} />
+            </button>
 
-        <div className="flex-1 min-w-0">
-          <p className="font-black text-sm text-primary uppercase tracking-wide truncate">
-            {otroParticipante?.username ?? "Conversación"}
-          </p>
-          <p className="text-micro font-bold leading-none mt-0.5">
-            {otroEscribiendo ? (
-              <span style={{ color: "var(--primary)" }} className="italic">
-                escribiendo…
-              </span>
-            ) : otroEnLinea ? (
-              <span style={{ color: "#22c55e" }}>en línea</span>
-            ) : (
-              <span className="text-primary/30">&nbsp;</span>
+            {mensajeSeleccionado.remitente_id === user.id && (
+              <>
+                <button
+                  aria-label="Editar"
+                  onClick={() => {
+                    handleIniciarEdicion(mensajeSeleccionado);
+                    setMenuTactilPara(null);
+                  }}
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  <Pencil className="text-primary" size={15} />
+                </button>
+                <button
+                  aria-label="Eliminar"
+                  onClick={() => {
+                    void handleEliminarMensaje(mensajeSeleccionado.id);
+                    setMenuTactilPara(null);
+                  }}
+                  className="flex items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  }}
+                >
+                  <Trash2 className="text-red-400" size={15} />
+                </button>
+              </>
             )}
-          </p>
-        </div>
+          </>
+        ) : (
+          <>
+            {/* La flecha "volver" solo hace falta en mobile: en desktop la
+                sidebar de conversaciones ya está siempre visible al costado. */}
+            <button
+              className="md:hidden"
+              onClick={() => router.push("/personal/mensajes")}
+              aria-label="Volver"
+            >
+              <ArrowLeft className="text-primary/50" size={18} />
+            </button>
 
-        <button
-          disabled={!otroParticipante || estadoLlamada !== "inactiva"}
-          onClick={() => void handleLlamar()}
-          aria-label="Llamar"
-          className="flex items-center justify-center rounded-full flex-shrink-0"
-          style={{
-            width: 34,
-            height: 34,
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            opacity: !otroParticipante || estadoLlamada !== "inactiva" ? 0.4 : 1,
-          }}
-        >
-          <Phone className="text-primary" size={15} />
-        </button>
+            <div className="relative w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex-shrink-0">
+              <SmartImage
+                alt={otroParticipante?.username ?? "Usuario"}
+                className="w-full h-full"
+                src={otroParticipante?.avatar_url || "/icon.jpg"}
+              />
+              {otroEnLinea && (
+                <span
+                  className="absolute bottom-0 right-0 rounded-full"
+                  style={{
+                    width: 9,
+                    height: 9,
+                    background: "#22c55e",
+                    border: "2px solid var(--bg-main)",
+                  }}
+                />
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm text-primary uppercase tracking-wide truncate">
+                {otroParticipante?.username ?? "Conversación"}
+              </p>
+              <p className="text-micro font-bold leading-none mt-0.5">
+                {otroEscribiendo ? (
+                  <span style={{ color: "var(--primary)" }} className="italic">
+                    escribiendo…
+                  </span>
+                ) : otroEnLinea ? (
+                  <span style={{ color: "#22c55e" }}>en línea</span>
+                ) : (
+                  <span className="text-primary/30">&nbsp;</span>
+                )}
+              </p>
+            </div>
+
+            <button
+              disabled={!otroParticipante || estadoLlamada !== "inactiva"}
+              onClick={() => void handleLlamar()}
+              aria-label="Llamar"
+              className="flex items-center justify-center rounded-full flex-shrink-0"
+              style={{
+                width: 34,
+                height: 34,
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                opacity: !otroParticipante || estadoLlamada !== "inactiva" ? 0.4 : 1,
+              }}
+            >
+              <Phone className="text-primary" size={15} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── Mensajes ── */}
@@ -2000,7 +2173,35 @@ export default function DetalleConversacion() {
                     </span>
                   </div>
                 )}
-                <div className={`flex flex-col ${esMio ? "items-end" : "items-start"} group`}>
+                <div
+                  className={`flex flex-col ${esMio ? "items-end" : "items-start"} group relative transition-[filter] ${
+                    menuTactilPara && menuTactilPara !== m.id ? "opacity-40" : ""
+                  }`}
+                >
+                {/* Anillo sutil alrededor de la burbuja activa por
+                    long-press — mismo lenguaje visual que WhatsApp cuando
+                    "selecciona" un mensaje para mostrar sus acciones en la
+                    barra superior. */}
+                {menuTactilPara === m.id && !esKaomoji && (
+                  <div
+                    className="absolute inset-0 rounded-[var(--radius-btn)] pointer-events-none"
+                    style={{ boxShadow: "0 0 0 2px var(--primary)" }}
+                    aria-hidden="true"
+                  />
+                )}
+                {/* Ícono de reply que aparece detrás de la burbuja mientras
+                    se arrastra — centrado verticalmente, a ambos lados, y
+                    solo visible (vía opacity atada al propio estado) para
+                    el mensaje que se está swipeando en este momento. */}
+                {mensajeSwipeando === m.id && (
+                  <div
+                    className="absolute inset-y-0 flex items-center pointer-events-none"
+                    style={{ left: esMio ? undefined : 4, right: esMio ? 4 : undefined }}
+                    aria-hidden="true"
+                  >
+                    <Reply className="text-primary/50" size={18} />
+                  </div>
+                )}
                 <div
                   data-mensaje-burbuja
                   className={`max-w-[75%] relative select-none md:select-text ${
@@ -2025,9 +2226,22 @@ export default function DetalleConversacion() {
                           ...disenoBurbuja.style,
                         }
                   }
-                  onTouchStart={() => handleTouchStartMensaje(m.id)}
-                  onTouchEnd={handleTouchEndMensaje}
-                  onTouchMove={handleTouchMoveMensaje}
+                  onTouchStart={(e) => {
+                    handleTouchStartMensaje(m.id);
+                    handleSwipeTouchStart(e, m.id);
+                  }}
+                  onTouchEnd={(e) => {
+                    handleTouchEndMensaje();
+                    handleSwipeTouchEnd(e);
+                  }}
+                  onTouchMove={(e) => {
+                    // Nota: handleSwipeTouchMove decide si el gesto es
+                    // horizontal y, si lo es, cancela el long-press por su
+                    // cuenta — así que NO llamamos handleTouchMoveMensaje acá
+                    // (que cancelaría el long-press ante CUALQUIER movimiento,
+                    // incluido el ruido de un tap con el dedo temblando).
+                    handleSwipeTouchMove(e);
+                  }}
                   onMouseDown={() => handleMouseDownMensaje(m.id)}
                   onMouseLeave={handleMouseUpOrLeaveMensaje}
                   onMouseUp={handleMouseUpOrLeaveMensaje}
@@ -2139,24 +2353,19 @@ export default function DetalleConversacion() {
                     )
                   )}
 
-                  {/* Menú de opciones (responder/reaccionar/editar/eliminar).
-                      En desktop aparece con :hover (group-hover); en mobile
-                      no existe hover, así que también se muestra cuando el
-                      long-press marcó este mensaje como activo
-                      (menuTactilPara), sin necesitar tocar y mantener. */}
+                  {/* Menú de opciones responder/editar/eliminar: en
+                      desktop sigue viviendo acá (aparece con :hover). En
+                      mobile ya NO se muestra flotando sobre la burbuja —
+                      esas acciones pasaron a la barra superior (ver header)
+                      cuando el long-press activa menuTactilPara, igual que
+                      WhatsApp. */}
                   <div
-                    className={`absolute top-1 ${esMio ? "-left-32" : "-right-32"} transition-opacity flex items-center gap-1 ${
-                      menuTactilPara === m.id
-                        ? "opacity-100"
-                        : "opacity-0 group-hover:opacity-100"
-                    }`}
+                    className="absolute top-1 hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ [esMio ? "left" : "right"]: "-8rem" } as React.CSSProperties}
                   >
                     <button
                       aria-label="Responder"
-                      onClick={() => {
-                        handleResponder(m);
-                        setMenuTactilPara(null);
-                      }}
+                      onClick={() => handleResponder(m)}
                       className="p-1 rounded-full"
                       style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
                     >
@@ -2166,10 +2375,7 @@ export default function DetalleConversacion() {
                       <>
                         <button
                           aria-label="Editar"
-                          onClick={() => {
-                            handleIniciarEdicion(m);
-                            setMenuTactilPara(null);
-                          }}
+                          onClick={() => handleIniciarEdicion(m)}
                           className="p-1 rounded-full"
                           style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
                         >
@@ -2177,10 +2383,7 @@ export default function DetalleConversacion() {
                         </button>
                         <button
                           aria-label="Eliminar"
-                          onClick={() => {
-                            void handleEliminarMensaje(m.id);
-                            setMenuTactilPara(null);
-                          }}
+                          onClick={() => void handleEliminarMensaje(m.id)}
                           className="p-1 rounded-full"
                           style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
                         >
