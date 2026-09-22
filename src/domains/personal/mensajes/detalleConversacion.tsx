@@ -45,6 +45,7 @@ import {
 } from "@/infra/call/presenceEngine";
 import { supabase } from "@/infra/supabase/supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { useEsTactil } from "@/hooks/ui/useEsTactil";
 import { ExplosionEmoji } from "./ExplosionEmoji";
 import { formatearDuracion, useGrabadorAudio } from "./useGrabadorAudio";
 import { useMensajesStore } from "./useMensajesStore";
@@ -627,6 +628,12 @@ export default function DetalleConversacion() {
   const [otroParticipante, setOtroParticipante] = useState<PerfilResumen | null>(null);
   const [otroEscribiendo, setOtroEscribiendo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // En mobile (puntero táctil) el teclado nativo ya trae su propia tecla de
+  // enviar/acción separada — Enter en el textarea se deja libre para salto
+  // de línea, igual que WhatsApp. En desktop se mantiene el atajo de
+  // siempre: Enter envía, Shift+Enter hace salto de línea.
+  const esTactil = useEsTactil();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const escribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const otroEscribiendoOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1303,6 +1310,43 @@ export default function DetalleConversacion() {
   // sobrevivir un cambio de chat o un cierre de la app, no algo que otro
   // usuario vea. 400ms alcanza para no escribir a localStorage en cada
   // tecla sin que se note demora si se cierra la app rápido.
+
+  // Auto-resize del textarea del composer: crece con el contenido (hasta un
+  // máximo, después scrollea internamente) en vez de generar scroll lateral
+  // como hacía el <input> de una sola línea. El truco de "altura auto antes
+  // de medir" es necesario para que también se achique al borrar texto —
+  // sin resetear a "auto" primero, scrollHeight solo puede crecer, nunca
+  // bajar. Como el composer es el último elemento de un flex-col anclado
+  // abajo (no está en position:absolute/fixed), crecer su altura empuja
+  // todo lo de arriba en vez de expandirse hacia abajo — el efecto visual
+  // pedido de "se expande hacia arriba".
+  const ALTURA_MAX_TEXTAREA = 160; // ~6-7 líneas antes de scrollear adentro
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, ALTURA_MAX_TEXTAREA)}px`;
+  }, [texto]);
+
+  // Refuerzo para cuando aparece el teclado táctil: h-dvh en el contenedor
+  // raíz ya encoge el viewport y reacomoda el layout en la mayoría de
+  // navegadores modernos (el composer, al ser un item flex normal y no
+  // position:fixed, queda empujado hacia arriba solo con eso). Pero algunos
+  // WebViews de Android viejos no vuelven a *disparar* ese reflow al toque
+  // exacto de abrir/cerrar teclado, así que además escuchamos
+  // visualViewport.resize (donde sí existe) y forzamos scroll al fondo —
+  // sin esto, en esos navegadores el último mensaje/el textarea podían
+  // quedar tapados detrás del teclado hasta el próximo scroll manual.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const alAbrirseTeclado = () => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" });
+    };
+    vv.addEventListener("resize", alAbrirseTeclado);
+    return () => vv.removeEventListener("resize", alAbrirseTeclado);
+  }, []);
+
   const borradorOffRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCambioTexto = (valor: string) => {
     setTexto(valor);
@@ -2334,8 +2378,13 @@ export default function DetalleConversacion() {
       )}
 
       {/* ── Input ── */}
+      {/* items-end (no items-center): cuando el textarea crece hacia arriba
+          con varias líneas, los botones (adjuntar/kaomoji/diseño/enviar)
+          deben quedar anclados abajo, a la altura de la última línea de
+          texto — mismo patrón que WhatsApp/Telegram — en vez de quedar
+          centrados a mitad de un textarea alto. */}
       <div
-        className="flex items-center gap-2 px-4 py-3"
+        className="flex items-end gap-2 px-4 py-3"
         style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
       >
         <input
@@ -2350,7 +2399,7 @@ export default function DetalleConversacion() {
           // mientras se está grabando — igual que WhatsApp: el foco pasa
           // por completo a "grabando... / cancelar / soltar para enviar".
           <div
-            className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-btn)]"
+            className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-btn)] self-center"
             style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)" }}
           >
             <span
@@ -2375,6 +2424,7 @@ export default function DetalleConversacion() {
               disabled={subiendoArchivo}
               onClick={() => fileInputRef.current?.click()}
               aria-label="Adjuntar archivo"
+              className="flex-shrink-0 self-center"
             >
               <Paperclip
                 className={subiendoArchivo ? "text-primary/20 animate-pulse" : "text-primary/50"}
@@ -2384,11 +2434,11 @@ export default function DetalleConversacion() {
             <button
               onClick={() => setConstructorKaomojiAbierto(true)}
               aria-label="Armar kaomoji"
-              className="flex items-center justify-center flex-shrink-0"
+              className="flex items-center justify-center flex-shrink-0 self-center"
             >
               <span className="text-primary/50 text-base leading-none select-none">⁠(⁠･⁠ω⁠･⁠)⁠</span>
             </button>
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0 self-center">
               <button
                 aria-label="Elegir diseño de burbuja"
                 className="flex items-center justify-center"
@@ -2490,17 +2540,40 @@ export default function DetalleConversacion() {
                 </>
               )}
             </div>
-            <input
+            {/* textarea (no input): permite varias líneas sin scroll
+                lateral — el useEffect de auto-resize (más arriba) ajusta
+                su altura al contenido en cada tecleo. resize-none saca el
+                handle nativo de resize manual (no tiene sentido acá, el
+                alto ya es automático); rows={1} es el punto de partida
+                antes de que el efecto mida el contenido real.
+                onKeyDown: en desktop se mantiene el atajo de siempre
+                (Enter envía, Shift+Enter hace salto de línea). En mobile
+                (esTactil) Enter queda libre para salto de línea — el
+                teclado táctil ya tiene su propia tecla de enviar/acción,
+                y forzar el envío con Enter ahí rompe la expectativa de
+                cualquier chat (WhatsApp, Telegram, etc.). */}
+            <textarea
+              ref={textareaRef}
               autoFocus={!!respondiendoA}
-              className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] bg-transparent outline-none text-sm font-medium text-primary placeholder:text-primary/30"
+              rows={1}
+              className="flex-1 px-4 py-2.5 rounded-[var(--radius-btn)] bg-transparent outline-none resize-none overflow-y-auto text-sm font-medium text-primary placeholder:text-primary/30"
               placeholder={respondiendoA ? "Escribí tu respuesta…" : "Escribí un mensaje…"}
               style={{
                 background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               }}
               value={texto}
               onChange={(e) => handleCambioTexto(e.target.value)}
+              onFocus={() => {
+                // Cubre el caso en que el teclado tarda en disparar
+                // visualViewport.resize (el efecto de arriba) pero el foco
+                // ya ocurrió — un pequeño delay le da tiempo a la animación
+                // nativa del teclado a terminar de abrir antes de medir.
+                setTimeout(() => {
+                  scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" });
+                }, 300);
+              }}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey && !esTactil) {
                   e.preventDefault();
                   void handleEnviar();
                 }
@@ -2521,7 +2594,7 @@ export default function DetalleConversacion() {
             manda, para no perder la grabación por accidente. */}
         {texto.trim() ? (
           <button
-            className="flex items-center justify-center rounded-full flex-shrink-0"
+            className="flex items-center justify-center rounded-full flex-shrink-0 self-center"
             disabled={enviando}
             style={{
               width: 36,
@@ -2537,7 +2610,7 @@ export default function DetalleConversacion() {
           </button>
         ) : (
           <button
-            className="flex items-center justify-center rounded-full flex-shrink-0 select-none"
+            className="flex items-center justify-center rounded-full flex-shrink-0 select-none self-center"
             disabled={enviandoAudio || grabador.estado === "pidiendo_permiso"}
             style={{
               width: 36,
