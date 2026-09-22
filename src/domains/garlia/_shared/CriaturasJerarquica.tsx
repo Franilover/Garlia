@@ -904,14 +904,11 @@ export function CriaturasJerarquica({
 
   return (
     <div className="mb-8 last:mb-0">
-      <div className="flex flex-col gap-2 mb-4 px-1">
-        {/* Fila 1, siempre en una sola línea (incluso en mobile): selector
-            de agrupación + toggle, buscador (se encoge/crece con flex-1) y
-            botón añadir a la derecha. Antes todo esto vivía en un único
-            flex-wrap junto con los filtros de grupo, así que en pantallas
-            angostas el selector, el toggle, la búsqueda y "Añadir" se
-            apilaban sueltos en cualquier orden. */}
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4 px-1">
+        {/* Fila 1: selector de agrupación + toggle, buscador y "Añadir".
+            En mobile es su propia línea; en desktop (md+) se une con la
+            fila 2 en una sola fila horizontal (md:flex-1 + md:flex-wrap). */}
+        <div className="flex items-center gap-1.5 md:flex-1 md:flex-wrap">
           {agrupacionSelector}
           {onBusquedaChange && (
             <BuscadorInline
@@ -920,6 +917,16 @@ export function CriaturasJerarquica({
               placeholder="Buscar ecosistema, criatura o personaje…"
             />
           )}
+          <div className="hidden md:contents">
+            <GrupoFiltroBarra
+              bloques={gruposCriaturasPorSubtipo}
+              grupoSeleccionadoId={grupoSeleccionadoId}
+              onSeleccionarGrupo={onSeleccionarGrupo}
+              onOpenGrupo={onOpenGrupo}
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
           <AñadirDropdown
             onCreateCriatura={onCreateCriatura}
             creatingCriatura={creatingCriatura}
@@ -933,10 +940,10 @@ export function CriaturasJerarquica({
             creatingMineral={creatingMineral}
           />
         </div>
-        {/* Fila 2: dropdowns de filtro por grupo — sí pueden envolver en
-            varias líneas si no entran, pero ya no compiten por espacio con
-            el buscador ni con "Añadir". */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Fila 2 (solo mobile): dropdowns de filtro por grupo, debajo de
+            la fila 1. En desktop se ocultan acá porque ya se muestran
+            arriba (ver md:contents dentro de la fila 1). */}
+        <div className="flex items-center gap-2 flex-wrap md:hidden">
           <GrupoFiltroBarra
             bloques={gruposCriaturasPorSubtipo}
             grupoSeleccionadoId={grupoSeleccionadoId}

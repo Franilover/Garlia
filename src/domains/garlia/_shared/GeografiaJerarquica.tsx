@@ -727,11 +727,11 @@ export function GeografiaJerarquica({
 
   return (
     <div className="mb-8 last:mb-0">
-      <div className="flex flex-col gap-2 mb-4 px-1">
-        {/* Fila 1, siempre en una sola línea: selector de agrupación +
-            toggle, buscador y "Añadir" a la derecha. Los filtros de grupo
-            (Personajes / Reinos) van en la fila 2, debajo. */}
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4 px-1">
+        {/* Fila 1: selector de agrupación + toggle, buscador. En desktop se
+            une con la fila 2 (filtros) en una sola fila; en mobile queda
+            separada, con "Añadir" siempre a la derecha de esta fila. */}
+        <div className="flex items-center gap-1.5 md:flex-1 md:flex-wrap">
           {agrupacionSelector}
           {onBusquedaChange && (
             <BuscadorInline
@@ -740,6 +740,25 @@ export function GeografiaJerarquica({
               placeholder="Buscar reino, ciudad o personaje…"
             />
           )}
+          <div className="hidden md:contents">
+            <GrupoFiltroBarra
+              bloques={gruposPersonajesPorSubtipo}
+              grupoSeleccionadoId={grupoSeleccionadoId}
+              onSeleccionarGrupo={onSeleccionarGrupo}
+              onOpenGrupo={onOpenGrupo}
+            />
+            {!!gruposPersonajesPorSubtipo?.length && !!gruposReinosPorSubtipo?.length && (
+              <div className="w-px h-4 bg-primary/15 shrink-0" />
+            )}
+            <GrupoFiltroBarra
+              bloques={gruposReinosPorSubtipo}
+              grupoSeleccionadoId={grupoReinoSeleccionadoId}
+              onSeleccionarGrupo={onSeleccionarGrupoReino}
+              onOpenGrupo={onOpenGrupo}
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
           {(onCreateReino || onCreatePersonaje) && (
             <AñadirDropdown
               onCreateReino={onCreateReino}
@@ -748,7 +767,8 @@ export function GeografiaJerarquica({
             />
           )}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Fila 2 (solo mobile): filtros de grupo, debajo de la fila 1. */}
+        <div className="flex items-center gap-2 flex-wrap md:hidden">
           <GrupoFiltroBarra
             bloques={gruposPersonajesPorSubtipo}
             grupoSeleccionadoId={grupoSeleccionadoId}

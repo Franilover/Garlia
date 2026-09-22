@@ -424,11 +424,11 @@ export function ItemsJerarquia({
 
   return (
     <div>
-      <div className="flex flex-col gap-2 mb-3 px-1">
-        {/* Fila 1: selector de agrupación + toggle propio + buscador, todo
-            en una sola línea. Sin botón "Añadir" acá — en Items se crea
-            por bloque (ver onCreate más abajo), no con un dropdown global. */}
-        <div className="flex items-center gap-1.5">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 mb-3 px-1">
+        {/* Fila 1: selector de agrupación + toggle propio + buscador. En
+            desktop se une con la fila 2 (filtro por grupo) en una sola
+            fila horizontal; en mobile queda separada, como antes. */}
+        <div className="flex items-center gap-1.5 md:flex-1 md:flex-wrap">
           {agrupacionSelector}
           {(ecosistemas || criaturas) && (
             <button
@@ -454,11 +454,20 @@ export function ItemsJerarquia({
             onChange={onBusquedaChange}
             placeholder="Buscar item por nombre…"
           />
+          {gruposItemsPorSubtipo && (
+            <div className="hidden md:contents">
+              <GrupoFiltroBarra
+                bloques={gruposItemsPorSubtipo}
+                grupoSeleccionadoId={grupoSeleccionadoId ?? null}
+                onSeleccionarGrupo={onSeleccionarGrupo ?? (() => {})}
+                onOpenGrupo={onOpenGrupo}
+              />
+            </div>
+          )}
         </div>
-        {/* Fila 2: filtro por grupo — envuelve aparte, no compite con la
-            fila de arriba. */}
+        {/* Fila 2 (solo mobile): filtro por grupo, debajo de la fila 1. */}
         {gruposItemsPorSubtipo && (
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap md:hidden">
             <GrupoFiltroBarra
               bloques={gruposItemsPorSubtipo}
               grupoSeleccionadoId={grupoSeleccionadoId ?? null}
