@@ -2083,7 +2083,7 @@ export default function DetalleConversacion() {
                     >
                       <p className="font-black opacity-80">
                         {mensajeCitado.remitente_id === user.id
-                          ? "Vos"
+                          ? "Tu"
                           : (otroParticipante?.username ?? "Usuario")}
                       </p>
                       <p className="truncate opacity-70">{previsualizarMensaje(mensajeCitado)}</p>
@@ -2418,7 +2418,7 @@ export default function DetalleConversacion() {
           <div className="flex-1 min-w-0">
             <p className="text-micro font-black text-primary/70 uppercase tracking-wide">
               {respondiendoA.remitente_id === user.id
-                ? "Vos"
+                ? "Tu"
                 : (otroParticipante?.username ?? "Usuario")}
             </p>
             <p className="text-micro text-primary/50 truncate italic">
@@ -2438,8 +2438,11 @@ export default function DetalleConversacion() {
           texto — mismo patrón que WhatsApp/Telegram — en vez de quedar
           centrados a mitad de un textarea alto. */}
       <div
-        className="flex items-end gap-2 px-4 py-3"
-        style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+        className="flex items-end gap-2 px-4 py-3 flex-shrink-0"
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <input
           ref={fileInputRef}
@@ -2667,13 +2670,20 @@ export default function DetalleConversacion() {
               }}
               value={texto}
               onChange={(e) => handleCambioTexto(e.target.value)}
-              onFocus={() => {
+              onFocus={(e) => {
                 // Cubre el caso en que el teclado tarda en disparar
                 // visualViewport.resize (el efecto de arriba) pero el foco
                 // ya ocurrió — un pequeño delay le da tiempo a la animación
                 // nativa del teclado a terminar de abrir antes de medir.
+                // scrollIntoView sobre el propio textarea (no solo el
+                // contenedor de mensajes) es lo que efectivamente lo saca
+                // de detrás del teclado en iOS Safari, donde el teclado
+                // "roba" espacio del viewport visual sin que el h-dvh del
+                // contenedor reaccione a tiempo para reposicionar solo.
+                const target = e.currentTarget;
                 setTimeout(() => {
                   scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "auto" });
+                  target.scrollIntoView({ block: "end", behavior: "auto" });
                 }, 300);
               }}
               onKeyDown={(e) => {
