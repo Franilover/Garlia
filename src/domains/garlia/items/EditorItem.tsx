@@ -20,14 +20,13 @@
  */
 
 
-import { Atom, Beaker, Box, Bug, Dices, Package, UserRound, X } from "lucide-react";
+import { Atom, Beaker, Box, Bug, Dices, Package, UserRound } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
 import type { WikiEntity } from "@/ui/Markdown/commandItems";
 import { RichEditor } from "@/editor/lexical";
 import { ComboSelector } from "@/ui/ComboSelector";
-import { PanelReglasDnd } from "@/domains/garlia/items/PanelReglasDnd";
 import { PanelFisicaObjeto } from "@/domains/garlia/items/PanelFisicaObjeto";
 import { useItemMateriales } from "@/domains/garlia/items/useItemMateriales";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
@@ -86,7 +85,6 @@ export function EditorItem({
 }) {
   const [form, setForm] = useState<Item>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [showModalDnd, setShowModalDnd] = useState(false);
   // Toggle "Científico ↔ Escritor" del header — mismo patrón que
   // ElementoEditor/CompuestoEditor/MaterialEditorFlotante: alterna cómo se
   // muestran las propiedades físicas del objeto (valor técnico vs. nivel +
@@ -264,19 +262,6 @@ export function EditorItem({
     onDeleted(form.id);
   };
 
-  // Botón de dado D&D — es específico de Item/Criatura, así que viaja como
-  // "extra" dentro de los controles de header en vez de ser un campo fijo.
-  const dadoDndBtn = (
-    <button
-      className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all"
-      title="Reglas D&D 2024"
-      type="button"
-      onClick={() => setShowModalDnd(true)}
-    >
-      <Dices size={13} />
-    </button>
-  );
-
   // Toggle Científico ↔ Escritor — mismo componente visual que
   // ElementoEditor/CompuestoEditor/MaterialEditorFlotante, viaja junto al
   // dado D&D dentro de "extra".
@@ -310,12 +295,7 @@ export function EditorItem({
     status,
     onGuardar: save,
     onEliminar: del,
-    extra: (
-      <>
-        {modoVistaBtn}
-        {dadoDndBtn}
-      </>
-    ),
+    extra: <>{modoVistaBtn}</>,
   };
   usePublishHeaderControls(headerControls, onHeaderControlsChange);
 
@@ -379,7 +359,7 @@ export function EditorItem({
         {/* Imagen (columna fija) + Categoría/Criatura/Física (derecha) —
             mismo patrón que el bloque "Gráfico a la izquierda + Propiedades
             a la derecha" de CompuestoEditor. */}
-        <div className="grid grid-cols-[minmax(11rem,14rem)_1fr] gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(11rem,14rem)_1fr] gap-3 items-start">
           <div className="rounded-lg border border-primary/10 p-1.5">
             {/* Mobile: imagen con botón flotante */}
             <div
@@ -484,7 +464,7 @@ export function EditorItem({
             materiales" (MaterialesPropiedadesFisicasItem) que ocupaba la
             segunda columna; se deja la grid de 2 columnas con la segunda
             vacía para no tocar el resto del layout de la fila. */}
-        <div className="grid grid-cols-2 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
             <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
               Descripción
@@ -502,15 +482,6 @@ export function EditorItem({
           <div />
         </div>
       </div>
-
-      {showModalDnd && (
-        <ModalReglasDnd
-          form={form}
-          nombre={form.nombre}
-          onChange={(cambios) => setForm((f: Item) => ({ ...f, ...cambios }))}
-          onClose={() => setShowModalDnd(false)}
-        />
-      )}
 
       {editandoCompuestoId && (
         <CompuestoPanelFlotante
@@ -556,84 +527,6 @@ export function EditorItem({
           onClose={() => setMaterialAbiertoId(null)}
         />
       )}
-    </div>
-  );
-}
-// Antes vivía inline en el cuerpo del editor; ahora se accede desde el botón
-// de dado junto al nombre, así el editor queda enfocado en lore/descripción
-// y las reglas mecánicas (D&D) quedan en un modal aparte.
-function ModalReglasDnd({
-  form,
-  nombre,
-  onChange,
-  onClose,
-}: {
-  form: Item;
-  nombre: string;
-  onChange: (cambios: Partial<Item>) => void;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", k);
-    return () => document.removeEventListener("keydown", k);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-80 flex items-center justify-center p-4"
-      style={{
-        background: "color-mix(in srgb, var(--primary) 30%, transparent)",
-        backdropFilter: "blur(6px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-xl overflow-hidden shadow-2xl"
-        style={{
-          background: "var(--bg-main)",
-          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="flex items-center gap-3 px-4 py-3 border-b"
-          style={{
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
-          }}
-        >
-          <div
-            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
-            }}
-          >
-            <Dices size={13} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-black uppercase tracking-widest text-primary/40">
-              Reglas D&D
-            </p>
-            <p className="text-xs font-bold text-primary truncate">{nombre || "Sin nombre"}</p>
-          </div>
-          <button
-            className="shrink-0 p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-            type="button"
-            onClick={onClose}
-          >
-            <X size={14} />
-          </button>
-        </div>
-
-        <div className="p-4 max-h-[70vh] overflow-y-auto">
-          <PanelReglasDnd form={form} onChange={onChange} />
-        </div>
-      </div>
     </div>
   );
 }
