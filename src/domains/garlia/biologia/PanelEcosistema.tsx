@@ -12,7 +12,7 @@
  * este panel directamente.
  */
 
-import { ArrowLeft, Bug, Compass, Gem, Leaf, Plus, Salad, Trash2, X } from "lucide-react";
+import { ArrowLeft, Bug, Compass, Gem, Leaf, Plus, Salad, SlidersHorizontal, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { RichEditor } from "@/editor/lexical";
@@ -260,6 +260,11 @@ export function PanelEcosistema({
   const [nombre, setNombre] = useState(ecosistema.nombre);
   const [clima, setClima] = useState(ecosistema.clima ?? "");
   const [descripcion, setDescripcion] = useState(ecosistema.descripcion ?? "");
+  // Barra lateral (Flora/Minerales/Reino/Cadenas, según el resto del
+  // archivo): en celular arranca oculta y se abre con el botón "Entidades"
+  // de la barra de título — mismo comportamiento que EditorCriatura/
+  // EditorReino/PanelBioma.
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     setNombre(ecosistema.nombre);
@@ -415,6 +420,17 @@ export function PanelEcosistema({
           />
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {modoPopover && (
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              title="Entidades"
+              aria-label="Entidades"
+              className="sm:hidden p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+            >
+              <SlidersHorizontal size={13} />
+            </button>
+          )}
           <button
             type="button"
             onClick={onDelete}
@@ -649,10 +665,13 @@ export function PanelEcosistema({
 
       {/* ── Barra lateral — sección Entidad (Criaturas/Flora/Minerales/Reinos) ──
           Solo en modo popover: la pantalla completa (EcosistemaEditor) mantiene
-          el layout original de una sola columna. */}
+          el layout original de una sola columna. En celular arranca oculta
+          (hidden sm:flex) y se abre como drawer con el botón "Entidades" de
+          la barra de título — mismo comportamiento que EditorCriatura/
+          EditorReino/PanelBioma. */}
       {modoPopover && (
         <aside
-          className="shrink-0 w-44 flex flex-col border-l overflow-y-auto overflow-x-hidden -my-4 -mr-4 pl-0"
+          className="hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden -my-4 -mr-4 pl-0"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             background: "color-mix(in srgb, var(--primary) 1%, transparent)",
@@ -661,6 +680,49 @@ export function PanelEcosistema({
         >
           {sidebar}
         </aside>
+      )}
+
+      {/* ── Barra lateral — mobile drawer ─────────────────────────────────── */}
+      {modoPopover && mobileSidebarOpen && (
+        <div className="sm:hidden fixed inset-0 z-[10000] flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
+            }}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "200px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft:
+                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
+              style={{
+                borderColor:
+                  "color-mix(in srgb, var(--primary) 10%, transparent)",
+              }}
+            >
+              <span className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button
+                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <X size={13} />
+              </button>
+            </div>
+
+            {sidebar}
+          </div>
+        </div>
       )}
     </div>
   );
