@@ -145,6 +145,56 @@ function anchoMaximo(nodos: NodoLayout[]): number {
   return nodos.reduce((max, n) => Math.max(max, n.x), 0) + COL_W + LEAF_LABEL_W;
 }
 
+// ─── Layout vertical (mobile) ───────────────────────────────────────────────
+// Mismo árbol, mismos datos — pero con la profundidad creciendo hacia ABAJO
+// (eje Y) en vez de hacia la derecha (eje X), y las hojas repartidas en
+// columnas en vez de filas. Así el cladograma sigue siendo el mismo dibujo
+// de ramas/nodos (no una lista de texto), solo que crece vertical, que es
+// lo natural para scrollear con el dedo en una pantalla angosta.
+const COL_W_V = 84; // ancho de columna por hoja
+const ROW_H_V = 78; // alto de fila por nivel de profundidad
+const PAD_V = 28;
+const LEAF_LABEL_H_V = 60; // lugar para el nombre de la hoja, debajo del punto
+
+function construirLayoutVertical(
+  clados: Clado[],
+): { nodos: NodoLayout[]; raices: NodoLayout[]; anchoTotal: number; alturaTotal: number } {
+  const porPadre = new Map<string | null, Clado[]>();
+  for (const c of clados) {
+    const arr = porPadre.get(c.padre_id) ?? [];
+    arr.push(c);
+    porPadre.set(c.padre_id, arr);
+  }
+
+  const nodos: NodoLayout[] = [];
+  let cursorCol = 0;
+  let profundidadMax = 0;
+
+  function build(clado: Clado, profundidad: number): NodoLayout {
+    profundidadMax = Math.max(profundidadMax, profundidad);
+    const hijosData = porPadre.get(clado.id) ?? [];
+    const nodo: NodoLayout = { clado, x: 0, y: PAD_V + profundidad * ROW_H_V, hijos: [] };
+    nodos.push(nodo);
+
+    if (hijosData.length === 0) {
+      nodo.x = PAD_V + cursorCol * COL_W_V;
+      cursorCol += 1;
+    } else {
+      nodo.hijos = hijosData.map((h) => build(h, profundidad + 1));
+      const xs = nodo.hijos.map((h) => h.x);
+      nodo.x = (Math.min(...xs) + Math.max(...xs)) / 2;
+    }
+    return nodo;
+  }
+
+  const raicesData = porPadre.get(null) ?? [];
+  const raices = raicesData.map((r) => build(r, 0));
+  const anchoTotal = PAD_V * 2 + Math.max(cursorCol, 1) * COL_W_V;
+  const alturaTotal = PAD_V * 2 + profundidadMax * ROW_H_V + LEAF_LABEL_H_V;
+
+  return { nodos, raices, anchoTotal, alturaTotal };
+}
+
 // ─── Estilo según el contrato (tipo_nodo / relacion_padre) ──────────────────
 // Solo PRESENTACIÓN: se lee lo que declara Supabase, nunca se infiere.
 // Distinción visual clave: la línea sólida se reserva para vínculos que
@@ -606,6 +656,143 @@ function DiagramaCladograma({
             </text>
           </g>
         )}
+      </svg>
+    </div>
+  );
+}
+
+// ─── Diagrama SVG vertical (mobile) ─────────────────────────────────────────
+// Misma estética que DiagramaCladograma (líneas, círculos, glifos, colores
+// por tipo_nodo/relacion_padre) pero con el árbol creciendo hacia abajo:
+// ancestro arriba, ramas bajando y bifurcándose en columnas. Sin drag&drop
+// (eso queda para desktop/mouse); toca/click para seleccionar sigue igual.
+function DiagramaCladogramaVertical({
+  clados,
+  conteoOrganismos,
+  seleccionadoId,
+  seleccionMultiple,
+  onSelect,
+  onToggleMultiple,
+}: {
+  clados: Clado[];
+  conteoOrganismos: Map<string, number>;
+  seleccionadoId: string | null;
+  seleccionMultiple: Set<string>;
+  onSelect: (id: string) => void;
+  onToggleMultiple: (id: string) => void;
+}) {
+  const { nodos, anchoTotal, alturaTotal } = useMemo(() => construirLayoutVertical(clados), [clados]);
+  if (clados.length === 0) return null;
+
+  return (
+    <div className="overflow-auto p-3 relative w-full">
+      <svg width={anchoTotal} height={alturaTotal} className="block select-none" style={{ minWidth: "100%" }}>
+        {/* Ramas: tronco vertical del padre bajando, barra horizontal a la
+            altura de los hijos, y bajada final de cada hijo (con su propio
+            dasharray según relacion_padre) — el mismo trío que en el
+            horizontal, con los ejes canjeados. */}
+        {nodos.map((n) => {
+          if (n.hijos.length === 0) return null;
+          const yHijos = n.y + ROW_H_V;
+          const xs = n.hijos.map((h) => h.x);
+          const xMin = Math.min(...xs);
+          const xMax = Math.max(...xs);
+          return (
+            <g key={`ramas-v-${n.clado.id}`}>
+              <line x1={n.x} y1={n.y} x2={n.x} y2={yHijos} stroke="currentColor" strokeWidth={1.5} className="text-primary/25" />
+              <line x1={xMin} y1={yHijos} x2={xMax} y2={yHijos} stroke="currentColor" strokeWidth={1.5} className="text-primary/25" />
+              {n.hijos.map((h) => (
+                <line
+                  key={`hv-${h.clado.id}`}
+                  x1={h.x}
+                  y1={yHijos}
+                  x2={h.x}
+                  y2={h.y}
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeDasharray={dashDeRama(h.clado.relacion_padre)}
+                  className="text-primary/25"
+                >
+                  <title>{`${h.clado.nombre || "Sin nombre"} — ${etiquetaRelacionPadre(h.clado.relacion_padre)} respecto de ${n.clado.nombre || "Sin nombre"}`}</title>
+                </line>
+              ))}
+            </g>
+          );
+        })}
+
+        {/* Nodos + etiquetas */}
+        {nodos.map((n) => {
+          const activo = n.clado.id === seleccionadoId;
+          const enSeleccionMultiple = seleccionMultiple.has(n.clado.id);
+          const esHoja = n.hijos.length === 0;
+          const cantidadOrganismos = conteoOrganismos.get(n.clado.id) ?? 0;
+
+          return (
+            <g
+              key={n.clado.id}
+              transform={`translate(${n.x}, ${n.y})`}
+              onClick={(e) => {
+                if (e.shiftKey) onToggleMultiple(n.clado.id);
+                else onSelect(n.clado.id);
+              }}
+              className="cursor-pointer"
+            >
+              {enSeleccionMultiple && (
+                <circle r={9} className="fill-none stroke-accent/50" strokeWidth={1.5} strokeDasharray="2 2" />
+              )}
+              <circle
+                r={esHoja ? 3.5 : 4.5}
+                className={
+                  activo || enSeleccionMultiple
+                    ? "fill-accent"
+                    : esHoja
+                      ? "fill-primary/40"
+                      : "fill-primary/60"
+                }
+              />
+              <title>{`${n.clado.nombre || "Sin nombre"}\nNodo: ${etiquetaTipoNodo(n.clado.tipo_nodo)}\nUnión con el padre: ${
+                n.clado.padre_id ? etiquetaRelacionPadre(n.clado.relacion_padre) : "— (raíz)"
+              }`}</title>
+              {/* Etiqueta debajo del nodo (en vez de al costado, como en el
+                  horizontal) — es lo que deja el árbol crecer hacia abajo
+                  sin que el texto de cada nivel se pise con la fila
+                  siguiente. Los nodos internos también llevan su nombre
+                  acá abajo, no arriba, para no toparse con la barra
+                  horizontal de sus propios hijos. */}
+              <text
+                x={0}
+                y={esHoja ? 16 : -10}
+                textAnchor="middle"
+                className={`text-[10px] font-bold select-none ${
+                  activo || enSeleccionMultiple ? "fill-accent" : "fill-primary/75"
+                }`}
+              >
+                {n.clado.nombre || "Sin nombre"}
+              </text>
+              {glifoDeTipo(n.clado.tipo_nodo) && (
+                <text
+                  x={0}
+                  y={esHoja ? 28 : -22}
+                  textAnchor="middle"
+                  className="text-[9px] font-black fill-accent/55 select-none"
+                >
+                  {glifoDeTipo(n.clado.tipo_nodo)}
+                </text>
+              )}
+              {cantidadOrganismos > 0 && (
+                <text
+                  x={12}
+                  y={esHoja ? 16 : -10}
+                  textAnchor="start"
+                  className="text-[9px] font-bold fill-accent/60 select-none"
+                >
+                  <title>{`${cantidadOrganismos} organismo(s) en este clado`}</title>
+                  {cantidadOrganismos}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -1640,19 +1827,38 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
       ) : (
         <>
         <LeyendaCladograma clados={clados} />
-        <DiagramaCladograma
-          clados={clados}
-          conteoOrganismos={conteoPorClado}
-          seleccionadoId={seleccionadoId}
-          seleccionMultiple={seleccionMultiple}
-          onSelect={(id) => {
-            setSeleccionadoId(id);
-            setSeleccionMultiple(new Set());
-          }}
-          onToggleMultiple={toggleMultiple}
-          onMover={(cladoId, nuevoPadreId) => void actualizar(cladoId, { padre_id: nuevoPadreId })}
-          onMoverGrupo={(ids, nuevoPadreId) => void moverGrupo(ids, nuevoPadreId)}
-        />
+        {/* Desktop/tablet (md+): árbol de ramas real con drag&drop por
+            click derecho. Mobile: lista vertical indentada (ver
+            CladogramaVerticalMovil) — sin scroll horizontal ni gestos de
+            mouse, más cómoda de leer y tocar en pantallas angostas. */}
+        <div className="hidden md:block">
+          <DiagramaCladograma
+            clados={clados}
+            conteoOrganismos={conteoPorClado}
+            seleccionadoId={seleccionadoId}
+            seleccionMultiple={seleccionMultiple}
+            onSelect={(id) => {
+              setSeleccionadoId(id);
+              setSeleccionMultiple(new Set());
+            }}
+            onToggleMultiple={toggleMultiple}
+            onMover={(cladoId, nuevoPadreId) => void actualizar(cladoId, { padre_id: nuevoPadreId })}
+            onMoverGrupo={(ids, nuevoPadreId) => void moverGrupo(ids, nuevoPadreId)}
+          />
+        </div>
+        <div className="md:hidden">
+          <DiagramaCladogramaVertical
+            clados={clados}
+            conteoOrganismos={conteoPorClado}
+            seleccionadoId={seleccionadoId}
+            seleccionMultiple={seleccionMultiple}
+            onSelect={(id) => {
+              setSeleccionadoId(id);
+              setSeleccionMultiple(new Set());
+            }}
+            onToggleMultiple={toggleMultiple}
+          />
+        </div>
         </>
       )}
 
