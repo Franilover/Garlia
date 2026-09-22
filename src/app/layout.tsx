@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
-import { Montserrat, Geist, Pixelify_Sans, Caveat, Lora, Literata, Cinzel } from 'next/font/google';
+import { Montserrat, Geist, Pixelify_Sans, Caveat, Literata, Cinzel } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import { GlobalCommandPalette } from "@/ui/command";
 import Navbar from "@/layout/navbar";
@@ -23,7 +24,22 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const montserrat = Montserrat({ subsets: ['latin'], display: 'swap', variable: '--font-montserrat' });
 const pixelifySans = Pixelify_Sans({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-pixelify', display: 'swap' });
 const caveat = Caveat({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-caveat', display: 'swap' });
-const lora = Lora({ subsets: ['latin'], weight: ['400', '600'], variable: '--font-lora', display: 'swap' });
+// Lora self-hosteada (next/font/local) en vez de next/font/google: el
+// loader de Google Fonts venía fallando tanto en el build de Android (CI)
+// como en Vercel con "Module not found:
+// @vercel/turbopack-next/internal/font/google/font" — no era solo un
+// problema de red del runner de Android, así que se sacó la dependencia
+// de red en build-time por completo. Los .ttf son variables (un solo
+// archivo cubre 400-700, más su itálica), así que no hace falta un
+// archivo por peso como en Google Fonts.
+const lora = localFont({
+  src: [
+    { path: '../../public/fonts/Lora/Lora-VariableFont_wght.ttf', style: 'normal' },
+    { path: '../../public/fonts/Lora/Lora-Italic-VariableFont_wght.ttf', style: 'italic' },
+  ],
+  variable: '--font-lora',
+  display: 'swap',
+});
 const literata = Literata({ subsets: ["latin"], variable: "--font-literata", display: "swap" });
 // Usada en el mapa de Garlia (mapaGarlia.tsx) — antes se cargaba con un
 // <style>@import url(...)</style> inline en cada render de ese componente,
