@@ -22,15 +22,12 @@ import {
   Beaker,
   Boxes,
   Bug,
-  ChevronDown,
-  Dices,
   Globe,
   Image as ImageIcon,
   Layers,
   MapPin,
   Package,
   PawPrint,
-  Shield,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -57,7 +54,6 @@ import {
   useCriaturaCiudades,
 } from "@/domains/garlia/criaturas/CriaturaHabitat";
 import { useCraftedItems } from "@/domains/garlia/criaturas/CriaturaItemsCraftedos";
-import { CriaturaStatsDndEditor } from "@/domains/garlia/criaturas/CriaturaStatsDnd";
 import { PickerImagenCriaturaBtn } from "@/domains/garlia/criaturas/PickerImagenCriaturaBtn";
 import {
   SelectorImagen,
@@ -123,15 +119,6 @@ export function EditorCriatura({
 }) {
   const [form, setForm] = useState<Criatura>(item);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  // ── Secciones del editor ────────────────────────────────────────────────
-  // Solo 3 opciones en el selector: "normal" (detalles + reino/ciudades/
-  // personajes/creaciones), "biologia" (Perfil atómico + Órganos + Organismo,
-  // todos juntos) y "extra" (Ilustraciones + Perfil DND,
-  // todos juntos). Elegir cualquiera que no sea "normal" oculta el panel
-  // por defecto y muestra los 3 sub-bloques de esa sección apilados.
-  const [seccionActiva, setSeccionActiva] = useState<"normal" | "biologia" | "extra">(
-    "normal",
-  );
   const { onWikilink } = useWikilink();
 
   // ── Personajes de la especie ───────────────────────────────────────────────
@@ -437,12 +424,6 @@ export function EditorCriatura({
     setSavingCrafted(false);
   };
 
-  // Dropdown único de sección con solo 3 opciones — reemplaza los antiguos
-  // 6 botones sueltos en el header.
-  const extraBotonesHeader = (
-    <SelectorSeccionCriatura seccionActiva={seccionActiva} onSeleccionar={setSeccionActiva} />
-  );
-
   const headerControls = {
     imagenUrl: form.imagen_url,
     IconoFallback: Bug,
@@ -452,7 +433,6 @@ export function EditorCriatura({
     status,
     onGuardar: save,
     onEliminar: del,
-    extra: extraBotonesHeader,
   };
   usePublishHeaderControls(headerControls, onHeaderControlsChange);
 
@@ -523,10 +503,10 @@ export function EditorCriatura({
           className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {/* Sección "Normal": Imagen + Descripción (Detalles). Se oculta con
-              CSS (no se desmonta) para no perder estado ni re-disparar los
-              hooks del RichEditor al cambiar de sección. */}
-          <div className={`flex gap-3 items-start ${seccionActiva !== "normal" ? "hidden" : ""}`}>
+          {/* Sección "Normal": Imagen + Descripción (Detalles). Siempre
+              visible — el layout ahora es un stack vertical de las 3
+              secciones (Normal / Biología / Extra), sin toggle. */}
+          <div className="flex gap-3 items-start">
             <div className="flex gap-3 min-w-0 flex-1">
               <div className="hidden sm:block shrink-0 w-36">
                 <SelectorImagen
@@ -576,44 +556,19 @@ export function EditorCriatura({
             </div>
           </div>
 
-          {/* Panel de sección: Biología o Extra, con sus 3 sub-bloques
-              apilados. Igual que arriba, se oculta con `hidden` en vez de
-              desmontarse — así los paneles internos (Perfil atómico,
-              Órganos, Organismo) no vuelven a disparar sus fetches ni
-              pierden su estado de scroll cada vez que cambias de sección.
+          {/* Bloque "Biología", siempre visible, apilado debajo de Normal.
               Mismo criterio minimalista que ElementoEditor: un solo borde
               fino, sin fondo tintado ni bordes anidados. */}
-          <div
-            className={`flex-1 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden ${
-              seccionActiva === "normal" ? "hidden" : ""
-            }`}
-          >
-            {/* Header de la sección activa */}
-            <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-primary/10">
+          <div className="shrink-0 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden">
+            <div className="shrink-0 flex items-center px-3 py-2 border-b border-primary/10">
               <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.25em] text-primary/45">
-                {seccionActiva === "biologia" ? (
-                  <Atom size={11} className="text-primary/50" />
-                ) : (
-                  <Sparkles size={11} className="text-primary/50" />
-                )}
-                {seccionActiva === "biologia" ? "Biología" : "Extra"}
+                <Atom size={11} className="text-primary/50" />
+                Biología
               </span>
-              <button
-                className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md text-primary/30 hover:text-primary hover:bg-primary/8 transition-colors"
-                type="button"
-                title="Volver a Normal"
-                onClick={() => setSeccionActiva("normal")}
-              >
-                <X size={12} />
-              </button>
             </div>
 
-            {/* Contenido: los sub-bloques de cada sección se mantienen
-                siempre montados (ambos "biologia" y "extra"), alternando
-                visibilidad con `hidden`, para que ningún hook interno se
-                reinicie al ir y volver entre secciones. */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-3">
-              <div className={`flex flex-col gap-4 ${seccionActiva !== "biologia" ? "hidden" : ""}`}>
+            <div className="p-3">
+              <div className="flex flex-col gap-4">
                 {/* Fila 1: Organismo — vínculo criatura→organismo (rol,
                     cantidad, principal). El bloque "Rasgos evolutivos"
                     (Perfil atómico, tabla perfiles_atomicos_criatura) se
@@ -726,78 +681,48 @@ export function EditorCriatura({
                   </section>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className={`flex flex-col gap-4 ${seccionActiva !== "extra" ? "hidden" : ""}`}>
-                {/* Ilustraciones + Perfil DND, lado a lado — un solo
-                    divisor vertical entre columnas, sin tarjetas anidadas. */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
-                  <section className="flex flex-col gap-2 lg:pr-4">
-                    <header className="flex items-center gap-1.5">
-                      <ImageIcon size={10} className="text-primary/35" />
-                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                        Ilustraciones
-                      </h3>
-                    </header>
-                    <p className="text-micro text-primary/35 leading-relaxed">
-                      Referencias visuales de la criatura (concept art, poses, variantes…).
-                    </p>
-                    <div className="w-full max-w-[220px]">
-                      <SelectorImagen
-                        aspect="square"
-                        label="Ilustración principal"
-                        placeholder={<ImageIcon className="opacity-20" size={20} />}
-                        value={form.imagen_url ?? ""}
-                        onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
-                      />
-                    </div>
-                  </section>
+          {/* Bloque "Extra", siempre visible, apilado debajo de Biología.
+              El Perfil DND se eliminó por completo (textarea de descripción
+              D&D + ficha de combate); solo queda Ilustraciones. */}
+          <div className="shrink-0 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden">
+            <div className="shrink-0 flex items-center px-3 py-2 border-b border-primary/10">
+              <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.25em] text-primary/45">
+                <Sparkles size={11} className="text-primary/50" />
+                Extra
+              </span>
+            </div>
 
-                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
-                    <header className="flex items-center gap-1.5">
-                      <Dices size={10} className="text-primary/35" />
-                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                        Perfil DND
-                      </h3>
-                    </header>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
-                        Descripción D&D
-                      </label>
-                      <textarea
-                        className="w-full bg-primary/[0.03] border border-primary/10 rounded-lg px-2.5 py-1.5 text-micro text-primary outline-none focus:border-primary/25 resize-none placeholder:text-primary/25 leading-relaxed"
-                        placeholder="Rasgos raciales, resistencias, velocidad especial… lo que verá el jugador en su ficha al elegir esta especie."
-                        rows={4}
-                        value={form.descripcion_dnd ?? ""}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, descripcion_dnd: e.target.value || null }))
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      <div className="flex items-center gap-2">
-                        <Shield size={11} className="text-primary/35" />
-                        <span className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/25">
-                          Ficha de combate (D&D 2024)
-                        </span>
-                      </div>
-                      <CriaturaStatsDndEditor
-                        valor={form.stats_dnd}
-                        onCambiar={(v) => setForm((f) => ({ ...f, stats_dnd: v }))}
-                      />
-                    </div>
-                  </section>
+            <div className="p-3">
+              <section className="flex flex-col gap-2 max-w-[220px]">
+                <header className="flex items-center gap-1.5">
+                  <ImageIcon size={10} className="text-primary/35" />
+                  <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
+                    Ilustraciones
+                  </h3>
+                </header>
+                <p className="text-micro text-primary/35 leading-relaxed">
+                  Referencias visuales de la criatura (concept art, poses, variantes…).
+                </p>
+                <div className="w-full">
+                  <SelectorImagen
+                    aspect="square"
+                    label="Ilustración principal"
+                    placeholder={<ImageIcon className="opacity-20" size={20} />}
+                    value={form.imagen_url ?? ""}
+                    onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+                  />
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
 
-        {/* ── BARRA DE ENTIDADES — fila horizontal inferior (solo en sección
-             "Normal"; oculta mientras haya otra sección activa) ─────────── */}
+        {/* ── BARRA DE ENTIDADES — fila horizontal inferior ───────────────── */}
         <div
-          className={`shrink-0 sm:flex border-t overflow-y-auto ${
-            seccionActiva !== "normal" ? "hidden" : "hidden sm:flex"
-          }`}
+          className="shrink-0 hidden sm:flex border-t overflow-y-auto"
           style={{
             maxHeight: "60vh",
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
@@ -928,7 +853,7 @@ export function EditorCriatura({
       </div>
 
       {/* ── BARRA DE ENTIDADES — mobile drawer ───────────────────────────────── */}
-      {mobileAsideOpen && seccionActiva === "normal" && (
+      {mobileAsideOpen && (
         <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
           <div
             className="absolute inset-0"
@@ -1238,110 +1163,6 @@ export function EditorCriatura({
 }
 
 // ─── Selector de sección (dropdown) ─────────────────────────────────────────
-// Solo 3 opciones: Normal / Biología / Extra. Al elegir Biología o Extra se
-// muestran sus 3 sub-bloques apilados de una — no hay selección individual.
-const OPCIONES_SECCION_CRIATURA = [
-  { value: "normal" as const, label: "Normal", icon: SlidersHorizontal },
-  { value: "biologia" as const, label: "Biología", icon: Atom },
-  { value: "extra" as const, label: "Extra", icon: Sparkles },
-];
-
-function SelectorSeccionCriatura({
-  seccionActiva,
-  onSeleccionar,
-}: {
-  seccionActiva: "normal" | "biologia" | "extra";
-  onSeleccionar: (s: "normal" | "biologia" | "extra") => void;
-}) {
-  const [abierto, setAbierto] = useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!abierto) return;
-    const onClickFuera = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setAbierto(false);
-    };
-    const onEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAbierto(false);
-    };
-    document.addEventListener("mousedown", onClickFuera);
-    document.addEventListener("keydown", onEscape);
-    return () => {
-      document.removeEventListener("mousedown", onClickFuera);
-      document.removeEventListener("keydown", onEscape);
-    };
-  }, [abierto]);
-
-  const actual =
-    OPCIONES_SECCION_CRIATURA.find((o) => o.value === seccionActiva) ??
-    OPCIONES_SECCION_CRIATURA[0];
-
-  return (
-    <div className="relative shrink-0 z-40" ref={ref}>
-      <button
-        className={`flex items-center gap-1.5 px-2.5 h-7 rounded-lg border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
-          seccionActiva !== "normal"
-            ? "border-primary/40 text-primary bg-primary/8"
-            : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
-        }`}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={abierto}
-        onClick={() => setAbierto((v) => !v)}
-      >
-        {React.createElement(actual.icon, { size: 11 })}
-        <span className="hidden md:inline">{actual.label}</span>
-        <ChevronDown
-          size={10}
-          className={`shrink-0 transition-transform duration-150 ${abierto ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {abierto && (
-        <div
-          role="listbox"
-          className="absolute right-0 top-full mt-1.5 z-40 w-40 rounded-lg overflow-hidden shadow-xl animate-[popIn_140ms_cubic-bezier(0.34,1.56,0.64,1)]"
-          style={{
-            background: "var(--bg-main)",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 14%, transparent)",
-          }}
-        >
-          {OPCIONES_SECCION_CRIATURA.map((op) => {
-            const seleccionado = seccionActiva === op.value;
-            return (
-              <button
-                key={op.value}
-                role="option"
-                aria-selected={seleccionado}
-                className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 text-micro font-black uppercase tracking-widest transition-colors cursor-pointer ${
-                  seleccionado
-                    ? "text-primary bg-primary/10"
-                    : "text-primary/50 hover:text-primary hover:bg-primary/5"
-                }`}
-                type="button"
-                onClick={() => {
-                  onSeleccionar(op.value);
-                  setAbierto(false);
-                }}
-              >
-                {React.createElement(op.icon, {
-                  size: 11,
-                  className: seleccionado ? "text-primary" : "text-primary/40",
-                })}
-                <span className="flex-1 text-left">{op.label}</span>
-                {seleccionado && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Panel Organismo: vincula/gestiona Organismo(s) de la criatura vía
 // criatura_organismos (rol, cantidad, es_principal) — mismo lenguaje
 // visual que SeccionGruposVinculados/ListaVinculos* de Biología, pero
