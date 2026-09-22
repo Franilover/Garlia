@@ -26,7 +26,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "@/providers/AuthProvider";
 import { useParticulas } from "@/domains/garlia/fisica/useFisica";
-import { ParticulaVisual, LETRA_COLOR, LETRA_NOMBRE, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
+import { ParticulaVisual, LETRA_COLOR, type LetraATS } from "@/domains/garlia/fisica/ParticulaVisual";
 import { useVisibilidadExplicacion } from "./useVisibilidadExplicacion";
 import { ToggleMaestroAdmin } from "./ToggleMaestroAdmin";
 import { BloqueColapsableAdmin } from "./BloqueColapsableAdmin";
@@ -82,7 +82,7 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
 
   return (
     <div
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5"
+      className="flex w-32 flex-col items-center gap-2 rounded-lg px-3 py-2.5 text-center"
       style={{
         background: "color-mix(in srgb, var(--primary) 4%, transparent)",
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -94,8 +94,8 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
         <Polo signo={signos[0]} size={28} orbitando={signos[0] === "+"} />
         <Polo signo={signos[1]} size={28} orbitando={signos[1] === "+"} />
       </div>
-      <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0 opacity-40">
-        <path d="M0 6 H16 M11 1 L16 6 L11 11" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 opacity-40">
+        <path d="M6 0 V16 M1 11 L6 17 L11 11" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-black"
@@ -152,7 +152,7 @@ function DiagramaPolaridadesTASI() {
       {/* Paso B: las 4 relaciones polares → TASI */}
       <div className="flex w-full flex-col items-center gap-2">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 2 · Se combinan</p>
-        <div className="grid w-full grid-cols-1 gap-2">
+        <div className="flex w-full flex-row flex-wrap justify-center gap-2">
           {RELACIONES.map((rel, i) => (
             <FilaRelacion key={rel.resultado} rel={rel} index={i} />
           ))}
@@ -278,21 +278,6 @@ function GaleriaResultadoReal() {
           {grid}
         </div>
       )}
-
-      {/* Leyenda de letras */}
-      <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-        {(["T", "A", "S", "I"] as LetraATS[]).map((l) => (
-          <div key={l} className="flex items-center gap-1.5">
-            <div
-              className="flex h-5 w-5 items-center justify-center rounded-full border font-black"
-              style={{ background: LETRA_COLOR[l].bg, borderColor: LETRA_COLOR[l].border, color: LETRA_COLOR[l].fg, fontSize: 10 }}
-            >
-              {l}
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wide opacity-50">{LETRA_NOMBRE[l]}</span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
