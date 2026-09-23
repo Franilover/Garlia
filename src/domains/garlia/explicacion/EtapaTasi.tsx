@@ -54,10 +54,8 @@ function FilaRelacion({ rel, index, mostrar }: { rel: (typeof RELACIONES)[number
 
   return (
     <div
-      className="flex items-center gap-3 rounded-lg px-3 py-2.5"
+      className="flex items-center gap-3 px-3 py-2.5"
       style={{
-        background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
         animation: `explicacion-fade-in 0.5s ease-out ${index * 0.12}s both`,
       }}
     >
