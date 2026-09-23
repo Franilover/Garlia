@@ -7,24 +7,27 @@
  * cada una con su propio progreso interno de click-to-reveal
  * (ColumnaParalela) — sin sincronización entre ellas:
  *
- *   Columna izquierda: Elementos → Compuestos → Estructuras
+ *   Columna izquierda: Elementos → Compuestos → Estructuras → Materiales → Objetos
  *   Columna derecha:   Iums → Formas → Oris
+ *
+ * Materiales y Objetos son continuación de la cadena de Elementos (una
+ * Estructura con propiedades físicas propias, y luego una cosa del
+ * mundo hecha con esos Materiales) — NO dependen de la rama Iums para
+ * nada, así que viven como pasos 4 y 5 de la columna de Elementos, no
+ * como tramos separados después de este bloque.
  *
  * A efectos del orquestador global (ExplicacionPage), este bloque entero
  * cuenta como UN tramo: recibe `desbloqueado`/`onCompletado` con la misma
  * forma que BloqueEtapaClickeable, y llama a onCompletado() una sola vez
  * cuando AMBAS columnas terminan (sin importar el orden en que el
- * usuario las complete).
+ * usuario las complete) — en la práctica esto ya es el final del
+ * recorrido "construido hasta ahora", así que onCompletado no desbloquea
+ * ningún tramo visible todavía, pero mantiene el mismo contrato que el
+ * resto de los tramos por si se agrega algo después.
  *
- * Botón "Ir a la siguiente": aparece en la primera columna que termina,
- * hace scroll suave hacia este mismo bloque (ya que la otra columna
- * sigue visible al lado) — en la práctica solo sirve como confirmación
- * de "ya terminé esta, seguí con la otra" cuando ambas están en
- * pantalla; no hace falta que mueva el scroll a otro lado porque las
- * columnas son adyacentes. La columna que termina en SEGUNDO lugar no
- * muestra su propio botón: en cambio dispara automáticamente
- * onCompletado(), que es lo que de verdad desbloquea el tramo siguiente
- * (Materiales) en ExplicacionPage.
+ * Cada columna termina por su cuenta, sin depender de la otra: no hay
+ * botón "ir a la siguiente" entre columnas — cada una simplemente llega
+ * a su propio final (Objetos / Oris) y queda ahí.
  */
 
 import React, { useRef, useState } from "react";
@@ -33,6 +36,8 @@ import { ColumnaParalela, type PasoColumna } from "./ColumnaParalela";
 import EtapaElementos from "./EtapaElementos";
 import EtapaCompuestos from "./EtapaCompuestos";
 import EtapaEstructuras from "./EtapaEstructuras";
+import EtapaMateriales from "./EtapaMateriales";
+import EtapaObjetos from "./EtapaObjetos";
 import EtapaIums from "./EtapaIums";
 import EtapaFormas from "./EtapaFormas";
 import EtapaOris from "./EtapaOris";
@@ -41,6 +46,8 @@ const PASOS_ELEMENTOS: PasoColumna[] = [
   { id: "elementos", titulo: "Elementos", Componente: EtapaElementos },
   { id: "compuestos", titulo: "Compuestos", Componente: EtapaCompuestos },
   { id: "estructuras", titulo: "Estructuras", Componente: EtapaEstructuras },
+  { id: "materiales", titulo: "Materiales", Componente: EtapaMateriales },
+  { id: "objetos", titulo: "Objetos", Componente: EtapaObjetos },
 ];
 
 const PASOS_IUMS: PasoColumna[] = [
@@ -60,7 +67,6 @@ export function BloqueRamasParalelas({
   const [elementosListo, setElementosListo] = useState(false);
   const [iumsListo, setIumsListo] = useState(false);
   const avisadoRef = useRef(false);
-  const contenedorRef = useRef<HTMLDivElement>(null);
 
   const marcarElementosListo = () => setElementosListo(true);
   const marcarIumsListo = () => setIumsListo(true);
@@ -72,10 +78,6 @@ export function BloqueRamasParalelas({
     // setState del padre en medio del render de este componente.
     queueMicrotask(onCompletado);
   }
-
-  const scrollAlBloque = () => {
-    contenedorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   if (!desbloqueado) {
     return (
@@ -101,7 +103,7 @@ export function BloqueRamasParalelas({
   }
 
   return (
-    <div ref={contenedorRef} id="ramas-paralelas" className="scroll-mt-20 px-1">
+    <div id="ramas-paralelas" className="scroll-mt-20 px-1">
       <div className="mb-6 text-center">
         <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
           Desde acá, dos caminos en paralelo: la materia y las fuerzas funcionales.
@@ -114,9 +116,7 @@ export function BloqueRamasParalelas({
             encabezado="Elementos"
             pasos={PASOS_ELEMENTOS}
             onColumnaCompleta={marcarElementosListo}
-            onIrASiguiente={scrollAlBloque}
-            mostrarBoton={!iumsListo}
-            etiquetaBoton="Ver la otra rama"
+            mostrarBoton={false}
           />
         </div>
 
@@ -130,9 +130,7 @@ export function BloqueRamasParalelas({
             encabezado="Iums"
             pasos={PASOS_IUMS}
             onColumnaCompleta={marcarIumsListo}
-            onIrASiguiente={scrollAlBloque}
-            mostrarBoton={!elementosListo}
-            etiquetaBoton="Ver la otra rama"
+            mostrarBoton={false}
           />
         </div>
       </div>
