@@ -305,9 +305,12 @@ export default function EtapaElementos() {
         <DiagramaCapas />
       </div>
 
-      <div className="mt-6">
+      {/* Galería "Los Elementos reales" oculta temporalmente a pedido —
+          GaleriaElementosReales queda definida más arriba, sin invocar, para
+          reactivarla después sin reescribirla. */}
+      {/* <div className="mt-6">
         <GaleriaElementosReales />
-      </div>
+      </div> */}
     </section>
   );
 }

@@ -337,9 +337,12 @@ export default function EtapaPolaridades() {
         <DiagramaPolaridadesTASI />
       </div>
 
-      <div className="mt-6">
+      {/* Galería "Las Partículas reales" oculta temporalmente a pedido —
+          GaleriaResultadoReal queda definida más arriba, sin invocar, para
+          reactivarla después sin reescribirla. */}
+      {/* <div className="mt-6">
         <GaleriaResultadoReal />
-      </div>
+      </div> */}
     </section>
   );
 }
