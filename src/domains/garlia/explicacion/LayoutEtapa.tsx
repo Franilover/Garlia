@@ -127,9 +127,9 @@ function CajaGrafico({ children, anchoFinal, contraido }: { children: React.Reac
 export interface FilaTexto {
   /** Clave estable de la fila. */
   id: string;
+  /** Una sola oración corta y coherente: qué ocurre en este paso. */
   titulo: string;
-  detalle?: string;
-  /** Contenido extra opcional debajo del detalle (ej. "Categoría: ..."). */
+  /** Contenido extra opcional debajo (ej. "Categoría: ..."). */
   extra?: React.ReactNode;
 }
 
@@ -139,17 +139,9 @@ function FilaEscalera({ fila, indice }: { fila: FilaTexto; indice: number }) {
       className="text-center md:text-left"
       style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${indice * ESCALERA_PX}px` }}
     >
-      <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+      <p className="text-micro font-black uppercase tracking-[0.15em]" style={{ color: "var(--primary)" }}>
         {fila.titulo}
       </p>
-      {fila.detalle && (
-        <p
-          className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0"
-          style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-        >
-          {fila.detalle}
-        </p>
-      )}
       {fila.extra}
     </div>
   );

@@ -35,8 +35,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { anchoEnCaja } from "./LayoutEtapa";
-import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -50,16 +49,11 @@ const DURACIONES: Record<Exclude<PasoEnlace, "compuesto">, number> = {
   enlazado: 1500,
 };
 
-/** frase: palabra/frase corta mostrada durante ese paso de la animación.
- *  info: texto de más info, revelado solo al terminar (paso "compuesto"). */
-const TEXTOS: Record<PasoEnlace, { frase: string; info?: string }> = {
-  buscando: { frase: "Buscando sitio" },
-  encajando: { frase: "Encajando" },
-  enlazado: { frase: "Enlazando" },
-  compuesto: {
-    frase: "Compuesto",
-    info: "Dos Elementos con Sitios de Enlace compatibles se encuentran, encajan y quedan unidos: nace un Compuesto, con propiedades propias que ninguno de los dos tenía por separado.",
-  },
+const TEXTOS: Record<PasoEnlace, { titulo: string }> = {
+  buscando: { titulo: "Dos Elementos buscan un Sitio de Enlace compatible." },
+  encajando: { titulo: "Un Sitio encaja con su par." },
+  enlazado: { titulo: "El enlace une a los dos Elementos." },
+  compuesto: { titulo: "Nace un Compuesto, con propiedades propias." },
 };
 
 /** Un sitio de enlace individual: punto en el borde de un Elemento.
@@ -203,6 +197,11 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
   // como "tensión elástica" que como un simple trazo estático.
   const curvaY = yEnlace - 22;
 
+  // Filas de texto en escalera: se apilan hacia abajo a medida que se
+  // avanza en la secuencia, sin borrar los pasos ya alcanzados — mismo
+  // patrón que "filasCapas" en DiagramaCapas.
+  const filasTexto = ORDEN.slice(0, idx + 1);
+
   const grafico = (
     <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
       {/* Enlace: curva que crece con un dibujo de trazo (pathLength +
@@ -233,10 +232,11 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
     </svg>
   );
 
-  return <LayoutEtapa3Col
+  const filas: FilaTexto[] = filasTexto.map((p) => ({ id: p, ...TEXTOS[p] }));
+
+  return <LayoutEtapa
       grafico={grafico}
-      frase={TEXTOS[paso].frase}
-      info={TEXTOS.compuesto.info}
+      filas={filas}
       terminado={terminado}
       pasoActual={idx}
       totalPasos={ORDEN.length}
@@ -266,10 +266,6 @@ export default function EtapaCompuestos({ replayKey, onReplay }: { replayKey: nu
         @keyframes explicacion-girar {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        @keyframes explicacion-fade-in {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 

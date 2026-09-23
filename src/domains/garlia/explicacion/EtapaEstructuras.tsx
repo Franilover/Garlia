@@ -25,8 +25,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { anchoEnCaja } from "./LayoutEtapa";
-import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama de la lógica (cristalización radial) ──────────────
 
@@ -86,13 +85,10 @@ const DURACIONES: Record<Exclude<PasoEstructura, "estructura">, number> = {
   patron: 1400,
 };
 
-const TEXTOS: Record<PasoEstructura, { frase: string; info?: string }> = {
-  compuesto: { frase: "Un Compuesto" },
-  patron: { frase: "Repitiendo patrón" },
-  estructura: {
-    frase: "Estructura",
-    info: "El mismo Compuesto, repetido alrededor de sí mismo en un patrón: cristalización radial. Composición + patrón, sin mutar ni fusionar nada.",
-  },
+const TEXTOS: Record<PasoEstructura, { titulo: string }> = {
+  compuesto: { titulo: "Un Compuesto, solo." },
+  patron: { titulo: "Se repite alrededor de sí mismo, en un patrón." },
+  estructura: { titulo: "Nace una Estructura: composición más patrón." },
 };
 
 function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
@@ -148,10 +144,11 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
     </svg>
   );
 
-  return <LayoutEtapa3Col
+  const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({ id: p, ...TEXTOS[p] }));
+
+  return <LayoutEtapa
       grafico={grafico}
-      frase={TEXTOS[paso].frase}
-      info={TEXTOS.estructura.info}
+      filas={filas}
       terminado={terminado}
       pasoActual={idx}
       totalPasos={ORDEN.length}

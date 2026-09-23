@@ -59,8 +59,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { anchoEnCaja } from "./LayoutEtapa";
-import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 0: mismo lenguaje visual que el cierre de EtapaMateriales ─────
 // (MiniAtomoFusion, MiniCristalFusion, CATEGORIAS_MATERIAL están
@@ -218,14 +217,11 @@ const DURACIONES: Record<Exclude<PasoObjeto, "objeto">, number> = {
   llenando: 1400,
 };
 
-const TEXTOS: Record<PasoObjeto, { frase: string; info?: string }> = {
-  sueltos: { frase: "Materiales sueltos" },
-  molde: { frase: "Aparece un molde" },
-  llenando: { frase: "Tomando forma" },
-  objeto: {
-    frase: "Objeto",
-    info: "Uno o más Materiales se vacían dentro del contorno real de una forma geométrica: Material + forma dan propiedades físicas propias (peso, corte, protección) que ninguno tenía por separado.",
-  },
+const TEXTOS: Record<PasoObjeto, { titulo: string }> = {
+  sueltos: { titulo: "Uno o más Materiales, sin una forma que los contenga." },
+  molde: { titulo: "Aparece el molde: una forma geométrica real." },
+  llenando: { titulo: "El Material se vacía dentro del molde." },
+  objeto: { titulo: "Nace un Objeto, con propiedades físicas propias." },
 };
 
 function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
@@ -348,24 +344,26 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
     </svg>
   );
 
-  const info = completo ? (
-    <>
-      {TEXTOS.objeto.info}
-      <span className="mt-1 block font-bold uppercase tracking-wide" style={{ color: "var(--primary)", opacity: 0.75 }}>
-        {forma.nombre} · {forma.ejemplos}
-      </span>
-      <span className="mt-1 block font-bold uppercase tracking-wide" style={{ color: categoria.color }}>
-        Material: {categoria.id.replace(/_/g, " ")}
-      </span>
-    </>
-  ) : undefined;
+  const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({
+    id: p,
+    ...TEXTOS[p],
+    extra:
+      p === "molde" ? (
+        <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: "var(--primary)", opacity: 0.6 }}>
+          {forma.nombre} · {forma.ejemplos}
+        </p>
+      ) : p === "objeto" && completo ? (
+        <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: categoria.color }}>
+          Material: {categoria.id.replace(/_/g, " ")}
+        </p>
+      ) : undefined,
+  }));
 
   return (
     <>
-      <LayoutEtapa3Col
+      <LayoutEtapa
         grafico={grafico}
-        frase={TEXTOS[paso].frase}
-        info={info}
+        filas={filas}
         terminado={terminado}
         pasoActual={idx}
         totalPasos={ORDEN.length}
@@ -379,10 +377,6 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
       <style>{`
         @keyframes explicacion-objetos-fade-in {
           from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes explicacion-fade-in {
-          from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
