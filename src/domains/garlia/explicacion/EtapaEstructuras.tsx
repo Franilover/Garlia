@@ -15,8 +15,12 @@
  * (dato real de `patron_estructural_id`), no una mutación ni una fusión.
  *
  * Cada mini-átomo reutiliza el mismo lenguaje visual de Elementos/
- * Compuestos: núcleo + anillo medio + anillo externo, con 3 partículas
- * girando en cada anillo — mismo trazo/paleta sepia que las etapas previas.
+ * Compuestos: núcleo + 2 capas de 3 partículas girando — sin anillos
+ * punteados de órbita (sin borde), mismo trazo/paleta sepia.
+ *
+ * Layout: igual que Compuestos/Materiales — gráfico fijo a la izquierda
+ * (desktop), texto apilándose en escalera a la derecha a medida que
+ * avanza el ciclo, sin borrar los pasos anteriores.
  */
 
 import React, { useEffect, useState } from "react";
@@ -46,8 +50,6 @@ function MiniAtomo({
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={radioExterno} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
-      <circle cx={cx} cy={cy} r={radioMedio} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 26%, transparent)" }} />
 
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: `explicacion-estructura-girar ${girar.externa} linear infinite reverse` }}>
         {[0, 1, 2].map((i) => {
@@ -68,18 +70,52 @@ function MiniAtomo({
   );
 }
 
+type PasoEstructura = "compuesto" | "patron" | "estructura";
+
+const ORDEN: PasoEstructura[] = ["compuesto", "patron", "estructura"];
+
+const DURACIONES: Record<Exclude<PasoEstructura, "estructura">, number> = {
+  compuesto: 1400,
+  patron: 1400,
+};
+
+const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
+  compuesto: {
+    titulo: "Un Compuesto",
+    detalle: "La unidad de partida, sola.",
+  },
+  patron: {
+    titulo: "Se repite en un patrón",
+    detalle: "El mismo Compuesto, ordenado alrededor de sí mismo.",
+  },
+  estructura: {
+    titulo: "Nace una Estructura",
+    detalle: "Cristalización radial: composición + patrón, sin mutar ni fusionar nada.",
+  },
+};
+
 function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
-  const [visible, setVisible] = useState(false);
+  const [paso, setPaso] = useState<PasoEstructura>("compuesto");
+  const terminado = paso === "estructura";
 
   useEffect(() => {
-    setVisible(false);
-    const t = setTimeout(() => setVisible(true), 30);
-    return () => clearTimeout(t);
+    setPaso("compuesto");
   }, [replayKey]);
+
+  useEffect(() => {
+    if (paso === "estructura") return; // último paso: se queda quieto
+    const t = setTimeout(() => {
+      setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
+    }, DURACIONES[paso as Exclude<PasoEstructura, "estructura">]);
+    return () => clearTimeout(t);
+  }, [paso]);
+
+  const idx = ORDEN.indexOf(paso);
+  const conPatron = paso === "patron" || paso === "estructura";
 
   // Centro + anillo de 5 mini-átomos alrededor, a 72° de separación —
   // cristalización radial (misma geometría que el boceto: centro en
-  // (100,88) dentro de un viewBox 200x200, radio del anillo 46).
+  // (100,88) dentro de un viewBox 200x176, radio del anillo 46).
   const cx = 100;
   const cy = 88;
   const radioAnillo = 46;
@@ -88,37 +124,76 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
     return { x: cx + Math.cos(rad) * radioAnillo, y: cy + Math.sin(rad) * radioAnillo };
   });
 
+  const grafico = (
+    <svg viewBox="0 0 200 176" width={220} height={194} className="shrink-0">
+      {anillo.map((p, i) => (
+        <line
+          key={`l${i}`}
+          x1={cx}
+          y1={cy}
+          x2={p.x}
+          y2={p.y}
+          stroke="var(--primary)"
+          strokeWidth={1.1}
+          style={{ opacity: conPatron ? 0.4 : 0, transition: "opacity 0.5s ease-out" }}
+        />
+      ))}
+      <MiniAtomo cx={cx} cy={cy} radio={20} tono="#8a5a34" girar={{ media: "18s", externa: "26s" }} />
+      {anillo.map((p, i) => (
+        <g key={`n${i}`} style={{ opacity: conPatron ? 1 : 0, transition: `opacity 0.5s ease-out ${i * 0.08}s` }}>
+          <MiniAtomo cx={p.x} cy={p.y} radio={13} tono={TONOS[i]} girar={{ media: `${16 + i * 2}s`, externa: `${24 + i * 2}s` }} />
+        </g>
+      ))}
+    </svg>
+  );
+
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => visible && onReplay()}
+      onClick={() => terminado && onReplay()}
       onKeyDown={(e) => {
-        if (visible && (e.key === "Enter" || e.key === " ")) onReplay();
+        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
       }}
-      className="flex flex-col items-center gap-4"
-      style={{ cursor: visible ? "pointer" : "default" }}
-      title={visible ? "Toca para repetir la animación" : undefined}
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      style={{ cursor: terminado ? "pointer" : "default" }}
+      title={terminado ? "Toca para repetir la animación" : undefined}
     >
-      <svg viewBox="0 0 200 176" width={220} height={194} className="shrink-0">
-        <g style={{ opacity: visible ? 1 : 0, transition: "opacity 0.5s ease-out" }}>
-          {anillo.map((p, i) => (
-            <line key={`l${i}`} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="var(--primary)" strokeWidth={1.1} opacity={0.4} />
-          ))}
-          <MiniAtomo cx={cx} cy={cy} radio={20} tono="#8a5a34" girar={{ media: "18s", externa: "26s" }} />
-          {anillo.map((p, i) => (
-            <MiniAtomo key={`n${i}`} cx={p.x} cy={p.y} radio={13} tono={TONOS[i]} girar={{ media: `${16 + i * 2}s`, externa: `${24 + i * 2}s` }} />
-          ))}
-        </g>
-      </svg>
+      {grafico}
 
-      <div className="flex max-w-sm flex-col gap-1 text-center">
-        <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-          Compuestos repetidos en un patrón
-        </p>
-        <p className="mx-auto max-w-xs text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-          Una Estructura es un mismo Compuesto ordenado alrededor de sí mismo — cristalización radial.
-        </p>
+      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
+        {ORDEN.slice(0, idx + 1).map((p, i) => {
+          const t = TEXTOS[p];
+          return (
+            <div
+              key={p}
+              className="text-center md:text-left"
+              style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
+            >
+              <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+                {t.titulo}
+              </p>
+              <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                {t.detalle}
+              </p>
+            </div>
+          );
+        })}
+        {terminado && (
+          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${idx * 14}px` }}>
+            Toca para repetir
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-1.5 md:hidden">
+        {ORDEN.map((p, i) => (
+          <div
+            key={p}
+            className="h-1 w-8 rounded-full transition-colors"
+            style={{ background: i <= idx ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+          />
+        ))}
       </div>
     </div>
   );

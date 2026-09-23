@@ -280,21 +280,6 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Halo unificador: aparece solo en el paso final */}
-      {completo && (
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={92}
-          ry={70}
-          style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-          strokeWidth={1.2}
-          strokeDasharray="3 5"
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" />
-        </ellipse>
-      )}
-
       {/* El molde: contorno REAL de la forma geométrica (prisma
           rectangular / espada de una mano / cilindro-disco), tomado del
           catálogo formas_geometricas. Vacío al aparecer, se llena con
