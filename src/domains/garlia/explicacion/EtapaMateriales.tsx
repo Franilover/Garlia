@@ -48,7 +48,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -237,7 +237,20 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
       ) : undefined,
   }));
 
-  return <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />;
+  return <LayoutEtapa
+      grafico={grafico}
+      filas={filas}
+      terminado={terminado}
+      pasoActual={idx}
+      totalPasos={ORDEN.length}
+      onReplay={onReplay}
+      // Las dos piezas parten en los bordes (~276px) y terminan fusionadas
+      // en el centro con un halo de ~140px: la caja se contrae cuando ya
+      // llegaron (no antes, o el cristal que viene de la derecha pasaría
+      // por debajo del texto que se corre).
+      anchoFinal={anchoEnCaja(147, 420, 200)}
+      contraido={esMaterial}
+    />;
 }
 
 // ─── Export principal de la etapa ──────────────────────────────────────────

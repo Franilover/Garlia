@@ -35,7 +35,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -246,7 +246,18 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
 
   const filas: FilaTexto[] = filasTexto.map((p) => ({ id: p, ...TEXTOS[p] }));
 
-  return <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />;
+  return <LayoutEtapa
+      grafico={grafico}
+      filas={filas}
+      terminado={terminado}
+      pasoActual={idx}
+      totalPasos={ORDEN.length}
+      onReplay={onReplay}
+      // Al acercarse los dos átomos el dibujo pasa de ~304px a ~263px de ancho:
+      // la caja se contrae a ese ancho final para que el texto no quede lejos.
+      anchoFinal={anchoEnCaja(280, 420, 200)}
+      contraido={acercado}
+    />;
 }
 
 // ─── Export principal de la etapa ──────────────────────────────────────────

@@ -25,7 +25,7 @@
 
 import React, { useEffect, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama de la lógica (cristalización radial) ──────────────
 
@@ -71,6 +71,10 @@ function MiniAtomo({
     </g>
   );
 }
+
+/** viewBox del diagrama: recortado a la proporción de la caja base para que
+ *  el cristal (~107×114 unidades) quede del tamaño visual de las otras etapas. */
+const ESTRUCTURA_VB = { str: "-29.2 14.5 267.3 147.0", w: 267.3, h: 147.0 };
 
 type PasoEstructura = "compuesto" | "patron" | "estructura";
 
@@ -127,7 +131,7 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
   });
 
   const grafico = (
-    <svg viewBox="-29.2 14.5 267.3 147.0" className={CLASE_SVG_EN_CAJA}>
+    <svg viewBox={ESTRUCTURA_VB.str} className={CLASE_SVG_EN_CAJA}>
       {anillo.map((p, i) => (
         <line
           key={`l${i}`}
@@ -151,7 +155,18 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
 
   const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({ id: p, ...TEXTOS[p] }));
 
-  return <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />;
+  return <LayoutEtapa
+      grafico={grafico}
+      filas={filas}
+      terminado={terminado}
+      pasoActual={idx}
+      totalPasos={ORDEN.length}
+      onReplay={onReplay}
+      // Solo hay un átomo al inicio y un cristal de ~107 unidades al final:
+      // nunca usa el ancho completo, así que la caja es compacta desde el inicio.
+      anchoFinal={anchoEnCaja(107, ESTRUCTURA_VB.w, ESTRUCTURA_VB.h)}
+      contraido
+    />;
 }
 
 // ─── Export principal de la etapa ──────────────────────────────────────────

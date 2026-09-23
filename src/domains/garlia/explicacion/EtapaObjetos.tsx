@@ -59,7 +59,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 0: mismo lenguaje visual que el cierre de EtapaMateriales ─────
 // (MiniAtomoFusion, MiniCristalFusion, CATEGORIAS_MATERIAL están
@@ -373,7 +373,19 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
 
   return (
     <>
-      <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />
+      <LayoutEtapa
+        grafico={grafico}
+        filas={filas}
+        terminado={terminado}
+        pasoActual={idx}
+        totalPasos={ORDEN.length}
+        onReplay={onReplay}
+        // Los Materiales sueltos parten a los costados (~234px) y desaparecen
+        // al llenarse el molde: la caja se contrae al ancho de la forma real
+        // de esta vuelta (prisma 116, espada 140, disco 96 unidades + trazo).
+        anchoFinal={anchoEnCaja(forma.ancho + 2, 420, 200)}
+        contraido={llenandoOMas}
+      />
       <style>{`
         @keyframes explicacion-objetos-fade-in {
           from { opacity: 0; transform: translateY(6px); }

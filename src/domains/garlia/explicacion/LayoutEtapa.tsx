@@ -37,6 +37,16 @@
  *   5. ESCALERA: sangría por fila (ESCALERA_PX), tipografía de título y
  *      detalle, y la línea "Toca para repetir" — idénticas en todas.
  *
+ *   6. CAJA QUE SE CONTRAE: muchos gráficos empiezan ocupando todo el ancho
+ *      (ej. dos piezas, una en cada borde) y terminan compactos en el
+ *      centro. Si la caja se quedara del ancho inicial, el texto quedaría
+ *      lejos del dibujo final. Por eso la caja tiene DOS anchos: el
+ *      inicial (GRAFICO_W) y el final (ancho del contenido final + un
+ *      margen igual para todas, MARGEN_FINAL). Cuando la etapa pasa
+ *      `contraido`, la caja se achica con una transición y el texto
+ *      se acerca. El dibujo NO se escala ni se mueve: el <svg> conserva su
+ *      tamaño y queda centrado, solo el contenedor cambia de ancho.
+ *
  * Para ajustar el aspecto de TODAS las etapas a la vez, se cambian las
  * constantes de abajo; nada más.
  */
@@ -48,6 +58,24 @@ import React from "react";
 /** Caja reservada para el gráfico, en px (desktop, md+). */
 export const GRAFICO_W = 400;
 export const GRAFICO_H = 220;
+
+/** Aire (px, a cada lado) entre el borde del dibujo final y el borde de la
+ *  caja una vez contraída. Igual en todas: así la distancia final dibujo↔
+ *  texto es la misma en todas las etapas (MARGEN_FINAL + gap). */
+export const MARGEN_FINAL = 8;
+
+/** Duración de la contracción de la caja (ms). */
+const CONTRACCION_MS = 700;
+
+/** Retardo (ms) antes de empezar a contraer: deja terminar el fade de las
+ *  piezas que desaparecen (ej. los Materiales sueltos de Objetos). */
+const CONTRACCION_RETARDO_MS = 250;
+
+/** Ancho en px que ocupa, dentro de la caja, algo que mide `anchoUnidades`
+ *  en un svg de viewBox `vbW`×`vbH` (el svg se ajusta a la caja con "meet"). */
+export function anchoEnCaja(anchoUnidades: number, vbW: number, vbH: number): number {
+  return anchoUnidades * Math.min(GRAFICO_W / vbW, GRAFICO_H / vbH);
+}
 
 /** Distancia horizontal gráfico ↔ texto (Tailwind gap, en px reales: 16). */
 const GAP_CLASE = "md:gap-4";
@@ -65,13 +93,31 @@ export const ESCALERA_PX = 14;
  *  ajustarse a la caja; su viewBox y su dibujo no se tocan. */
 export const CLASE_SVG_EN_CAJA = "h-full w-full";
 
-function CajaGrafico({ children }: { children: React.ReactNode }) {
+function CajaGrafico({ children, anchoFinal, contraido }: { children: React.ReactNode; anchoFinal?: number; contraido: boolean }) {
+  // Ancho de la caja en desktop: el inicial, o el final si ya se contrajo.
+  // (En mobile la caja sigue siendo columna a ancho completo, sin cambios.)
+  const ancho = contraido && anchoFinal !== undefined ? anchoFinal + MARGEN_FINAL * 2 : GRAFICO_W;
   return (
     <div
-      className="flex shrink-0 items-center justify-center"
-      style={{ width: "100%", maxWidth: GRAFICO_W, aspectRatio: `${GRAFICO_W} / ${GRAFICO_H}` }}
+      className="flex w-full shrink-0 items-center justify-center md:h-[var(--caja-h)] md:w-[var(--caja-w)] md:transition-[width]"
+      style={
+        {
+          maxWidth: GRAFICO_W,
+          aspectRatio: `${GRAFICO_W} / ${GRAFICO_H}`,
+          "--caja-h": `${GRAFICO_H}px`,
+          "--caja-w": `${ancho}px`,
+          transitionDuration: `${CONTRACCION_MS}ms`,
+          transitionDelay: contraido ? `${CONTRACCION_RETARDO_MS}ms` : "0ms",
+          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+        } as React.CSSProperties
+      }
     >
-      {children}
+      {/* El svg conserva SIEMPRE el tamaño de la caja inicial y queda
+          centrado: si la caja se contrae, se recorta el aire vacío de los
+          costados (overflow visible), no el dibujo. */}
+      <div className="h-full w-full shrink-0 md:h-[var(--caja-h)] md:w-[var(--svg-w)]" style={{ "--svg-w": `${GRAFICO_W}px` } as React.CSSProperties}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -118,6 +164,8 @@ export function LayoutEtapa({
   pasoActual,
   totalPasos,
   onReplay,
+  anchoFinal,
+  contraido = false,
 }: {
   /** El <svg> de la etapa, con className={CLASE_SVG_EN_CAJA}. */
   grafico: React.ReactNode;
@@ -129,6 +177,11 @@ export function LayoutEtapa({
   pasoActual: number;
   totalPasos: number;
   onReplay: () => void;
+  /** Ancho en px del dibujo FINAL dentro de la caja (usar `anchoEnCaja`).
+   *  Si se omite, la caja no se contrae nunca. */
+  anchoFinal?: number;
+  /** true cuando el dibujo ya llegó a su posición final compacta. */
+  contraido?: boolean;
 }) {
   return (
     <div
@@ -142,7 +195,9 @@ export function LayoutEtapa({
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >
-      <CajaGrafico>{grafico}</CajaGrafico>
+      <CajaGrafico anchoFinal={anchoFinal} contraido={contraido}>
+        {grafico}
+      </CajaGrafico>
 
       {/* Columna de texto: ancho fijo y alto mínimo = alto del gráfico, con
           el contenido pegado ARRIBA — la escalera crece hacia abajo. */}
