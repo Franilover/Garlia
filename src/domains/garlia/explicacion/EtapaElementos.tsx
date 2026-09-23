@@ -318,8 +318,8 @@ export default function EtapaElementos({ replayKey, onReplay }: { replayKey: num
         }
       `}</style>
 
-      <div className="mb-5">
-        <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2> 
+      <div className="mb-5 text-center">
+        <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2>
       </div>
 
       <div className="py-2 md:py-4">

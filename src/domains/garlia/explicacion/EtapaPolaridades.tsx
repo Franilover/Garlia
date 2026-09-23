@@ -329,7 +329,7 @@ export default function EtapaPolaridades() {
         }
       `}</style>
 
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Los fundamentos</h2>
       </div>
 

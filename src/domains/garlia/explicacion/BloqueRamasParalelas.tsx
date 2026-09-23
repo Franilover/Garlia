@@ -91,7 +91,7 @@ export function BloqueRamasParalelas({
           4
         </span>
         <span className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-          Elementos / Iums
+          Material / Energética
         </span>
         <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide opacity-60">
           Completa el tramo anterior
@@ -111,7 +111,7 @@ export function BloqueRamasParalelas({
       <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
         <div className="lg:min-w-0 lg:flex-1">
           <ColumnaParalela
-            encabezado="Elementos"
+            encabezado="Material"
             pasos={PASOS_ELEMENTOS}
             onColumnaCompleta={marcarElementosListo}
             mostrarBoton={false}
@@ -125,7 +125,7 @@ export function BloqueRamasParalelas({
 
         <div className="lg:min-w-0 lg:flex-1">
           <ColumnaParalela
-            encabezado="Iums"
+            encabezado="Energética"
             pasos={PASOS_IUMS}
             onColumnaCompleta={marcarIumsListo}
             mostrarBoton={false}

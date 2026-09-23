@@ -75,7 +75,7 @@ export default function EtapaParticulas({ replayKey, onReplay }: { replayKey: nu
         }
       `}</style>
 
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Partículas</h2>
       </div>
 

@@ -250,11 +250,8 @@ function hexagonoPoints(cx: number, cy: number, r: number): string {
 export default function EtapaEstructuras({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="estructuras" className="scroll-mt-20 px-1">
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Estructuras</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Los Compuestos no solo se juntan: se organizan en capas, en un orden concreto, dentro de una forma — y nace una Estructura.
-        </p>
       </div>
 
       <div className="py-2 md:py-4">

@@ -307,9 +307,6 @@ export default function EtapaObjetos({ replayKey, onReplay }: { replayKey: numbe
     <section id="objetos" className="scroll-mt-20 px-1">
       <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Objetos</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Uno o más Materiales se vierten en una forma geométrica concreta, y nace un Objeto con propiedades físicas propias.
-        </p>
       </div>
 
       <div className="py-2 md:py-4">

@@ -315,11 +315,8 @@ export default function EtapaCompuestos({ replayKey, onReplay }: { replayKey: nu
         }
       `}</style>
 
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Compuestos</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Los Elementos no se combinan al azar: se unen por Sitios de Enlace compatibles, y de esa unión nace un Compuesto.
-        </p>
       </div>
 
       <div className="py-2 md:py-4">

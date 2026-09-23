@@ -250,11 +250,8 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
 export default function EtapaMateriales({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="materiales" className="scroll-mt-20 px-1">
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Materiales</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Las Estructuras no solo se apilan: se combinan en proporciones concretas, se asientan, y nace un Material con propiedades propias.
-        </p>
       </div>
 
       <div className="py-2 md:py-4">

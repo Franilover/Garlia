@@ -127,7 +127,7 @@ export function DiagramaTasi({ replayKey, onReplay }: { replayKey: number; onRep
 export default function EtapaTasi({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="tasi" className="scroll-mt-20 px-1">
-      <div className="mb-5">
+      <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">TASI</h2>
       </div>
 
