@@ -8,7 +8,7 @@
  * (ColumnaParalela) — sin sincronización entre ellas:
  *
  *   Columna izquierda: Elementos → Compuestos → Estructuras → Materiales → Objetos
- *   Columna derecha:   Iums → Formas → Oris
+ *   Columna derecha:   Iums → Oris
  *
  * Materiales y Objetos son continuación de la cadena de Elementos (una
  * Estructura con propiedades físicas propias, y luego una cosa del
@@ -39,7 +39,6 @@ import EtapaEstructuras from "./EtapaEstructuras";
 import EtapaMateriales from "./EtapaMateriales";
 import EtapaObjetos from "./EtapaObjetos";
 import EtapaIums from "./EtapaIums";
-import EtapaFormas from "./EtapaFormas";
 import EtapaOris from "./EtapaOris";
 
 const PASOS_ELEMENTOS: PasoColumna[] = [
@@ -52,7 +51,6 @@ const PASOS_ELEMENTOS: PasoColumna[] = [
 
 const PASOS_IUMS: PasoColumna[] = [
   { id: "iums", titulo: "Iums", Componente: EtapaIums },
-  { id: "formas", titulo: "Formas", Componente: EtapaFormas },
   { id: "oris", titulo: "Oris", Componente: EtapaOris },
 ];
 
