@@ -165,28 +165,6 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Borde de "masa asentada": un círculo de contorno suave que
-          aparece a partir de "asentando", indicando que el conjunto ya
-          se lee como una sola cosa con límite propio (el Material),
-          no como piezas superpuestas. */}
-      {asentado && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={66}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth={2}
-          pathLength={100}
-          style={{
-            strokeDasharray: 100,
-            strokeDashoffset: paso === "asentando" ? 100 : 0,
-            transition: "stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
-            opacity: 0.5,
-          }}
-        />
-      )}
-
       {posiciones.map((p, i) => (
         <EstructuraDiagrama key={i} cx={p.x} cy={p.y} s={p.s} tono={TONOS[i]} etiqueta={`Estructura ${i + 1}`} />
       ))}
