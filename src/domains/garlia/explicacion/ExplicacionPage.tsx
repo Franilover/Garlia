@@ -41,19 +41,18 @@ export default function ExplicacionPage() {
         <div className="flex flex-col gap-14 pt-4 pb-24">
           <EtapaPolaridades />
 
-          {/* Elementos → Compuestos → Estructuras: en fila horizontal a
-              partir de lg (desktop), cada una ocupando 1/3 del ancho.
-              En pantallas chicas (móvil/tablet) se apilan como antes. */}
-          <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
-            <div className="lg:min-w-0 lg:flex-1">
-              <EtapaElementos />
+          {/* Elementos y Compuestos en fila (desktop, lg+), Estructuras
+              abajo ocupando todo el ancho. En móvil/tablet todo apilado. */}
+          <div className="flex flex-col gap-14">
+            <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
+              <div className="lg:min-w-0 lg:flex-1">
+                <EtapaElementos />
+              </div>
+              <div className="lg:min-w-0 lg:flex-1">
+                <EtapaCompuestos />
+              </div>
             </div>
-            <div className="lg:min-w-0 lg:flex-1">
-              <EtapaCompuestos />
-            </div>
-            <div className="lg:min-w-0 lg:flex-1">
-              <EtapaEstructuras />
-            </div>
+            <EtapaEstructuras />
           </div>
         </div>
       </div>
