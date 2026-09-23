@@ -155,13 +155,13 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
       onKeyDown={(e) => {
         if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
       }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-3"
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >
       {grafico}
 
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
+      <div className="flex w-full max-w-sm flex-col gap-3 md:w-[260px]">
         {ORDEN.slice(0, idx + 1).map((p, i) => {
           const t = TEXTOS[p];
           return (

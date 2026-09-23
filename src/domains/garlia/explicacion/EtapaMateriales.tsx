@@ -198,7 +198,7 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
   const xCristalSeparado = cx + 110;
 
   const grafico = (
-    <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
+    <svg viewBox="50 30 320 176" width={440} height={242} className="shrink-0">
       {esMaterial && <HaloMaterial cx={cx} cy={cy} r={68} color={categoria.color} pulso />}
 
       <g
@@ -232,13 +232,13 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
       onKeyDown={(e) => {
         if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
       }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-3"
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >
       {grafico}
 
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
+      <div className="flex w-full max-w-sm flex-col gap-3 md:w-[260px]">
         {ORDEN.slice(0, idx + 1).map((p, i) => {
           const t = TEXTOS[p];
           return (
