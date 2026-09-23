@@ -105,9 +105,6 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
       </div>
       <div className="min-w-0">
         <p className="text-micro font-black uppercase tracking-wide">{rel.nombre}</p>
-        <p className="truncate text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-          {rel.par}
-        </p>
       </div>
     </div>
   );
@@ -143,7 +140,7 @@ function DiagramaPolaridadesTASI() {
           </div>
         </div>
         <p className="max-w-xs text-center text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-          El + se mueve porque emite. El − se queda quieto porque recibe. Todo lo demás nace de cómo se combinan.
+          El + se mueve porque emite. El − se queda quieto porque recibe.
         </p>
       </div>
 
@@ -333,7 +330,7 @@ export default function EtapaPolaridades() {
       `}</style>
 
       <div className="mb-5">
-        <h2 className="text-base font-black uppercase tracking-wide">Polaridades → TASI → Partículas</h2>
+        <h2 className="text-base font-black uppercase tracking-wide">Los fundamentos</h2>
       </div>
 
       <div className="py-2 md:py-4">
