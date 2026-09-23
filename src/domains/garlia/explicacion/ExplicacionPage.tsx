@@ -81,16 +81,18 @@ export default function ExplicacionPage() {
     </BloqueEtapaClickeable>
   ));
 
-  // bloques[0..2] = Polaridades, TASI, Partículas — uno debajo del otro.
+  // bloques[0..2] = Polaridades, TASI, Partículas — en fila (desktop, lg+).
   // bloques[3..4] = Elementos, Compuestos — en fila (desktop, lg+).
   // bloques[5..6] = Estructuras, Materiales — uno debajo del otro.
   return (
     <div className="mx-auto flex max-w-[1600px] items-start gap-10 px-2 lg:px-6">
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-14 pt-4 pb-24">
-          {bloques[0]}
-          {bloques[1]}
-          {bloques[2]}
+          <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
+            <div className="lg:min-w-0 lg:flex-1">{bloques[0]}</div>
+            <div className="lg:min-w-0 lg:flex-1">{bloques[1]}</div>
+            <div className="lg:min-w-0 lg:flex-1">{bloques[2]}</div>
+          </div>
 
           <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
             <div className="lg:min-w-0 lg:flex-1">{bloques[3]}</div>
