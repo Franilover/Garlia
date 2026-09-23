@@ -12,13 +12,15 @@
  * Supabase) hasta que el conjunto cierra como un Ori — la fuerza cósmica
  * funcional completa, equivalente no material de una Estructura.
  *
- * Última etapa de esta columna: al terminar, queda revelada y quieta,
- * igual que el resto de las etapas finales del recorrido.
- *
- * Versión compacta, mismo lenguaje visual sepia, para columna angosta.
+ * Rediseño: mismo layout de 3 columnas (gráfico | frase corta | más info
+ * al terminar) que el resto de la rama Material/Energética, vía
+ * LayoutEtapa3Col.
  */
 
 import React, { useEffect, useState } from "react";
+
+import { anchoEnCaja } from "./LayoutEtapa";
+import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
 
 type Paso = "sueltos" | "topologia" | "confirmando" | "estable" | "ori";
 const ORDEN: Paso[] = ["sueltos", "topologia", "confirmando", "estable", "ori"];
@@ -29,12 +31,15 @@ const DURACIONES: Record<Exclude<Paso, "ori">, number> = {
   estable: 900,
 };
 
-const TEXTOS: Record<Paso, { titulo: string; detalle: string }> = {
-  sueltos: { titulo: "Varios Iums, sin acomodar", detalle: "Falta el orden entre ellos." },
-  topologia: { titulo: "Se elige una topología", detalle: "Cadena, ramificación, ciclo… cómo se conectan." },
-  confirmando: { titulo: "Cada Ium confirma su rol", detalle: "Núcleo, nodo, salida… cada posición se fija." },
-  estable: { titulo: "El conjunto se estabiliza", detalle: "La configuración cierra sobre sí misma." },
-  ori: { titulo: "Nace un Ori", detalle: "Iums en una topología estable — una fuerza cósmica funcional." },
+const TEXTOS: Record<Paso, { frase: string; info?: string }> = {
+  sueltos: { frase: "Varios Iums sueltos" },
+  topologia: { frase: "Eligiendo topología" },
+  confirmando: { frase: "Confirmando roles" },
+  estable: { frase: "Estabilizando" },
+  ori: {
+    frase: "Ori",
+    info: "Varios Iums se acomodan según una topología (cadena, ramificación, ciclo…) y cada uno confirma su rol dentro de ella hasta cerrar: nace un Ori, una fuerza cósmica funcional.",
+  },
 };
 
 const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
@@ -74,50 +79,34 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
   // conceptual, igual que hexagonoPoints en EtapaEstructuras).
   const POS_RAMA = [{ x: 90, y: 30 }, { x: 45, y: 90 }, { x: 135, y: 90 }];
   const POS = acomodado ? POS_RAMA : POS_SUELTOS;
-  const filas = ORDEN.slice(0, idx + 1);
+
+  const grafico = (
+    <svg viewBox="0 0 180 120" className={CLASE_SVG_EN_CAJA}>
+      {acomodado && (
+        <>
+          <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[1].x} y2={POS_RAMA[1].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+          <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[2].x} y2={POS_RAMA[2].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+        </>
+      )}
+
+      {POS.map((p, i) => (
+        <IumNodo key={i} x={p.x} y={p.y} tono={TONOS[i]} confirmado={confirmando} />
+      ))}
+    </svg>
+  );
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => { if (terminado && (e.key === "Enter" || e.key === " ")) onReplay(); }}
-      className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-center md:gap-5"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir" : undefined}
-    >
-      <svg viewBox="0 0 180 120" width={180} height={120} className="shrink-0">
-        {acomodado && (
-          <>
-            <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[1].x} y2={POS_RAMA[1].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
-            <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[2].x} y2={POS_RAMA[2].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
-          </>
-        )}
-
-        {POS.map((p, i) => (
-          <IumNodo key={i} x={p.x} y={p.y} tono={TONOS[i]} confirmado={confirmando} />
-        ))}
-      </svg>
-
-      <div className="flex w-full max-w-[220px] flex-col gap-2 md:max-w-[200px]">
-        {filas.map((p) => {
-          const t = TEXTOS[p];
-          return (
-            <div key={p} className="text-center md:text-left" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
-              <p className="text-micro font-black uppercase tracking-[0.15em]" style={{ color: "var(--primary)" }}>
-                {t.titulo}
-              </p>
-              <p className="mx-auto mt-0.5 max-w-[200px] text-[10px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                {t.detalle}
-              </p>
-            </div>
-          );
-        })}
-        {terminado && (
-          <p className="text-center text-[9px] font-bold uppercase tracking-wide opacity-40 md:text-left">Toca para repetir</p>
-        )}
-      </div>
-    </div>
+    <LayoutEtapa3Col
+      grafico={grafico}
+      frase={TEXTOS[paso].frase}
+      info={TEXTOS.ori.info}
+      terminado={terminado}
+      pasoActual={idx}
+      totalPasos={ORDEN.length}
+      onReplay={onReplay}
+      anchoFinal={anchoEnCaja(120, 180, 120)}
+      contraido
+    />
   );
 }
 
@@ -126,6 +115,13 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
 export default function EtapaOris({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="oris" className="scroll-mt-20 px-1">
+      <style>{`
+        @keyframes explicacion-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div className="mb-4 text-center">
         <h2 className="text-sm font-black uppercase tracking-wide">Oris</h2>
       </div>

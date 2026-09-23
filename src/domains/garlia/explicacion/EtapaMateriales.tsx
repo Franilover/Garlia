@@ -48,7 +48,8 @@
 
 import React, { useEffect, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
+import { anchoEnCaja } from "./LayoutEtapa";
+import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -61,18 +62,12 @@ const DURACIONES: Record<Exclude<PasoMaterial, "material">, number> = {
   fusionando: 1300,
 };
 
-const TEXTOS: Record<PasoMaterial, { titulo: string; detalle: string }> = {
-  separados: {
-    titulo: "Un Compuesto y una Estructura anfitriona",
-    detalle: "Dos orígenes distintos, todavía separados.",
-  },
-  fusionando: {
-    titulo: "Convergen al centro",
-    detalle: "No se mezclan al azar: se fusionan 1 a 1, uno con el otro.",
-  },
+const TEXTOS: Record<PasoMaterial, { frase: string; info?: string }> = {
+  separados: { frase: "Dos orígenes" },
+  fusionando: { frase: "Fusionando" },
   material: {
-    titulo: "Nace un Material",
-    detalle: "La fusión de ambos, con un halo propio según su categoría.",
+    frase: "Material",
+    info: "Un Compuesto y una Estructura anfitriona convergen y se fusionan 1 a 1: nace un Material, con un halo propio según su categoría.",
   },
 };
 
@@ -226,20 +221,19 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
     </svg>
   );
 
-  const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({
-    id: p,
-    ...TEXTOS[p],
-    extra:
-      p === "material" && esMaterial ? (
-        <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: categoria.color }}>
-          Categoría: {categoria.id.replace(/_/g, " ")}
-        </p>
-      ) : undefined,
-  }));
+  const info = esMaterial ? (
+    <>
+      {TEXTOS.material.info}
+      <span className="mt-1 block font-bold uppercase tracking-wide" style={{ color: categoria.color }}>
+        Categoría: {categoria.id.replace(/_/g, " ")}
+      </span>
+    </>
+  ) : undefined;
 
-  return <LayoutEtapa
+  return <LayoutEtapa3Col
       grafico={grafico}
-      filas={filas}
+      frase={TEXTOS[paso].frase}
+      info={info}
       terminado={terminado}
       pasoActual={idx}
       totalPasos={ORDEN.length}

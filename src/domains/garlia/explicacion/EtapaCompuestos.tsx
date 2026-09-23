@@ -35,7 +35,8 @@
 
 import React, { useEffect, useState } from "react";
 
-import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./LayoutEtapa";
+import { anchoEnCaja } from "./LayoutEtapa";
+import { LayoutEtapa3Col, CLASE_SVG_EN_CAJA } from "./LayoutEtapa3Col";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
@@ -49,22 +50,15 @@ const DURACIONES: Record<Exclude<PasoEnlace, "compuesto">, number> = {
   enlazado: 1500,
 };
 
-const TEXTOS: Record<PasoEnlace, { titulo: string; detalle: string }> = {
-  buscando: {
-    titulo: "Dos Elementos con Sitios de Enlace",
-    detalle: "Cada uno tiene puntos disponibles para conectarse.",
-  },
-  encajando: {
-    titulo: "Un Sitio compatible encuentra su par",
-    detalle: "El encaje depende de afinidad y geometría.",
-  },
-  enlazado: {
-    titulo: "El enlace se forma",
-    detalle: "Los dos Elementos quedan unidos, con intensidad y estabilidad propias.",
-  },
+/** frase: palabra/frase corta mostrada durante ese paso de la animación.
+ *  info: texto de más info, revelado solo al terminar (paso "compuesto"). */
+const TEXTOS: Record<PasoEnlace, { frase: string; info?: string }> = {
+  buscando: { frase: "Buscando sitio" },
+  encajando: { frase: "Encajando" },
+  enlazado: { frase: "Enlazando" },
   compuesto: {
-    titulo: "Nace un Compuesto",
-    detalle: "Dos Elementos enlazados: una cosa nueva, con propiedades propias.",
+    frase: "Compuesto",
+    info: "Dos Elementos con Sitios de Enlace compatibles se encuentran, encajan y quedan unidos: nace un Compuesto, con propiedades propias que ninguno de los dos tenía por separado.",
   },
 };
 
@@ -209,11 +203,6 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
   // como "tensión elástica" que como un simple trazo estático.
   const curvaY = yEnlace - 22;
 
-  // Filas de texto en escalera: se apilan hacia abajo a medida que se
-  // avanza en la secuencia, sin borrar los pasos ya alcanzados — mismo
-  // patrón que "filasCapas" en DiagramaCapas.
-  const filasTexto = ORDEN.slice(0, idx + 1);
-
   const grafico = (
     <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
       {/* Enlace: curva que crece con un dibujo de trazo (pathLength +
@@ -244,11 +233,10 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
     </svg>
   );
 
-  const filas: FilaTexto[] = filasTexto.map((p) => ({ id: p, ...TEXTOS[p] }));
-
-  return <LayoutEtapa
+  return <LayoutEtapa3Col
       grafico={grafico}
-      filas={filas}
+      frase={TEXTOS[paso].frase}
+      info={TEXTOS.compuesto.info}
       terminado={terminado}
       pasoActual={idx}
       totalPasos={ORDEN.length}
@@ -278,6 +266,10 @@ export default function EtapaCompuestos({ replayKey, onReplay }: { replayKey: nu
         @keyframes explicacion-girar {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes explicacion-fade-in {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
