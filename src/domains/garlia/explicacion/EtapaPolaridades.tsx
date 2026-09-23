@@ -82,7 +82,7 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
 
   return (
     <div
-      className="flex w-32 flex-col items-center gap-2 rounded-lg px-3 py-2.5 text-center"
+      className="flex items-center gap-3 rounded-lg px-3 py-2.5"
       style={{
         background: "color-mix(in srgb, var(--primary) 4%, transparent)",
         border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
@@ -94,8 +94,8 @@ function FilaRelacion({ rel, index }: { rel: (typeof RELACIONES)[number]; index:
         <Polo signo={signos[0]} size={28} orbitando={signos[0] === "+"} />
         <Polo signo={signos[1]} size={28} orbitando={signos[1] === "+"} />
       </div>
-      <svg width="12" height="20" viewBox="0 0 12 20" className="shrink-0 opacity-40">
-        <path d="M6 0 V16 M1 11 L6 17 L11 11" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="20" height="12" viewBox="0 0 20 12" className="shrink-0 opacity-40">
+        <path d="M0 6 H16 M11 1 L16 6 L11 11" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 font-black"
@@ -128,9 +128,9 @@ function DiagramaPolaridadesTASI() {
   }, []);
 
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-5">
+    <div className="mx-auto flex max-w-md flex-col items-stretch gap-5 md:max-w-none md:flex-row md:items-start md:justify-center">
       {/* Paso A: los dos polos base */}
-      <div className="flex w-full flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2 md:w-auto md:max-w-[220px]">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 1 · Dos polos</p>
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-center gap-1.5">
@@ -147,28 +147,28 @@ function DiagramaPolaridadesTASI() {
         </p>
       </div>
 
-      <FlechaAbajo />
+      <FlechaPaso />
 
       {/* Paso B: las 4 relaciones polares → TASI */}
-      <div className="flex w-full flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2 md:w-auto md:max-w-[220px]">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 2 · Se combinan</p>
-        <div className="flex w-full flex-row flex-wrap justify-center gap-2">
+        <div className="grid w-full grid-cols-1 gap-2">
           {RELACIONES.map((rel, i) => (
             <FilaRelacion key={rel.resultado} rel={rel} index={i} />
           ))}
         </div>
       </div>
 
-      <FlechaAbajo />
+      <FlechaPaso />
 
       {/* Paso C: una Partícula = 3 letras TASI juntas, ciclando ejemplos */}
-      <div className="flex w-full flex-col items-center gap-2">
+      <div className="flex w-full flex-col items-center gap-2 md:w-auto md:max-w-[220px]">
         <p className="text-micro font-bold uppercase tracking-[0.2em] opacity-50">Paso 3 · 3 letras = 1 Partícula</p>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 md:flex-col md:gap-2">
           <div key={ejemploIdx} style={{ animation: "explicacion-pop-in 0.4s ease-out both" }}>
             <ParticulaVisual formula={EJEMPLOS[ejemploIdx]} size={96} />
           </div>
-          <div>
+          <div className="md:text-center">
             <p className="font-mono text-lg font-black tracking-widest">{EJEMPLOS[ejemploIdx]}</p>
             <p className="text-[11px]" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
               Cada letra ocupa un tercio del círculo. Cambiar el orden o las letras da una Partícula distinta.
@@ -180,11 +180,19 @@ function DiagramaPolaridadesTASI() {
   );
 }
 
-function FlechaAbajo() {
+/** Flecha entre pasos: hacia abajo en mobile (columna), hacia la derecha
+ *  en desktop (fila) — mismo componente, cambia de orientación con el
+ *  layout para que el flujo Paso 1 → 2 → 3 se lea horizontal en compu. */
+function FlechaPaso() {
   return (
-    <svg width="16" height="24" viewBox="0 0 16 24" className="opacity-30">
-      <path d="M8 0 V18 M2 13 L8 19 L14 13" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <>
+      <svg width="16" height="24" viewBox="0 0 16 24" className="opacity-30 shrink-0 self-center md:hidden">
+        <path d="M8 0 V18 M2 13 L8 19 L14 13" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <svg width="24" height="16" viewBox="0 0 24 16" className="opacity-30 hidden shrink-0 self-center md:block" style={{ marginTop: 28 }}>
+        <path d="M0 8 H18 M13 2 L19 8 L13 14" stroke="var(--primary)" strokeWidth={1.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </>
   );
 }
 
