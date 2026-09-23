@@ -83,7 +83,7 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
       tabIndex={0}
       onClick={() => terminado && onReplay()}
       onKeyDown={(e) => { if (terminado && (e.key === "Enter" || e.key === " ")) onReplay(); }}
-      className="flex flex-col items-center gap-3"
+      className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-center md:gap-5"
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir" : undefined}
     >
@@ -110,22 +110,22 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
         ))}
       </svg>
 
-      <div className="flex w-full max-w-[220px] flex-col gap-2">
+      <div className="flex w-full max-w-[220px] flex-col gap-2 md:max-w-[200px]">
         {filas.map((p) => {
           const t = TEXTOS[p];
           return (
-            <div key={p} className="text-center" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
+            <div key={p} className="text-center md:text-left" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
               <p className="text-micro font-black uppercase tracking-[0.15em]" style={{ color: "var(--primary)" }}>
                 {t.titulo}
               </p>
-              <p className="mx-auto mt-0.5 max-w-[200px] text-[10px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              <p className="mx-auto mt-0.5 max-w-[200px] text-[10px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
                 {t.detalle}
               </p>
             </div>
           );
         })}
         {terminado && (
-          <p className="text-center text-[9px] font-bold uppercase tracking-wide opacity-40">Toca para repetir</p>
+          <p className="text-center text-[9px] font-bold uppercase tracking-wide opacity-40 md:text-left">Toca para repetir</p>
         )}
       </div>
     </div>
