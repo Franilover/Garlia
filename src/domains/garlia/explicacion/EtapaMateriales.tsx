@@ -41,7 +41,7 @@ type PasoMaterial = "sueltas" | "mezclando" | "asentando" | "material";
 
 const ORDEN: PasoMaterial[] = ["sueltas", "mezclando", "asentando", "material"];
 
-const DURACIONES: Record<PasoMaterial, number> = {
+const DURACIONES: Record<Exclude<PasoMaterial, "material">, number> = {
   sueltas: 1700,
   mezclando: 1300,
   asentando: 1300,
@@ -121,7 +121,7 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
     if (paso === "material") return; // último paso: se queda quieto
     const t = setTimeout(() => {
       setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
-    }, DURACIONES[paso]);
+    }, DURACIONES[paso as Exclude<PasoMaterial, "material">]);
     return () => clearTimeout(t);
   }, [paso]);
 

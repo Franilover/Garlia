@@ -43,7 +43,7 @@ type PasoEstructura = "sueltos" | "ordenando" | "conteniendo" | "estructura";
 
 const ORDEN: PasoEstructura[] = ["sueltos", "ordenando", "conteniendo", "estructura"];
 
-const DURACIONES: Record<PasoEstructura, number> = {
+const DURACIONES: Record<Exclude<PasoEstructura, "estructura">, number> = {
   sueltos: 1700,
   ordenando: 1300,
   conteniendo: 1300,
@@ -118,7 +118,7 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
     if (paso === "estructura") return; // último paso: se queda quieto
     const t = setTimeout(() => {
       setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
-    }, DURACIONES[paso]);
+    }, DURACIONES[paso as Exclude<PasoEstructura, "estructura">]);
     return () => clearTimeout(t);
   }, [paso]);
 

@@ -41,7 +41,7 @@ type PasoEnlace = "buscando" | "encajando" | "enlazado" | "compuesto";
 
 const ORDEN: PasoEnlace[] = ["buscando", "encajando", "enlazado", "compuesto"];
 
-const DURACIONES: Record<PasoEnlace, number> = {
+const DURACIONES: Record<Exclude<PasoEnlace, "compuesto">, number> = {
   buscando: 1800,
   encajando: 850,
   enlazado: 1500,
@@ -185,7 +185,7 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
     if (paso === "compuesto") return; // último paso: se queda quieto
     const t = setTimeout(() => {
       setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
-    }, DURACIONES[paso]);
+    }, DURACIONES[paso as Exclude<PasoEnlace, "compuesto">]);
     return () => clearTimeout(t);
   }, [paso]);
 
