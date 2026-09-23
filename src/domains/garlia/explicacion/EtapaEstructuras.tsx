@@ -12,23 +12,20 @@
  * la izquierda en desktop, texto apilándose en escalera a la derecha a
  * medida que avanza el ciclo, sin borrar los pasos anteriores.
  *
- *   DiagramaCapasEstructura: el salto conceptual de Compuesto a Estructura
- *   no es "mezclarse" (eso ya pasó en Compuestos) sino ORGANIZARSE: varios
- *   Compuestos sueltos se acomodan en capas, en un orden concreto, dentro
- *   de una forma geométrica — ver estructura_subcomponentes (orden,
- *   geometria_id) y estructura_geometrias (forma + parámetros + volumen)
- *   en Supabase. Ej. el Diente real: Esmalte → Dentina → Pulpa, en ese
- *   orden, dentro de una geometría propia. El ciclo:
+ *   DiagramaEstructura: arranca donde terminó EtapaCompuestos — literalmente
+ *   el mismo par de Elementos enlazados, al mismo tamaño — y de ahí:
  *
- *     1. 3 Compuestos sueltos, sin orden, flotando libremente.
- *     2. Se acomodan en capas, una encima de otra, en un orden concreto
- *        (de afuera hacia adentro) — el orden ES la explicación, no
- *        decoración.
- *     3. Aparece el contorno de una forma geométrica envolviendo esas
- *        capas — la Estructura definida, con volumen propio.
- *     4. El conjunto se marca como una Estructura completa (halo +
- *        etiqueta), se sostiene más tiempo que los pasos anteriores, y
- *        el ciclo reinicia.
+ *     1. "compuesto": el Compuesto recién nacido, idéntico al cierre de
+ *        EtapaCompuestos (mismo radio, misma posición), para que se lea
+ *        como continuación directa, no como una etapa nueva desconectada.
+ *     2. "deszoom": el mismo gráfico se encoge hacia una esquina/centro
+ *        pequeño — un solo elemento visual, ya no el foco de la escena.
+ *     3. "simplificado": ese Compuesto reducido se simplifica en un
+ *        círculo simple — deja de importar su composición interna, ahora
+ *        es solo "una Estructura posible", una unidad más.
+ *     4. "acumulando": aparecen 3 formas juntas — un círculo, un cuadrado
+ *        (4 lados) y un hexágono (6 lados) — representando que existen
+ *        Estructuras con distintas geometrías, y ahí termina el tramo.
  *
  * No usa datos reales (Supabase) a propósito: es un diagrama conceptual
  * autocontenido, igual que los diagramas de las 3 etapas previas — mismo
@@ -39,193 +36,152 @@ import React, { useEffect, useState } from "react";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
-type PasoEstructura = "sueltos" | "ordenando" | "conteniendo" | "estructura";
+type PasoEstructura = "compuesto" | "deszoom" | "simplificado" | "acumulando";
 
-const ORDEN: PasoEstructura[] = ["sueltos", "ordenando", "conteniendo", "estructura"];
+const ORDEN: PasoEstructura[] = ["compuesto", "deszoom", "simplificado", "acumulando"];
 
-const DURACIONES: Record<Exclude<PasoEstructura, "estructura">, number> = {
-  sueltos: 1700,
-  ordenando: 1300,
-  conteniendo: 1300,
+const DURACIONES: Record<Exclude<PasoEstructura, "acumulando">, number> = {
+  compuesto: 1300,
+  deszoom: 900,
+  simplificado: 1100,
 };
 
 const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
-  sueltos: {
-    titulo: "Varios Compuestos, todavía sueltos",
-    detalle: "Falta acomodarse en un orden concreto.",
+  compuesto: {
+    titulo: "Viene de un Compuesto",
+    detalle: "El mismo que acabamos de formar, sin cambios todavía.",
   },
-  ordenando: {
-    titulo: "Se acomodan en capas, en un orden",
-    detalle: "Cada Compuesto ocupa un lugar propio, de afuera hacia adentro.",
+  deszoom: {
+    titulo: "Se aleja: ya es solo una pieza",
+    detalle: "Deja de ser el centro de atención — ahora es una unidad más.",
   },
-  conteniendo: {
-    titulo: "Una forma geométrica los contiene",
-    detalle: "Las capas toman una geometría con volumen propio.",
+  simplificado: {
+    titulo: "Se simplifica a un círculo",
+    detalle: "Ya no importa su composición interna, solo que existe.",
   },
-  estructura: {
+  acumulando: {
     titulo: "Nace una Estructura",
-    detalle: "Capas en orden dentro de una forma — como Esmalte, Dentina y Pulpa en un Diente.",
+    detalle: "Existen con distintas geometrías: círculo, cuadrado, hexágono…",
   },
 };
 
-const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+const TONO_A = "#8a5a34";
+const TONO_B = "#4e3320";
 
-/** Un Compuesto individual del diagrama: dos núcleos pequeños unidos por
- *  un enlace corto — mismo lenguaje visual que el "compuesto ya formado"
- *  al final de EtapaCompuestos (dos Elementos enlazados), pero en escala
- *  reducida, para que se lea como continuación directa de esa etapa: lo
- *  que ahí nació como Compuesto, acá es la pieza suelta que se ordena.
- *  El foco de esta etapa es el ORDEN entre Compuestos, no su composición
- *  interna (eso ya se explicó en Compuestos), así que el par se mantiene
- *  simple: sin órbitas ni Sitios de Enlace, solo el par + su enlace. */
-function CompuestoDiagrama({
+/** Sitio de enlace: idéntico al de EtapaCompuestos, ya sin animación de
+ *  pulso (el enlace ya está formado, es un estado quieto). */
+function SitioEnlace({ cx, cy, tono }: { cx: number; cy: number; tono: string }) {
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={6.5}
+      style={{
+        fill: `color-mix(in srgb, ${tono} 88%, transparent)`,
+        stroke: "var(--primary)",
+        strokeWidth: 1.6,
+      }}
+    />
+  );
+}
+
+/** Mini-átomo idéntico al MiniElemento de EtapaCompuestos (núcleo + 2
+ *  capas orbitales + 3 Sitios de Enlace) — se reutiliza el mismo diseño,
+ *  al mismo tamaño, para que el primer paso de esta etapa se lea como
+ *  literalmente el mismo gráfico con el que cerró la etapa anterior. */
+function MiniElemento({
   cx,
   cy,
-  r,
+  radio,
   tono,
-  etiqueta,
+  girar,
 }: {
   cx: number;
   cy: number;
-  r: number;
+  radio: number;
   tono: string;
-  etiqueta: string;
+  girar: { media: string; externa: string };
 }) {
-  const sep = r * 0.85;
+  const radioOrbitaMedia = radio * 0.42;
+  const radioOrbitaExterna = radio * 0.72;
+  const radioSitios = radio * 1.02;
+  const angulosSitios = [-Math.PI / 2, Math.PI / 6, (Math.PI * 5) / 6];
+
   return (
-    <g style={{ transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)" }}>
-      <line
-        x1={cx - sep} y1={cy} x2={cx + sep} y2={cy}
-        strokeWidth={Math.max(r * 0.12, 1.4)}
-        style={{ stroke: `color-mix(in srgb, ${tono} 70%, black)`, transition: "x1 0.6s cubic-bezier(0.22,1,0.36,1), x2 0.6s cubic-bezier(0.22,1,0.36,1)" }}
-      />
-      <circle
-        cx={cx - sep}
-        cy={cy}
-        r={r * 0.62}
-        style={{
-          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
-          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
-          transition: "cx 0.6s cubic-bezier(0.22, 1, 0.36, 1), cy 0.6s cubic-bezier(0.22, 1, 0.36, 1), r 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-        strokeWidth={1.4}
-      />
-      <circle
-        cx={cx + sep}
-        cy={cy}
-        r={r * 0.62}
-        style={{
-          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
-          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
-          transition: "cx 0.6s cubic-bezier(0.22, 1, 0.36, 1), cy 0.6s cubic-bezier(0.22, 1, 0.36, 1), r 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-        strokeWidth={1.4}
-      />
-      <title>{etiqueta}</title>
+    <g>
+      <circle cx={cx} cy={cy} r={radioOrbitaMedia} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+      <circle cx={cx} cy={cy} r={radioOrbitaExterna} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
+
+      <circle cx={cx} cy={cy} r={radio * 0.16} style={{ fill: `color-mix(in srgb, ${tono} 45%, var(--bg-main))`, stroke: `color-mix(in srgb, ${tono} 85%, black)` }} strokeWidth={1.2} />
+
+      <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: `explicacion-estructura-girar ${girar.media} linear infinite` }}>
+        {[0, 1, 2].map((i) => {
+          const a = (i / 3) * Math.PI * 2 + 0.4;
+          return <circle key={`m${i}`} cx={cx + Math.cos(a) * radioOrbitaMedia} cy={cy + Math.sin(a) * radioOrbitaMedia} r={radio * 0.06} style={{ fill: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />;
+        })}
+      </g>
+      <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: `explicacion-estructura-girar ${girar.externa} linear infinite reverse` }}>
+        {[0, 1, 2, 3].map((i) => {
+          const a = (i / 4) * Math.PI * 2 - 0.3;
+          return <circle key={`e${i}`} cx={cx + Math.cos(a) * radioOrbitaExterna} cy={cy + Math.sin(a) * radioOrbitaExterna} r={radio * 0.05} style={{ fill: "color-mix(in srgb, var(--primary) 32%, transparent)" }} />;
+        })}
+      </g>
+
+      {angulosSitios.map((a, i) => (
+        <SitioEnlace key={i} cx={cx + Math.cos(a) * radioSitios} cy={cy + Math.sin(a) * radioSitios} tono={tono} />
+      ))}
     </g>
   );
 }
 
-function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
-  const [paso, setPaso] = useState<PasoEstructura>("sueltos");
-  const terminado = paso === "estructura";
+/** Puntos de un polígono regular de n lados centrado en (cx, cy), con
+ *  radio r — usado tanto para el cuadrado (4 lados) como el hexágono
+ *  (6 lados) del paso final. */
+function poligonoPoints(cx: number, cy: number, r: number, lados: number, rotacion = -Math.PI / 2): string {
+  const puntos = Array.from({ length: lados }, (_, i) => {
+    const a = (i / lados) * Math.PI * 2 + rotacion;
+    return `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
+  });
+  return puntos.join(" ");
+}
+
+function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
+  const [paso, setPaso] = useState<PasoEstructura>("compuesto");
+  const terminado = paso === "acumulando";
 
   useEffect(() => {
-    setPaso("sueltos");
+    setPaso("compuesto");
   }, [replayKey]);
 
   useEffect(() => {
-    if (paso === "estructura") return; // último paso: se queda quieto
+    if (paso === "acumulando") return; // último paso: se queda quieto
     const t = setTimeout(() => {
       setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
-    }, DURACIONES[paso as Exclude<PasoEstructura, "estructura">]);
+    }, DURACIONES[paso as Exclude<PasoEstructura, "acumulando">]);
     return () => clearTimeout(t);
   }, [paso]);
 
   const idx = ORDEN.indexOf(paso);
-  const ordenado = paso !== "sueltos";
-  const fusionado = paso === "estructura";
+  const alejado = paso !== "compuesto";
+  const simplificado = paso === "simplificado" || paso === "acumulando";
+  const acumulando = paso === "acumulando";
 
-  const cx = 210;
+  // Paso 1 "compuesto": exactamente la misma geometría con la que cerró
+  // EtapaCompuestos (radio 78, separación 128, centrado en 210,118).
+  const cxCentro = 210;
   const cy = 118;
+  const radioCompuesto = 78;
+  const separacion = 128;
+  const cxA = cxCentro - separacion / 2;
+  const cxB = cxCentro + separacion / 2;
+  const yEnlace = cy - radioCompuesto * 1.02;
 
-  // Posiciones "sueltas": 3 Compuestos flotando sin orden, en distintos
-  // puntos y radios levemente distintos entre sí (para leerse como
-  // objetos independientes, no como una fila prolija todavía).
-  const POS_SUELTOS = [
-    { x: cx - 78, y: cy - 34, r: 22 },
-    { x: cx + 62, y: cy + 26, r: 18 },
-    { x: cx - 8, y: cy + 52, r: 20 },
-  ];
-
-  // Posiciones "ordenadas": 3 anillos concéntricos, de afuera (mayor
-  // radio, ocupa más espacio) hacia adentro — mismo lenguaje visual que
-  // las capas de un Elemento (núcleo/media/externa), reforzando que
-  // "capas ordenadas" es un concepto que ya se vio antes en el recorrido.
-  const RADIOS_ORDEN = [72, 48, 24];
-  const POS_ORDENADOS = RADIOS_ORDEN.map((r) => ({ x: cx, y: cy, r: r * 0.3 }));
-
-  // Paso final: los 3 Compuestos convergen al centro y se leen como una
-  // sola cosa — el círculo de la Estructura, no capas concéntricas.
-  // Refuerza visualmente el cierre: de "3 piezas ordenadas" a "1 unidad".
-  const POS_FUSIONADO = [
-    { x: cx, y: cy, r: 8 },
-    { x: cx, y: cy, r: 8 },
-    { x: cx, y: cy, r: 8 },
-  ];
-
-  const posiciones = fusionado ? POS_FUSIONADO : ordenado ? POS_ORDENADOS : POS_SUELTOS;
-
-  // Filas de texto en escalera: se apilan hacia abajo a medida que se
-  // avanza en la secuencia, sin borrar los pasos ya alcanzados.
-  const filasTexto = ORDEN.slice(0, idx + 1);
-
-  const grafico = (
-    <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Contorno geométrico: un hexágono que se dibuja con trazo
-          (pathLength + strokeDashoffset) envolviendo las capas ya
-          ordenadas — la "forma" de estructura_geometrias haciéndose
-          visible. Aparece solo en "conteniendo", antes de fusionarse. */}
-      {paso === "conteniendo" && (
-        <polygon
-          points={hexagonoPoints(cx, cy, 88)}
-          fill="none"
-          stroke="var(--primary)"
-          strokeWidth={2}
-          strokeLinejoin="round"
-          pathLength={100}
-          style={{
-            strokeDasharray: 100,
-            strokeDashoffset: paso === "conteniendo" ? 100 : 0,
-            transition: "stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
-            opacity: 0.55,
-          }}
-        />
-      )}
-
-      {/* Círculo de la Estructura: lo que queda cuando los 3 Compuestos
-          terminan de fusionarse — una sola forma, con el mismo radio que
-          tenía el contorno geométrico que los contuvo un instante antes. */}
-      {fusionado && (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={70}
-          style={{
-            fill: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
-            stroke: "var(--primary)",
-          }}
-          strokeWidth={2}
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.5s" fill="freeze" />
-        </circle>
-      )}
-
-      {posiciones.map((p, i) => (
-        <CompuestoDiagrama key={i} cx={p.x} cy={p.y} r={p.r} tono={TONOS[i]} etiqueta={`Compuesto ${i + 1}`} />
-      ))}
-    </svg>
-  );
+  // Escala de deszoom: el par de Elementos completo se encoge hacia el
+  // centro-izquierda del lienzo, dejando espacio a la derecha para las
+  // 3 formas que se van a acumular en el paso final.
+  const escalaAlejado = 0.34;
+  const cxAlejado = 110;
+  const cyAlejado = 118;
 
   return (
     <div
@@ -239,10 +195,64 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >
-      {grafico}
+      <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
+        {/* Paso 1-2: el Compuesto (par de Elementos enlazados), que se
+            encoge y se traslada con un solo <g transform>, animado por
+            CSS transition — así "se hace deszoom" en vez de saltar. */}
+        {!simplificado && (
+          <g
+            style={{
+              transformOrigin: `${cxCentro}px ${cy}px`,
+              transform: alejado ? `translate(${cxAlejado - cxCentro}px, ${cyAlejado - cy}px) scale(${escalaAlejado})` : "translate(0px, 0px) scale(1)",
+              transition: "transform 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
+              opacity: alejado ? 0.7 : 1,
+            }}
+          >
+            <path
+              d={`M ${cxA} ${yEnlace} Q ${cxCentro} ${yEnlace - 22} ${cxB} ${yEnlace}`}
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth={3}
+              strokeLinecap="round"
+            />
+            <MiniElemento cx={cxA} cy={cy} radio={radioCompuesto} tono={TONO_A} girar={{ media: "22s", externa: "34s" }} />
+            <MiniElemento cx={cxB} cy={cy} radio={radioCompuesto} tono={TONO_B} girar={{ media: "26s", externa: "30s" }} />
+          </g>
+        )}
+
+        {/* Paso 3: el Compuesto alejado se simplifica a un círculo simple
+            — misma posición/escala aproximada que tenía el par alejado,
+            leído ahora como "una Estructura posible" ya sin composición
+            interna visible. */}
+        {simplificado && !acumulando && (
+          <circle
+            cx={cxAlejado}
+            cy={cyAlejado}
+            r={40}
+            style={{
+              fill: "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+              stroke: "var(--primary)",
+            }}
+            strokeWidth={2}
+          >
+            <animate attributeName="opacity" from="0" to="1" dur="0.4s" fill="freeze" />
+          </circle>
+        )}
+
+        {/* Paso 4: 3 formas acumuladas — círculo, cuadrado (4 lados) y
+            hexágono (6 lados) — representando distintas geometrías
+            posibles de Estructura, una junto a otra. */}
+        {acumulando && (
+          <g style={{ animation: "explicacion-fade-in 0.5s ease-out both" }}>
+            <circle cx={110} cy={118} r={40} style={{ fill: "color-mix(in srgb, var(--primary) 30%, var(--bg-main))", stroke: "var(--primary)" }} strokeWidth={2} />
+            <polygon points={poligonoPoints(210, 118, 40, 4)} style={{ fill: "color-mix(in srgb, var(--primary) 22%, var(--bg-main))", stroke: "var(--primary)" }} strokeWidth={2} strokeLinejoin="round" />
+            <polygon points={poligonoPoints(310, 118, 42, 6)} style={{ fill: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))", stroke: "var(--primary)" }} strokeWidth={2} strokeLinejoin="round" />
+          </g>
+        )}
+      </svg>
 
       <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
-        {filasTexto.map((p, i) => {
+        {ORDEN.slice(0, idx + 1).map((p, i) => {
           const t = TEXTOS[p];
           return (
             <div
@@ -260,7 +270,7 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
           );
         })}
         {terminado && (
-          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${(filasTexto.length - 1) * 14}px` }}>
+          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${idx * 14}px` }}>
             Toca para repetir
           </p>
         )}
@@ -279,30 +289,28 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
   );
 }
 
-/** Puntos de un hexágono regular centrado en (cx, cy) con radio r, como
- *  string listo para <polygon points=...> — representa "una forma
- *  geométrica" cualquiera sin comprometerse a una FormaGeometrica real
- *  del catálogo (prisma, esfera, etc.), ya que este es un diagrama
- *  conceptual, no una Estructura real de Supabase. */
-function hexagonoPoints(cx: number, cy: number, r: number): string {
-  const puntos = Array.from({ length: 6 }, (_, i) => {
-    const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-    return `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
-  });
-  return puntos.join(" ");
-}
-
 // ─── Export principal de la etapa ──────────────────────────────────────────
 
 export default function EtapaEstructuras({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="estructuras" className="scroll-mt-20 px-1">
+      <style>{`
+        @keyframes explicacion-estructura-girar {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes explicacion-fade-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Estructuras</h2>
       </div>
 
       <div className="py-2 md:py-4">
-        <DiagramaCapasEstructura replayKey={replayKey} onReplay={onReplay} />
+        <DiagramaEstructura replayKey={replayKey} onReplay={onReplay} />
       </div>
 
       {/* Galería "Las Estructuras reales" (Supabase) queda para después, a

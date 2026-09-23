@@ -12,21 +12,17 @@
  * desktop, texto apilándose en escalera a la derecha a medida que avanza
  * el ciclo, sin borrar los pasos anteriores.
  *
- *   DiagramaMezclaMaterial: una o más Estructuras (u otros componentes,
- *   ver material_estructuras / material_componentes en Supabase) se
- *   combinan en proporciones concretas — cada una con su propio rol
- *   (proporcion, rol) — y de esa mezcla salen propiedades propias
- *   (propiedades_calculadas, estado_fisico). El ciclo:
+ *   DiagramaMaterial: continúa directo desde EtapaEstructuras — el
+ *   hexágono es una de las formas con las que cerró esa etapa. El ciclo:
  *
- *     1. Varias Estructuras sueltas, cada una ya completa por su cuenta.
- *     2. Se acercan y empiezan a mezclarse en una proporción concreta —
- *        no es una capa ordenada (eso ya pasó en Estructuras) sino una
- *        MEZCLA, cada componente con un peso propio.
- *     3. La mezcla se asienta y toma un estado físico propio (sólido,
- *        líquido, etc.) — el resultado ya no se ve como sus partes.
- *     4. El conjunto se marca como un Material completo (halo + etiqueta),
- *        se sostiene más tiempo que los pasos anteriores, y el ciclo
- *        reinicia.
+ *     1. "sueltas": 3 hexágonos (Estructuras), cada uno con su propia
+ *        rotación, flotando sueltos, sin combinarse todavía.
+ *     2. "superpuestas": los 3 se acercan al centro y se superponen, uno
+ *        sobre otro, conservando cada uno su rotación distinta — se nota
+ *        que son 3 piezas encimadas, no una mezcla difusa.
+ *     3. "material": la pila de hexágonos se simplifica y se convierte en
+ *        un cuadrado — el Material nuevo, con una forma propia que
+ *        ninguna Estructura tenía por separado.
  *
  * No usa datos reales (Supabase) a propósito: es un diagrama conceptual
  * autocontenido, igual que los diagramas de las etapas previas — mismo
@@ -37,79 +33,81 @@ import React, { useEffect, useState } from "react";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
-type PasoMaterial = "sueltas" | "mezclando" | "asentando" | "material";
+type PasoMaterial = "sueltas" | "superpuestas" | "material";
 
-const ORDEN: PasoMaterial[] = ["sueltas", "mezclando", "asentando", "material"];
+const ORDEN: PasoMaterial[] = ["sueltas", "superpuestas", "material"];
 
 const DURACIONES: Record<Exclude<PasoMaterial, "material">, number> = {
-  sueltas: 1700,
-  mezclando: 1300,
-  asentando: 1300,
+  sueltas: 1500,
+  superpuestas: 1300,
 };
 
 const TEXTOS: Record<PasoMaterial, { titulo: string; detalle: string }> = {
   sueltas: {
-    titulo: "Varias Estructuras, todavía sueltas",
-    detalle: "Falta el paso siguiente: combinarse.",
+    titulo: "Tres Estructuras, todavía sueltas",
+    detalle: "Cada una con su propia geometría y orientación.",
   },
-  mezclando: {
-    titulo: "Se combinan en una proporción concreta",
-    detalle: "Se mezclan, cada una con un peso propio.",
-  },
-  asentando: {
-    titulo: "La mezcla se asienta",
-    detalle: "Toma un estado físico propio y ya no se distinguen las partes.",
+  superpuestas: {
+    titulo: "Se juntan, una sobre otra",
+    detalle: "Cada una conserva su rotación, pero ya están encimadas.",
   },
   material: {
     titulo: "Nace un Material",
-    detalle: "Estructuras combinadas, con propiedades que ninguna tenía sola.",
+    detalle: "La pila se simplifica en una forma propia: un cuadrado.",
   },
 };
 
 const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
 
-/** Una Estructura individual del diagrama: cuadrado simple con su propio
- *  tono sepia (mismo criterio de valores claro/medio/oscuro que
- *  CompuestoDiagrama en EtapaEstructuras) — no necesita más detalle que
- *  "una cosa ya completa", porque el foco de esta etapa es la MEZCLA, no
- *  su organización interna (eso ya se explicó en Estructuras). Usa un
- *  cuadrado (en vez del círculo de Compuesto) para que se distinga a
- *  simple vista de la etapa anterior. */
+/** Puntos de un hexágono regular centrado en (cx, cy), con radio r y una
+ *  rotación propia (para que las 3 Estructuras se distingan entre sí sin
+ *  necesitar más que un giro distinto cada una). */
+function hexagonoPoints(cx: number, cy: number, r: number, rotacionGrados: number): string {
+  const rotacion = (rotacionGrados * Math.PI) / 180 - Math.PI / 2;
+  const puntos = Array.from({ length: 6 }, (_, i) => {
+    const a = (i / 6) * Math.PI * 2 + rotacion;
+    return `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
+  });
+  return puntos.join(" ");
+}
+
+/** Una Estructura individual del diagrama: hexágono con su propio tono y
+ *  rotación — mismo lenguaje visual con el que cerró EtapaEstructuras
+ *  (una de las 3 geometrías posibles), para que se lea como continuación
+ *  directa de esa etapa. */
 function EstructuraDiagrama({
   cx,
   cy,
-  s,
+  r,
+  rotacion,
   tono,
   etiqueta,
 }: {
   cx: number;
   cy: number;
-  s: number;
+  r: number;
+  rotacion: number;
   tono: string;
   etiqueta: string;
 }) {
   return (
     <g style={{ transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)" }}>
-      <rect
-        x={cx - s / 2}
-        y={cy - s / 2}
-        width={s}
-        height={s}
-        rx={s * 0.18}
+      <polygon
+        points={hexagonoPoints(cx, cy, r, rotacion)}
         style={{
-          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
+          fill: `color-mix(in srgb, ${tono} 38%, var(--bg-main))`,
           stroke: `color-mix(in srgb, ${tono} 85%, black)`,
-          transition:
-            "x 0.6s cubic-bezier(0.22, 1, 0.36, 1), y 0.6s cubic-bezier(0.22, 1, 0.36, 1), width 0.6s cubic-bezier(0.22, 1, 0.36, 1), height 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+          transition: "opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
-        strokeWidth={1.4}
+        strokeWidth={1.6}
+        strokeLinejoin="round"
       />
       <title>{etiqueta}</title>
     </g>
   );
 }
 
-function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
+function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   const [paso, setPaso] = useState<PasoMaterial>("sueltas");
   const terminado = paso === "material";
 
@@ -126,48 +124,56 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
   }, [paso]);
 
   const idx = ORDEN.indexOf(paso);
-  const mezclando = paso !== "sueltas";
-  const asentado = paso === "asentando" || paso === "material";
+  const superpuestas = paso === "superpuestas";
+  const esMaterial = paso === "material";
 
   const cx = 210;
   const cy = 118;
 
-  // Posiciones "sueltas": 3 Estructuras flotando sin combinarse, en
-  // distintos puntos y tamaños levemente distintos entre sí (para
-  // leerse como objetos independientes, no como una mezcla todavía).
+  // Posiciones "sueltas": 3 hexágonos flotando sin combinarse, cada uno
+  // con su propia rotación (para que se distingan a simple vista).
   const POS_SUELTAS = [
-    { x: cx - 80, y: cy - 30, s: 46 },
-    { x: cx + 66, y: cy + 24, s: 38 },
-    { x: cx - 6, y: cy + 54, s: 42 },
+    { x: cx - 80, y: cy - 30, r: 34, rot: 0 },
+    { x: cx + 66, y: cy + 24, r: 28, rot: 25 },
+    { x: cx - 6, y: cy + 54, r: 30, rot: 50 },
   ];
 
-  // Posiciones "mezcladas": las 3 se superponen hacia el centro, cada una
-  // conservando algo de su tamaño (proporción) pero ya entremezcladas.
-  const POS_MEZCLADAS = [
-    { x: cx - 18, y: cy - 10, s: 52 },
-    { x: cx + 20, y: cy + 6, s: 40 },
-    { x: cx + 2, y: cy + 22, s: 34 },
+  // Posiciones "superpuestas": las 3 convergen al mismo punto, pero cada
+  // una conserva su propia rotación — se leen como piezas encimadas, no
+  // como una mezcla difusa (eso ya pasó como concepto en Compuestos).
+  const POS_SUPERPUESTAS = [
+    { x: cx, y: cy, r: 62, rot: 0 },
+    { x: cx, y: cy, r: 62, rot: 25 },
+    { x: cx, y: cy, r: 62, rot: 50 },
   ];
 
-  // Posiciones "asentadas": convergen casi al mismo punto, ya leídas
-  // como una sola masa con un límite común.
-  const POS_ASENTADAS = [
-    { x: cx, y: cy, s: 58 },
-    { x: cx, y: cy, s: 42 },
-    { x: cx, y: cy, s: 26 },
-  ];
-
-  const posiciones = asentado ? POS_ASENTADAS : mezclando ? POS_MEZCLADAS : POS_SUELTAS;
-
-  // Filas de texto en escalera: se apilan hacia abajo a medida que se
-  // avanza en la secuencia, sin borrar los pasos ya alcanzados.
-  const filasTexto = ORDEN.slice(0, idx + 1);
+  const posiciones = superpuestas || esMaterial ? POS_SUPERPUESTAS : POS_SUELTAS;
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {posiciones.map((p, i) => (
-        <EstructuraDiagrama key={i} cx={p.x} cy={p.y} s={p.s} tono={TONOS[i]} etiqueta={`Estructura ${i + 1}`} />
-      ))}
+      {/* Paso final: la pila de hexágonos se desvanece y en su lugar
+          aparece un cuadrado — el Material, con una forma propia que
+          ninguna Estructura tenía por separado. */}
+      {esMaterial ? (
+        <rect
+          x={cx - 56}
+          y={cy - 56}
+          width={112}
+          height={112}
+          rx={14}
+          style={{
+            fill: "color-mix(in srgb, var(--primary) 22%, var(--bg-main))",
+            stroke: "var(--primary)",
+          }}
+          strokeWidth={2}
+        >
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" fill="freeze" />
+        </rect>
+      ) : (
+        posiciones.map((p, i) => (
+          <EstructuraDiagrama key={i} cx={p.x} cy={p.y} r={p.r} rotacion={p.rot} tono={TONOS[i]} etiqueta={`Estructura ${i + 1}`} />
+        ))
+      )}
     </svg>
   );
 
@@ -186,7 +192,7 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
       {grafico}
 
       <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
-        {filasTexto.map((p, i) => {
+        {ORDEN.slice(0, idx + 1).map((p, i) => {
           const t = TEXTOS[p];
           return (
             <div
@@ -204,7 +210,7 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
           );
         })}
         {terminado && (
-          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${(filasTexto.length - 1) * 14}px` }}>
+          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${idx * 14}px` }}>
             Toca para repetir
           </p>
         )}
@@ -233,7 +239,7 @@ export default function EtapaMateriales({ replayKey, onReplay }: { replayKey: nu
       </div>
 
       <div className="py-2 md:py-4">
-        <DiagramaMezclaMaterial replayKey={replayKey} onReplay={onReplay} />
+        <DiagramaMaterial replayKey={replayKey} onReplay={onReplay} />
       </div>
 
       {/* Galería "Los Materiales reales" (Supabase) queda para después, a

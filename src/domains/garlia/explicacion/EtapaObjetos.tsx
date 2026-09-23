@@ -75,11 +75,11 @@ const TEXTOS: Record<PasoObjeto, { titulo: string; detalle: string }> = {
 
 const TONOS = ["#c9a06a", "#8a5a34"];
 
-/** Un Material individual del diagrama: 3 cuadrados apilados, mismo
- *  diseño con el que terminó EtapaMateriales (varias Estructuras
- *  fusionadas en capas concéntricas) — para que se lea como "la misma
- *  cosa" que llega desde el tramo anterior. No necesita más detalle
- *  porque el foco acá es la forma que va a tomar, no su composición. */
+/** Un Material individual del diagrama: cuadrado simple, mismo diseño
+ *  con el que terminó EtapaMateriales (3 Estructuras convertidas en un
+ *  cuadrado) — para que se lea como "la misma cosa" que llega desde el
+ *  tramo anterior. No necesita más detalle porque el foco acá es la
+ *  forma que va a tomar, no su composición interna. */
 function MaterialDiagrama({
   cx,
   cy,
@@ -95,33 +95,22 @@ function MaterialDiagrama({
   etiqueta: string;
   opacidad?: number;
 }) {
-  const capas = [
-    { f: 1, t: tono },
-    { f: 0.68, t: "#8a5a34" },
-    { f: 0.36, t: "#4e3320" },
-  ];
   return (
     <g style={{ transition: "opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)", opacity: opacidad }}>
-      {capas.map((c, i) => {
-        const cs = s * c.f;
-        return (
-          <rect
-            key={i}
-            x={cx - cs / 2}
-            y={cy - cs / 2}
-            width={cs}
-            height={cs}
-            rx={cs * 0.18}
-            style={{
-              fill: `color-mix(in srgb, ${c.t} 40%, var(--bg-main))`,
-              stroke: `color-mix(in srgb, ${c.t} 85%, black)`,
-              transition:
-                "x 0.6s cubic-bezier(0.22, 1, 0.36, 1), y 0.6s cubic-bezier(0.22, 1, 0.36, 1), width 0.6s cubic-bezier(0.22, 1, 0.36, 1), height 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-            strokeWidth={1.4}
-          />
-        );
-      })}
+      <rect
+        x={cx - s / 2}
+        y={cy - s / 2}
+        width={s}
+        height={s}
+        rx={s * 0.14}
+        style={{
+          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
+          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
+          transition:
+            "x 0.6s cubic-bezier(0.22, 1, 0.36, 1), y 0.6s cubic-bezier(0.22, 1, 0.36, 1), width 0.6s cubic-bezier(0.22, 1, 0.36, 1), height 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        strokeWidth={1.6}
+      />
       <title>{etiqueta}</title>
     </g>
   );
