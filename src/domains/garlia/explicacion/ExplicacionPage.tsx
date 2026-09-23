@@ -15,12 +15,12 @@
  *   → Células → Tejidos → Órganos → Sistemas → Organismos → Criaturas
  *   → Iums → Oris
  *
- * Por ahora está construido hasta Compuestos (Polaridades → Elementos →
- * Compuestos), este último solo con su Bloque 1 (diagrama de la lógica,
- * sin galería de datos reales todavía). Las etapas siguientes (Estructuras
- * en adelante) ya NO se dibujan como bloque "Próximamente" en el body —
- * solo quedan referenciadas, atenuadas, en la barra lateral (ver
- * sidebarItems.ts) hasta que tengan su propio contenido.
+ * Por ahora está construido hasta Estructuras (Polaridades → Elementos →
+ * Compuestos → Estructuras), estas dos últimas solo con su Bloque 1
+ * (diagrama de la lógica, sin galería de datos reales todavía). Las
+ * etapas siguientes (Materiales en adelante) ya NO se dibujan como bloque
+ * "Próximamente" en el body — solo quedan referenciadas, atenuadas, en la
+ * barra lateral (ver sidebarItems.ts) hasta que tengan su propio contenido.
  *
  * Layout: contenido a la izquierda (ancho, sin acotar a max-w chico) +
  * barra lateral fija de índice a la derecha (solo desktop, lg+).
@@ -31,6 +31,7 @@ import React from "react";
 import EtapaPolaridades from "./EtapaPolaridades";
 import EtapaElementos from "./EtapaElementos";
 import EtapaCompuestos from "./EtapaCompuestos";
+import EtapaEstructuras from "./EtapaEstructuras";
 import { SidebarExplicacion } from "./SidebarExplicacion";
 
 export default function ExplicacionPage() {
@@ -41,6 +42,7 @@ export default function ExplicacionPage() {
           <EtapaPolaridades />
           <EtapaElementos />
           <EtapaCompuestos />
+          <EtapaEstructuras />
         </div>
       </div>
 

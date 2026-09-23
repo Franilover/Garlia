@@ -1,0 +1,268 @@
+"use client";
+
+/**
+ * EtapaEstructuras.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Cuarto tramo: Compuestos → Estructura. Mismo criterio que las etapas
+ * anteriores: por ahora solo el Bloque 1 (diagrama animado de la lógica) —
+ * la galería con Estructuras reales de Supabase queda para después, a
+ * propósito, no está implementada acá todavía.
+ *
+ * Mismo layout que DiagramaCapas/DiagramaEnlaceCompuesto: gráfico fijo a
+ * la izquierda en desktop, texto apilándose en escalera a la derecha a
+ * medida que avanza el ciclo, sin borrar los pasos anteriores.
+ *
+ *   DiagramaCapasEstructura: el salto conceptual de Compuesto a Estructura
+ *   no es "mezclarse" (eso ya pasó en Compuestos) sino ORGANIZARSE: varios
+ *   Compuestos sueltos se acomodan en capas, en un orden concreto, dentro
+ *   de una forma geométrica — ver estructura_subcomponentes (orden,
+ *   geometria_id) y estructura_geometrias (forma + parámetros + volumen)
+ *   en Supabase. Ej. el Diente real: Esmalte → Dentina → Pulpa, en ese
+ *   orden, dentro de una geometría propia. El ciclo:
+ *
+ *     1. 3 Compuestos sueltos, sin orden, flotando libremente.
+ *     2. Se acomodan en capas, una encima de otra, en un orden concreto
+ *        (de afuera hacia adentro) — el orden ES la explicación, no
+ *        decoración.
+ *     3. Aparece el contorno de una forma geométrica envolviendo esas
+ *        capas — la Estructura definida, con volumen propio.
+ *     4. El conjunto se marca como una Estructura completa (halo +
+ *        etiqueta), se sostiene más tiempo que los pasos anteriores, y
+ *        el ciclo reinicia.
+ *
+ * No usa datos reales (Supabase) a propósito: es un diagrama conceptual
+ * autocontenido, igual que los diagramas de las 3 etapas previas — mismo
+ * trazo/paleta sepia para que se sienta la misma familia visual.
+ */
+
+import React, { useEffect, useState } from "react";
+
+// ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
+
+type PasoEstructura = "sueltos" | "ordenando" | "conteniendo" | "estructura";
+
+const ORDEN: PasoEstructura[] = ["sueltos", "ordenando", "conteniendo", "estructura"];
+
+const DURACIONES: Record<PasoEstructura, number> = {
+  sueltos: 1700,
+  ordenando: 1300,
+  conteniendo: 1300,
+  // Paso final: se sostiene más tiempo que los anteriores, mismo criterio
+  // que los cierres de DiagramaCapas y DiagramaEnlaceCompuesto.
+  estructura: 3400,
+};
+
+const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
+  sueltos: {
+    titulo: "Varios Compuestos, todavía sueltos",
+    detalle: "Cada uno ya es una cosa formada — falta el paso siguiente: acomodarse en un orden concreto.",
+  },
+  ordenando: {
+    titulo: "Se acomodan en capas, en un orden",
+    detalle: "No es una mezcla más: cada Compuesto ocupa un lugar propio, de afuera hacia adentro.",
+  },
+  conteniendo: {
+    titulo: "Una forma geométrica los contiene",
+    detalle: "Las capas ordenadas toman una geometría concreta, con parámetros y volumen propios.",
+  },
+  estructura: {
+    titulo: "Nace una Estructura",
+    detalle: "Capas de distintos Compuestos, en orden, dentro de una forma — igual que el Esmalte, la Dentina y la Pulpa forman un Diente.",
+  },
+};
+
+const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+
+/** Un Compuesto individual del diagrama: círculo simple con su propio
+ *  tono sepia (mismo criterio de valores claro/medio/oscuro que
+ *  ParticulaVisual/IumVisual) — no necesita más detalle que "una cosa ya
+ *  formada", porque el foco de esta etapa es el ORDEN, no su composición
+ *  interna (eso ya se explicó en Compuestos). */
+function CompuestoDiagrama({
+  cx,
+  cy,
+  r,
+  tono,
+  etiqueta,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  tono: string;
+  etiqueta: string;
+}) {
+  return (
+    <g style={{ transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)" }}>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        style={{
+          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
+          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
+          transition: "cx 0.6s cubic-bezier(0.22, 1, 0.36, 1), cy 0.6s cubic-bezier(0.22, 1, 0.36, 1), r 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        strokeWidth={1.4}
+      />
+      <title>{etiqueta}</title>
+    </g>
+  );
+}
+
+function DiagramaCapasEstructura() {
+  const [paso, setPaso] = useState<PasoEstructura>("sueltos");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPaso((p) => ORDEN[(ORDEN.indexOf(p) + 1) % ORDEN.length]);
+    }, DURACIONES[paso]);
+    return () => clearTimeout(t);
+  }, [paso]);
+
+  const idx = ORDEN.indexOf(paso);
+  const ordenado = paso !== "sueltos";
+  const contenido = paso === "conteniendo" || paso === "estructura";
+  const completo = paso === "estructura";
+
+  const cx = 210;
+  const cy = 118;
+
+  // Posiciones "sueltas": 3 Compuestos flotando sin orden, en distintos
+  // puntos y radios levemente distintos entre sí (para leerse como
+  // objetos independientes, no como una fila prolija todavía).
+  const POS_SUELTOS = [
+    { x: cx - 78, y: cy - 34, r: 30 },
+    { x: cx + 62, y: cy + 26, r: 24 },
+    { x: cx - 8, y: cy + 52, r: 27 },
+  ];
+
+  // Posiciones "ordenadas": 3 anillos concéntricos, de afuera (mayor
+  // radio, ocupa más espacio) hacia adentro — mismo lenguaje visual que
+  // las capas de un Elemento (núcleo/media/externa), reforzando que
+  // "capas ordenadas" es un concepto que ya se vio antes en el recorrido.
+  const RADIOS_ORDEN = [72, 48, 24];
+  const POS_ORDENADOS = RADIOS_ORDEN.map((r) => ({ x: cx, y: cy, r: r * 0.42 }));
+
+  const posiciones = ordenado ? POS_ORDENADOS : POS_SUELTOS;
+
+  // Filas de texto en escalera: se apilan hacia abajo a medida que se
+  // avanza en la secuencia, sin borrar los pasos ya alcanzados.
+  const filasTexto = ORDEN.slice(0, idx + 1);
+
+  const grafico = (
+    <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
+      {/* Halo unificador: aparece solo en el paso final */}
+      {completo && (
+        <ellipse
+          cx={cx}
+          cy={cy}
+          rx={100}
+          ry={92}
+          style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+          strokeWidth={1.2}
+          strokeDasharray="3 5"
+        >
+          <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" />
+        </ellipse>
+      )}
+
+      {/* Contorno geométrico: un hexágono que se dibuja con trazo
+          (pathLength + strokeDashoffset) envolviendo las capas ya
+          ordenadas — la "forma" de estructura_geometrias haciéndose
+          visible. Aparece a partir de "conteniendo". */}
+      {contenido && (
+        <polygon
+          points={hexagonoPoints(cx, cy, 88)}
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          pathLength={100}
+          style={{
+            strokeDasharray: 100,
+            strokeDashoffset: paso === "conteniendo" ? 100 : 0,
+            transition: "stroke-dashoffset 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
+            opacity: 0.55,
+          }}
+        />
+      )}
+
+      {posiciones.map((p, i) => (
+        <CompuestoDiagrama key={i} cx={p.x} cy={p.y} r={p.r} tono={TONOS[i]} etiqueta={`Compuesto ${i + 1}`} />
+      ))}
+    </svg>
+  );
+
+  return (
+    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
+      {grafico}
+
+      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
+        {filasTexto.map((p, i) => {
+          const t = TEXTOS[p];
+          return (
+            <div
+              key={p}
+              className="text-center md:text-left"
+              style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
+            >
+              <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+                {t.titulo}
+              </p>
+              <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                {t.detalle}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-1.5 md:hidden">
+        {ORDEN.map((p, i) => (
+          <div
+            key={p}
+            className="h-1 w-8 rounded-full transition-colors"
+            style={{ background: i <= idx ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Puntos de un hexágono regular centrado en (cx, cy) con radio r, como
+ *  string listo para <polygon points=...> — representa "una forma
+ *  geométrica" cualquiera sin comprometerse a una FormaGeometrica real
+ *  del catálogo (prisma, esfera, etc.), ya que este es un diagrama
+ *  conceptual, no una Estructura real de Supabase. */
+function hexagonoPoints(cx: number, cy: number, r: number): string {
+  const puntos = Array.from({ length: 6 }, (_, i) => {
+    const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+    return `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
+  });
+  return puntos.join(" ");
+}
+
+// ─── Export principal de la etapa ──────────────────────────────────────────
+
+export default function EtapaEstructuras() {
+  return (
+    <section id="estructuras" className="scroll-mt-20 px-1">
+      <div className="mb-5">
+        <h2 className="text-base font-black uppercase tracking-wide">Estructuras</h2>
+        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+          Los Compuestos no solo se juntan: se organizan en capas, en un orden concreto, dentro de una forma — y nace una Estructura.
+        </p>
+      </div>
+
+      <div className="py-2 md:py-4">
+        <DiagramaCapasEstructura />
+      </div>
+
+      {/* Galería "Las Estructuras reales" (Supabase) queda para después, a
+          propósito — este tramo por ahora solo tiene el Bloque 1
+          (diagrama de la lógica), igual que las etapas anteriores
+          tuvieron su propia galería agregada en un paso posterior. */}
+    </section>
+  );
+}

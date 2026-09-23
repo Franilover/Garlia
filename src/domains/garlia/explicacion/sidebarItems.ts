@@ -26,7 +26,7 @@ export const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "particulas", label: "Partículas", href: "#polaridades", disponible: true },
   { id: "elementos", label: "Elementos", href: "#elementos", disponible: true },
   { id: "compuestos", label: "Compuestos", href: "#compuestos", disponible: true },
-  { id: "estructuras", label: "Estructuras", href: "#estructuras", disponible: false },
+  { id: "estructuras", label: "Estructuras", href: "#estructuras", disponible: true },
   { id: "materiales", label: "Materiales", href: "#materiales", disponible: false },
   { id: "objetos", label: "Objetos", href: "#objetos", disponible: false },
 ];
