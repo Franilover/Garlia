@@ -55,14 +55,18 @@ export function ColumnaParalela({
   mostrarBoton?: boolean;
   etiquetaBoton?: string;
 }) {
-  // Prefijo estricto 1..n de `pasos` revelado, igual que `desbloqueados`
-  // en ExplicacionPage — pero local a esta columna.
-  const [revelados, setRevelados] = useState(1);
+  // Prefijo estricto 0..n de `pasos` YA REVELADO POR CLICK (arranca en 0:
+  // ninguno revelado todavía, pero el primero SÍ está desbloqueado —
+  // mismo criterio que `desbloqueados` en ExplicacionPage/
+  // BloqueEtapaClickeable, donde "desbloqueado" y "revelado" son cosas
+  // distintas: desbloqueado = se puede tocar; revelado = ya se tocó y
+  // se está mostrando el contenido).
+  const [revelados, setRevelados] = useState(0);
   const [replayKeys, setReplayKeys] = useState<number[]>(() => pasos.map(() => 0));
   const [avisoEnviado, setAvisoEnviado] = useState(false);
 
   const revelarSiguiente = (indice: number) => {
-    setRevelados((r) => Math.max(r, indice + 2));
+    setRevelados((r) => Math.max(r, indice + 1));
     if (indice === pasos.length - 1 && !avisoEnviado) {
       setAvisoEnviado(true);
       onColumnaCompleta();
@@ -73,7 +77,7 @@ export function ColumnaParalela({
     setReplayKeys((keys) => keys.map((k, i) => (i === indice ? k + 1 : k)));
   };
 
-  const columnaCompleta = revelados > pasos.length;
+  const columnaCompleta = revelados >= pasos.length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,17 +89,17 @@ export function ColumnaParalela({
       </p>
 
       {pasos.map((paso, i) => {
-        // `revelados` es el prefijo 1..n ya revelado (arranca en 1: solo
-        // el paso 0 desbloqueado). El paso i ya fue tocado/revelado si
-        // i < revelados; está desbloqueado (clickeable) si i <= revelados - 1,
-        // que en este esquema es exactamente lo mismo que "i < revelados".
+        // El paso i ya fue revelado (clickeado) si i < revelados. Está
+        // desbloqueado (clickeable, todavía sin revelar) si es el
+        // primero (i === 0) o si el paso anterior ya fue revelado.
         const revelado = i < revelados;
+        const desbloqueado = i === 0 || i - 1 < revelados;
         return (
           <BloqueColumna
             key={paso.id}
             numero={i + 1}
             titulo={paso.titulo}
-            desbloqueado={i < revelados}
+            desbloqueado={desbloqueado}
             revelado={revelado}
             onRevelar={() => revelarSiguiente(i)}
           >
