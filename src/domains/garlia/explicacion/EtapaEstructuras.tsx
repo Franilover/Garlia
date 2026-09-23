@@ -70,11 +70,14 @@ const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
 
 const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
 
-/** Un Compuesto individual del diagrama: círculo simple con su propio
- *  tono sepia (mismo criterio de valores claro/medio/oscuro que
- *  ParticulaVisual/IumVisual) — no necesita más detalle que "una cosa ya
- *  formada", porque el foco de esta etapa es el ORDEN, no su composición
- *  interna (eso ya se explicó en Compuestos). */
+/** Un Compuesto individual del diagrama: dos núcleos pequeños unidos por
+ *  un enlace corto — mismo lenguaje visual que el "compuesto ya formado"
+ *  al final de EtapaCompuestos (dos Elementos enlazados), pero en escala
+ *  reducida, para que se lea como continuación directa de esa etapa: lo
+ *  que ahí nació como Compuesto, acá es la pieza suelta que se ordena.
+ *  El foco de esta etapa es el ORDEN entre Compuestos, no su composición
+ *  interna (eso ya se explicó en Compuestos), así que el par se mantiene
+ *  simple: sin órbitas ni Sitios de Enlace, solo el par + su enlace. */
 function CompuestoDiagrama({
   cx,
   cy,
@@ -88,12 +91,29 @@ function CompuestoDiagrama({
   tono: string;
   etiqueta: string;
 }) {
+  const sep = r * 0.85;
   return (
     <g style={{ transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)" }}>
+      <line
+        x1={cx - sep} y1={cy} x2={cx + sep} y2={cy}
+        strokeWidth={Math.max(r * 0.12, 1.4)}
+        style={{ stroke: `color-mix(in srgb, ${tono} 70%, black)`, transition: "x1 0.6s cubic-bezier(0.22,1,0.36,1), x2 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+      />
       <circle
-        cx={cx}
+        cx={cx - sep}
         cy={cy}
-        r={r}
+        r={r * 0.62}
+        style={{
+          fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
+          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
+          transition: "cx 0.6s cubic-bezier(0.22, 1, 0.36, 1), cy 0.6s cubic-bezier(0.22, 1, 0.36, 1), r 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+        strokeWidth={1.4}
+      />
+      <circle
+        cx={cx + sep}
+        cy={cy}
+        r={r * 0.62}
         style={{
           fill: `color-mix(in srgb, ${tono} 40%, var(--bg-main))`,
           stroke: `color-mix(in srgb, ${tono} 85%, black)`,
@@ -124,7 +144,7 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
 
   const idx = ORDEN.indexOf(paso);
   const ordenado = paso !== "sueltos";
-  const contenido = paso === "conteniendo" || paso === "estructura";
+  const fusionado = paso === "estructura";
 
   const cx = 210;
   const cy = 118;
@@ -133,9 +153,9 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
   // puntos y radios levemente distintos entre sí (para leerse como
   // objetos independientes, no como una fila prolija todavía).
   const POS_SUELTOS = [
-    { x: cx - 78, y: cy - 34, r: 30 },
-    { x: cx + 62, y: cy + 26, r: 24 },
-    { x: cx - 8, y: cy + 52, r: 27 },
+    { x: cx - 78, y: cy - 34, r: 22 },
+    { x: cx + 62, y: cy + 26, r: 18 },
+    { x: cx - 8, y: cy + 52, r: 20 },
   ];
 
   // Posiciones "ordenadas": 3 anillos concéntricos, de afuera (mayor
@@ -143,9 +163,18 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
   // las capas de un Elemento (núcleo/media/externa), reforzando que
   // "capas ordenadas" es un concepto que ya se vio antes en el recorrido.
   const RADIOS_ORDEN = [72, 48, 24];
-  const POS_ORDENADOS = RADIOS_ORDEN.map((r) => ({ x: cx, y: cy, r: r * 0.42 }));
+  const POS_ORDENADOS = RADIOS_ORDEN.map((r) => ({ x: cx, y: cy, r: r * 0.3 }));
 
-  const posiciones = ordenado ? POS_ORDENADOS : POS_SUELTOS;
+  // Paso final: los 3 Compuestos convergen al centro y se leen como una
+  // sola cosa — el círculo de la Estructura, no capas concéntricas.
+  // Refuerza visualmente el cierre: de "3 piezas ordenadas" a "1 unidad".
+  const POS_FUSIONADO = [
+    { x: cx, y: cy, r: 8 },
+    { x: cx, y: cy, r: 8 },
+    { x: cx, y: cy, r: 8 },
+  ];
+
+  const posiciones = fusionado ? POS_FUSIONADO : ordenado ? POS_ORDENADOS : POS_SUELTOS;
 
   // Filas de texto en escalera: se apilan hacia abajo a medida que se
   // avanza en la secuencia, sin borrar los pasos ya alcanzados.
@@ -156,8 +185,8 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
       {/* Contorno geométrico: un hexágono que se dibuja con trazo
           (pathLength + strokeDashoffset) envolviendo las capas ya
           ordenadas — la "forma" de estructura_geometrias haciéndose
-          visible. Aparece a partir de "conteniendo". */}
-      {contenido && (
+          visible. Aparece solo en "conteniendo", antes de fusionarse. */}
+      {paso === "conteniendo" && (
         <polygon
           points={hexagonoPoints(cx, cy, 88)}
           fill="none"
@@ -172,6 +201,24 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
             opacity: 0.55,
           }}
         />
+      )}
+
+      {/* Círculo de la Estructura: lo que queda cuando los 3 Compuestos
+          terminan de fusionarse — una sola forma, con el mismo radio que
+          tenía el contorno geométrico que los contuvo un instante antes. */}
+      {fusionado && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={70}
+          style={{
+            fill: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
+            stroke: "var(--primary)",
+          }}
+          strokeWidth={2}
+        >
+          <animate attributeName="opacity" from="0" to="1" dur="0.5s" fill="freeze" />
+        </circle>
       )}
 
       {posiciones.map((p, i) => (
