@@ -47,6 +47,7 @@ import EtapaElementos from "./EtapaElementos";
 import EtapaCompuestos from "./EtapaCompuestos";
 import EtapaEstructuras from "./EtapaEstructuras";
 import EtapaMateriales from "./EtapaMateriales";
+import EtapaObjetos from "./EtapaObjetos";
 import { BloqueEtapaClickeable } from "./BloqueEtapaClickeable";
 import { SidebarExplicacion } from "./SidebarExplicacion";
 
@@ -58,6 +59,7 @@ const TRAMOS = [
   { numero: 5, id: "compuestos", titulo: "Compuestos", Componente: EtapaCompuestos },
   { numero: 6, id: "estructuras", titulo: "Estructuras", Componente: EtapaEstructuras },
   { numero: 7, id: "materiales", titulo: "Materiales", Componente: EtapaMateriales },
+  { numero: 8, id: "objetos", titulo: "Objetos", Componente: EtapaObjetos },
 ] as const;
 
 export default function ExplicacionPage() {
@@ -83,7 +85,8 @@ export default function ExplicacionPage() {
 
   // bloques[0..2] = Polaridades, TASI, Partículas — en fila (desktop, lg+).
   // bloques[3..4] = Elementos, Compuestos — en fila (desktop, lg+).
-  // bloques[5..6] = Estructuras, Materiales — uno debajo del otro.
+  // bloques[5] = Estructuras, solo.
+  // bloques[6..7] = Materiales, Objetos — en fila (desktop, lg+).
   return (
     <div className="mx-auto max-w-[1400px] px-2 lg:px-6">
       <div className="flex flex-col gap-14 pt-4 pb-24">
@@ -99,7 +102,11 @@ export default function ExplicacionPage() {
         </div>
 
         {bloques[5]}
-        {bloques[6]}
+
+        <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
+          <div className="lg:min-w-0 lg:flex-1">{bloques[6]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloques[7]}</div>
+        </div>
       </div>
 
       {/* Panel lateral: oculto por defecto, fixed, se abre con el botón toggle */}

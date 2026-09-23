@@ -62,7 +62,7 @@ export const ETAPAS: EtapaInfo[] = [
     id: "objetos",
     titulo: "Objetos",
     resumen: "Los Materiales se convierten en cosas del mundo.",
-    disponible: false,
+    disponible: true,
   },
   {
     id: "biologia",
