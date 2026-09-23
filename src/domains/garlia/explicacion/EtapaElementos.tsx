@@ -88,36 +88,67 @@ function AnilloCapa({
 
 function DiagramaCapas() {
   // Ciclo automático: se arma capa por capa (núcleo, luego media, luego
-  // externa), se queda un momento completo, y vuelve a empezar.
-  const [paso, setPaso] = useState(0); // 0=solo núcleo, 1=+media, 2=+externa
+  // externa), se queda un momento completo (más tiempo que los pasos
+  // anteriores, para que se alcance a leer el resumen final), y reinicia.
+  const DURACIONES = [1600, 1600, 1600, 3200]; // ms por paso; el último (completo) dura más
+  const [paso, setPaso] = useState(0); // 0=solo núcleo, 1=+media, 2=+externa, 3=completo (pausa larga)
+
   useEffect(() => {
-    const t = setInterval(() => setPaso((p) => (p + 1) % 4), 1900); // 1 paso extra de "pausa completa"
-    return () => clearInterval(t);
-  }, []);
+    const t = setTimeout(() => setPaso((p) => (p + 1) % DURACIONES.length), DURACIONES[paso]);
+    return () => clearTimeout(t);
+  }, [paso]);
 
   const capaActiva = { nucleo: paso >= 0, media: paso >= 1, externa: paso >= 2 };
-  const capaActual = CAPAS[Math.min(paso, 2)];
+
+  const grafico = (
+    <svg viewBox="0 0 200 200" width={240} height={240} className="shrink-0">
+      <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} />
+      <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} />
+      <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
+    </svg>
+  );
+
+  // Texto de cada capa ya alcanzada, en escalera: se van apilando hacia
+  // abajo a medida que pasan los pasos (núcleo, luego +media, luego
+  // +externa), sin borrar los anteriores.
+  const filasCapas = CAPAS.filter((_, i) => paso >= i);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <svg viewBox="0 0 200 200" width={240} height={240}>
-        <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} />
-        <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} />
-        <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
-      </svg>
+    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
+      {grafico}
 
-      <div key={capaActual.id} className="text-center" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
-        <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-          {paso < 3 ? `Capa ${capaActual.titulo}` : "Un Elemento completo"}
-        </p>
-        <p className="mx-auto mt-1 max-w-xs text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-          {paso < 3
-            ? capaActual.detalle
-            : "Las 3 capas juntas, cada una con sus 9 Partículas propias, forman un Elemento — igual que un átomo real con núcleo y electrones."}
-        </p>
+      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[260px]">
+        {filasCapas.map((c, i) => (
+          <div
+            key={c.id}
+            className="text-center md:text-left"
+            style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
+          >
+            <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+              Capa {c.titulo}
+            </p>
+            <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              {c.detalle}
+            </p>
+          </div>
+        ))}
+
+        {paso >= 3 && (
+          <div
+            className="text-center md:text-left"
+            style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${CAPAS.length * 14}px` }}
+          >
+            <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
+              Un Elemento completo
+            </p>
+            <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              Las 3 capas juntas, cada una con sus 9 Partículas propias, forman un Elemento — igual que un átomo real con núcleo y electrones.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="flex gap-1.5">
+      <div className="flex gap-1.5 md:hidden">
         {CAPAS.map((c, i) => (
           <div
             key={c.id}
