@@ -3,8 +3,10 @@
 /**
  * ColumnaParalela.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Una columna del bloque de ramas paralelas (Elementos→Compuestos→
- * Estructuras, o Iums→Formas→Oris). Mismo patrón de click-to-reveal que
+ * Una ruta del bloque de ramas (Elementos→Compuestos→Estructuras→
+ * Materiales→Objetos, o Iums→Oris), a ancho completo. BloqueRamasParalelas
+ * elige cuál se muestra con un selector; cada ruta conserva su propio
+ * progreso aunque esté oculta. Mismo patrón de click-to-reveal que
  * BloqueEtapaClickeable (número grande → toca → se revela → desbloquea
  * el siguiente de ESTA columna), pero con:
  *
@@ -38,9 +40,11 @@ export function ColumnaParalela({
   mostrarBoton = true,
   etiquetaBoton = "Ir a la siguiente",
 }: {
-  /** Título de la columna entera (ej. "Elementos" o "Iums"), mostrado
-   *  arriba de todo, antes del primer paso. */
-  encabezado: string;
+  /** Título de la columna entera, mostrado arriba de todo, antes del
+   *  primer paso. Opcional: cuando la columna vive bajo un selector de
+   *  ruta (BloqueRamasParalelas), el propio selector ya dice cuál es y
+   *  el encabezado sería redundante. */
+  encabezado?: string;
   pasos: PasoColumna[];
   /** Se llama una sola vez, cuando el último paso de la columna termina
    *  de revelarse por primera vez. */
@@ -81,12 +85,14 @@ export function ColumnaParalela({
 
   return (
     <div className="flex flex-col gap-6">
-      <p
-        className="text-center text-[11px] font-black uppercase tracking-[0.25em]"
-        style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-      >
-        {encabezado}
-      </p>
+      {encabezado && (
+        <p
+          className="text-center text-[11px] font-black uppercase tracking-[0.25em]"
+          style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+        >
+          {encabezado}
+        </p>
+      )}
 
       {pasos.map((paso, i) => {
         // El paso i ya fue revelado (clickeado) si i < revelados. Está
@@ -118,7 +124,7 @@ export function ColumnaParalela({
           <span
             className="text-[9px] font-bold uppercase tracking-wide opacity-40"
           >
-            Columna completa
+            Ruta completa
           </span>
         </div>
       )}

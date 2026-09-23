@@ -32,13 +32,14 @@
  *   está desbloqueado).
  *
  *   El tramo 4 (Elementos/Iums) es especial: no es un solo componente
- *   sino BloqueRamasParalelas, que internamente maneja DOS columnas
- *   (Elementos→Compuestos→Estructuras→Materiales→Objetos, e
- *   Iums→Formas→Oris) corriendo en paralelo e independiente entre sí —
- *   ver BloqueRamasParalelas.tsx y ColumnaParalela.tsx. A ojos de este
+ *   sino BloqueRamasParalelas, que ofrece DOS rutas con un selector
+ *   "Material | Energética" (Elementos→Compuestos→Estructuras→Materiales→
+ *   Objetos, e Iums→Oris) — se muestra una a la vez, a ancho completo, y
+ *   cada una conserva su propio progreso aunque esté oculta — ver
+ *   BloqueRamasParalelas.tsx y ColumnaParalela.tsx. A ojos de este
  *   orquestador, el tramo 4 se comporta igual que cualquier otro: recibe
  *   desbloqueado/onCompletado y avisa una sola vez cuando termina (acá,
- *   cuando AMBAS columnas terminan) — por ahora no hay tramo 5 que
+ *   cuando AMBAS rutas terminan) — por ahora no hay tramo 5 que
  *   desbloquear, pero se mantiene el mismo contrato por si se agrega
  *   algo después (ej. la rama de Biología).
  *

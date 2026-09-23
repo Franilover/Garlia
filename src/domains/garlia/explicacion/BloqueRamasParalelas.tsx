@@ -3,34 +3,47 @@
 /**
  * BloqueRamasParalelas.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Bloque especial post-Partículas: dos columnas corriendo lado a lado,
- * cada una con su propio progreso interno de click-to-reveal
- * (ColumnaParalela) — sin sincronización entre ellas:
+ * Bloque especial post-Partículas: dos rutas posibles, elegidas con un
+ * selector "Material | Energética". Se muestra UNA sola ruta a la vez, a
+ * ancho completo (antes eran dos columnas lado a lado, cada una a medio
+ * ancho):
  *
- *   Columna izquierda: Elementos → Compuestos → Estructuras → Materiales → Objetos
- *   Columna derecha:   Iums → Oris
+ *   Material:   Elementos → Compuestos → Estructuras → Materiales → Objetos
+ *   Energética: Iums → Oris
  *
  * Materiales y Objetos son continuación de la cadena de Elementos (una
  * Estructura con propiedades físicas propias, y luego una cosa del
  * mundo hecha con esos Materiales) — NO dependen de la rama Iums para
- * nada, así que viven como pasos 4 y 5 de la columna de Elementos, no
- * como tramos separados después de este bloque.
+ * nada, así que viven como pasos 4 y 5 de la ruta Material, no como
+ * tramos separados después de este bloque.
+ *
+ * Las dos rutas siguen siendo independientes entre sí: cada una lleva su
+ * propio progreso interno de click-to-reveal (ColumnaParalela). Las DOS
+ * quedan siempre montadas y la inactiva solo se oculta (`hidden`), no se
+ * desmonta — así, cambiar de ruta no pierde lo que ya se reveló ni
+ * reinicia sus animaciones.
  *
  * A efectos del orquestador global (ExplicacionPage), este bloque entero
  * cuenta como UN tramo: recibe `desbloqueado`/`onCompletado` con la misma
  * forma que BloqueEtapaClickeable, y llama a onCompletado() una sola vez
- * cuando AMBAS columnas terminan (sin importar el orden en que el
- * usuario las complete) — en la práctica esto ya es el final del
- * recorrido "construido hasta ahora", así que onCompletado no desbloquea
- * ningún tramo visible todavía, pero mantiene el mismo contrato que el
- * resto de los tramos por si se agrega algo después.
+ * cuando AMBAS rutas terminan (sin importar el orden ni cuál se eligió
+ * primero) — en la práctica esto ya es el final del recorrido "construido
+ * hasta ahora", así que onCompletado no desbloquea ningún tramo visible
+ * todavía, pero mantiene el mismo contrato que el resto de los tramos por
+ * si se agrega algo después.
  *
- * Cada columna termina por su cuenta, sin depender de la otra: no hay
- * botón "ir a la siguiente" entre columnas — cada una simplemente llega
- * a su propio final (Objetos / Oris) y queda ahí.
+ * Cada ruta termina por su cuenta (Objetos / Oris); no hay botón "ir a la
+ * siguiente" entre ellas. Una ruta ya completada se marca con un check en
+ * su pestaña del selector.
+ *
+ * Anclas del sidebar (#iums, #oris, #elementos…): si el destino está en la
+ * ruta oculta, el navegador no puede desplazarse a un elemento con
+ * display:none. Por eso este bloque escucha `hashchange` y, si el ancla
+ * pertenece a la otra ruta, la activa y recién entonces hace el scroll.
  */
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 
 import { ColumnaParalela, type PasoColumna } from "./ColumnaParalela";
 import EtapaElementos from "./EtapaElementos";
@@ -54,28 +67,99 @@ const PASOS_IUMS: PasoColumna[] = [
   { id: "oris", titulo: "Oris", Componente: EtapaOris },
 ];
 
+type Ruta = "material" | "energetica";
+
+const RUTAS: { id: Ruta; etiqueta: string; pasos: PasoColumna[] }[] = [
+  { id: "material", etiqueta: "Material", pasos: PASOS_ELEMENTOS },
+  { id: "energetica", etiqueta: "Energética", pasos: PASOS_IUMS },
+];
+
+/** Selector de ruta: control segmentado "Material | Energética". */
+function SelectorRuta({
+  ruta,
+  listas,
+  onElegir,
+}: {
+  ruta: Ruta;
+  listas: Record<Ruta, boolean>;
+  onElegir: (r: Ruta) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Ruta"
+      className="mx-auto mb-8 flex w-fit rounded-full p-1"
+      style={{
+        border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+        background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+      }}
+    >
+      {RUTAS.map((r) => {
+        const activa = r.id === ruta;
+        return (
+          <button
+            key={r.id}
+            type="button"
+            role="tab"
+            id={`tab-ruta-${r.id}`}
+            aria-selected={activa}
+            aria-controls={`panel-ruta-${r.id}`}
+            onClick={() => onElegir(r.id)}
+            className="flex items-center gap-1.5 rounded-full px-5 py-2 text-micro font-black uppercase tracking-[0.2em] transition-colors"
+            style={{
+              background: activa ? "var(--primary)" : "transparent",
+              color: activa ? "var(--bg-main)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+              cursor: activa ? "default" : "pointer",
+            }}
+          >
+            {r.etiqueta}
+            {listas[r.id] && <Check size={12} strokeWidth={3} aria-label="Completada" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function BloqueRamasParalelas({
   desbloqueado,
   onCompletado,
 }: {
   desbloqueado: boolean;
-  /** Se llama una sola vez, cuando AMBAS columnas terminaron. */
+  /** Se llama una sola vez, cuando AMBAS rutas terminaron. */
   onCompletado: () => void;
 }) {
-  const [elementosListo, setElementosListo] = useState(false);
-  const [iumsListo, setIumsListo] = useState(false);
+  const [ruta, setRuta] = useState<Ruta>("material");
+  const [listas, setListas] = useState<Record<Ruta, boolean>>({ material: false, energetica: false });
   const avisadoRef = useRef(false);
 
-  const marcarElementosListo = () => setElementosListo(true);
-  const marcarIumsListo = () => setIumsListo(true);
+  // Ruta actual accesible desde el listener de hashchange sin re-suscribirlo.
+  const rutaRef = useRef<Ruta>(ruta);
+  rutaRef.current = ruta;
 
-  const ambasListas = elementosListo && iumsListo;
+  const marcarLista = (r: Ruta) => setListas((prev) => (prev[r] ? prev : { ...prev, [r]: true }));
+
+  const ambasListas = listas.material && listas.energetica;
   if (ambasListas && !avisadoRef.current) {
     avisadoRef.current = true;
     // Se dispara en el próximo tick, fuera del render, para no llamar a
     // setState del padre en medio del render de este componente.
     queueMicrotask(onCompletado);
   }
+
+  // Ancla del sidebar que apunta a la ruta oculta → activar esa ruta y
+  // recién entonces desplazarse (un display:none no se puede scrollear).
+  useEffect(() => {
+    const alCambiarHash = () => {
+      const id = window.location.hash.slice(1);
+      const destino = RUTAS.find((r) => r.pasos.some((p) => p.id === id));
+      if (!destino || destino.id === rutaRef.current) return;
+      setRuta(destino.id);
+      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+    window.addEventListener("hashchange", alCambiarHash);
+    return () => window.removeEventListener("hashchange", alCambiarHash);
+  }, []);
 
   if (!desbloqueado) {
     return (
@@ -104,34 +188,19 @@ export function BloqueRamasParalelas({
     <div id="ramas-paralelas" className="scroll-mt-20 px-1">
       <div className="mb-6 text-center">
         <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          Desde acá, dos caminos en paralelo: la materia y las fuerzas funcionales.
+          Desde acá, dos caminos: la materia y las fuerzas funcionales.
         </p>
       </div>
 
-      <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8">
-        <div className="lg:min-w-0 lg:flex-1">
-          <ColumnaParalela
-            encabezado="Material"
-            pasos={PASOS_ELEMENTOS}
-            onColumnaCompleta={marcarElementosListo}
-            mostrarBoton={false}
-          />
-        </div>
+      <SelectorRuta ruta={ruta} listas={listas} onElegir={setRuta} />
 
-        <div
-          className="hidden self-stretch lg:block"
-          style={{ width: 1, background: "color-mix(in srgb, var(--primary) 12%, transparent)" }}
-        />
-
-        <div className="lg:min-w-0 lg:flex-1">
-          <ColumnaParalela
-            encabezado="Energética"
-            pasos={PASOS_IUMS}
-            onColumnaCompleta={marcarIumsListo}
-            mostrarBoton={false}
-          />
+      {/* Una sola ruta visible, a ancho completo. Las dos quedan montadas:
+          la inactiva solo se oculta, para no perder su progreso. */}
+      {RUTAS.map((r) => (
+        <div key={r.id} role="tabpanel" id={`panel-ruta-${r.id}`} aria-labelledby={`tab-ruta-${r.id}`} hidden={ruta !== r.id} className="w-full">
+          <ColumnaParalela pasos={r.pasos} onColumnaCompleta={() => marcarLista(r.id)} mostrarBoton={false} />
         </div>
-      </div>
+      ))}
     </div>
   );
 }
