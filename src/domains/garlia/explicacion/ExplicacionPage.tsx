@@ -10,24 +10,32 @@
  *
  * Ruta completa (documentada, construida en etapas):
  *   Polaridades → TASI → Partículas
- *   → Elementos → Compuestos → Estructuras
+ *   → [ Elementos → Compuestos → Estructuras  |  Iums → Formas → Oris ]  (en paralelo)
  *   → Materiales → Objetos
  *   → Células → Tejidos → Órganos → Sistemas → Organismos → Criaturas
- *   → Iums → Oris
  *
- * Por ahora está construido hasta Materiales (Polaridades → TASI →
- * Partículas → Elementos → Compuestos → Estructuras → Materiales).
+ * Por ahora está construido hasta Objetos, incluida la bifurcación
+ * Elementos/Iums post-Partículas.
  *
  * Rediseño "bloques numerados" (click-to-reveal, orden estricto):
  *   Al entrar, cada tramo está oculto detrás de un bloque con su número
- *   en grande (1 Polaridades, 2 TASI, 3 Partículas, 4 Elementos, 5
- *   Compuestos, 6 Estructuras, 7 Materiales). Solo el primero está
- *   clickeable; los demás están bloqueados (candado) hasta que se revela
- *   el anterior. Al tocar un bloque desbloqueado, el número desaparece y
+ *   en grande (1 Polaridades, 2 TASI, 3 Partículas, 4 Elementos/Iums en
+ *   paralelo, 5 Materiales, 6 Objetos). Solo el primero está clickeable;
+ *   los demás están bloqueados (candado) hasta que se revela el
+ *   anterior. Al tocar un bloque desbloqueado, el número desaparece y
  *   la animación de ese tramo corre UNA vez, quedando quieta en su
  *   último frame — y desbloquea el número siguiente. Tocar el gráfico ya
  *   terminado lo vuelve a reproducir desde el inicio (no desbloquea nada
  *   de nuevo, ya está desbloqueado).
+ *
+ *   El tramo 4 (Elementos/Iums) es especial: no es un solo componente
+ *   sino BloqueRamasParalelas, que internamente maneja DOS columnas
+ *   (Elementos→Compuestos→Estructuras e Iums→Formas→Oris) corriendo en
+ *   paralelo e independiente entre sí — ver BloqueRamasParalelas.tsx y
+ *   ColumnaParalela.tsx. A ojos de este orquestador, el tramo 4 se
+ *   comporta igual que cualquier otro: recibe desbloqueado/onCompletado
+ *   y avisa una sola vez cuando termina (acá, cuando AMBAS columnas
+ *   terminan), desbloqueando el tramo 5 (Materiales).
  *
  *   El progreso (`desbloqueados`) vive acá, en el orquestador — cada
  *   EtapaXxx es "tonta": solo sabe reproducir su propia animación dado un
@@ -43,35 +51,37 @@ import React, { useState } from "react";
 import EtapaPolaridadesSolo from "./EtapaPolaridadesSolo";
 import EtapaTasi from "./EtapaTasi";
 import EtapaParticulas from "./EtapaParticulas";
-import EtapaElementos from "./EtapaElementos";
-import EtapaCompuestos from "./EtapaCompuestos";
-import EtapaEstructuras from "./EtapaEstructuras";
 import EtapaMateriales from "./EtapaMateriales";
 import EtapaObjetos from "./EtapaObjetos";
 import { BloqueEtapaClickeable } from "./BloqueEtapaClickeable";
+import { BloqueRamasParalelas } from "./BloqueRamasParalelas";
 import { SidebarExplicacion } from "./SidebarExplicacion";
 
-const TRAMOS = [
+const TRAMOS_SIMPLES_INICIALES = [
   { numero: 1, id: "polaridades", titulo: "Polaridades", Componente: EtapaPolaridadesSolo },
   { numero: 2, id: "tasi", titulo: "TASI", Componente: EtapaTasi },
   { numero: 3, id: "particulas", titulo: "Partículas", Componente: EtapaParticulas },
-  { numero: 4, id: "elementos", titulo: "Elementos", Componente: EtapaElementos },
-  { numero: 5, id: "compuestos", titulo: "Compuestos", Componente: EtapaCompuestos },
-  { numero: 6, id: "estructuras", titulo: "Estructuras", Componente: EtapaEstructuras },
-  { numero: 7, id: "materiales", titulo: "Materiales", Componente: EtapaMateriales },
-  { numero: 8, id: "objetos", titulo: "Objetos", Componente: EtapaObjetos },
+] as const;
+
+// El tramo 4 (Elementos/Iums en paralelo) no está en esta lista — se
+// renderiza aparte con BloqueRamasParalelas, ver más abajo.
+
+const TRAMOS_SIMPLES_FINALES = [
+  { numero: 5, id: "materiales", titulo: "Materiales", Componente: EtapaMateriales },
+  { numero: 6, id: "objetos", titulo: "Objetos", Componente: EtapaObjetos },
 ] as const;
 
 export default function ExplicacionPage() {
-  // Cuántos tramos están desbloqueados (siempre un prefijo 1..n de
-  // TRAMOS — orden estricto). Arranca en 1: solo Polaridades clickeable.
+  // Cuántos tramos están desbloqueados (siempre un prefijo 1..n sobre la
+  // numeración global 1..6 — orden estricto). Arranca en 1: solo
+  // Polaridades clickeable.
   const [desbloqueados, setDesbloqueados] = useState(1);
 
   const desbloquearSiguiente = (numero: number) => {
     setDesbloqueados((d) => Math.max(d, numero + 1));
   };
 
-  const bloques = TRAMOS.map(({ numero, id, titulo, Componente }) => (
+  const bloquesIniciales = TRAMOS_SIMPLES_INICIALES.map(({ numero, id, titulo, Componente }) => (
     <BloqueEtapaClickeable
       key={id}
       numero={numero}
@@ -83,29 +93,38 @@ export default function ExplicacionPage() {
     </BloqueEtapaClickeable>
   ));
 
-  // bloques[0..2] = Polaridades, TASI, Partículas — en fila (desktop, lg+).
-  // bloques[3..4] = Elementos, Compuestos — en fila (desktop, lg+).
-  // bloques[5] = Estructuras, solo.
-  // bloques[6..7] = Materiales, Objetos — en fila (desktop, lg+).
+  const bloquesFinales = TRAMOS_SIMPLES_FINALES.map(({ numero, id, titulo, Componente }) => (
+    <BloqueEtapaClickeable
+      key={id}
+      numero={numero}
+      titulo={titulo}
+      desbloqueado={numero <= desbloqueados}
+      onCompletado={() => desbloquearSiguiente(numero)}
+    >
+      {({ replayKey, onReplay }) => <Componente replayKey={replayKey} onReplay={onReplay} />}
+    </BloqueEtapaClickeable>
+  ));
+
+  // bloquesIniciales[0..2] = Polaridades, TASI, Partículas — en fila (desktop, lg+).
+  // BloqueRamasParalelas = tramo 4, Elementos/Iums en paralelo, ancho completo.
+  // bloquesFinales[0..1] = Materiales, Objetos — en fila (desktop, lg+).
   return (
     <div className="mx-auto max-w-[1400px] px-2 lg:px-6">
       <div className="flex flex-col gap-14 pt-4 pb-24">
         <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
-          <div className="lg:min-w-0 lg:flex-1">{bloques[0]}</div>
-          <div className="lg:min-w-0 lg:flex-1">{bloques[1]}</div>
-          <div className="lg:min-w-0 lg:flex-1">{bloques[2]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloquesIniciales[0]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloquesIniciales[1]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloquesIniciales[2]}</div>
         </div>
 
-        <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
-          <div className="lg:min-w-0 lg:flex-1">{bloques[3]}</div>
-          <div className="lg:min-w-0 lg:flex-1">{bloques[4]}</div>
-        </div>
-
-        {bloques[5]}
+        <BloqueRamasParalelas
+          desbloqueado={4 <= desbloqueados}
+          onCompletado={() => desbloquearSiguiente(4)}
+        />
 
         <div className="flex flex-col gap-14 lg:flex-row lg:items-start lg:gap-6">
-          <div className="lg:min-w-0 lg:flex-1">{bloques[6]}</div>
-          <div className="lg:min-w-0 lg:flex-1">{bloques[7]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloquesFinales[0]}</div>
+          <div className="lg:min-w-0 lg:flex-1">{bloquesFinales[1]}</div>
         </div>
       </div>
 

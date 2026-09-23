@@ -65,15 +65,15 @@ export const ETAPAS: EtapaInfo[] = [
     disponible: true,
   },
   {
+    id: "iums-oris",
+    titulo: "Iums → Oris",
+    resumen: "Las Partículas también arman las fuerzas cósmicas, en paralelo a Elementos.",
+    disponible: true,
+  },
+  {
     id: "biologia",
     titulo: "Células → Criaturas",
     resumen: "El mismo camino, pero hacia lo vivo.",
-    disponible: false,
-  },
-  {
-    id: "iums-oris",
-    titulo: "Iums → Oris",
-    resumen: "Las Partículas también arman las fuerzas cósmicas.",
     disponible: false,
   },
 ];
