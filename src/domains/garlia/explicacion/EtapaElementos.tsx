@@ -47,19 +47,24 @@ function AnilloCapa({
   duracion,
   colorSeed,
   activa,
+  girando,
 }: {
   radio: number;
   puntos: number;
   duracion: string;
   colorSeed: number;
   activa: boolean;
+  /** Si es false, las partículas quedan visibles y quietas (sin giro) en
+   *  vez de ocultarse — usado cuando la animación ya terminó, para que la
+   *  capa no "desaparezca" al llegar al paso final. */
+  girando: boolean;
 }) {
   const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
   return (
     <g
       style={{
         transformOrigin: "100px 100px",
-        animation: activa ? `explicacion-girar ${duracion} linear infinite` : undefined,
+        animation: activa && girando ? `explicacion-girar ${duracion} linear infinite` : undefined,
         opacity: activa ? 1 : 0.15,
         transition: "opacity 0.4s ease-out",
       }}
@@ -107,17 +112,9 @@ function DiagramaCapas({ replayKey, onReplay }: { replayKey: number; onReplay: (
 
   const grafico = (
     <svg viewBox="0 0 200 200" width={240} height={240} className="shrink-0">
-      <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa && !terminado} />
-      <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media && !terminado} />
+      <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} girando={!terminado} />
+      <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} girando={!terminado} />
       <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
-      {/* Cuando termina, los anillos externos quedan visibles pero
-          quietos (sin animación de giro) en vez de desaparecer. */}
-      {terminado && (
-        <>
-          <circle cx={100} cy={100} r={82} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-          <circle cx={100} cy={100} r={48} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-        </>
-      )}
     </svg>
   );
 

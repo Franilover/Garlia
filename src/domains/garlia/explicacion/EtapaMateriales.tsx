@@ -3,26 +3,43 @@
 /**
  * EtapaMateriales.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Quinto tramo: Estructuras → Material. Mismo criterio que las etapas
- * anteriores: por ahora solo el Bloque 1 (diagrama animado de la lógica) —
- * la galería con Materiales reales de Supabase queda para después, a
- * propósito, no está implementada acá todavía.
+ * Quinto tramo: Compuesto + Estructura → Material. Rediseño (boceto
+ * "Materiales — continuidad visual", fusión directa elegida): a diferencia
+ * de las 3 etapas previas, Materiales rompe a propósito la cadena lineal
+ * de "un objeto que se reescala en el siguiente" — la ley real de
+ * Supabase dice que un Material NO es "muchos Compuestos repetidos en un
+ * patrón" (ese es el patrón real de Estructuras, con patron_estructural_id
+ * poblado) ni "una unidad que muta en otra". Un Material es la fusión 1:1
+ * de un Compuesto + una Estructura anfitriona en un objeto nuevo (se
+ * verificó material_componentes: 40 filas, todas componente_tipo=
+ * 'compuesto'; y material_estructuras: los 40 Materiales tienen
+ * exactamente 1 Estructura con rol estructura_microscopica).
  *
- * Mismo layout que los diagramas previos: gráfico fijo a la izquierda en
- * desktop, texto apilándose en escalera a la derecha a medida que avanza
- * el ciclo, sin borrar los pasos anteriores.
+ * Por eso la animación es una fusión de DOS orígenes convergiendo al
+ * centro (no una cuadrícula creciendo, no una transformación de una sola
+ * cosa):
  *
- *   DiagramaMaterial: continúa directo desde EtapaEstructuras — el
- *   hexágono es una de las formas con las que cerró esa etapa. El ciclo:
+ *   MiniAtomoFusion: el mismo lenguaje visual de mini-átomo que
+ *   EtapaCompuestos/EtapaEstructuras (núcleo + 2 capas orbitales con
+ *   puntos), representando el Compuesto que aporta Materiales.
  *
- *     1. "sueltas": 3 hexágonos (Estructuras), cada uno con su propia
- *        rotación, flotando sueltos, sin combinarse todavía.
- *     2. "superpuestas": los 3 se acercan al centro y se superponen, uno
- *        sobre otro, conservando cada uno su rotación distinta — se nota
- *        que son 3 piezas encimadas, no una mezcla difusa.
- *     3. "material": la pila de hexágonos se simplifica y se convierte en
- *        un cuadrado — el Material nuevo, con una forma propia que
- *        ninguna Estructura tenía por separado.
+ *   MiniCristalFusion: un anillo de 6 mini-átomos alrededor de un centro,
+ *   mismo lenguaje geométrico con el que cerró EtapaEstructuras
+ *   (composición + patrón), en fuerte deszoom — representa la Estructura
+ *   anfitriona.
+ *
+ *   El ciclo:
+ *     1. "separados": el mini-átomo (Compuesto) y el mini-cristal
+ *        (Estructura) aparecen en extremos opuestos del lienzo.
+ *     2. "fusionando": ambos convergen al centro con una curva de
+ *        entrada + rebote leve (fusión, no choque).
+ *     3. "material": los dos orígenes quedan superpuestos en el centro,
+ *        con un halo pulsante alrededor — el color del halo es el de la
+ *        categoría real del Material (mineral, metal_aleacion,
+ *        tejido_organico_animal/vegetal, liquido_organico, gas,
+ *        sustancia_organica_amorfa), rotando entre las 7 en cada replay
+ *        para mostrar que la forma de la fusión es siempre la misma y
+ *        solo cambia el color de categoría.
  *
  * No usa datos reales (Supabase) a propósito: es un diagrama conceptual
  * autocontenido, igual que los diagramas de las etapas previas — mismo
@@ -33,86 +50,130 @@ import React, { useEffect, useState } from "react";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
-type PasoMaterial = "sueltas" | "superpuestas" | "material";
+type PasoMaterial = "separados" | "fusionando" | "material";
 
-const ORDEN: PasoMaterial[] = ["sueltas", "superpuestas", "material"];
+const ORDEN: PasoMaterial[] = ["separados", "fusionando", "material"];
 
 const DURACIONES: Record<Exclude<PasoMaterial, "material">, number> = {
-  sueltas: 1500,
-  superpuestas: 1300,
+  separados: 1300,
+  fusionando: 1300,
 };
 
 const TEXTOS: Record<PasoMaterial, { titulo: string; detalle: string }> = {
-  sueltas: {
-    titulo: "Tres Estructuras, todavía sueltas",
-    detalle: "Cada una con su propia geometría y orientación.",
+  separados: {
+    titulo: "Un Compuesto y una Estructura anfitriona",
+    detalle: "Dos orígenes distintos, todavía separados.",
   },
-  superpuestas: {
-    titulo: "Se juntan, una sobre otra",
-    detalle: "Cada una conserva su rotación, pero ya están encimadas.",
+  fusionando: {
+    titulo: "Convergen al centro",
+    detalle: "No se mezclan al azar: se fusionan 1 a 1, uno con el otro.",
   },
   material: {
     titulo: "Nace un Material",
-    detalle: "La pila se simplifica en una forma propia: un cuadrado.",
+    detalle: "La fusión de ambos, con un halo propio según su categoría.",
   },
 };
 
+/** Las 7 categorías reales de materiales.categoria — el color del halo
+ *  final rota entre ellas en cada replay, para mostrar que la forma de
+ *  la fusión es siempre la misma y solo cambia el color de categoría. */
+const CATEGORIAS: { id: string; color: string }[] = [
+  { id: "mineral", color: "#8a8f98" },
+  { id: "metal_aleacion", color: "#b08968" },
+  { id: "tejido_organico_animal", color: "#b5533c" },
+  { id: "tejido_organico_vegetal", color: "#7a9e7e" },
+  { id: "liquido_organico", color: "#5c7fa3" },
+  { id: "gas", color: "#c9b458" },
+  { id: "sustancia_organica_amorfa", color: "#9a6fae" },
+];
+
 const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
 
-/** Puntos de un hexágono regular centrado en (cx, cy), con radio r y una
- *  rotación propia (para que las 3 Estructuras se distingan entre sí sin
- *  necesitar más que un giro distinto cada una). */
-function hexagonoPoints(cx: number, cy: number, r: number, rotacionGrados: number): string {
-  const rotacion = (rotacionGrados * Math.PI) / 180 - Math.PI / 2;
-  const puntos = Array.from({ length: 6 }, (_, i) => {
-    const a = (i / 6) * Math.PI * 2 + rotacion;
-    return `${cx + Math.cos(a) * r},${cy + Math.sin(a) * r}`;
-  });
-  return puntos.join(" ");
-}
-
-/** Una Estructura individual del diagrama: hexágono con su propio tono y
- *  rotación — mismo lenguaje visual con el que cerró EtapaEstructuras
- *  (una de las 3 geometrías posibles), para que se lea como continuación
- *  directa de esa etapa. */
-function EstructuraDiagrama({
-  cx,
-  cy,
-  r,
-  rotacion,
-  tono,
-  etiqueta,
-}: {
-  cx: number;
-  cy: number;
-  r: number;
-  rotacion: number;
-  tono: string;
-  etiqueta: string;
-}) {
+/** Mini-átomo: núcleo + 2 capas orbitales con puntos fijos girando —
+ *  mismo lenguaje visual que MiniElemento en EtapaCompuestos/Estructuras,
+ *  reutilizado acá como el "origen Compuesto" de la fusión. */
+function MiniAtomoFusion({ cx, cy, radio, tono, girar }: { cx: number; cy: number; radio: number; tono: string; girar?: { media: string; externa: string } }) {
+  const radioOrbitaMedia = radio * 0.58;
+  const radioOrbitaExterna = radio * 1.0;
   return (
-    <g style={{ transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)" }}>
-      <polygon
-        points={hexagonoPoints(cx, cy, r, rotacion)}
-        style={{
-          fill: `color-mix(in srgb, ${tono} 38%, var(--bg-main))`,
-          stroke: `color-mix(in srgb, ${tono} 85%, black)`,
-          transition: "opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-        strokeWidth={1.6}
-        strokeLinejoin="round"
-      />
-      <title>{etiqueta}</title>
+    <g>
+      <circle cx={cx} cy={cy} r={radioOrbitaExterna} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 22%, transparent)" }} />
+      <circle cx={cx} cy={cy} r={radioOrbitaMedia} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 26%, transparent)" }} />
+      <circle cx={cx} cy={cy} r={radio * 0.2} style={{ fill: `color-mix(in srgb, ${tono} 45%, var(--bg-main))`, stroke: `color-mix(in srgb, ${tono} 85%, black)` }} strokeWidth={1.1} />
+      <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: girar ? `explicacion-material-girar ${girar.externa} linear infinite` : undefined }}>
+        {[0, 1, 2].map((i) => {
+          const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+          return <circle key={`ext${i}`} cx={cx + Math.cos(a) * radioOrbitaExterna} cy={cy + Math.sin(a) * radioOrbitaExterna} r={radio * 0.09} style={{ fill: TONOS[i], stroke: "#4e3320" }} strokeWidth={0.6} />;
+        })}
+      </g>
+      <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: girar ? `explicacion-material-girar ${girar.media} linear infinite reverse` : undefined }}>
+        {[0, 1, 2].map((i) => {
+          const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + 0.5;
+          return <circle key={`med${i}`} cx={cx + Math.cos(a) * radioOrbitaMedia} cy={cy + Math.sin(a) * radioOrbitaMedia} r={radio * 0.09} style={{ fill: TONOS[(i + 1) % 3], stroke: "#4e3320" }} strokeWidth={0.6} />;
+        })}
+      </g>
     </g>
   );
 }
 
+/** Mini-cristal: 6 mini-átomos en anillo alrededor de un centro, mismo
+ *  lenguaje geométrico con el que cerró EtapaEstructuras — nunca inventa
+ *  una forma nueva, reutiliza la geometría real de una Estructura en
+ *  fuerte deszoom. Es el "origen Estructura" de la fusión. */
+function MiniCristalFusion({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const angulos = [0, 60, 120, 180, 240, 300];
+  const puntos = angulos.map((a) => {
+    const rad = (a * Math.PI) / 180;
+    return [cx + Math.cos(rad) * r, cy + Math.sin(rad) * r];
+  });
+  return (
+    <g>
+      {puntos.map((p, i) => (
+        <line key={`l${i}`} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--primary)" strokeWidth={1} opacity={0.4} />
+      ))}
+      <MiniAtomoFusion cx={cx} cy={cy} radio={r * 0.32} tono="#8a5a34" />
+      {puntos.map((p, i) => (
+        <MiniAtomoFusion key={`n${i}`} cx={p[0]} cy={p[1]} radio={r * 0.2} tono={TONOS[i % TONOS.length]} />
+      ))}
+    </g>
+  );
+}
+
+/** Halo del Material: color por categoría real, con transform-origin en
+ *  porcentaje (no px absolutos) — así el pivote de escala del pulso
+ *  siempre queda en el centro real del propio halo, sin desplazarse por
+ *  cómo el SVG escala su viewBox al tamaño CSS renderizado. */
+function HaloMaterial({ cx, cy, r, color, pulso }: { cx: number; cy: number; r: number; color: string; pulso: boolean }) {
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      fill="none"
+      stroke={color}
+      strokeWidth={2.4}
+      opacity={0.45}
+      style={{
+        transformOrigin: "50% 50%",
+        transformBox: "fill-box",
+        animation: pulso ? "explicacion-material-halo 2.4s ease-in-out infinite" : undefined,
+        transition: "stroke 0.4s ease-out",
+      }}
+    />
+  );
+}
+
 function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
-  const [paso, setPaso] = useState<PasoMaterial>("sueltas");
+  const [paso, setPaso] = useState<PasoMaterial>("separados");
   const terminado = paso === "material";
 
+  // Categoría del halo: rota en cada replay, para mostrar que la forma
+  // de la fusión es siempre la misma y solo cambia el color por categoría.
+  const [categoriaIdx, setCategoriaIdx] = useState(0);
+
   useEffect(() => {
-    setPaso("sueltas");
+    setPaso("separados");
+    setCategoriaIdx((i) => (i + 1) % CATEGORIAS.length);
   }, [replayKey]);
 
   useEffect(() => {
@@ -124,56 +185,42 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
   }, [paso]);
 
   const idx = ORDEN.indexOf(paso);
-  const superpuestas = paso === "superpuestas";
+  const fusionado = paso === "fusionando" || paso === "material";
   const esMaterial = paso === "material";
+  const categoria = CATEGORIAS[categoriaIdx];
 
   const cx = 210;
   const cy = 118;
 
-  // Posiciones "sueltas": 3 hexágonos flotando sin combinarse, cada uno
-  // con su propia rotación (para que se distingan a simple vista).
-  const POS_SUELTAS = [
-    { x: cx - 80, y: cy - 30, r: 34, rot: 0 },
-    { x: cx + 66, y: cy + 24, r: 28, rot: 25 },
-    { x: cx - 6, y: cy + 54, r: 30, rot: 50 },
-  ];
-
-  // Posiciones "superpuestas": las 3 convergen al mismo punto, pero cada
-  // una conserva su propia rotación — se leen como piezas encimadas, no
-  // como una mezcla difusa (eso ya pasó como concepto en Compuestos).
-  const POS_SUPERPUESTAS = [
-    { x: cx, y: cy, r: 62, rot: 0 },
-    { x: cx, y: cy, r: 62, rot: 25 },
-    { x: cx, y: cy, r: 62, rot: 50 },
-  ];
-
-  const posiciones = superpuestas || esMaterial ? POS_SUPERPUESTAS : POS_SUELTAS;
+  // "separados": el mini-átomo entra desde la izquierda, el mini-cristal
+  // desde la derecha — al fusionar, ambos convergen al mismo centro.
+  const xAtomoSeparado = cx - 110;
+  const xCristalSeparado = cx + 110;
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Paso final: la pila de hexágonos se desvanece y en su lugar
-          aparece un cuadrado — el Material, con una forma propia que
-          ninguna Estructura tenía por separado. */}
-      {esMaterial ? (
-        <rect
-          x={cx - 56}
-          y={cy - 56}
-          width={112}
-          height={112}
-          rx={14}
-          style={{
-            fill: "color-mix(in srgb, var(--primary) 22%, var(--bg-main))",
-            stroke: "var(--primary)",
-          }}
-          strokeWidth={2}
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.5s" fill="freeze" />
-        </rect>
-      ) : (
-        posiciones.map((p, i) => (
-          <EstructuraDiagrama key={i} cx={p.x} cy={p.y} r={p.r} rotacion={p.rot} tono={TONOS[i]} etiqueta={`Estructura ${i + 1}`} />
-        ))
-      )}
+      {esMaterial && <HaloMaterial cx={cx} cy={cy} r={68} color={categoria.color} pulso />}
+
+      <g
+        style={{
+          transformOrigin: `${cx}px ${cy}px`,
+          transform: fusionado ? "translate(0px, 0px)" : `translate(${xAtomoSeparado - cx}px, 0px)`,
+          transition: "transform 0.9s cubic-bezier(0.34, 1.1, 0.4, 1)",
+        }}
+      >
+        <MiniAtomoFusion cx={cx} cy={cy} radio={34} tono="#8a5a34" girar={{ media: "22s", externa: "16s" }} />
+      </g>
+
+      <g
+        style={{
+          transformOrigin: `${cx}px ${cy}px`,
+          transform: fusionado ? "translate(0px, 0px)" : `translate(${xCristalSeparado - cx}px, 0px)`,
+          transition: "transform 0.9s cubic-bezier(0.34, 1.1, 0.4, 1)",
+          opacity: fusionado ? 0.92 : 1,
+        }}
+      >
+        <MiniCristalFusion cx={cx} cy={cy} r={30} />
+      </g>
     </svg>
   );
 
@@ -206,6 +253,11 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
               <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
                 {t.detalle}
               </p>
+              {p === "material" && esMaterial && (
+                <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: categoria.color }}>
+                  Categoría: {categoria.id.replace(/_/g, " ")}
+                </p>
+              )}
             </div>
           );
         })}
@@ -234,6 +286,17 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
 export default function EtapaMateriales({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="materiales" className="scroll-mt-20 px-1">
+      <style>{`
+        @keyframes explicacion-material-girar {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes explicacion-material-halo {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.06); }
+        }
+      `}</style>
+
       <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Materiales</h2>
       </div>
