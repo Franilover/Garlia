@@ -86,15 +86,20 @@ function AnilloCapa({
   );
 }
 
-function DiagramaCapas() {
-  // Ciclo automático: se arma capa por capa (núcleo, luego media, luego
-  // externa), se queda un momento completo (más tiempo que los pasos
-  // anteriores, para que se alcance a leer el resumen final), y reinicia.
-  const DURACIONES = [1600, 1600, 1600, 3200]; // ms por paso; el último (completo) dura más
-  const [paso, setPaso] = useState(0); // 0=solo núcleo, 1=+media, 2=+externa, 3=completo (pausa larga)
+function DiagramaCapas({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
+  // Una sola pasada: se arma capa por capa (núcleo, luego media, luego
+  // externa) y se queda quieto en el paso final — no reinicia solo.
+  const DURACIONES = [1600, 1600, 1600]; // ms por paso (0→1, 1→2, 2→3=completo)
+  const [paso, setPaso] = useState(0); // 0=solo núcleo, 1=+media, 2=+externa, 3=completo (quieto)
+  const terminado = paso >= 3;
 
   useEffect(() => {
-    const t = setTimeout(() => setPaso((p) => (p + 1) % DURACIONES.length), DURACIONES[paso]);
+    setPaso(0);
+  }, [replayKey]);
+
+  useEffect(() => {
+    if (paso >= DURACIONES.length) return;
+    const t = setTimeout(() => setPaso((p) => p + 1), DURACIONES[paso]);
     return () => clearTimeout(t);
   }, [paso]);
 
@@ -102,9 +107,17 @@ function DiagramaCapas() {
 
   const grafico = (
     <svg viewBox="0 0 200 200" width={240} height={240} className="shrink-0">
-      <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} />
-      <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} />
+      <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa && !terminado} />
+      <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media && !terminado} />
       <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
+      {/* Cuando termina, los anillos externos quedan visibles pero
+          quietos (sin animación de giro) en vez de desaparecer. */}
+      {terminado && (
+        <>
+          <circle cx={100} cy={100} r={82} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <circle cx={100} cy={100} r={48} fill="none" strokeDasharray="2 4" strokeWidth={1} style={{ stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+        </>
+      )}
     </svg>
   );
 
@@ -114,7 +127,17 @@ function DiagramaCapas() {
   const filasCapas = CAPAS.filter((_, i) => paso >= i);
 
   return (
-    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => terminado && onReplay()}
+      onKeyDown={(e) => {
+        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
+      }}
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      style={{ cursor: terminado ? "pointer" : "default" }}
+      title={terminado ? "Toca para repetir la animación" : undefined}
+    >
       {grafico}
 
       <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[260px]">
@@ -133,7 +156,7 @@ function DiagramaCapas() {
           </div>
         ))}
 
-        {paso >= 3 && (
+        {terminado && (
           <div
             className="text-center md:text-left"
             style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${CAPAS.length * 14}px` }}
@@ -144,6 +167,7 @@ function DiagramaCapas() {
             <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
               Las 3 capas juntas, cada una con sus Particulas, forman un Elemento.
             </p>
+            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide opacity-40">Toca para repetir</p>
           </div>
         )}
       </div>
@@ -284,7 +308,7 @@ function PlaceholderVacio({ texto }: { texto: string }) {
 
 // ─── Export principal de la etapa ──────────────────────────────────────────
 
-export default function EtapaElementos() {
+export default function EtapaElementos({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="elementos" className="scroll-mt-20 px-1">
       <style>{`
@@ -299,7 +323,7 @@ export default function EtapaElementos() {
       </div>
 
       <div className="py-2 md:py-4">
-        <DiagramaCapas />
+        <DiagramaCapas replayKey={replayKey} onReplay={onReplay} />
       </div>
 
       {/* Galería "Los Elementos reales" oculta temporalmente a pedido —

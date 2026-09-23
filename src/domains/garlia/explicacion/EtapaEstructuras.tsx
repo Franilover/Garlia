@@ -47,9 +47,6 @@ const DURACIONES: Record<PasoEstructura, number> = {
   sueltos: 1700,
   ordenando: 1300,
   conteniendo: 1300,
-  // Paso final: se sostiene más tiempo que los anteriores, mismo criterio
-  // que los cierres de DiagramaCapas y DiagramaEnlaceCompuesto.
-  estructura: 3400,
 };
 
 const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
@@ -109,12 +106,18 @@ function CompuestoDiagrama({
   );
 }
 
-function DiagramaCapasEstructura() {
+function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   const [paso, setPaso] = useState<PasoEstructura>("sueltos");
+  const terminado = paso === "estructura";
 
   useEffect(() => {
+    setPaso("sueltos");
+  }, [replayKey]);
+
+  useEffect(() => {
+    if (paso === "estructura") return; // último paso: se queda quieto
     const t = setTimeout(() => {
-      setPaso((p) => ORDEN[(ORDEN.indexOf(p) + 1) % ORDEN.length]);
+      setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
     }, DURACIONES[paso]);
     return () => clearTimeout(t);
   }, [paso]);
@@ -194,7 +197,17 @@ function DiagramaCapasEstructura() {
   );
 
   return (
-    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => terminado && onReplay()}
+      onKeyDown={(e) => {
+        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
+      }}
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      style={{ cursor: terminado ? "pointer" : "default" }}
+      title={terminado ? "Toca para repetir la animación" : undefined}
+    >
       {grafico}
 
       <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
@@ -215,6 +228,11 @@ function DiagramaCapasEstructura() {
             </div>
           );
         })}
+        {terminado && (
+          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${(filasTexto.length - 1) * 14}px` }}>
+            Toca para repetir
+          </p>
+        )}
       </div>
 
       <div className="flex gap-1.5 md:hidden">
@@ -245,7 +263,7 @@ function hexagonoPoints(cx: number, cy: number, r: number): string {
 
 // ─── Export principal de la etapa ──────────────────────────────────────────
 
-export default function EtapaEstructuras() {
+export default function EtapaEstructuras({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="estructuras" className="scroll-mt-20 px-1">
       <div className="mb-5">
@@ -256,7 +274,7 @@ export default function EtapaEstructuras() {
       </div>
 
       <div className="py-2 md:py-4">
-        <DiagramaCapasEstructura />
+        <DiagramaCapasEstructura replayKey={replayKey} onReplay={onReplay} />
       </div>
 
       {/* Galería "Las Estructuras reales" (Supabase) queda para después, a

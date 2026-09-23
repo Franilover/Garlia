@@ -45,9 +45,6 @@ const DURACIONES: Record<PasoEnlace, number> = {
   buscando: 1800,
   encajando: 850,
   enlazado: 1500,
-  // Paso final: se sostiene más tiempo que los anteriores, mismo criterio
-  // que el "Elemento completo" de DiagramaCapas — que alcance a leerse.
-  compuesto: 3400,
 };
 
 const TEXTOS: Record<PasoEnlace, { titulo: string; detalle: string }> = {
@@ -176,12 +173,18 @@ function MiniElemento({
   );
 }
 
-function DiagramaEnlaceCompuesto() {
+function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   const [paso, setPaso] = useState<PasoEnlace>("buscando");
+  const terminado = paso === "compuesto";
 
   useEffect(() => {
+    setPaso("buscando");
+  }, [replayKey]);
+
+  useEffect(() => {
+    if (paso === "compuesto") return; // último paso: se queda quieto
     const t = setTimeout(() => {
-      setPaso((p) => ORDEN[(ORDEN.indexOf(p) + 1) % ORDEN.length]);
+      setPaso((p) => ORDEN[ORDEN.indexOf(p) + 1]);
     }, DURACIONES[paso]);
     return () => clearTimeout(t);
   }, [paso]);
@@ -257,7 +260,17 @@ function DiagramaEnlaceCompuesto() {
   );
 
   return (
-    <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => terminado && onReplay()}
+      onKeyDown={(e) => {
+        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
+      }}
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      style={{ cursor: terminado ? "pointer" : "default" }}
+      title={terminado ? "Toca para repetir la animación" : undefined}
+    >
       {grafico}
 
       <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[280px]">
@@ -278,6 +291,11 @@ function DiagramaEnlaceCompuesto() {
             </div>
           );
         })}
+        {terminado && (
+          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${(filasTexto.length - 1) * 14}px` }}>
+            Toca para repetir
+          </p>
+        )}
       </div>
 
       <div className="flex gap-1.5 md:hidden">
@@ -295,7 +313,7 @@ function DiagramaEnlaceCompuesto() {
 
 // ─── Export principal de la etapa ──────────────────────────────────────────
 
-export default function EtapaCompuestos() {
+export default function EtapaCompuestos({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   return (
     <section id="compuestos" className="scroll-mt-20 px-1">
       <style>{`
@@ -322,7 +340,7 @@ export default function EtapaCompuestos() {
       </div>
 
       <div className="py-2 md:py-4">
-        <DiagramaEnlaceCompuesto />
+        <DiagramaEnlaceCompuesto replayKey={replayKey} onReplay={onReplay} />
       </div>
 
       {/* Galería "Los Compuestos reales" (Supabase) queda para después, a

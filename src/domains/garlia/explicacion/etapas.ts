@@ -18,8 +18,20 @@ export interface EtapaInfo {
 export const ETAPAS: EtapaInfo[] = [
   {
     id: "polaridades",
-    titulo: "Polaridades → TASI → Partículas",
-    resumen: "De + y − a las 27 Partículas que arman todo lo demás.",
+    titulo: "Polaridades",
+    resumen: "Los dos polos, + y −, de donde nace todo lo demás.",
+    disponible: true,
+  },
+  {
+    id: "tasi",
+    titulo: "TASI",
+    resumen: "Los polos se combinan en las 4 letras T/A/S/I.",
+    disponible: true,
+  },
+  {
+    id: "particulas",
+    titulo: "Partículas",
+    resumen: "3 letras TASI juntas arman una Partícula.",
     disponible: true,
   },
   {
@@ -32,19 +44,19 @@ export const ETAPAS: EtapaInfo[] = [
     id: "compuestos",
     titulo: "Compuestos",
     resumen: "Dos o más Elementos se combinan.",
-    disponible: false,
+    disponible: true,
   },
   {
     id: "estructuras",
     titulo: "Estructuras",
     resumen: "Los Compuestos se ordenan en una forma estable.",
-    disponible: false,
+    disponible: true,
   },
   {
     id: "materiales",
     titulo: "Materiales",
     resumen: "Una Estructura con propiedades físicas propias.",
-    disponible: false,
+    disponible: true,
   },
   {
     id: "objetos",
