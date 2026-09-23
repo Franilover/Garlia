@@ -125,7 +125,7 @@ function DiagramaCapas() {
             style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
           >
             <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-              Capa {c.titulo}
+               {c.titulo}
             </p>
             <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
               {c.detalle}
@@ -142,7 +142,7 @@ function DiagramaCapas() {
               Un Elemento completo
             </p>
             <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-              Las 3 capas juntas, cada una con sus 9 Partículas propias, forman un Elemento — igual que un átomo real con núcleo y electrones.
+              Las 3 capas juntas, cada una con sus Particulas, forman un Elemento.
             </p>
           </div>
         )}
@@ -295,10 +295,7 @@ export default function EtapaElementos() {
       `}</style>
 
       <div className="mb-5">
-        <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2>
-        <p className="text-micro" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-          27 Partículas no forman un caos: se reparten en 3 capas y nace un Elemento, como un átomo con núcleo y electrones.
-        </p>
+        <h2 className="text-base font-black uppercase tracking-wide">Elementos</h2> 
       </div>
 
       <div className="py-2 md:py-4">
