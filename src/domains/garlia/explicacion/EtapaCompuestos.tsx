@@ -49,20 +49,20 @@ const DURACIONES: Record<Exclude<PasoEnlace, "compuesto">, number> = {
 
 const TEXTOS: Record<PasoEnlace, { titulo: string; detalle: string }> = {
   buscando: {
-    titulo: "Dos Elementos, cada uno con sus Sitios de Enlace",
-    detalle: "Cada Elemento tiene puntos propios por donde puede conectarse — disponibles, pulsando, buscando pareja.",
+    titulo: "Dos Elementos con Sitios de Enlace",
+    detalle: "Cada uno tiene puntos disponibles para conectarse.",
   },
   encajando: {
     titulo: "Un Sitio compatible encuentra su par",
-    detalle: "No cualquier sitio conecta con cualquier otro: el encaje depende de su afinidad y geometría.",
+    detalle: "El encaje depende de afinidad y geometría.",
   },
   enlazado: {
     titulo: "El enlace se forma",
-    detalle: "Los dos Elementos quedan unidos por ese Sitio — un enlace real, con su propia intensidad y estabilidad.",
+    detalle: "Los dos Elementos quedan unidos, con intensidad y estabilidad propias.",
   },
   compuesto: {
     titulo: "Nace un Compuesto",
-    detalle: "Dos Elementos enlazados dejan de ser dos cosas sueltas: juntos son un Compuesto nuevo, con propiedades propias.",
+    detalle: "Dos Elementos enlazados: una cosa nueva, con propiedades propias.",
   },
 };
 

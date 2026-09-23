@@ -56,10 +56,10 @@ function DiagramaAcople({ replayKey, onReplay }: { replayKey: number; onReplay: 
   const posiciones = [{ x: 40, y: cy }, { x: 90, y: cy }, { x: 140, y: cy }];
 
   const TEXTOS = [
-    { titulo: "3 Partículas sueltas", detalle: "Las mismas Partículas — pero acá se acoplan por función, no por masa." },
-    { titulo: "Se acoplan en línea", detalle: "Cada una encaja con la siguiente en un orden funcional concreto." },
-    { titulo: "El acople cierra", detalle: "Las 3 quedan enlazadas en una sola configuración de comportamiento." },
-    { titulo: "Nace un Ium", detalle: "Una unidad funcional propia — el equivalente no material de un Elemento." },
+    { titulo: "3 Partículas sueltas", detalle: "Se acoplan por función, no por masa." },
+    { titulo: "Se acoplan en línea", detalle: "Cada una encaja en un orden funcional concreto." },
+    { titulo: "El acople cierra", detalle: "Las 3 quedan enlazadas en una sola configuración." },
+    { titulo: "Nace un Ium", detalle: "Una unidad funcional propia — el equivalente de un Elemento." },
   ];
   const filas = TEXTOS.slice(0, paso + 1);
 

@@ -50,19 +50,19 @@ const DURACIONES: Record<Exclude<PasoMaterial, "material">, number> = {
 const TEXTOS: Record<PasoMaterial, { titulo: string; detalle: string }> = {
   sueltas: {
     titulo: "Varias Estructuras, todavía sueltas",
-    detalle: "Cada una ya es una cosa completa — falta el paso siguiente: combinarse con otras.",
+    detalle: "Falta el paso siguiente: combinarse.",
   },
   mezclando: {
     titulo: "Se combinan en una proporción concreta",
-    detalle: "No se apilan en capas (eso ya pasó en Estructuras): se mezclan, cada una con un peso propio.",
+    detalle: "Se mezclan, cada una con un peso propio.",
   },
   asentando: {
     titulo: "La mezcla se asienta",
-    detalle: "El conjunto toma un estado físico propio — sólido, líquido, lo que sea — y ya no se distinguen las partes.",
+    detalle: "Toma un estado físico propio y ya no se distinguen las partes.",
   },
   material: {
     titulo: "Nace un Material",
-    detalle: "Estructuras combinadas en proporciones, con propiedades propias que no tenía ninguna por separado.",
+    detalle: "Estructuras combinadas, con propiedades que ninguna tenía sola.",
   },
 };
 

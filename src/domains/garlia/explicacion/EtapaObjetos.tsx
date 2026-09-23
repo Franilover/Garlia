@@ -57,19 +57,19 @@ const DURACIONES: Record<Exclude<PasoObjeto, "objeto">, number> = {
 const TEXTOS: Record<PasoObjeto, { titulo: string; detalle: string }> = {
   sueltos: {
     titulo: "Uno o más Materiales, sueltos",
-    detalle: "Cada uno ya tiene propiedades propias — todavía sin una forma concreta que los contenga.",
+    detalle: "Todavía sin una forma concreta que los contenga.",
   },
   molde: {
     titulo: "Aparece una forma geométrica",
-    detalle: "Una plantilla define el contorno: longitud, ancho, grosor — el molde donde va a vaciarse el Material.",
+    detalle: "El molde define el contorno donde se vacía el Material.",
   },
   llenando: {
     titulo: "El Material toma esa forma",
-    detalle: "Deja de ser una masa sin límites y pasa a ocupar exactamente la geometría del molde.",
+    detalle: "Pasa a ocupar exactamente la geometría del molde.",
   },
   objeto: {
     titulo: "Nace un Objeto",
-    detalle: "Material + forma concreta: de esa combinación se derivan propiedades físicas propias (peso, si corta, si protege) que ninguno tenía solo.",
+    detalle: "Material + forma: nacen propiedades físicas propias (peso, corte, protección).",
   },
 };
 

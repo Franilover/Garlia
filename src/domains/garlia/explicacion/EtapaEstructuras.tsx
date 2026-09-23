@@ -52,19 +52,19 @@ const DURACIONES: Record<Exclude<PasoEstructura, "estructura">, number> = {
 const TEXTOS: Record<PasoEstructura, { titulo: string; detalle: string }> = {
   sueltos: {
     titulo: "Varios Compuestos, todavía sueltos",
-    detalle: "Cada uno ya es una cosa formada — falta el paso siguiente: acomodarse en un orden concreto.",
+    detalle: "Falta acomodarse en un orden concreto.",
   },
   ordenando: {
     titulo: "Se acomodan en capas, en un orden",
-    detalle: "No es una mezcla más: cada Compuesto ocupa un lugar propio, de afuera hacia adentro.",
+    detalle: "Cada Compuesto ocupa un lugar propio, de afuera hacia adentro.",
   },
   conteniendo: {
     titulo: "Una forma geométrica los contiene",
-    detalle: "Las capas ordenadas toman una geometría concreta, con parámetros y volumen propios.",
+    detalle: "Las capas toman una geometría con volumen propio.",
   },
   estructura: {
     titulo: "Nace una Estructura",
-    detalle: "Capas de distintos Compuestos, en orden, dentro de una forma — igual que el Esmalte, la Dentina y la Pulpa forman un Diente.",
+    detalle: "Capas en orden dentro de una forma — como Esmalte, Dentina y Pulpa en un Diente.",
   },
 };
 

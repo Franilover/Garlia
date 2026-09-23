@@ -30,11 +30,11 @@ const DURACIONES: Record<Exclude<Paso, "ori">, number> = {
 };
 
 const TEXTOS: Record<Paso, { titulo: string; detalle: string }> = {
-  sueltos: { titulo: "Varios Iums, sin acomodar", detalle: "Cada uno ya es una unidad funcional — falta el orden entre ellos." },
-  topologia: { titulo: "Se elige una topología", detalle: "Cadena, ramificación, ciclo… una plantilla concreta de cómo se conectan." },
-  confirmando: { titulo: "Cada Ium confirma su rol", detalle: "Núcleo, nodo, salida… cada posición se fija dentro de esa topología." },
-  estable: { titulo: "El conjunto se estabiliza", detalle: "Ya no son Iums sueltos acomodándose: la configuración cierra sobre sí misma." },
-  ori: { titulo: "Nace un Ori", detalle: "Iums combinados según una topología, estables entre sí — una fuerza cósmica funcional completa." },
+  sueltos: { titulo: "Varios Iums, sin acomodar", detalle: "Falta el orden entre ellos." },
+  topologia: { titulo: "Se elige una topología", detalle: "Cadena, ramificación, ciclo… cómo se conectan." },
+  confirmando: { titulo: "Cada Ium confirma su rol", detalle: "Núcleo, nodo, salida… cada posición se fija." },
+  estable: { titulo: "El conjunto se estabiliza", detalle: "La configuración cierra sobre sí misma." },
+  ori: { titulo: "Nace un Ori", detalle: "Iums en una topología estable — una fuerza cósmica funcional." },
 };
 
 const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
