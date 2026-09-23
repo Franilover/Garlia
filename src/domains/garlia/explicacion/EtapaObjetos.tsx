@@ -59,6 +59,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+
 // ─── Bloque 0: mismo lenguaje visual que el cierre de EtapaMateriales ─────
 // (MiniAtomoFusion, MiniCristalFusion, CATEGORIAS_MATERIAL están
 // duplicados intencionalmente acá en vez de importados — cada Etapa de
@@ -279,7 +281,7 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
   );
 
   const grafico = (
-    <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
+    <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
       {/* El molde: contorno REAL de la forma geométrica (prisma
           rectangular / espada de una mano / cilindro-disco), tomado del
           catálogo formas_geometricas. Vacío al aparecer, se llena con
@@ -354,72 +356,31 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
     </svg>
   );
 
+  const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({
+    id: p,
+    ...TEXTOS[p],
+    extra:
+      p === "molde" ? (
+        <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: "var(--primary)", opacity: 0.6 }}>
+          {forma.nombre} · {forma.ejemplos}
+        </p>
+      ) : p === "objeto" && completo ? (
+        <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: categoria.color }}>
+          Material: {categoria.id.replace(/_/g, " ")}
+        </p>
+      ) : undefined,
+  }));
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-3"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
-      {grafico}
-
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-[260px]">
-        {ORDEN.slice(0, idx + 1).map((p, i) => {
-          const t = TEXTOS[p];
-          return (
-            <div
-              key={p}
-              className="text-center md:text-left"
-              style={{ animation: "explicacion-objetos-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
-            >
-              <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-                {t.titulo}
-              </p>
-              <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                {t.detalle}
-              </p>
-              {p === "molde" && (
-                <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: "var(--primary)", opacity: 0.6 }}>
-                  {forma.nombre} · {forma.ejemplos}
-                </p>
-              )}
-              {p === "objeto" && completo && (
-                <p className="mx-auto mt-1 max-w-xs text-[10px] font-bold uppercase tracking-wide md:mx-0" style={{ color: categoria.color }}>
-                  Material: {categoria.id.replace(/_/g, " ")}
-                </p>
-              )}
-            </div>
-          );
-        })}
-        {terminado && (
-          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${idx * 14}px` }}>
-            Toca para repetir
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-1.5 md:hidden">
-        {ORDEN.map((p, i) => (
-          <div
-            key={p}
-            className="h-1 w-8 rounded-full transition-colors"
-            style={{ background: i <= idx ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          />
-        ))}
-      </div>
-
+    <>
+      <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />
       <style>{`
         @keyframes explicacion-objetos-fade-in {
           from { opacity: 0; transform: translateY(6px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </div>
+    </>
   );
 }
 

@@ -25,6 +25,8 @@
 
 import React, { useEffect, useState } from "react";
 
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+
 // ─── Bloque 1: diagrama de la lógica (cristalización radial) ──────────────
 
 const TONOS = ["#8a5a34", "#c9a06a", "#4e3320", "#8a5a34", "#c9a06a", "#4e3320"];
@@ -125,7 +127,7 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
   });
 
   const grafico = (
-    <svg viewBox="0 0 200 176" width={220} height={194} className="shrink-0">
+    <svg viewBox="-29.2 14.5 267.3 147.0" className={CLASE_SVG_EN_CAJA}>
       {anillo.map((p, i) => (
         <line
           key={`l${i}`}
@@ -147,56 +149,9 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
     </svg>
   );
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-3"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
-      {grafico}
+  const filas: FilaTexto[] = ORDEN.slice(0, idx + 1).map((p) => ({ id: p, ...TEXTOS[p] }));
 
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-[260px]">
-        {ORDEN.slice(0, idx + 1).map((p, i) => {
-          const t = TEXTOS[p];
-          return (
-            <div
-              key={p}
-              className="text-center md:text-left"
-              style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
-            >
-              <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-                {t.titulo}
-              </p>
-              <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                {t.detalle}
-              </p>
-            </div>
-          );
-        })}
-        {terminado && (
-          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${idx * 14}px` }}>
-            Toca para repetir
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-1.5 md:hidden">
-        {ORDEN.map((p, i) => (
-          <div
-            key={p}
-            className="h-1 w-8 rounded-full transition-colors"
-            style={{ background: i <= idx ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          />
-        ))}
-      </div>
-    </div>
-  );
+  return <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />;
 }
 
 // ─── Export principal de la etapa ──────────────────────────────────────────

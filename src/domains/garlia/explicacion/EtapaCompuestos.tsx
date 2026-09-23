@@ -35,6 +35,8 @@
 
 import React, { useEffect, useState } from "react";
 
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
+
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
 type PasoEnlace = "buscando" | "encajando" | "enlazado" | "compuesto";
@@ -213,7 +215,7 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
   const filasTexto = ORDEN.slice(0, idx + 1);
 
   const grafico = (
-    <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
+    <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
       {/* Enlace: curva que crece con un dibujo de trazo (pathLength +
           strokeDashoffset) en vez de aparecer de golpe, para que se lea
           como "se está formando", no como un elemento que aparece y ya. */}
@@ -242,56 +244,9 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
     </svg>
   );
 
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-3"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
-      {grafico}
+  const filas: FilaTexto[] = filasTexto.map((p) => ({ id: p, ...TEXTOS[p] }));
 
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-[260px]">
-        {filasTexto.map((p, i) => {
-          const t = TEXTOS[p];
-          return (
-            <div
-              key={p}
-              className="text-center md:text-left"
-              style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
-            >
-              <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-                {t.titulo}
-              </p>
-              <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                {t.detalle}
-              </p>
-            </div>
-          );
-        })}
-        {terminado && (
-          <p className="text-center text-[10px] font-bold uppercase tracking-wide opacity-40 md:text-left" style={{ paddingLeft: `${(filasTexto.length - 1) * 14}px` }}>
-            Toca para repetir
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-1.5 md:hidden">
-        {ORDEN.map((p, i) => (
-          <div
-            key={p}
-            className="h-1 w-8 rounded-full transition-colors"
-            style={{ background: i <= idx ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          />
-        ))}
-      </div>
-    </div>
-  );
+  return <LayoutEtapa grafico={grafico} filas={filas} terminado={terminado} pasoActual={idx} totalPasos={ORDEN.length} onReplay={onReplay} />;
 }
 
 // ─── Export principal de la etapa ──────────────────────────────────────────
