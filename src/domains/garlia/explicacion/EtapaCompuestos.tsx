@@ -192,7 +192,6 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
   const idx = ORDEN.indexOf(paso);
   const acercado = paso === "enlazado" || paso === "compuesto";
   const mostrarEnlace = paso === "encajando" || paso === "enlazado" || paso === "compuesto";
-  const mostrarHalo = paso === "compuesto";
 
   // Separación entre los dos átomos: se acercan al encajar el enlace,
   // como si el enlace mismo los atrajera — refuerza visualmente que un
@@ -215,22 +214,6 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Halo unificador: aparece solo en el paso final, envolviendo a
-          ambos átomos para leerse como "una sola cosa nueva". */}
-      {mostrarHalo && (
-        <ellipse
-          cx={210}
-          cy={cy}
-          rx={separacion / 2 + radio + 16}
-          ry={radio + 18}
-          style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-          strokeWidth={1.2}
-          strokeDasharray="3 5"
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" />
-        </ellipse>
-      )}
-
       {/* Enlace: curva que crece con un dibujo de trazo (pathLength +
           strokeDashoffset) en vez de aparecer de golpe, para que se lea
           como "se está formando", no como un elemento que aparece y ya. */}

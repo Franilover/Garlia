@@ -125,7 +125,6 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
   const idx = ORDEN.indexOf(paso);
   const ordenado = paso !== "sueltos";
   const contenido = paso === "conteniendo" || paso === "estructura";
-  const completo = paso === "estructura";
 
   const cx = 210;
   const cy = 118;
@@ -154,21 +153,6 @@ function DiagramaCapasEstructura({ replayKey, onReplay }: { replayKey: number; o
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Halo unificador: aparece solo en el paso final */}
-      {completo && (
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={100}
-          ry={92}
-          style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-          strokeWidth={1.2}
-          strokeDasharray="3 5"
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" />
-        </ellipse>
-      )}
-
       {/* Contorno geométrico: un hexágono que se dibuja con trazo
           (pathLength + strokeDashoffset) envolviendo las capas ya
           ordenadas — la "forma" de estructura_geometrias haciéndose

@@ -67,7 +67,6 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
   const idx = ORDEN.indexOf(paso);
   const acomodado = paso !== "sueltos";
   const confirmando = paso === "confirmando" || paso === "estable" || paso === "ori";
-  const estable = paso === "estable" || paso === "ori";
 
   const POS_SUELTOS = [{ x: 30, y: 30 }, { x: 150, y: 40 }, { x: 90, y: 90 }];
   // Ramificación simple: un nodo central con 2 ramas — evoca T03 sin
@@ -93,16 +92,6 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
             <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[1].x} y2={POS_RAMA[1].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
             <line x1={POS_RAMA[0].x} y1={POS_RAMA[0].y} x2={POS_RAMA[2].x} y2={POS_RAMA[2].y} strokeWidth={1.6} style={{ stroke: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
           </>
-        )}
-
-        {estable && (
-          <ellipse
-            cx={90} cy={62} rx={82} ry={54}
-            style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            strokeWidth={1.2}
-          >
-            <animate attributeName="opacity" from="0" to="1" dur="0.5s" fill="freeze" />
-          </ellipse>
         )}
 
         {POS.map((p, i) => (

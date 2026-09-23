@@ -128,7 +128,6 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
   const idx = ORDEN.indexOf(paso);
   const mezclando = paso !== "sueltas";
   const asentado = paso === "asentando" || paso === "material";
-  const completo = paso === "material";
 
   const cx = 210;
   const cy = 118;
@@ -166,21 +165,6 @@ function DiagramaMezclaMaterial({ replayKey, onReplay }: { replayKey: number; on
 
   const grafico = (
     <svg viewBox="0 0 420 200" width={340} height={162} className="shrink-0">
-      {/* Halo unificador: aparece solo en el paso final */}
-      {completo && (
-        <ellipse
-          cx={cx}
-          cy={cy}
-          rx={92}
-          ry={84}
-          style={{ fill: "color-mix(in srgb, var(--primary) 6%, transparent)", stroke: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-          strokeWidth={1.2}
-          strokeDasharray="3 5"
-        >
-          <animate attributeName="opacity" from="0" to="1" dur="0.6s" fill="freeze" />
-        </ellipse>
-      )}
-
       {/* Borde de "masa asentada": un círculo de contorno suave que
           aparece a partir de "asentando", indicando que el conjunto ya
           se lee como una sola cosa con límite propio (el Material),
