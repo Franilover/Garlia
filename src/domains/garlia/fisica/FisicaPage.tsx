@@ -944,6 +944,11 @@ function BasesItemCard({
   const esOris = bloque === "oris" && !!original;
   const esSubsistema = bloque === "subsistemas" && !!originalSubsistema;
   const esEnergia = bloque === "energias";
+  // Polaridades y TASI (particula-base) se identifican en la grilla solo
+  // por su gráfico (círculo +/− o letra A/T/S/I), sin nombre en texto al
+  // lado — mismo ícono que ya se usaba dentro del popover, ahora también
+  // como "chip" cerrado. El resto de bloques sigue mostrando el nombre.
+  const soloIcono = bloque === "polaridades" || bloque === "particula-base";
 
   useEffect(() => {
     if (autoAbrir && botonRef.current) {
@@ -960,13 +965,27 @@ function BasesItemCard({
         type="button"
         onClick={(e) => setAnchor(anchor ? null : e.currentTarget)}
         title={fila.nombre}
-        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
-          anchor
-            ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-            : "hover:bg-primary/10 text-primary/70 border border-primary/15"
-        }`}
+        className={
+          soloIcono
+            ? `inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80 ${
+                anchor ? "ring-2 ring-primary/30" : ""
+              }`
+            : `inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
+                anchor
+                  ? "text-primary border border-primary/40 ring-2 ring-primary/30"
+                  : "hover:bg-primary/10 text-primary/70 border border-primary/15"
+              }`
+        }
       >
-        <span className="truncate">{fila.nombre}</span>
+        {soloIcono ? (
+          bloque === "polaridades" ? (
+            <PoloVisual signo={(fila as FilaPolaridad).signo} size={36} />
+          ) : (
+            <ParticulaVisual formula={(fila as FilaParticulaBase).letra} size={36} />
+          )
+        ) : (
+          <span className="truncate">{fila.nombre}</span>
+        )}
       </button>
       {esOris ? (
         anchor && (
