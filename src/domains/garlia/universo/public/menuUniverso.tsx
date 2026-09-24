@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
 
+import { useAuth } from "@/providers/AuthProvider";
+
 import { SECCIONES_UNIVERSO } from "./secciones";
 
 /**
@@ -28,13 +30,23 @@ export default function MenuUniversoPage() {
 
 export function UniversoTabBar() {
   const pathname = usePathname();
+  const { adminVerificado } = useAuth() as { adminVerificado: boolean | null };
+
+  // La tab "explicación" es solo para admins, y la certeza tiene que ser
+  // TOTAL: mientras el servidor no confirmó adminVerificado === true (es
+  // decir, mientras es null/false, incluyendo el estado de carga inicial),
+  // se excluye de la lista. Nada de mostrarla optimistamente con datos de
+  // caché y ocultarla después si resulta que no era admin.
+  const secciones = SECCIONES_UNIVERSO.filter(
+    (s) => s.slug !== "explicacion" || adminVerificado === true,
+  );
 
   return (
     <nav
       className="flex items-stretch gap-1 w-full"
       aria-label="Secciones del universo"
     >
-      {SECCIONES_UNIVERSO.map(({ href, slug, titulo, icon: Icon }) => {
+      {secciones.map(({ href, slug, titulo, icon: Icon }) => {
         const active = pathname?.startsWith(href) ?? false;
         return (
           <Link

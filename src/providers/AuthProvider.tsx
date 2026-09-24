@@ -60,6 +60,18 @@ type AuthContextType = {
   perfil: PerfilLocal | null;
   loading: boolean;
   isAdmin: boolean;
+  /**
+   * Confirmación REAL de admin contra el servidor (rpc is_admin()), sin
+   * mezclar con el caché de perfil (Dexie/legacy). `null` mientras todavía
+   * no llega respuesta del servidor, `true`/`false` una vez confirmado.
+   *
+   * Usar esto (no `isAdmin`) para decidir mostrar/ocultar contenido
+   * sensible cuando NO se puede tolerar un parpadeo con datos viejos de
+   * caché — p.ej. la tab "Explicación" de /garlia/universo, que debe
+   * permanecer oculta hasta tener 100% de certeza de que el usuario es
+   * admin, y nunca mostrarse primero para luego ocultarse.
+   */
+  adminVerificado: boolean | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -67,6 +79,7 @@ const AuthContext = createContext<AuthContextType>({
   perfil: null,
   loading: true,
   isAdmin: false,
+  adminVerificado: null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -242,7 +255,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, perfil, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, perfil, loading, isAdmin, adminVerificado }}>
       {children}
     </AuthContext.Provider>
   );
