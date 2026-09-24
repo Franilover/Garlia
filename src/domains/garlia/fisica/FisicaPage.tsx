@@ -29,7 +29,8 @@ import { useConfirm } from "@/ui/ConfirmModal";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 
 import { OrisEditor } from "./OrisEditor";
-import { IumVisual, ParticulaVisual, type LetraATS } from "./ParticulaVisual";
+import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
+import { useGeometriaIums } from "./useGeometriaIums";
 import {
   contextoHumanoAFilaEnergia,
   FISICA_CONCEPTOS_CONFIG,
@@ -508,6 +509,7 @@ function TodasLasBasesView({
                         original={key === "oris" ? (original as Oris) : undefined}
                         onActualizarOris={onActualizarOris}
                         onEliminarOris={onEliminarOris}
+                        geometriaDe={key === "iums" ? geometriaDe : undefined}
                       />
                     );
                   })}
@@ -716,6 +718,7 @@ function BasesItemCard({
   autoAbrir,
   onAutoAbierto,
   oris,
+  geometriaDe,
 }: {
   fila: FilaCatalogo;
   bloque: ClaveCatalogo;
@@ -740,6 +743,11 @@ function BasesItemCard({
   /** Catálogo de Oris — solo se usa cuando bloque === "subsistemas", para
    *  que PanelEditorSubsistema pueda resolver "canaliza" a un Oris real. */
   oris?: Oris[];
+  /** Resuelve la geometría real (puntual/lineal/red/radial/flexible) de un
+   *  Ium por su id — solo se pasa cuando bloque === "iums". Ver
+   *  useGeometriaIums.ts. Sin esto, IumVisual cae a su criterio anterior
+   *  (orbital genérico) para no romper el render. */
+  geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -818,7 +826,11 @@ function BasesItemCard({
             <div className="flex flex-col md:flex-row gap-3">
               <div className="shrink-0 flex items-center justify-center w-full md:w-[140px]">
                 {bloque === "iums" ? (
-                  <IumVisual particulas={particulasDeIum(fila as FilaIum)} size={140} />
+                  <IumVisual
+                    particulas={particulasDeIum(fila as FilaIum)}
+                    geometria={geometriaDe?.((fila as FilaIum).id).geometria}
+                    size={140}
+                  />
                 ) : bloque === "polaridades" ? (
                   <PoloVisual signo={(fila as FilaPolaridad).signo} size={88} />
                 ) : bloque === "particula-base" ? (
@@ -1066,6 +1078,11 @@ export function FisicaPage({
   energias,
   loadingEnergias,
 }: Props) {
+  // Geometría real de cada Ium (v_iums_geometria_canonica_v1) — una sola
+  // carga acá arriba, reusada por todas las BasesItemCard de "iums" en vez
+  // de que cada tarjeta dispare su propio fetch.
+  const { geometriaDe } = useGeometriaIums();
+
   const [seleccion, setSeleccionRaw] = useState<Seleccion>(
     seleccionarOrisId ? { tipo: "oris", id: seleccionarOrisId } : null,
   );

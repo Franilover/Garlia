@@ -280,8 +280,115 @@ export function sumarConteos(...conteos: Record<LetraATS, number>[]): Record<Let
  *   - "inicial": círculo sólido con la inicial de la Partícula (ej. "C" de
  *     Cinética) — mismo criterio que PARTICLE_INITIAL en Elementos.
  */
+/** Las 5 geometrías reales asignadas a un Ium en Supabase (vista
+ *  v_iums_geometria_canonica_v1) — ver useGeometriaIums.ts. Cada una se
+ *  dibuja con una silueta propia, no una variación de círculo: antes
+ *  TODO Ium (sin importar su geometría) se dibujaba igual, como partículas
+ *  orbitando un anillo. */
+export type GeometriaIum = "puntual" | "lineal" | "red" | "radial" | "flexible";
+
+const GEOMETRIA_COLOR: Record<GeometriaIum, string> = {
+  puntual: "#6b4423",
+  lineal: "#8a5a34",
+  red: "#4e3320",
+  radial: "#c9a06a",
+  flexible: "#a3703f",
+};
+
+export const GEOMETRIA_IUM_NOMBRE: Record<GeometriaIum, string> = {
+  puntual: "Puntual",
+  lineal: "Lineal",
+  red: "Red",
+  radial: "Radial",
+  flexible: "Flexible",
+};
+
+/**
+ * Dibuja, dentro de un círculo de radio `r` centrado en (cx, cy), la forma
+ * correspondiente a una geometría real de Ium. Reutilizado tanto por
+ * IumVisual (un Ium a tamaño completo) como por futuros usos a escala
+ * miniatura (ej. cada nodo de un Oris) — por eso vive como función aparte
+ * en vez de estar inline en IumVisual.
+ */
+export function geometriaIumPath(cx: number, cy: number, r: number, geometria: GeometriaIum): React.ReactNode {
+  const color = GEOMETRIA_COLOR[geometria];
+
+  if (geometria === "puntual") {
+    // Un único núcleo sólido, sin orbitales — mancha compacta, no anillo.
+    return <circle cx={cx} cy={cy} r={r * 0.55} style={{ fill: color }} />;
+  }
+
+  if (geometria === "lineal") {
+    // Segmento recto grueso con remates redondos — nunca un círculo.
+    const w = r * 1.9;
+    return (
+      <g>
+        <rect x={cx - w / 2} y={cy - r * 0.32} width={w} height={r * 0.64} rx={r * 0.32} style={{ fill: color }} />
+        <circle cx={cx - w / 2} cy={cy} r={r * 0.32} style={{ fill: color }} />
+        <circle cx={cx + w / 2} cy={cy} r={r * 0.32} style={{ fill: color }} />
+      </g>
+    );
+  }
+
+  if (geometria === "red") {
+    // Triángulo de nodos totalmente interconectados — malla visible.
+    const pts = [0, 1, 2].map((i) => {
+      const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+      return [cx + Math.cos(a) * r * 0.85, cy + Math.sin(a) * r * 0.85];
+    });
+    return (
+      <g>
+        {pts.map(([x1, y1], i) =>
+          pts.slice(i + 1).map(([x2, y2], j) => (
+            <line
+              key={`edge-${i}-${j}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              strokeWidth={r * 0.09}
+              style={{ stroke: color }}
+            />
+          )),
+        )}
+        {pts.map(([x, y], i) => (
+          <circle key={`node-${i}`} cx={x} cy={y} r={r * 0.24} style={{ fill: color, stroke: "var(--bg-main)" }} strokeWidth={1} />
+        ))}
+      </g>
+    );
+  }
+
+  if (geometria === "radial") {
+    // Anillo orbital real (se dibuja, no se simula) + núcleo + 4 satélites.
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r * 0.82} fill="none" strokeWidth={r * 0.06} style={{ stroke: color }} />
+        <circle cx={cx} cy={cy} r={r * 0.2} style={{ fill: color }} />
+        {[0, 1, 2, 3].map((i) => {
+          const a = (i / 4) * Math.PI * 2;
+          return (
+            <circle
+              key={i}
+              cx={cx + Math.cos(a) * r * 0.82}
+              cy={cy + Math.sin(a) * r * 0.82}
+              r={r * 0.16}
+              style={{ fill: color }}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  // flexible: cadena ondulada — curva serpenteante, sin puntos discretos ni malla.
+  const w = r * 1.7;
+  const path = `M ${cx - w / 2} ${cy} Q ${cx - w / 4} ${cy - r * 0.6} ${cx} ${cy} Q ${cx + w / 4} ${cy + r * 0.6} ${cx + w / 2} ${cy}`;
+  return <path d={path} fill="none" strokeWidth={r * 0.22} strokeLinecap="round" style={{ stroke: color }} />;
+}
+
 export function IumVisual({
   particulas,
+  geometria,
   size = 160,
   className,
   showToggle = true,
@@ -289,6 +396,11 @@ export function IumVisual({
   /** Partículas componentes ya expandidas (una entrada por unidad), con su
    *  fórmula A/T/S, ej. Fluxor → [{ nombre: "Cinética", formula: "TTT" }, { nombre: "Cinética", formula: "TTT" }, { nombre: "Masa", formula: "AAA" }]. */
   particulas: { nombre: string; formula: string }[];
+  /** Geometría real del Ium (v_iums_geometria_canonica_v1 — ver
+   *  useGeometriaIums.ts). Si no se pasa, cae al criterio anterior
+   *  (partículas orbitando un anillo genérico) para no romper usos que
+   *  todavía no resuelven la geometría. */
+  geometria?: GeometriaIum;
   size?: number;
   className?: string;
   /** Si es false, no renderiza el botón flotante de alternar modo (ats/inicial).
@@ -332,7 +444,13 @@ export function IumVisual({
         width={size}
         height={size}
         role="img"
-        aria-label={modo === "ats" ? "Composición A/T/S del Ium" : "Iniciales de Partículas del Ium"}
+        aria-label={
+          geometria
+            ? `Geometría ${GEOMETRIA_IUM_NOMBRE[geometria]} del Ium`
+            : modo === "ats"
+              ? "Composición A/T/S del Ium"
+              : "Iniciales de Partículas del Ium"
+        }
       >
         {particulas.length === 0 ? (
           <circle
@@ -342,9 +460,14 @@ export function IumVisual({
             strokeWidth={guideStrokeW}
             style={{ fill: "none", stroke: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
           />
+        ) : geometria ? (
+          // Geometría real conocida: se dibuja SU forma (puntual, lineal,
+          // red, radial o flexible), no el orbital genérico anterior.
+          <>{geometriaIumPath(cx, cy, size * 0.42, geometria)}</>
         ) : (
           <>
-            {/* Anillo orbital: solo el trazo, igual que las capas de AtomoVisual. */}
+            {/* Sin geometría resuelta (compat hacia atrás): criterio
+                anterior — partículas orbitando un anillo genérico. */}
             <circle
               cx={cx}
               cy={cy}
@@ -394,14 +517,8 @@ export function IumVisual({
                 );
               }
 
-              // Antes: sectores de 120° dibujados a mano acá mismo (mini
-              // versión propia de ParticulaVisual, con menos nitidez —
-              // stroke más fino, sin el circulito de máscara antialiasing
-              // que usa el visor de Partículas real). Ahora se reusa
-              // ParticulaVisual tal cual (mismo componente que el visor de
-              // Partículas), vía foreignObject, para que cada Partícula
-              // dentro del Ium se vea idéntica a como se ve en su propio
-              // visor — mismo trazo, mismo criterio de sectores/letra única.
+              // Sectores de 120° dibujados a mano acá mismo — mismo trazo,
+              // mismo criterio de sectores/letra única que ParticulaVisual.
               return (
                 <g key={`${p.nombre}-${i}`}>
                   <title>{`${p.nombre} (${p.formula})`}</title>
@@ -412,7 +529,6 @@ export function IumVisual({
               );
             })}
           </>
-
         )}
       </svg>
     </div>
