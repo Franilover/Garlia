@@ -182,6 +182,11 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
   const esMaterial = paso === "material";
   const categoria = CATEGORIAS[categoriaIdx];
 
+  // viewBox recortado al bounding box real del ciclo completo (piezas
+  // separadas en los extremos + halo final), igual criterio que
+  // ESTRUCTURA_VB en EtapaEstructuras: sin aire de sobra alrededor, así
+  // el dibujo llena la caja fija y queda del mismo tamaño visual que las
+  // otras etapas de la rama Material.
   const cx = 210;
   const cy = 118;
 
@@ -191,7 +196,7 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
   const xCristalSeparado = cx + 110;
 
   const grafico = (
-    <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
+    <svg viewBox="60 34.95 302 166.1" className={CLASE_SVG_EN_CAJA}>
       {esMaterial && <HaloMaterial cx={cx} cy={cy} r={68} color={categoria.color} pulso />}
 
       <g
@@ -238,8 +243,10 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
       // Las dos piezas parten en los bordes (~276px) y terminan fusionadas
       // en el centro con un halo de ~140px: la caja se contrae cuando ya
       // llegaron (no antes, o el cristal que viene de la derecha pasaría
-      // por debajo del texto que se corre).
-      anchoFinal={anchoEnCaja(147, 420, 200)}
+      // por debajo del texto que se corre). anchoUnidades=147 es el ancho
+      // real del contenido final en unidades del dibujo (no cambia); solo
+      // el viewBox (recortado al contenido) cambió.
+      anchoFinal={anchoEnCaja(147, 302, 166.1)}
       contraido={esMaterial}
     />;
 }
