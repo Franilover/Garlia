@@ -18,7 +18,7 @@ import { useEffect, useState, useCallback } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 
-export type GeometriaIum = "puntual" | "lineal" | "red" | "radial" | "flexible";
+import type { GeometriaIum } from "./ParticulaVisual";
 
 function esGeometriaIum(v: string | null | undefined): v is GeometriaIum {
   return v === "puntual" || v === "lineal" || v === "red" || v === "radial" || v === "flexible";

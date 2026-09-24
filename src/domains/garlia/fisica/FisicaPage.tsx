@@ -397,6 +397,7 @@ function TodasLasBasesView({
   onSelectCriatura,
   onCrearSubsistema,
   creandoSubsistema,
+  geometriaDe,
 }: {
   polaridades: Polaridad[];
   particulaBase: ParticulaBase[];
@@ -412,6 +413,9 @@ function TodasLasBasesView({
   onSelectCriatura?: (id: string) => void;
   onCrearSubsistema: (nombre: string) => Promise<SubsistemaMagia | null>;
   creandoSubsistema?: boolean;
+  /** Geometría real de cada Ium (useGeometriaIums), propagada a las
+   *  BasesItemCard del bloque "iums". */
+  geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
 }) {
   const catalogos = catalogosBases(polaridades, particulaBase, particulas, iums, oris, subsistemas, energias);
 
@@ -1324,6 +1328,7 @@ export function FisicaPage({
               onSelectCriatura={onSelectCriatura}
               onCrearSubsistema={onCrearSubsistema}
               creandoSubsistema={creandoSubsistema}
+              geometriaDe={geometriaDe}
             />
           </div>
         )}
