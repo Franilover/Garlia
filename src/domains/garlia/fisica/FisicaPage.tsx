@@ -944,11 +944,12 @@ function BasesItemCard({
   const esOris = bloque === "oris" && !!original;
   const esSubsistema = bloque === "subsistemas" && !!originalSubsistema;
   const esEnergia = bloque === "energias";
-  // Polaridades y TASI (particula-base) se identifican en la grilla solo
-  // por su gráfico (círculo +/− o letra A/T/S/I), sin nombre en texto al
-  // lado — mismo ícono que ya se usaba dentro del popover, ahora también
-  // como "chip" cerrado. El resto de bloques sigue mostrando el nombre.
-  const soloIcono = bloque === "polaridades" || bloque === "particula-base";
+  // Polaridades, TASI (particula-base) y Partículas se identifican en la
+  // grilla solo por su gráfico (círculo +/−, o letra A/T/S/I de una o
+  // varias posiciones), sin nombre en texto al lado — mismo ícono que ya
+  // se usaba dentro del popover, ahora también como "chip" cerrado. El
+  // resto de bloques sigue mostrando el nombre.
+  const soloIcono = bloque === "polaridades" || bloque === "particula-base" || bloque === "particulas";
 
   useEffect(() => {
     if (autoAbrir && botonRef.current) {
@@ -980,8 +981,11 @@ function BasesItemCard({
         {soloIcono ? (
           bloque === "polaridades" ? (
             <PoloVisual signo={(fila as FilaPolaridad).signo} size={36} />
-          ) : (
+          ) : bloque === "particula-base" ? (
             <ParticulaVisual formula={(fila as FilaParticulaBase).letra} size={36} />
+          ) : (
+            // "particulas": particulaAFilaCatalogo pone la fórmula (ej. "SAT") en detalle.
+            <ParticulaVisual formula={fila.detalle} size={36} />
           )
         ) : (
           <span className="truncate">{fila.nombre}</span>
