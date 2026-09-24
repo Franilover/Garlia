@@ -20,7 +20,7 @@
  * "oris" y "fisica_conceptos", separadas de "elementos".
  */
 
-import { ChevronLeft, Info, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronLeft, Info, Save, Sparkles, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -738,6 +738,12 @@ function OrisPanelFlotante({
   onActualizar: (id: string, cambios: Partial<Oris>) => void;
   onEliminar?: (id: string) => void;
 }) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [nombreLocal, setNombreLocal] = useState(oris.nombre ?? "");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => setNombreLocal(oris.nombre ?? ""), [oris.id, oris.nombre]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
@@ -764,6 +770,7 @@ function OrisPanelFlotante({
         if (e.target === e.currentTarget) onCerrar();
       }}
     >
+      <ConfirmModal />
       <div
         className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         style={{
@@ -788,9 +795,55 @@ function OrisPanelFlotante({
           >
             <Sparkles className="text-primary/50" size={12} />
           </div>
-          <span className="flex-1 min-w-0 text-sm font-black text-primary/70 uppercase tracking-widest truncate">
-            {oris.nombre || "Oris"}
-          </span>
+
+          <input
+            value={nombreLocal}
+            onChange={(e) => setNombreLocal(e.target.value)}
+            onBlur={() => {
+              if (nombreLocal !== oris.nombre) onActualizar(oris.id, { nombre: nombreLocal });
+            }}
+            placeholder="Nombre del Oris"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
+
+          <div className="shrink-0 flex items-center gap-1">
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Eliminar Oris",
+                    message: `¿Eliminar "${nombreLocal}"? Esta acción no se puede deshacer.`,
+                  });
+                  if (ok) {
+                    onEliminar(oris.id);
+                    onCerrar();
+                  }
+                }}
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+                title="Eliminar"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={guardando}
+              onClick={async () => {
+                setGuardando(true);
+                try {
+                  await onActualizar(oris.id, { nombre: nombreLocal });
+                } finally {
+                  setGuardando(false);
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Save size={10} />
+              {guardando ? "…" : "Guardar"}
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={onCerrar}
@@ -806,6 +859,8 @@ function OrisPanelFlotante({
             key={oris.id}
             oris={oris}
             embedded
+            hideHeader
+            nombreExterno={nombreLocal}
             onBack={onCerrar}
             onActualizar={onActualizar}
             onEliminar={

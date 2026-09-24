@@ -39,14 +39,40 @@ interface Props {
    *  oculta el botón "volver" individual, ya que ahí se vuelve una sola vez
    *  desde el header de la familia. */
   embedded?: boolean;
+  /** Oculta la barra propia de nombre/guardar/borrar — usado cuando el
+   *  contenedor (p. ej. OrisPanelFlotante) ya renderiza esos controles en
+   *  su propia barra superior, para no duplicarlos abajo. */
+  hideHeader?: boolean;
+  /** Nombre gestionado externamente (por el contenedor que oculta el
+   *  header) — se usa en vez de `local.nombre` para que el resto del
+   *  editor (p. ej. el mensaje de confirmación de borrado) refleje lo que
+   *  el usuario está escribiendo en la barra superior externa. */
+  nombreExterno?: string;
 }
 
-export function OrisEditor({ oris, onBack, onActualizar, onEliminar, embedded }: Props) {
+export function OrisEditor({
+  oris,
+  onBack,
+  onActualizar,
+  onEliminar,
+  embedded,
+  hideHeader,
+  nombreExterno,
+}: Props) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(oris);
 
   useEffect(() => setLocal(oris), [oris]);
+
+  // Cuando el header vive afuera (hideHeader), el nombre se edita en la
+  // barra externa — reflejarlo acá para que quede consistente en lo que
+  // este editor usa (p. ej. el mensaje de confirmación de borrado).
+  useEffect(() => {
+    if (hideHeader && nombreExterno !== undefined) {
+      setLocal((p) => (p.nombre === nombreExterno ? p : { ...p, nombre: nombreExterno }));
+    }
+  }, [hideHeader, nombreExterno]);
 
   const { items: iums } = useIumsConParticulas();
   const iumPorId = useMemo(
@@ -108,63 +134,65 @@ export function OrisEditor({ oris, onBack, onActualizar, onEliminar, embedded }:
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <ConfirmModal />
-      <div
-        style={{ background: "var(--bg-main)" }}
-        className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 border-b border-primary/10"
-      >
-        {!embedded && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
-          >
-            <ChevronLeft size={12} />
-          </button>
-        )}
-
-        <input
-          value={local.nombre ?? ""}
-          onChange={(e) => setLocal((p) => ({ ...p, nombre: e.target.value }))}
-          onBlur={() => persist({ nombre: local.nombre })}
-          placeholder="Nombre del Oris"
-          className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-        />
-
-        <div className="shrink-0 flex items-center gap-1">
-          {onEliminar && (
+      {!hideHeader && (
+        <div
+          style={{ background: "var(--bg-main)" }}
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 border-b border-primary/10"
+        >
+          {!embedded && (
             <button
               type="button"
-              onClick={async () => {
-                const ok = await confirm({
-                  title: "Eliminar Oris",
-                  message: `¿Eliminar "${local.nombre}"? Esta acción no se puede deshacer.`,
-                });
-                if (ok) onEliminar(oris.id);
-              }}
-              className="flex items-center justify-center w-6 h-6 rounded-md border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
-              title="Eliminar"
+              onClick={onBack}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
             >
-              <Trash2 size={11} />
+              <ChevronLeft size={12} />
             </button>
           )}
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() =>
-              persist({
-                nombre: local.nombre,
-                familia: local.familia,
-                dominio: local.dominio,
-                descripcion: local.descripcion,
-              })
-            }
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-          >
-            <Save size={10} />
-            {saving ? "…" : "Guardar"}
-          </button>
+
+          <input
+            value={local.nombre ?? ""}
+            onChange={(e) => setLocal((p) => ({ ...p, nombre: e.target.value }))}
+            onBlur={() => persist({ nombre: local.nombre })}
+            placeholder="Nombre del Oris"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
+
+          <div className="shrink-0 flex items-center gap-1">
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Eliminar Oris",
+                    message: `¿Eliminar "${local.nombre}"? Esta acción no se puede deshacer.`,
+                  });
+                  if (ok) onEliminar(oris.id);
+                }}
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+                title="Eliminar"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() =>
+                persist({
+                  nombre: local.nombre,
+                  familia: local.familia,
+                  dominio: local.dominio,
+                  descripcion: local.descripcion,
+                })
+              }
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Save size={10} />
+              {saving ? "…" : "Guardar"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={`flex-1 min-h-0 flex flex-row gap-3 overflow-y-auto ${embedded ? "p-2" : "p-2.5"}`}>
         {/* Columna izquierda: gráfico + composición de Iums */}
