@@ -269,7 +269,7 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
   );
 
   const grafico = (
-    <svg viewBox="0 0 420 200" className={CLASE_SVG_EN_CAJA}>
+    <svg viewBox="74.07 44.575 267 146.85" className={CLASE_SVG_EN_CAJA}>
       {/* El molde: contorno REAL de la forma geométrica (prisma
           rectangular / espada de una mano / cilindro-disco), tomado del
           catálogo formas_geometricas. Vacío al aparecer, se llena con
@@ -371,7 +371,10 @@ function DiagramaMoldeObjeto({ replayKey, onReplay }: { replayKey: number; onRep
         // Los Materiales sueltos parten a los costados (~234px) y desaparecen
         // al llenarse el molde: la caja se contrae al ancho de la forma real
         // de esta vuelta (prisma 116, espada 140, disco 96 unidades + trazo).
-        anchoFinal={anchoEnCaja(forma.ancho + 2, 420, 200)}
+        // viewBox recortado al mismo ancho en unidades que Estructuras/
+        // Materiales (267), para que las 4 etapas de la rama Material
+        // escalen al mismo factor px/unidad y se vean del mismo tamaño.
+        anchoFinal={anchoEnCaja(forma.ancho + 2, 267, 146.85)}
         contraido={llenandoOMas}
       />
       <style>{`

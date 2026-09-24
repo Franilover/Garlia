@@ -159,20 +159,24 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
   const categoria = CATEGORIAS[categoriaIdx];
 
   // viewBox recortado al bounding box real del ciclo completo (piezas
-  // separadas en los extremos + halo final), igual criterio que
-  // ESTRUCTURA_VB en EtapaEstructuras: sin aire de sobra alrededor, así
-  // el dibujo llena la caja fija y queda del mismo tamaño visual que las
-  // otras etapas de la rama Material.
+  // separadas en los extremos + resultado final), con el MISMO ancho en
+  // unidades que ESTRUCTURA_VB en EtapaEstructuras (~267) — así ambas
+  // etapas escalan al mismo factor px/unidad dentro de la caja fija y el
+  // dibujo queda del mismo tamaño visual.
   const cx = 210;
   const cy = 118;
 
   // "separados": el mini-átomo entra desde la izquierda, el mini-cristal
   // desde la derecha — al fusionar, ambos convergen al mismo centro.
-  const xAtomoSeparado = cx - 110;
-  const xCristalSeparado = cx + 110;
+  // Separación acotada a 85 (en vez de 110) para que el bounding box del
+  // ciclo completo quepa en un viewBox del mismo ancho que Estructuras
+  // (~267 unidades) y así el dibujo quede del mismo tamaño visual dentro
+  // de la caja fija, sin cortar contenido.
+  const xAtomoSeparado = cx - 85;
+  const xCristalSeparado = cx + 85;
 
   const grafico = (
-    <svg viewBox="60 34.95 302 166.1" className={CLASE_SVG_EN_CAJA}>
+    <svg viewBox="77.5 44.575 267 146.85" className={CLASE_SVG_EN_CAJA}>
       <g
         style={{
           transformOrigin: `${cx}px ${cy}px`,
@@ -220,7 +224,7 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
       // por debajo del texto que se corre). anchoUnidades=147 es el ancho
       // real del contenido final en unidades del dibujo (no cambia); solo
       // el viewBox (recortado al contenido) cambió.
-      anchoFinal={anchoEnCaja(147, 302, 166.1)}
+      anchoFinal={anchoEnCaja(147, 267, 146.85)}
       contraido={esMaterial}
     />;
 }
