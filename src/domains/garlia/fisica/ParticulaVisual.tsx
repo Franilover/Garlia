@@ -460,6 +460,82 @@ function armazonGeometria(
   );
 }
 
+/**
+ * Un Ium dibujado como <g> (sin <svg> ni botón): sus Partículas reales
+ * dispuestas sobre el armazón de su geometría, centrado en (cx, cy) dentro
+ * de un círculo de radio `r`. Es la pieza que IumVisual usa para un Ium
+ * suelto y que OrisTopologiaVisual repite en cada nodo de un Oris — una
+ * sola fuente de verdad para "cómo se ve un Ium".
+ *
+ * `modo` "ats" dibuja los sectores A/T/S de cada Partícula; "inicial" un
+ * círculo con su letra. `sinEtiquetas` omite letras dentro de los sectores
+ * (a escala miniatura no se leen y solo ensucian).
+ */
+export function IumGlifo({
+  cx,
+  cy,
+  r,
+  particulas,
+  geometria,
+  modo = "ats",
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  particulas: { nombre: string; formula: string }[];
+  geometria: GeometriaIum;
+  modo?: "ats" | "inicial";
+}) {
+  const { pts, pr } = disponerParticulas(cx, cy, r, geometria, particulas.length);
+  return (
+    <g>
+      {armazonGeometria(cx, cy, r, geometria, pts, pr)}
+      {pts.map(([px, py], i) => {
+        const p = particulas[i];
+        if (modo === "inicial") {
+          const idx = Object.keys(PARTICULA_INITIAL).indexOf(p.nombre);
+          const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
+          const tono = tonos[idx % tonos.length];
+          return (
+            <g key={`${p.nombre}-${i}`}>
+              <title>{p.nombre}</title>
+              <circle
+                cx={px}
+                cy={py}
+                r={pr}
+                strokeWidth={Math.max(0.6, pr * 2 * 0.02)}
+                style={{
+                  fill: `color-mix(in srgb, ${tono} 55%, var(--bg-main))`,
+                  stroke: `color-mix(in srgb, ${tono} 90%, black)`,
+                }}
+              />
+              <text
+                x={px}
+                y={py}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={pr * 0.6}
+                fontWeight={900}
+                style={{ fill: "#f3e6d3" }}
+              >
+                {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
+              </text>
+            </g>
+          );
+        }
+        return (
+          <g key={`${p.nombre}-${i}`}>
+            <title>{`${p.nombre} (${p.formula})`}</title>
+            <foreignObject x={px - pr} y={py - pr} width={pr * 2} height={pr * 2}>
+              <ParticulaVisual formula={p.formula} size={pr * 2} />
+            </foreignObject>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 export function IumVisual({
   particulas,
   geometria,
@@ -490,9 +566,6 @@ export function IumVisual({
   // Radio útil del área de dibujo cuando hay geometría, y posiciones de las
   // Partículas dentro de ella.
   const geoR = size * 0.44;
-  const disposicion = geometria
-    ? disponerParticulas(cx, cy, geoR, geometria, particulas.length)
-    : { pts: [] as [number, number][], pr: 0 };
 
   /** Una Partícula del Ium centrada en (px, py) con radio `pr`. Compartida
    *  por la rama con geometría y por el orbital anterior, para que ambas
@@ -596,12 +669,7 @@ export function IumVisual({
           // Geometría real conocida: armazón propio (línea, malla, anillo,
           // curva, ángulo o núcleo) + las Partículas REALES del Ium
           // dispuestas sobre él, cada una con sus sectores A/T/S.
-          <>
-            {armazonGeometria(cx, cy, geoR, geometria, disposicion.pts, disposicion.pr)}
-            {disposicion.pts.map(([px, py], i) =>
-              renderParticula(particulas[i], i, px, py, disposicion.pr),
-            )}
-          </>
+          <IumGlifo cx={cx} cy={cy} r={geoR} particulas={particulas} geometria={geometria} modo={modo} />
         ) : (
           <>
             {/* Sin geometría resuelta (compat hacia atrás): criterio

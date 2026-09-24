@@ -14,7 +14,7 @@
  * un fetch simple alcanza, mismo criterio que useVisibilidadExplicacion.ts.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -48,37 +48,61 @@ const GEOMETRIA_DEFAULT: GeometriaIumRow = {
   dimensionalidad: 3,
 };
 
+/** Cache de módulo: la vista es de solo lectura y cambia solo con migraciones,
+ *  así que un fetch por sesión basta. Sin esto, cada componente que llama al
+ *  hook (FisicaPage y cada OrisEditor que se abre) dispararía su propio fetch
+ *  y el dibujo parpadearía vacío mientras carga. */
+let cache: Map<string, GeometriaIumRow> | null = null;
+let enCurso: Promise<Map<string, GeometriaIumRow> | null> | null = null;
+
+async function cargarGeometrias(): Promise<Map<string, GeometriaIumRow> | null> {
+  if (cache) return cache;
+  if (!enCurso) {
+    enCurso = (async () => {
+      const { data, error } = await supabase
+        .from("v_iums_geometria_canonica_v1")
+        .select("ium_id, geometria, geometria_nombre, geometria_familia, dimensionalidad");
+
+      if (error) {
+        console.error("[useGeometriaIums] error cargando geometría:", error);
+        return null;
+      }
+
+      const mapa = new Map<string, GeometriaIumRow>();
+      for (const fila of data ?? []) {
+        mapa.set(fila.ium_id, {
+          geometria: esGeometriaIum(fila.geometria) ? fila.geometria : GEOMETRIA_DEFAULT.geometria,
+          geometria_nombre: fila.geometria_nombre ?? GEOMETRIA_DEFAULT.geometria_nombre,
+          geometria_familia: fila.geometria_familia ?? GEOMETRIA_DEFAULT.geometria_familia,
+          dimensionalidad: fila.dimensionalidad ?? GEOMETRIA_DEFAULT.dimensionalidad,
+        });
+      }
+      cache = mapa;
+      return mapa;
+    })().finally(() => {
+      // Si falló, se permite reintentar en el próximo montaje.
+      enCurso = null;
+    });
+  }
+  return enCurso;
+}
+
 export function useGeometriaIums() {
-  const [porIumId, setPorIumId] = useState<Map<string, GeometriaIumRow>>(new Map());
-  const [loading, setLoading] = useState(true);
-
-  const cargar = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("v_iums_geometria_canonica_v1")
-      .select("ium_id, geometria, geometria_nombre, geometria_familia, dimensionalidad");
-
-    if (error) {
-      console.error("[useGeometriaIums] error cargando geometría:", error);
-      setLoading(false);
-      return;
-    }
-
-    const mapa = new Map<string, GeometriaIumRow>();
-    for (const fila of data ?? []) {
-      mapa.set(fila.ium_id, {
-        geometria: esGeometriaIum(fila.geometria) ? fila.geometria : GEOMETRIA_DEFAULT.geometria,
-        geometria_nombre: fila.geometria_nombre ?? GEOMETRIA_DEFAULT.geometria_nombre,
-        geometria_familia: fila.geometria_familia ?? GEOMETRIA_DEFAULT.geometria_familia,
-        dimensionalidad: fila.dimensionalidad ?? GEOMETRIA_DEFAULT.dimensionalidad,
-      });
-    }
-    setPorIumId(mapa);
-    setLoading(false);
-  }, []);
+  const [porIumId, setPorIumId] = useState<Map<string, GeometriaIumRow>>(cache ?? new Map());
+  const [loading, setLoading] = useState(cache === null);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    if (cache) return;
+    let vivo = true;
+    cargarGeometrias().then((mapa) => {
+      if (!vivo) return;
+      if (mapa) setPorIumId(mapa);
+      setLoading(false);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   /** Geometría de un Ium por su id, con fallback seguro si falta el dato. */
   const geometriaDe = useCallback(

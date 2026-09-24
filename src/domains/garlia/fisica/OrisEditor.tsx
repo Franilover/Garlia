@@ -15,9 +15,20 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import { useConfirm } from "@/ui/ConfirmModal";
 
+import { OrisTopologiaVisual } from "./OrisTopologiaVisual";
 import { IumVisual } from "./ParticulaVisual";
-import { ORIS_CONFIG, ORIS_FAMILIAS, iumAFilaIum, particulasDeOris, type Oris, type OrisFamilia } from "./types";
+import {
+  ORIS_CONFIG,
+  ORIS_FAMILIAS,
+  iumAFilaIum,
+  particulasDeIum,
+  particulasDeOris,
+  type Oris,
+  type OrisFamilia,
+} from "./types";
+import { useGeometriaIums } from "./useGeometriaIums";
 import { useIumsConParticulas } from "./useIumsConParticulas";
+import { useOrisGrafo } from "./useOrisGrafo";
 
 interface Props {
   oris: Oris;
@@ -42,6 +53,22 @@ export function OrisEditor({ oris, onBack, onActualizar, onEliminar, embedded }:
     () => Object.fromEntries(iums.map((i) => [i.id, iumAFilaIum(i)])),
     [iums],
   );
+
+  // Topología real del Oris (nodos + uniones) y geometría real de cada Ium —
+  // ambas vienen de vistas derivadas de Supabase (v_oris_grafo_canonico,
+  // v_iums_geometria_canonica_v1), no de tablas base.
+  const { grafoDe } = useOrisGrafo();
+  const { geometriaDe } = useGeometriaIums();
+  const grafoOris = grafoDe(oris.id);
+  // Solo se usa si trae nodos: un grafo vacío no dibuja nada útil.
+  const grafo = grafoOris && grafoOris.nodos.length > 0 ? grafoOris : null;
+
+  /** Partículas reales (expandidas) de un Ium por su id — las que dibuja
+   *  cada nodo del grafo del Oris. */
+  const particulasDePorIum = (iumId: string) => {
+    const fila = iumPorId[iumId];
+    return fila ? particulasDeIum(fila) : [];
+  };
 
   const iumsComposicion = local.iums_composicion ?? {};
   const particulasOris = useMemo(
@@ -141,10 +168,17 @@ export function OrisEditor({ oris, onBack, onActualizar, onEliminar, embedded }:
 
       <div className={`flex-1 min-h-0 flex flex-row gap-3 overflow-y-auto ${embedded ? "p-2" : "p-2.5"}`}>
         {/* Columna izquierda: gráfico + composición de Iums */}
-        <div className="shrink-0 w-[200px] flex flex-col items-center gap-3 p-3">
-          <IumVisual particulas={particulasOris} size={160} />
+        <div className={`shrink-0 flex flex-col items-center gap-3 p-3 ${grafo ? "w-[300px]" : "w-[200px]"}`}>
+          {grafo ? (
+            // Topología real: cada nodo es un Ium con sus Partículas sobre su
+            // geometría, unidos como define v_oris_grafo_canonico.
+            <OrisTopologiaVisual grafo={grafo} particulasDe={particulasDePorIum} geometriaDe={geometriaDe} />
+          ) : (
+            // Oris sin topología asignada en Supabase: gráfico anterior.
+            <IumVisual particulas={particulasOris} size={160} />
+          )}
 
-          {iumsPresentes.length === 0 ? (
+          {grafo ? null : iumsPresentes.length === 0 ? (
             <span className="text-micro text-primary/30 text-center">Sin Iums en la composición</span>
           ) : (
             <div className="flex flex-wrap justify-center gap-1.5">
