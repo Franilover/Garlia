@@ -22,6 +22,7 @@
 
 import { ChevronLeft, Info, Sparkles, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { RichEditor } from "@/editor/lexical";
 import { supabase } from "@/infra/supabase/supabase";
@@ -714,15 +715,127 @@ function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
 }
 
 /**
+ * Panel flotante centrado del detalle de un Oris — mismo shell visual que
+ * ElementoPanelFlotante/CompuestoPanelFlotante en Elementos/Compuestos
+ * (modal grande "w-full h-full max-w-6xl" centrado en pantalla, backdrop
+ * con blur, animación popIn, Escape para cerrar y bloqueo de scroll del
+ * fondo), reemplazando el PopoverFlotante chico anclado que se usaba antes
+ * para Oris. A diferencia de ElementoPanelFlotante, OrisEditor ya trae su
+ * propio header interno (nombre, guardar, borrar) — no usa el patrón de
+ * onHeaderControlsChange — así que el header de este shell queda fijo
+ * (ícono + título "Oris" + botón cerrar) y OrisEditor se renderiza
+ * `embedded` (sin su botón "volver" propio, ya que acá cerramos con la X
+ * o Escape).
+ */
+function OrisPanelFlotante({
+  oris,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+}: {
+  oris: Oris;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Oris>) => void;
+  onEliminar?: (id: string) => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}
+          >
+            <Sparkles className="text-primary/50" size={12} />
+          </div>
+          <span className="flex-1 min-w-0 text-sm font-black text-primary/70 uppercase tracking-widest truncate">
+            {oris.nombre || "Oris"}
+          </span>
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <OrisEditor
+            key={oris.id}
+            oris={oris}
+            embedded
+            onBack={onCerrar}
+            onActualizar={onActualizar}
+            onEliminar={
+              onEliminar
+                ? (id) => {
+                    onEliminar(id);
+                    onCerrar();
+                  }
+                : undefined
+            }
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
  * Tarjeta compacta de una fila de catálogo base (partícula, IUM, Oris,
  * Subsistema, etc.): muestra solo el nombre. Por defecto, al hacer click
  * abre un popover flotante anclado a la tarjeta con el detalle completo —
  * y, para Partícula Base/Partículas/Iums, su gráfico A/T/S arriba del
  * detalle (círculo de 3 tercios para Base/Partículas vía ParticulaVisual;
  * para Iums, sus Partículas componentes orbitando un centro vía
- * IumVisual — mismo patrón que AtomoVisual en Elementos). Si se pasa
+ * IumVisual — mismo patrón que AtomoVisual en Elementos). Para Oris, el
+ * click abre OrisPanelFlotante (modal grande centrado, mismo diseño que
+ * Elementos/Compuestos) en vez del popover chico anclado. Si se pasa
  * `onClick`, ese comportamiento se reemplaza y el click abre el editor
- * completo en la columna derecha (usado por Oris y Subsistemas, cuyo
+ * completo en la columna derecha (usado por Subsistemas, cuyo
  * gráfico —si aplica— vive dentro de ese editor, no acá).
  */
 function BasesItemCard({
@@ -801,22 +914,14 @@ function BasesItemCard({
         <span className="truncate">{fila.nombre}</span>
       </button>
       {esOris ? (
-        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={560} maxHeight={520}>
-          <OrisEditor
+        anchor && (
+          <OrisPanelFlotante
             oris={original!}
-            embedded
-            onBack={() => setAnchor(null)}
+            onCerrar={() => setAnchor(null)}
             onActualizar={onActualizarOris ?? (() => {})}
-            onEliminar={
-              onEliminarOris
-                ? (id) => {
-                    onEliminarOris(id);
-                    setAnchor(null);
-                  }
-                : undefined
-            }
+            onEliminar={onEliminarOris}
           />
-        </PopoverFlotante>
+        )
       ) : esSubsistema ? (
         <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={420} maxHeight={560}>
           <PanelEditorSubsistema
@@ -1240,15 +1345,6 @@ export function FisicaPage({
     [oris, seleccion],
   );
 
-  // Ancla "fantasma" para el popover de Oris cuando se abre por deep-link
-  // (seleccionarOrisId) en vez de por click en una tarjeta: no hay un
-  // elemento real que originó la apertura, así que se usa un div oculto
-  // fijo en el centro de la pantalla + modo backdrop (fondo oscurecido)
-  // para que igual se vea como panel flotante y cierre al clickear afuera.
-  // Se guarda en estado (no solo ref) para que el primer render, donde el
-  // ref todavía es null, se corrija apenas el div fantasma se monta.
-  const [anchorFantasma, setAnchorFantasma] = useState<HTMLDivElement | null>(null);
-
   const conceptoActivo = useMemo(
     () =>
       seleccion?.tipo === "concepto"
@@ -1259,36 +1355,17 @@ export function FisicaPage({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      {/* Ancla fantasma + popover flotante de Oris cuando se abre por
-          deep-link (seleccionarOrisId), fuera del flujo de columnas —
-          las tarjetas de la lista abren su propio popover anclado a sí
-          mismas (ver BasesItemCard), este es solo el caso sin tarjeta. */}
-      <div ref={setAnchorFantasma} className="fixed top-1/2 left-1/2 w-px h-px pointer-events-none" />
+      {/* Panel flotante de Oris cuando se abre por deep-link
+          (seleccionarOrisId), fuera del flujo de columnas — las tarjetas
+          de la lista abren el mismo OrisPanelFlotante desde sí mismas
+          (ver BasesItemCard), este es solo el caso sin tarjeta. */}
       {orisActivo && (
-        <PopoverFlotante
-          anchor={anchorFantasma}
-          onClose={() => setSeleccion({ tipo: "todas-bases" })}
-          width={560}
-          maxHeight={520}
-          centerVertically
-          centerHorizontally
-          backdrop
-        >
-          <OrisEditor
-            oris={orisActivo}
-            embedded
-            onBack={() => setSeleccion({ tipo: "todas-bases" })}
-            onActualizar={onActualizarOris}
-            onEliminar={
-              onEliminarOris
-                ? (id) => {
-                    onEliminarOris(id);
-                    setSeleccion({ tipo: "todas-bases" });
-                  }
-                : undefined
-            }
-          />
-        </PopoverFlotante>
+        <OrisPanelFlotante
+          oris={orisActivo}
+          onCerrar={() => setSeleccion({ tipo: "todas-bases" })}
+          onActualizar={onActualizarOris}
+          onEliminar={onEliminarOris}
+        />
       )}
 
       {mensajeImportacion && (
