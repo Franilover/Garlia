@@ -992,7 +992,7 @@ function IumEditor({
             <button
               type="button"
               disabled={saving}
-              onClick={() => persist({ nombre: local.nombre, detalle: local.detalle, extra: local.extra })}
+              onClick={() => persist({ nombre: local.nombre, extra: local.extra })}
               className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               <Save size={10} />
@@ -1025,21 +1025,9 @@ function IumEditor({
           )}
         </div>
 
-        {/* Columna derecha: detalle + extra — mismo estilo minimalista que
-            OrisEditor (solo borde, sin fondo relleno; texto grande y
-            liviano). */}
+        {/* Columna derecha: solo "Extra" — el detalle/composición ya se
+            muestra abajo del gráfico, más prolijo (chips de partículas). */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-micro uppercase tracking-wide text-primary/35">Detalle</label>
-            <input
-              value={local.detalle ?? ""}
-              onChange={(e) => setLocal((p) => ({ ...p, detalle: e.target.value }))}
-              onBlur={() => persist({ detalle: local.detalle })}
-              placeholder="Descripción corta del Ium"
-              className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors placeholder:text-primary/25"
-            />
-          </div>
-
           <div className="flex-1 min-h-0 flex flex-col gap-1">
             <label className="text-micro uppercase tracking-wide text-primary/35">Extra</label>
             <textarea

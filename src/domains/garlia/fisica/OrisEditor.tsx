@@ -228,38 +228,40 @@ export function OrisEditor({
             en inputs/selects/textarea, solo un borde fino; texto grande y
             liviano, labels chicos y discretos, sin bold/tracking pesado. */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-micro uppercase tracking-wide text-primary/35">
-              Familia
-            </label>
-            <select
-              value={local.familia}
-              onChange={(e) => {
-                const familia = e.target.value as OrisFamilia;
-                setLocal((p) => ({ ...p, familia }));
-                persist({ familia });
-              }}
-              className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors"
-            >
-              {ORIS_FAMILIAS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="flex flex-row gap-3">
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
+              <label className="text-micro uppercase tracking-wide text-primary/35">
+                Familia
+              </label>
+              <select
+                value={local.familia}
+                onChange={(e) => {
+                  const familia = e.target.value as OrisFamilia;
+                  setLocal((p) => ({ ...p, familia }));
+                  persist({ familia });
+                }}
+                className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors"
+              >
+                {ORIS_FAMILIAS.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-micro uppercase tracking-wide text-primary/35">
-              Dominio
-            </label>
-            <input
-              value={local.dominio ?? ""}
-              onChange={(e) => setLocal((p) => ({ ...p, dominio: e.target.value }))}
-              onBlur={() => persist({ dominio: local.dominio })}
-              placeholder="ej. Peso y gravedad"
-              className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors placeholder:text-primary/25"
-            />
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
+              <label className="text-micro uppercase tracking-wide text-primary/35">
+                Dominio
+              </label>
+              <input
+                value={local.dominio ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, dominio: e.target.value }))}
+                onBlur={() => persist({ dominio: local.dominio })}
+                placeholder="ej. Peso y gravedad"
+                className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors placeholder:text-primary/25"
+              />
+            </div>
           </div>
 
           <div className="flex-1 min-h-0 flex flex-col gap-1">
