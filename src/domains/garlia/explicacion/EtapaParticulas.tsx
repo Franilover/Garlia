@@ -34,17 +34,7 @@ export function DiagramaParticulas({ replayKey, onReplay }: { replayKey: number;
   }, [ejemploIdx, terminado]);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="mx-auto flex max-w-xs flex-col items-center gap-3"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
+    <div className="mx-auto flex min-h-full max-w-xs flex-col items-center justify-center gap-3">
       <div key={ejemploIdx} style={{ animation: "explicacion-pop-in 0.4s ease-out both" }}>
         <ParticulaVisual formula={EJEMPLOS[ejemploIdx]} size={112} />
       </div>
@@ -52,11 +42,6 @@ export function DiagramaParticulas({ replayKey, onReplay }: { replayKey: number;
       <p className="max-w-xs text-center text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
         Cada letra ocupa un tercio del círculo. Cambiar el orden o las letras da una Partícula distinta.
       </p>
-      {terminado && (
-        <span className="text-[10px] font-bold uppercase tracking-wide opacity-40" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
-          Toca para repetir
-        </span>
-      )}
     </div>
   );
 }
@@ -69,17 +54,13 @@ export default function EtapaParticulas({ replayKey, onReplay }: { replayKey: nu
           from { opacity: 0; transform: scale(0.85); }
           to { opacity: 1; transform: scale(1); }
         }
-        @keyframes explicacion-fade-in {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
       `}</style>
 
       <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Partículas</h2>
       </div>
 
-      <div className="py-2 md:py-4">
+      <div className="flex min-h-[220px] items-center justify-center py-2 md:py-4">
         <DiagramaParticulas replayKey={replayKey} onReplay={onReplay} />
       </div>
     </section>

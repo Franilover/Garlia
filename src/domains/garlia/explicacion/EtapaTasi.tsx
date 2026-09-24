@@ -94,17 +94,7 @@ export function DiagramaTasi({ replayKey, onReplay }: { replayKey: number; onRep
   }, [idx]);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="mx-auto flex max-w-sm flex-col items-center gap-3"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
+    <div className="mx-auto flex min-h-full max-w-sm flex-col items-center justify-center gap-3">
       <div className="grid w-full grid-cols-1 gap-2">
         {RELACIONES.map((rel, i) => (
           <FilaRelacion key={rel.resultado} rel={rel} index={i} mostrar={idx > i} />
@@ -113,11 +103,6 @@ export function DiagramaTasi({ replayKey, onReplay }: { replayKey: number; onRep
       <p className="max-w-xs text-center text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
         Los polos se combinan en pares y cada combinación colapsa en una de las 4 letras TASI.
       </p>
-      {terminado && (
-        <span className="text-[10px] font-bold uppercase tracking-wide opacity-40" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
-          Toca para repetir
-        </span>
-      )}
     </div>
   );
 }
@@ -129,7 +114,7 @@ export default function EtapaTasi({ replayKey, onReplay }: { replayKey: number; 
         <h2 className="text-base font-black uppercase tracking-wide">TASI</h2>
       </div>
 
-      <div className="py-2 md:py-4">
+      <div className="flex min-h-[220px] items-center justify-center py-2 md:py-4">
         <DiagramaTasi replayKey={replayKey} onReplay={onReplay} />
       </div>
     </section>

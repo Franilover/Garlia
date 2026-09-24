@@ -52,17 +52,7 @@ export function DiagramaPolaridades({ replayKey, onReplay }: { replayKey: number
   }, [replayKey]);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => asentado && onReplay()}
-      onKeyDown={(e) => {
-        if (asentado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="mx-auto flex max-w-md flex-col items-center gap-3"
-      style={{ cursor: asentado ? "pointer" : "default" }}
-      title={asentado ? "Toca para repetir la animación" : undefined}
-    >
+    <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center gap-3">
       <div className="flex items-center gap-6">
         <div className="flex flex-col items-center gap-1.5">
           <Polo signo="+" size={64} orbitando={!asentado} />
@@ -76,11 +66,6 @@ export function DiagramaPolaridades({ replayKey, onReplay }: { replayKey: number
       <p className="max-w-xs text-center text-[11px] leading-relaxed" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
         El + se mueve porque emite. El − se queda quieto porque recibe. Todo en Garlia nace de estos dos polos.
       </p>
-      {asentado && (
-        <span className="text-[10px] font-bold uppercase tracking-wide opacity-40" style={{ animation: "explicacion-fade-in 0.4s ease-out both" }}>
-          Toca para repetir
-        </span>
-      )}
     </div>
   );
 }
@@ -93,17 +78,13 @@ export default function EtapaPolaridadesSolo({ replayKey, onReplay }: { replayKe
           0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 25%, transparent); }
           50% { transform: translateY(-3px) scale(1.05); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 0%, transparent); }
         }
-        @keyframes explicacion-fade-in {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
       `}</style>
 
       <div className="mb-5 text-center">
         <h2 className="text-base font-black uppercase tracking-wide">Polaridades</h2>
       </div>
 
-      <div className="py-2 md:py-4">
+      <div className="flex min-h-[220px] items-center justify-center py-2 md:py-4">
         <DiagramaPolaridades replayKey={replayKey} onReplay={onReplay} />
       </div>
     </section>
