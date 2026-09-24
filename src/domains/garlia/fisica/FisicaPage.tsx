@@ -512,6 +512,7 @@ function TodasLasBasesView({
               <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
                 {key === "oris" ? (
                   <CabeceraSeccionConMenu
+                    align="left"
                     titulo={`${titulo} · ${filas.length}`}
                     items={oris.map((o) => ({ id: o.id, nombre: o.nombre }))}
                     onAñadir={onCreateOris}

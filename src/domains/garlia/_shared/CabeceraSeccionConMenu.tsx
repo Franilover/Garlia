@@ -87,6 +87,13 @@ export interface CabeceraSeccionConMenuProps {
    * (solo título centrado) — Compuestos/Materiales/Geometrías no cambian.
    */
   filtros?: React.ReactNode;
+  /**
+   * Alineación del título dentro de su wrapper — "center" (default, usado
+   * por Elementos/Compuestos/Materiales) o "left" (usado por la columna de
+   * Oris en Física, para quedar alineada con el resto de columnas de esa
+   * vista, que no centran su título).
+   */
+  align?: "center" | "left";
 }
 
 /** Submenú "Seleccionar agrupación → Por Propiedades": lista de las mismas
@@ -138,6 +145,7 @@ export function CabeceraSeccionConMenu({
   agrupacionActiva = null,
   onSeleccionarAgrupacion,
   filtros,
+  align = "center",
 }: CabeceraSeccionConMenuProps) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -176,9 +184,11 @@ export function CabeceraSeccionConMenu({
       type="button"
       disabled={!hayAlgoQueMostrar}
       onClick={() => hayAlgoQueMostrar && setMenuAbierto((v) => !v)}
-      className={`text-micro font-black uppercase tracking-widest text-primary/40 ${
-        hayAlgoQueMostrar ? "hover:text-primary/70 cursor-pointer" : "cursor-default"
-      } transition-colors`}
+      className={`text-micro font-black uppercase transition-colors ${
+        align === "left" ? "tracking-[0.2em]" : "tracking-widest"
+      } ${
+        align === "left" ? "text-primary" : "text-primary/40"
+      } ${hayAlgoQueMostrar ? "hover:text-primary/70 cursor-pointer" : "cursor-default"}`}
     >
       {titulo}
       {propiedadActivaLabel && (
@@ -191,7 +201,9 @@ export function CabeceraSeccionConMenu({
 
   const menuFlotante = (
     <div
-          className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left"
+          className={`absolute z-50 top-full mt-1 min-w-[11rem] rounded-lg overflow-hidden shadow-xl text-left ${
+            align === "left" ? "left-0" : "left-1/2 -translate-x-1/2"
+          }`}
           style={{
             background: "var(--bg-main)",
             border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
@@ -239,11 +251,13 @@ export function CabeceraSeccionConMenu({
   );
 
   return (
-    <div className="px-3 pt-3 text-center">
-      {/* Título arriba y centrado (pedido 2026-09-20). anclaRef vive en este
+    <div className={align === "left" ? "text-left" : "px-3 pt-3 text-center"}>
+      {/* Título arriba y centrado (pedido 2026-09-20), o alineado a la
+          izquierda cuando align="left" (Oris en Física, para calzar con
+          el resto de columnas de esa vista). anclaRef vive en este
           wrapper —no en todo el bloque— para que el menú Añadir/Editar
-          cuelgue centrado del título y un click en los filtros de abajo
-          cuente como "afuera" y lo cierre. */}
+          cuelgue del título y un click en los filtros de abajo cuente
+          como "afuera" y lo cierre. */}
       <div className="relative inline-block" ref={anclaRef}>
         {botonTitulo}
         {menuAbierto && menuFlotante}
