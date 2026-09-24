@@ -82,7 +82,7 @@ function DiagramaEstabilizacion({ replayKey, onReplay }: { replayKey: number; on
       tabIndex={0}
       onClick={() => terminado && onReplay()}
       onKeyDown={(e) => { if (terminado && (e.key === "Enter" || e.key === " ")) onReplay(); }}
-      className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-center md:gap-5"
+      className="flex flex-col items-center gap-3 md:flex-row md:items-center md:justify-start md:gap-5"
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir" : undefined}
     >

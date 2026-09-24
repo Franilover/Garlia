@@ -56,8 +56,8 @@ import React from "react";
 // ─── Constantes de la base (única fuente de verdad) ───────────────────────
 
 /** Caja reservada para el gráfico, en px (desktop, md+). */
-export const GRAFICO_W = 400;
-export const GRAFICO_H = 220;
+export const GRAFICO_W = 640;
+export const GRAFICO_H = 352;
 
 /** Aire (px, a cada lado) entre el borde del dibujo final y el borde de la
  *  caja una vez contraída. Igual en todas: así la distancia final dibujo↔
@@ -183,7 +183,7 @@ export function LayoutEtapa({
       onKeyDown={(e) => {
         if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
       }}
-      className={`flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center ${GAP_CLASE}`}
+      className={`flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-start ${GAP_CLASE}`}
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >

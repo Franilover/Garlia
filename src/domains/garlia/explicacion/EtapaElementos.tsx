@@ -131,7 +131,7 @@ function DiagramaCapas({ replayKey, onReplay }: { replayKey: number; onReplay: (
       onKeyDown={(e) => {
         if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
       }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-center md:gap-8"
+      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-start md:gap-8"
       style={{ cursor: terminado ? "pointer" : "default" }}
       title={terminado ? "Toca para repetir la animación" : undefined}
     >
