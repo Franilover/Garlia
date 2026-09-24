@@ -27,6 +27,7 @@ import { RichEditor } from "@/editor/lexical";
 import { supabase } from "@/infra/supabase/supabase";
 import { useConfirm } from "@/ui/ConfirmModal";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+import { CabeceraSeccionConMenu } from "@/domains/garlia/_shared/CabeceraSeccionConMenu";
 
 import { OrisEditor } from "./OrisEditor";
 import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
@@ -390,6 +391,8 @@ function TodasLasBasesView({
   oris,
   subsistemas,
   energias,
+  onCreateOris,
+  creatingOris,
   onActualizarOris,
   onEliminarOris,
   onActualizarSubsistema,
@@ -406,6 +409,8 @@ function TodasLasBasesView({
   oris: Oris[];
   subsistemas: SubsistemaMagia[];
   energias: ContextoHumano[];
+  onCreateOris?: () => void;
+  creatingOris?: boolean;
   onActualizarOris: (id: string, cambios: Partial<Oris>) => void;
   onEliminarOris?: (id: string) => void;
   onActualizarSubsistema: (id: string, updates: Partial<SubsistemaMagia>) => void;
@@ -494,7 +499,18 @@ function TodasLasBasesView({
               style={{ flexGrow: Math.max(filas.length, 1), flexBasis: 0 }}
             >
               <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
-                <BasesRowTitle titulo={titulo} cantidad={filas.length} mostrarInfo={key === "particulas"} />
+                {key === "oris" ? (
+                  <CabeceraSeccionConMenu
+                    titulo={`${titulo} · ${filas.length}`}
+                    items={oris.map((o) => ({ id: o.id, nombre: o.nombre }))}
+                    onAñadir={onCreateOris}
+                    añadiendo={creatingOris}
+                    onRenombrar={(id, nuevoNombre) => onActualizarOris(id, { nombre: nuevoNombre })}
+                    onEliminar={onEliminarOris}
+                  />
+                ) : (
+                  <BasesRowTitle titulo={titulo} cantidad={filas.length} mostrarInfo={key === "particulas"} />
+                )}
               </div>
 
               {filas.length === 0 ? (
@@ -1321,6 +1337,8 @@ export function FisicaPage({
               oris={oris}
               subsistemas={subsistemas}
               energias={energias}
+              onCreateOris={onCreateOris}
+              creatingOris={creatingOris}
               onActualizarOris={onActualizarOris}
               onEliminarOris={onEliminarOris}
               onActualizarSubsistema={onActualizarSubsistema}
