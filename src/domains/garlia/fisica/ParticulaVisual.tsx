@@ -280,20 +280,13 @@ export function sumarConteos(...conteos: Record<LetraATS, number>[]): Record<Let
  *   - "inicial": círculo sólido con la inicial de la Partícula (ej. "C" de
  *     Cinética) — mismo criterio que PARTICLE_INITIAL en Elementos.
  */
-/** Las 5 geometrías reales asignadas a un Ium en Supabase (vista
- *  v_iums_geometria_canonica_v1) — ver useGeometriaIums.ts. Cada una se
- *  dibuja con una silueta propia, no una variación de círculo: antes
- *  TODO Ium (sin importar su geometría) se dibujaba igual, como partículas
- *  orbitando un anillo. */
-export type GeometriaIum = "puntual" | "lineal" | "red" | "radial" | "flexible";
-
-const GEOMETRIA_COLOR: Record<GeometriaIum, string> = {
-  puntual: "#6b4423",
-  lineal: "#8a5a34",
-  red: "#4e3320",
-  radial: "#c9a06a",
-  flexible: "#a3703f",
-};
+/** Geometrías reales asignadas a un Ium en Supabase (vista
+ *  v_iums_geometria_canonica_v1) — ver useGeometriaIums.ts. Cada una define
+ *  el ARMAZÓN sobre el que se disponen las Partículas reales del Ium (no
+ *  las reemplaza): antes TODO Ium se dibujaba igual (partículas orbitando
+ *  un anillo), y en el rediseño intermedio se dibujaba solo una silueta y
+ *  se perdían las Partículas. */
+export type GeometriaIum = "puntual" | "lineal" | "red" | "radial" | "flexible" | "angular";
 
 export const GEOMETRIA_IUM_NOMBRE: Record<GeometriaIum, string> = {
   puntual: "Puntual",
@@ -301,89 +294,170 @@ export const GEOMETRIA_IUM_NOMBRE: Record<GeometriaIum, string> = {
   red: "Red",
   radial: "Radial",
   flexible: "Flexible",
+  angular: "Angular",
 };
 
-/**
- * Dibuja, dentro de un círculo de radio `r` centrado en (cx, cy), la forma
- * correspondiente a una geometría real de Ium. Reutilizado tanto por
- * IumVisual (un Ium a tamaño completo) como por futuros usos a escala
- * miniatura (ej. cada nodo de un Oris) — por eso vive como función aparte
- * en vez de estar inline en IumVisual.
- */
-export function geometriaIumPath(cx: number, cy: number, r: number, geometria: GeometriaIum): React.ReactNode {
-  const color = GEOMETRIA_COLOR[geometria];
+const GEOMETRIA_TRAZO = "color-mix(in srgb, var(--primary) 75%, transparent)";
+
+/** Posiciones (x, y) de `n` Partículas dentro de un círculo de radio `r`
+ *  centrado en (cx, cy), según la geometría. Devuelve también el radio que
+ *  puede tener cada Partícula sin solaparse con sus vecinas. */
+function disponerParticulas(
+  cx: number,
+  cy: number,
+  r: number,
+  geometria: GeometriaIum,
+  n: number,
+): { pts: [number, number][]; pr: number } {
+  if (n <= 0) return { pts: [], pr: 0 };
+  if (n === 1) return { pts: [[cx, cy]], pr: r * 0.42 };
+
+  const t = (i: number) => (n === 1 ? 0.5 : i / (n - 1));
 
   if (geometria === "puntual") {
-    // Un único núcleo sólido, sin orbitales — mancha compacta, no anillo.
-    return <circle cx={cx} cy={cy} r={r * 0.55} style={{ fill: color }} />;
+    // Núcleo compacto: las Partículas se tocan casi, apiñadas alrededor
+    // del centro (una arriba y el resto debajo, o anillo chico si son >3).
+    const R = r * 0.24 * Math.min(1.4, 0.7 + n * 0.25);
+    const pr = r * (n <= 3 ? 0.28 : 0.22);
+    const pts = Array.from({ length: n }, (_, i): [number, number] => {
+      const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
+      return [cx + Math.cos(a) * R, cy + Math.sin(a) * R + (n === 3 ? r * 0.05 : 0)];
+    });
+    return { pts, pr };
   }
 
   if (geometria === "lineal") {
-    // Segmento recto grueso con remates redondos — nunca un círculo.
-    const w = r * 1.9;
+    const span = r * 1.5;
+    const pr = Math.min(r * 0.32, (span / (n - 1)) * 0.42);
+    const pts = Array.from({ length: n }, (_, i): [number, number] => [cx - span / 2 - r * 0.1 + t(i) * span, cy]);
+    return { pts, pr };
+  }
+
+  if (geometria === "flexible") {
+    const span = r * 1.56;
+    const pr = Math.min(r * 0.31, (span / (n - 1)) * 0.42);
+    const pts = Array.from({ length: n }, (_, i): [number, number] => [
+      cx - span / 2 + t(i) * span,
+      cy + Math.sin(t(i) * Math.PI * 2) * r * -0.3,
+    ]);
+    return { pts, pr };
+  }
+
+  if (geometria === "angular") {
+    // "Λ": sube hasta un vértice y baja — n=3 → extremo, vértice, extremo.
+    const span = r * 1.56;
+    const pr = Math.min(r * 0.33, (span / (n - 1)) * 0.5);
+    const pts = Array.from({ length: n }, (_, i): [number, number] => {
+      const k = t(i);
+      const y = cy + r * 0.5 - (1 - Math.abs(2 * k - 1)) * r * 1.0;
+      return [cx - span / 2 + k * span, y];
+    });
+    return { pts, pr };
+  }
+
+  // red y radial: Partículas en polígono regular.
+  const R = r * (geometria === "red" ? 0.62 : 0.66);
+  const pr = Math.min(r * 0.3, R * Math.sin(Math.PI / n) * 0.9);
+  const pts = Array.from({ length: n }, (_, i): [number, number] => {
+    const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
+    return [cx + Math.cos(a) * R, cy + Math.sin(a) * R];
+  });
+  return { pts, pr: Math.max(pr, r * 0.16) };
+}
+
+/** Dibuja el armazón de la geometría (líneas/anillo/curva) POR DEBAJO de las
+ *  Partículas. Recibe los puntos ya calculados por disponerParticulas. */
+function armazonGeometria(
+  cx: number,
+  cy: number,
+  r: number,
+  geometria: GeometriaIum,
+  pts: [number, number][],
+  pr: number,
+): React.ReactNode {
+  const sw = Math.max(0.8, r * 0.035);
+  const trazo = { stroke: GEOMETRIA_TRAZO } as const;
+
+  if (geometria === "puntual") {
     return (
-      <g>
-        <rect x={cx - w / 2} y={cy - r * 0.32} width={w} height={r * 0.64} rx={r * 0.32} style={{ fill: color }} />
-        <circle cx={cx - w / 2} cy={cy} r={r * 0.32} style={{ fill: color }} />
-        <circle cx={cx + w / 2} cy={cy} r={r * 0.32} style={{ fill: color }} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r * 0.9}
+        fill="none"
+        strokeWidth={Math.max(0.6, sw * 0.6)}
+        strokeDasharray={`${sw} ${sw * 2}`}
+        style={trazo}
+      />
+    );
+  }
+
+  if (geometria === "lineal") {
+    if (pts.length < 2) return null;
+    const [x0] = pts[0];
+    const [xn] = pts[pts.length - 1];
+    const a = pr * 0.4;
+    return (
+      <g style={trazo} fill="none" strokeWidth={sw * 1.4} strokeLinecap="round" strokeLinejoin="round">
+        <line x1={x0} y1={cy} x2={xn + pr + a * 1.2} y2={cy} />
+        <path d={`M ${xn + pr + a * 0.3} ${cy - a} L ${xn + pr + a * 1.2} ${cy} L ${xn + pr + a * 0.3} ${cy + a}`} />
       </g>
     );
   }
 
   if (geometria === "red") {
-    // Triángulo de nodos totalmente interconectados — malla visible.
-    const pts = [0, 1, 2].map((i) => {
-      const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
-      return [cx + Math.cos(a) * r * 0.85, cy + Math.sin(a) * r * 0.85];
-    });
+    // Todas contra todas — malla completa.
+    const aristas: React.ReactNode[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        aristas.push(
+          <line key={`e-${i}-${j}`} x1={pts[i][0]} y1={pts[i][1]} x2={pts[j][0]} y2={pts[j][1]} />,
+        );
+      }
+    }
     return (
-      <g>
-        {pts.map(([x1, y1], i) =>
-          pts.slice(i + 1).map(([x2, y2], j) => (
-            <line
-              key={`edge-${i}-${j}`}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              strokeWidth={r * 0.09}
-              style={{ stroke: color }}
-            />
-          )),
-        )}
-        {pts.map(([x, y], i) => (
-          <circle key={`node-${i}`} cx={x} cy={y} r={r * 0.24} style={{ fill: color, stroke: "var(--bg-main)" }} strokeWidth={1} />
-        ))}
+      <g style={trazo} strokeWidth={sw * 1.3}>
+        {aristas}
+        <circle cx={cx} cy={cy} r={sw * 1.4} style={{ fill: GEOMETRIA_TRAZO, stroke: "none" }} />
       </g>
     );
   }
 
   if (geometria === "radial") {
-    // Anillo orbital real (se dibuja, no se simula) + núcleo + 4 satélites.
     return (
-      <g>
-        <circle cx={cx} cy={cy} r={r * 0.82} fill="none" strokeWidth={r * 0.06} style={{ stroke: color }} />
-        <circle cx={cx} cy={cy} r={r * 0.2} style={{ fill: color }} />
-        {[0, 1, 2, 3].map((i) => {
-          const a = (i / 4) * Math.PI * 2;
-          return (
-            <circle
-              key={i}
-              cx={cx + Math.cos(a) * r * 0.82}
-              cy={cy + Math.sin(a) * r * 0.82}
-              r={r * 0.16}
-              style={{ fill: color }}
-            />
-          );
-        })}
+      <g style={trazo} fill="none" strokeWidth={sw}>
+        <circle cx={cx} cy={cy} r={r * 0.66} />
+        {pts.map(([x, y], i) => (
+          <line key={`r-${i}`} x1={cx} y1={cy} x2={x} y2={y} strokeWidth={sw * 0.8} />
+        ))}
+        <circle cx={cx} cy={cy} r={sw * 1.8} style={{ fill: GEOMETRIA_TRAZO, stroke: "none" }} />
       </g>
     );
   }
 
-  // flexible: cadena ondulada — curva serpenteante, sin puntos discretos ni malla.
-  const w = r * 1.7;
-  const path = `M ${cx - w / 2} ${cy} Q ${cx - w / 4} ${cy - r * 0.6} ${cx} ${cy} Q ${cx + w / 4} ${cy + r * 0.6} ${cx + w / 2} ${cy}`;
-  return <path d={path} fill="none" strokeWidth={r * 0.22} strokeLinecap="round" style={{ stroke: color }} />;
+  if (geometria === "flexible") {
+    if (pts.length < 2) return null;
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [px, py] = pts[i - 1];
+      const [qx, qy] = pts[i];
+      d += ` Q ${(px + qx) / 2} ${(py + qy) / 2 + (i % 2 ? -1 : 1) * r * 0.22} ${qx} ${qy}`;
+    }
+    return <path d={d} fill="none" strokeWidth={sw * 1.4} strokeLinecap="round" style={trazo} />;
+  }
+
+  // angular: quiebre en ángulo + arco marcando el vértice.
+  if (pts.length < 2) return null;
+  const vertice = pts.reduce((m, p) => (p[1] < m[1] ? p : m), pts[0]);
+  return (
+    <g style={trazo} fill="none" strokeWidth={sw * 1.4} strokeLinejoin="miter" strokeLinecap="round">
+      <polyline points={pts.map((p) => p.join(",")).join(" ")} />
+      <path
+        strokeWidth={sw * 0.8}
+        d={`M ${vertice[0] - pr * 0.8} ${vertice[1] + pr * 2.1} A ${pr * 1.6} ${pr * 1.6} 0 0 0 ${vertice[0] + pr * 0.8} ${vertice[1] + pr * 2.1}`}
+      />
+    </g>
+  );
 }
 
 export function IumVisual({
@@ -413,9 +487,67 @@ export function IumVisual({
   const orbitR = size * 0.34;
   const particleR = size * 0.155;
   const guideStrokeW = Math.max(0.6, size * 0.01);
-  // Grosor de los círculos individuales (modo "inicial"), relativo a su
-  // propio tamaño real (particleR*2), mismo criterio que ParticulaVisual.
-  const strokeW = Math.max(0.6, particleR * 2 * 0.02);
+  // Radio útil del área de dibujo cuando hay geometría, y posiciones de las
+  // Partículas dentro de ella.
+  const geoR = size * 0.44;
+  const disposicion = geometria
+    ? disponerParticulas(cx, cy, geoR, geometria, particulas.length)
+    : { pts: [] as [number, number][], pr: 0 };
+
+  /** Una Partícula del Ium centrada en (px, py) con radio `pr`. Compartida
+   *  por la rama con geometría y por el orbital anterior, para que ambas
+   *  respeten el toggle Aa (sectores A/T/S) / ∆ (inicial). */
+  const renderParticula = (
+    p: { nombre: string; formula: string },
+    i: number,
+    px: number,
+    py: number,
+    pr: number,
+  ) => {
+    if (modo === "inicial") {
+      // Modo iniciales: mismo criterio sepia que el resto — valores
+      // (claro/medio/oscuro) en vez de matices distintos por tipo.
+      const idx = Object.keys(PARTICULA_INITIAL).indexOf(p.nombre);
+      const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
+      const tono = tonos[idx % tonos.length];
+      return (
+        <g key={`${p.nombre}-${i}`}>
+          <title>{p.nombre}</title>
+          <circle
+            cx={px}
+            cy={py}
+            r={pr}
+            strokeWidth={Math.max(0.6, pr * 2 * 0.02)}
+            style={{
+              fill: `color-mix(in srgb, ${tono} 55%, var(--bg-main))`,
+              stroke: `color-mix(in srgb, ${tono} 90%, black)`,
+            }}
+          />
+          <text
+            x={px}
+            y={py}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={pr * 0.6}
+            fontWeight={900}
+            style={{ fill: "#f3e6d3" }}
+          >
+            {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
+          </text>
+        </g>
+      );
+    }
+
+    // Sectores de 120° — mismo trazo/criterio que ParticulaVisual.
+    return (
+      <g key={`${p.nombre}-${i}`}>
+        <title>{`${p.nombre} (${p.formula})`}</title>
+        <foreignObject x={px - pr} y={py - pr} width={pr * 2} height={pr * 2}>
+          <ParticulaVisual formula={p.formula} size={pr * 2} />
+        </foreignObject>
+      </g>
+    );
+  };
 
   return (
     <div className={`relative inline-block ${className ?? ""}`} style={{ width: size, height: size }}>
@@ -461,9 +593,15 @@ export function IumVisual({
             style={{ fill: "none", stroke: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
           />
         ) : geometria ? (
-          // Geometría real conocida: se dibuja SU forma (puntual, lineal,
-          // red, radial o flexible), no el orbital genérico anterior.
-          <>{geometriaIumPath(cx, cy, size * 0.42, geometria)}</>
+          // Geometría real conocida: armazón propio (línea, malla, anillo,
+          // curva, ángulo o núcleo) + las Partículas REALES del Ium
+          // dispuestas sobre él, cada una con sus sectores A/T/S.
+          <>
+            {armazonGeometria(cx, cy, geoR, geometria, disposicion.pts, disposicion.pr)}
+            {disposicion.pts.map(([px, py], i) =>
+              renderParticula(particulas[i], i, px, py, disposicion.pr),
+            )}
+          </>
         ) : (
           <>
             {/* Sin geometría resuelta (compat hacia atrás): criterio
@@ -479,53 +617,12 @@ export function IumVisual({
 
             {particulas.map((p, i) => {
               const angulo = (i / particulas.length) * Math.PI * 2 - Math.PI / 2;
-              const px = cx + Math.cos(angulo) * orbitR;
-              const py = cy + Math.sin(angulo) * orbitR;
-
-              if (modo === "inicial") {
-                // Modo iniciales: mismo criterio sepia que el resto — valores
-                // (claro/medio/oscuro) en vez de matices distintos por tipo.
-                const idx = Object.keys(PARTICULA_INITIAL).indexOf(p.nombre);
-                const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
-                const tono = tonos[idx % tonos.length];
-                const initFont = particleR * 0.6;
-                return (
-                  <g key={`${p.nombre}-${i}`}>
-                    <title>{p.nombre}</title>
-                    <circle
-                      cx={px}
-                      cy={py}
-                      r={particleR}
-                      strokeWidth={strokeW}
-                      style={{
-                        fill: `color-mix(in srgb, ${tono} 55%, var(--bg-main))`,
-                        stroke: `color-mix(in srgb, ${tono} 90%, black)`,
-                      }}
-                    />
-                    <text
-                      x={px}
-                      y={py}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={initFont}
-                      fontWeight={900}
-                      style={{ fill: "#f3e6d3" }}
-                    >
-                      {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
-                    </text>
-                  </g>
-                );
-              }
-
-              // Sectores de 120° dibujados a mano acá mismo — mismo trazo,
-              // mismo criterio de sectores/letra única que ParticulaVisual.
-              return (
-                <g key={`${p.nombre}-${i}`}>
-                  <title>{`${p.nombre} (${p.formula})`}</title>
-                  <foreignObject x={px - particleR} y={py - particleR} width={particleR * 2} height={particleR * 2}>
-                    <ParticulaVisual formula={p.formula} size={particleR * 2} />
-                  </foreignObject>
-                </g>
+              return renderParticula(
+                p,
+                i,
+                cx + Math.cos(angulo) * orbitR,
+                cy + Math.sin(angulo) * orbitR,
+                particleR,
               );
             })}
           </>

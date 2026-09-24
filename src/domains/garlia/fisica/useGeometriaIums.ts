@@ -21,7 +21,14 @@ import { supabase } from "@/infra/supabase/supabase";
 import type { GeometriaIum } from "./ParticulaVisual";
 
 function esGeometriaIum(v: string | null | undefined): v is GeometriaIum {
-  return v === "puntual" || v === "lineal" || v === "red" || v === "radial" || v === "flexible";
+  return (
+    v === "puntual" ||
+    v === "lineal" ||
+    v === "red" ||
+    v === "radial" ||
+    v === "flexible" ||
+    v === "angular"
+  );
 }
 
 export interface GeometriaIumRow {
