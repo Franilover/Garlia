@@ -28,13 +28,14 @@ import { FAMILY_COLOR, type ElementFamily } from "@/domains/garlia/elementos/typ
 import { useVisibilidadExplicacion } from "./useVisibilidadExplicacion";
 import { ToggleMaestroAdmin } from "./ToggleMaestroAdmin";
 import { BloqueColapsableAdmin } from "./BloqueColapsableAdmin";
+import { LayoutEtapa, CLASE_SVG_EN_CAJA, type FilaTexto } from "./LayoutEtapa";
 
 // ─── Bloque 1: diagrama animado de la lógica ───────────────────────────────
 
 const CAPAS = [
-  { id: "nucleo" as const, titulo: "Núcleo", detalle: "9 Partículas ancla — la base estable.", velocidad: "28s" },
-  { id: "media" as const, titulo: "Media", detalle: "9 Partículas motor — la energía interna.", velocidad: "16s" },
-  { id: "externa" as const, titulo: "Externa", detalle: "9 Partículas de contacto — lo más reactivo.", velocidad: "8s" },
+  { id: "nucleo" as const, titulo: "Núcleo", velocidad: "28s" },
+  { id: "media" as const, titulo: "Media", velocidad: "16s" },
+  { id: "externa" as const, titulo: "Exterior", velocidad: "8s" },
 ];
 
 /** Anillo simple animado con puntos girando — representa una capa
@@ -111,7 +112,7 @@ function DiagramaCapas({ replayKey, onReplay }: { replayKey: number; onReplay: (
   const capaActiva = { nucleo: paso >= 0, media: paso >= 1, externa: paso >= 2 };
 
   const grafico = (
-    <svg viewBox="0 0 200 200" width={240} height={240} className="shrink-0">
+    <svg viewBox="0 0 200 200" className={CLASE_SVG_EN_CAJA}>
       <AnilloCapa radio={82} puntos={9} duracion={CAPAS[2].velocidad} colorSeed={0} activa={capaActiva.externa} girando={!terminado} />
       <AnilloCapa radio={48} puntos={9} duracion={CAPAS[1].velocidad} colorSeed={1} activa={capaActiva.media} girando={!terminado} />
       <circle cx={100} cy={100} r={12} style={{ fill: "color-mix(in srgb, var(--primary) 18%, transparent)", stroke: "var(--primary)" }} strokeWidth={1.5} opacity={capaActiva.nucleo ? 1 : 0.15} />
@@ -120,65 +121,23 @@ function DiagramaCapas({ replayKey, onReplay }: { replayKey: number; onReplay: (
 
   // Texto de cada capa ya alcanzada, en escalera: se van apilando hacia
   // abajo a medida que pasan los pasos (núcleo, luego +media, luego
-  // +externa), sin borrar los anteriores.
+  // +externa), sin borrar los anteriores. Al terminar, se agrega la fila
+  // final "Elemento completo!".
   const filasCapas = CAPAS.filter((_, i) => paso >= i);
+  const filas: FilaTexto[] = [
+    ...filasCapas.map((c) => ({ id: c.id, titulo: c.titulo })),
+    ...(terminado ? [{ id: "completo", titulo: "Elemento completo!" }] : []),
+  ];
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => terminado && onReplay()}
-      onKeyDown={(e) => {
-        if (terminado && (e.key === "Enter" || e.key === " ")) onReplay();
-      }}
-      className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-start md:gap-8"
-      style={{ cursor: terminado ? "pointer" : "default" }}
-      title={terminado ? "Toca para repetir la animación" : undefined}
-    >
-      {grafico}
-
-      <div className="flex w-full max-w-sm flex-col gap-3 md:w-auto md:min-w-[260px]">
-        {filasCapas.map((c, i) => (
-          <div
-            key={c.id}
-            className="text-center md:text-left"
-            style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${i * 14}px` }}
-          >
-            <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-               {c.titulo}
-            </p>
-            <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-              {c.detalle}
-            </p>
-          </div>
-        ))}
-
-        {terminado && (
-          <div
-            className="text-center md:text-left"
-            style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${CAPAS.length * 14}px` }}
-          >
-            <p className="text-micro font-black uppercase tracking-[0.2em]" style={{ color: "var(--primary)" }}>
-              Un Elemento completo
-            </p>
-            <p className="mx-auto mt-0.5 max-w-xs text-[11px] leading-relaxed md:mx-0" style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-              Las 3 capas juntas, cada una con sus Particulas, forman un Elemento.
-            </p>
-            <p className="mt-1.5 text-[10px] font-bold uppercase tracking-wide opacity-40">Toca para repetir</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-1.5 md:hidden">
-        {CAPAS.map((c, i) => (
-          <div
-            key={c.id}
-            className="h-1 w-8 rounded-full transition-colors"
-            style={{ background: paso >= i ? "var(--primary)" : "color-mix(in srgb, var(--primary) 15%, transparent)" }}
-          />
-        ))}
-      </div>
-    </div>
+    <LayoutEtapa
+      grafico={grafico}
+      filas={filas}
+      terminado={terminado}
+      pasoActual={paso}
+      totalPasos={CAPAS.length}
+      onReplay={onReplay}
+    />
   );
 }
 
