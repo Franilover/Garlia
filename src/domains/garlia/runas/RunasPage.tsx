@@ -40,7 +40,7 @@ import { BiologiaCatalogos, BiologiaCladograma } from "@/domains/garlia/biologia
 import VisualizadorPage from "@/domains/garlia/visualizador/VisualizadorPage";
 import { WorldbuilderPage } from "@/domains/garlia/worldbuilder/WorldbuilderPage";
 import { FisicaPage } from "@/domains/garlia/fisica/FisicaPage";
-import { ORIS_CONFIG, type Oris } from "@/domains/garlia/fisica/types";
+import { ORIS_CONFIG, IUMS_CONFIG, type Ium, type Oris } from "@/domains/garlia/fisica/types";
 import { FISICA_CONCEPTOS_CONFIG, type FisicaConcepto } from "@/domains/garlia/fisica/types";
 import {
   useEnergias,
@@ -379,7 +379,7 @@ function BloqueFisica({
   const { items: polaridades, loading: loadingPolaridades } = usePolaridades();
   const { items: particulaBase, loading: loadingParticulaBase } = useParticulasBase();
   const { items: particulas, loading: loadingParticulas } = useParticulas();
-  const { items: iums, loading: loadingIums } = useIumsConParticulas();
+  const { items: iums, setItems: setIums, loading: loadingIums } = useIumsConParticulas();
   const { items: oris, setItems: setOris, loading: loadingOris } = useOrisConIums();
   const { items: conceptos, setItems: setConceptos, loading: loadingConceptos } =
     useFisicaConceptos();
@@ -427,6 +427,24 @@ function BloqueFisica({
       setOris((prev) => prev.filter((o) => o.id !== id));
     } catch (e) {
       console.error("[BloqueFisica] error eliminando Oris:", e);
+    }
+  }
+
+  // Mismo patrón que onActualizarOris: el guardado real en Supabase corre
+  // dentro de IumEditor.persist() (ver fisica/FisicaPage.tsx); acá solo se
+  // refleja el cambio en el estado local para que la UI quede consistente
+  // sin esperar un refetch.
+  function handleActualizarIum(id: string, cambios: Partial<Ium>) {
+    setIums((prev) => prev.map((i) => (i.id === id ? { ...i, ...cambios } : i)));
+  }
+
+  async function handleEliminarIum(id: string) {
+    try {
+      const { error } = await supabase.from(IUMS_CONFIG.tabla).delete().eq("id", id);
+      if (error) throw error;
+      setIums((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) {
+      console.error("[BloqueFisica] error eliminando Ium:", e);
     }
   }
 
@@ -546,6 +564,8 @@ function BloqueFisica({
         loadingParticulas={loadingParticulas}
         iums={iums}
         loadingIums={loadingIums}
+        onActualizarIum={handleActualizarIum}
+        onEliminarIum={handleEliminarIum}
         oris={oris}
         loadingOris={loadingOris}
         creatingOris={creating}

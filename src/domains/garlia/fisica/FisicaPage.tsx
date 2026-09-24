@@ -36,6 +36,7 @@ import { useGeometriaIums } from "./useGeometriaIums";
 import {
   contextoHumanoAFilaEnergia,
   FISICA_CONCEPTOS_CONFIG,
+  IUMS_CONFIG,
   iumAFilaIum,
   orisAFilaCatalogo,
   particulaAFilaCatalogo,
@@ -76,6 +77,11 @@ interface Props {
 
   iums: Ium[];
   loadingIums?: boolean;
+  /** Persiste cambios de nombre/detalle/extra de un Ium — mismo patrón que
+   *  onActualizarOris: el caller (RunasPage) hace el setState local; el
+   *  guardado real en Supabase corre dentro de IumEditor/IumPanelFlotante. */
+  onActualizarIum?: (id: string, cambios: Partial<Ium>) => void;
+  onEliminarIum?: (id: string) => void;
 
   oris: Oris[];
   loadingOris?: boolean;
@@ -396,6 +402,8 @@ function TodasLasBasesView({
   creatingOris,
   onActualizarOris,
   onEliminarOris,
+  onActualizarIum,
+  onEliminarIum,
   onActualizarSubsistema,
   onEliminarSubsistema,
   onSelectCriatura,
@@ -414,6 +422,8 @@ function TodasLasBasesView({
   creatingOris?: boolean;
   onActualizarOris: (id: string, cambios: Partial<Oris>) => void;
   onEliminarOris?: (id: string) => void;
+  onActualizarIum: (id: string, cambios: Partial<Ium>) => void;
+  onEliminarIum?: (id: string) => void;
   onActualizarSubsistema: (id: string, updates: Partial<SubsistemaMagia>) => void;
   onEliminarSubsistema: (id: string) => void;
   onSelectCriatura?: (id: string) => void;
@@ -522,14 +532,18 @@ function TodasLasBasesView({
                 <div className="flex flex-wrap gap-1">
                   {filas.map((f, i) => {
                     const original = key === "oris" ? oris[i] : null;
+                    const originalIum = key === "iums" ? iums[i] : null;
                     return (
                       <BasesItemCard
                         key={f.nombre + i}
                         fila={f}
                         bloque={key}
                         original={key === "oris" ? (original as Oris) : undefined}
+                        originalIum={key === "iums" ? (originalIum as Ium) : undefined}
                         onActualizarOris={onActualizarOris}
                         onEliminarOris={onEliminarOris}
+                        onActualizarIum={onActualizarIum}
+                        onEliminarIum={onEliminarIum}
                         geometriaDe={key === "iums" ? geometriaDe : undefined}
                       />
                     );
@@ -880,26 +894,352 @@ function OrisPanelFlotante({
 }
 
 /**
+ * Detalle editable de un Ium: nombre, detalle y extra, más su gráfico
+ * (Partículas componentes vía IumVisual, solo lectura — la composición se
+ * edita aparte, en iums_particulas). Mismo patrón de guardado que
+ * OrisEditor (persist al perder foco), mismo estilo minimalista de
+ * inputs/textarea (solo borde, sin fondo relleno).
+ */
+function IumEditor({
+  ium,
+  embedded,
+  hideHeader,
+  nombreExterno,
+  onBack,
+  onActualizar,
+  onEliminar,
+  geometriaDe,
+}: {
+  ium: Ium;
+  embedded?: boolean;
+  hideHeader?: boolean;
+  nombreExterno?: string;
+  onBack: () => void;
+  onActualizar: (id: string, cambios: Partial<Ium>) => void;
+  onEliminar?: (id: string) => void;
+  geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [saving, setSaving] = useState(false);
+  const [local, setLocal] = useState(ium);
+
+  useEffect(() => setLocal(ium), [ium]);
+
+  useEffect(() => {
+    if (hideHeader && nombreExterno !== undefined) {
+      setLocal((p) => (p.nombre === nombreExterno ? p : { ...p, nombre: nombreExterno }));
+    }
+  }, [hideHeader, nombreExterno]);
+
+  const filaIum = useMemo(() => iumAFilaIum(local), [local]);
+
+  async function persist(cambios: Partial<Ium>) {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from(IUMS_CONFIG.tabla).update(cambios).eq("id", ium.id);
+      if (error) throw error;
+      onActualizar(ium.id, cambios);
+    } catch (e) {
+      console.error("[IumEditor] error guardando:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <ConfirmModal />
+      {!hideHeader && (
+        <div
+          style={{ background: "var(--bg-main)" }}
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 border-b border-primary/10"
+        >
+          {!embedded && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
+
+          <input
+            value={local.nombre ?? ""}
+            onChange={(e) => setLocal((p) => ({ ...p, nombre: e.target.value }))}
+            onBlur={() => persist({ nombre: local.nombre })}
+            placeholder="Nombre del Ium"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
+
+          <div className="shrink-0 flex items-center gap-1">
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Eliminar Ium",
+                    message: `¿Eliminar "${local.nombre}"? Esta acción no se puede deshacer.`,
+                  });
+                  if (ok) onEliminar(ium.id);
+                }}
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+                title="Eliminar"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => persist({ nombre: local.nombre, detalle: local.detalle, extra: local.extra })}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Save size={10} />
+              {saving ? "…" : "Guardar"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={`flex-1 min-h-0 flex flex-row gap-3 overflow-y-auto ${embedded ? "p-2" : "p-2.5"}`}>
+        {/* Columna izquierda: gráfico, solo lectura */}
+        <div className="shrink-0 w-[280px] flex flex-col items-center gap-3 p-3">
+          <IumVisual
+            particulas={particulasDeIum(filaIum)}
+            geometria={geometriaDe?.(ium.id).geometria}
+            size={200}
+          />
+          {filaIum.composicion.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {filaIum.composicion.map(({ particula, cantidad }, i) => (
+                <span
+                  key={particula + i}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md border border-primary/15 text-micro font-bold text-primary"
+                >
+                  {cantidad > 1 && <span className="text-primary/40">{cantidad}×</span>}
+                  {particula}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Columna derecha: detalle + extra — mismo estilo minimalista que
+            OrisEditor (solo borde, sin fondo relleno; texto grande y
+            liviano). */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-micro uppercase tracking-wide text-primary/35">Detalle</label>
+            <input
+              value={local.detalle ?? ""}
+              onChange={(e) => setLocal((p) => ({ ...p, detalle: e.target.value }))}
+              onBlur={() => persist({ detalle: local.detalle })}
+              placeholder="Descripción corta del Ium"
+              className="bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors placeholder:text-primary/25"
+            />
+          </div>
+
+          <div className="flex-1 min-h-0 flex flex-col gap-1">
+            <label className="text-micro uppercase tracking-wide text-primary/35">Extra</label>
+            <textarea
+              value={local.extra ?? ""}
+              onChange={(e) => setLocal((p) => ({ ...p, extra: e.target.value }))}
+              onBlur={() => persist({ extra: local.extra })}
+              rows={6}
+              placeholder="Notas adicionales sobre este Ium…"
+              className="flex-1 min-h-0 bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors resize-none placeholder:text-primary/25"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Panel flotante centrado del detalle de un Ium — mismo shell que
+ * OrisPanelFlotante (modal grande "w-full h-full max-w-6xl" centrado,
+ * backdrop con blur, animación popIn, Escape para cerrar), reemplazando
+ * el popover chico anclado que se usaba antes para Iums.
+ */
+function IumPanelFlotante({
+  ium,
+  onCerrar,
+  onActualizar,
+  onEliminar,
+  geometriaDe,
+}: {
+  ium: Ium;
+  onCerrar: () => void;
+  onActualizar: (id: string, cambios: Partial<Ium>) => void;
+  onEliminar?: (id: string) => void;
+  geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [nombreLocal, setNombreLocal] = useState(ium.nombre ?? "");
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => setNombreLocal(ium.nombre ?? ""), [ium.id, ium.nombre]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      <ConfirmModal />
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}
+          >
+            <Sparkles className="text-primary/50" size={12} />
+          </div>
+
+          <input
+            value={nombreLocal}
+            onChange={(e) => setNombreLocal(e.target.value)}
+            onBlur={() => {
+              if (nombreLocal !== ium.nombre) onActualizar(ium.id, { nombre: nombreLocal });
+            }}
+            placeholder="Nombre del Ium"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+          />
+
+          <div className="shrink-0 flex items-center gap-1">
+            {onEliminar && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Eliminar Ium",
+                    message: `¿Eliminar "${nombreLocal}"? Esta acción no se puede deshacer.`,
+                  });
+                  if (ok) {
+                    onEliminar(ium.id);
+                    onCerrar();
+                  }
+                }}
+                className="flex items-center justify-center w-6 h-6 rounded-md border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all cursor-pointer"
+                title="Eliminar"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={guardando}
+              onClick={async () => {
+                setGuardando(true);
+                try {
+                  await onActualizar(ium.id, { nombre: nombreLocal });
+                } finally {
+                  setGuardando(false);
+                }
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-wide bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-sm shadow-primary/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <Save size={10} />
+              {guardando ? "…" : "Guardar"}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <IumEditor
+            key={ium.id}
+            ium={ium}
+            embedded
+            hideHeader
+            nombreExterno={nombreLocal}
+            onBack={onCerrar}
+            onActualizar={onActualizar}
+            onEliminar={
+              onEliminar
+                ? (id) => {
+                    onEliminar(id);
+                    onCerrar();
+                  }
+                : undefined
+            }
+            geometriaDe={geometriaDe}
+          />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
  * Tarjeta compacta de una fila de catálogo base (partícula, IUM, Oris,
  * Subsistema, etc.): muestra solo el nombre. Por defecto, al hacer click
  * abre un popover flotante anclado a la tarjeta con el detalle completo —
- * y, para Partícula Base/Partículas/Iums, su gráfico A/T/S arriba del
- * detalle (círculo de 3 tercios para Base/Partículas vía ParticulaVisual;
- * para Iums, sus Partículas componentes orbitando un centro vía
- * IumVisual — mismo patrón que AtomoVisual en Elementos). Para Oris, el
- * click abre OrisPanelFlotante (modal grande centrado, mismo diseño que
- * Elementos/Compuestos) en vez del popover chico anclado. Si se pasa
- * `onClick`, ese comportamiento se reemplaza y el click abre el editor
- * completo en la columna derecha (usado por Subsistemas, cuyo
- * gráfico —si aplica— vive dentro de ese editor, no acá).
+ * y, para Partícula Base/Partículas, su gráfico A/T/S arriba del detalle
+ * vía ParticulaVisual. Para Iums y Oris, el click abre un panel flotante
+ * (modal grande centrado, mismo diseño que Elementos/Compuestos) en vez
+ * del popover chico anclado. Si se pasa `onClick`, ese comportamiento se
+ * reemplaza y el click abre el editor completo en la columna derecha
+ * (usado por Subsistemas, cuyo gráfico —si aplica— vive dentro de ese
+ * editor, no acá).
  */
 function BasesItemCard({
   fila,
   bloque,
   original,
+  originalIum,
   originalSubsistema,
   onActualizarOris,
   onEliminarOris,
+  onActualizarIum,
+  onEliminarIum,
   onActualizarSubsistema,
   onEliminarSubsistema,
   onSelectCriatura,
@@ -912,13 +1252,18 @@ function BasesItemCard({
   bloque: ClaveCatalogo;
   /** Fila cruda de Supabase — solo presente para "oris", donde hace falta
    *  el objeto completo (no el FilaCatalogo resumido) para abrir OrisEditor
-   *  dentro del popover flotante. */
+   *  dentro del panel flotante. */
   original?: Oris;
+  /** Ídem para "iums": objeto completo para abrir IumEditor dentro de su
+   *  propio panel flotante. */
+  originalIum?: Ium;
   /** Ídem para "subsistemas": objeto completo para abrir PanelEditorSubsistema
    *  dentro de su propio popover flotante. */
   originalSubsistema?: SubsistemaMagia;
   onActualizarOris?: (id: string, cambios: Partial<Oris>) => void;
   onEliminarOris?: (id: string) => void;
+  onActualizarIum?: (id: string, cambios: Partial<Ium>) => void;
+  onEliminarIum?: (id: string) => void;
   onActualizarSubsistema?: (id: string, updates: Partial<SubsistemaMagia>) => void;
   onEliminarSubsistema?: (id: string) => void;
   onSelectCriatura?: (id: string) => void;
@@ -942,6 +1287,7 @@ function BasesItemCard({
   const conVisual =
     bloque === "polaridades" || bloque === "particula-base" || bloque === "particulas" || bloque === "iums";
   const esOris = bloque === "oris" && !!original;
+  const esIum = bloque === "iums" && !!originalIum;
   const esSubsistema = bloque === "subsistemas" && !!originalSubsistema;
   const esEnergia = bloque === "energias";
   // Polaridades, TASI (particula-base) y Partículas se identifican en la
@@ -1000,6 +1346,16 @@ function BasesItemCard({
             onEliminar={onEliminarOris}
           />
         )
+      ) : esIum ? (
+        anchor && (
+          <IumPanelFlotante
+            ium={originalIum!}
+            onCerrar={() => setAnchor(null)}
+            onActualizar={onActualizarIum ?? (() => {})}
+            onEliminar={onEliminarIum}
+            geometriaDe={geometriaDe}
+          />
+        )
       ) : esSubsistema ? (
         <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={420} maxHeight={560}>
           <PanelEditorSubsistema
@@ -1028,13 +1384,7 @@ function BasesItemCard({
           {conVisual ? (
             <div className="flex flex-col md:flex-row gap-3">
               <div className="shrink-0 flex items-center justify-center w-full md:w-[140px]">
-                {bloque === "iums" ? (
-                  <IumVisual
-                    particulas={particulasDeIum(fila as FilaIum)}
-                    geometria={geometriaDe?.((fila as FilaIum).id).geometria}
-                    size={140}
-                  />
-                ) : bloque === "polaridades" ? (
+                {bloque === "polaridades" ? (
                   <PoloVisual signo={(fila as FilaPolaridad).signo} size={88} />
                 ) : bloque === "particula-base" ? (
                   <ParticulaVisual formula={(fila as FilaParticulaBase).letra} size={88} />
@@ -1258,6 +1608,8 @@ export function FisicaPage({
   loadingParticulas,
   iums,
   loadingIums,
+  onActualizarIum,
+  onEliminarIum,
   oris,
   loadingOris,
   creatingOris,
@@ -1496,6 +1848,8 @@ export function FisicaPage({
               creatingOris={creatingOris}
               onActualizarOris={onActualizarOris}
               onEliminarOris={onEliminarOris}
+              onActualizarIum={onActualizarIum ?? (() => {})}
+              onEliminarIum={onEliminarIum}
               onActualizarSubsistema={onActualizarSubsistema}
               onEliminarSubsistema={onEliminarSubsistema}
               onSelectCriatura={onSelectCriatura}
