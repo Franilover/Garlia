@@ -196,14 +196,14 @@ export function OrisEditor({
 
       <div className={`flex-1 min-h-0 flex flex-row gap-3 overflow-y-auto ${embedded ? "p-2" : "p-2.5"}`}>
         {/* Columna izquierda: gráfico + composición de Iums */}
-        <div className={`shrink-0 flex flex-col items-center gap-3 p-3 ${grafo ? "w-[300px]" : "w-[200px]"}`}>
+        <div className={`shrink-0 flex flex-col items-center gap-3 p-3 ${grafo ? "w-[460px]" : "w-[280px]"}`}>
           {grafo ? (
             // Topología real: cada nodo es un Ium con sus Partículas sobre su
             // geometría, unidos como define v_oris_grafo_canonico.
             <OrisTopologiaVisual grafo={grafo} particulasDe={particulasDePorIum} geometriaDe={geometriaDe} />
           ) : (
             // Oris sin topología asignada en Supabase: gráfico anterior.
-            <IumVisual particulas={particulasOris} size={160} />
+            <IumVisual particulas={particulasOris} size={240} />
           )}
 
           {grafo ? null : iumsPresentes.length === 0 ? (
