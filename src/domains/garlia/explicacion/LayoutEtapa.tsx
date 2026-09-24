@@ -27,12 +27,12 @@
  *   3. COLUMNA DE TEXTO (TEXTO_W): ancho fijo — no cambia al aparecer cada
  *      paso, así el conjunto no se corre de lado durante la animación.
  *
- *   4. ALINEACIÓN VERTICAL DEL TEXTO: el bloque de texto arranca siempre
- *      arriba (`md:items-start` en la columna, alto mínimo = alto del
- *      gráfico) — así el primer título de cada etapa cae a la misma altura
- *      relativa al gráfico, y la escalera crece hacia abajo desde ahí.
- *      Antes estaba centrado verticalmente, por eso el texto "saltaba"
- *      distinto según cuántas filas hubiera.
+ *   4. ALINEACIÓN VERTICAL DEL TEXTO: el bloque de texto se centra
+ *      verticalmente respecto al alto del gráfico (`md:justify-center` +
+ *      `md:self-stretch` en la columna) — así el medio del texto queda
+ *      siempre a la misma altura que el medio del gráfico, crezca la
+ *      escalera hacia arriba o hacia abajo desde ese centro según cuántas
+ *      filas haya visibles en cada momento.
  *
  *   5. ESCALERA: sangría por fila (ESCALERA_PX), tipografía de título y
  *      detalle, y la línea "Toca para repetir" — idénticas en todas.
@@ -192,8 +192,10 @@ export function LayoutEtapa({
       </CajaGrafico>
 
       {/* Columna de texto: ancho fijo y alto mínimo = alto del gráfico, con
-          el contenido pegado ARRIBA — la escalera crece hacia abajo. */}
-      <div className={`flex w-full max-w-sm flex-col gap-3 md:justify-start md:self-stretch ${TEXTO_W_CLASE}`}>
+          el contenido centrado verticalmente — el medio del bloque de
+          texto queda siempre a la misma altura que el medio del gráfico,
+          sin importar cuántas filas de la escalera estén visibles. */}
+      <div className={`flex w-full max-w-sm flex-col gap-3 md:justify-center md:self-stretch ${TEXTO_W_CLASE}`}>
         {filas.map((f, i) => (
           <FilaEscalera key={f.id} fila={f} indice={i} />
         ))}
