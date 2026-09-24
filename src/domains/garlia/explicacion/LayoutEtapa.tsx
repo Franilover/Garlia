@@ -139,7 +139,7 @@ function FilaEscalera({ fila, indice }: { fila: FilaTexto; indice: number }) {
       className="text-center md:text-left"
       style={{ animation: "explicacion-fade-in 0.4s ease-out both", paddingLeft: `${indice * ESCALERA_PX}px` }}
     >
-      <p className="text-micro font-black uppercase tracking-[0.15em]" style={{ color: "var(--primary)" }}>
+      <p className="text-sm font-black uppercase tracking-[0.15em]" style={{ color: "var(--primary)" }}>
         {fila.titulo}
       </p>
       {fila.extra}

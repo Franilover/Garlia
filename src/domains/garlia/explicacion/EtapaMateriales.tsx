@@ -34,12 +34,11 @@
  *     2. "fusionando": ambos convergen al centro con una curva de
  *        entrada + rebote leve (fusión, no choque).
  *     3. "material": los dos orígenes quedan superpuestos en el centro,
- *        con un halo pulsante alrededor — el color del halo es el de la
- *        categoría real del Material (mineral, metal_aleacion,
- *        tejido_organico_animal/vegetal, liquido_organico, gas,
- *        sustancia_organica_amorfa), rotando entre las 7 en cada replay
- *        para mostrar que la forma de la fusión es siempre la misma y
- *        solo cambia el color de categoría.
+ *        formando el Material — el color de categoría (mineral,
+ *        metal_aleacion, tejido_organico_animal/vegetal, liquido_organico,
+ *        gas, sustancia_organica_amorfa) se muestra en el texto, rotando
+ *        entre las 7 en cada replay para mostrar que la forma de la
+ *        fusión es siempre la misma y solo cambia la categoría.
  *
  * No usa datos reales (Supabase) a propósito: es un diagrama conceptual
  * autocontenido, igual que los diagramas de las etapas previas — mismo
@@ -132,29 +131,6 @@ function MiniCristalFusion({ cx, cy, r }: { cx: number; cy: number; r: number })
   );
 }
 
-/** Halo del Material: color por categoría real, con transform-origin en
- *  porcentaje (no px absolutos) — así el pivote de escala del pulso
- *  siempre queda en el centro real del propio halo, sin desplazarse por
- *  cómo el SVG escala su viewBox al tamaño CSS renderizado. */
-function HaloMaterial({ cx, cy, r, color, pulso }: { cx: number; cy: number; r: number; color: string; pulso: boolean }) {
-  return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={r}
-      fill="none"
-      stroke={color}
-      strokeWidth={2.4}
-      opacity={0.45}
-      style={{
-        transformOrigin: "50% 50%",
-        transformBox: "fill-box",
-        animation: pulso ? "explicacion-material-halo 2.4s ease-in-out infinite" : undefined,
-        transition: "stroke 0.4s ease-out",
-      }}
-    />
-  );
-}
 
 function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay: () => void }) {
   const [paso, setPaso] = useState<PasoMaterial>("separados");
@@ -197,8 +173,6 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
 
   const grafico = (
     <svg viewBox="60 34.95 302 166.1" className={CLASE_SVG_EN_CAJA}>
-      {esMaterial && <HaloMaterial cx={cx} cy={cy} r={68} color={categoria.color} pulso />}
-
       <g
         style={{
           transformOrigin: `${cx}px ${cy}px`,
@@ -260,10 +234,6 @@ export default function EtapaMateriales({ replayKey, onReplay }: { replayKey: nu
         @keyframes explicacion-material-girar {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
-        }
-        @keyframes explicacion-material-halo {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.06); }
         }
       `}</style>
 
