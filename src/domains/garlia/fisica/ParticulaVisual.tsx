@@ -30,16 +30,33 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
   // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
   // oscuro de los admins.
-  // Fondo casi opaco (95%) para que las letras se lean bien incluso sobre
-  // los IUMS/Oris, donde detrás hay flechas y líneas de conexión que antes
-  // se transparentaban con el 20-24% original y afectaban la legibilidad.
-  A: { bg: "color-mix(in srgb, #c9a06a 95%, transparent)", border: "#c9a06a", fg: "#3a2a15" },
-  T: { bg: "color-mix(in srgb, #8a5a34 95%, transparent)", border: "#8a5a34", fg: "#f0dfc9" },
-  S: { bg: "color-mix(in srgb, #4e3320 95%, transparent)", border: "#4e3320", fg: "#e8d5bd" },
+  // Borde oscurecido (no el color base de la letra) para que la línea que
+  // separa un tercio/sector de otro se note con claridad, incluso ahora
+  // que el fondo es casi opaco — mismo criterio color-mix(...90%, black)
+  // que ya se usa en AtomoVisual/IumVisual más abajo en este archivo.
+  A: {
+    bg: "color-mix(in srgb, #c9a06a 95%, transparent)",
+    border: "color-mix(in srgb, #c9a06a 90%, black)",
+    fg: "#3a2a15",
+  },
+  T: {
+    bg: "color-mix(in srgb, #8a5a34 95%, transparent)",
+    border: "color-mix(in srgb, #8a5a34 90%, black)",
+    fg: "#f0dfc9",
+  },
+  S: {
+    bg: "color-mix(in srgb, #4e3320 95%, transparent)",
+    border: "color-mix(in srgb, #4e3320 90%, black)",
+    fg: "#e8d5bd",
+  },
   // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
   // sepia que las otras 3, con un valor distinto para diferenciarse de un
   // vistazo tanto de A (más clara) como de S (más oscura).
-  I: { bg: "color-mix(in srgb, #6b4423 95%, transparent)", border: "#6b4423", fg: "#ecdcc4" },
+  I: {
+    bg: "color-mix(in srgb, #6b4423 95%, transparent)",
+    border: "color-mix(in srgb, #6b4423 90%, black)",
+    fg: "#ecdcc4",
+  },
 };
 
 export const LETRA_NOMBRE: Record<LetraATS, string> = {
@@ -101,7 +118,9 @@ export function ParticulaVisual({
   // SVG, así que a tamaños chicos —como en AtomoVisual, donde los círculos
   // rondan 20-40px— se veía desproporcionadamente grueso comparado con los
   // ~50-70px de IumVisual). Con piso bajo para que siga siendo visible.
-  const strokeW = Math.max(0.6, size * 0.02);
+  // Subido de 0.02 a 0.035 (piso 0.8) para que el borde oscuro se lea como
+  // línea divisoria clara entre tercios, no solo como filo sutil.
+  const strokeW = Math.max(0.8, size * 0.035);
 
   return (
     <svg
@@ -194,8 +213,10 @@ export function LetrasVisual({
   const cy = size / 2;
   const r = size / 2 - 2;
   const fontSize = size * 0.1;
-  // Mismo criterio que ParticulaVisual: grosor relativo al tamaño, no fijo.
-  const strokeW = Math.max(0.6, size * 0.02);
+  // Mismo criterio que ParticulaVisual: grosor relativo al tamaño, no fijo,
+  // subido para que el borde oscuro se lea como línea divisoria clara entre
+  // sectores (IUMs/Oris con varias letras mezcladas).
+  const strokeW = Math.max(0.8, size * 0.035);
 
   if (total === 0) {
     return (
