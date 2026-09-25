@@ -14,15 +14,18 @@
  * actualiza todos los lugares que la usan, pero un Proceso sin Reacción
  * asociada es un estado normal, no incompleto.
  *
- * Mismo patrón visual que GruposCompuestosPage: pills + panel flotante
- * centrado con el detalle (SelectorConsumeProduce + BalanceProcesoPanel +
- * notas), en vez de un grid de tabla química.
+ * Mismo lenguaje visual que ProcesosPage: grid tipo "biblioteca" con
+ * columnas responsivas tipo mampostería y casillas estilo tabla periódica
+ * (en vez de las pills sueltas en flex-wrap que tenía antes) + panel
+ * flotante centrado con el detalle (SelectorConsumeProduce +
+ * BalanceProcesoPanel + notas).
  */
 
 import { Beaker, RefreshCw, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { TituloCategoria } from "../_shared/TituloCategoria";
 import { useConfirm } from "@/ui/ConfirmModal";
 import { type SaveStatus } from "@/ui/saveStatus";
 
@@ -37,6 +40,133 @@ import { useProcesos } from "./useProcesos";
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { CONFIG_PROCESO_REACCIONES, type ProcesoReaccion } from "./types";
 
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Mismo helper que en
+ * ProcesosPage.tsx/MaterialesPage.tsx — replicado acá para el mismo diseño.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas con un algoritmo
+ * greedy (cada sección va a la columna con menor "altura" acumulada) — evita
+ * los huecos grandes que dejaría CSS columns/grid auto-fit con grupos de
+ * tamaños dispares. Mismo helper que en ProcesosPage/MaterialesPage.
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
+/** Casilla de una Reacción en el grid tipo tabla periódica — mismo lenguaje
+ *  visual que ProcesoCasilla/EstructuraCasilla (tarjeta de grilla con
+ *  bordes compartidos, sin fondo, sin rounded), en vez de la pill suelta
+ *  que tenía antes. Reacción no tiene un "símbolo" corto propio, así que
+ *  el nombre ocupa el lugar central, igual que en ProcesoCasilla. */
+function ReaccionCasilla({
+  reaccion,
+  seleccionado,
+  onClick,
+}: {
+  reaccion: Reaccion;
+  seleccionado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={reaccion.nombre || "(sin nombre)"}
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
+        seleccionado
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
+      }`}
+    >
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+        {reaccion.nombre || "(sin nombre)"}
+      </span>
+    </button>
+  );
+}
+
+/** Único grupo (Reacción no tiene un campo "tipo" propio para subdividir,
+ *  a diferencia de Proceso) con su título y su grid — mismo patrón que
+ *  ChipGrupoProcesos en ProcesosPage.tsx. */
+function ChipGrupoReacciones({
+  titulo,
+  items,
+  seleccionadoId,
+  onSeleccionar,
+}: {
+  titulo: string;
+  items: Reaccion[];
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <TituloCategoria titulo={titulo} total={items.length} />
+      <div
+        className="grid gap-0 border-t border-l border-primary/10"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+      >
+        {items.map((reaccion) => (
+          <ReaccionCasilla
+            key={reaccion.id}
+            reaccion={reaccion}
+            seleccionado={reaccion.id === seleccionadoId}
+            onClick={() => onSeleccionar(reaccion.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   reacciones: Reaccion[];
   compuestos: Compuesto[];
@@ -47,36 +177,6 @@ interface Props {
   onActualizar: (id: string, cambios: Partial<Reaccion>) => void;
   onEliminar?: (id: string) => void;
   onAbrirItem?: (item: ItemProceso) => void;
-}
-
-/**
- * Pill compacta de reacción: solo el nombre, mismo lenguaje visual que
- * GrupoCompuestoPill — el detalle completo vive en el panel flotante.
- */
-function ReaccionPill({
-  reaccion,
-  seleccionado,
-  onClick,
-}: {
-  reaccion: Reaccion;
-  seleccionado?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={reaccion.nombre || "(sin nombre)"}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
-        seleccionado
-          ? "text-primary border border-primary/40 ring-2 ring-primary/30"
-          : "hover:bg-primary/10 text-primary/70 border border-primary/15"
-      }`}
-    >
-      <Beaker size={10} className="text-primary/40 shrink-0" />
-      <span className="truncate">{reaccion.nombre || "(sin nombre)"}</span>
-    </button>
-  );
 }
 
 export function ReaccionesPage({
@@ -105,6 +205,21 @@ export function ReaccionesPage({
   const activo = useMemo(
     () => reacciones.find((r) => r.id === seleccionadoId) ?? null,
     [reacciones, seleccionadoId],
+  );
+
+  // Mismo layout tipo "biblioteca" que Procesos/Materiales/Estructuras/
+  // Compuestos: un único grupo (Reacción no tiene "tipo" para subdividir)
+  // repartido en columnas responsivas tipo mampostería, con un grid de
+  // casillas estilo tabla periódica — reemplaza la lista plana de pills.
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const grupoUnico = useMemo(
+    () => (reacciones.length > 0 ? [{ id: "__todas__", nombre: "Reacciones", items: reacciones }] : []),
+    [reacciones],
+  );
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupoUnico, numColumnas, (g) => g.items.length),
+    [grupoUnico, numColumnas],
   );
 
   // Si se crea una reacción nueva, abrirla automáticamente — pero solo
@@ -147,14 +262,22 @@ export function ReaccionesPage({
           Proceso, pero no todo Proceso necesita una.
         </div>
       ) : (
-        <div className="flex flex-wrap gap-1">
-          {reacciones.map((reaccion) => (
-            <ReaccionPill
-              key={reaccion.id}
-              reaccion={reaccion}
-              seleccionado={reaccion.id === seleccionadoId}
-              onClick={() => setSeleccionadoId((actual) => (actual === reaccion.id ? null : reaccion.id))}
-            />
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeGrupos.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((grupo) => (
+                <div key={grupo.id} className="mb-4">
+                  <ChipGrupoReacciones
+                    titulo={grupo.nombre}
+                    items={grupo.items}
+                    seleccionadoId={seleccionadoId}
+                    onSeleccionar={(id) =>
+                      setSeleccionadoId((actual) => (actual === id ? null : id))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
           ))}
         </div>
       )}

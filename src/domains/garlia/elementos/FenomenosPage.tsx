@@ -1,10 +1,11 @@
 "use client";
 
-import { Sparkles, Loader2, Save, Trash2, X } from "lucide-react";
+import { Loader2, Save, Trash2, X } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
+import { TituloCategoria } from "../_shared/TituloCategoria";
 import { type SaveStatus } from "@/ui/saveStatus";
 import { useConfirm } from "@/ui/ConfirmModal";
 
@@ -14,6 +15,138 @@ import { useFenomenoElementos } from "./useFenomenoElementos";
 import { useFenomenoProcesos } from "./useFenomenoProcesos";
 import { useProcesos } from "./useProcesos";
 import type { Fenomeno } from "./types";
+
+/**
+ * Mismo lenguaje visual que ProcesosPage/ReaccionesPage: grid tipo
+ * "biblioteca" con columnas responsivas tipo mampostería y casillas
+ * estilo tabla periódica, en vez de las pills sueltas en flex-wrap que
+ * tenía antes.
+ */
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Mismo helper que en
+ * ProcesosPage.tsx/ReaccionesPage.tsx.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas con un algoritmo
+ * greedy (cada sección va a la columna con menor "altura" acumulada) —
+ * mismo helper que en ProcesosPage/ReaccionesPage.
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
+/** Casilla de un Fenómeno en el grid tipo tabla periódica — mismo lenguaje
+ *  visual que ProcesoCasilla/ReaccionCasilla (tarjeta de grilla con bordes
+ *  compartidos, sin fondo, sin rounded), en vez de la pill suelta que
+ *  tenía antes. */
+function FenomenoCasilla({
+  fenomeno,
+  seleccionado,
+  onClick,
+}: {
+  fenomeno: Fenomeno;
+  seleccionado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={fenomeno.nombre || "(sin nombre)"}
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
+        seleccionado
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
+      }`}
+    >
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+        {fenomeno.nombre || "(sin nombre)"}
+      </span>
+    </button>
+  );
+}
+
+/** Único grupo (Fenómeno no tiene un campo "tipo" propio para subdividir)
+ *  con su título y su grid — mismo patrón que ChipGrupoProcesos/
+ *  ChipGrupoReacciones. */
+function ChipGrupoFenomenos({
+  titulo,
+  items,
+  seleccionadoId,
+  onSeleccionar,
+}: {
+  titulo: string;
+  items: Fenomeno[];
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <TituloCategoria titulo={titulo} total={items.length} />
+      <div
+        className="grid gap-0 border-t border-l border-primary/10"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+      >
+        {items.map((fenomeno) => (
+          <FenomenoCasilla
+            key={fenomeno.id}
+            fenomeno={fenomeno}
+            seleccionado={fenomeno.id === seleccionadoId}
+            onClick={() => onSeleccionar(fenomeno.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
@@ -249,23 +382,44 @@ export default function FenomenosPage() {
   const { confirm, ConfirmModal } = useConfirm();
   const [selected, setSelected] = useState<Fenomeno | null>(null);
 
+  // Mismo layout tipo "biblioteca" que Procesos/Reacciones/Materiales/
+  // Estructuras/Compuestos: un único grupo (Fenómeno no tiene "tipo" para
+  // subdividir) repartido en columnas responsivas tipo mampostería, con un
+  // grid de casillas estilo tabla periódica — reemplaza la lista plana de
+  // pills.
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const grupoUnico = useMemo(
+    () => (items.length > 0 ? [{ id: "__todos__", nombre: "Fenómenos", items }] : []),
+    [items],
+  );
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupoUnico, numColumnas, (g) => g.items.length),
+    [grupoUnico, numColumnas],
+  );
+
   return (
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
       ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSelected(item)}
-              title={item.nombre}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/15 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/70 transition-colors hover:border-primary/30 hover:bg-primary/10"
-            >
-              <Sparkles className="h-3 w-3 shrink-0 opacity-45" />
-              <span className="truncate">{item.nombre}</span>
-            </button>
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeGrupos.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((grupo) => (
+                <div key={grupo.id} className="mb-4">
+                  <ChipGrupoFenomenos
+                    titulo={grupo.nombre}
+                    items={grupo.items}
+                    seleccionadoId={selected?.id ?? null}
+                    onSeleccionar={(id) => {
+                      const fenomeno = items.find((f) => f.id === id) ?? null;
+                      setSelected(fenomeno);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           ))}
         </div>
       )}
