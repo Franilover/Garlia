@@ -33,7 +33,7 @@
  * backdrop blur), no una barra lateral fija.
  */
 
-import { ChevronDown, ChevronRight, Dna, Info, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Dna, Filter, Info, Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -143,6 +143,33 @@ function construirLayout(clados: Clado[]): { nodos: NodoLayout[]; raices: NodoLa
 
 function anchoMaximo(nodos: NodoLayout[]): number {
   return nodos.reduce((max, n) => Math.max(max, n.x), 0) + COL_W + LEAF_LABEL_W;
+}
+
+/** Filtra el árbol completo a solo los clados que tienen organismos
+ *  vinculados (conteoOrganismos > 0) MÁS todos sus ancestros hasta la
+ *  raíz — así las ramas que llevan hasta un clado con organismos se
+ *  siguen viendo completas, en vez de dejar nodos "colgando" sin padre.
+ *  No es una poda estructural: se recorta el array de entrada de
+ *  construirLayout, así ambos layouts (horizontal y vertical) heredan el
+ *  filtro sin tocar su propia lógica de armado del árbol. */
+function filtrarConOrganismosYAncestros(
+  clados: Clado[],
+  conteoOrganismos: Map<string, number>,
+): Clado[] {
+  const porId = new Map(clados.map((c) => [c.id, c]));
+  const conservar = new Set<string>();
+
+  for (const c of clados) {
+    if ((conteoOrganismos.get(c.id) ?? 0) > 0) {
+      let actual: Clado | undefined = c;
+      while (actual && !conservar.has(actual.id)) {
+        conservar.add(actual.id);
+        actual = actual.padre_id ? porId.get(actual.padre_id) : undefined;
+      }
+    }
+  }
+
+  return clados.filter((c) => conservar.has(c.id));
 }
 
 // ─── Layout vertical (mobile) ───────────────────────────────────────────────
@@ -1756,8 +1783,20 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
   const cladoEditor = useCladoEditorCatalogo();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [seleccionMultiple, setSeleccionMultiple] = useState<Set<string>>(new Set());
+  // Filtro "solo con organismos": muestra únicamente los clados que tienen
+  // organismos vinculados y la cadena de ancestros que los conecta a la
+  // raíz (ver filtrarConOrganismosYAncestros). Es puramente visual — no
+  // toca los datos ni la selección múltiple.
+  const [soloConOrganismos, setSoloConOrganismos] = useState(false);
 
   const cladoPorId = useMemo(() => new Map(clados.map((c) => [c.id, c])), [clados]);
+  const cladosVisibles = useMemo(
+    () =>
+      soloConOrganismos
+        ? filtrarConOrganismosYAncestros(clados, conteoPorClado)
+        : clados,
+    [clados, conteoPorClado, soloConOrganismos],
+  );
   const seleccionado = seleccionadoId ? (cladoPorId.get(seleccionadoId) ?? null) : null;
   const padreSeleccionado =
     seleccionado?.padre_id ? (cladoPorId.get(seleccionado.padre_id) ?? null) : null;
@@ -1795,8 +1834,31 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
+    <div className="relative">
+      {/* Botón flotante: filtra el árbol a solo los clados con organismos
+          vinculados + sus ancestros. Fijo a la esquina superior derecha del
+          panel del cladograma (no de toda la pantalla), para no taparlo con
+          scroll ni superponerse al panel flotante del clado seleccionado. */}
+      <button
+        type="button"
+        onClick={() => setSoloConOrganismos((v) => !v)}
+        title={
+          soloConOrganismos
+            ? "Mostrando solo clados con organismos — click para ver todos"
+            : "Mostrar solo clados con organismos vinculados"
+        }
+        className="absolute top-0 right-0 z-10 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-micro font-black uppercase tracking-widest shadow-lg transition-colors"
+        style={{
+          background: soloConOrganismos ? "var(--accent)" : "var(--bg-main)",
+          color: soloConOrganismos ? "var(--bg-main)" : "var(--primary)",
+          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+        }}
+      >
+        <Filter size={12} />
+        {soloConOrganismos ? "Con organismos" : "Todos"}
+      </button>
+
+      <div className="flex items-center justify-between mb-2 pr-32">
         <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
           Cladograma
         </span>
@@ -1828,6 +1890,10 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
           Sin clados todavía — creá el primer nodo (el ancestro común más
           lejano que quieras registrar).
         </p>
+      ) : soloConOrganismos && cladosVisibles.length === 0 ? (
+        <p className="text-xs text-primary/25 italic py-4 text-center">
+          Ningún clado tiene organismos vinculados todavía.
+        </p>
       ) : (
         <>
         <LeyendaCladograma clados={clados} />
@@ -1837,7 +1903,7 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
             mouse, más cómoda de leer y tocar en pantallas angostas. */}
         <div className="hidden md:block">
           <DiagramaCladograma
-            clados={clados}
+            clados={cladosVisibles}
             conteoOrganismos={conteoPorClado}
             seleccionadoId={seleccionadoId}
             seleccionMultiple={seleccionMultiple}
@@ -1852,7 +1918,7 @@ export function CladisticaPage({ onSelectCriatura, onAbrirOrganismo }: Props) {
         </div>
         <div className="md:hidden">
           <CladogramaVerticalMovil
-            clados={clados}
+            clados={cladosVisibles}
             conteoOrganismos={conteoPorClado}
             seleccionadoId={seleccionadoId}
             seleccionMultiple={seleccionMultiple}
