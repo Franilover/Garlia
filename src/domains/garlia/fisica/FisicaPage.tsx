@@ -1480,6 +1480,8 @@ function BasesItemCard({
   oris,
   geometriaDe,
   energiasPorConcepto,
+  panelActivo,
+  onAbrirPanel,
 }: {
   fila: FilaCatalogo;
   bloque: ClaveCatalogo;
