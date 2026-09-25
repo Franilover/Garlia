@@ -157,7 +157,7 @@ function ProcesoCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
         {proceso.nombre}
       </span>
     </button>
@@ -165,7 +165,12 @@ function ProcesoCasilla({
 }
 
 /** Un grupo de Procesos (por "tipo") con su título y su grid — mismo patrón
- *  que ChipGrupoEstructuras en EstructurasPage.tsx. */
+ *  que ChipGrupoEstructuras en EstructurasPage.tsx.
+ *
+ *  minmax(140px…) en vez de los 68px de Fenómenos/Materiales: Proceso usa
+ *  frases largas como nombre (ej. "Acumulación y Descarga de Energía"),
+ *  que a 68px quedaban cortadas incluso con line-clamp-2 — una casilla más
+ *  ancha les da lugar a esas frases sin achicar tanto el texto. */
 function ChipGrupoProcesos({
   titulo,
   items,
@@ -182,7 +187,7 @@ function ChipGrupoProcesos({
       <TituloCategoria titulo={titulo} total={items.length} />
       <div
         className="grid gap-0 border-t border-l border-primary/10"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
       >
         {items.map((proceso) => (
           <ProcesoCasilla

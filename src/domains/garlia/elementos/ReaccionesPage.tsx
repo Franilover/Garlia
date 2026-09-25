@@ -126,7 +126,7 @@ function ReaccionCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
         {reaccion.nombre || "(sin nombre)"}
       </span>
     </button>
@@ -135,7 +135,14 @@ function ReaccionCasilla({
 
 /** Único grupo (Reacción no tiene un campo "tipo" propio para subdividir,
  *  a diferencia de Proceso) con su título y su grid — mismo patrón que
- *  ChipGrupoProcesos en ProcesosPage.tsx. */
+ *  ChipGrupoProcesos en ProcesosPage.tsx.
+ *
+ *  minmax(140px…) en vez de los 68px de Fenómenos/Materiales: Reacción
+ *  también usa frases largas como nombre (ej. "Acumulación y Descarga de
+ *  Energía"), que a 68px quedaban cortadas incluso con line-clamp-2 — una
+ *  casilla más ancha les da lugar a esas frases sin achicar tanto el
+ *  texto. Mismo ancho que ChipGrupoProcesos, para que ambas secciones se
+ *  vean consistentes entre sí. */
 function ChipGrupoReacciones({
   titulo,
   items,
@@ -152,7 +159,7 @@ function ChipGrupoReacciones({
       <TituloCategoria titulo={titulo} total={items.length} />
       <div
         className="grid gap-0 border-t border-l border-primary/10"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
       >
         {items.map((reaccion) => (
           <ReaccionCasilla
