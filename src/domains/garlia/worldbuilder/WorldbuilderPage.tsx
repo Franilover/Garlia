@@ -47,6 +47,7 @@ import {
 import { useCompuestos } from "@/domains/garlia/elementos/useCompuestos";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { LaboratorioPropiedadesSection } from "@/domains/garlia/materiales/LaboratorioPropiedadesSection";
+import { LaboratorioOrisSection } from "@/domains/garlia/materiales/LaboratorioOrisSection";
 import { useFormasGeometricas } from "@/domains/garlia/items/useFormasGeometricas";
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -100,7 +101,7 @@ function useSeleccionIntenciones() {
   return { seleccionadas, toggle, limpiar: () => setSeleccionadas(new Set()) };
 }
 
-type ModoWorldbuilder = "crear" | "mezclar" | "item" | "laboratorio";
+type ModoWorldbuilder = "crear" | "mezclar" | "item" | "laboratorio" | "oris";
 
 /** Fila de un criterio evaluado — nunca muestra la fórmula, solo el
  *  nombre de la intención + ✓/✗. El valor numérico crudo queda oculto
@@ -832,7 +833,10 @@ const NAV_GROUPS: { group: GrupoWorldbuilder; items: NavItemWorldbuilder[] }[] =
   },
   {
     group: "Lab",
-    items: [{ key: "laboratorio", label: "Laboratorio", icon: <TestTube2 size={15} /> }],
+    items: [
+      { key: "laboratorio", label: "Laboratorio", icon: <TestTube2 size={15} /> },
+      { key: "oris", label: "Oris", icon: <Sparkles size={15} /> },
+    ],
   },
 ];
 
@@ -916,6 +920,8 @@ export function WorldbuilderPage() {
 
             {modo === "laboratorio" ? (
               <LaboratorioPropiedadesSection />
+            ) : modo === "oris" ? (
+              <LaboratorioOrisSection />
             ) : loadingMateriales || loadingCompuestos ? (
               <LoadingRow>Cargando catálogo de materiales y compuestos…</LoadingRow>
             ) : (
