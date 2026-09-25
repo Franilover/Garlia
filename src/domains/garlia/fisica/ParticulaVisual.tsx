@@ -30,23 +30,23 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
   // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
   // oscuro de los admins.
-  // Borde bien oscurecido (negro puro, no mezcla) para que la línea que
-  // separa un tercio/sector de otro se note con claridad de un vistazo —
-  // el color-mix(...90%, black) anterior seguía leyéndose muy parecido al
-  // bg casi opaco y no se distinguía la separación.
+  // Borde café muy oscuro (no negro puro, que se confundía con el fondo
+  // oscuro sepia de los admins y parecía una grieta en vez de un borde) —
+  // suficientemente oscuro para separar los tercios, pero con un poco de
+  // tono para distinguirse del fondo negro/sepia detrás.
   A: {
     bg: "color-mix(in srgb, #c9a06a 95%, transparent)",
-    border: "#1a1208",
+    border: "#3d2a12",
     fg: "#3a2a15",
   },
   T: {
     bg: "color-mix(in srgb, #8a5a34 95%, transparent)",
-    border: "#1a1208",
+    border: "#3d2a12",
     fg: "#f0dfc9",
   },
   S: {
     bg: "color-mix(in srgb, #4e3320 95%, transparent)",
-    border: "#1a1208",
+    border: "#3d2a12",
     fg: "#e8d5bd",
   },
   // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
@@ -54,7 +54,7 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // vistazo tanto de A (más clara) como de S (más oscura).
   I: {
     bg: "color-mix(in srgb, #6b4423 95%, transparent)",
-    border: "#1a1208",
+    border: "#3d2a12",
     fg: "#ecdcc4",
   },
 };
