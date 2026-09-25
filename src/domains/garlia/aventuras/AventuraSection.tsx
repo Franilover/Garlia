@@ -65,6 +65,7 @@ import type { FichaDnd } from "@/domains/garlia/aventuras/public/useFichasDnd";
 import { CriaturaStatsDndEditor } from "@/domains/garlia/criaturas/CriaturaStatsDnd";
 import type { CriaturaStatsDnd } from "@/domains/garlia/criaturas/types";
 import { supabase } from "@/infra/supabase/supabase";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 const AdminDescubrimientos = lazy(() => import("@/domains/garlia/relaciones/editorRelaciones"));
 
@@ -430,6 +431,7 @@ function AventuraDetalle({
   onLimpiarBusqueda: () => void;
 }) {
   const buscadorPortalNode = React.useContext(BuscadorPortalContext);
+  const abrirPanelFlotante = usePanelFlotante((s) => s.abrir);
   const { aventuras, toggleNiebla } = useAventurasList();
   const {
     entidades,
@@ -963,7 +965,20 @@ function AventuraDetalle({
               onResizeItem={(id, ancho, alto) => redimensionar(id, ancho, alto)}
               onClickItem={(id) => {
                 const e = entidades.find((x) => x.id === id);
-                if (e) setSeleccion(e);
+                if (!e) return;
+                // Personajes: se abren en el mismo panel flotante
+                // (EditorPersonaje) que se usa en el resto de la web —
+                // ficha completa editable, en vez del modal simple de
+                // solo-nombre-y-descripción que usan el resto de tablas
+                // acá (criaturas/fichas_dnd ya tienen su propio editor
+                // completo más abajo; personajes no lo tenía). Al cerrar
+                // el panel flotante volvés directo al pizarrón del DM,
+                // sin navegar de página.
+                if (e.tabla === "personajes") {
+                  abrirPanelFlotante("personaje", e.entidad_id);
+                  return;
+                }
+                setSeleccion(e);
               }}
             />
           )}
