@@ -1091,6 +1091,41 @@ class AgendaFraniDB extends Dexie {
     [string, string, string]
   >;
 
+  // ─── v50: cache-first para vistas derivadas de Física/Biología que hasta
+  // ahora vivían solo en un cache de módulo en memoria (useOrisGrafo,
+  // useGeometriaIums, useEnergias, useCladoRelaciones,
+  // useCladoEditorCatalogo) o sin ningún cache (useSubsistemasMagia). Sin
+  // Dexie detrás, cada uno de esos hooks arrancaba en 0 en cada
+  // recarga/pestaña nueva: mientras el fetch a Supabase estaba en vuelo el
+  // grafo topológico de un Oris no tenía nodos todavía, así que OrisEditor
+  // caía al gráfico anterior (IumVisual genérico) — el "diseño antiguo" que
+  // se veía al cargar. Ahora pintan primero lo que haya en Dexie
+  // (instantáneo, funciona offline) y el fetch a Supabase reemplaza esa
+  // copia en cuanto llega, igual que el resto de vistas v_frontend_*.
+  //
+  // v_oris_grafo_canonico: PK natural = oris_id (1 fila por Oris).
+  // v_iums_geometria_canonica_v1: PK natural = ium_id (1 fila por Ium).
+  v_oris_grafo_canonico!: Table<FilaGenericaDexie, string>;
+  v_iums_geometria_canonica_v1!: Table<FilaGenericaDexie, string>;
+
+  // subsistemas_magia y contexto_humano SÍ tienen "id" propio → entran al
+  // pipeline genérico de useSupabaseData (Dexie + realtime + offline
+  // writes), mismo patrón que oris/iums/fisica_conceptos.
+  subsistemas_magia!: Table<FilaGenericaDexie, string>;
+  contexto_humano!: Table<FilaGenericaDexie, string>;
+
+  // clado_relaciones: relaciones laterales del cladograma (tabla real, con
+  // "id" propio) — antes sin cache, cada carga del Cladograma esperaba el
+  // round-trip completo para dibujar las aristas no-jerárquicas.
+  clado_relaciones!: Table<FilaGenericaDexie, string>;
+  // v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1: catálogo del
+  // editor guiado de clados — vistas de solo lectura, SIN columna "id"
+  // única y estable entre refrescos más allá de la propia fila, pero acá sí
+  // viene un "id" real de la vista, así que se cachean por esa clave igual
+  // que el resto de FilaGenericaDexie.
+  v_clado_editor_opciones_v1!: Table<FilaGenericaDexie, string>;
+  v_clado_editor_reglas_v1!: Table<FilaGenericaDexie, string>;
+
   constructor() {
     super("AgendaFranilover");
 
@@ -2195,6 +2230,24 @@ class AgendaFraniDB extends Dexie {
         "[entidad_tipo+modo+contrato_id], [entidad_tipo+modo]",
       v_frontend_worldbuilder_propiedades_entidad:
         "[entidad_tipo+entidad_id+propiedad_clave], [entidad_tipo+entidad_id]",
+    });
+
+    // ─── v50: ver comentario junto a las declaraciones Table<> más arriba.
+    // v_oris_grafo_canonico / v_iums_geometria_canonica_v1 se leen/escriben
+    // por su clave natural (oris_id / ium_id respectivamente, ya que cada
+    // fila de esas vistas es 1:1 con un Oris o un Ium). subsistemas_magia y
+    // contexto_humano usan "id" (PK real de esas tablas) y entran también en
+    // DEXIE_TABLES (ver useSupabaseData.ts) para el pipeline genérico
+    // cache-first + realtime. clado_relaciones e igual que los catálogos del
+    // editor guiado de clados se cachean por su "id" real, solo lectura.
+    this.version(50).stores({
+      v_oris_grafo_canonico: "oris_id",
+      v_iums_geometria_canonica_v1: "ium_id",
+      subsistemas_magia: "id, orden",
+      contexto_humano: "id, concepto",
+      clado_relaciones: "id, clado_origen_id, clado_destino_id",
+      v_clado_editor_opciones_v1: "id, campo",
+      v_clado_editor_reglas_v1: "id",
     });
   }
 }

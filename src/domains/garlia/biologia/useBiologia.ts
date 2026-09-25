@@ -227,29 +227,21 @@ export function useClados() {
 // Conexiones que NO son hijos del árbol (afinidad, ecológica, origen,
 // transformación, incertidumbre, asociación). Solo lectura: el frontend las
 // muestra tal cual vienen de Supabase y NUNCA las convierte en aristas
-// padre→hijo ni las deduce de otros datos. Sin caché offline por ahora —
-// mismo patrón directo que useBiomaReinos().
+// padre→hijo ni las deduce de otros datos.
+//
+// Antes era un fetch directo sin cache — cada apertura del Cladograma
+// esperaba el round-trip completo a Supabase para dibujar las aristas
+// laterales. Ahora pasa por useSupabaseData (misma tabla ya declarada en
+// Dexie, ver v50 en infra/supabase/db.ts y DEXIE_TABLES en
+// useSupabaseData.ts): pinta primero lo que haya en Dexie (instantáneo,
+// funciona offline) y Supabase reemplaza esa copia en cuanto responde.
 
 export function useCladoRelaciones() {
-  const [relaciones, setRelaciones] = useState<CladoRelacion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, setData, loading } = useSupabaseData<CladoRelacion>("clado_relaciones", {
+    select: "id, clado_origen_id, clado_destino_id, tipo, descripcion, created_at",
+  });
 
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("clado_relaciones")
-        .select("id, clado_origen_id, clado_destino_id, tipo, descripcion, created_at");
-      if (cancelado) return;
-      if (error) console.error("[useCladoRelaciones] error leyendo clado_relaciones:", error);
-      setRelaciones((data as CladoRelacion[]) ?? []);
-      setLoading(false);
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
+  const relaciones = useMemo(() => data, [data]);
 
   /** Relaciones laterales donde este clado participa (como origen o destino). */
   const relacionesDe = useCallback(
@@ -258,57 +250,49 @@ export function useCladoRelaciones() {
     [relaciones],
   );
 
-  return { relaciones, setRelaciones, loading, relacionesDe };
+  return { relaciones, setRelaciones: setData, loading, relacionesDe };
 }
 
 // ─── Editor guiado de clados (v_clado_editor_opciones_v1 / v_clado_editor_reglas_v1) ──
 // Catálogo de opciones + matriz de combinaciones válidas para el editor de
-// clados. Solo lectura, sin caché offline por ahora — mismo patrón directo
-// que useCladoRelaciones(). El frontend consulta estas vistas en vez de
-// hardcodear listas: si Supabase agrega/desactiva una opción o una regla,
-// el editor lo refleja sin tocar código.
+// clados. El frontend consulta estas vistas en vez de hardcodear listas: si
+// Supabase agrega/desactiva una opción o una regla, el editor lo refleja sin
+// tocar código.
+//
+// Antes eran dos fetches directos sin cache. Ahora cada vista pasa por
+// useSupabaseData (ambas ya declaradas en Dexie, ver v50 en
+// infra/supabase/db.ts) — cache-first igual que el resto de catálogos de
+// Biología/Física: pintan primero lo que haya en Dexie y Supabase reemplaza
+// esa copia en cuanto responde. El orden (campo/orden, luego orden) se
+// aplica en memoria acá porque useSupabaseData solo ordena por un campo a
+// la vez.
 
 export function useCladoEditorCatalogo() {
-  const [opciones, setOpciones] = useState<CladoEditorOpcion[]>([]);
-  const [reglas, setReglas] = useState<CladoEditorRegla[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: opcionesRaw, loading: loadingOpciones } = useSupabaseData<CladoEditorOpcion>(
+    "v_clado_editor_opciones_v1",
+    {
+      select: "id, campo, clave, etiqueta, descripcion, orden, activo, legado, metadata",
+      order: { campo: "orden" },
+    },
+  );
+  const { data: reglasRaw, loading: loadingReglas } = useSupabaseData<CladoEditorRegla>(
+    "v_clado_editor_reglas_v1",
+    {
+      select: "id, tipo_nodo, relacion_padre, tipo_nodo_padre, permitida, descripcion, orden, activo",
+      order: { campo: "orden" },
+    },
+  );
 
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      setLoading(true);
-      const [opcionesRes, reglasRes] = await Promise.all([
-        supabase
-          .from("v_clado_editor_opciones_v1")
-          .select("id, campo, clave, etiqueta, descripcion, orden, activo, legado, metadata")
-          .order("campo")
-          .order("orden"),
-        supabase
-          .from("v_clado_editor_reglas_v1")
-          .select("id, tipo_nodo, relacion_padre, tipo_nodo_padre, permitida, descripcion, orden, activo")
-          .order("orden"),
-      ]);
-      if (cancelado) return;
-      if (opcionesRes.error) {
-        console.error(
-          "[useCladoEditorCatalogo] error leyendo v_clado_editor_opciones_v1:",
-          opcionesRes.error,
-        );
-      }
-      if (reglasRes.error) {
-        console.error(
-          "[useCladoEditorCatalogo] error leyendo v_clado_editor_reglas_v1:",
-          reglasRes.error,
-        );
-      }
-      setOpciones((opcionesRes.data as CladoEditorOpcion[]) ?? []);
-      setReglas((reglasRes.data as CladoEditorRegla[]) ?? []);
-      setLoading(false);
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
+  const opciones = useMemo(
+    () =>
+      [...opcionesRaw].sort((a, b) => {
+        if (a.campo !== b.campo) return a.campo < b.campo ? -1 : 1;
+        return a.orden - b.orden;
+      }),
+    [opcionesRaw],
+  );
+  const reglas = useMemo(() => [...reglasRaw].sort((a, b) => a.orden - b.orden), [reglasRaw]);
+  const loading = loadingOpciones || loadingReglas;
 
   /** Opciones activas de un campo (para nuevas selecciones), en orden. Si
    *  `valorActual` está fuera del catálogo activo (legado o desactivado),

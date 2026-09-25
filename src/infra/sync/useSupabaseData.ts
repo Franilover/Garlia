@@ -188,6 +188,22 @@ const DEXIE_TABLES = new Set([
   "celula_compuestos",
   "tejido_celulas",
   "tejido_compuestos",
+  // ─── v50: Subsistemas de Magia (antes CRUD directo sin ningún cache local
+  // — cada apertura de Física esperaba el round-trip completo a Supabase) y
+  // Energías/contexto_humano (antes con fetch directo propio en
+  // useEnergias, sin cache). Ambas tienen "id" propio: entran al pipeline
+  // genérico igual que oris/iums/fisica_conceptos. Ver v50 en
+  // infra/supabase/db.ts.
+  "subsistemas_magia",
+  "contexto_humano",
+  // ─── v50 (cont.): Cladograma — relaciones laterales (tabla real, "id"
+  // propio) y catálogo del editor guiado (dos vistas de solo lectura, "id"
+  // propio). Antes fetch directo sin cache; cada apertura del Cladograma
+  // esperaba el round-trip completo a Supabase. Ver v50 en
+  // infra/supabase/db.ts.
+  "clado_relaciones",
+  "v_clado_editor_opciones_v1",
+  "v_clado_editor_reglas_v1",
 ]);
 
 const OFFLINE_WRITABLE = new Set([

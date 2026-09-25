@@ -3,20 +3,27 @@
 /**
  * useSubsistemasMagia
  * ───────────────────────────────────────────────────────────────────────────
- * CRUD directo (sin offline-sync/Dexie, a diferencia de useSupabaseData) para
- * la tabla `subsistemas_magia` — subsistemas como Luminia, Sintonía, Litonio,
+ * Datos de `subsistemas_magia` — subsistemas como Luminia, Sintonía, Litonio,
  * Fitonio, Hemonia, etc. del sistema de magia. Cada subsistema tiene un
  * nombre, descripción libre, y tablas de Canales / Filtros / Complementos
  * (mismo formato que el documento de referencia: nombre + descripción +
  * qué Oris canaliza).
  *
- * Es una tabla nueva y aislada — no necesita el pipeline grande de
- * useSupabaseData (Dexie, canales realtime compartidos, etc.), así que se
- * maneja con un CRUD simple directo a Supabase.
+ * Antes era un CRUD directo sin ningún cache local: cada apertura de la tab
+ * Física esperaba el round-trip completo a Supabase para pintar la columna
+ * de Subsistemas. Ahora pasa por useSupabaseData (mismo pipeline
+ * cache-first + realtime que oris/iums/fisica_conceptos, ver v50 en
+ * infra/supabase/db.ts): pinta primero lo que haya en Dexie (instantáneo,
+ * funciona offline) y Supabase reemplaza esa copia en cuanto responde,
+ * reescribiéndola para la próxima carga. crear/actualizar/eliminar siguen
+ * pegando directo a Supabase (mismo estilo que useSubsistemasMagia de
+ * siempre) — la fila resultante vuelve a este hook vía el canal realtime de
+ * useSupabaseData, que ya se encarga de reflejarla en Dexie.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
 
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 import { supabase } from "@/infra/supabase/supabase";
 
 export interface SubsistemaFila {
@@ -46,41 +53,40 @@ export type SubsistemaInput = Partial<
 >;
 
 export function useSubsistemasMagia() {
-  const [subsistemas, setSubsistemas] = useState<SubsistemaMagia[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const {
+    data,
+    setData,
+    loading,
+  } = useSupabaseData<SubsistemaMagia>("subsistemas_magia", {
+    select: "*",
+    order: { campo: "orden" },
+  });
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("subsistemas_magia")
-      .select("*")
-      .order("orden", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    if (!error && data) setSubsistemas(data as SubsistemaMagia[]);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // useSupabaseData ordena solo por "orden" (ver `order`) — el criterio
+  // original acá era orden + created_at como desempate. Se aplica ese
+  // desempate acá encima del resultado, sin tocar el hook genérico.
+  const subsistemas = useMemo(
+    () =>
+      [...data].sort((a, b) => {
+        if (a.orden !== b.orden) return a.orden - b.orden;
+        return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+      }),
+    [data],
+  );
 
   const crear = useCallback(async (nombre: string) => {
-    setCreating(true);
-    const { data, error } = await supabase
+    const { data: nuevo, error } = await supabase
       .from("subsistemas_magia")
       .insert([{ nombre, descripcion: "", canales: [], filtros: [], complementos: [], criatura_ids: [] }])
       .select()
       .single();
-    setCreating(false);
-    if (error || !data) return null;
-    setSubsistemas((prev) => [...prev, data as SubsistemaMagia]);
-    return data as SubsistemaMagia;
-  }, []);
+    if (error || !nuevo) return null;
+    setData((prev) => [...prev, nuevo as SubsistemaMagia]);
+    return nuevo as SubsistemaMagia;
+  }, [setData]);
 
   const actualizar = useCallback(async (id: string, updates: SubsistemaInput) => {
-    setSubsistemas((prev) =>
+    setData((prev) =>
       prev.map((s) => (s.id === id ? { ...s, ...updates } : s)),
     );
     const { error } = await supabase
@@ -88,15 +94,14 @@ export function useSubsistemasMagia() {
       .update(updates)
       .eq("id", id);
     if (error) {
-      // Revertir en caso de error recargando desde el servidor.
-      void load();
+      console.error("[useSubsistemasMagia] error actualizando:", error);
     }
-  }, [load]);
+  }, [setData]);
 
   const eliminar = useCallback(async (id: string) => {
-    setSubsistemas((prev) => prev.filter((s) => s.id !== id));
+    setData((prev) => prev.filter((s) => s.id !== id));
     await supabase.from("subsistemas_magia").delete().eq("id", id);
-  }, []);
+  }, [setData]);
 
-  return { subsistemas, loading, creating, crear, actualizar, eliminar };
+  return { subsistemas, loading, creating: false, crear, actualizar, eliminar };
 }

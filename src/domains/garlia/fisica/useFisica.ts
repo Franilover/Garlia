@@ -9,10 +9,9 @@
  * "orden".
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
-import { supabase } from "@/infra/supabase/supabase";
 
 import {
   CONTEXTO_HUMANO_CONFIG,
@@ -35,52 +34,46 @@ import {
 
 /** Trae las fichas de Eterium/Garin desde "contexto_humano" filtrando por
  *  concepto (identificador humano/canónico — ver comentario en types.ts),
- *  no por id fijo. No usa useSupabaseData (pensado para catálogos propios
- *  de Física con "orden") porque contexto_humano es una tabla compartida
- *  filtrada por IN, así que se hace el fetch acá directo con supabase.
- *  Trae en la misma query, además de Eterium/Garin, todos sus conceptos
- *  "Relacionados" (ETERIUM_RELACIONADOS/GARIN_RELACIONADOS/mixtos) — así el
- *  panel flotante puede resolverlos por nombre sin hacer un fetch nuevo
- *  cada vez que el usuario abre uno desde la lista de relacionados. */
+ *  no por id fijo. Antes era un fetch directo sin cache, así que Energías
+ *  esperaba el round-trip completo a Supabase en cada carga. Ahora usa
+ *  useSupabaseData (misma tabla "contexto_humano" ya cacheada en Dexie,
+ *  ver v50 en infra/supabase/db.ts): pinta primero lo que haya en Dexie
+ *  (instantáneo, offline-first) y Supabase reemplaza esa copia en cuanto
+ *  responde. El filtro por IN de la query vieja se reemplaza por un filtro
+ *  en memoria sobre la tabla completa cacheada — sigue igual de barato
+ *  (contexto_humano no es una tabla grande) y sin él perderíamos el
+ *  cache-first para esta vista. Se sigue trayendo, además de Eterium/Garin,
+ *  todos sus conceptos "Relacionados" (ETERIUM_RELACIONADOS/
+ *  GARIN_RELACIONADOS/mixtos) — así el panel flotante puede resolverlos por
+ *  nombre sin hacer un fetch nuevo cada vez que el usuario abre uno desde
+ *  la lista de relacionados. */
 export function useEnergias() {
-  const [items, setItems] = useState<ContextoHumano[]>([]);
-  const [porConcepto, setPorConcepto] = useState<Map<string, ContextoHumano>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useSupabaseData<ContextoHumano>(
+    CONTEXTO_HUMANO_CONFIG.tabla,
+    { select: CONTEXTO_HUMANO_CONFIG.select },
+  );
 
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    supabase
-      .from(CONTEXTO_HUMANO_CONFIG.tabla)
-      .select(CONTEXTO_HUMANO_CONFIG.select)
-      .in("concepto", TODOS_LOS_CONCEPTOS_ENERGIA)
-      .then(({ data, error }) => {
-        if (cancelado) return;
-        if (error) {
-          console.error("[useEnergias] error cargando contexto_humano:", error);
-          setItems([]);
-          setPorConcepto(new Map());
-        } else {
-          // Orden fijo (Eterium, Garin) según ENERGIAS_CONCEPTOS, no el
-          // orden que devuelva Supabase — mismo criterio visual que
-          // RamaLibres en el Mapa Universal. El mapa completo (incluye
-          // relacionados) se guarda aparte para el panel flotante.
-          const mapa = new Map(
-            (data as unknown as ContextoHumano[]).map((c) => [c.concepto, c]),
-          );
-          setPorConcepto(mapa);
-          setItems(
-            ENERGIAS_CONCEPTOS.map((nombre) => mapa.get(nombre)).filter(
-              (c): c is ContextoHumano => !!c,
-            ),
-          );
-        }
-        setLoading(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, []);
+  const relevantes = useMemo(
+    () => data.filter((c) => TODOS_LOS_CONCEPTOS_ENERGIA.includes(c.concepto)),
+    [data],
+  );
+
+  // Orden fijo (Eterium, Garin) según ENERGIAS_CONCEPTOS, no el orden que
+  // devuelva Supabase/Dexie — mismo criterio visual que RamaLibres en el
+  // Mapa Universal. El mapa completo (incluye relacionados) se guarda
+  // aparte para el panel flotante.
+  const porConcepto = useMemo(
+    () => new Map(relevantes.map((c) => [c.concepto, c])),
+    [relevantes],
+  );
+
+  const items = useMemo(
+    () =>
+      ENERGIAS_CONCEPTOS.map((nombre) => porConcepto.get(nombre)).filter(
+        (c): c is ContextoHumano => !!c,
+      ),
+    [porConcepto],
+  );
 
   return { items, porConcepto, loading };
 }
