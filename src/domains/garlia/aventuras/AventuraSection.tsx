@@ -19,6 +19,8 @@ import { AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   BookOpen,
+  Check,
+  ChevronDown,
   Compass,
   Coins,
   Eye,
@@ -101,6 +103,10 @@ function SubPanelFallback() {
 export function AventuraSection() {
   const [subPanel, setSubPanel] = useState<SubPanel>("aventuras");
   const [aventuraActiva, setAventuraActiva] = useState<string | null>(null);
+  const { aventuras, crear } = useAventurasList();
+  const [creandoNueva, setCreandoNueva] = useState(false);
+  const [nombreNueva, setNombreNueva] = useState("");
+  const [guardandoNueva, setGuardandoNueva] = useState(false);
 
   // ── Buscador para agregar entidades: vive acá (no dentro de
   // AventuraDetalle) porque ahora se dibuja arriba del panel lateral,
@@ -130,6 +136,20 @@ export function AventuraSection() {
 
   const mostrarBuscador = subPanel === "aventuras" && !!aventuraActiva;
 
+  const handleCrearAventura = async () => {
+    const nombre = nombreNueva.trim();
+    if (!nombre) return;
+    setGuardandoNueva(true);
+    try {
+      const nueva = await crear(nombre);
+      setNombreNueva("");
+      setCreandoNueva(false);
+      setAventuraActiva(nueva.id);
+    } finally {
+      setGuardandoNueva(false);
+    }
+  };
+
   // Nodo donde AventuraDetalle proyecta (vía portal) los resultados del
   // buscador — se define con useState (no useRef) para que el context
   // dispare un re-render en cuanto el <div> se monta y el portal tenga
@@ -154,7 +174,7 @@ export function AventuraSection() {
                 onLimpiarBusqueda={() => setQuery("")}
               />
             ) : (
-              <AventuraIndice onSeleccionar={setAventuraActiva} />
+              <AventuraIndice />
             ))}
 
           {subPanel === "relaciones" && (
@@ -174,9 +194,89 @@ export function AventuraSection() {
           {subPanel === "manual" && <PanelManualDnd />}
         </div>
 
-        {/* ── Panel lateral derecho: buscador (solo con una aventura
-            abierta) arriba del selector de sección. ── */}
+        {/* ── Panel lateral derecho: selector de aventura (dropdown) arriba
+            del todo, buscador debajo (solo con una aventura abierta), y
+            el selector de sección más abajo. ── */}
         <div className="w-64 shrink-0 flex flex-col border-l border-primary/10 overflow-hidden">
+          {subPanel === "aventuras" && (
+            <div className="shrink-0 px-3 py-2.5 border-b border-primary/10">
+              {creandoNueva ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={nombreNueva}
+                    onChange={(e) => setNombreNueva(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCrearAventura();
+                      if (e.key === "Escape") {
+                        setCreandoNueva(false);
+                        setNombreNueva("");
+                      }
+                    }}
+                    placeholder="Nombre de la aventura…"
+                    className="flex-1 min-w-0 h-8 px-2.5 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    disabled={!nombreNueva.trim() || guardandoNueva}
+                    onClick={handleCrearAventura}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white disabled:opacity-40 transition-opacity"
+                    title="Crear"
+                  >
+                    {guardandoNueva ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Check size={13} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreandoNueva(false);
+                      setNombreNueva("");
+                    }}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-primary/40 hover:bg-primary/5 transition-colors"
+                    title="Cancelar"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={aventuraActiva ?? ""}
+                      onChange={(e) => setAventuraActiva(e.target.value || null)}
+                      className="w-full h-8 pl-2.5 pr-7 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs font-bold text-primary/80 focus:border-primary/30 transition-colors appearance-none truncate"
+                    >
+                      <option value="" disabled>
+                        {aventuras.length === 0 ? "Sin aventuras todavía" : "Elegí una aventura…"}
+                      </option>
+                      {aventuras.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={12}
+                      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/35"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCreandoNueva(true)}
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-primary/50 hover:bg-primary/8 hover:text-primary/80 transition-colors"
+                    title="Nueva aventura"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {mostrarBuscador && (
             <div className="shrink-0 px-3 py-2.5 border-b border-primary/10 relative">
               <div
@@ -246,88 +346,53 @@ export function AventuraSection() {
 }
 
 // ── Índice de aventuras ─────────────────────────────────────────────────
+// Ya no es el punto de entrada para elegir/crear (eso ahora es el dropdown
+// arriba del panel lateral, ver AventuraSection) — acá solo queda como
+// estado vacío mientras no hay ninguna aventura seleccionada, con la
+// gestión (eliminar) para las que ya existen.
 
-function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void }) {
-  const { aventuras, loading, crear, eliminar } = useAventurasList();
-  const [nombreNueva, setNombreNueva] = useState("");
-  const [creando, setCreando] = useState(false);
-
-  const handleCrear = async () => {
-    const nombre = nombreNueva.trim();
-    if (!nombre) return;
-    setCreando(true);
-    try {
-      const nueva = await crear(nombre);
-      setNombreNueva("");
-      onSeleccionar(nueva.id);
-    } finally {
-      setCreando(false);
-    }
-  };
+function AventuraIndice() {
+  const { aventuras, loading, eliminar } = useAventurasList();
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
-        <input
-          type="text"
-          value={nombreNueva}
-          onChange={(e) => setNombreNueva(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleCrear()}
-          placeholder="Nombre de la nueva aventura… ej. El Bosque Sombrío"
-          className="flex-1 h-9 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs text-primary/80 placeholder:text-primary/30 focus:border-primary/30 transition-colors"
-        />
-        <button
-          type="button"
-          disabled={!nombreNueva.trim() || creando}
-          onClick={handleCrear}
-          className="shrink-0 h-9 px-3 flex items-center gap-1.5 rounded-lg bg-primary text-white text-xs font-bold disabled:opacity-40 transition-opacity"
-        >
-          {creando ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
-          Crear
-        </button>
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col items-center justify-center text-center gap-1">
+        <Compass size={22} className="text-primary/20 mb-2" />
+        {loading ? (
+          <Loader2 className="animate-spin text-primary/30" size={18} />
+        ) : aventuras.length === 0 ? (
+          <>
+            <p className="text-xs font-bold text-primary/50">Todavía no creaste ninguna aventura</p>
+            <p className="text-micro text-primary/35">Usá el selector de la derecha para crear la primera.</p>
+          </>
+        ) : (
+          <>
+            <p className="text-xs font-bold text-primary/50">Elegí una aventura</p>
+            <p className="text-micro text-primary/35">Usá el selector de la derecha para abrir una.</p>
+          </>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        {loading && aventuras.length === 0 ? (
-          <div className="py-16 flex items-center justify-center text-primary/30">
-            <Loader2 className="animate-spin" size={18} />
-          </div>
-        ) : aventuras.length === 0 ? (
-          <div className="py-16 text-center text-xs text-primary/30">
-            Aún no has creado ninguna aventura.
-          </div>
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+      {aventuras.length > 0 && (
+        <div className="shrink-0 border-t border-primary/10 p-3">
+          <p className="text-micro font-bold uppercase tracking-wider text-primary/30 mb-2 px-1">
+            Gestionar aventuras
+          </p>
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
             {aventuras.map((a) => (
               <div
                 key={a.id}
-                className="group relative flex flex-col text-left overflow-hidden rounded-xl border border-primary/10 bg-primary/[0.02] hover:border-primary/25 transition-all"
+                className="group flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg hover:bg-primary/[0.03] transition-colors"
               >
+                <span className="text-xs text-primary/60 truncate">{a.nombre}</span>
                 <button
                   type="button"
-                  onClick={() => onSeleccionar(a.id)}
-                  className="flex-1 p-4 text-left"
-                >
-                  <h3 className="font-serif italic text-base text-primary truncate">
-                    {a.nombre}
-                  </h3>
-                  <span className="text-micro text-primary/35">
-                    Creada el{" "}
-                    {new Date(a.created_at).toLocaleDateString("es", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() => {
                     if (confirm(`¿Eliminar "${a.nombre}" y todo su contenido asociado?`)) {
                       eliminar(a.id);
                     }
                   }}
-                  className="absolute top-2 right-2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 bg-black/5 hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-all"
+                  className="shrink-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 text-primary/30 transition-all"
                   title="Eliminar aventura"
                 >
                   <Trash2 size={12} />
@@ -335,8 +400,8 @@ function AventuraIndice({ onSeleccionar }: { onSeleccionar: (id: string) => void
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
