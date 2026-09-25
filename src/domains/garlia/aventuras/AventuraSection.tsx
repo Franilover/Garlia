@@ -17,7 +17,6 @@
 
 import { AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
   BookOpen,
   Check,
   ChevronDown,
@@ -317,10 +316,6 @@ export function AventuraSection() {
             (aventuraActiva ? (
               <AventuraDetalle
                 aventuraId={aventuraActiva}
-                onVolver={() => {
-                  setAventuraActiva(null);
-                  setQuery("");
-                }}
                 resultados={resultados}
                 onLimpiarBusqueda={() => setQuery("")}
               />
@@ -398,7 +393,10 @@ export function AventuraSection() {
                   <SelectorAventura
                     aventuras={aventuras}
                     aventuraActivaId={aventuraActiva}
-                    onSeleccionar={setAventuraActiva}
+                    onSeleccionar={(id) => {
+                      setAventuraActiva(id);
+                      setQuery("");
+                    }}
                   />
                   <button
                     type="button"
@@ -624,12 +622,10 @@ function GrupoCriaturaInput({
 
 function AventuraDetalle({
   aventuraId,
-  onVolver,
   resultados,
   onLimpiarBusqueda,
 }: {
   aventuraId: string;
-  onVolver: () => void;
   // El buscador en sí (input + estado) ahora vive en AventuraSection y se
   // dibuja en el panel lateral, arriba del selector de sección — acá solo
   // llega el resultado para proyectar el dropdown vía portal (ver
@@ -899,24 +895,6 @@ function AventuraDetalle({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      {/* ── Cabecera ─────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-primary/10">
-        <button
-          type="button"
-          onClick={onVolver}
-          className="shrink-0 p-1.5 -ml-1.5 rounded-full hover:bg-primary/10 transition-colors"
-        >
-          <ArrowLeft size={14} className="text-primary/50" />
-        </button>
-        <h2 className="text-xs font-black uppercase tracking-widest text-primary/70 truncate">
-          {aventura?.nombre ?? "Aventura"}
-        </h2>
-        <span className="text-micro font-bold text-primary/35">
-          {entidades.filter((e) => e.publicado).length} publicada
-          {entidades.filter((e) => e.publicado).length === 1 ? "" : "s"} de {entidades.length}
-        </span>
-      </div>
-
       {/* ── Resultados del buscador: el input en sí ahora vive arriba del
           panel lateral (ver AventuraSection); acá solo se proyectan los
           resultados vía portal en ese mismo lugar, porque necesitan el
