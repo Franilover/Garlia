@@ -27,10 +27,11 @@
  */
 
 import { Loader2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { FilaAsimetrica } from "@/domains/garlia/_shared/FilaAsimetrica";
+import { TituloCategoria } from "@/domains/garlia/_shared/TituloCategoria";
 
 import {
   useFormasGeometricas,
@@ -41,19 +42,112 @@ import {
   CONFIG_FORMAS_GEOMETRICAS,
   CONFIG_GEOMETRIA_VARIABLES,
   CONFIG_LEYES_GEOMETRICAS,
+  type FormaGeometrica,
 } from "@/domains/garlia/elementos/types";
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Mismo helper que en
+ * ProcesosPage.tsx/MaterialesPage.tsx — replicado acá para el mismo diseño.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas con un algoritmo
+ * greedy (cada sección va a la columna con menor "altura" acumulada) — evita
+ * los huecos grandes que dejaría CSS columns/grid auto-fit con grupos de
+ * tamaños dispares. Mismo helper que en ProcesosPage/MaterialesPage.
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
+/** Casilla de una Forma en el grid tipo tabla periódica — mismo lenguaje
+ *  visual que ProcesoCasilla/MaterialCasilla (tarjeta de grilla con bordes
+ *  compartidos, sin fondo, sin rounded), en vez de la pill suelta que
+ *  tenía antes. Forma no tiene un "símbolo" corto propio, así que el
+ *  nombre ocupa el lugar central, igual que en ProcesoCasilla. */
+function FormaCasilla({ forma }: { forma: FormaGeometrica }) {
+  return (
+    <button
+      type="button"
+      title={forma.descripcion ?? forma.nombre}
+      className="group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b border-primary/10 transition-colors text-center hover:bg-primary/5"
+    >
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+        {forma.nombre}
+      </span>
+    </button>
+  );
+}
 
 /** Exportado para reusar como `contenido` del cuarto grid "Geometrías" en
  *  Química (ver ElementosPage.tsx) — mismo listado, sin repetir el fila
  *  Formas/Variables/Leyes completa dentro de una celda.
  *
- * Mismo diseño pill que CompuestoCasilla/MaterialPill/ChipGrupoEstructuras
- * (chip compacto rounded-full, px-2.5 py-1, text-micro font-bold
- * tracking-wide) en vez de filas de texto — para que las 4 celdas del grid
- * de Química se vean consistentes entre sí. Sin estado seleccionado (acá
- * no abre un panel de detalle, es solo el catálogo de Formas). */
+ * Mismo lenguaje visual que ProcesosPage/MaterialesPage: grid tipo
+ * "biblioteca" con columnas responsivas tipo mampostería y casillas
+ * estilo tabla periódica (en vez de las pills en flex-wrap que tenía
+ * antes), para que Geometrías se vea consistente con esas secciones.
+ * Formas no tiene un campo "categoría" propio para subdividir, así que
+ * todo el catálogo va en un único grupo dentro del mismo layout. */
 export function ListaFormas() {
   const { items, loading } = useFormasGeometricas();
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const grupoUnico = useMemo(
+    () => (items.length > 0 ? [{ id: "__todas__", nombre: "Formas", items }] : []),
+    [items],
+  );
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupoUnico, numColumnas, (g) => g.items.length),
+    [grupoUnico, numColumnas],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center gap-1.5 p-3 text-micro text-primary/40">
@@ -61,17 +155,25 @@ export function ListaFormas() {
       </div>
     );
   }
+
   return (
-    <div className="flex flex-wrap gap-1 p-2">
-      {items.map((f) => (
-        <button
-          key={f.id}
-          type="button"
-          title={f.descripcion ?? f.nombre}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
-        >
-          <span className="truncate">{f.nombre}</span>
-        </button>
+    <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+      {columnasDeGrupos.map((columna, colIdx) => (
+        <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+          {columna.map((grupo) => (
+            <div key={grupo.id} className="mb-4">
+              <TituloCategoria titulo={grupo.nombre} total={grupo.items.length} />
+              <div
+                className="grid gap-0 border-t border-l border-primary/10"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+              >
+                {grupo.items.map((forma) => (
+                  <FormaCasilla key={forma.id} forma={forma} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   );
