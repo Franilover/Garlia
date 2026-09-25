@@ -54,7 +54,10 @@ export function useEnergias() {
   );
 
   const relevantes = useMemo(
-    () => data.filter((c) => TODOS_LOS_CONCEPTOS_ENERGIA.includes(c.concepto)),
+    () =>
+      data.filter((c) =>
+        (TODOS_LOS_CONCEPTOS_ENERGIA as readonly string[]).includes(c.concepto),
+      ),
     [data],
   );
 
