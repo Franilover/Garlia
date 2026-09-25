@@ -30,13 +30,16 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
   // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
   // oscuro de los admins.
-  A: { bg: "color-mix(in srgb, #c9a06a 20%, transparent)", border: "#c9a06a", fg: "#f3e6d3" },
-  T: { bg: "color-mix(in srgb, #8a5a34 22%, transparent)", border: "#8a5a34", fg: "#f0dfc9" },
-  S: { bg: "color-mix(in srgb, #4e3320 24%, transparent)", border: "#4e3320", fg: "#e8d5bd" },
+  // Fondo casi opaco (95%) para que las letras se lean bien incluso sobre
+  // los IUMS/Oris, donde detrás hay flechas y líneas de conexión que antes
+  // se transparentaban con el 20-24% original y afectaban la legibilidad.
+  A: { bg: "color-mix(in srgb, #c9a06a 95%, transparent)", border: "#c9a06a", fg: "#3a2a15" },
+  T: { bg: "color-mix(in srgb, #8a5a34 95%, transparent)", border: "#8a5a34", fg: "#f0dfc9" },
+  S: { bg: "color-mix(in srgb, #4e3320 95%, transparent)", border: "#4e3320", fg: "#e8d5bd" },
   // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
   // sepia que las otras 3, con un valor distinto para diferenciarse de un
   // vistazo tanto de A (más clara) como de S (más oscura).
-  I: { bg: "color-mix(in srgb, #6b4423 23%, transparent)", border: "#6b4423", fg: "#ecdcc4" },
+  I: { bg: "color-mix(in srgb, #6b4423 95%, transparent)", border: "#6b4423", fg: "#ecdcc4" },
 };
 
 export const LETRA_NOMBRE: Record<LetraATS, string> = {
