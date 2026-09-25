@@ -17,8 +17,9 @@
 
 import { Activity, Beaker, Loader2, Plus, Trash2 } from "lucide-react";
 import { createPortal } from "react-dom";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
+import { TituloCategoria } from "../_shared/TituloCategoria";
 import { supabase } from "@/infra/supabase/supabase";
 import { useConfirm } from "@/ui/ConfirmModal";
 import { type SaveStatus } from "@/ui/saveStatus";
@@ -38,6 +39,163 @@ import {
 import { CONFIG_PROCESO_REACCIONES, type Proceso, type ProcesoReaccion, type Reaccion } from "./types";
 
 const ESTADOS_FUNDAMENTO = ["definida", "en_revision", "estable", "obsoleta"] as const;
+
+/**
+ * Cuenta cuántas columnas de `minColWidth`px (+ `gap`px entre ellas) caben en
+ * el ancho actual del contenedor referenciado. Mismo helper que en
+ * MaterialesPage.tsx/EstructurasPage.tsx (biblioteca con columnas tipo
+ * mampostería) — replicado acá para que Procesos comparta el mismo diseño.
+ */
+function useResponsiveColumnCount(
+  ref: React.RefObject<HTMLElement | null>,
+  minColWidth: number,
+  gap: number,
+): number {
+  const [columnas, setColumnas] = useState(3);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const calcular = (ancho: number) => {
+      const n = Math.max(1, Math.floor((ancho + gap) / (minColWidth + gap)));
+      setColumnas(n);
+    };
+
+    calcular(el.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver((entries) => {
+      const ancho = entries[0]?.contentRect.width;
+      if (ancho != null) calcular(ancho);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, minColWidth, gap]);
+
+  return columnas;
+}
+
+/**
+ * Reparte una lista de secciones en `numColumnas` columnas con un algoritmo
+ * greedy (cada sección va a la columna con menor "altura" acumulada) — evita
+ * los huecos grandes que dejaría CSS columns/grid auto-fit con grupos de
+ * tamaños dispares. Mismo helper que en MaterialesPage/EstructurasPage.
+ */
+function distribuirEnColumnas<T>(
+  secciones: T[],
+  numColumnas: number,
+  getPeso: (s: T) => number,
+): T[][] {
+  const columnas: T[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  const OVERHEAD = 2;
+
+  for (const seccion of secciones) {
+    let colMenor = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[colMenor]) colMenor = i;
+    }
+    columnas[colMenor].push(seccion);
+    alturas[colMenor] += getPeso(seccion) + OVERHEAD;
+  }
+
+  return columnas;
+}
+
+/** Agrupa los Procesos por su campo "tipo" (equivalente a "categoria" en
+ *  Material/Estructura) — sin enum fijo documentado, se agrupa por el valor
+ *  tal cual viene de Supabase, en el orden en que aparece, con un bloque
+ *  final para los procesos sin tipo asignado. Mismo criterio que
+ *  gruposPorCategoria en MaterialesPage.tsx. */
+function agruparPorTipo(items: Proceso[]): { id: string; nombre: string; items: Proceso[] }[] {
+  const orden: string[] = [];
+  const mapa = new Map<string, Proceso[]>();
+  const sinTipo: Proceso[] = [];
+
+  for (const p of items) {
+    const tipo = p.tipo;
+    if (!tipo) {
+      sinTipo.push(p);
+      continue;
+    }
+    if (!mapa.has(tipo)) {
+      mapa.set(tipo, []);
+      orden.push(tipo);
+    }
+    mapa.get(tipo)!.push(p);
+  }
+
+  const grupos = orden.map((tipo) => ({ id: tipo, nombre: tipo, items: mapa.get(tipo)! }));
+  if (sinTipo.length > 0) {
+    grupos.push({ id: "__sin-tipo__", nombre: "Sin tipo", items: sinTipo });
+  }
+  return grupos;
+}
+
+/** Casilla de un Proceso en el grid tipo tabla periódica — mismo lenguaje
+ *  visual que ElementoCasilla/CompuestoCasilla/EstructuraCasilla (tarjeta de
+ *  grilla con bordes compartidos, sin fondo, sin rounded), en vez de la pill
+ *  suelta que tenía antes. Proceso no tiene un "símbolo" corto propio, así
+ *  que el nombre ocupa el lugar central, igual que en EstructuraCasilla. */
+function ProcesoCasilla({
+  proceso,
+  seleccionado,
+  onClick,
+}: {
+  proceso: Proceso;
+  seleccionado: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={proceso.nombre}
+      className={`group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center ${
+        seleccionado
+          ? "border-primary/10 bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "border-primary/10 hover:bg-primary/5"
+      }`}
+    >
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+        {proceso.nombre}
+      </span>
+    </button>
+  );
+}
+
+/** Un grupo de Procesos (por "tipo") con su título y su grid — mismo patrón
+ *  que ChipGrupoEstructuras en EstructurasPage.tsx. */
+function ChipGrupoProcesos({
+  titulo,
+  items,
+  seleccionadoId,
+  onSeleccionar,
+}: {
+  titulo: string;
+  items: Proceso[];
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      <TituloCategoria titulo={titulo} total={items.length} />
+      <div
+        className="grid gap-0 border-t border-l border-primary/10"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+      >
+        {items.map((proceso) => (
+          <ProcesoCasilla
+            key={proceso.id}
+            proceso={proceso}
+            seleccionado={proceso.id === seleccionadoId}
+            onClick={() => onSeleccionar(proceso.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Sección de Reacciones vinculadas a este Proceso — editable: agregar una
@@ -545,6 +703,18 @@ export default function ProcesosPage({ creating: creatingProp, onCreate, onElimi
   const [creatingLocal, setCreatingLocal] = useState(false);
   const creating = creatingProp ?? creatingLocal;
 
+  // Mismo layout tipo "biblioteca" que Materiales/Estructuras/Compuestos:
+  // grupos por categoría (acá "tipo") repartidos en columnas responsivas
+  // tipo mampostería, cada uno con un grid de casillas estilo tabla
+  // periódica — reemplaza la lista plana de chips que tenía antes.
+  const grupos = useMemo(() => agruparPorTipo(items), [items]);
+  const mampContainerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const columnasDeGrupos = useMemo(
+    () => distribuirEnColumnas(grupos, numColumnas, (g) => g.items.length),
+    [grupos, numColumnas],
+  );
+
   async function handleCrearLocal() {
     setCreatingLocal(true);
     try {
@@ -585,23 +755,28 @@ export default function ProcesosPage({ creating: creatingProp, onCreate, onElimi
     <div className="px-3 pb-4 pt-2">
       {loading ? (
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
-      ) : items.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <div className="py-6 text-micro text-primary/25 text-center">
           Todavía no hay procesos creados.
         </div>
       ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSelected(item)}
-              title={item.nombre}
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/15 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/70 transition-colors hover:border-primary/30 hover:bg-primary/10"
-            >
-              <Activity className="h-3 w-3 shrink-0 opacity-45" />
-              <span className="truncate">{item.nombre}</span>
-            </button>
+        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+          {columnasDeGrupos.map((columna, colIdx) => (
+            <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
+              {columna.map((grupo) => (
+                <div key={grupo.id} className="mb-4">
+                  <ChipGrupoProcesos
+                    titulo={grupo.nombre}
+                    items={grupo.items}
+                    seleccionadoId={selected?.id ?? null}
+                    onSeleccionar={(id) => {
+                      const proceso = items.find((p) => p.id === id) ?? null;
+                      setSelected(proceso);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -615,7 +790,7 @@ export default function ProcesosPage({ creating: creatingProp, onCreate, onElimi
           onClick={handleCrearLocal}
           disabled={creating}
           title="Nuevo proceso"
-          className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-primary/20 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/40 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-40"
+          className="mt-3 inline-flex items-center gap-1 rounded-full border border-dashed border-primary/20 px-2.5 py-1 text-micro font-bold tracking-wide text-primary/40 transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5 disabled:opacity-40"
         >
           {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
           Nuevo
