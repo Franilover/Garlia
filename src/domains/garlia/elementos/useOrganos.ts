@@ -15,8 +15,9 @@
  * useCompuestos.ts.
  */
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
+import { supabase } from "@/infra/supabase/supabase";
 import { CONFIG_ORGANOS, type Organo } from "@/domains/garlia/elementos/types";
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 
@@ -28,5 +29,41 @@ export function useOrganos() {
 
   const items = useMemo(() => data, [data]);
 
-  return { items, setItems: setData, loading };
+  const [creando, setCreando] = useState(false);
+
+  // ── Crear/eliminar (2026-09-25) — agregado para que la tab "Órganos" de
+  // BiologiaCatalogos pueda ofrecer Añadir/Editar en su título, mismo
+  // patrón que useCelulas.ts/useTejidos.ts. Antes este hook solo exponía
+  // items/loading — "actualizar" seguía viviendo inline en BiologiaPage.tsx
+  // (actualizarOrgano) y no se duplica acá. ─────────────────────────────
+  const crear = useCallback(async () => {
+    setCreando(true);
+    try {
+      const { data: nuevo, error } = await supabase
+        .from(CONFIG_ORGANOS.tabla)
+        .insert([{ nombre: "Nuevo órgano" }])
+        .select()
+        .single();
+      if (error || !nuevo) return null;
+      setData((prev) => [...prev, nuevo as Organo]);
+      return nuevo as Organo;
+    } finally {
+      setCreando(false);
+    }
+  }, [setData]);
+
+  const eliminar = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from(CONFIG_ORGANOS.tabla).delete().eq("id", id);
+      if (error) {
+        console.error("[useOrganos] error eliminando órgano:", error);
+        return { ok: false, error };
+      }
+      setData((prev) => prev.filter((o) => o.id !== id));
+      return { ok: true, error: null };
+    },
+    [setData],
+  );
+
+  return { items, setItems: setData, loading, creando, crear, eliminar };
 }

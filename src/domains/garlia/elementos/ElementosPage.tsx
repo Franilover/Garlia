@@ -46,6 +46,7 @@ import { useProcesos } from "./useProcesos";
 import { useFenomenos } from "./useFenomenos";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
 import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
+import { BloqueTabsSeccion } from "../_shared/BloqueTabsSeccion";
 import { FiltroDropdown } from "../_shared/FiltroDropdown";
 import { PROPIEDADES_ORDENABLES } from "../_shared/OrdenarPorPropiedadPopover";
 import { useFiltrosEstructuras } from "./useFiltrosEstructuras";
@@ -1228,17 +1229,18 @@ export function ElementosPage({
         </div>
       </div>
 
-      {/* Compuestos en su propia fila completa (pedido 2026-09-20: antes
-          compartía grid 2×2 con Estructuras/Materiales/Geometrías vía
-          FilaAsimetrica — ahora ocupa todo el ancho horizontal, aparte, así
-          las tarjetas cuadradas nuevas tienen más columnas para acomodarse
-          en vez de competir por espacio con los otros 3 bloques). Se sigue
-          usando FilaAsimetrica (con un solo bloque) para no duplicar el
-          armado de CabeceraSeccionConMenu — con un bloque el layout
-          simétrico de FilaAsimetrica ya da una sola columna a ancho
-          completo. */}
-      <FilaAsimetrica
-        bloques={[
+      {/* Compuestos / Estructuras / Materiales — antes 3 filas completas
+          separadas (una por FilaAsimetrica), ahora tabs de ancho completo
+          (pedido 2026-09-25, mismo patrón que Procesos/Reacciones/
+          Fenómenos más abajo): Compuestos ocupa todo el ancho por default,
+          con "Estructuras" y "Materiales" como título clicable al lado. El
+          título de la sección activa sigue siendo el mismo
+          CabeceraSeccionConMenu de siempre (Añadir/Editar/Agrupación), y
+          sus filtros propios (dropdown de Propiedad, o los 4 botones Tipo/
+          Función/Geometría/Tags de Estructuras) se dibujan debajo de la
+          fila de tabs — ver BloqueTabsSeccion.tsx. */}
+      <BloqueTabsSeccion
+        tabs={[
           {
             key: "compuestos",
             titulo: "Compuestos",
@@ -1283,14 +1285,6 @@ export function ElementosPage({
               />
             ),
           },
-        ]}
-      />
-
-      {/* Estructuras — fila completa propia (pedido 2026-09-20: mismo
-          criterio que Compuestos arriba, separado de Materiales/Geometrías
-          para que use todo el ancho horizontal). */}
-      <FilaAsimetrica
-        bloques={[
           {
             key: "estructuras",
             titulo: "Estructuras",
@@ -1306,12 +1300,12 @@ export function ElementosPage({
             // "Seleccionar agrupación" simplemente no aparece en su menú
             // hasta que EstructurasPage lo soporte.
             //
-            // filtros: 4 botones Tipo / Función / Geometría / Tags A LA
-            // IZQUIERDA del título — pedido 2026-09-21: ya NO son dropdowns
-            // que filtran a un valor único, sino toggles que reagrupan TODO
-            // el grid por esa dimensión (reemplaza el canon Micro/Macro/
-            // Patrones mientras estén activos). Clic de nuevo en el mismo
-            // botón, o "Agrupación original", vuelve al canon.
+            // filtros: 4 botones Tipo / Función / Geometría / Tags — pedido
+            // 2026-09-21: ya NO son dropdowns que filtran a un valor único,
+            // sino toggles que reagrupan TODO el grid por esa dimensión
+            // (reemplaza el canon Micro/Macro/Patrones mientras estén
+            // activos). Clic de nuevo en el mismo botón, o "Agrupación
+            // original", vuelve al canon.
             filtros: (
               <div className="flex flex-wrap items-center gap-1.5">
                 {(
@@ -1364,12 +1358,6 @@ export function ElementosPage({
               />
             ),
           },
-        ]}
-      />
-
-      {/* Materiales — fila completa propia (mismo criterio que arriba). */}
-      <FilaAsimetrica
-        bloques={[
           {
             key: "materiales",
             titulo: "Materiales",
@@ -1413,104 +1401,64 @@ export function ElementosPage({
         ]}
       />
 
-      {/* Reacciones/Procesos/Fenómenos — antes repartidos en columnas
-          (FilaAsimetrica); ahora tabs: Procesos ocupa todo el ancho
-          horizontal por default, con "Reacciones" y "Fenómenos" como
-          títulos clicables al lado que, al hacer click, pasan a ocupar
-          ellos todo el ancho en su lugar. */}
-      <BloqueTabsProcesos
-        reacciones={
-          <ReaccionesPage
-            reacciones={reacciones}
-            compuestos={compuestos}
-            elementos={elementos}
-            loading={loadingReacciones}
-            creating={creatingReaccion}
-            onCreate={handleCreateReaccion}
-            onEliminar={handleEliminarReaccion}
-            onActualizar={(id, cambios) =>
-              setReacciones((prev) =>
-                prev.map((r) => (r.id === id ? { ...r, ...cambios } : r)),
-              )
-            }
-          />
-        }
-        totalReacciones={reacciones.length}
-        procesos={
-          <ProcesosPage
-            creating={creatingProceso}
-            onCreate={handleCreateProceso}
-            onEliminar={handleEliminarProceso}
-          />
-        }
-        totalProcesos={procesosParaConteo.length}
-        fenomenos={<FenomenosPage />}
-        totalFenomenos={fenomenosParaConteo.length}
+      {/* Procesos/Reacciones/Fenómenos — tabs de ancho completo: Procesos
+          ocupa todo el ancho por default, con "Reacciones" y "Fenómenos"
+          como título clicable al lado. Añadir (2026-09-25) al menú del
+          título de Procesos/Reacciones vía BloqueTabsSeccion — antes de
+          este cambio esas dos secciones no tenían el menú Añadir/Editar
+          que sí tiene Compuestos/Estructuras/Materiales. */}
+      <BloqueTabsSeccion
+        tabs={[
+          {
+            key: "procesos",
+            titulo: "Procesos",
+            total: procesosParaConteo.length,
+            onAñadir: handleCreateProceso,
+            añadiendo: creatingProceso,
+            contenido: (
+              <ProcesosPage
+                creating={creatingProceso}
+                onCreate={handleCreateProceso}
+                onEliminar={handleEliminarProceso}
+              />
+            ),
+          },
+          {
+            key: "reacciones",
+            titulo: "Reacciones",
+            total: reacciones.length,
+            onAñadir: handleCreateReaccion,
+            añadiendo: creatingReaccion,
+            contenido: (
+              <ReaccionesPage
+                reacciones={reacciones}
+                compuestos={compuestos}
+                elementos={elementos}
+                loading={loadingReacciones}
+                creating={creatingReaccion}
+                onCreate={handleCreateReaccion}
+                onEliminar={handleEliminarReaccion}
+                onActualizar={(id, cambios) =>
+                  setReacciones((prev) =>
+                    prev.map((r) => (r.id === id ? { ...r, ...cambios } : r)),
+                  )
+                }
+              />
+            ),
+          },
+          {
+            key: "fenomenos",
+            titulo: "Fenómenos",
+            total: fenomenosParaConteo.length,
+            // FenomenosPage sigue self-contained (sin onCreate/onEliminar
+            // conectados acá, igual que antes de este cambio) — su título
+            // de tab activo queda sin menú Añadir/Editar hasta que exponga
+            // esos handlers, mismo criterio que un bloque de FilaAsimetrica
+            // sin items/onAñadir.
+            contenido: <FenomenosPage />,
+          },
+        ]}
       />
-    </div>
-  );
-}
-
-/**
- * Tabs de ancho completo para Procesos/Reacciones/Fenómenos — reemplaza el
- * reparto en columnas de FilaAsimetrica para este bloque puntual: acá se
- * quiere que la sección activa (Procesos por default) ocupe TODO el ancho
- * horizontal, con las otras dos disponibles como título clicable al lado
- * en vez de columna propia. Mismo lenguaje de título (micro, uppercase,
- * tracking ancho) que el resto de cabeceras de sección — el tab activo se
- * resalta en el color de acento del proyecto, los inactivos quedan
- * atenuados y se subrayan al pasar el mouse.
- */
-function BloqueTabsProcesos({
-  reacciones,
-  totalReacciones,
-  procesos,
-  totalProcesos,
-  fenomenos,
-  totalFenomenos,
-}: {
-  reacciones: React.ReactNode;
-  totalReacciones: number;
-  procesos: React.ReactNode;
-  totalProcesos: number;
-  fenomenos: React.ReactNode;
-  totalFenomenos: number;
-}) {
-  const [tabActivo, setTabActivo] = useState<"procesos" | "reacciones" | "fenomenos">("procesos");
-
-  const tabs = [
-    { key: "procesos" as const, titulo: "Procesos", total: totalProcesos, contenido: procesos },
-    { key: "reacciones" as const, titulo: "Reacciones", total: totalReacciones, contenido: reacciones },
-    { key: "fenomenos" as const, titulo: "Fenómenos", total: totalFenomenos, contenido: fenomenos },
-  ];
-
-  const activo = tabs.find((t) => t.key === tabActivo) ?? tabs[0];
-
-  return (
-    <div className="min-w-0">
-      <div className="mb-1.5 flex items-center gap-2 px-1">
-        <span aria-hidden className="h-px flex-1 bg-primary/15" />
-        <div className="flex items-center gap-3">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setTabActivo(tab.key)}
-              className={`flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] transition-colors cursor-pointer ${
-                tab.key === tabActivo
-                  ? "text-accent"
-                  : "text-primary/40 hover:text-primary/70"
-              }`}
-            >
-              {tab.titulo}
-              <span className="tabular-nums font-bold tracking-normal opacity-60">{tab.total}</span>
-            </button>
-          ))}
-        </div>
-        <span aria-hidden className="h-px flex-1 bg-primary/15" />
-      </div>
-
-      {activo.contenido}
     </div>
   );
 }

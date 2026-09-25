@@ -122,6 +122,59 @@ export function CatalogoSistemasBiologia({
   );
 }
 
+// ─── Solo-Sistemas / Solo-Organismos (2026-09-25) ──────────────────────────
+// Misma partición que CatalogoCelulasBiologia/CatalogoTejidosSoloBiologia
+// en CatalogoTejidosBiologia.tsx — ver ese comentario. CatalogoSistemasBiologia
+// (arriba) se mantiene tal cual por compatibilidad, aunque BiologiaPage.tsx
+// ya no la use directamente.
+interface PropsCatalogoSistemas {
+  sistemas: Sistema[];
+  loadingSistemas?: boolean;
+  sistemaSeleccionadoId: string | null;
+  onSeleccionarSistema: (id: string | null) => void;
+}
+
+export function CatalogoSistemasSoloBiologia({
+  sistemas,
+  loadingSistemas,
+  sistemaSeleccionadoId,
+  onSeleccionarSistema,
+}: PropsCatalogoSistemas) {
+  return (
+    <GridSimple
+      items={sistemas}
+      loading={!!loadingSistemas}
+      seleccionadoId={sistemaSeleccionadoId}
+      onSeleccionar={onSeleccionarSistema}
+      labelVacio="sistemas"
+    />
+  );
+}
+
+interface PropsCatalogoOrganismos {
+  organismos: Organismo[];
+  loadingOrganismos?: boolean;
+  organismoSeleccionadoId: string | null;
+  onSeleccionarOrganismo: (id: string | null) => void;
+}
+
+export function CatalogoOrganismosBiologia({
+  organismos,
+  loadingOrganismos,
+  organismoSeleccionadoId,
+  onSeleccionarOrganismo,
+}: PropsCatalogoOrganismos) {
+  return (
+    <GridSimple
+      items={organismos}
+      loading={!!loadingOrganismos}
+      seleccionadoId={organismoSeleccionadoId}
+      onSeleccionar={onSeleccionarOrganismo}
+      labelVacio="organismos"
+    />
+  );
+}
+
 // ─── Grid genérica (idéntica a CatalogoTejidosBiologia.GridSimple) ────────
 // Rediseño (biblioteca grande, Opción C): lista en columnas en vez de
 // flex-wrap de pills — ver comentario extendido en ListaIndiceCatalogoItem.tsx.

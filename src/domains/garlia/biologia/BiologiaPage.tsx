@@ -29,9 +29,22 @@ import { CompuestoPanelFlotante } from "@/domains/garlia/elementos/CompuestosPag
 import type { Organo, Sistema, Organismo, Celula, Tejido, Compuesto } from "@/domains/garlia/elementos/types";
 
 import { CladisticaPage } from "./CladisticaPage";
-import { CatalogoTejidosBiologia, PanelEditorCelula, PanelEditorTejido } from "./CatalogoTejidosBiologia";
-import { CatalogoSistemasBiologia, PanelEditorSistema, PanelEditorOrganismo } from "./CatalogoSistemasBiologia";
+import {
+  CatalogoTejidosBiologia,
+  CatalogoCelulasBiologia,
+  CatalogoTejidosSoloBiologia,
+  PanelEditorCelula,
+  PanelEditorTejido,
+} from "./CatalogoTejidosBiologia";
+import {
+  CatalogoSistemasBiologia,
+  CatalogoSistemasSoloBiologia,
+  CatalogoOrganismosBiologia,
+  PanelEditorSistema,
+  PanelEditorOrganismo,
+} from "./CatalogoSistemasBiologia";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
+import { BloqueTabsSeccion } from "@/domains/garlia/_shared/BloqueTabsSeccion";
 import { useClados } from "./useBiologia";
 import {
   RELACIONES_PADRE_CLADO,
@@ -427,7 +440,13 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
   // 3 fetches/estados desincronizados del mismo dato.) Self-contained,
   // igual que el resto de Biología: trae sus propios datos acá sin tocar
   // CladisticaPage ni depender de una planta puntual.
-  const { items: catalogoOrganos, setItems: setCatalogoOrganos } = useOrganos();
+  const {
+    items: catalogoOrganos,
+    setItems: setCatalogoOrganos,
+    crear: crearOrgano,
+    creando: creandoOrgano,
+    eliminar: eliminarOrgano,
+  } = useOrganos();
   const { items: compuestosCatalogo, setItems: setCompuestosCatalogo, loading: loadingCompuestos } = useCompuestosConElementos();
   const { items: elementosCatalogo } = useElementos();
 
@@ -549,62 +568,116 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap gap-4 min-h-0">
-      <div
-        className="p-2.5 min-w-[220px]"
-        style={{
-          flexGrow: Math.max(celulas.items.length + tejidos.items.length, 1),
-          flexBasis: 0,
-        }}
-      >
-        <CatalogoTejidosBiologia
-          celulas={celulas.items}
-          loadingCelulas={celulas.loading}
-          tejidos={tejidos.items}
-          loadingTejidos={tejidos.loading}
-          celulaSeleccionadaId={panelActivo?.tipo === "celula" ? panelActivo.id : null}
-          onSeleccionarCelula={(id) => (id ? abrirPanel("celula", id) : cerrarPanel())}
-          tejidoSeleccionadoId={panelActivo?.tipo === "tejido" ? panelActivo.id : null}
-          onSeleccionarTejido={(id) => (id ? abrirPanel("tejido", id) : cerrarPanel())}
-        />
-      </div>
-
-      <div
-        className="p-2.5 min-w-[220px]"
-        style={{
-          flexGrow: Math.max(sistemas.items.length + organismos.items.length, 1),
-          flexBasis: 0,
-        }}
-      >
-        <CatalogoSistemasBiologia
-          sistemas={sistemas.items}
-          loadingSistemas={sistemas.loading}
-          organismos={organismos.items}
-          loadingOrganismos={organismos.loading}
-          sistemaSeleccionadoId={panelActivo?.tipo === "sistema" ? panelActivo.id : null}
-          onSeleccionarSistema={(id) => (id ? abrirPanel("sistema", id) : cerrarPanel())}
-          organismoSeleccionadoId={panelActivo?.tipo === "organismo" ? panelActivo.id : null}
-          onSeleccionarOrganismo={(id) => (id ? abrirPanel("organismo", id) : cerrarPanel())}
-        />
-      </div>
-
-      <div
-        className="p-2.5 min-w-[220px]"
-        style={{ flexGrow: Math.max(catalogoOrganos.length, 1), flexBasis: 0 }}
-      >
-        <GridCatalogoGrupo
-          modo="grupo"
-          titulo="Órganos"
-          icono="organo"
-          variante="lista"
-          items={catalogoOrganos}
-          compuestos={compuestosCatalogo}
-          onActualizar={actualizarOrgano}
-          onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
-          seleccionadoId={panelActivo?.tipo === "organo" ? panelActivo.id : null}
-          onSeleccionar={(id) => (id ? abrirPanel("organo", id) : cerrarPanel())}
-        />
-      </div>
+    <div className="flex flex-col gap-3 min-h-0">
+      {/* Células / Tejidos / Órganos / Sistemas / Organismos — pedido
+          2026-09-25: antes agrupados de a pares en flex-wrap (Células+
+          Tejidos en CatalogoTejidosBiologia, Sistemas+Organismos en
+          CatalogoSistemasBiologia, Órganos aparte con GridCatalogoGrupo),
+          ahora 5 tabs separadas de ancho completo — mismo BloqueTabsSeccion
+          que usa ElementosPage.tsx para Compuestos/Estructuras/Materiales y
+          Procesos/Reacciones/Fenómenos. Cada tab activa gana el menú
+          Añadir/Editar del título (CabeceraSeccionConMenu) — antes ninguno
+          de estos 5 catálogos lo tenía. */}
+      <BloqueTabsSeccion
+        tabs={[
+          {
+            key: "celulas",
+            titulo: "Células",
+            total: celulas.items.length,
+            items: celulas.items,
+            onAñadir: celulas.crear,
+            añadiendo: celulas.creando,
+            onRenombrar: (id, nombre) => celulas.actualizar(id, { nombre }),
+            onEliminar: (id) => celulas.eliminar(id),
+            contenido: (
+              <CatalogoCelulasBiologia
+                celulas={celulas.items}
+                loadingCelulas={celulas.loading}
+                celulaSeleccionadaId={panelActivo?.tipo === "celula" ? panelActivo.id : null}
+                onSeleccionarCelula={(id) => (id ? abrirPanel("celula", id) : cerrarPanel())}
+              />
+            ),
+          },
+          {
+            key: "tejidos",
+            titulo: "Tejidos",
+            total: tejidos.items.length,
+            items: tejidos.items,
+            onAñadir: tejidos.crear,
+            añadiendo: tejidos.creando,
+            onRenombrar: (id, nombre) => tejidos.actualizar(id, { nombre }),
+            onEliminar: (id) => tejidos.eliminar(id),
+            contenido: (
+              <CatalogoTejidosSoloBiologia
+                tejidos={tejidos.items}
+                loadingTejidos={tejidos.loading}
+                tejidoSeleccionadoId={panelActivo?.tipo === "tejido" ? panelActivo.id : null}
+                onSeleccionarTejido={(id) => (id ? abrirPanel("tejido", id) : cerrarPanel())}
+              />
+            ),
+          },
+          {
+            key: "organos",
+            titulo: "Órganos",
+            total: catalogoOrganos.length,
+            items: catalogoOrganos,
+            onAñadir: crearOrgano,
+            añadiendo: creandoOrgano,
+            onRenombrar: (id, nombre) => actualizarOrgano(id, { nombre }),
+            onEliminar: (id) => eliminarOrgano(id),
+            contenido: (
+              <GridCatalogoGrupo
+                modo="grupo"
+                titulo="Órganos"
+                icono="organo"
+                variante="lista"
+                items={catalogoOrganos}
+                compuestos={compuestosCatalogo}
+                onActualizar={actualizarOrgano}
+                onAbrirCompuesto={(id) => setCompuestoAbiertoId(id)}
+                seleccionadoId={panelActivo?.tipo === "organo" ? panelActivo.id : null}
+                onSeleccionar={(id) => (id ? abrirPanel("organo", id) : cerrarPanel())}
+              />
+            ),
+          },
+          {
+            key: "sistemas",
+            titulo: "Sistemas",
+            total: sistemas.items.length,
+            items: sistemas.items,
+            onAñadir: crearSistema,
+            añadiendo: creandoSistema,
+            onRenombrar: (id, nombre) => actualizarSistema(id, { nombre }),
+            onEliminar: (id) => eliminarSistema(id),
+            contenido: (
+              <CatalogoSistemasSoloBiologia
+                sistemas={sistemas.items}
+                loadingSistemas={sistemas.loading}
+                sistemaSeleccionadoId={panelActivo?.tipo === "sistema" ? panelActivo.id : null}
+                onSeleccionarSistema={(id) => (id ? abrirPanel("sistema", id) : cerrarPanel())}
+              />
+            ),
+          },
+          {
+            key: "organismos",
+            titulo: "Organismos",
+            total: organismos.items.length,
+            items: organismos.items,
+            onAñadir: crearOrganismo,
+            añadiendo: creandoOrganismo,
+            onRenombrar: (id, nombre) => actualizarOrganismo(id, { nombre }),
+            onEliminar: (id) => eliminarOrganismo(id),
+            contenido: (
+              <CatalogoOrganismosBiologia
+                organismos={organismos.items}
+                loadingOrganismos={organismos.loading}
+                organismoSeleccionadoId={panelActivo?.tipo === "organismo" ? panelActivo.id : null}
+                onSeleccionarOrganismo={(id) => (id ? abrirPanel("organismo", id) : cerrarPanel())}
+              />
+            ),
+          },
+        ]}
+      />
 
       {/* Shell único para los 5 niveles del breadcrumb de Biología — ver
          comentario de panelActivo arriba. Un solo createPortal/backdrop

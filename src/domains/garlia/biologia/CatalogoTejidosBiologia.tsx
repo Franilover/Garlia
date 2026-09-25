@@ -127,6 +127,61 @@ export function CatalogoTejidosBiologia({
   );
 }
 
+// ─── Solo-Células / Solo-Tejidos (2026-09-25) ──────────────────────────────
+// Mitades de CatalogoTejidosBiologia partidas en componentes propios, para
+// BiologiaCatalogos (BiologiaPage.tsx): ahora Células y Tejidos son tabs
+// separadas (BloqueTabsSeccion), no columnas del mismo flex-wrap — cada
+// una necesita poder renderizarse sola, a ancho completo, sin la otra al
+// lado. CatalogoTejidosBiologia (arriba) se mantiene tal cual por
+// compatibilidad, aunque BiologiaPage.tsx ya no la use directamente.
+interface PropsCatalogoCelulas {
+  celulas: Celula[];
+  loadingCelulas?: boolean;
+  celulaSeleccionadaId: string | null;
+  onSeleccionarCelula: (id: string | null) => void;
+}
+
+export function CatalogoCelulasBiologia({
+  celulas,
+  loadingCelulas,
+  celulaSeleccionadaId,
+  onSeleccionarCelula,
+}: PropsCatalogoCelulas) {
+  return (
+    <GridSimple
+      items={celulas}
+      loading={!!loadingCelulas}
+      seleccionadoId={celulaSeleccionadaId}
+      onSeleccionar={onSeleccionarCelula}
+      labelVacio="células"
+    />
+  );
+}
+
+interface PropsCatalogoTejidos {
+  tejidos: Tejido[];
+  loadingTejidos?: boolean;
+  tejidoSeleccionadoId: string | null;
+  onSeleccionarTejido: (id: string | null) => void;
+}
+
+export function CatalogoTejidosSoloBiologia({
+  tejidos,
+  loadingTejidos,
+  tejidoSeleccionadoId,
+  onSeleccionarTejido,
+}: PropsCatalogoTejidos) {
+  return (
+    <GridSimple
+      items={tejidos}
+      loading={!!loadingTejidos}
+      seleccionadoId={tejidoSeleccionadoId}
+      onSeleccionar={onSeleccionarTejido}
+      labelVacio="tejidos"
+    />
+  );
+}
+
 // ─── Grid genérica (solo lista + click, sin lógica de edición) ─────────────
 // Rediseño (biblioteca grande): antes era un flex-wrap de PillCatalogoItem
 // (chips), que con ~70 ítems y nombres largos quedaba desordenado (pills de
