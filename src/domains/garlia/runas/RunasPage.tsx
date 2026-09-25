@@ -1032,6 +1032,13 @@ export function RunasPage({
             onEliminarVarios={onEliminarVariosElementos}
           />
 
+          {/* Cladograma de Biología, arriba de los catálogos (orden
+              pedido: Cladograma primero, catálogos Células/Tejidos/
+              Sistemas/Organismos/Órganos después). */}
+          <div>
+            <BiologiaCladograma onSelectCriatura={(id) => abrirPanel("criatura", id)} />
+          </div>
+
           {/* Biología — antes compartía fila con "Física · minerales" vía
               FilaAsimetrica (layout adaptativo 2-bloques); con Formación/
               Veta/Grano removidos del proyecto ese bloque desapareció, así
@@ -1042,10 +1049,6 @@ export function RunasPage({
               Biología
             </p>
             <BiologiaCatalogos onSelectCriatura={(id) => abrirPanel("criatura", id)} />
-          </div>
-
-          <div>
-            <BiologiaCladograma onSelectCriatura={(id) => abrirPanel("criatura", id)} />
           </div>
         </div>
       ) : seccionMagia === "visualizador" ? (
