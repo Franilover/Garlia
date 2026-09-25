@@ -37,6 +37,7 @@ import { ReaccionPanelFlotante } from "@/domains/garlia/elementos/ReaccionesPage
 import type { Compuesto, Elemento, Reaccion } from "@/domains/garlia/elementos/types";
 import type { EntradaCatalogoGrupo } from "@/domains/garlia/_shared/useEntidadVinculosGrupo";
 import { PillCatalogoItem } from "@/domains/garlia/_shared/PillCatalogoItem";
+import { ListaIndiceCatalogo } from "@/domains/garlia/_shared/ListaIndiceCatalogoItem";
 
 type Props =
   | {
@@ -59,6 +60,14 @@ type Props =
        */
       seleccionadoId?: string | null;
       onSeleccionar?: (id: string | null) => void;
+      /**
+       * "lista" (Opción C, biblioteca en columnas) para catálogos grandes
+       * — hoy solo Órganos en Biología, con ~70 ítems donde el flex-wrap de
+       * pills quedaba desordenado (ver ListaIndiceCatalogoItem.tsx). Default
+       * "pill" mantiene el lenguaje visual de siempre para el resto de
+       * consumidores (GruposCompuestosPage, ReaccionesPage).
+       */
+      variante?: "pill" | "lista";
     }
   | {
       modo: "reaccion";
@@ -119,6 +128,13 @@ export function GridCatalogoGrupo(props: Props) {
         <div className="py-4 text-micro text-primary/25 text-center border border-dashed border-primary/10 rounded-md">
           Sin {props.titulo.toLowerCase()} todavía
         </div>
+      ) : props.modo === "grupo" && props.variante === "lista" ? (
+        <ListaIndiceCatalogo
+          items={props.items}
+          seleccionadoId={seleccionadoId}
+          onSeleccionar={setSeleccionadoId}
+          labelVacio={props.titulo.toLowerCase()}
+        />
       ) : (
         <div className="flex flex-wrap gap-1">
           {props.items.map((item) => (

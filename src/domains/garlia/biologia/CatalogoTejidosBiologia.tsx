@@ -49,7 +49,7 @@ import { useCriaturasDeOrganismos } from "@/domains/garlia/elementos/useCriatura
 import type { Celula, Compuesto, Estructura, Tejido } from "@/domains/garlia/elementos/types";
 import { GridPropiedadesCalculadas } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
 import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
-import { PillCatalogoItem } from "@/domains/garlia/_shared/PillCatalogoItem";
+import { ListaIndiceCatalogo } from "@/domains/garlia/_shared/ListaIndiceCatalogoItem";
 
 interface Props {
   /**
@@ -98,7 +98,6 @@ export function CatalogoTejidosBiologia({
         <GridSimple
           items={celulas}
           loading={!!loadingCelulas}
-          icono={<Beaker size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={celulaSeleccionadaId}
           onSeleccionar={onSeleccionarCelula}
           labelVacio="células"
@@ -119,7 +118,6 @@ export function CatalogoTejidosBiologia({
         <GridSimple
           items={tejidos}
           loading={!!loadingTejidos}
-          icono={<Layers size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={tejidoSeleccionadoId}
           onSeleccionar={onSeleccionarTejido}
           labelVacio="tejidos"
@@ -130,48 +128,33 @@ export function CatalogoTejidosBiologia({
 }
 
 // ─── Grid genérica (solo lista + click, sin lógica de edición) ─────────────
+// Rediseño (biblioteca grande): antes era un flex-wrap de PillCatalogoItem
+// (chips), que con ~70 ítems y nombres largos quedaba desordenado (pills de
+// ancho muy dispar, mucho alto ocupado). Ahora usa ListaIndiceCatalogo — una
+// lista densa en columnas, una fila por ítem — pensada específicamente para
+// catálogos grandes de Biología (Células/Tejidos/Órganos).
 
 function GridSimple<T extends { id: string; nombre: string }>({
   items,
   loading,
-  icono,
   seleccionadoId,
   onSeleccionar,
   labelVacio,
 }: {
   items: T[];
   loading: boolean;
-  icono: React.ReactNode;
   seleccionadoId: string | null;
   onSeleccionar: (id: string) => void;
   labelVacio: string;
 }) {
-  // Mismo fix que CatalogoVetasFisica.tsx: no tapar la grid con "Cargando…"
-  // si ya hay items (Dexie o fetch previo) — solo cuando no hay nada todavía.
-  if (loading && items.length === 0) {
-    return <p className="text-micro text-primary/25 italic py-2">Cargando…</p>;
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="py-4 text-micro text-primary/25 text-center border border-dashed border-primary/10 rounded-md">
-        Sin {labelVacio} todavía
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-wrap gap-1">
-      {items.map((item) => (
-        <PillCatalogoItem
-          key={item.id}
-          nombre={item.nombre}
-          icono={icono}
-          seleccionado={seleccionadoId === item.id}
-          onClick={() => onSeleccionar(item.id)}
-        />
-      ))}
-    </div>
+    <ListaIndiceCatalogo
+      items={items}
+      loading={loading}
+      seleccionadoId={seleccionadoId}
+      onSeleccionar={onSeleccionar}
+      labelVacio={labelVacio}
+    />
   );
 }
 

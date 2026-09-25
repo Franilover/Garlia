@@ -46,7 +46,7 @@ import {
   GridPropiedadesCalculadas,
   fuenteDePropiedadesCalculadas,
 } from "@/domains/garlia/_shared/GridPropiedadesCalculadas";
-import { PillCatalogoItem } from "@/domains/garlia/_shared/PillCatalogoItem";
+import { ListaIndiceCatalogo } from "@/domains/garlia/_shared/ListaIndiceCatalogoItem";
 
 interface Props {
   /**
@@ -93,7 +93,6 @@ export function CatalogoSistemasBiologia({
         <GridSimple
           items={sistemas}
           loading={!!loadingSistemas}
-          icono={<Layers size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={sistemaSeleccionadoId}
           onSeleccionar={onSeleccionarSistema}
           labelVacio="sistemas"
@@ -114,7 +113,6 @@ export function CatalogoSistemasBiologia({
         <GridSimple
           items={organismos}
           loading={!!loadingOrganismos}
-          icono={<Boxes size={12} className="text-primary/40 shrink-0" />}
           seleccionadoId={organismoSeleccionadoId}
           onSeleccionar={onSeleccionarOrganismo}
           labelVacio="organismos"
@@ -125,46 +123,30 @@ export function CatalogoSistemasBiologia({
 }
 
 // ─── Grid genérica (idéntica a CatalogoTejidosBiologia.GridSimple) ────────
+// Rediseño (biblioteca grande, Opción C): lista en columnas en vez de
+// flex-wrap de pills — ver comentario extendido en ListaIndiceCatalogoItem.tsx.
 
 function GridSimple<T extends { id: string; nombre: string }>({
   items,
   loading,
-  icono,
   seleccionadoId,
   onSeleccionar,
   labelVacio,
 }: {
   items: T[];
   loading: boolean;
-  icono: React.ReactNode;
   seleccionadoId: string | null;
   onSeleccionar: (id: string) => void;
   labelVacio: string;
 }) {
-  if (loading && items.length === 0) {
-    return <p className="text-micro text-primary/25 italic py-2">Cargando…</p>;
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="py-4 text-micro text-primary/25 text-center border border-dashed border-primary/10 rounded-md">
-        Sin {labelVacio} todavía
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-wrap gap-1">
-      {items.map((item) => (
-        <PillCatalogoItem
-          key={item.id}
-          nombre={item.nombre}
-          icono={icono}
-          seleccionado={seleccionadoId === item.id}
-          onClick={() => onSeleccionar(item.id)}
-        />
-      ))}
-    </div>
+    <ListaIndiceCatalogo
+      items={items}
+      loading={loading}
+      seleccionadoId={seleccionadoId}
+      onSeleccionar={onSeleccionar}
+      labelVacio={labelVacio}
+    />
   );
 }
 

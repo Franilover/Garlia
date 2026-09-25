@@ -596,6 +596,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
           modo="grupo"
           titulo="Órganos"
           icono="organo"
+          variante="lista"
           items={catalogoOrganos}
           compuestos={compuestosCatalogo}
           onActualizar={actualizarOrgano}
