@@ -475,10 +475,10 @@ export function ReaccionPanelFlotante({
   usePublishHeaderControls(headerControls, onHeaderControlsChange);
 
   const body = (
-    <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
-      <div className="grid grid-cols-2 gap-3 items-start">
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+    <div className="flex-1 min-h-0 overflow-y-auto p-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        <div className="flex flex-col gap-3 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
               Consume
             </span>
@@ -492,7 +492,7 @@ export function ReaccionPanelFlotante({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
               Produce
             </span>
@@ -507,8 +507,8 @@ export function ReaccionPanelFlotante({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+        <div className="flex flex-col gap-3 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
               Balance
             </span>
@@ -521,12 +521,12 @@ export function ReaccionPanelFlotante({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5 min-w-0 p-2">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
               Descripción
             </span>
             <textarea
-              className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+              className="w-full min-h-[8rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
               placeholder="Condiciones, notas, contexto de esta reacción…"
               value={reaccion.descripcion ?? ""}
               onChange={(e) => onActualizar(reaccion.id, { descripcion: e.target.value })}
@@ -534,7 +534,7 @@ export function ReaccionPanelFlotante({
           </div>
 
           {procesosQueLaUsan.length > 0 && (
-            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Usado en procesos
               </span>

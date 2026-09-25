@@ -528,13 +528,13 @@ function ProcesoEditor({
       <ConfirmModal />
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
-      <div className="flex-1 min-h-0 p-2.5 flex flex-col gap-3 overflow-y-auto">
-        <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto">
+        <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
             Descripción
           </span>
           <textarea
-            className="w-full min-h-[3.5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+            className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
             placeholder="Qué es este proceso, en qué contexto ocurre…"
             value={local.descripcion ?? ""}
             onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
@@ -542,19 +542,19 @@ function ProcesoEditor({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 items-start">
-          <div className="flex flex-col gap-2 min-w-0">
-            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+          <div className="flex flex-col gap-3 min-w-0">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Receta del proceso
               </span>
               <p className="text-micro text-primary/35 -mt-1">Entrada → transformación → salida</p>
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-2">
                 {receta.map(([campo, label, value]) => (
-                  <div key={campo} className="px-2 py-1">
+                  <div key={campo} className="min-w-0">
                     <span className="text-micro font-bold text-primary/45">{label}</span>
                     <textarea
-                      className="mt-0.5 w-full min-h-[2rem] bg-transparent px-0 py-0.5 text-micro leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
+                      className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-micro leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
                       placeholder={`${label}…`}
                       value={value ?? ""}
                       onChange={(e) =>
@@ -567,12 +567,12 @@ function ProcesoEditor({
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Condiciones
               </span>
               <textarea
-                className="w-full min-h-[4rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
                 placeholder="Bajo qué condiciones ocurre este proceso…"
                 value={local.condiciones ?? ""}
                 onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
@@ -581,19 +581,19 @@ function ProcesoEditor({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex flex-col gap-3 min-w-0">
             <ReaccionesVinculadasBloque
               procesoId={proceso.id}
               reacciones={reacciones}
               onAbrirReaccion={onAbrirReaccion}
             />
 
-            <div className="flex flex-col gap-1.5 min-w-0 p-2">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Notas
               </span>
               <textarea
-                className="w-full min-h-[4rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
                 placeholder="Notas libres…"
                 value={local.notas ?? ""}
                 onChange={(e) => setLocal((p) => ({ ...p, notas: e.target.value }))}

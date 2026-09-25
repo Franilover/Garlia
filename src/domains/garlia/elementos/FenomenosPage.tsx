@@ -170,8 +170,8 @@ function FenomenoDetail({ fenomeno }: { fenomeno: Fenomeno }) {
         </header>
       )}
 
-      <div className="grid grid-cols-2 gap-3 items-start">
-        <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+        <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
             Procesos
           </span>
@@ -202,7 +202,7 @@ function FenomenoDetail({ fenomeno }: { fenomeno: Fenomeno }) {
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5 min-w-0 p-2">
+        <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
             Elementos
           </span>
@@ -235,7 +235,7 @@ function FenomenoDetail({ fenomeno }: { fenomeno: Fenomeno }) {
       </div>
 
       {fenomeno.notas && (
-        <div className="flex flex-col gap-1.5 min-w-0 p-2">
+        <div className="flex flex-col gap-1.5 min-w-0">
           <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
             Notas
           </span>
