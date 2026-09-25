@@ -72,6 +72,36 @@ export function useOrisConIums() {
 // Reemplazan a "actualizar oris.iums_composicion (jsonb)" — a partir de
 // Fase 3, agregar/quitar/editar un Ium de un Oris escribe en oris_iums.
 
+/**
+ * Índice inverso de oris_iums: para un Ium dado, qué Oris lo usan y con
+ * qué cantidad. Usado por IumEditor para la sección "Usado en X Oris" —
+ * mismo `useSupabaseData(ORIS_IUMS_CONFIG.tabla)` que useOrisConIums()
+ * (mismo cache de Dexie/Supabase, no dispara un fetch nuevo), solo que
+ * agrupado por ium_id en vez de por oris_id.
+ */
+export function useOrisQueUsanIum() {
+  const { items: orisBase, loading: loadingBase } = useOris();
+  const { data: filas, loading: loadingFilas } = useSupabaseData<OrisIumRow>(
+    ORIS_IUMS_CONFIG.tabla,
+    { select: ORIS_IUMS_CONFIG.select, order: { campo: "id" } },
+  );
+
+  const orisPorId = useMemo(() => new Map(orisBase.map((o) => [o.id, o])), [orisBase]);
+
+  /** Oris (con cantidad) que usan el Ium dado, ordenados por cantidad desc
+   *  y luego nombre — mismo criterio de orden que iumsPresentes en
+   *  OrisEditor. Filas huérfanas (oris borrado pero fila de oris_iums
+   *  todavía no limpiada) se descartan. */
+  const orisDe = (iumId: string): { oris: Oris; cantidad: number }[] =>
+    filas
+      .filter((f) => f.ium_id === iumId)
+      .map((f) => ({ oris: orisPorId.get(f.oris_id), cantidad: f.cantidad }))
+      .filter((x): x is { oris: Oris; cantidad: number } => !!x.oris)
+      .sort((a, b) => b.cantidad - a.cantidad || a.oris.nombre.localeCompare(b.oris.nombre));
+
+  return { orisDe, loading: loadingBase || loadingFilas };
+}
+
 export async function sincronizarIumsDeOris(
   orisId: string,
   nuevaComposicion: Record<string, number>,

@@ -48,6 +48,12 @@ interface Props {
    *  editor (p. ej. el mensaje de confirmación de borrado) refleje lo que
    *  el usuario está escribiendo en la barra superior externa. */
   nombreExterno?: string;
+  /** Si se pasa, cada nodo del grafo de Iums se vuelve clicable y esto se
+   *  dispara con el ium_id — el contenedor (FisicaPage) usa esto para
+   *  cerrar este panel de Oris y abrir el panel flotante de ese Ium, sin
+   *  perder el contexto de "vine desde este Oris". Sin esto, el grafo
+   *  queda decorativo como antes. */
+  onAbrirIum?: (iumId: string) => void;
 }
 
 export function OrisEditor({
@@ -58,6 +64,7 @@ export function OrisEditor({
   embedded,
   hideHeader,
   nombreExterno,
+  onAbrirIum,
 }: Props) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
@@ -200,7 +207,12 @@ export function OrisEditor({
           {grafo ? (
             // Topología real: cada nodo es un Ium con sus Partículas sobre su
             // geometría, unidos como define v_oris_grafo_canonico.
-            <OrisTopologiaVisual grafo={grafo} particulasDe={particulasDePorIum} geometriaDe={geometriaDe} />
+            <OrisTopologiaVisual
+              grafo={grafo}
+              particulasDe={particulasDePorIum}
+              geometriaDe={geometriaDe}
+              onClickNodo={onAbrirIum}
+            />
           ) : cargandoGrafo ? (
             // Mientras useOrisGrafo resuelve (Dexie/Supabase en vuelo) NO se
             // dibuja el gráfico genérico: eso es lo que causaba el "flash"

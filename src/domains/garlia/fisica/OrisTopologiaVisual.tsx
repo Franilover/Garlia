@@ -149,6 +149,7 @@ export function OrisTopologiaVisual({
   grafo,
   particulasDe,
   geometriaDe,
+  onClickNodo,
   className,
 }: {
   grafo: OrisGrafo;
@@ -156,6 +157,11 @@ export function OrisTopologiaVisual({
   particulasDe: (iumId: string) => { nombre: string; formula: string }[];
   /** Geometría real de un Ium por su id (useGeometriaIums). */
   geometriaDe: (iumId: string) => { geometria: GeometriaIum };
+  /** Si se pasa, cada nodo se vuelve clicable (cursor pointer + hover) y
+   *  dispara esto con el ium_id del nodo — usado para abrir el panel
+   *  flotante de ese Ium sin salir del panel del Oris. Sin esto, el grafo
+   *  queda igual que antes: puramente decorativo. */
+  onClickNodo?: (iumId: string) => void;
   className?: string;
 }) {
   const marcaId = useId().replace(/:/g, "");
@@ -230,6 +236,12 @@ export function OrisTopologiaVisual({
           <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_RECIPROCA }} />
         </marker>
       </defs>
+      {onClickNodo && (
+        <style>{`
+          .oris-nodo-clicable circle { transition: opacity 120ms ease; }
+          .oris-nodo-clicable:hover circle { opacity: 0.7; }
+        `}</style>
+      )}
 
       <text x={6} y={11} fontSize={8} fontWeight={900} letterSpacing={1} style={{ fill: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
         {`${grafo.topologia_id} · ${grafo.topologia}`.toUpperCase()}
@@ -262,10 +274,19 @@ export function OrisTopologiaVisual({
         if (!nodo || !p) return null;
         const esNucleo = pos === "nucleo";
         const r = radioDe(pos);
+        const clicable = !!onClickNodo;
         return (
-          <g key={pos}>
+          <g
+            key={pos}
+            onClick={clicable ? () => onClickNodo!(nodo.ium_id) : undefined}
+            style={clicable ? { cursor: "pointer" } : undefined}
+            className={clicable ? "oris-nodo-clicable" : undefined}
+          >
             <title>{`${nodo.ium}${nodo.rol ? ` — ${nodo.rol.replace(/_/g, " ")}` : ""}`}</title>
-            {/* Disco de fondo: separa el nodo de las líneas que llegan a él. */}
+            {/* Disco de fondo: separa el nodo de las líneas que llegan a él.
+                Con onClickNodo, este disco también sirve de indicador hover
+                (opacidad sube vía CSS abajo) para que se lea como
+                interactivo, no solo decorativo. */}
             <circle
               cx={p.x}
               cy={p.y}

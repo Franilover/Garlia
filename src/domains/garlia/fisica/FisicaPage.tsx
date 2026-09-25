@@ -32,6 +32,7 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { OrisEditor } from "./OrisEditor";
 import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
 import { useGeometriaIums } from "./useGeometriaIums";
+import { useOrisQueUsanIum } from "./useOrisConIums";
 import {
   contextoHumanoAFilaEnergia,
   FISICA_CONCEPTOS_CONFIG,
@@ -445,6 +446,22 @@ function TodasLasBasesView({
 }) {
   const catalogos = catalogosBases(polaridades, particulaBase, particulas, iums, oris, subsistemas, energias);
 
+  // Panel de Oris/Ium activo, elevado acá (en vez de vivir como `anchor`
+  // local de cada BasesItemCard) para que CUALQUIER tarjeta o nodo del
+  // grafo pueda abrir el panel de CUALQUIER Oris/Ium — no solo el propio.
+  // Esto es lo que permite: click en un nodo del grafo de un Oris → abre
+  // el panel de ese Ium (aunque su tarjeta nunca se haya clickeado), y
+  // click en un chip "Usado en X Oris" de un Ium → abre el panel de ese
+  // Oris. Null cuando no hay ningún panel de Oris/Ium abierto.
+  const [panelFisicaActivo, setPanelFisicaActivo] = useState<
+    { tipo: "oris"; id: string } | { tipo: "ium"; id: string } | null
+  >(null);
+
+  const orisActivoEnPanel =
+    panelFisicaActivo?.tipo === "oris" ? oris.find((o) => o.id === panelFisicaActivo.id) : undefined;
+  const iumActivoEnPanel =
+    panelFisicaActivo?.tipo === "ium" ? iums.find((i) => i.id === panelFisicaActivo.id) : undefined;
+
   const [nombreNuevoSubsistema, setNombreNuevoSubsistema] = useState("");
   const [creandoAbierto, setCreandoAbierto] = useState(false);
   // Cuando se crea un subsistema nuevo, abrimos su popover automáticamente
@@ -544,6 +561,8 @@ function TodasLasBasesView({
                         onActualizarIum={onActualizarIum}
                         onEliminarIum={onEliminarIum}
                         geometriaDe={key === "iums" ? geometriaDe : undefined}
+                        panelActivo={panelFisicaActivo}
+                        onAbrirPanel={setPanelFisicaActivo}
                       />
                     );
                   })}
@@ -598,6 +617,30 @@ function TodasLasBasesView({
           </div>
         </div>
       </div>
+
+      {/* Panel de Oris/Ium activo — vive acá (no dentro de cada
+          BasesItemCard) para que el mismo panel sirva tanto al click en
+          una tarjeta como al "viaje" Oris↔Ium (nodo del grafo → Ium, chip
+          "Usado en X Oris" → Oris) sin importar qué tarjeta lo originó. */}
+      {orisActivoEnPanel && (
+        <OrisPanelFlotante
+          oris={orisActivoEnPanel}
+          onCerrar={() => setPanelFisicaActivo(null)}
+          onActualizar={onActualizarOris}
+          onEliminar={onEliminarOris}
+          onAbrirIum={(iumId) => setPanelFisicaActivo({ tipo: "ium", id: iumId })}
+        />
+      )}
+      {iumActivoEnPanel && (
+        <IumPanelFlotante
+          ium={iumActivoEnPanel}
+          onCerrar={() => setPanelFisicaActivo(null)}
+          onActualizar={onActualizarIum}
+          onEliminar={onEliminarIum}
+          geometriaDe={geometriaDe}
+          onAbrirOris={(orisId) => setPanelFisicaActivo({ tipo: "oris", id: orisId })}
+        />
+      )}
     </div>
   );
 }
@@ -891,11 +934,15 @@ function OrisPanelFlotante({
   onCerrar,
   onActualizar,
   onEliminar,
+  onAbrirIum,
 }: {
   oris: Oris;
   onCerrar: () => void;
   onActualizar: (id: string, cambios: Partial<Oris>) => void;
   onEliminar?: (id: string) => void;
+  /** Ver comentario en OrisEditor — click en un nodo del grafo de Iums
+   *  cierra este panel y abre el del Ium correspondiente. */
+  onAbrirIum?: (iumId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [nombreLocal, setNombreLocal] = useState(oris.nombre ?? "");
@@ -1030,6 +1077,7 @@ function OrisPanelFlotante({
                   }
                 : undefined
             }
+            onAbrirIum={onAbrirIum}
           />
         </div>
       </div>
@@ -1054,6 +1102,7 @@ function IumEditor({
   onActualizar,
   onEliminar,
   geometriaDe,
+  onAbrirOris,
 }: {
   ium: Ium;
   embedded?: boolean;
@@ -1063,6 +1112,11 @@ function IumEditor({
   onActualizar: (id: string, cambios: Partial<Ium>) => void;
   onEliminar?: (id: string) => void;
   geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
+  /** Si se pasa, se muestra la sección "Usado en X Oris" con un chip por
+   *  cada Oris que incluye este Ium (vía oris_iums) — clickearlo cierra
+   *  este panel de Ium y abre el panel flotante de ese Oris. Sin esto, la
+   *  sección no se dibuja (mismo criterio que onEliminar opcional). */
+  onAbrirOris?: (orisId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
@@ -1077,6 +1131,14 @@ function IumEditor({
   }, [hideHeader, nombreExterno]);
 
   const filaIum = useMemo(() => iumAFilaIum(local), [local]);
+
+  // "Usado en X Oris": el hook se llama siempre (regla de hooks — no se
+  // puede condicionar a onAbrirOris), pero como useOrisQueUsanIum() lee
+  // del mismo cache de Dexie/Supabase que ya usa useOrisConIums() en
+  // OrisEditor, no dispara un fetch nuevo cuando ese cache ya está tibio.
+  // La sección en sí solo se DIBUJA si se pasó onAbrirOris (ver JSX abajo).
+  const { orisDe } = useOrisQueUsanIum();
+  const orisQueUsanEsteIum = useMemo(() => orisDe(ium.id), [orisDe, ium.id]);
 
   async function persist(cambios: Partial<Ium>) {
     setSaving(true);
@@ -1170,8 +1232,7 @@ function IumEditor({
           )}
         </div>
 
-        {/* Columna derecha: solo "Extra" — el detalle/composición ya se
-            muestra abajo del gráfico, más prolijo (chips de partículas). */}
+        {/* Columna derecha: "Extra" + (si corresponde) "Usado en X Oris". */}
         <div className="flex-1 min-w-0 flex flex-col gap-4">
           <div className="flex-1 min-h-0 flex flex-col gap-1">
             <label className="text-micro uppercase tracking-wide text-primary/35">Extra</label>
@@ -1184,6 +1245,39 @@ function IumEditor({
               className="flex-1 min-h-0 bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors resize-none placeholder:text-primary/25"
             />
           </div>
+
+          {/* "Usado en X Oris" — chip por cada Oris que incluye este Ium
+              (oris_iums), con la cantidad si es >1. Clickearlo cierra este
+              panel y abre el del Oris (ver onAbrirOris → FisicaPage). Solo
+              se dibuja si el contenedor pasó onAbrirOris; sin eso, este
+              Ium se está editando en un contexto que no soporta navegar a
+              Oris (p. ej. si algún día se reusa este editor en otro lado). */}
+          {onAbrirOris && (
+            <div className="shrink-0 flex flex-col gap-1">
+              <label className="text-micro uppercase tracking-wide text-primary/35">
+                Usado en {orisQueUsanEsteIum.length} Oris
+              </label>
+              {orisQueUsanEsteIum.length === 0 ? (
+                <p className="text-micro text-primary/25 italic py-1">
+                  Ningún Oris usa este Ium todavía.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {orisQueUsanEsteIum.map(({ oris, cantidad }) => (
+                    <button
+                      key={oris.id}
+                      type="button"
+                      onClick={() => onAbrirOris(oris.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide border border-primary/15 text-primary/70 hover:bg-primary/10 hover:border-primary/35 transition-colors cursor-pointer"
+                    >
+                      {cantidad > 1 && <span className="text-primary/40">{cantidad}×</span>}
+                      {oris.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1202,12 +1296,16 @@ function IumPanelFlotante({
   onActualizar,
   onEliminar,
   geometriaDe,
+  onAbrirOris,
 }: {
   ium: Ium;
   onCerrar: () => void;
   onActualizar: (id: string, cambios: Partial<Ium>) => void;
   onEliminar?: (id: string) => void;
   geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
+  /** Ver comentario en IumEditor — click en un chip de "Usado en X Oris"
+   *  cierra este panel y abre el del Oris correspondiente. */
+  onAbrirOris?: (orisId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [nombreLocal, setNombreLocal] = useState(ium.nombre ?? "");
@@ -1343,6 +1441,7 @@ function IumPanelFlotante({
                 : undefined
             }
             geometriaDe={geometriaDe}
+            onAbrirOris={onAbrirOris}
           />
         </div>
       </div>
@@ -1419,6 +1518,15 @@ function BasesItemCard({
    *  (Eterium/Garin + Relacionados) para que EnergiaPanelFlotante pueda
    *  abrir un relacionado por nombre sin fetch adicional. */
   energiasPorConcepto?: Map<string, ContextoHumano>;
+  /** Solo para "oris"/"iums": qué panel está activo a nivel de
+   *  TodasLasBasesView (compartido entre todas las tarjetas) — reemplaza
+   *  al `anchor` local para estos dos bloques, ya que el panel de Oris/Ium
+   *  necesita poder abrirse desde OTRA tarjeta o desde el grafo (ver
+   *  comentario en TodasLasBasesView). El resto de bloques (Subsistema,
+   *  Energía, genérico con PopoverFlotante) sigue usando su `anchor`
+   *  local sin cambios. */
+  panelActivo?: { tipo: "oris"; id: string } | { tipo: "ium"; id: string } | null;
+  onAbrirPanel?: (p: { tipo: "oris"; id: string } | { tipo: "ium"; id: string } | null) => void;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -1435,6 +1543,13 @@ function BasesItemCard({
   // resto de bloques sigue mostrando el nombre.
   const soloIcono = bloque === "polaridades" || bloque === "particula-base" || bloque === "particulas";
 
+  // Para Oris/Ium el "abierto" real es panelActivo (compartido), no el
+  // anchor local — así se refleja también cuando otra tarjeta o el grafo
+  // abrió este mismo Oris/Ium.
+  const abiertoOris = esOris && panelActivo?.tipo === "oris" && panelActivo.id === original!.id;
+  const abiertoIum = esIum && panelActivo?.tipo === "ium" && panelActivo.id === originalIum!.id;
+  const marcado = esOris ? abiertoOris : esIum ? abiertoIum : !!anchor;
+
   useEffect(() => {
     if (autoAbrir && botonRef.current) {
       setAnchor(botonRef.current);
@@ -1448,15 +1563,23 @@ function BasesItemCard({
       <button
         ref={botonRef}
         type="button"
-        onClick={(e) => setAnchor(anchor ? null : e.currentTarget)}
+        onClick={(e) => {
+          if (esOris) {
+            onAbrirPanel?.(abiertoOris ? null : { tipo: "oris", id: original!.id });
+          } else if (esIum) {
+            onAbrirPanel?.(abiertoIum ? null : { tipo: "ium", id: originalIum!.id });
+          } else {
+            setAnchor(anchor ? null : e.currentTarget);
+          }
+        }}
         title={fila.nombre}
         className={
           soloIcono
             ? `inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80 ${
-                anchor ? "ring-2 ring-primary/30" : ""
+                marcado ? "ring-2 ring-primary/30" : ""
               }`
             : `inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full ${
-                anchor
+                marcado
                   ? "text-primary border border-primary/40 ring-2 ring-primary/30"
                   : "hover:bg-primary/10 text-primary/70 border border-primary/15"
               }`
@@ -1475,25 +1598,12 @@ function BasesItemCard({
           <span className="truncate">{fila.nombre}</span>
         )}
       </button>
-      {esOris ? (
-        anchor && (
-          <OrisPanelFlotante
-            oris={original!}
-            onCerrar={() => setAnchor(null)}
-            onActualizar={onActualizarOris ?? (() => {})}
-            onEliminar={onEliminarOris}
-          />
-        )
-      ) : esIum ? (
-        anchor && (
-          <IumPanelFlotante
-            ium={originalIum!}
-            onCerrar={() => setAnchor(null)}
-            onActualizar={onActualizarIum ?? (() => {})}
-            onEliminar={onEliminarIum}
-            geometriaDe={geometriaDe}
-          />
-        )
+      {esOris || esIum ? (
+        // El panel en sí (OrisPanelFlotante/IumPanelFlotante) se renderiza
+        // una sola vez a nivel de TodasLasBasesView, no acá — ver
+        // comentario en panelActivo arriba. Esta tarjeta solo necesita
+        // marcarse como "abierta" (clase `marcado`, ya aplicada arriba).
+        null
       ) : esSubsistema ? (
         <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={420} maxHeight={560}>
           <PanelEditorSubsistema
