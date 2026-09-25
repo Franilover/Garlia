@@ -42,6 +42,7 @@ import {
   particulaBaseAFilaCatalogo,
   particulasDeIum,
   polaridadAFilaCatalogo,
+  relacionadosDe,
   type ContextoHumano,
   type FilaCatalogo,
   type FilaEnergia,
@@ -137,6 +138,11 @@ interface Props {
    *  después de Subsistemas. Fichas reales de "contexto_humano" (no
    *  catálogo propio de Física), filtradas por concepto — ver types.ts. */
   energias: ContextoHumano[];
+  /** Mapa completo por concepto (incluye Eterium/Garin + todos sus
+   *  "Relacionados") — usado para resolver la sección "Relacionados" del
+   *  panel flotante sin fetch adicional al abrir cada uno. Ver
+   *  useEnergias() en useFisica.ts. */
+  energiasPorConcepto?: Map<string, ContextoHumano>;
   loadingEnergias?: boolean;
 }
 
@@ -397,6 +403,7 @@ function TodasLasBasesView({
   oris,
   subsistemas,
   energias,
+  energiasPorConcepto,
   onCreateOris,
   creatingOris,
   onActualizarOris,
@@ -417,6 +424,10 @@ function TodasLasBasesView({
   oris: Oris[];
   subsistemas: SubsistemaMagia[];
   energias: ContextoHumano[];
+  /** Ver comentario en la prop homónima de FisicaPage — mapa completo
+   *  (Eterium/Garin + Relacionados) para poder abrir un relacionado desde
+   *  dentro del panel flotante sin fetch adicional. */
+  energiasPorConcepto?: Map<string, ContextoHumano>;
   onCreateOris?: () => void;
   creatingOris?: boolean;
   onActualizarOris: (id: string, cambios: Partial<Oris>) => void;
@@ -566,6 +577,7 @@ function TodasLasBasesView({
                             fila={f}
                             bloque={key}
                             originalSubsistema={key === "subsistemas" ? (original as SubsistemaMagia) : undefined}
+                            energiasPorConcepto={key === "energias" ? energiasPorConcepto : undefined}
                             onActualizarSubsistema={onActualizarSubsistema}
                             onEliminarSubsistema={onEliminarSubsistema}
                             onSelectCriatura={onSelectCriatura}
@@ -728,13 +740,30 @@ function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
 function EnergiaPanelFlotante({
   contexto,
   onCerrar,
+  porConcepto,
 }: {
   contexto: ContextoHumano;
   onCerrar: () => void;
+  /** Mapa completo por concepto (Eterium/Garin + Relacionados) — de acá se
+   *  resuelven los nombres de relacionadosDe(contexto.concepto) a su ficha
+   *  completa, y de acá sale el contexto del panel anidado que se abre al
+   *  clickear uno. */
+  porConcepto?: Map<string, ContextoHumano>;
 }) {
+  // Concepto relacionado abierto en un panel anidado encima de este mismo
+  // shell (mismo patrón "una sola pila" que el resto de Física: un solo
+  // anchor/estado a la vez, no un array). Escape cierra primero el anidado
+  // y solo en el segundo Escape cierra este panel — ver el handler abajo.
+  const [relacionadoAbierto, setRelacionadoAbierto] = useState<ContextoHumano | null>(null);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCerrar();
+      if (e.key !== "Escape") return;
+      if (relacionadoAbierto) {
+        setRelacionadoAbierto(null);
+      } else {
+        onCerrar();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -743,9 +772,16 @@ function EnergiaPanelFlotante({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onCerrar]);
+  }, [onCerrar, relacionadoAbierto]);
 
   if (typeof document === "undefined") return null;
+
+  const nombresRelacionados = relacionadosDe(contexto.concepto);
+  const relacionados = porConcepto
+    ? nombresRelacionados
+        .map((nombre) => porConcepto.get(nombre))
+        .filter((c): c is ContextoHumano => !!c)
+    : [];
 
   return createPortal(
     <div
@@ -799,8 +835,39 @@ function EnergiaPanelFlotante({
 
         <div className="flex-1 min-h-0 overflow-y-auto p-4">
           <EnergiaFichaContent contexto={contexto} />
+
+          {relacionados.length > 0 && (
+            <div
+              className="mt-4 pt-3 border-t"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+            >
+              <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 pb-1.5">
+                Relacionados
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {relacionados.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setRelacionadoAbierto(c)}
+                    className="text-left text-xs text-primary/70 hover:text-primary hover:bg-primary/5 rounded px-2 py-1.5 transition-colors truncate"
+                  >
+                    {c.concepto}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {relacionadoAbierto && (
+        <EnergiaPanelFlotante
+          contexto={relacionadoAbierto}
+          onCerrar={() => setRelacionadoAbierto(null)}
+          porConcepto={porConcepto}
+        />
+      )}
     </div>,
     document.body,
   );
@@ -1313,6 +1380,7 @@ function BasesItemCard({
   onAutoAbierto,
   oris,
   geometriaDe,
+  energiasPorConcepto,
 }: {
   fila: FilaCatalogo;
   bloque: ClaveCatalogo;
@@ -1347,6 +1415,10 @@ function BasesItemCard({
    *  useGeometriaIums.ts. Sin esto, IumVisual cae a su criterio anterior
    *  (orbital genérico) para no romper el render. */
   geometriaDe?: (iumId: string) => { geometria: GeometriaIum };
+  /** Solo se usa cuando bloque === "energias": mapa completo por concepto
+   *  (Eterium/Garin + Relacionados) para que EnergiaPanelFlotante pueda
+   *  abrir un relacionado por nombre sin fetch adicional. */
+  energiasPorConcepto?: Map<string, ContextoHumano>;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -1441,6 +1513,7 @@ function BasesItemCard({
           <EnergiaPanelFlotante
             contexto={(fila as FilaEnergia).contexto}
             onCerrar={() => setAnchor(null)}
+            porConcepto={energiasPorConcepto}
           />
         )
       ) : (
@@ -1700,6 +1773,7 @@ export function FisicaPage({
   onSelectCriatura,
   onOrisSeleccionadoChange,
   energias,
+  energiasPorConcepto,
   loadingEnergias,
 }: Props) {
   // Geometría real de cada Ium (v_iums_geometria_canonica_v1) — una sola
@@ -1913,6 +1987,7 @@ export function FisicaPage({
               oris={oris}
               subsistemas={subsistemas}
               energias={energias}
+              energiasPorConcepto={energiasPorConcepto}
               onCreateOris={onCreateOris}
               creatingOris={creatingOris}
               onActualizarOris={onActualizarOris}

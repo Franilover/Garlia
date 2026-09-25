@@ -177,6 +177,61 @@ export const CONTEXTO_HUMANO_CONFIG = {
  *  orden que ya usa RamaLibres en el Mapa Universal). */
 export const ENERGIAS_CONCEPTOS = ["Eterium", "Garin"] as const;
 
+/** Conceptos de contexto_humano que profundizan solo en Eterium (reserva,
+ *  seguro, demanda, órdenes cuantificadas) — se listan como "Relacionados"
+ *  dentro del panel de Eterium. Mismo criterio de nombre canónico que
+ *  ENERGIAS_CONCEPTOS, sin id fijo. */
+export const ETERIUM_RELACIONADOS = [
+  "Eterium libre y reserva",
+  "Reserva, capacidad y coherencia de Eterium",
+  "Costo temporal de una Orden de Eterium",
+  "Duración máxima de una Orden de Eterium",
+  "Tarea compuesta y simulación Eterium",
+  "Seguro de Eterium",
+  "Demanda de Eterium de un Oris",
+] as const;
+
+/** Ídem para Garin — solo conceptos donde Garin es el protagonista. */
+export const GARIN_RELACIONADOS = [
+  "Perfil Garin de un IUM",
+  "Garin como ejecutor",
+  "Regímenes Garin",
+  "Garin como campo de ejecución",
+] as const;
+
+/** Conceptos "mixtos" que hablan de Eterium y Garin a la vez (la cadena
+ *  preparación→ejecución) — se listan en AMBOS paneles, no se duplican por
+ *  separado en cada lista de arriba. */
+export const ETERIUM_GARIN_RELACIONADOS = [
+  "Preparación de la Orden de Eterium",
+  "Orden de Eterium",
+  "Orden de Eterium: contexto",
+  "Ejecución por Garin",
+  "Cierre de ejecución Eterium → Garin",
+  "Garin y Eterium en conjunto",
+  "Eterium y Garin antes de la vida",
+  "Puente físico → Eterium",
+] as const;
+
+/** Todos los nombres de conceptos relacionados (unión de las 3 listas de
+ *  arriba) — usado para traer de una sola vez, junto a Eterium/Garin, todo
+ *  lo que hace falta para poblar la sección "Relacionados" de ambos
+ *  paneles sin queries adicionales al abrir cada uno. */
+export const TODOS_LOS_CONCEPTOS_ENERGIA = [
+  ...ENERGIAS_CONCEPTOS,
+  ...ETERIUM_RELACIONADOS,
+  ...GARIN_RELACIONADOS,
+  ...ETERIUM_GARIN_RELACIONADOS,
+] as const;
+
+/** Nombres de los relacionados de un concepto raíz ("Eterium" o "Garin"):
+ *  los propios de ese grupo + los mixtos, ninguno duplicado. */
+export function relacionadosDe(concepto: string): readonly string[] {
+  if (concepto === "Eterium") return [...ETERIUM_RELACIONADOS, ...ETERIUM_GARIN_RELACIONADOS];
+  if (concepto === "Garin") return [...GARIN_RELACIONADOS, ...ETERIUM_GARIN_RELACIONADOS];
+  return [];
+}
+
 /** Fila de Energía: reusa FilaCatalogo (nombre/detalle) con el resumen
  *  como detalle, y trae el registro completo de ContextoHumano para que el
  *  popover pueda mostrar la ficha rica (explicación, fórmula, analogía,

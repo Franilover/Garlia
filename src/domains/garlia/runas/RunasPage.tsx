@@ -400,7 +400,7 @@ function BloqueFisica({
   // Energías (Eterium/Garin) — chips al final de Física, después de
   // Subsistemas. Fichas reales de contexto_humano (no catálogo propio),
   // filtradas por concepto — ver useEnergias().
-  const { items: energias, loading: loadingEnergias } = useEnergias();
+  const { items: energias, porConcepto: energiasPorConcepto, loading: loadingEnergias } = useEnergias();
 
   async function handleCreate() {
     setCreating(true);
@@ -591,6 +591,7 @@ function BloqueFisica({
         onEliminarSubsistema={(id) => void eliminarSubsistema(id)}
         onSelectCriatura={onSelectCriatura}
         energias={energias}
+        energiasPorConcepto={energiasPorConcepto}
         loadingEnergias={loadingEnergias}
       />
     </div>

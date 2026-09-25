@@ -23,6 +23,7 @@ import {
   PARTICULAS_BASE_CONFIG,
   PARTICULAS_CONFIG,
   POLARIDADES_CONFIG,
+  TODOS_LOS_CONCEPTOS_ENERGIA,
   type ContextoHumano,
   type FisicaConcepto,
   type Ium,
@@ -36,9 +37,14 @@ import {
  *  concepto (identificador humano/canónico — ver comentario en types.ts),
  *  no por id fijo. No usa useSupabaseData (pensado para catálogos propios
  *  de Física con "orden") porque contexto_humano es una tabla compartida
- *  filtrada por IN, así que se hace el fetch acá directo con supabase. */
+ *  filtrada por IN, así que se hace el fetch acá directo con supabase.
+ *  Trae en la misma query, además de Eterium/Garin, todos sus conceptos
+ *  "Relacionados" (ETERIUM_RELACIONADOS/GARIN_RELACIONADOS/mixtos) — así el
+ *  panel flotante puede resolverlos por nombre sin hacer un fetch nuevo
+ *  cada vez que el usuario abre uno desde la lista de relacionados. */
 export function useEnergias() {
   const [items, setItems] = useState<ContextoHumano[]>([]);
+  const [porConcepto, setPorConcepto] = useState<Map<string, ContextoHumano>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,21 +53,24 @@ export function useEnergias() {
     supabase
       .from(CONTEXTO_HUMANO_CONFIG.tabla)
       .select(CONTEXTO_HUMANO_CONFIG.select)
-      .in("concepto", ENERGIAS_CONCEPTOS)
+      .in("concepto", TODOS_LOS_CONCEPTOS_ENERGIA)
       .then(({ data, error }) => {
         if (cancelado) return;
         if (error) {
           console.error("[useEnergias] error cargando contexto_humano:", error);
           setItems([]);
+          setPorConcepto(new Map());
         } else {
           // Orden fijo (Eterium, Garin) según ENERGIAS_CONCEPTOS, no el
           // orden que devuelva Supabase — mismo criterio visual que
-          // RamaLibres en el Mapa Universal.
-          const porConcepto = new Map(
+          // RamaLibres en el Mapa Universal. El mapa completo (incluye
+          // relacionados) se guarda aparte para el panel flotante.
+          const mapa = new Map(
             (data as unknown as ContextoHumano[]).map((c) => [c.concepto, c]),
           );
+          setPorConcepto(mapa);
           setItems(
-            ENERGIAS_CONCEPTOS.map((nombre) => porConcepto.get(nombre)).filter(
+            ENERGIAS_CONCEPTOS.map((nombre) => mapa.get(nombre)).filter(
               (c): c is ContextoHumano => !!c,
             ),
           );
@@ -73,7 +82,7 @@ export function useEnergias() {
     };
   }, []);
 
-  return { items, loading };
+  return { items, porConcepto, loading };
 }
 
 export function usePolaridades() {
