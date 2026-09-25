@@ -49,6 +49,7 @@ import {
   useAventuraEntidades,
   useAventuraObstaculos,
   useAventurasList,
+  type Aventura,
   type AventuraEntidad,
   type ObstaculoForma,
   type ObstaculoTipo,
@@ -96,6 +97,156 @@ function SubPanelFallback() {
   return (
     <div className="flex-1 flex items-center justify-center text-primary/30 py-16">
       <Loader2 className="animate-spin" size={18} />
+    </div>
+  );
+}
+
+// ── Selector de aventura ─────────────────────────────────────────────────
+// Dropdown propio (no <select> nativo) para que use exactamente el mismo
+// lenguaje visual que el resto de la página: bordes/fondos en
+// color-mix(var(--primary)), opción activa en var(--accent), panel
+// flotante en var(--bg-main) con sombra — mismo patrón que
+// SelectorFechaMundo (trigger + panel posicionado con position:fixed,
+// cierre por click afuera / Escape).
+function SelectorAventura({
+  aventuras,
+  aventuraActivaId,
+  onSeleccionar,
+}: {
+  aventuras: Aventura[];
+  aventuraActivaId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const activa = aventuras.find((a) => a.id === aventuraActivaId) ?? null;
+
+  useEffect(() => {
+    if (!open) return;
+    const actualizarPos = () => {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    };
+    actualizarPos();
+    const onPointerDown = (e: MouseEvent) => {
+      if (
+        triggerRef.current?.contains(e.target as Node) ||
+        dropdownRef.current?.contains(e.target as Node)
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("resize", actualizarPos);
+    window.addEventListener("scroll", actualizarPos, true);
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("resize", actualizarPos);
+      window.removeEventListener("scroll", actualizarPos, true);
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative flex-1 min-w-0">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full h-8 pl-2.5 pr-7 rounded-lg border flex items-center transition-colors relative"
+        style={{
+          background: open
+            ? "color-mix(in srgb, var(--primary) 6%, transparent)"
+            : "color-mix(in srgb, var(--primary) 3%, transparent)",
+          borderColor: open
+            ? "color-mix(in srgb, var(--primary) 30%, transparent)"
+            : "color-mix(in srgb, var(--primary) 10%, transparent)",
+        }}
+      >
+        <span
+          className="text-xs font-bold truncate"
+          style={{
+            color: activa
+              ? "var(--primary)"
+              : "color-mix(in srgb, var(--primary) 40%, transparent)",
+          }}
+        >
+          {activa ? activa.nombre : aventuras.length === 0 ? "Sin aventuras todavía" : "Elegí una aventura…"}
+        </span>
+        <ChevronDown
+          size={12}
+          className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+          style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+        />
+      </button>
+
+      {open &&
+        pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[9999] rounded-xl border shadow-lg overflow-hidden"
+            style={{
+              top: pos.top,
+              left: pos.left,
+              width: pos.width,
+              maxHeight: "min(320px, calc(100vh - 16px))",
+              background: "var(--bg-main)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
+            {aventuras.length === 0 ? (
+              <p className="px-3 py-3 text-micro text-primary/35 text-center">
+                Todavía no hay ninguna aventura.
+              </p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto p-1">
+                {aventuras.map((a) => {
+                  const esActiva = a.id === aventuraActivaId;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => {
+                        onSeleccionar(a.id);
+                        setOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-bold transition-colors"
+                      style={{
+                        background: esActiva
+                          ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                          : "transparent",
+                        color: esActiva
+                          ? "var(--accent)"
+                          : "color-mix(in srgb, var(--primary) 70%, transparent)",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!esActiva) {
+                          e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!esActiva) e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <span className="truncate">{a.nombre}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -244,30 +395,22 @@ export function AventuraSection() {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <div className="relative flex-1 min-w-0">
-                    <select
-                      value={aventuraActiva ?? ""}
-                      onChange={(e) => setAventuraActiva(e.target.value || null)}
-                      className="w-full h-8 pl-2.5 pr-7 rounded-lg border border-primary/10 bg-primary/[0.03] outline-none text-xs font-bold text-primary/80 focus:border-primary/30 transition-colors appearance-none truncate"
-                    >
-                      <option value="" disabled>
-                        {aventuras.length === 0 ? "Sin aventuras todavía" : "Elegí una aventura…"}
-                      </option>
-                      {aventuras.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={12}
-                      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-primary/35"
-                    />
-                  </div>
+                  <SelectorAventura
+                    aventuras={aventuras}
+                    aventuraActivaId={aventuraActiva}
+                    onSeleccionar={setAventuraActiva}
+                  />
                   <button
                     type="button"
                     onClick={() => setCreandoNueva(true)}
-                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-primary/50 hover:bg-primary/8 hover:text-primary/80 transition-colors"
+                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+                    style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "color-mix(in srgb, var(--primary) 8%, transparent)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
                     title="Nueva aventura"
                   >
                     <Plus size={14} />
