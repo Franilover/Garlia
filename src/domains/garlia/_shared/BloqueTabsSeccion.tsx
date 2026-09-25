@@ -122,7 +122,19 @@ export function BloqueTabsSeccion({
         </div>
       )}
 
-      {activo.contenido}
+      {/* Los 5-6 contenidos se montan TODOS siempre (no solo el activo) y
+          se ocultan con CSS (display:none) en vez de desmontarse. Antes,
+          al renderizar solo `activo.contenido`, cambiar de tab desmontaba
+          por completo el catálogo saliente y montaba desde cero el
+          entrante — cualquier estado local del hook (loading inicial,
+          scroll, selección) se perdía y volvía a mostrar "cargando..."
+          aunque el dato ya estuviera cacheado en Dexie. Con display:none
+          el componente queda vivo (mount único) y solo se esconde. */}
+      {tabs.map((tab) => (
+        <div key={tab.key} style={{ display: tab.key === activo.key ? undefined : "none" }}>
+          {tab.contenido}
+        </div>
+      ))}
     </div>
   );
 }
