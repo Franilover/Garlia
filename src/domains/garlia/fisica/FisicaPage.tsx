@@ -717,6 +717,96 @@ function EnergiaFichaContent({ contexto }: { contexto: ContextoHumano }) {
 }
 
 /**
+ * Panel flotante centrado del detalle de una Energía (Eterium/Garin) —
+ * mismo shell visual que OrisPanelFlotante/IumPanelFlotante (modal grande
+ * "w-full h-full max-w-6xl" centrado, backdrop con blur, animación popIn,
+ * Escape para cerrar, bloqueo de scroll del fondo) en vez del
+ * PopoverFlotante chico anclado que se usaba antes. Solo lectura: el header
+ * muestra el nombre del concepto sin input editable (la ficha vive y se
+ * edita en contexto_humano, no acá), y no hay botones de guardar/eliminar.
+ */
+function EnergiaPanelFlotante({
+  contexto,
+  onCerrar,
+}: {
+  contexto: ContextoHumano;
+  onCerrar: () => void;
+}) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}
+          >
+            <Sparkles className="text-primary/50" size={12} />
+          </div>
+
+          <p className="flex-1 min-w-0 truncate text-sm font-black text-primary">
+            {contexto.concepto}
+          </p>
+
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          <EnergiaFichaContent contexto={contexto} />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
  * Panel flotante centrado del detalle de un Oris — mismo shell visual que
  * ElementoPanelFlotante/CompuestoPanelFlotante en Elementos/Compuestos
  * (modal grande "w-full h-full max-w-6xl" centrado en pantalla, backdrop
@@ -1347,9 +1437,12 @@ function BasesItemCard({
           />
         </PopoverFlotante>
       ) : esEnergia ? (
-        <PopoverFlotante anchor={anchor} onClose={() => setAnchor(null)} width={620} maxHeight={560}>
-          <EnergiaFichaContent contexto={(fila as FilaEnergia).contexto} />
-        </PopoverFlotante>
+        anchor && (
+          <EnergiaPanelFlotante
+            contexto={(fila as FilaEnergia).contexto}
+            onCerrar={() => setAnchor(null)}
+          />
+        )
       ) : (
         <PopoverFlotante
           anchor={anchor}
