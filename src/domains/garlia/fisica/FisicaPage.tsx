@@ -20,7 +20,7 @@
  * "oris" y "fisica_conceptos", separadas de "elementos".
  */
 
-import { ChevronLeft, Info, Save, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, Save, Sparkles, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -789,24 +789,28 @@ function EnergiaPanelFlotante({
   onCerrar: () => void;
   /** Mapa completo por concepto (Eterium/Garin + Relacionados) — de acá se
    *  resuelven los nombres de relacionadosDe(contexto.concepto) a su ficha
-   *  completa, y de acá sale el contexto del panel anidado que se abre al
-   *  clickear uno. */
+   *  completa, mostrada inline (acordeón) al clickear uno. */
   porConcepto?: Map<string, ContextoHumano>;
 }) {
-  // Concepto relacionado abierto en un panel anidado encima de este mismo
-  // shell (mismo patrón "una sola pila" que el resto de Física: un solo
-  // anchor/estado a la vez, no un array). Escape cierra primero el anidado
-  // y solo en el segundo Escape cierra este panel — ver el handler abajo.
-  const [relacionadoAbierto, setRelacionadoAbierto] = useState<ContextoHumano | null>(null);
+  // Qué Relacionados están expandidos inline, abajo de la lista — ya no se
+  // abre un EnergiaPanelFlotante nuevo apilado encima (evita el modal
+  // sobre modal recursivo de antes). Es un Set de conceptos porque varios
+  // relacionados pueden estar abiertos a la vez, cada uno como su propio
+  // bloque expandible.
+  const [relacionadosAbiertos, setRelacionadosAbiertos] = useState<Set<string>>(new Set());
+
+  function toggleRelacionado(concepto: string) {
+    setRelacionadosAbiertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(concepto)) next.delete(concepto);
+      else next.add(concepto);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (relacionadoAbierto) {
-        setRelacionadoAbierto(null);
-      } else {
-        onCerrar();
-      }
+      if (e.key === "Escape") onCerrar();
     };
     document.addEventListener("keydown", onKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -815,7 +819,7 @@ function EnergiaPanelFlotante({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onCerrar, relacionadoAbierto]);
+  }, [onCerrar]);
 
   if (typeof document === "undefined") return null;
 
@@ -887,30 +891,43 @@ function EnergiaPanelFlotante({
               <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/50 pb-1.5">
                 Relacionados
               </p>
+              {/* Cada relacionado es un bloque acordeón: el botón alterna
+                  su propia ficha (EnergiaFichaContent) inline, justo debajo
+                  — ya no abre un panel/modal nuevo. Varios pueden estar
+                  expandidos a la vez. */}
               <div className="flex flex-col gap-0.5">
-                {relacionados.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => setRelacionadoAbierto(c)}
-                    className="text-left text-xs text-primary/70 hover:text-primary hover:bg-primary/5 rounded px-2 py-1.5 transition-colors truncate"
-                  >
-                    {c.concepto}
-                  </button>
-                ))}
+                {relacionados.map((c) => {
+                  const abierto = relacionadosAbiertos.has(c.concepto);
+                  return (
+                    <div key={c.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleRelacionado(c.concepto)}
+                        className="w-full flex items-center gap-1.5 text-left text-xs text-primary/70 hover:text-primary hover:bg-primary/5 rounded px-2 py-1.5 transition-colors"
+                      >
+                        <ChevronRight
+                          size={12}
+                          className="shrink-0 text-primary/30 transition-transform"
+                          style={{ transform: abierto ? "rotate(90deg)" : undefined }}
+                        />
+                        <span className="truncate">{c.concepto}</span>
+                      </button>
+                      {abierto && (
+                        <div
+                          className="mt-1 mb-2 ml-2 pl-3 py-2 border-l-2"
+                          style={{ borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)" }}
+                        >
+                          <EnergiaFichaContent contexto={c} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {relacionadoAbierto && (
-        <EnergiaPanelFlotante
-          contexto={relacionadoAbierto}
-          onCerrar={() => setRelacionadoAbierto(null)}
-          porConcepto={porConcepto}
-        />
-      )}
     </div>,
     document.body,
   );
