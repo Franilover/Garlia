@@ -30,23 +30,23 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
   // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
   // oscuro de los admins.
-  // Borde oscurecido (no el color base de la letra) para que la línea que
-  // separa un tercio/sector de otro se note con claridad, incluso ahora
-  // que el fondo es casi opaco — mismo criterio color-mix(...90%, black)
-  // que ya se usa en AtomoVisual/IumVisual más abajo en este archivo.
+  // Borde bien oscurecido (negro puro, no mezcla) para que la línea que
+  // separa un tercio/sector de otro se note con claridad de un vistazo —
+  // el color-mix(...90%, black) anterior seguía leyéndose muy parecido al
+  // bg casi opaco y no se distinguía la separación.
   A: {
     bg: "color-mix(in srgb, #c9a06a 95%, transparent)",
-    border: "color-mix(in srgb, #c9a06a 90%, black)",
+    border: "#1a1208",
     fg: "#3a2a15",
   },
   T: {
     bg: "color-mix(in srgb, #8a5a34 95%, transparent)",
-    border: "color-mix(in srgb, #8a5a34 90%, black)",
+    border: "#1a1208",
     fg: "#f0dfc9",
   },
   S: {
     bg: "color-mix(in srgb, #4e3320 95%, transparent)",
-    border: "color-mix(in srgb, #4e3320 90%, black)",
+    border: "#1a1208",
     fg: "#e8d5bd",
   },
   // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
@@ -54,7 +54,7 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // vistazo tanto de A (más clara) como de S (más oscura).
   I: {
     bg: "color-mix(in srgb, #6b4423 95%, transparent)",
-    border: "color-mix(in srgb, #6b4423 90%, black)",
+    border: "#1a1208",
     fg: "#ecdcc4",
   },
 };
@@ -118,9 +118,9 @@ export function ParticulaVisual({
   // SVG, así que a tamaños chicos —como en AtomoVisual, donde los círculos
   // rondan 20-40px— se veía desproporcionadamente grueso comparado con los
   // ~50-70px de IumVisual). Con piso bajo para que siga siendo visible.
-  // Subido de 0.02 a 0.035 (piso 0.8) para que el borde oscuro se lea como
-  // línea divisoria clara entre tercios, no solo como filo sutil.
-  const strokeW = Math.max(0.8, size * 0.035);
+  // Subido de 0.02 a 0.05 (piso 1.1) para que el borde negro se note bien
+  // como línea divisoria incluso en los chips chicos (36px).
+  const strokeW = Math.max(1.1, size * 0.05);
 
   return (
     <svg
@@ -214,9 +214,9 @@ export function LetrasVisual({
   const r = size / 2 - 2;
   const fontSize = size * 0.1;
   // Mismo criterio que ParticulaVisual: grosor relativo al tamaño, no fijo,
-  // subido para que el borde oscuro se lea como línea divisoria clara entre
+  // subido para que el borde negro se lea como línea divisoria clara entre
   // sectores (IUMs/Oris con varias letras mezcladas).
-  const strokeW = Math.max(0.8, size * 0.035);
+  const strokeW = Math.max(1.1, size * 0.05);
 
   if (total === 0) {
     return (
