@@ -8,10 +8,13 @@
  * PillCatalogoItem (chips flex-wrap) se veía desordenado — nombres largos
  * generaban pills de ancho muy dispar y el bloque ocupaba mucho alto.
  *
- * Cada fila es de una sola línea (~24px), en columnas de ancho fijo que se
- * acomodan solas según el espacio disponible (CSS multi-column) — mucho más
- * compacto en vertical que un grid de tarjetas para volúmenes grandes, y el
- * nombre se lee casi siempre completo (elipsis + title solo si no entra).
+ * Cada fila es de una sola línea, en un grid de columnas flexibles
+ * (auto-fill/minmax) que se reparten TODO el ancho disponible — con más
+ * espacio hay menos columnas pero más anchas, en vez de columnas de ancho
+ * fijo (CSS multi-column) que dejaban aire libre a la derecha sin
+ * aprovecharlo. Mucho más compacto en vertical que un grid de tarjetas
+ * para volúmenes grandes, y el nombre se lee casi siempre completo
+ * (elipsis + title solo si no entra).
  *
  * Pensado específicamente para listas grandes (>15-20 ítems); para
  * catálogos chicos, PillCatalogoItem sigue siendo el lenguaje visual
@@ -34,12 +37,11 @@ export function ListaIndiceCatalogoItem({
       type="button"
       onClick={onClick}
       title={nombre}
-      className={`block w-full text-left px-1.5 py-[3px] mb-[1px] rounded text-micro font-semibold truncate transition-colors border ${
+      className={`block w-full text-left px-2 py-1 mb-1 rounded-md text-sm font-semibold truncate transition-colors border ${
         seleccionado
           ? "text-primary font-black border-primary/30 bg-primary/10"
           : "text-primary/70 border-transparent hover:bg-primary/5"
       }`}
-      style={{ breakInside: "avoid" }}
     >
       {nombre || "(sin nombre)"}
     </button>
@@ -57,14 +59,17 @@ export function ListaIndiceCatalogo<T extends { id: string; nombre: string }>({
   seleccionadoId,
   onSeleccionar,
   labelVacio,
-  minColWidth = 150,
+  minColWidth = 170,
 }: {
   items: T[];
   loading?: boolean;
   seleccionadoId: string | null;
   onSeleccionar: (id: string) => void;
   labelVacio: string;
-  /** Ancho mínimo de cada columna del índice, en px. */
+  /** Ancho mínimo de cada columna del índice, en px — las columnas se
+   *  reparten el espacio disponible (auto-fill), no quedan en un ancho
+   *  fijo: con más espacio se ven menos columnas pero más anchas, en vez
+   *  de muchas columnas angostas de texto cortado. */
   minColWidth?: number;
 }) {
   if (loading && items.length === 0) {
@@ -80,7 +85,13 @@ export function ListaIndiceCatalogo<T extends { id: string; nombre: string }>({
   }
 
   return (
-    <div style={{ columns: `${minColWidth}px`, columnGap: "14px" }}>
+    <div
+      className="grid"
+      style={{
+        gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}px, 1fr))`,
+        gap: "6px 14px",
+      }}
+    >
       {items.map((item) => (
         <ListaIndiceCatalogoItem
           key={item.id}
