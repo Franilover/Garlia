@@ -588,7 +588,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAñadir: async () => { await celulas.crear(); },
             añadiendo: celulas.creando,
             onRenombrar: (id, nombre) => celulas.actualizar(id, { nombre }),
-            onEliminar: (id) => celulas.eliminar(id),
+            onEliminar: async (id) => { await celulas.eliminar(id); },
             contenido: (
               <CatalogoCelulasBiologia
                 celulas={celulas.items}
@@ -606,7 +606,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAñadir: async () => { await tejidos.crear(); },
             añadiendo: tejidos.creando,
             onRenombrar: (id, nombre) => tejidos.actualizar(id, { nombre }),
-            onEliminar: (id) => tejidos.eliminar(id),
+            onEliminar: async (id) => { await tejidos.eliminar(id); },
             contenido: (
               <CatalogoTejidosSoloBiologia
                 tejidos={tejidos.items}
@@ -624,7 +624,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAñadir: async () => { await crearOrgano(); },
             añadiendo: creandoOrgano,
             onRenombrar: (id, nombre) => actualizarOrgano(id, { nombre }),
-            onEliminar: (id) => eliminarOrgano(id),
+            onEliminar: async (id) => { await eliminarOrgano(id); },
             contenido: (
               <GridCatalogoGrupo
                 modo="grupo"
@@ -648,7 +648,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAñadir: crearSistema,
             añadiendo: creandoSistema,
             onRenombrar: (id, nombre) => actualizarSistema(id, { nombre }),
-            onEliminar: (id) => eliminarSistema(id),
+            onEliminar: async (id) => { await eliminarSistema(id); },
             contenido: (
               <CatalogoSistemasSoloBiologia
                 sistemas={sistemas.items}
@@ -666,7 +666,7 @@ export function BiologiaCatalogos({ onSelectCriatura }: Props) {
             onAñadir: crearOrganismo,
             añadiendo: creandoOrganismo,
             onRenombrar: (id, nombre) => actualizarOrganismo(id, { nombre }),
-            onEliminar: (id) => eliminarOrganismo(id),
+            onEliminar: async (id) => { await eliminarOrganismo(id); },
             contenido: (
               <CatalogoOrganismosBiologia
                 organismos={organismos.items}
