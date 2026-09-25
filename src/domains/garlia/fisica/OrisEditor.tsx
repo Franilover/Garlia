@@ -83,7 +83,7 @@ export function OrisEditor({
   // Topología real del Oris (nodos + uniones) y geometría real de cada Ium —
   // ambas vienen de vistas derivadas de Supabase (v_oris_grafo_canonico,
   // v_iums_geometria_canonica_v1), no de tablas base.
-  const { grafoDe } = useOrisGrafo();
+  const { grafoDe, loading: cargandoGrafo } = useOrisGrafo();
   const { geometriaDe } = useGeometriaIums();
   const grafoOris = grafoDe(oris.id);
   // Solo se usa si trae nodos: un grafo vacío no dibuja nada útil.
@@ -201,12 +201,24 @@ export function OrisEditor({
             // Topología real: cada nodo es un Ium con sus Partículas sobre su
             // geometría, unidos como define v_oris_grafo_canonico.
             <OrisTopologiaVisual grafo={grafo} particulasDe={particulasDePorIum} geometriaDe={geometriaDe} />
+          ) : cargandoGrafo ? (
+            // Mientras useOrisGrafo resuelve (Dexie/Supabase en vuelo) NO se
+            // dibuja el gráfico genérico: eso es lo que causaba el "flash"
+            // visual (primero IumVisual, después la topología real) apenas
+            // esta vista carga sin cache de módulo todavía. Se espera con un
+            // placeholder neutro del mismo tamaño en vez de saltar entre dos
+            // gráficos distintos.
+            <div
+              className="w-[240px] h-[240px] rounded-xl animate-pulse"
+              style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
+            />
           ) : (
-            // Oris sin topología asignada en Supabase: gráfico anterior.
+            // Ya se confirmó (Dexie + Supabase resolvieron) que este Oris no
+            // tiene topología asignada: gráfico anterior, sin más flashes.
             <IumVisual particulas={particulasOris} size={240} />
           )}
 
-          {grafo ? null : iumsPresentes.length === 0 ? (
+          {grafo ? null : cargandoGrafo ? null : iumsPresentes.length === 0 ? (
             <span className="text-micro text-primary/30 text-center">Sin Iums en la composición</span>
           ) : (
             <div className="flex flex-wrap justify-center gap-1.5">

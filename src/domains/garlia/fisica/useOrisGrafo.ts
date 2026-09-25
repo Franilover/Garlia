@@ -108,10 +108,18 @@ function parsearUniones(raw: unknown): OrisGrafoUnion[] {
 const TABLA_DEXIE = "v_oris_grafo_canonico";
 
 /** Cache de módulo además del de Dexie: evita que dos OrisEditor montados
- *  a la vez disparen dos fetch a Supabase en paralelo dentro de la misma
- *  sesión — una vez que la primera llamada resuelve, el resto reusa este
- *  mapa en memoria. Dexie sigue siendo la fuente de verdad entre sesiones
- *  (recargas, pestañas nuevas, offline). */
+ *  a la vez disparen dos fetch a Supabase EN PARALELO (el panel flotante
+ *  puede montar varios editores casi simultáneos). No es una cache "para
+ *  siempre" de la sesión: `v_oris_grafo_canonico` es una vista derivada
+ *  sin tabla propia, así que no se puede suscribir a Supabase Realtime
+ *  para invalidarla cuando cambia la topología de un Oris en el backend.
+ *  Por eso `cargarGrafos()` siempre vuelve a pedir a Supabase cuando se
+ *  la llama sin una promesa en curso — lo único que este cache evita es
+ *  la carrera de fetches duplicados, no las relecturas. Antes quedaba
+ *  fijo para toda la sesión del navegador (una sola vez) y por eso una
+ *  topología recién asignada en Supabase no aparecía hasta recargar la
+ *  página entera: el panel de Oris seguía leyendo el mapa viejo en
+ *  memoria indefinidamente. */
 let cacheMemoria: Map<string, OrisGrafo> | null = null;
 let enCurso: Promise<Map<string, OrisGrafo> | null> | null = null;
 
@@ -176,7 +184,8 @@ async function cargarGrafosDeSupabase(): Promise<Map<string, OrisGrafo> | null> 
 }
 
 async function cargarGrafos(): Promise<Map<string, OrisGrafo> | null> {
-  if (cacheMemoria) return cacheMemoria;
+  // Ya no se corta acá si `cacheMemoria` existe: ver comentario junto a su
+  // declaración. Solo se deduplica un fetch YA en vuelo.
   if (!enCurso) {
     enCurso = cargarGrafosDeSupabase()
       .then((mapa) => {
@@ -192,21 +201,33 @@ async function cargarGrafos(): Promise<Map<string, OrisGrafo> | null> {
 
 export function useOrisGrafo() {
   const [porOrisId, setPorOrisId] = useState<Map<string, OrisGrafo>>(cacheMemoria ?? new Map());
-  const [loading, setLoading] = useState(cacheMemoria === null);
+  // Antes: `cacheMemoria === null`, así que loading pasaba a false para
+  // siempre en cuanto la primera instancia de la sesión resolvía, y las
+  // instancias montadas después ni siquiera intentaban un refresco real.
+  // Ahora cada montaje dispara su propio refetch (deduplicado por
+  // `enCurso` si coincide con otro en vuelo), así que empieza en loading
+  // aunque ya haya cacheMemoria de una carga anterior.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (cacheMemoria) return;
     let vivo = true;
 
-    // 1) Pintado instantáneo desde Dexie (offline-first) mientras el fetch
-    //    real está en vuelo — evita el "diseño antiguo" que se veía al
-    //    depender solo del cache de memoria (vacío en cada recarga).
-    leerGrafosDeDexie().then((mapaLocal) => {
-      if (!vivo || cacheMemoria) return;
-      if (mapaLocal.size > 0) setPorOrisId(mapaLocal);
-    });
+    // 1) Pintado instantáneo: lo que ya haya en memoria (de un montaje
+    //    previo en esta sesión) o, si no hay nada aún, lo último guardado
+    //    en Dexie (offline-first) — mientras el fetch real está en vuelo.
+    if (cacheMemoria) {
+      setPorOrisId(cacheMemoria);
+    } else {
+      leerGrafosDeDexie().then((mapaLocal) => {
+        if (!vivo || cacheMemoria) return;
+        if (mapaLocal.size > 0) setPorOrisId(mapaLocal);
+      });
+    }
 
-    // 2) Refresco real: reemplaza lo anterior en cuanto Supabase responde.
+    // 2) Refresco real: reemplaza lo anterior en cuanto Supabase responde,
+    //    en CADA montaje — así una topología asignada/cambiada del lado
+    //    del backend aparece la próxima vez que se abre un panel de Oris,
+    //    sin depender de recargar toda la página.
     cargarGrafos().then((mapa) => {
       if (!vivo) return;
       if (mapa) setPorOrisId(mapa);

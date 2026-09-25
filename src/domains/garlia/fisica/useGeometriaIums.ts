@@ -56,9 +56,12 @@ const GEOMETRIA_DEFAULT: GeometriaIumRow = {
 const TABLA_DEXIE = "v_iums_geometria_canonica_v1";
 
 /** Cache de módulo además del de Dexie: evita fetches duplicados a Supabase
- *  entre componentes montados a la vez en la misma sesión — Dexie sigue
- *  siendo la fuente de verdad entre sesiones (recargas, pestañas nuevas,
- *  offline). */
+ *  entre componentes montados a la vez en la misma sesión. No fija el
+ *  resultado para siempre: `v_iums_geometria_canonica_v1` es una vista
+ *  derivada sin tabla propia (no se puede suscribir a Realtime sobre
+ *  ella), así que `cargarGeometrias()` siempre vuelve a pedir a Supabase
+ *  en cada montaje nuevo — este cache solo deduplica fetches en vuelo,
+ *  no evita relecturas (ver mismo criterio en useOrisGrafo.ts). */
 let cacheMemoria: Map<string, GeometriaIumRow> | null = null;
 let enCurso: Promise<Map<string, GeometriaIumRow> | null> | null = null;
 
@@ -122,7 +125,8 @@ async function cargarGeometriasDeSupabase(): Promise<Map<string, GeometriaIumRow
 }
 
 async function cargarGeometrias(): Promise<Map<string, GeometriaIumRow> | null> {
-  if (cacheMemoria) return cacheMemoria;
+  // Ya no corta acá si `cacheMemoria` existe — ver comentario junto a su
+  // declaración. Solo deduplica un fetch ya en vuelo.
   if (!enCurso) {
     enCurso = cargarGeometriasDeSupabase()
       .then((mapa) => {
@@ -139,20 +143,30 @@ async function cargarGeometrias(): Promise<Map<string, GeometriaIumRow> | null> 
 
 export function useGeometriaIums() {
   const [porIumId, setPorIumId] = useState<Map<string, GeometriaIumRow>>(cacheMemoria ?? new Map());
-  const [loading, setLoading] = useState(cacheMemoria === null);
+  // Siempre empieza en loading: cada montaje dispara su propio refetch
+  // real (deduplicado por `enCurso` si coincide con otro en vuelo), en
+  // vez de quedarse para siempre con el mapa de la primera carga de la
+  // sesión — ver comentario en cacheMemoria.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (cacheMemoria) return;
     let vivo = true;
 
-    // 1) Pintado instantáneo desde Dexie (offline-first) mientras el fetch
-    //    real está en vuelo.
-    leerGeometriasDeDexie().then((mapaLocal) => {
-      if (!vivo || cacheMemoria) return;
-      if (mapaLocal.size > 0) setPorIumId(mapaLocal);
-    });
+    // 1) Pintado instantáneo: lo que ya haya en memoria de un montaje
+    //    previo, o si no, lo último guardado en Dexie (offline-first)
+    //    mientras el fetch real está en vuelo.
+    if (cacheMemoria) {
+      setPorIumId(cacheMemoria);
+    } else {
+      leerGeometriasDeDexie().then((mapaLocal) => {
+        if (!vivo || cacheMemoria) return;
+        if (mapaLocal.size > 0) setPorIumId(mapaLocal);
+      });
+    }
 
-    // 2) Refresco real: reemplaza lo anterior en cuanto Supabase responde.
+    // 2) Refresco real en CADA montaje: reemplaza lo anterior en cuanto
+    //    Supabase responde, así una geometría cambiada en el backend
+    //    aparece sin depender de recargar toda la página.
     cargarGeometrias().then((mapa) => {
       if (!vivo) return;
       if (mapa) setPorIumId(mapa);
