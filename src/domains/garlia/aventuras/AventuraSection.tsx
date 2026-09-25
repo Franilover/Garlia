@@ -36,6 +36,7 @@ import {
   X,
 } from "lucide-react";
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { MotionDiv } from "@/ui/Motion";
 
@@ -69,6 +70,12 @@ const AdminDescubrimientos = lazy(() => import("@/domains/garlia/relaciones/edit
 
 type SubPanel = "aventuras" | "relaciones" | "monedas" | "manual";
 
+// ── Nodo donde se montan los resultados del buscador (panel lateral
+// derecho, ver AventuraSection) — vía contexto porque AventuraDetalle no
+// es hijo directo de ese panel, pero necesita proyectar ahí su dropdown
+// (los resultados dependen del `agregar` y `pendientes` de ESA aventura). ──
+const BuscadorPortalContext = React.createContext<HTMLDivElement | null>(null);
+
 const SUB_PANELES: { key: SubPanel; label: string; Icon: React.ElementType }[] = [
   { key: "aventuras", label: "Aventuras", Icon: Compass },
   { key: "relaciones", label: "Relaciones", Icon: Heart },
@@ -94,59 +101,146 @@ export function AventuraSection() {
   const [subPanel, setSubPanel] = useState<SubPanel>("aventuras");
   const [aventuraActiva, setAventuraActiva] = useState<string | null>(null);
 
+  // ── Buscador para agregar entidades: vive acá (no dentro de
+  // AventuraDetalle) porque ahora se dibuja arriba del panel lateral,
+  // fuera del pizarrón. Solo tiene sentido con una aventura abierta, así
+  // que se limpia al salir de ella o al cambiar de sub-panel. ──
+  const [query, setQuery] = useState("");
+  const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.trim().length < 2) {
+      setResultados([]);
+      return;
+    }
+    setBuscando(true);
+    debounceRef.current = setTimeout(async () => {
+      const r = await buscarEntidades(query);
+      setResultados(r);
+      setBuscando(false);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  const mostrarBuscador = subPanel === "aventuras" && !!aventuraActiva;
+
+  // Nodo donde AventuraDetalle proyecta (vía portal) los resultados del
+  // buscador — se define con useState (no useRef) para que el context
+  // dispare un re-render en cuanto el <div> se monta y el portal tenga
+  // dónde pintar.
+  const [buscadorPortalNode, setBuscadorPortalNode] = useState<HTMLDivElement | null>(null);
+
   return (
-    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-      {/* ── Sub-selector: Aventuras / Relaciones ─────────────── */}
-      <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-primary/10">
-        {SUB_PANELES.map(({ key, label, Icon }) => {
-          const active = subPanel === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                setSubPanel(key);
-                if (key !== "aventuras") setAventuraActiva(null);
-              }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
-              }`}
-            >
-              <Icon size={13} />
-              {label}
-            </button>
-          );
-        })}
-      </div>
+    <BuscadorPortalContext.Provider value={buscadorPortalNode}>
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {/* ── Panel principal: pizarrón / índice de aventuras, a todo el
+            ancho disponible (sin la barra de tabs de arriba). ── */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {subPanel === "aventuras" &&
+            (aventuraActiva ? (
+              <AventuraDetalle
+                aventuraId={aventuraActiva}
+                onVolver={() => {
+                  setAventuraActiva(null);
+                  setQuery("");
+                }}
+                resultados={resultados}
+                onLimpiarBusqueda={() => setQuery("")}
+              />
+            ) : (
+              <AventuraIndice onSeleccionar={setAventuraActiva} />
+            ))}
 
-      {/* ── Contenido del sub-panel activo ──────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        {subPanel === "aventuras" &&
-          (aventuraActiva ? (
-            <AventuraDetalle aventuraId={aventuraActiva} onVolver={() => setAventuraActiva(null)} />
-          ) : (
-            <AventuraIndice onSeleccionar={setAventuraActiva} />
-          ))}
+          {subPanel === "relaciones" && (
+            <Suspense fallback={<SubPanelFallback />}>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <AdminDescubrimientos />
+              </div>
+            </Suspense>
+          )}
 
-        {subPanel === "relaciones" && (
-          <Suspense fallback={<SubPanelFallback />}>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <AdminDescubrimientos />
+          {subPanel === "monedas" && (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4">
+              <PanelTiposMoneda />
             </div>
-          </Suspense>
-        )}
+          )}
 
-        {subPanel === "monedas" && (
-          <div className="flex-1 min-h-0 overflow-y-auto p-4">
-            <PanelTiposMoneda />
+          {subPanel === "manual" && <PanelManualDnd />}
+        </div>
+
+        {/* ── Panel lateral derecho: buscador (solo con una aventura
+            abierta) arriba del selector de sección. ── */}
+        <div className="w-64 shrink-0 flex flex-col border-l border-primary/10 overflow-hidden">
+          {mostrarBuscador && (
+            <div className="shrink-0 px-3 py-2.5 border-b border-primary/10 relative">
+              <div
+                className="flex items-center gap-2 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors"
+                style={{ height: "34px" }}
+              >
+                <Search size={13} className="text-primary/35 shrink-0" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar para añadir…"
+                  className="flex-1 min-w-0 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
+                />
+                {buscando && <Loader2 size={12} className="animate-spin text-primary/30 shrink-0" />}
+                {query && !buscando && (
+                  <button type="button" onClick={() => setQuery("")}>
+                    <X size={12} className="text-primary/40" />
+                  </button>
+                )}
+              </div>
+
+              {/* Nodo de montaje: AventuraDetalle proyecta acá (vía
+                  portal, ver BuscadorPortalContext) los resultados, ya
+                  que necesita el `agregar`/`pendientes` de esa aventura
+                  puntual para poder añadirlos. */}
+              {resultados.length > 0 && (
+                <div className="absolute left-3 right-3 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg">
+                  <div ref={setBuscadorPortalNode} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Selector de sección: Aventuras / Relaciones / Monedas /
+              Manual, ahora en vertical dentro del panel lateral. ── */}
+          <div className="shrink-0 flex flex-col gap-1 p-2 border-b border-primary/10">
+            {SUB_PANELES.map(({ key, label, Icon }) => {
+              const active = subPanel === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setSubPanel(key);
+                    if (key !== "aventuras") {
+                      setAventuraActiva(null);
+                      setQuery("");
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-primary/50 hover:bg-primary/5 hover:text-primary/80"
+                  }`}
+                >
+                  <Icon size={13} />
+                  {label}
+                </button>
+              );
+            })}
           </div>
-        )}
-
-        {subPanel === "manual" && <PanelManualDnd />}
+        </div>
       </div>
-    </div>
+    </BuscadorPortalContext.Provider>
   );
 }
 
@@ -322,10 +416,20 @@ function GrupoCriaturaInput({
 function AventuraDetalle({
   aventuraId,
   onVolver,
+  resultados,
+  onLimpiarBusqueda,
 }: {
   aventuraId: string;
   onVolver: () => void;
+  // El buscador en sí (input + estado) ahora vive en AventuraSection y se
+  // dibuja en el panel lateral, arriba del selector de sección — acá solo
+  // llega el resultado para proyectar el dropdown vía portal (ver
+  // BuscadorPortalContext), porque agregar SÍ necesita el `agregar` y el
+  // estado `pendientes` de esta aventura puntual.
+  resultados: ResultadoBusqueda[];
+  onLimpiarBusqueda: () => void;
 }) {
+  const buscadorPortalNode = React.useContext(BuscadorPortalContext);
   const { aventuras, toggleNiebla } = useAventurasList();
   const {
     entidades,
@@ -353,9 +457,6 @@ function AventuraDetalle({
   // apagarlo, pero se puede volver a activar para poner varios seguidos). ──
   const [modoObstaculo, setModoObstaculo] = useState<{ tipo: ObstaculoTipo; forma: ObstaculoForma } | null>(null);
 
-  const [query, setQuery] = useState("");
-  const [resultados, setResultados] = useState<ResultadoBusqueda[]>([]);
-  const [buscando, setBuscando] = useState(false);
   const [pendientes, setPendientes] = useState<Set<string>>(new Set());
   const [seleccion, setSeleccion] = useState<AventuraEntidad | null>(null);
   const [fichaSeleccion, setFichaSeleccion] = useState<FichaDnd | null>(null);
@@ -549,23 +650,6 @@ function AventuraDetalle({
     [asignarContenedor],
   );
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 2) {
-      setResultados([]);
-      return;
-    }
-    setBuscando(true);
-    debounceRef.current = setTimeout(async () => {
-      const r = await buscarEntidades(query);
-      setResultados(r);
-      setBuscando(false);
-    }, 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [query]);
-
   const yaAgregada = (tabla: string, id: string) =>
     entidades.some((e) => e.tabla === tabla && e.entidad_id === id);
 
@@ -623,30 +707,14 @@ function AventuraDetalle({
         </span>
       </div>
 
-      {/* ── Buscador para agregar ───────────────────────────────────── */}
-      <div className="shrink-0 px-4 py-2.5 border-b border-primary/10 relative">
-        <div
-          className="flex items-center gap-2 px-3 rounded-lg border border-primary/10 bg-primary/[0.03] focus-within:border-primary/30 transition-colors"
-          style={{ height: "34px" }}
-        >
-          <Search size={13} className="text-primary/35 shrink-0" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar criaturas, items, PNJs… para añadir a esta aventura"
-            className="flex-1 bg-transparent outline-none text-xs text-primary/80 placeholder:text-primary/30"
-          />
-          {buscando && <Loader2 size={12} className="animate-spin text-primary/30" />}
-          {query && !buscando && (
-            <button type="button" onClick={() => setQuery("")}>
-              <X size={12} className="text-primary/40" />
-            </button>
-          )}
-        </div>
-
-        {resultados.length > 0 && (
-          <div className="absolute left-4 right-4 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-xl border border-primary/10 bg-[var(--white-custom)] shadow-lg">
+      {/* ── Resultados del buscador: el input en sí ahora vive arriba del
+          panel lateral (ver AventuraSection); acá solo se proyectan los
+          resultados vía portal en ese mismo lugar, porque necesitan el
+          `agregar` de ESTA aventura y el estado `pendientes` de acá. ── */}
+      {resultados.length > 0 &&
+        buscadorPortalNode &&
+        createPortal(
+          <>
             {resultados.map((r) => {
               const key = `${r.tabla}:${r.id}`;
               const cantidadAgregada = entidades.filter(
@@ -660,7 +728,10 @@ function AventuraDetalle({
                   key={key}
                   type="button"
                   disabled={(yaEsta && !esCriatura) || isPending}
-                  onClick={() => handleAgregar(r)}
+                  onClick={() => {
+                    void handleAgregar(r);
+                    onLimpiarBusqueda();
+                  }}
                   title={esCriatura && yaEsta ? "Sumar otra a la horda" : undefined}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-primary/5 disabled:opacity-50 transition-colors"
                 >
@@ -697,9 +768,9 @@ function AventuraDetalle({
                 </button>
               );
             })}
-          </div>
+          </>,
+          buscadorPortalNode,
         )}
-      </div>
 
       {/* ── Tablero libre (izq) + Identidades en dropdowns (der) ──────── */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
