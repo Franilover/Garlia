@@ -30,22 +30,23 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
   // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
   // oscuro de los admins.
-  // Borde café muy oscuro (no negro puro, que se confundía con el fondo
-  // oscuro sepia de los admins y parecía una grieta en vez de un borde) —
-  // suficientemente oscuro para separar los tercios, pero con un poco de
-  // tono para distinguirse del fondo negro/sepia detrás.
+  // Fondo "falso transparente": mezcla sólida (no color-mix con transparent)
+  // entre el color de la letra y el fondo real de la página (#1a1208, sepia
+  // muy oscuro de los admins) — se ve como si tuviera transparencia dejando
+  // pasar el fondo, pero es 100% opaco, así que no deja ver las flechas o
+  // líneas de conexión de IUMs/Oris detrás.
   A: {
-    bg: "color-mix(in srgb, #c9a06a 95%, transparent)",
+    bg: "color-mix(in srgb, #c9a06a 45%, #1a1208)",
     border: "#3d2a12",
-    fg: "#3a2a15",
+    fg: "#f3e6d3",
   },
   T: {
-    bg: "color-mix(in srgb, #8a5a34 95%, transparent)",
+    bg: "color-mix(in srgb, #8a5a34 45%, #1a1208)",
     border: "#3d2a12",
     fg: "#f0dfc9",
   },
   S: {
-    bg: "color-mix(in srgb, #4e3320 95%, transparent)",
+    bg: "color-mix(in srgb, #4e3320 45%, #1a1208)",
     border: "#3d2a12",
     fg: "#e8d5bd",
   },
@@ -53,7 +54,7 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   // sepia que las otras 3, con un valor distinto para diferenciarse de un
   // vistazo tanto de A (más clara) como de S (más oscura).
   I: {
-    bg: "color-mix(in srgb, #6b4423 95%, transparent)",
+    bg: "color-mix(in srgb, #6b4423 45%, #1a1208)",
     border: "#3d2a12",
     fg: "#ecdcc4",
   },
