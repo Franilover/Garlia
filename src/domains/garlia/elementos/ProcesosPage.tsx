@@ -1249,40 +1249,18 @@ function ProcesoEditor({
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
       <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto">
-        <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Descripción
-          </span>
-          <textarea
-            className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
-            placeholder="Qué es este proceso, en qué contexto ocurre…"
-            value={local.descripcion ?? ""}
-            onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
-            onBlur={() => campoBlur("descripcion")}
-          />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
           <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Receta del proceso
+              Descripción
             </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {receta.map(([campo, label, value]) => (
-                <div key={campo} className="min-w-0">
-                  <span className="text-xs font-bold text-primary/45">{label}</span>
-                  <textarea
-                    className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-micro leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
-                    placeholder={`${label}…`}
-                    value={value ?? ""}
-                    onChange={(e) =>
-                      setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
-                    }
-                    onBlur={() => campoBlur(campo)}
-                  />
-                </div>
-              ))}
-            </div>
+            <textarea
+              className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+              placeholder="Qué es este proceso, en qué contexto ocurre…"
+              value={local.descripcion ?? ""}
+              onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
+              onBlur={() => campoBlur("descripcion")}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
@@ -1300,15 +1278,24 @@ function ProcesoEditor({
 
           <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Notas
+              Receta del proceso
             </span>
-            <textarea
-              className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
-              placeholder="Notas libres…"
-              value={local.notas ?? ""}
-              onChange={(e) => setLocal((p) => ({ ...p, notas: e.target.value }))}
-              onBlur={() => campoBlur("notas")}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {receta.map(([campo, label, value]) => (
+                <div key={campo} className="min-w-0">
+                  <span className="text-xs font-bold text-primary/45">{label}</span>
+                  <textarea
+                    className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-sm leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
+                    placeholder={`${label}…`}
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
+                    }
+                    onBlur={() => campoBlur(campo)}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
