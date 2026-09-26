@@ -29,9 +29,21 @@
  *   - v_magnitudes_requeridas_oris_canonicas_v1 (vista)
  *   - v_procesos_demanda_eterium_fisica_runtime_v1 (vista)
  *   - resolver_demanda_eterium_fisica_v1     (función/RPC)
- *   - calcular_requerimiento_eterium_proceso_v1 (función/RPC)
  *   - oris_iums                              (tabla relacional, ya usada
  *     en el resto de fisica/ vía useOrisConIums)
+ *
+ * - calcular_requerimiento_eterium_proceso_v1 (función/RPC): firma REAL,
+ *   confirmada contra Supabase — NO inventar otra:
+ *     p_oris_id uuid, p_proceso_id uuid, p_resolucion jsonb,
+ *     p_contexto jsonb, p_arquetipo_tiempo text (default),
+ *     p_k_tiempo numeric (default), p_tiempo numeric (default),
+ *     p_factor_practica numeric (default).
+ *   Las magnitudes físicas dinámicas (paso 4) viajan dentro de
+ *   p_resolucion; el objetivo (material/organismo/objeto, paso 3) dentro
+ *   de p_contexto. No existen p_magnitudes / p_objetivo_id /
+ *   p_objetivo_tipo / p_practica como parámetros propios de esta RPC —
+ *   ver resolverRequerimientoEterium() más abajo, único lugar donde se
+ *   arma esta llamada.
  */
 
 import { AlertTriangle, ChevronDown, ChevronRight, Loader2, RefreshCw } from "lucide-react";
@@ -337,6 +349,27 @@ interface ResultadoRequerimiento {
   [key: string]: unknown;
 }
 
+/**
+ * Firma REAL de calcular_requerimiento_eterium_proceso_v1 en Supabase (no
+ * inventar otra ni crear una función paralela — SUPABASE MANDA):
+ *
+ *   calcular_requerimiento_eterium_proceso_v1(
+ *     p_oris_id uuid,
+ *     p_proceso_id uuid,
+ *     p_resolucion jsonb,
+ *     p_contexto jsonb,
+ *     p_arquetipo_tiempo text default …,
+ *     p_k_tiempo numeric default …,
+ *     p_tiempo numeric default …,
+ *     p_factor_practica numeric default …
+ *   )
+ *
+ * No existen p_magnitudes / p_objetivo_id / p_objetivo_tipo / p_practica:
+ * las magnitudes físicas dinámicas viajan dentro de p_resolucion (el
+ * contrato del resolver físico, ver resolver_demanda_eterium_fisica_v1) y
+ * el objetivo (material/organismo/objeto) dentro de p_contexto — este
+ * frontend arma esos dos jsonb, nunca agrega parámetros propios a la RPC.
+ */
 async function resolverRequerimientoEterium(params: {
   orisId: string;
   procesoId: string;
@@ -345,14 +378,23 @@ async function resolverRequerimientoEterium(params: {
   magnitudes: Record<string, number>;
   practica: number | null;
 }): Promise<{ ok: true; datos: ResultadoRequerimiento } | { ok: false; contrato: string; motivo: string }> {
-  const { data, error } = await supabase.rpc("calcular_requerimiento_eterium_proceso_v1", {
+  const p_resolucion = { ...params.magnitudes };
+  const p_contexto: Record<string, unknown> = {};
+  if (params.objetivoTipo) p_contexto.objetivo_tipo = params.objetivoTipo;
+  if (params.objetivoId) p_contexto.objetivo_id = params.objetivoId;
+
+  const args: Record<string, unknown> = {
     p_oris_id: params.orisId,
     p_proceso_id: params.procesoId,
-    p_objetivo_tipo: params.objetivoTipo,
-    p_objetivo_id: params.objetivoId,
-    p_magnitudes: params.magnitudes,
-    p_practica: params.practica,
-  });
+    p_resolucion,
+    p_contexto,
+  };
+  // p_factor_practica tiene default en Supabase — solo se manda si el
+  // usuario efectivamente cargó una práctica, para no pisar ese default
+  // con null explícito.
+  if (params.practica !== null) args.p_factor_practica = params.practica;
+
+  const { data, error } = await supabase.rpc("calcular_requerimiento_eterium_proceso_v1", args);
   if (error) {
     return {
       ok: false,
