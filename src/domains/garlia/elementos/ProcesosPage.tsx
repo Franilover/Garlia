@@ -15,7 +15,7 @@
  * independiente, no una etapa obligatoria de Proceso.
  */
 
-import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Sparkles, Trash2, Zap } from "lucide-react";
+import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Trash2, Zap } from "lucide-react";
 import { createPortal } from "react-dom";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -619,7 +619,6 @@ function OrisCompatiblesBloque({
                       onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
                     }`}
                   >
-                    <Sparkles size={10} className="text-primary/40 shrink-0" />
                     {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
                   </button>
 
@@ -639,7 +638,7 @@ function OrisCompatiblesBloque({
                     title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
                     className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
                       vinculo.activo
-                        ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                        ? "text-primary/70 border-primary/20 bg-primary/5"
                         : "text-primary/35 border-primary/10 bg-primary/5"
                     } disabled:opacity-40`}
                   >
