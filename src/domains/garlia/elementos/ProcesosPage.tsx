@@ -15,7 +15,7 @@
  * independiente, no una etapa obligatoria de Proceso.
  */
 
-import { Activity, Beaker, Loader2, Plus, Trash2 } from "lucide-react";
+import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Sparkles, Trash2, Zap } from "lucide-react";
 import { createPortal } from "react-dom";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -30,13 +30,46 @@ import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 
 import { useProcesos } from "./useProcesos";
 import { useReacciones } from "./useReacciones";
+import { useElementos } from "./useElementos";
+import { useFenomenos } from "./useFenomenos";
+import { useOris } from "@/domains/garlia/fisica/useFisica";
+import type { Oris } from "@/domains/garlia/fisica/types";
 import { ReaccionPanelFlotante } from "./ReaccionesPage";
 import {
   vincularReaccionAProceso,
   actualizarProcesoReaccion,
   desvincularReaccionDeProceso,
 } from "./persistirProcesoReaccion";
-import { CONFIG_PROCESO_REACCIONES, type Proceso, type ProcesoReaccion, type Reaccion } from "./types";
+import {
+  vincularOrisAProceso,
+  actualizarOrisProceso,
+  desvincularOrisDeProceso,
+} from "./persistirOrisProceso";
+import {
+  vincularElementoAProceso,
+  actualizarElementoProceso,
+  desvincularElementoDeProceso,
+} from "./persistirElementoProceso";
+import {
+  vincularFenomenoAProceso,
+  actualizarFenomenoProceso,
+  desvincularFenomenoDeProceso,
+} from "./persistirFenomenoProceso";
+import { useProcesoConfiguracionIum } from "./useProcesoConfiguracionIum";
+import {
+  CONFIG_ELEMENTO_PROCESOS,
+  CONFIG_FENOMENO_PROCESOS,
+  CONFIG_ORIS_PROCESOS,
+  CONFIG_PROCESO_REACCIONES,
+  type Elemento,
+  type ElementoProceso,
+  type Fenomeno,
+  type FenomenoProceso,
+  type OrisProceso,
+  type Proceso,
+  type ProcesoReaccion,
+  type Reaccion,
+} from "./types";
 
 const ESTADOS_FUNDAMENTO = ["definida", "en_revision", "estable", "obsoleta"] as const;
 
@@ -409,6 +442,699 @@ function ReaccionesVinculadasBloque({
 }
 
 /**
+ * Sección de Oris compatibles con este Proceso (spec sección 1/4/5/6/10):
+ * lee y escribe directo contra "oris_procesos" — sin listas hardcodeadas,
+ * sin arrays manuales por Oris. Genérico: el mismo componente sirve para
+ * la ficha del Proceso (filtrando por proceso_id, mostrando qué Oris) y,
+ * parametrizado al revés, para la ficha del Oris (filtrando por oris_id,
+ * mostrando qué Procesos) — ver CompatibleProcesses en fisica/OrisEditor.tsx,
+ * que reutiliza este mismo bloque en su modo "desde Oris".
+ *
+ * El "rol" se muestra tal cual viene de Supabase (badge de solo lectura,
+ * no un select que lo reinterprete — spec sección 5) mientras que
+ * "prioridad" y "notas" sí son editables inline, porque son campos propios
+ * de la relación sin significado narrativo fijo que cuidar.
+ */
+function OrisCompatiblesBloque({
+  procesoId,
+  oris,
+  onAbrirOris,
+}: {
+  procesoId: string;
+  oris: Oris[];
+  onAbrirOris?: (orisId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<OrisProceso>(
+    CONFIG_ORIS_PROCESOS.tabla,
+    { select: CONFIG_ORIS_PROCESOS.select, order: { campo: "prioridad" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoOrisId, setNuevoOrisId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  // Sección 6 del spec: un proceso puede aparecer vinculado a varios Oris —
+  // eso NUNCA significa que existan varios procesos. Este filtro solo
+  // determina qué filas puente mostrar acá; el catálogo de Procesos
+  // (agruparPorTipo/useProcesos) sigue trayendo cada proceso una única vez.
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const orisDisponibles = useMemo(
+    () => oris.filter((o) => !vinculosDeEsteProceso.some((v) => v.oris_id === o.id)),
+    [oris, vinculosDeEsteProceso],
+  );
+
+  async function handlePrioridadBlur(vinculoId: string, valor: string) {
+    const prioridad = valor.trim() === "" ? null : Number(valor);
+    if (prioridad !== null && !Number.isFinite(prioridad)) return;
+    setGuardandoId(vinculoId);
+    await actualizarOrisProceso(vinculoId, { prioridad });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleNotasBlur(vinculoId: string, notas: string) {
+    setGuardandoId(vinculoId);
+    await actualizarOrisProceso(vinculoId, { notas: notas.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleToggleActivo(vinculo: OrisProceso) {
+    setGuardandoId(vinculo.id);
+    await actualizarOrisProceso(vinculo.id, { activo: !vinculo.activo });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular Oris",
+      message: `¿Desvincular "${nombre}" de este proceso? El Oris en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularOrisDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoOrisId) return;
+    setGuardandoId(nuevoOrisId);
+    await vincularOrisAProceso(nuevoOrisId, procesoId, {
+      rol: nuevoRol.trim() || null,
+      prioridad: vinculosDeEsteProceso.length,
+    });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoOrisId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Oris compatibles
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={orisDisponibles.length === 0}
+          title="Vincular un Oris existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+      <p className="text-micro text-primary/35 -mt-1">
+        Qué Oris pueden ejecutar este proceso — solo aparece si Supabase indica que está
+        relacionado y activo.
+      </p>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoOrisId}
+            onChange={(e) => setNuevoOrisId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir Oris…</option>
+            {orisDisponibles.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nombre || "(sin nombre)"}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (ej. principal, secundario, compatible)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoOrisId || guardandoId === nuevoOrisId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoOrisId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">
+          Sin información registrada — ningún Oris está vinculado a este proceso todavía.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const orisRelacionado = oris.find((o) => o.id === vinculo.oris_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border transition-colors ${
+                  vinculo.activo
+                    ? "border-transparent hover:border-primary/10 hover:bg-primary/[0.03]"
+                    : "border-primary/10 bg-primary/[0.02] opacity-50"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    disabled={!onAbrirOris}
+                    onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
+                    title={onAbrirOris ? "Ver/editar este Oris" : undefined}
+                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                      onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
+                    }`}
+                  >
+                    <Sparkles size={10} className="text-primary/40 shrink-0" />
+                    {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
+                  </button>
+
+                  {vinculo.rol && (
+                    <span
+                      title="Rol tal como está definido en Supabase"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-micro font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
+                    >
+                      {vinculo.rol}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActivo(vinculo)}
+                    disabled={ocupado}
+                    title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
+                    className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
+                      vinculo.activo
+                        ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                        : "text-primary/35 border-primary/10 bg-primary/5"
+                    } disabled:opacity-40`}
+                  >
+                    {vinculo.activo ? "Activo" : "Inactivo"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
+                    disabled={ocupado}
+                    title="Desvincular de este proceso"
+                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                  >
+                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <input
+                    type="number"
+                    defaultValue={vinculo.prioridad ?? ""}
+                    key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
+                    onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="#"
+                    title="Prioridad"
+                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <input
+                    defaultValue={vinculo.notas ?? ""}
+                    key={`notas-${vinculo.id}-${vinculo.notas ?? ""}`}
+                    onBlur={(e) => handleNotasBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="Notas"
+                    title="Notas"
+                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Sección de Elementos relacionados con este Proceso (spec sección 3:
+ * "relaciones con elementos"). Mismo patrón que OrisCompatiblesBloque,
+ * sobre la tabla puente "elemento_procesos" — rol libre (sin un enum
+ * fijo de roles como Oris↔Proceso, ver sección 5, que solo aplica a esa
+ * relación puntual).
+ */
+function ElementosRelacionadosBloque({
+  procesoId,
+  elementos,
+}: {
+  procesoId: string;
+  elementos: Elemento[];
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<ElementoProceso>(
+    CONFIG_ELEMENTO_PROCESOS.tabla,
+    { select: CONFIG_ELEMENTO_PROCESOS.select, order: { campo: "created_at" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoElementoId, setNuevoElementoId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const elementosDisponibles = useMemo(
+    () => elementos.filter((el) => !vinculosDeEsteProceso.some((v) => v.elemento_id === el.id)),
+    [elementos, vinculosDeEsteProceso],
+  );
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarElementoProceso(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular elemento",
+      message: `¿Desvincular "${nombre}" de este proceso? El elemento en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularElementoDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoElementoId) return;
+    setGuardandoId(nuevoElementoId);
+    await vincularElementoAProceso(procesoId, nuevoElementoId, { rol: nuevoRol.trim() || null });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoElementoId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Elementos relacionados
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={elementosDisponibles.length === 0}
+          title="Vincular un elemento existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoElementoId}
+            onChange={(e) => setNuevoElementoId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir elemento…</option>
+            {elementosDisponibles.map((el) => (
+              <option key={el.id} value={el.id}>
+                {el.nombre} ({el.simbolo})
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoElementoId || guardandoId === nuevoElementoId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoElementoId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const elemento = elementos.find((el) => el.id === vinculo.elemento_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <Atom size={10} className="text-primary/40 shrink-0" />
+                <span className="text-micro font-bold text-primary/70 truncate">
+                  {elemento ? `${elemento.nombre} (${elemento.simbolo})` : vinculo.elemento_id.slice(0, 8)}
+                </span>
+                <input
+                  defaultValue={vinculo.rol ?? ""}
+                  key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                  onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                  disabled={ocupado}
+                  placeholder="Rol"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuitar(vinculo.id, elemento?.nombre ?? vinculo.elemento_id)}
+                  disabled={ocupado}
+                  title="Desvincular de este proceso"
+                  className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Sección de Fenómenos relacionados con este Proceso (spec sección 3:
+ * "relaciones con fenómenos"). Mismo patrón que ElementosRelacionadosBloque,
+ * sobre la tabla puente "fenomeno_procesos".
+ */
+function FenomenosRelacionadosBloque({
+  procesoId,
+  fenomenos,
+}: {
+  procesoId: string;
+  fenomenos: Fenomeno[];
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<FenomenoProceso>(
+    CONFIG_FENOMENO_PROCESOS.tabla,
+    { select: CONFIG_FENOMENO_PROCESOS.select, order: { campo: "created_at" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoFenomenoId, setNuevoFenomenoId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteProceso = useMemo(
+    () => vinculos.filter((v) => v.proceso_id === procesoId),
+    [vinculos, procesoId],
+  );
+
+  const fenomenosDisponibles = useMemo(
+    () => fenomenos.filter((f) => !vinculosDeEsteProceso.some((v) => v.fenomeno_id === f.id)),
+    [fenomenos, vinculosDeEsteProceso],
+  );
+
+  async function handleRolBlur(vinculoId: string, rol: string) {
+    setGuardandoId(vinculoId);
+    await actualizarFenomenoProceso(vinculoId, { rol: rol.trim() || null });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular fenómeno",
+      message: `¿Desvincular "${nombre}" de este proceso? El fenómeno en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularFenomenoDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoFenomenoId) return;
+    setGuardandoId(nuevoFenomenoId);
+    await vincularFenomenoAProceso(procesoId, nuevoFenomenoId, { rol: nuevoRol.trim() || null });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoFenomenoId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Fenómenos relacionados
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={fenomenosDisponibles.length === 0}
+          title="Vincular un fenómeno existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoFenomenoId}
+            onChange={(e) => setNuevoFenomenoId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir fenómeno…</option>
+            {fenomenosDisponibles.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nombre}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (opcional)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoFenomenoId || guardandoId === nuevoFenomenoId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoFenomenoId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteProceso.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteProceso.map((vinculo) => {
+            const fenomeno = fenomenos.find((f) => f.id === vinculo.fenomeno_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
+              >
+                <Zap size={10} className="text-primary/40 shrink-0" />
+                <span className="text-micro font-bold text-primary/70 truncate">
+                  {fenomeno?.nombre ?? vinculo.fenomeno_id.slice(0, 8)}
+                </span>
+                <input
+                  defaultValue={vinculo.rol ?? ""}
+                  key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
+                  onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
+                  disabled={ocupado}
+                  placeholder="Rol"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuitar(vinculo.id, fenomeno?.nombre ?? vinculo.fenomeno_id)}
+                  disabled={ocupado}
+                  title="Desvincular de este proceso"
+                  className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                >
+                  {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Sección "Configuración IUM" (spec secciones 7/8): intervención mediante
+ * IUM que manipula este proceso natural — visualmente separada de la
+ * información propia del fenómeno. Solo lectura acá (la config en sí se
+ * arma en Física/Oris — spec sección 7: no editar ni proponer valores
+ * desde esta ficha, solo reflejar el estado real).
+ *
+ * Estados posibles, todos derivados del dato real (spec sección 11 — nunca
+ * "[Pendiente]"): "Sin configuración IUM" si no hay ninguna fila en
+ * proceso_configuraciones_ium_v1 para este proceso; si la hay, se muestra
+ * el `estado` real de Supabase (ej. "propuesta" → "Configuración en
+ * revisión", cualquier otro valor se muestra tal cual, capitalizado).
+ */
+function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
+  const { configuracion, flujo, loading } = useProcesoConfiguracionIum(procesoId);
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2 rounded-md border border-primary/10 bg-primary/[0.02]">
+      <div className="flex items-center gap-1.5">
+        <Cpu size={11} className="text-primary/40 shrink-0" />
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Configuración IUM · Intervención
+        </span>
+      </div>
+      <p className="text-micro text-primary/35 -mt-1">
+        Manipulación intencional de este proceso mediante una arquitectura IUM — separado del
+        proceso natural, que existe con sus propias reglas independientemente de esto.
+      </p>
+
+      {!configuracion ? (
+        <p className="py-1 text-micro text-primary/30">Sin configuración IUM</p>
+      ) : (
+        <div className="flex flex-col gap-2 mt-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-micro font-bold text-primary/70">
+              {configuracion.configuracion ?? "Configuración sin nombre"}
+            </span>
+            <span
+              title="Estado real registrado en Supabase — nunca se presenta como canónica si no lo es"
+              className={`px-1.5 py-0.5 rounded text-micro font-bold border capitalize ${
+                configuracion.estado === "canonica"
+                  ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                  : configuracion.estado === "propuesta"
+                    ? "text-amber-500/70 border-amber-500/20 bg-amber-500/5"
+                    : "text-primary/50 border-primary/15 bg-primary/5"
+              }`}
+            >
+              {configuracion.estado === "propuesta"
+                ? "Configuración en revisión"
+                : configuracion.estado.replace(/_/g, " ")}
+            </span>
+            <span className="text-micro text-primary/35">v{configuracion.version}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-micro">
+            <span className="text-primary/40">Topología</span>
+            <span className="text-primary/65 text-right truncate">
+              {configuracion.topologia ?? "Sin información registrada"}
+            </span>
+            <span className="text-primary/40">Oris principal</span>
+            <span className="text-primary/65 text-right truncate">
+              {configuracion.oris_principal ?? "Sin información registrada"}
+            </span>
+            <span className="text-primary/40">Oris compatibles</span>
+            <span className="text-primary/65 text-right truncate">
+              {configuracion.oris_compatibles ?? "Sin información registrada"}
+            </span>
+            <span className="text-primary/40">IUMs / uniones</span>
+            <span className="text-primary/65 text-right">
+              {configuracion.n_iums} / {configuracion.n_uniones}
+            </span>
+          </div>
+
+          {configuracion.iums && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-micro font-bold text-primary/45">IUMs participantes</span>
+              <p className="text-micro text-primary/60 leading-relaxed">{configuracion.iums}</p>
+            </div>
+          )}
+
+          {flujo.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-micro font-bold text-primary/45">Enlaces</span>
+              <div className="flex flex-col gap-1">
+                {flujo.map((f, idx) => (
+                  <div
+                    key={`${f.ium_origen_id}-${f.ium_destino_id}-${idx}`}
+                    className="flex items-center gap-1 text-micro text-primary/60"
+                  >
+                    <span className="truncate">{f.ium_origen}</span>
+                    <span className="text-primary/30 shrink-0">→</span>
+                    <span className="truncate">{f.ium_destino}</span>
+                    {f.tipo_union && (
+                      <span className="ml-auto shrink-0 text-primary/35">({f.tipo_union})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {configuracion.fundamento && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-micro font-bold text-primary/45">Fundamento</span>
+              <p className="text-micro text-primary/55 leading-relaxed whitespace-pre-wrap">
+                {configuracion.fundamento}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Editor completo de un Proceso — mismo patrón que ElementoEditor/
  * CompuestoEditor/ReaccionPanelFlotante: publica sus controles de header
  * (nombre editable, guardar, eliminar) hacia el contenedor si se lo piden,
@@ -420,17 +1146,22 @@ function ProcesoEditor({
   onEliminar,
   onHeaderControlsChange,
   onAbrirReaccion,
+  onAbrirOris,
 }: {
   proceso: Proceso;
   onActualizar: (id: string, cambios: Partial<Proceso>) => void;
   onEliminar?: (id: string) => void;
   onHeaderControlsChange?: OnHeaderControlsChange;
   onAbrirReaccion?: (reaccionId: string) => void;
+  onAbrirOris?: (orisId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [local, setLocal] = useState(proceso);
   const [saving, setSaving] = useState(false);
   const { items: reacciones } = useReacciones();
+  const { items: oris } = useOris();
+  const { items: elementos } = useElementos();
+  const { items: fenomenos } = useFenomenos();
 
   useEffect(() => setLocal(proceso), [proceso]);
 
@@ -588,6 +1319,12 @@ function ProcesoEditor({
               onAbrirReaccion={onAbrirReaccion}
             />
 
+            <OrisCompatiblesBloque procesoId={proceso.id} oris={oris} onAbrirOris={onAbrirOris} />
+
+            <ElementosRelacionadosBloque procesoId={proceso.id} elementos={elementos} />
+
+            <FenomenosRelacionadosBloque procesoId={proceso.id} fenomenos={fenomenos} />
+
             <div className="flex flex-col gap-1.5 min-w-0">
               <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                 Notas
@@ -602,6 +1339,11 @@ function ProcesoEditor({
             </div>
           </div>
         </div>
+
+        {/* Separación visual y conceptual explícita del nivel de
+            "Intervención mediante IUM" respecto al proceso natural de
+            arriba (spec sección 8) — nunca mezclados en la misma columna. */}
+        <ConfiguracionIumBloque procesoId={proceso.id} />
       </div>
     </div>
   );
@@ -619,11 +1361,18 @@ function ProcesoPanelFlotante({
   onCerrar,
   onActualizar,
   onEliminar,
+  onAbrirOris,
 }: {
   proceso: Proceso;
   onCerrar: () => void;
   onActualizar: (id: string, cambios: Partial<Proceso>) => void;
   onEliminar?: (id: string) => void;
+  /** Ver spec sección 4/10: al abrir un Oris compatible desde acá, el
+   *  caller (ElementosPage/FisicaPage, quien conecta ambos catálogos)
+   *  decide cómo mostrarlo — este panel no asume esa navegación. Sin
+   *  callback, el bloque de Oris compatibles queda de solo lectura para
+   *  la navegación (el vínculo en sí sigue siendo editable). */
+  onAbrirOris?: (orisId: string) => void;
 }) {
   const [reaccionAbiertaId, setReaccionAbiertaId] = useState<string | null>(null);
   const { items: reacciones, setItems: setReacciones } = useReacciones();
@@ -671,6 +1420,7 @@ function ProcesoPanelFlotante({
             onActualizar={onActualizar}
             onEliminar={onEliminar}
             onAbrirReaccion={setReaccionAbiertaId}
+            onAbrirOris={onAbrirOris}
           />
         </div>
       </div>
@@ -700,9 +1450,17 @@ interface ProcesosPageProps {
   creating?: boolean;
   onCreate?: () => void;
   onEliminar?: (id: string) => void;
+  /** Ver ProcesoPanelFlotante — opcional, para cuando el caller conecta la
+   *  navegación hacia el catálogo de Oris (spec sección 4/10). */
+  onAbrirOris?: (orisId: string) => void;
 }
 
-export default function ProcesosPage({ creating: creatingProp, onCreate, onEliminar: onEliminarProp }: ProcesosPageProps = {}) {
+export default function ProcesosPage({
+  creating: creatingProp,
+  onCreate,
+  onEliminar: onEliminarProp,
+  onAbrirOris,
+}: ProcesosPageProps = {}) {
   const { items, setItems, loading } = useProcesos();
   const [selected, setSelected] = useState<Proceso | null>(null);
   const [creatingLocal, setCreatingLocal] = useState(false);
@@ -808,6 +1566,7 @@ export default function ProcesosPage({ creating: creatingProp, onCreate, onElimi
           onCerrar={() => setSelected(null)}
           onActualizar={actualizar}
           onEliminar={handleEliminar}
+          onAbrirOris={onAbrirOris}
         />
       )}
     </div>

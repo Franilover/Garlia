@@ -9,11 +9,12 @@
  * foco / al cambiar selects, update directo a Supabase).
  */
 
-import { ChevronLeft, Save, Trash2 } from "lucide-react";
+import { Activity, ChevronLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { useConfirm } from "@/ui/ConfirmModal";
+import { useSupabaseData } from "@/infra/sync/useSupabaseData";
 
 import { OrisTopologiaVisual } from "./OrisTopologiaVisual";
 import { IumVisual } from "./ParticulaVisual";
@@ -29,6 +30,236 @@ import {
 import { useGeometriaIums } from "./useGeometriaIums";
 import { useIumsConParticulas } from "./useIumsConParticulas";
 import { useOrisGrafo } from "./useOrisGrafo";
+import { useProcesos } from "@/domains/garlia/elementos/useProcesos";
+import {
+  vincularOrisAProceso,
+  actualizarOrisProceso,
+  desvincularOrisDeProceso,
+} from "@/domains/garlia/elementos/persistirOrisProceso";
+import { CONFIG_ORIS_PROCESOS, type OrisProceso, type Proceso } from "@/domains/garlia/elementos/types";
+
+/**
+ * CompatibleProcesses(orisId) — spec sección 1/4/10: "el componente de
+ * procesos compatibles debe ser genérico... consultar Supabase usando el
+ * oris_id. No crear un componente separado para cada Oris".
+ *
+ * Lee/escribe directo contra "oris_procesos" (misma tabla y mismas
+ * funciones de persistencia que OrisCompatiblesBloque en
+ * elementos/ProcesosPage.tsx, que hace la operación inversa filtrando por
+ * proceso_id) — un solo componente cubre ambas direcciones de la misma
+ * relación, sin arrays manuales ni mapeos hardcodeados por Oris.
+ */
+function ProcesosCompatiblesBloque({
+  orisId,
+  procesos,
+  onAbrirProceso,
+}: {
+  orisId: string;
+  procesos: Proceso[];
+  onAbrirProceso?: (procesoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { data: vinculos, loading, refetch } = useSupabaseData<OrisProceso>(
+    CONFIG_ORIS_PROCESOS.tabla,
+    { select: CONFIG_ORIS_PROCESOS.select, order: { campo: "prioridad" } },
+  );
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
+  const [nuevoProcesoId, setNuevoProcesoId] = useState("");
+  const [nuevoRol, setNuevoRol] = useState("");
+
+  const vinculosDeEsteOris = useMemo(
+    () => vinculos.filter((v) => v.oris_id === orisId),
+    [vinculos, orisId],
+  );
+
+  const procesosDisponibles = useMemo(
+    () => procesos.filter((p) => !vinculosDeEsteOris.some((v) => v.proceso_id === p.id)),
+    [procesos, vinculosDeEsteOris],
+  );
+
+  async function handlePrioridadBlur(vinculoId: string, valor: string) {
+    const prioridad = valor.trim() === "" ? null : Number(valor);
+    if (prioridad !== null && !Number.isFinite(prioridad)) return;
+    setGuardandoId(vinculoId);
+    await actualizarOrisProceso(vinculoId, { prioridad });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleToggleActivo(vinculo: OrisProceso) {
+    setGuardandoId(vinculo.id);
+    await actualizarOrisProceso(vinculo.id, { activo: !vinculo.activo });
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleQuitar(vinculoId: string, nombre: string) {
+    const ok = await confirm({
+      title: "Desvincular proceso",
+      message: `¿Desvincular "${nombre}" de este Oris? El proceso en sí no se elimina.`,
+    });
+    if (!ok) return;
+    setGuardandoId(vinculoId);
+    await desvincularOrisDeProceso(vinculoId);
+    setGuardandoId(null);
+    refetch();
+  }
+
+  async function handleAgregar() {
+    if (!nuevoProcesoId) return;
+    setGuardandoId(nuevoProcesoId);
+    await vincularOrisAProceso(orisId, nuevoProcesoId, {
+      rol: nuevoRol.trim() || null,
+      prioridad: vinculosDeEsteOris.length,
+    });
+    setGuardandoId(null);
+    setAgregando(false);
+    setNuevoProcesoId("");
+    setNuevoRol("");
+    refetch();
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0">
+      <ConfirmModal />
+      <div className="flex items-center gap-1.5">
+        <span className="text-micro uppercase tracking-wide text-primary/35">
+          Procesos compatibles
+        </span>
+        <button
+          type="button"
+          onClick={() => setAgregando((v) => !v)}
+          disabled={procesosDisponibles.length === 0}
+          title="Vincular un proceso existente"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
+        >
+          <Plus size={10} />
+        </button>
+      </div>
+
+      {agregando && (
+        <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
+          <select
+            value={nuevoProcesoId}
+            onChange={(e) => setNuevoProcesoId(e.target.value)}
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+          >
+            <option value="">Elegir proceso…</option>
+            {procesosDisponibles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-1">
+            <input
+              value={nuevoRol}
+              onChange={(e) => setNuevoRol(e.target.value)}
+              placeholder="Rol (ej. principal, secundario, compatible)"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+            />
+            <button
+              type="button"
+              onClick={handleAgregar}
+              disabled={!nuevoProcesoId || guardandoId === nuevoProcesoId}
+              className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md border border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {guardandoId === nuevoProcesoId ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : (
+                <Plus size={11} />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vinculosDeEsteOris.length === 0 && !agregando ? (
+        <p className="py-1 text-micro text-primary/30">
+          Sin información registrada — ningún proceso está vinculado a este Oris todavía.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {vinculosDeEsteOris.map((vinculo) => {
+            const proceso = procesos.find((p) => p.id === vinculo.proceso_id);
+            const ocupado = guardandoId === vinculo.id;
+            return (
+              <div
+                key={vinculo.id}
+                className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border transition-colors ${
+                  vinculo.activo
+                    ? "border-transparent hover:border-primary/10 hover:bg-primary/[0.03]"
+                    : "border-primary/10 bg-primary/[0.02] opacity-50"
+                }`}
+              >
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    disabled={!onAbrirProceso}
+                    onClick={() => proceso && onAbrirProceso?.(proceso.id)}
+                    title={onAbrirProceso ? "Ver/editar este proceso" : undefined}
+                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                      onAbrirProceso ? "cursor-pointer hover:underline hover:text-primary" : ""
+                    }`}
+                  >
+                    <Activity size={10} className="text-primary/40 shrink-0" />
+                    {proceso?.nombre ?? vinculo.proceso_id.slice(0, 8)}
+                  </button>
+
+                  {vinculo.rol && (
+                    <span
+                      title="Rol tal como está definido en Supabase"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-micro font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
+                    >
+                      {vinculo.rol}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActivo(vinculo)}
+                    disabled={ocupado}
+                    title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
+                    className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
+                      vinculo.activo
+                        ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                        : "text-primary/35 border-primary/10 bg-primary/5"
+                    } disabled:opacity-40`}
+                  >
+                    {vinculo.activo ? "Activo" : "Inactivo"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuitar(vinculo.id, proceso?.nombre ?? vinculo.proceso_id)}
+                    disabled={ocupado}
+                    title="Desvincular de este Oris"
+                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                  >
+                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  defaultValue={vinculo.prioridad ?? ""}
+                  key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
+                  onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
+                  disabled={ocupado}
+                  placeholder="Prioridad"
+                  title="Prioridad"
+                  className="w-20 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   oris: Oris;
@@ -54,6 +285,9 @@ interface Props {
    *  perder el contexto de "vine desde este Oris". Sin esto, el grafo
    *  queda decorativo como antes. */
   onAbrirIum?: (iumId: string) => void;
+  /** Ver ProcesosCompatiblesBloque — opcional, para cuando el contenedor
+   *  (FisicaPage) conecta la navegación hacia el catálogo de Procesos. */
+  onAbrirProceso?: (procesoId: string) => void;
 }
 
 export function OrisEditor({
@@ -65,10 +299,12 @@ export function OrisEditor({
   hideHeader,
   nombreExterno,
   onAbrirIum,
+  onAbrirProceso,
 }: Props) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
   const [local, setLocal] = useState(oris);
+  const { items: procesos } = useProcesos();
 
   useEffect(() => setLocal(oris), [oris]);
 
@@ -301,6 +537,12 @@ export function OrisEditor({
               className="flex-1 min-h-0 bg-transparent rounded-md px-2 py-1.5 text-sm text-primary outline-none border border-primary/15 focus:border-primary/40 transition-colors resize-none placeholder:text-primary/25"
             />
           </div>
+
+          <ProcesosCompatiblesBloque
+            orisId={oris.id}
+            procesos={procesos}
+            onAbrirProceso={onAbrirProceso}
+          />
         </div>
       </div>
     </div>

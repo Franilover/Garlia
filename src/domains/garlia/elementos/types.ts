@@ -1513,6 +1513,46 @@ export interface FenomenoElemento {
   created_at: string;
 }
 
+/**
+ * Fila de "oris_procesos" — tabla puente Oris↔Proceso (spec "Actualizar
+ * frontend Procesos/Oris" sección 4). Un mismo proceso puede tener varias
+ * filas (una por Oris compatible) sin que eso implique procesos
+ * duplicados — sección 6 del spec.
+ */
+export interface OrisProceso {
+  id: string;
+  oris_id: string;
+  proceso_id: string;
+  /** Valor real de Supabase — no se reinterpreta en frontend (spec
+   *  sección 5). Esperable: "principal" | "secundario" | "compatible",
+   *  pero se muestra tal cual venga, sin normalizar a un enum fijo. */
+  rol: string | null;
+  prioridad: number | null;
+  activo: boolean;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Fila de "elemento_procesos" — tabla puente Elemento↔Proceso. */
+export interface ElementoProceso {
+  id: string;
+  elemento_id: string;
+  proceso_id: string;
+  rol: string | null;
+  created_at: string;
+}
+
+export const CONFIG_ORIS_PROCESOS = {
+  tabla: "oris_procesos",
+  select: "id, oris_id, proceso_id, rol, prioridad, activo, notas, created_at, updated_at",
+};
+
+export const CONFIG_ELEMENTO_PROCESOS = {
+  tabla: "elemento_procesos",
+  select: "id, elemento_id, proceso_id, rol, created_at",
+};
+
 export const CONFIG_PROCESOS = {
   tabla: "procesos",
   // 2026-08-27: agregadas las columnas reales que faltaban (regla_clave,
@@ -1526,6 +1566,11 @@ export const CONFIG_PROCESOS = {
 export const CONFIG_FENOMENOS = {
   tabla: "fenomenos",
   select: "id, nombre, simbolo, notas, created_at, updated_at",
+};
+
+export const CONFIG_FENOMENO_PROCESOS = {
+  tabla: "fenomeno_procesos",
+  select: "id, fenomeno_id, proceso_id, rol, created_at",
 };
 
 export const CONFIG_PROCESO_REACCIONES = {
