@@ -34,7 +34,7 @@
  *     en el resto de fisica/ vía useOrisConIums)
  */
 
-import { AlertTriangle, ChevronDown, ChevronRight, FlaskConical, Loader2, RefreshCw } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -134,6 +134,51 @@ function useOrisDemandaEterium() {
       vivo = false;
     };
   }, []);
+
+  return estado;
+}
+
+// ─── IUMs del Oris seleccionado (fuente: oris_iums + iums) ─────────────────
+
+interface FilaOrisIum {
+  ium_id: string;
+  nombre: string;
+  cantidad: number;
+}
+
+function useIumsDeOris(orisId: string | null) {
+  const [estado, setEstado] = useState<EstadoContrato<FilaOrisIum[]>>({ estado: "ok", datos: [] });
+
+  useEffect(() => {
+    if (!orisId) {
+      setEstado({ estado: "ok", datos: [] });
+      return;
+    }
+    let vivo = true;
+    setEstado({ estado: "cargando" });
+    (async () => {
+      const { data, error } = await supabase
+        .from("oris_iums")
+        .select("ium_id, cantidad, iums(nombre)")
+        .eq("oris_id", orisId);
+      if (!vivo) return;
+      if (error) {
+        setEstado({ estado: "bloqueado", contrato: "oris_iums", motivo: error.message });
+        return;
+      }
+      const filas = (data ?? [])
+        .map((f: any) => ({
+          ium_id: f.ium_id,
+          nombre: f.iums?.nombre ?? f.ium_id,
+          cantidad: f.cantidad,
+        }))
+        .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre));
+      setEstado({ estado: "ok", datos: filas });
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [orisId]);
 
   return estado;
 }
@@ -431,6 +476,7 @@ export function SimuladorEterium({ orisInicial }: Props) {
 
   const [trazaAbierta, setTrazaAbierta] = useState(false);
 
+  const iumsDeOris = useIumsDeOris(orisId);
   const procesos = useProcesosDeOris(orisId);
   const magnitudesReq = useMagnitudesRequeridas(procesoId);
   const calibracion = useCalibracionProceso(procesoId);
@@ -498,26 +544,6 @@ export function SimuladorEterium({ orisInicial }: Props) {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-3 gap-4">
-      <div className="flex items-start gap-2">
-        <div
-          className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
-          style={{
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
-          }}
-        >
-          <FlaskConical className="text-primary/50" size={13} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-black text-primary">Laboratorio de Eterium</p>
-          <p className="text-micro text-primary/45 leading-relaxed">
-            Intención → Oris → proceso → magnitudes físicas → coste físico → coste de
-            organización → coste temporal → Eterium estable → Eterium liberado según práctica.
-            Todo se resuelve contra el canon actual de Supabase; nada se calcula acá.
-          </p>
-        </div>
-      </div>
-
       {/* Paso 1: Oris */}
       <div className="flex flex-col gap-1.5">
         <span className="text-micro font-black uppercase tracking-widest text-primary/40">
@@ -538,12 +564,36 @@ export function SimuladorEterium({ orisInicial }: Props) {
             <option value="">Seleccionar Oris…</option>
             {orisDemanda.datos.map((o) => (
               <option key={o.oris_id} value={o.oris_id}>
-                {o.formula ? `${o.formula} — ` : ""}
                 {o.nombre}
               </option>
             ))}
           </select>
         )}
+
+        {/* IUMs del Oris seleccionado — fuente: oris_iums + iums, mismo
+            catálogo que usa OrisEditor, sin inventar nombres. */}
+        {orisId &&
+          (iumsDeOris.estado === "cargando" ? (
+            <div className="flex items-center gap-1.5 text-micro text-primary/40 pt-1">
+              <Loader2 size={11} className="animate-spin" /> Cargando IUMs…
+            </div>
+          ) : iumsDeOris.estado === "bloqueado" ? (
+            <ContratoFaltante contrato={iumsDeOris.contrato} motivo={iumsDeOris.motivo} />
+          ) : iumsDeOris.datos.length === 0 ? (
+            <p className="text-micro text-primary/30 italic pt-1">Sin IUMs en la composición.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {iumsDeOris.datos.map((i) => (
+                <span
+                  key={i.ium_id}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md border border-primary/15 bg-primary/5 text-micro font-bold text-primary"
+                >
+                  {i.cantidad > 1 && <span className="text-primary/40">{i.cantidad}×</span>}
+                  {i.nombre}
+                </span>
+              ))}
+            </div>
+          ))}
 
         {orisSeleccionado && (
           <div className="flex flex-wrap gap-3 text-micro text-primary/50 pt-1">
