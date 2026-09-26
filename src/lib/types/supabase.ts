@@ -13355,6 +13355,36 @@ export type Database = {
           },
         ]
       }
+      eventos: {
+        Row: {
+          created_at: string
+          fecha: string
+          hora_inicio: string | null
+          id: string
+          tipo: string | null
+          titulo: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          fecha: string
+          hora_inicio?: string | null
+          id?: string
+          tipo?: string | null
+          titulo: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          fecha?: string
+          hora_inicio?: string | null
+          id?: string
+          tipo?: string | null
+          titulo?: string
+          username?: string
+        }
+        Relationships: []
+      }
       eventos_mundo: {
         Row: {
           created_at: string | null
