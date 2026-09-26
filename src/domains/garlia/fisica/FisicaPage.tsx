@@ -31,6 +31,9 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 
 import { OrisEditor } from "./OrisEditor";
 import { SimuladorEterium } from "./SimuladorEterium";
+import { useProcesos } from "@/domains/garlia/elementos/useProcesos";
+import { ProcesoPanelFlotante } from "@/domains/garlia/elementos/ProcesosPage";
+import type { Proceso } from "@/domains/garlia/elementos/types";
 import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
 import { useGeometriaIums } from "./useGeometriaIums";
 import { useOrisQueUsanIum } from "./useOrisConIums";
@@ -464,6 +467,21 @@ function TodasLasBasesView({
     { tipo: "oris"; id: string } | { tipo: "ium"; id: string } | null
   >(null);
 
+  // Fallback interno de "abrir Proceso desde Oris" (ver ProcesosPage.tsx,
+  // caso inverso "abrir Oris desde Proceso"): estado separado, no parte
+  // de panelFisicaActivo, porque Proceso vive en el dominio "elementos",
+  // no "fisica" — el panel de Proceso se apila encima del de Oris en vez
+  // de reemplazarlo (igual que hace OrisPanelFlotanteInline con el suyo).
+  const { items: procesosItems, setItems: setProcesosItems } = useProcesos();
+  const [procesoAbiertoId, setProcesoAbiertoId] = useState<string | null>(null);
+  const procesoAbierto = procesoAbiertoId
+    ? procesosItems.find((p) => p.id === procesoAbiertoId) ?? null
+    : null;
+
+  function actualizarProcesoLocal(id: string, cambios: Partial<Proceso>) {
+    setProcesosItems((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+  }
+
   // Simulador de requerimiento de Eterium — panel flotante independiente
   // del panel de detalle de Oris/Ium, abierto desde el botón junto al
   // título "Oris" (ver BasesRowTitle → accion). No preselecciona ningún
@@ -658,6 +676,18 @@ function TodasLasBasesView({
           onActualizar={onActualizarOris}
           onEliminar={onEliminarOris}
           onAbrirIum={(iumId) => setPanelFisicaActivo({ tipo: "ium", id: iumId })}
+          onAbrirProceso={(procesoId) => setProcesoAbiertoId(procesoId)}
+        />
+      )}
+      {procesoAbierto && (
+        <ProcesoPanelFlotante
+          proceso={procesoAbierto}
+          onCerrar={() => setProcesoAbiertoId(null)}
+          onActualizar={actualizarProcesoLocal}
+          onAbrirOris={(orisId) => {
+            setProcesoAbiertoId(null);
+            setPanelFisicaActivo({ tipo: "oris", id: orisId });
+          }}
         />
       )}
       {iumActivoEnPanel && (
@@ -1070,6 +1100,7 @@ function OrisPanelFlotante({
   onActualizar,
   onEliminar,
   onAbrirIum,
+  onAbrirProceso,
 }: {
   oris: Oris;
   onCerrar: () => void;
@@ -1078,6 +1109,10 @@ function OrisPanelFlotante({
   /** Ver comentario en OrisEditor — click en un nodo del grafo de Iums
    *  cierra este panel y abre el del Ium correspondiente. */
   onAbrirIum?: (iumId: string) => void;
+  /** Ver comentario en OrisEditor — click en un proceso compatible cierra
+   *  este panel y abre el de ese Proceso (fallback interno, ver
+   *  FisicaPage principal más abajo). */
+  onAbrirProceso?: (procesoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [nombreLocal, setNombreLocal] = useState(oris.nombre ?? "");
@@ -1213,6 +1248,7 @@ function OrisPanelFlotante({
                 : undefined
             }
             onAbrirIum={onAbrirIum}
+            onAbrirProceso={onAbrirProceso}
           />
         </div>
       </div>
@@ -2173,6 +2209,19 @@ export function FisicaPage({
     [conceptosLocal, seleccion],
   );
 
+  // Mismo fallback "abrir Proceso desde Oris" que en TodasLasBasesView
+  // (ver comentario ahí) — necesario también acá porque este
+  // OrisPanelFlotante de deep-link es una instancia separada.
+  const { items: procesosItemsTop, setItems: setProcesosItemsTop } = useProcesos();
+  const [procesoAbiertoIdTop, setProcesoAbiertoIdTop] = useState<string | null>(null);
+  const procesoAbiertoTop = procesoAbiertoIdTop
+    ? procesosItemsTop.find((p) => p.id === procesoAbiertoIdTop) ?? null
+    : null;
+
+  function actualizarProcesoLocalTop(id: string, cambios: Partial<Proceso>) {
+    setProcesosItemsTop((prev) => prev.map((p) => (p.id === id ? { ...p, ...cambios } : p)));
+  }
+
   return (
     <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* Panel flotante de Oris cuando se abre por deep-link
@@ -2185,6 +2234,18 @@ export function FisicaPage({
           onCerrar={() => setSeleccion({ tipo: "todas-bases" })}
           onActualizar={onActualizarOris}
           onEliminar={onEliminarOris}
+          onAbrirProceso={(procesoId) => setProcesoAbiertoIdTop(procesoId)}
+        />
+      )}
+      {procesoAbiertoTop && (
+        <ProcesoPanelFlotante
+          proceso={procesoAbiertoTop}
+          onCerrar={() => setProcesoAbiertoIdTop(null)}
+          onActualizar={actualizarProcesoLocalTop}
+          onAbrirOris={(orisId) => {
+            setProcesoAbiertoIdTop(null);
+            setSeleccion({ tipo: "oris", id: orisId });
+          }}
         />
       )}
 

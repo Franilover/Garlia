@@ -15,7 +15,7 @@
  * independiente, no una etapa obligatoria de Proceso.
  */
 
-import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Trash2, Zap } from "lucide-react";
+import { Activity, Atom, Beaker, Cpu, Loader2, Plus, Save, Trash2, X, Zap } from "lucide-react";
 import { createPortal } from "react-dom";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -34,6 +34,7 @@ import { useElementos } from "./useElementos";
 import { useFenomenos } from "./useFenomenos";
 import { useOris } from "@/domains/garlia/fisica/useFisica";
 import type { Oris } from "@/domains/garlia/fisica/types";
+import { OrisEditor } from "@/domains/garlia/fisica/OrisEditor";
 import { ReaccionPanelFlotante } from "./ReaccionesPage";
 import {
   vincularReaccionAProceso,
@@ -1328,7 +1329,11 @@ function ProcesoEditor({
  * Apila el panel flotante de una Reacción vinculada, si se abre una — mismo
  * patrón de apilado que celulaAbierta/materialAbierto en CompuestoEditor.
  */
-function ProcesoPanelFlotante({
+/** Exportado para que fisica/FisicaPage.tsx pueda abrirlo directamente
+ *  como fallback interno de "click en un proceso compatible desde el
+ *  editor de Oris" — mismo patrón inverso que OrisPanelFlotanteInline
+ *  acá abajo. */
+export function ProcesoPanelFlotante({
   proceso,
   onCerrar,
   onActualizar,
@@ -1413,6 +1418,119 @@ function ProcesoPanelFlotante({
   );
 }
 
+/**
+ * OrisPanelFlotanteInline — versión mínima del panel flotante de Oris
+ * (calcado de OrisPanelFlotante en fisica/FisicaPage.tsx, que no está
+ * exportado), usada como fallback interno de ProcesosPage cuando el
+ * caller externo no conecta `onAbrirOris`: permite que "click en un Oris
+ * compatible" abra su editor sin depender de FisicaPage.
+ *
+ * Update/eliminar van directo contra Supabase (mismo patrón que
+ * handleCrearLocal/handleEliminarLocal de acá arriba) porque useOris()
+ * solo expone `setItems` local, no una función de escritura real.
+ */
+function OrisPanelFlotanteInline({
+  oris,
+  onCerrar,
+  onActualizarLocal,
+  onAbrirProceso,
+}: {
+  oris: Oris;
+  onCerrar: () => void;
+  onActualizarLocal: (id: string, cambios: Partial<Oris>) => void;
+  onAbrirProceso?: (procesoId: string) => void;
+}) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const [nombre, setNombre] = useState(oris.nombre);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setNombre(oris.nombre), [oris.id, oris.nombre]);
+
+  async function guardarNombre() {
+    if (nombre === oris.nombre) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("oris").update({ nombre }).eq("id", oris.id);
+      if (error) throw error;
+      onActualizarLocal(oris.id, { nombre });
+    } catch (e) {
+      console.error("[ProcesosPage] error actualizando oris:", e);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleActualizarCampo(cambios: Partial<Oris>) {
+    try {
+      const { error } = await supabase.from("oris").update(cambios).eq("id", oris.id);
+      if (error) throw error;
+      onActualizarLocal(oris.id, cambios);
+    } catch (e) {
+      console.error("[ProcesosPage] error actualizando oris:", e);
+    }
+  }
+
+  async function handleEliminar() {
+    const ok = await confirm({
+      titulo: "¿Eliminar este Oris?",
+      mensaje: `Se eliminará "${oris.nombre}" permanentemente.`,
+    });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from("oris").delete().eq("id", oris.id);
+      if (error) throw error;
+      onCerrar();
+    } catch (e) {
+      console.error("[ProcesosPage] error eliminando oris:", e);
+    }
+  }
+
+  return createPortal(
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm px-3">
+      <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-primary/15 bg-[var(--panel-bg,#0d0d10)] shadow-2xl">
+        <div className="flex items-center gap-2 border-b border-primary/10 px-4 py-3">
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            onBlur={guardarNombre}
+            className="min-w-0 flex-1 bg-transparent text-base font-bold text-primary outline-none"
+            placeholder="Nombre del Oris"
+          />
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary/40" />}
+          <button
+            type="button"
+            onClick={handleEliminar}
+            title="Eliminar Oris"
+            className="rounded-md p-1.5 text-primary/40 hover:bg-red-500/10 hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar"
+            className="rounded-md p-1.5 text-primary/40 hover:bg-primary/10 hover:text-primary"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-4 py-3">
+          <OrisEditor
+            oris={oris}
+            embedded
+            hideHeader
+            nombreExterno={nombre}
+            onActualizar={handleActualizarCampo}
+            onAbrirProceso={onAbrirProceso}
+          />
+        </div>
+      </div>
+      <ConfirmModal />
+    </div>,
+    document.body,
+  );
+}
+
 interface ProcesosPageProps {
   /** Opcionales — mismo patrón que ReaccionesPage: si el caller (ver
    *  ElementosPage.tsx, header de sección vía CabeceraSeccionConMenu) ya
@@ -1437,6 +1555,32 @@ export default function ProcesosPage({
   const [selected, setSelected] = useState<Proceso | null>(null);
   const [creatingLocal, setCreatingLocal] = useState(false);
   const creating = creatingProp ?? creatingLocal;
+
+  // Fallback interno de "abrir Oris": si el caller (FisicaPage vía padre
+  // común) no pasa onAbrirOris, este panel se abre solo con
+  // OrisPanelFlotanteInline — ver comentario ahí arriba.
+  const { items: orisItems, setItems: setOrisItems } = useOris();
+  const [orisAbiertoId, setOrisAbiertoId] = useState<string | null>(null);
+  const orisAbierto = orisAbiertoId ? orisItems.find((o) => o.id === orisAbiertoId) ?? null : null;
+
+  const handleAbrirOris =
+    onAbrirOris ??
+    ((orisId: string) => {
+      setSelected(null);
+      setOrisAbiertoId(orisId);
+    });
+
+  function actualizarOrisLocal(id: string, cambios: Partial<Oris>) {
+    setOrisItems((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
+  }
+
+  // Inverso: dentro del OrisEditor embebido, "click en un proceso
+  // compatible" cierra el panel de Oris y abre el de Proceso.
+  function handleAbrirProcesoDesdeOris(procesoId: string) {
+    setOrisAbiertoId(null);
+    const proceso = items.find((p) => p.id === procesoId) ?? null;
+    if (proceso) setSelected(proceso);
+  }
 
   // Mismo layout tipo "biblioteca" que Materiales/Estructuras/Compuestos:
   // grupos por categoría (acá "tipo") repartidos en columnas responsivas
@@ -1538,7 +1682,16 @@ export default function ProcesosPage({
           onCerrar={() => setSelected(null)}
           onActualizar={actualizar}
           onEliminar={handleEliminar}
-          onAbrirOris={onAbrirOris}
+          onAbrirOris={handleAbrirOris}
+        />
+      )}
+
+      {orisAbierto && (
+        <OrisPanelFlotanteInline
+          oris={orisAbierto}
+          onCerrar={() => setOrisAbiertoId(null)}
+          onActualizarLocal={actualizarOrisLocal}
+          onAbrirProceso={handleAbrirProcesoDesdeOris}
         />
       )}
     </div>
