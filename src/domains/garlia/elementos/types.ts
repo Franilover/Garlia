@@ -1578,11 +1578,6 @@ export const CONFIG_PROCESO_REACCIONES = {
   select: "id, proceso_id, reaccion_id, orden, rol, created_at",
 };
 
-export const CONFIG_FENOMENO_PROCESOS = {
-  tabla: "fenomeno_procesos",
-  select: "id, fenomeno_id, proceso_id, rol, created_at",
-};
-
 export const CONFIG_FENOMENO_ELEMENTOS = {
   tabla: "fenomeno_elementos",
   select: "id, fenomeno_id, elemento_id, cantidad, rol, created_at",
