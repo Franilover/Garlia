@@ -56,10 +56,6 @@ const SYNC_TABLES: Record<
     supabaseTable: "criaturas",
     excludeFields: ["status", "deleted"],
   },
-  criatura_variantes: {
-    supabaseTable: "criatura_variantes",
-    excludeFields: ["status", "deleted"],
-  },
   items: { supabaseTable: "items", excludeFields: ["status", "deleted"] },
   reinos: { supabaseTable: "reinos", excludeFields: ["status", "deleted"] },
   relaciones: {

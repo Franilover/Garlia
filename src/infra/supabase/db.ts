@@ -16,13 +16,6 @@ export interface Criatura {
   [key: string]: any;
 }
 
-export interface CriaturaVariante {
-  id: string;
-  criatura_id: string;
-  tipo?: string;
-  [key: string]: any;
-}
-
 export interface Item {
   id: string;
   nombre?: string;
@@ -884,7 +877,6 @@ export interface PerfilAtomicoCriaturaLocal {
 class AgendaFraniDB extends Dexie {
   personajes!: Table<Personaje, string>;
   criaturas!: Table<Criatura, string>;
-  criatura_variantes!: Table<CriaturaVariante, string>;
   items!: Table<Item, string>;
   libros!: Table<Libro, string>;
   capitulos!: Table<Capitulo, string>;
@@ -1132,7 +1124,6 @@ class AgendaFraniDB extends Dexie {
     this.version(1).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1154,7 +1145,6 @@ class AgendaFraniDB extends Dexie {
     this.version(2).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1177,7 +1167,6 @@ class AgendaFraniDB extends Dexie {
     this.version(3).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1202,7 +1191,6 @@ class AgendaFraniDB extends Dexie {
     this.version(4).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1229,7 +1217,6 @@ class AgendaFraniDB extends Dexie {
     this.version(5).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1257,7 +1244,6 @@ class AgendaFraniDB extends Dexie {
     this.version(6).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1287,7 +1273,6 @@ class AgendaFraniDB extends Dexie {
     this.version(7).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1319,7 +1304,6 @@ class AgendaFraniDB extends Dexie {
     this.version(8).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1351,7 +1335,6 @@ class AgendaFraniDB extends Dexie {
     this.version(9).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1384,7 +1367,6 @@ class AgendaFraniDB extends Dexie {
     this.version(10).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1419,7 +1401,6 @@ class AgendaFraniDB extends Dexie {
     this.version(11).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1456,7 +1437,6 @@ class AgendaFraniDB extends Dexie {
     this.version(12).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1494,7 +1474,6 @@ class AgendaFraniDB extends Dexie {
     this.version(13).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1534,7 +1513,6 @@ class AgendaFraniDB extends Dexie {
     this.version(14).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion",
@@ -1577,7 +1555,6 @@ class AgendaFraniDB extends Dexie {
     this.version(15).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo", // ← orden_linea_tiempo indexado
@@ -1619,7 +1596,6 @@ class AgendaFraniDB extends Dexie {
     this.version(16).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos: "id, libro_id, orden, fecha_publicacion, orden_linea_tiempo",
@@ -1665,7 +1641,6 @@ class AgendaFraniDB extends Dexie {
     this.version(17).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos:
@@ -1716,7 +1691,6 @@ class AgendaFraniDB extends Dexie {
     this.version(19).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos:
@@ -1765,7 +1739,6 @@ class AgendaFraniDB extends Dexie {
     this.version(20).stores({
       personajes: "id, nombre, visible",
       criaturas: "id, nombre, habitat, alma, pensamiento",
-      criatura_variantes: "id, criatura_id, tipo",
       items: "id, nombre, categoria",
       libros: "id, created_at",
       capitulos:

@@ -145,12 +145,3 @@ export const CRIATURA_STATS_DND_VACIO: CriaturaStatsDnd = {
   acciones_legendarias_intro: null,
   acciones_legendarias: [],
 };
-
-export type CriaturaVariante = {
-  id: string;
-  criatura_id: string;
-  tipo: string;
-  descripcion?: string;
-  imagen_url?: string;
-  notas?: string;
-};

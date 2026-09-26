@@ -48,7 +48,6 @@ const QUERIES_MAP: Record<string, any> = {
 const DEXIE_TABLES = new Set([
   "personajes",
   "criaturas",
-  "criatura_variantes",
   "items",
   "libros",
   "canciones",
@@ -224,7 +223,6 @@ const OFFLINE_WRITABLE = new Set([
   "dibujos",
   "personajes",
   "criaturas",
-  "criatura_variantes",
   "items",
   "reinos",
   "relaciones",
