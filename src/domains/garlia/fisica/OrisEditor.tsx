@@ -195,7 +195,7 @@ function ProcesosCompatiblesBloque({
                     : "border-primary/10 bg-primary/[0.02] opacity-50"
                 }`}
               >
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     disabled={!onAbrirProceso}
@@ -207,6 +207,29 @@ function ProcesosCompatiblesBloque({
                   >
                     {proceso?.nombre ?? vinculo.proceso_id.slice(0, 8)}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuitar(vinculo.id, proceso?.nombre ?? vinculo.proceso_id)}
+                    disabled={ocupado}
+                    title="Desvincular de este Oris"
+                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+                  >
+                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <input
+                    type="number"
+                    defaultValue={vinculo.prioridad ?? ""}
+                    key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
+                    onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
+                    disabled={ocupado}
+                    placeholder="Prioridad"
+                    title="Prioridad"
+                    className="w-20 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
 
                   {vinculo.rol && (
                     <span
@@ -230,27 +253,7 @@ function ProcesosCompatiblesBloque({
                   >
                     {vinculo.activo ? "Activo" : "Inactivo"}
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuitar(vinculo.id, proceso?.nombre ?? vinculo.proceso_id)}
-                    disabled={ocupado}
-                    title="Desvincular de este Oris"
-                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
-                  >
-                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
-                  </button>
                 </div>
-                <input
-                  type="number"
-                  defaultValue={vinculo.prioridad ?? ""}
-                  key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
-                  onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
-                  disabled={ocupado}
-                  placeholder="Prioridad"
-                  title="Prioridad"
-                  className="w-20 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
               </div>
             );
           })}
