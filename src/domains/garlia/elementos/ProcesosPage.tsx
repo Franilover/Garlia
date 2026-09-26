@@ -317,10 +317,10 @@ function ReaccionesVinculadasBloque({
   if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
       <ConfirmModal />
       <div className="flex items-center gap-1.5">
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
           Reacciones
         </span>
         <button
@@ -333,16 +333,13 @@ function ReaccionesVinculadasBloque({
           <Plus size={10} />
         </button>
       </div>
-      <p className="text-micro text-primary/35 -mt-1">
-        Opcional: transformación material específica asociada a este proceso, si existe.
-      </p>
 
       {agregando && (
         <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
           <select
             value={nuevaReaccionId}
             onChange={(e) => setNuevaReaccionId(e.target.value)}
-            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
           >
             <option value="">Elegir reacción…</option>
             {reaccionesDisponibles.map((r) => (
@@ -356,7 +353,7 @@ function ReaccionesVinculadasBloque({
               value={nuevoRol}
               onChange={(e) => setNuevoRol(e.target.value)}
               placeholder="Rol (opcional)"
-              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
             />
             <button
               type="button"
@@ -375,7 +372,7 @@ function ReaccionesVinculadasBloque({
       )}
 
       {vinculosDeEsteProceso.length === 0 && !agregando ? (
-        <p className="py-1 text-micro text-primary/30">
+        <p className="py-1 text-sm text-primary/30">
           Sin reacción asociada — no todo proceso tiene una, y eso no es un dato faltante.
         </p>
       ) : (
@@ -394,7 +391,7 @@ function ReaccionesVinculadasBloque({
                     disabled={!onAbrirReaccion}
                     onClick={() => reaccion && onAbrirReaccion?.(reaccion.id)}
                     title={onAbrirReaccion ? "Ver/editar esta reacción" : undefined}
-                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                    className={`flex items-center gap-1 text-sm font-bold text-primary/70 truncate text-left ${
                       onAbrirReaccion ? "cursor-pointer hover:underline hover:text-primary" : ""
                     }`}
                   >
@@ -420,7 +417,7 @@ function ReaccionesVinculadasBloque({
                     disabled={ocupado}
                     placeholder="#"
                     title="Orden"
-                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <input
                     defaultValue={vinculo.rol ?? ""}
@@ -429,7 +426,7 @@ function ReaccionesVinculadasBloque({
                     disabled={ocupado}
                     placeholder="Rol"
                     title="Rol"
-                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
                   />
                 </div>
               </div>
@@ -540,10 +537,10 @@ function OrisCompatiblesBloque({
   if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
       <ConfirmModal />
       <div className="flex items-center gap-1.5">
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
           Oris compatibles
         </span>
         <button
@@ -556,17 +553,13 @@ function OrisCompatiblesBloque({
           <Plus size={10} />
         </button>
       </div>
-      <p className="text-micro text-primary/35 -mt-1">
-        Qué Oris pueden ejecutar este proceso — solo aparece si Supabase indica que está
-        relacionado y activo.
-      </p>
 
       {agregando && (
         <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-primary/10 bg-primary/5">
           <select
             value={nuevoOrisId}
             onChange={(e) => setNuevoOrisId(e.target.value)}
-            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
           >
             <option value="">Elegir Oris…</option>
             {orisDisponibles.map((o) => (
@@ -580,7 +573,7 @@ function OrisCompatiblesBloque({
               value={nuevoRol}
               onChange={(e) => setNuevoRol(e.target.value)}
               placeholder="Rol (ej. principal, secundario, compatible)"
-              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
             />
             <button
               type="button"
@@ -599,7 +592,7 @@ function OrisCompatiblesBloque({
       )}
 
       {vinculosDeEsteProceso.length === 0 && !agregando ? (
-        <p className="py-1 text-micro text-primary/30">
+        <p className="py-1 text-sm text-primary/30">
           Sin información registrada — ningún Oris está vinculado a este proceso todavía.
         </p>
       ) : (
@@ -622,7 +615,7 @@ function OrisCompatiblesBloque({
                     disabled={!onAbrirOris}
                     onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
                     title={onAbrirOris ? "Ver/editar este Oris" : undefined}
-                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
+                    className={`flex items-center gap-1 text-sm font-bold text-primary/70 truncate text-left ${
                       onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
                     }`}
                   >
@@ -633,7 +626,7 @@ function OrisCompatiblesBloque({
                   {vinculo.rol && (
                     <span
                       title="Rol tal como está definido en Supabase"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-micro font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-sm font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
                     >
                       {vinculo.rol}
                     </span>
@@ -644,7 +637,7 @@ function OrisCompatiblesBloque({
                     onClick={() => handleToggleActivo(vinculo)}
                     disabled={ocupado}
                     title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
+                    className={`shrink-0 px-1.5 py-0.5 rounded text-sm font-bold border transition-colors ${
                       vinculo.activo
                         ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
                         : "text-primary/35 border-primary/10 bg-primary/5"
@@ -672,7 +665,7 @@ function OrisCompatiblesBloque({
                     disabled={ocupado}
                     placeholder="#"
                     title="Prioridad"
-                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <input
                     defaultValue={vinculo.notas ?? ""}
@@ -681,7 +674,7 @@ function OrisCompatiblesBloque({
                     disabled={ocupado}
                     placeholder="Notas"
                     title="Notas"
-                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
                   />
                 </div>
               </div>
@@ -760,10 +753,10 @@ function ElementosRelacionadosBloque({
   if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
       <ConfirmModal />
       <div className="flex items-center gap-1.5">
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
           Elementos relacionados
         </span>
         <button
@@ -782,7 +775,7 @@ function ElementosRelacionadosBloque({
           <select
             value={nuevoElementoId}
             onChange={(e) => setNuevoElementoId(e.target.value)}
-            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
           >
             <option value="">Elegir elemento…</option>
             {elementosDisponibles.map((el) => (
@@ -796,7 +789,7 @@ function ElementosRelacionadosBloque({
               value={nuevoRol}
               onChange={(e) => setNuevoRol(e.target.value)}
               placeholder="Rol (opcional)"
-              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
             />
             <button
               type="button"
@@ -815,7 +808,7 @@ function ElementosRelacionadosBloque({
       )}
 
       {vinculosDeEsteProceso.length === 0 && !agregando ? (
-        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+        <p className="py-1 text-sm text-primary/30">Sin información registrada.</p>
       ) : (
         <div className="flex flex-col gap-1">
           {vinculosDeEsteProceso.map((vinculo) => {
@@ -827,7 +820,7 @@ function ElementosRelacionadosBloque({
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
               >
                 <Atom size={10} className="text-primary/40 shrink-0" />
-                <span className="text-micro font-bold text-primary/70 truncate">
+                <span className="text-sm font-bold text-primary/70 truncate">
                   {elemento ? `${elemento.nombre} (${elemento.simbolo})` : vinculo.elemento_id.slice(0, 8)}
                 </span>
                 <input
@@ -836,7 +829,7 @@ function ElementosRelacionadosBloque({
                   onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
                   disabled={ocupado}
                   placeholder="Rol"
-                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
                 />
                 <button
                   type="button"
@@ -921,10 +914,10 @@ function FenomenosRelacionadosBloque({
   if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0 p-2">
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
       <ConfirmModal />
       <div className="flex items-center gap-1.5">
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
           Fenómenos relacionados
         </span>
         <button
@@ -943,7 +936,7 @@ function FenomenosRelacionadosBloque({
           <select
             value={nuevoFenomenoId}
             onChange={(e) => setNuevoFenomenoId(e.target.value)}
-            className="bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
+            className="bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30"
           >
             <option value="">Elegir fenómeno…</option>
             {fenomenosDisponibles.map((f) => (
@@ -957,7 +950,7 @@ function FenomenosRelacionadosBloque({
               value={nuevoRol}
               onChange={(e) => setNuevoRol(e.target.value)}
               placeholder="Rol (opcional)"
-              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+              className="flex-1 bg-primary/5 rounded-md px-1.5 py-1 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
             />
             <button
               type="button"
@@ -976,7 +969,7 @@ function FenomenosRelacionadosBloque({
       )}
 
       {vinculosDeEsteProceso.length === 0 && !agregando ? (
-        <p className="py-1 text-micro text-primary/30">Sin información registrada.</p>
+        <p className="py-1 text-sm text-primary/30">Sin información registrada.</p>
       ) : (
         <div className="flex flex-col gap-1">
           {vinculosDeEsteProceso.map((vinculo) => {
@@ -988,7 +981,7 @@ function FenomenosRelacionadosBloque({
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
               >
                 <Zap size={10} className="text-primary/40 shrink-0" />
-                <span className="text-micro font-bold text-primary/70 truncate">
+                <span className="text-sm font-bold text-primary/70 truncate">
                   {fenomeno?.nombre ?? vinculo.fenomeno_id.slice(0, 8)}
                 </span>
                 <input
@@ -997,7 +990,7 @@ function FenomenosRelacionadosBloque({
                   onBlur={(e) => handleRolBlur(vinculo.id, e.target.value)}
                   disabled={ocupado}
                   placeholder="Rol"
-                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+                  className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-sm font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
                 />
                 <button
                   type="button"
@@ -1036,29 +1029,25 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
   if (loading) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-0 p-2 rounded-md border border-primary/10 bg-primary/[0.02]">
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
       <div className="flex items-center gap-1.5">
-        <Cpu size={11} className="text-primary/40 shrink-0" />
-        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <Cpu size={13} className="text-primary/40 shrink-0" />
+        <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
           Configuración IUM · Intervención
         </span>
       </div>
-      <p className="text-micro text-primary/35 -mt-1">
-        Manipulación intencional de este proceso mediante una arquitectura IUM — separado del
-        proceso natural, que existe con sus propias reglas independientemente de esto.
-      </p>
 
       {!configuracion ? (
-        <p className="py-1 text-micro text-primary/30">Sin configuración IUM</p>
+        <p className="py-1 text-sm text-primary/30">Sin configuración IUM</p>
       ) : (
         <div className="flex flex-col gap-2 mt-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-micro font-bold text-primary/70">
+            <span className="text-sm font-bold text-primary/70">
               {configuracion.configuracion ?? "Configuración sin nombre"}
             </span>
             <span
               title="Estado real registrado en Supabase — nunca se presenta como canónica si no lo es"
-              className={`px-1.5 py-0.5 rounded text-micro font-bold border capitalize ${
+              className={`px-1.5 py-0.5 rounded text-xs font-bold border capitalize ${
                 configuracion.estado === "canonica"
                   ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
                   : configuracion.estado === "propuesta"
@@ -1070,10 +1059,10 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
                 ? "Configuración en revisión"
                 : configuracion.estado.replace(/_/g, " ")}
             </span>
-            <span className="text-micro text-primary/35">v{configuracion.version}</span>
+            <span className="text-xs text-primary/35">v{configuracion.version}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-micro">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
             <span className="text-primary/40">Topología</span>
             <span className="text-primary/65 text-right truncate">
               {configuracion.topologia ?? "Sin información registrada"}
@@ -1094,19 +1083,19 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
 
           {configuracion.iums && (
             <div className="flex flex-col gap-0.5">
-              <span className="text-micro font-bold text-primary/45">IUMs participantes</span>
-              <p className="text-micro text-primary/60 leading-relaxed">{configuracion.iums}</p>
+              <span className="text-xs font-bold text-primary/45">IUMs participantes</span>
+              <p className="text-sm text-primary/60 leading-relaxed">{configuracion.iums}</p>
             </div>
           )}
 
           {flujo.length > 0 && (
             <div className="flex flex-col gap-1">
-              <span className="text-micro font-bold text-primary/45">Enlaces</span>
+              <span className="text-xs font-bold text-primary/45">Enlaces</span>
               <div className="flex flex-col gap-1">
                 {flujo.map((f, idx) => (
                   <div
                     key={`${f.ium_origen_id}-${f.ium_destino_id}-${idx}`}
-                    className="flex items-center gap-1 text-micro text-primary/60"
+                    className="flex items-center gap-1 text-sm text-primary/60"
                   >
                     <span className="truncate">{f.ium_origen}</span>
                     <span className="text-primary/30 shrink-0">→</span>
@@ -1122,8 +1111,8 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
 
           {configuracion.fundamento && (
             <div className="flex flex-col gap-0.5">
-              <span className="text-micro font-bold text-primary/45">Fundamento</span>
-              <p className="text-micro text-primary/55 leading-relaxed whitespace-pre-wrap">
+              <span className="text-xs font-bold text-primary/45">Fundamento</span>
+              <p className="text-sm text-primary/55 leading-relaxed whitespace-pre-wrap">
                 {configuracion.fundamento}
               </p>
             </div>
@@ -1260,12 +1249,12 @@ function ProcesoEditor({
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
       <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+          <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
             Descripción
           </span>
           <textarea
-            className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+            className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
             placeholder="Qué es este proceso, en qué contexto ocurre…"
             value={local.descripcion ?? ""}
             onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
@@ -1273,71 +1262,68 @@ function ProcesoEditor({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-          <div className="flex flex-col gap-3 min-w-0">
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                Receta del proceso
-              </span>
-              <p className="text-micro text-primary/35 -mt-1">Entrada → transformación → salida</p>
-              <div className="flex flex-col gap-2">
-                {receta.map(([campo, label, value]) => (
-                  <div key={campo} className="min-w-0">
-                    <span className="text-micro font-bold text-primary/45">{label}</span>
-                    <textarea
-                      className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-micro leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
-                      placeholder={`${label}…`}
-                      value={value ?? ""}
-                      onChange={(e) =>
-                        setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
-                      }
-                      onBlur={() => campoBlur(campo)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                Condiciones
-              </span>
-              <textarea
-                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
-                placeholder="Bajo qué condiciones ocurre este proceso…"
-                value={local.condiciones ?? ""}
-                onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
-                onBlur={() => campoBlur("condiciones")}
-              />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+            <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
+              Receta del proceso
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {receta.map(([campo, label, value]) => (
+                <div key={campo} className="min-w-0">
+                  <span className="text-xs font-bold text-primary/45">{label}</span>
+                  <textarea
+                    className="mt-0.5 w-full min-h-[3rem] bg-transparent px-0 py-0.5 text-sm leading-relaxed text-primary/65 resize-none outline-none transition-colors placeholder:text-primary/25"
+                    placeholder={`${label}…`}
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      setLocal((p) => ({ ...p, [campo]: e.target.value }) as Proceso)
+                    }
+                    onBlur={() => campoBlur(campo)}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 min-w-0">
-            <ReaccionesVinculadasBloque
-              procesoId={proceso.id}
-              reacciones={reacciones}
-              onAbrirReaccion={onAbrirReaccion}
+          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+            <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
+              Condiciones
+            </span>
+            <textarea
+              className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+              placeholder="Bajo qué condiciones ocurre este proceso…"
+              value={local.condiciones ?? ""}
+              onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
+              onBlur={() => campoBlur("condiciones")}
             />
-
-            <OrisCompatiblesBloque procesoId={proceso.id} oris={oris} onAbrirOris={onAbrirOris} />
-
-            <ElementosRelacionadosBloque procesoId={proceso.id} elementos={elementos} />
-
-            <FenomenosRelacionadosBloque procesoId={proceso.id} fenomenos={fenomenos} />
-
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-                Notas
-              </span>
-              <textarea
-                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
-                placeholder="Notas libres…"
-                value={local.notas ?? ""}
-                onChange={(e) => setLocal((p) => ({ ...p, notas: e.target.value }))}
-                onBlur={() => campoBlur("notas")}
-              />
-            </div>
           </div>
+
+          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+            <span className="text-sm font-black uppercase tracking-[0.2em] text-primary/30">
+              Notas
+            </span>
+            <textarea
+              className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/50 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+              placeholder="Notas libres…"
+              value={local.notas ?? ""}
+              onChange={(e) => setLocal((p) => ({ ...p, notas: e.target.value }))}
+              onBlur={() => campoBlur("notas")}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+          <ReaccionesVinculadasBloque
+            procesoId={proceso.id}
+            reacciones={reacciones}
+            onAbrirReaccion={onAbrirReaccion}
+          />
+
+          <OrisCompatiblesBloque procesoId={proceso.id} oris={oris} onAbrirOris={onAbrirOris} />
+
+          <ElementosRelacionadosBloque procesoId={proceso.id} elementos={elementos} />
+
+          <FenomenosRelacionadosBloque procesoId={proceso.id} fenomenos={fenomenos} />
         </div>
 
         {/* Separación visual y conceptual explícita del nivel de
