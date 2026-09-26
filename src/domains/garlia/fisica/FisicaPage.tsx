@@ -20,7 +20,7 @@
  * "oris" y "fisica_conceptos", separadas de "elementos".
  */
 
-import { ChevronLeft, ChevronRight, Info, Save, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FlaskConical, Info, Save, Sparkles, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -30,6 +30,7 @@ import { useConfirm } from "@/ui/ConfirmModal";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 
 import { OrisEditor } from "./OrisEditor";
+import { SimuladorEterium } from "./SimuladorEterium";
 import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
 import { useGeometriaIums } from "./useGeometriaIums";
 import { useOrisQueUsanIum } from "./useOrisConIums";
@@ -357,12 +358,17 @@ function BasesRowTitle({
   titulo,
   cantidad,
   mostrarInfo,
+  accion,
 }: {
   titulo: string;
   cantidad: number;
   /** Si true, muestra el ícono de info con el popover de la Ley de
    *  Equivalencia Rotacional — solo aplica al bloque "Partículas". */
   mostrarInfo?: boolean;
+  /** Botón extra a la derecha del título — hoy solo lo usa el bloque
+   *  "Oris" para abrir el Simulador de requerimiento de Eterium, pero
+   *  queda genérico por si otro bloque necesita lo mismo más adelante. */
+  accion?: React.ReactNode;
 }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   return (
@@ -370,6 +376,7 @@ function BasesRowTitle({
       <p className="text-micro font-black uppercase tracking-[0.2em]">
         {titulo} · {cantidad}
       </p>
+      {accion}
       {mostrarInfo && (
         <>
           <button
@@ -457,6 +464,12 @@ function TodasLasBasesView({
     { tipo: "oris"; id: string } | { tipo: "ium"; id: string } | null
   >(null);
 
+  // Simulador de requerimiento de Eterium — panel flotante independiente
+  // del panel de detalle de Oris/Ium, abierto desde el botón junto al
+  // título "Oris" (ver BasesRowTitle → accion). No preselecciona ningún
+  // Oris: el propio simulador tiene su selector como paso 1.
+  const [simuladorAbierto, setSimuladorAbierto] = useState(false);
+
   const orisActivoEnPanel =
     panelFisicaActivo?.tipo === "oris" ? oris.find((o) => o.id === panelFisicaActivo.id) : undefined;
   const iumActivoEnPanel =
@@ -537,7 +550,23 @@ function TodasLasBasesView({
               style={{ flexGrow: Math.max(filas.length, 1), flexBasis: 0 }}
             >
               <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
-                <BasesRowTitle titulo={titulo} cantidad={filas.length} mostrarInfo={key === "particulas"} />
+                <BasesRowTitle
+                  titulo={titulo}
+                  cantidad={filas.length}
+                  mostrarInfo={key === "particulas"}
+                  accion={
+                    key === "oris" ? (
+                      <button
+                        type="button"
+                        onClick={() => setSimuladorAbierto(true)}
+                        title="Abrir Simulador de requerimiento de Eterium"
+                        className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                      >
+                        <FlaskConical size={11} />
+                      </button>
+                    ) : undefined
+                  }
+                />
               </div>
 
               {filas.length === 0 ? (
@@ -640,6 +669,10 @@ function TodasLasBasesView({
           geometriaDe={geometriaDe}
           onAbrirOris={(orisId) => setPanelFisicaActivo({ tipo: "oris", id: orisId })}
         />
+      )}
+
+      {simuladorAbierto && (
+        <SimuladorEterimPanelFlotante onCerrar={() => setSimuladorAbierto(false)} />
       )}
     </div>
   );
@@ -946,6 +979,91 @@ function EnergiaPanelFlotante({
  * `embedded` (sin su botón "volver" propio, ya que acá cerramos con la X
  * o Escape).
  */
+
+/**
+ * SimuladorEterimPanelFlotante
+ * ───────────────────────────────────────────────────────────────────────────
+ * Modal flotante que aloja el "Simulador de requerimiento de Eterium"
+ * (SimuladorEterium.tsx), abierto desde el botón junto al título "Oris" en
+ * TodasLasBasesView. Mismo shell visual que OrisPanelFlotante — overlay con
+ * blur, tarjeta centrada w-full h-full max-w-6xl, animación popIn,
+ * Escape/click-afuera para cerrar, scroll del fondo bloqueado — para que el
+ * laboratorio se sienta parte de la misma familia de paneles que el resto
+ * de fisica/ (Oris, Ium) en vez de una superposición ad-hoc.
+ */
+function SimuladorEterimPanelFlotante({ onCerrar }: { onCerrar: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onCerrar]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)",
+            }}
+          >
+            <FlaskConical className="text-primary/50" size={12} />
+          </div>
+
+          <p className="flex-1 min-w-0 text-sm font-black text-primary truncate">
+            Simulador de requerimiento de Eterium
+          </p>
+
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <SimuladorEterium />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function OrisPanelFlotante({
   oris,
   onCerrar,
