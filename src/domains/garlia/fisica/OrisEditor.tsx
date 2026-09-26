@@ -9,7 +9,7 @@
  * foco / al cambiar selects, update directo a Supabase).
  */
 
-import { Activity, ChevronLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -182,7 +182,7 @@ function ProcesosCompatiblesBloque({
           Sin información registrada — ningún proceso está vinculado a este Oris todavía.
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
           {vinculosDeEsteOris.map((vinculo) => {
             const proceso = procesos.find((p) => p.id === vinculo.proceso_id);
             const ocupado = guardandoId === vinculo.id;
@@ -205,7 +205,6 @@ function ProcesosCompatiblesBloque({
                       onAbrirProceso ? "cursor-pointer hover:underline hover:text-primary" : ""
                     }`}
                   >
-                    <Activity size={10} className="text-primary/40 shrink-0" />
                     {proceso?.nombre ?? vinculo.proceso_id.slice(0, 8)}
                   </button>
 
@@ -225,7 +224,7 @@ function ProcesosCompatiblesBloque({
                     title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
                     className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
                       vinculo.activo
-                        ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                        ? "text-primary/70 border-primary/20 bg-primary/5"
                         : "text-primary/35 border-primary/10 bg-primary/5"
                     } disabled:opacity-40`}
                   >
