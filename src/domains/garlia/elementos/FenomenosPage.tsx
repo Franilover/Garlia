@@ -246,7 +246,11 @@ function FenomenoDetail({ fenomeno }: { fenomeno: Fenomeno }) {
   );
 }
 
-function Editor({
+/** Exportado para que ProcesosPage.tsx (bloque "Fenómenos relacionados")
+ *  pueda abrirlo directamente como panel flotante al hacer click en un
+ *  fenómeno vinculado — mismo patrón que ProcesoPanelFlotante/
+ *  ReaccionPanelFlotante. */
+export function FenomenoPanelFlotante({
   fenomeno,
   onClose,
   onRename,
@@ -424,7 +428,7 @@ export default function FenomenosPage() {
         </div>
       )}
       {selected && (
-        <Editor
+        <FenomenoPanelFlotante
           fenomeno={selected}
           onClose={() => setSelected(null)}
           onRename={(nuevoNombre) => renombrarFenomeno(selected.id, nuevoNombre)}

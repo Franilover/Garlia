@@ -36,6 +36,8 @@ import { useOris } from "@/domains/garlia/fisica/useFisica";
 import type { Oris } from "@/domains/garlia/fisica/types";
 import { OrisEditor } from "@/domains/garlia/fisica/OrisEditor";
 import { ReaccionPanelFlotante } from "./ReaccionesPage";
+import { ElementoPanelFlotante } from "./ElementosPage";
+import { FenomenoPanelFlotante } from "./FenomenosPage";
 import {
   vincularReaccionAProceso,
   actualizarProcesoReaccion,
@@ -696,9 +698,11 @@ function OrisCompatiblesBloque({
 function ElementosRelacionadosBloque({
   procesoId,
   elementos,
+  onAbrirElemento,
 }: {
   procesoId: string;
   elementos: Elemento[];
+  onAbrirElemento?: (elementoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const { data: vinculos, loading, refetch } = useSupabaseData<ElementoProceso>(
@@ -820,9 +824,17 @@ function ElementosRelacionadosBloque({
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
               >
                 <Atom size={10} className="text-primary/40 shrink-0" />
-                <span className="text-micro font-bold text-primary/70 truncate">
+                <button
+                  type="button"
+                  disabled={!onAbrirElemento || !elemento}
+                  onClick={() => elemento && onAbrirElemento?.(elemento.id)}
+                  title={onAbrirElemento ? "Ver/editar este elemento" : undefined}
+                  className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+                    onAbrirElemento && elemento ? "cursor-pointer hover:underline hover:text-primary" : ""
+                  }`}
+                >
                   {elemento ? `${elemento.nombre} (${elemento.simbolo})` : vinculo.elemento_id.slice(0, 8)}
-                </span>
+                </button>
                 <input
                   defaultValue={vinculo.rol ?? ""}
                   key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
@@ -857,9 +869,11 @@ function ElementosRelacionadosBloque({
 function FenomenosRelacionadosBloque({
   procesoId,
   fenomenos,
+  onAbrirFenomeno,
 }: {
   procesoId: string;
   fenomenos: Fenomeno[];
+  onAbrirFenomeno?: (fenomenoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const { data: vinculos, loading, refetch } = useSupabaseData<FenomenoProceso>(
@@ -981,9 +995,17 @@ function FenomenosRelacionadosBloque({
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors"
               >
                 <Zap size={10} className="text-primary/40 shrink-0" />
-                <span className="text-micro font-bold text-primary/70 truncate">
+                <button
+                  type="button"
+                  disabled={!onAbrirFenomeno || !fenomeno}
+                  onClick={() => fenomeno && onAbrirFenomeno?.(fenomeno.id)}
+                  title={onAbrirFenomeno ? "Ver/editar este fenómeno" : undefined}
+                  className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+                    onAbrirFenomeno && fenomeno ? "cursor-pointer hover:underline hover:text-primary" : ""
+                  }`}
+                >
                   {fenomeno?.nombre ?? vinculo.fenomeno_id.slice(0, 8)}
-                </span>
+                </button>
                 <input
                   defaultValue={vinculo.rol ?? ""}
                   key={`rol-${vinculo.id}-${vinculo.rol ?? ""}`}
@@ -1136,6 +1158,8 @@ function ProcesoEditor({
   onHeaderControlsChange,
   onAbrirReaccion,
   onAbrirOris,
+  onAbrirElemento,
+  onAbrirFenomeno,
 }: {
   proceso: Proceso;
   onActualizar: (id: string, cambios: Partial<Proceso>) => void;
@@ -1143,6 +1167,8 @@ function ProcesoEditor({
   onHeaderControlsChange?: OnHeaderControlsChange;
   onAbrirReaccion?: (reaccionId: string) => void;
   onAbrirOris?: (orisId: string) => void;
+  onAbrirElemento?: (elementoId: string) => void;
+  onAbrirFenomeno?: (fenomenoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [local, setLocal] = useState(proceso);
@@ -1308,9 +1334,17 @@ function ProcesoEditor({
 
           <OrisCompatiblesBloque procesoId={proceso.id} oris={oris} onAbrirOris={onAbrirOris} />
 
-          <ElementosRelacionadosBloque procesoId={proceso.id} elementos={elementos} />
+          <ElementosRelacionadosBloque
+            procesoId={proceso.id}
+            elementos={elementos}
+            onAbrirElemento={onAbrirElemento}
+          />
 
-          <FenomenosRelacionadosBloque procesoId={proceso.id} fenomenos={fenomenos} />
+          <FenomenosRelacionadosBloque
+            procesoId={proceso.id}
+            fenomenos={fenomenos}
+            onAbrirFenomeno={onAbrirFenomeno}
+          />
         </div>
 
         {/* Separación visual y conceptual explícita del nivel de
@@ -1355,10 +1389,23 @@ export function ProcesoPanelFlotante({
   const { items: reacciones, setItems: setReacciones } = useReacciones();
   const reaccionAbierta = reacciones.find((r) => r.id === reaccionAbiertaId) ?? null;
 
+  // Mismo patrón que reaccionAbiertaId: elemento/fenómeno vinculado
+  // abierto encima de este panel, sin depender del caller externo.
+  const [elementoAbiertoId, setElementoAbiertoId] = useState<string | null>(null);
+  const { items: elementosTodos, setItems: setElementosTodos } = useElementos();
+  const elementoAbierto = elementosTodos.find((e) => e.id === elementoAbiertoId) ?? null;
+
+  const [fenomenoAbiertoId, setFenomenoAbiertoId] = useState<string | null>(null);
+  const { items: fenomenosTodos, setItems: setFenomenosTodos, renombrarFenomeno, eliminarFenomeno } =
+    useFenomenos();
+  const fenomenoAbierto = fenomenosTodos.find((f) => f.id === fenomenoAbiertoId) ?? null;
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (reaccionAbiertaId) setReaccionAbiertaId(null);
+        if (elementoAbiertoId) setElementoAbiertoId(null);
+        else if (fenomenoAbiertoId) setFenomenoAbiertoId(null);
+        else if (reaccionAbiertaId) setReaccionAbiertaId(null);
         else onCerrar();
       }
     };
@@ -1369,7 +1416,7 @@ export function ProcesoPanelFlotante({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previous;
     };
-  }, [onCerrar, reaccionAbiertaId]);
+  }, [onCerrar, reaccionAbiertaId, elementoAbiertoId, fenomenoAbiertoId]);
 
   if (typeof document === "undefined") return null;
 
@@ -1398,6 +1445,8 @@ export function ProcesoPanelFlotante({
             onEliminar={onEliminar}
             onAbrirReaccion={setReaccionAbiertaId}
             onAbrirOris={onAbrirOris}
+            onAbrirElemento={setElementoAbiertoId}
+            onAbrirFenomeno={setFenomenoAbiertoId}
           />
         </div>
       </div>
@@ -1411,6 +1460,35 @@ export function ProcesoPanelFlotante({
           onActualizar={(id, cambios) =>
             setReacciones((prev) => prev.map((r) => (r.id === id ? { ...r, ...cambios } : r)))
           }
+        />
+      )}
+
+      {elementoAbierto && (
+        <ElementoPanelFlotante
+          elemento={elementoAbierto}
+          todosLosElementos={elementosTodos}
+          onCerrar={() => setElementoAbiertoId(null)}
+          onActualizar={async (id, cambios) => {
+            try {
+              const { error } = await supabase.from("elementos").update(cambios).eq("id", id);
+              if (error) throw error;
+              setElementosTodos((prev) => prev.map((e) => (e.id === id ? { ...e, ...cambios } : e)));
+            } catch (e) {
+              console.error("[ProcesosPage] error actualizando elemento:", e);
+            }
+          }}
+        />
+      )}
+
+      {fenomenoAbierto && (
+        <FenomenoPanelFlotante
+          fenomeno={fenomenoAbierto}
+          onClose={() => setFenomenoAbiertoId(null)}
+          onRename={(nuevoNombre) => renombrarFenomeno(fenomenoAbierto.id, nuevoNombre)}
+          onDelete={async () => {
+            await eliminarFenomeno(fenomenoAbierto.id);
+            setFenomenoAbiertoId(null);
+          }}
         />
       )}
     </>,
@@ -1472,8 +1550,8 @@ function OrisPanelFlotanteInline({
 
   async function handleEliminar() {
     const ok = await confirm({
-      titulo: "¿Eliminar este Oris?",
-      mensaje: `Se eliminará "${oris.nombre}" permanentemente.`,
+      title: "¿Eliminar este Oris?",
+      message: `Se eliminará "${oris.nombre}" permanentemente.`,
     });
     if (!ok) return;
     try {
