@@ -1122,10 +1122,11 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
     const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
 
     // El glifo real necesita más espacio horizontal que un rect+label; con
-    // la etiqueta de rol debajo del nodo, la fila vuelve a necesitar algo
-    // más de alto que la versión sin ningún texto.
+    // el nombre del Ium + la etiqueta de rol debajo del nodo (mismo diseño
+    // de dos líneas que OrisTopologiaVisual.tsx), la fila necesita más
+    // alto que la versión que solo mostraba el rol.
     const ANCHO_COL = 130;
-    const ALTO_FILA = 78;
+    const ALTO_FILA = 90;
     const PAD_X = 40;
     const PAD_Y = 15;
 
@@ -1163,14 +1164,14 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
 
   // Radio del glifo (mismo orden de magnitud que R_NODO en
   // OrisTopologiaVisual.tsx) y el centro de cada nodo dentro de su celda.
-  // Sin texto del nombre debajo (el IUM ya se identifica desde el menú de
-  // Oris), así que la fila puede ser más baja que antes.
+  // Nombre + rol debajo del nodo, mismo diseño de dos líneas que
+  // OrisTopologiaVisual.tsx.
   const R_NODO = 22;
   const CENTRO_X = R_NODO + 4;
   const CENTRO_Y = R_NODO + 4;
   const ALTO_LEYENDA = 20;
   const anchoTotal = columnas.length * 130 + 40;
-  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 78 + 30 + ALTO_LEYENDA;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 90 + 30 + ALTO_LEYENDA;
 
   // Mismos colores/trazos que OrisTopologiaVisual.tsx, para que "dirigida",
   // "recíproca" y "acoplamiento" se lean igual en toda la app.
@@ -1233,7 +1234,7 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
           const cy = nodo.pos.y + CENTRO_Y;
           return (
             <g key={nodo.id}>
-              <title>{nodo.nombre}</title>
+              <title>{`${nodo.nombre}${nodo.rol ? ` — ${nodo.rol.replace(/_/g, " ")}` : ""}`}</title>
               <circle
                 cx={cx}
                 cy={cy}
@@ -1251,10 +1252,30 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
                 particulas={particulasDe(nodo.id)}
                 geometria={geometriaDe(nodo.id).geometria}
               />
+              {/* Mismo diseño exacto que el nodo de OrisTopologiaVisual.tsx:
+                  nombre del Ium debajo con acento (fill: var(--primary),
+                  fontWeight 700) y el rol debajo de eso en texto normal
+                  (color atenuado). El strokeWidth={3} con
+                  stroke: var(--bg-main) en ambos no es un borde — es el
+                  halo del color de fondo que separa la letra de las líneas
+                  del grafo que pasan detrás. */}
+              <text
+                x={cx}
+                y={cy + R_NODO + 12}
+                textAnchor="middle"
+                fontSize={9.5}
+                fontWeight={700}
+                paintOrder="stroke"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                style={{ fill: "var(--primary)", stroke: "var(--bg-main)" }}
+              >
+                {nodo.nombre}
+              </text>
               {nodo.rol && (
                 <text
                   x={cx}
-                  y={cy + R_NODO + 13}
+                  y={cy + R_NODO + 22}
                   textAnchor="middle"
                   fontSize={7.5}
                   paintOrder="stroke"
