@@ -230,21 +230,27 @@ export function PanelFisicaObjeto({
           // su nombre/orden como sección igual proviene del contrato si se
           // necesita mostrarlos con encabezado propio.
           // Antes cada grupo (Masa/Volumen/Densidad, Estabilidad/Rigidez/
-          // Flexibilidad, etc.) era una celda propia de un grid de 2
-          // columnas — si todas las propiedades caían en pocos grupos,
-          // una sola columna terminaba con todo apilado y la otra vacía.
-          // Ahora se usa columnas CSS (column-count) sobre la lista plana
-          // de propiedades: el navegador reparte por altura real entre
-          // las 2 columnas sin importar cuántos grupos haya, y cada
-          // propiedad no se corta a mitad de columna (break-inside-avoid).
+          // Flexibilidad, etc.) era una celda propia y de ahí para adentro
+          // sus propiedades quedaban en un flex-col — si un solo grupo
+          // (ej. "Propiedades físicas") traía las 6 propiedades juntas,
+          // ese grupo entero caía en la primera columna y la segunda
+          // quedaba vacía, sin importar cuántas columnas CSS hubiera
+          // arriba. Ahora cada PROPIEDAD individual (no el grupo) es la
+          // unidad que rompe entre columnas: el label del grupo va suelto
+          // en el flujo (break-inside-avoid para no quedar huérfano al
+          // final de una columna) y cada propiedad debajo también evita
+          // cortarse a la mitad. Así el navegador reparte por altura real
+          // entre las 2 columnas sin importar cuántos grupos haya.
           <div className="[column-count:1] min-[420px]:[column-count:2] gap-x-3">
             {gruposContrato
               .filter((g: GrupoContrato) =>
                 g.propiedades.some((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined),
               )
               .map((g: GrupoContrato) => (
-                <div key={g.grupo} className="flex flex-col gap-0.5 break-inside-avoid mb-2">
-                  <SubGroupLabel>{g.grupo_nombre}</SubGroupLabel>
+                <React.Fragment key={g.grupo}>
+                  <div className="break-inside-avoid">
+                    <SubGroupLabel>{g.grupo_nombre}</SubGroupLabel>
+                  </div>
                   {g.propiedades
                     .filter((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined)
                     .map((p) => {
@@ -255,16 +261,17 @@ export function PanelFisicaObjeto({
                       // jsonb ya calculado por Supabase (fallback seguro).
                       const valor = clave in valoresCientificos ? valoresCientificos[clave] : propiedades[clave];
                       return (
-                        <PropertyCell
-                          key={clave}
-                          label={p.propiedad_nombre ?? clave}
-                          value={valor}
-                          modo={modo}
-                          interpretacion={interpretaciones[clave]}
-                        />
+                        <div key={clave} className="break-inside-avoid">
+                          <PropertyCell
+                            label={p.propiedad_nombre ?? clave}
+                            value={valor}
+                            modo={modo}
+                            interpretacion={interpretaciones[clave]}
+                          />
+                        </div>
                       );
                     })}
-                </div>
+                </React.Fragment>
               ))}
           </div>
         )}
