@@ -1119,6 +1119,10 @@ class AgendaFraniDB extends Dexie {
   v_clado_editor_reglas_v1!: Table<FilaGenericaDexie, string>;
   // oris_procesos: tabla puente Oris↔Proceso — ver version(51).stores() más abajo.
   oris_procesos!: Table<FilaGenericaDexie, string>;
+  // criatura_organismos: tabla puente Criatura↔Organismo, techo del
+  // breadcrumb Célula⇄Tejido⇄Órgano⇄Sistema⇄Organismo⇄Criatura — ver
+  // version(52).stores() más abajo.
+  criatura_organismos!: Table<FilaGenericaDexie, string>;
 
   constructor() {
     super("AgendaFranilover");
@@ -2234,6 +2238,14 @@ class AgendaFraniDB extends Dexie {
     // frontend (vincularOrisAProceso/desvincularOrisDeProceso).
     this.version(51).stores({
       oris_procesos: "id, oris_id, proceso_id",
+    });
+
+    // ─── v52: criatura_organismos — tabla puente que cierra el techo de la
+    // cadena Célula⇄Tejido⇄Órgano⇄Sistema⇄Organismo⇄Criatura del breadcrumb
+    // de Biología (ver useCriaturasDeUnOrganismo.ts / useCriaturasDeOrganismos.ts,
+    // que hasta ahora resolvían en vivo contra Supabase sin cache local).
+    this.version(52).stores({
+      criatura_organismos: "id, criatura_id, organismo_id",
     });
   }
 }

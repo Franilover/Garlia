@@ -20,21 +20,52 @@
  * Devuelve `items` ya con el shape { id, nombre } que espera
  * BreadcrumbJerarquia, para no repetir el mapeo en los 4 paneles.
  *
- * No cachea en Dexie: solo lectura para un breadcrumb, no un catálogo
- * editable. Nota: `criatura_organismos` puede estar vacía en Supabase (ver
- * useCriaturasDeUnOrganismo) — en ese caso `items` sale [] sin error.
+ * v52: cache-first vía Dexie, mismo patrón que useCriaturasDeUnOrganismo.ts
+ * (criatura_organismos ya está en DEXIE_TABLES). Nota: `criatura_organismos`
+ * puede estar vacía en Supabase (ver useCriaturasDeUnOrganismo) — en ese
+ * caso `items` sale [] sin error.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 interface VinculoCriaturaOrganismo {
   criatura_id: string;
+  organismo_id: string;
 }
 
 interface CriaturaMinima {
   id: string;
   nombre: string;
+}
+
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+async function leerVinculosDeDexie(organismoIds: string[]): Promise<VinculoCriaturaOrganismo[]> {
+  try {
+    if (!db || organismoIds.length === 0) return [];
+    const rows = await db.criatura_organismos
+      .where("organismo_id")
+      .anyOf(organismoIds)
+      .toArray();
+    return rows as unknown as VinculoCriaturaOrganismo[];
+  } catch {
+    return [];
+  }
+}
+
+async function leerCriaturasDeDexie(ids: string[]): Promise<Record<string, CriaturaMinima>> {
+  const out: Record<string, CriaturaMinima> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.criaturas.bulkGet(ids);
+    for (const r of rows)
+      if (r) {
+        const c = r as unknown as { id: string; nombre: string };
+        out[c.id] = { id: c.id, nombre: c.nombre };
+      }
+  } catch {}
+  return out;
 }
 
 export function useCriaturasDeOrganismos(organismoIds: string[]) {
@@ -51,15 +82,28 @@ export function useCriaturasDeOrganismos(organismoIds: string[]) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const vinculosLocales = await leerVinculosDeDexie(organismoIds);
+    if (vinculosLocales.length > 0) {
+      const criaturaIdsLocales = Array.from(
+        new Set(vinculosLocales.map((v) => v.criatura_id)),
+      );
+      const criaturasLocales = await leerCriaturasDeDexie(criaturaIdsLocales);
+      setCriaturas(criaturasLocales);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from("criatura_organismos")
       .select("criatura_id")
       .in("organismo_id", organismoIds);
 
     if (vinculoError || !vinculoData || vinculoData.length === 0) {
-      setCriaturas({});
+      if (vinculosLocales.length === 0) setCriaturas({});
       setLoading(false);
       return;
     }

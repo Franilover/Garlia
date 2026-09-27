@@ -16,11 +16,14 @@
  * varios Organismos — se junta todo sin duplicados, mismo criterio que
  * useOrganosDeUnaCelula/useOrganosDeUnTejido un nivel abajo.
  *
- * No cachea en Dexie: solo lectura para un breadcrumb, no un catálogo editable.
+ * v52: cache-first vía Dexie, mismo patrón que useOrganismosDeUnSistema.ts
+ * (sistema_organos, organismo_sistemas, sistemas y organismos ya están en
+ * DEXIE_TABLES).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 import {
   CONFIG_ORGANISMOS,
@@ -35,6 +38,44 @@ interface VinculoSistemaOrgano {
 
 interface VinculoOrganismoSistema {
   organismo_id: string;
+}
+
+// ── Cache-first: leer de Dexie ──────────────────────────────────────────────
+async function leerSistemaIdsDeDexie(organoIds: string[]): Promise<string[]> {
+  try {
+    if (!db || organoIds.length === 0) return [];
+    const rows = await db.sistema_organos.where("organo_id").anyOf(organoIds).toArray();
+    return Array.from(
+      new Set((rows as unknown as { sistema_id: string }[]).map((r) => r.sistema_id)),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function leerOrganismoIdsDeDexie(sistemaIds: string[]): Promise<string[]> {
+  try {
+    if (!db || sistemaIds.length === 0) return [];
+    const rows = await db.organismo_sistemas.where("sistema_id").anyOf(sistemaIds).toArray();
+    return Array.from(
+      new Set((rows as unknown as { organismo_id: string }[]).map((r) => r.organismo_id)),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function leerPorIdsDeDexie<T extends { id: string }>(
+  tabla: "sistemas" | "organismos",
+  ids: string[],
+): Promise<Record<string, T>> {
+  const out: Record<string, T> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await (db as any)[tabla].bulkGet(ids);
+    for (const r of rows) if (r) out[(r as T).id] = r as T;
+  } catch {}
+  return out;
 }
 
 export function useSistemasYOrganismosDeOrganos(organoIds: string[]) {
@@ -54,16 +95,36 @@ export function useSistemasYOrganismosDeOrganos(organoIds: string[]) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const sistemaIdsLocales = await leerSistemaIdsDeDexie(organoIds);
+    if (sistemaIdsLocales.length > 0) {
+      const sistemasLocales = await leerPorIdsDeDexie<Sistema>("sistemas", sistemaIdsLocales);
+      setSistemas(sistemasLocales);
+      const organismoIdsLocales = await leerOrganismoIdsDeDexie(sistemaIdsLocales);
+      if (organismoIdsLocales.length > 0) {
+        const organismosLocales = await leerPorIdsDeDexie<Organismo>(
+          "organismos",
+          organismoIdsLocales,
+        );
+        setOrganismos(organismosLocales);
+      }
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: soData, error: soError } = await supabase
       .from("sistema_organos")
       .select("sistema_id")
       .in("organo_id", organoIds);
 
     if (soError || !soData || soData.length === 0) {
-      setSistemas({});
-      setOrganismos({});
+      if (sistemaIdsLocales.length === 0) {
+        setSistemas({});
+        setOrganismos({});
+      }
       setLoading(false);
       return;
     }

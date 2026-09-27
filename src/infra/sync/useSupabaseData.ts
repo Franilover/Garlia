@@ -207,6 +207,10 @@ const DEXIE_TABLES = new Set([
   // infra/supabase/db.ts. Usada por ProcesosCompatiblesBloque
   // (fisica/OrisEditor.tsx) y OrisCompatiblesBloque (elementos/ProcesosPage.tsx).
   "oris_procesos",
+  // ─── v52: criatura_organismos — tabla puente Criatura↔Organismo, ver v52
+  // en infra/supabase/db.ts. Cierra el techo del breadcrumb de Biología
+  // (useCriaturasDeUnOrganismo.ts / useCriaturasDeOrganismos.ts).
+  "criatura_organismos",
 ]);
 
 const OFFLINE_WRITABLE = new Set([
@@ -310,6 +314,11 @@ const OFFLINE_WRITABLE = new Set([
   // usa el fetchData cache-first genérico, así que entra en DEXIE_TABLES
   // (lectura instantánea) y aquí por completitud/mismo criterio que oris_iums.
   "oris_procesos",
+  // ─── v52: criatura_organismos — tabla puente Criatura↔Organismo con "id"
+  // propio (ver v52 en infra/supabase/db.ts). Por completitud/mismo criterio;
+  // los hooks reales (useCriaturasDeUnOrganismo/useCriaturasDeOrganismos)
+  // leen/escriben Dexie a mano con su propio patrón cache-first.
+  "criatura_organismos",
 ]);
 
 // Tablas con ID numérico autogenerado por la DB — no se pueden crear offline

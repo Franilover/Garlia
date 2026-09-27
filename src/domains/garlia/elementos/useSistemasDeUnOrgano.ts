@@ -9,11 +9,14 @@
  * un nivel abajo — resuelve "¿quién me usa?" para el breadcrumb navegable
  * Órgano ⇄ Sistema.
  *
- * Liviano y de solo lectura: no cachea en Dexie, igual que su análogo.
+ * v52: cache-first vía Dexie, mismo patrón que useOrganosDeUnTejido.ts /
+ * useOrganismosDeUnSistema.ts (sistema_organos y sistemas ya están en
+ * DEXIE_TABLES).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 import {
   CONFIG_SISTEMAS,
@@ -35,6 +38,37 @@ export interface SistemaDeOrgano {
   sistema: Sistema;
 }
 
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+async function leerVinculosDeDexie(organoId: string): Promise<VinculoSistemaOrgano[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.sistema_organos.where("organo_id").equals(organoId).toArray();
+    return rows as unknown as VinculoSistemaOrgano[];
+  } catch {
+    return [];
+  }
+}
+
+async function leerSistemasDeDexie(ids: string[]): Promise<Record<string, Sistema>> {
+  const out: Record<string, Sistema> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.sistemas.bulkGet(ids);
+    for (const r of rows) if (r) out[(r as unknown as Sistema).id] = r as unknown as Sistema;
+  } catch {}
+  return out;
+}
+
+async function guardarEnDexie(vinculos: VinculoSistemaOrgano[], sistemas: Sistema[]) {
+  try {
+    if (!db) return;
+    if (vinculos.length) await db.sistema_organos.bulkPut(vinculos as any[]);
+    if (sistemas.length) await db.sistemas.bulkPut(sistemas as any[]);
+  } catch (e) {
+    console.warn("[useSistemasDeUnOrgano] no se pudo guardar en Dexie:", e);
+  }
+}
+
 export function useSistemasDeUnOrgano(organoId: string | null) {
   const [vinculos, setVinculos] = useState<VinculoSistemaOrgano[]>([]);
   const [sistemas, setSistemas] = useState<Record<string, Sistema>>({});
@@ -47,8 +81,20 @@ export function useSistemasDeUnOrgano(organoId: string | null) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const vinculosLocales = await leerVinculosDeDexie(organoId);
+    if (vinculosLocales.length > 0) {
+      setVinculos(vinculosLocales);
+      const sistemaIdsLocales = vinculosLocales.map((v) => v.sistema_id);
+      const sistemasLocales = await leerSistemasDeDexie(sistemaIdsLocales);
+      setSistemas(sistemasLocales);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from(CONFIG_SISTEMA_ORGANOS.tabla)
       .select("id, sistema_id, organo_id")
@@ -56,8 +102,10 @@ export function useSistemasDeUnOrgano(organoId: string | null) {
       .order("created_at", { ascending: true });
 
     if (vinculoError || !vinculoData) {
-      setVinculos([]);
-      setSistemas({});
+      if (vinculosLocales.length === 0) {
+        setVinculos([]);
+        setSistemas({});
+      }
       setLoading(false);
       return;
     }
@@ -67,6 +115,7 @@ export function useSistemasDeUnOrgano(organoId: string | null) {
     if (sistemaIds.length === 0) {
       setSistemas({});
       setLoading(false);
+      void guardarEnDexie(vinculoData as unknown as VinculoSistemaOrgano[], []);
       return;
     }
 
@@ -79,6 +128,10 @@ export function useSistemasDeUnOrgano(organoId: string | null) {
     for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
     setSistemas(sistemasPorId);
     setLoading(false);
+    void guardarEnDexie(
+      vinculoData as unknown as VinculoSistemaOrgano[],
+      Object.values(sistemasPorId),
+    );
   }, [organoId]);
 
   useEffect(() => {

@@ -15,12 +15,14 @@
  * ver useGranosDeUnCompuesto para la otra rama (1:1 directo vía grano.
  * compuesto_id).
  *
- * Liviano y de solo lectura: no cachea en Dexie, se resuelve en vivo contra
- * Supabase cada vez que cambia compuestoId.
+ * v52: cache-first vía Dexie, mismo patrón que useOrganosDeUnTejido.ts /
+ * useTejidosDeUnaCelula.ts (celula_compuestos y celulas ya están en
+ * DEXIE_TABLES).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 import { CONFIG_CELULAS, type Celula } from "@/domains/garlia/elementos/types";
 
@@ -42,6 +44,37 @@ export interface CelulaDeCompuesto {
   celula: Celula;
 }
 
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+async function leerVinculosDeDexie(compuestoId: string): Promise<VinculoCelulaCompuesto[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.celula_compuestos.where("compuesto_id").equals(compuestoId).toArray();
+    return rows as unknown as VinculoCelulaCompuesto[];
+  } catch {
+    return [];
+  }
+}
+
+async function leerCelulasDeDexie(ids: string[]): Promise<Record<string, Celula>> {
+  const out: Record<string, Celula> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.celulas.bulkGet(ids);
+    for (const r of rows) if (r) out[(r as unknown as Celula).id] = r as unknown as Celula;
+  } catch {}
+  return out;
+}
+
+async function guardarEnDexie(vinculos: VinculoCelulaCompuesto[], celulas: Celula[]) {
+  try {
+    if (!db) return;
+    if (vinculos.length) await db.celula_compuestos.bulkPut(vinculos as any[]);
+    if (celulas.length) await db.celulas.bulkPut(celulas as any[]);
+  } catch (e) {
+    console.warn("[useCelulasDeUnCompuesto] no se pudo guardar en Dexie:", e);
+  }
+}
+
 export function useCelulasDeUnCompuesto(compuestoId: string | null) {
   const [vinculos, setVinculos] = useState<VinculoCelulaCompuesto[]>([]);
   const [celulas, setCelulas] = useState<Record<string, Celula>>({});
@@ -54,8 +87,20 @@ export function useCelulasDeUnCompuesto(compuestoId: string | null) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const vinculosLocales = await leerVinculosDeDexie(compuestoId);
+    if (vinculosLocales.length > 0) {
+      setVinculos(vinculosLocales);
+      const celulaIdsLocales = vinculosLocales.map((v) => v.celula_id);
+      const celulasLocales = await leerCelulasDeDexie(celulaIdsLocales);
+      setCelulas(celulasLocales);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from("celula_compuestos")
       .select("id, celula_id, compuesto_id, rol, proporcion")
@@ -63,8 +108,10 @@ export function useCelulasDeUnCompuesto(compuestoId: string | null) {
       .order("created_at", { ascending: true });
 
     if (vinculoError || !vinculoData) {
-      setVinculos([]);
-      setCelulas({});
+      if (vinculosLocales.length === 0) {
+        setVinculos([]);
+        setCelulas({});
+      }
       setLoading(false);
       return;
     }
@@ -74,6 +121,7 @@ export function useCelulasDeUnCompuesto(compuestoId: string | null) {
     if (celulaIds.length === 0) {
       setCelulas({});
       setLoading(false);
+      void guardarEnDexie(vinculoData as unknown as VinculoCelulaCompuesto[], []);
       return;
     }
 
@@ -86,6 +134,10 @@ export function useCelulasDeUnCompuesto(compuestoId: string | null) {
     for (const c of (celulaData ?? []) as unknown as Celula[]) celulasPorId[c.id] = c;
     setCelulas(celulasPorId);
     setLoading(false);
+    void guardarEnDexie(
+      vinculoData as unknown as VinculoCelulaCompuesto[],
+      Object.values(celulasPorId),
+    );
   }, [compuestoId]);
 
   useEffect(() => {

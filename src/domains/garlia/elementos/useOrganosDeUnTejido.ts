@@ -9,12 +9,14 @@
  * en varios Órganos — este hook resuelve "¿quién me usa?" para el
  * breadcrumb navegable Célula ⇄ Tejido ⇄ Órgano.
  *
- * Liviano y de solo lectura: no cachea en Dexie (igual que useTejidoCelulas),
- * se resuelve en vivo contra Supabase cada vez que cambia tejidoId.
+ * v52: cache-first vía Dexie, mismo patrón que useCelulaCompuestos.ts /
+ * useTejidoCompuestos.ts (organo_tejidos y organos ya están en
+ * DEXIE_TABLES).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 import { CONFIG_ORGANOS, type Organo } from "@/domains/garlia/elementos/types";
 
@@ -34,6 +36,37 @@ export interface OrganoDeTejido {
   organo: Organo;
 }
 
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+async function leerVinculosDeDexie(tejidoId: string): Promise<VinculoOrganoTejido[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.organo_tejidos.where("tejido_id").equals(tejidoId).toArray();
+    return rows as unknown as VinculoOrganoTejido[];
+  } catch {
+    return [];
+  }
+}
+
+async function leerOrganosDeDexie(ids: string[]): Promise<Record<string, Organo>> {
+  const out: Record<string, Organo> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.organos.bulkGet(ids);
+    for (const r of rows) if (r) out[(r as unknown as Organo).id] = r as unknown as Organo;
+  } catch {}
+  return out;
+}
+
+async function guardarEnDexie(vinculos: VinculoOrganoTejido[], organos: Organo[]) {
+  try {
+    if (!db) return;
+    if (vinculos.length) await db.organo_tejidos.bulkPut(vinculos as any[]);
+    if (organos.length) await db.organos.bulkPut(organos as any[]);
+  } catch (e) {
+    console.warn("[useOrganosDeUnTejido] no se pudo guardar en Dexie:", e);
+  }
+}
+
 export function useOrganosDeUnTejido(tejidoId: string | null) {
   const [vinculos, setVinculos] = useState<VinculoOrganoTejido[]>([]);
   const [organos, setOrganos] = useState<Record<string, Organo>>({});
@@ -46,8 +79,20 @@ export function useOrganosDeUnTejido(tejidoId: string | null) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const vinculosLocales = await leerVinculosDeDexie(tejidoId);
+    if (vinculosLocales.length > 0) {
+      setVinculos(vinculosLocales);
+      const organoIdsLocales = vinculosLocales.map((v) => v.organo_id);
+      const organosLocales = await leerOrganosDeDexie(organoIdsLocales);
+      setOrganos(organosLocales);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from("organo_tejidos")
       .select("id, organo_id, tejido_id, proporcion")
@@ -55,8 +100,10 @@ export function useOrganosDeUnTejido(tejidoId: string | null) {
       .order("created_at", { ascending: true });
 
     if (vinculoError || !vinculoData) {
-      setVinculos([]);
-      setOrganos({});
+      if (vinculosLocales.length === 0) {
+        setVinculos([]);
+        setOrganos({});
+      }
       setLoading(false);
       return;
     }
@@ -66,6 +113,7 @@ export function useOrganosDeUnTejido(tejidoId: string | null) {
     if (organoIds.length === 0) {
       setOrganos({});
       setLoading(false);
+      void guardarEnDexie(vinculoData as unknown as VinculoOrganoTejido[], []);
       return;
     }
 
@@ -78,6 +126,10 @@ export function useOrganosDeUnTejido(tejidoId: string | null) {
     for (const o of (organoData ?? []) as unknown as Organo[]) organosPorId[o.id] = o;
     setOrganos(organosPorId);
     setLoading(false);
+    void guardarEnDexie(
+      vinculoData as unknown as VinculoOrganoTejido[],
+      Object.values(organosPorId),
+    );
   }, [tejidoId]);
 
   useEffect(() => {

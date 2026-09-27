@@ -9,11 +9,13 @@
  * este hook resuelve "¿quién me usa?" para el breadcrumb navegable
  * Célula ⇄ Tejido ⇄ Órgano.
  *
- * Liviano y de solo lectura, mismo espíritu que useOrganosDeUnTejido.
+ * v52: cache-first vía Dexie, mismo patrón que useOrganosDeUnTejido.ts /
+ * useTejidoCelulas.ts (tejido_celulas y tejidos ya están en DEXIE_TABLES).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
+import { db } from "@/infra/supabase/db";
 
 import {
   CONFIG_TEJIDOS,
@@ -39,6 +41,37 @@ export interface TejidoDeCelula {
   tejido: Tejido;
 }
 
+// ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
+async function leerVinculosDeDexie(celulaId: string): Promise<VinculoTejidoCelula[]> {
+  try {
+    if (!db) return [];
+    const rows = await db.tejido_celulas.where("celula_id").equals(celulaId).toArray();
+    return rows as unknown as VinculoTejidoCelula[];
+  } catch {
+    return [];
+  }
+}
+
+async function leerTejidosDeDexie(ids: string[]): Promise<Record<string, Tejido>> {
+  const out: Record<string, Tejido> = {};
+  if (!db || ids.length === 0) return out;
+  try {
+    const rows = await db.tejidos.bulkGet(ids);
+    for (const r of rows) if (r) out[(r as unknown as Tejido).id] = r as unknown as Tejido;
+  } catch {}
+  return out;
+}
+
+async function guardarEnDexie(vinculos: VinculoTejidoCelula[], tejidos: Tejido[]) {
+  try {
+    if (!db) return;
+    if (vinculos.length) await db.tejido_celulas.bulkPut(vinculos as any[]);
+    if (tejidos.length) await db.tejidos.bulkPut(tejidos as any[]);
+  } catch (e) {
+    console.warn("[useTejidosDeUnaCelula] no se pudo guardar en Dexie:", e);
+  }
+}
+
 export function useTejidosDeUnaCelula(celulaId: string | null) {
   const [vinculos, setVinculos] = useState<VinculoTejidoCelula[]>([]);
   const [tejidos, setTejidos] = useState<Record<string, Tejido>>({});
@@ -51,8 +84,20 @@ export function useTejidosDeUnaCelula(celulaId: string | null) {
       setLoading(false);
       return;
     }
-    setLoading(true);
 
+    // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
+    const vinculosLocales = await leerVinculosDeDexie(celulaId);
+    if (vinculosLocales.length > 0) {
+      setVinculos(vinculosLocales);
+      const tejidoIdsLocales = vinculosLocales.map((v) => v.tejido_id);
+      const tejidosLocales = await leerTejidosDeDexie(tejidoIdsLocales);
+      setTejidos(tejidosLocales);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
     const { data: vinculoData, error: vinculoError } = await supabase
       .from(CONFIG_TEJIDO_CELULAS.tabla)
       .select(CONFIG_TEJIDO_CELULAS.select)
@@ -60,8 +105,10 @@ export function useTejidosDeUnaCelula(celulaId: string | null) {
       .order("created_at", { ascending: true });
 
     if (vinculoError || !vinculoData) {
-      setVinculos([]);
-      setTejidos({});
+      if (vinculosLocales.length === 0) {
+        setVinculos([]);
+        setTejidos({});
+      }
       setLoading(false);
       return;
     }
@@ -71,6 +118,7 @@ export function useTejidosDeUnaCelula(celulaId: string | null) {
     if (tejidoIds.length === 0) {
       setTejidos({});
       setLoading(false);
+      void guardarEnDexie(vinculoData as unknown as VinculoTejidoCelula[], []);
       return;
     }
 
@@ -83,6 +131,10 @@ export function useTejidosDeUnaCelula(celulaId: string | null) {
     for (const t of (tejidoData ?? []) as unknown as Tejido[]) tejidosPorId[t.id] = t;
     setTejidos(tejidosPorId);
     setLoading(false);
+    void guardarEnDexie(
+      vinculoData as unknown as VinculoTejidoCelula[],
+      Object.values(tejidosPorId),
+    );
   }, [celulaId]);
 
   useEffect(() => {
