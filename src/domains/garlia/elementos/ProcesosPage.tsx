@@ -1538,11 +1538,11 @@ function OrisPanelFlotanteInline({
     }
   }
 
-  async function handleActualizarCampo(cambios: Partial<Oris>) {
+  async function handleActualizarCampo(id: string, cambios: Partial<Oris>) {
     try {
-      const { error } = await supabase.from("oris").update(cambios).eq("id", oris.id);
+      const { error } = await supabase.from("oris").update(cambios).eq("id", id);
       if (error) throw error;
-      onActualizarLocal(oris.id, cambios);
+      onActualizarLocal(id, cambios);
     } catch (e) {
       console.error("[ProcesosPage] error actualizando oris:", e);
     }
