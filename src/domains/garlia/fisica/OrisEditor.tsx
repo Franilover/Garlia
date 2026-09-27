@@ -33,7 +33,6 @@ import { useOrisGrafo } from "./useOrisGrafo";
 import { useProcesos } from "@/domains/garlia/elementos/useProcesos";
 import {
   vincularOrisAProceso,
-  actualizarOrisProceso,
   desvincularOrisDeProceso,
 } from "@/domains/garlia/elementos/persistirOrisProceso";
 import { CONFIG_ORIS_PROCESOS, type OrisProceso, type Proceso } from "@/domains/garlia/elementos/types";
@@ -78,21 +77,33 @@ function ProcesosCompatiblesBloque({
     [procesos, vinculosDeEsteOris],
   );
 
-  async function handlePrioridadBlur(vinculoId: string, valor: string) {
-    const prioridad = valor.trim() === "" ? null : Number(valor);
-    if (prioridad !== null && !Number.isFinite(prioridad)) return;
-    setGuardandoId(vinculoId);
-    await actualizarOrisProceso(vinculoId, { prioridad });
-    setGuardandoId(null);
-    refetch();
-  }
+  // Agrupación por secciones según el texto libre de `rol` (ver placeholder
+  // del input de abajo: "principal, secundario, compatible"). Cualquier rol
+  // que no calce con esos tres términos —incluyendo sin rol— cae en
+  // "Otros", para no perder vínculos existentes con roles distintos.
+  const SECCIONES_ROL = [
+    { key: "principal", titulo: "Principales" },
+    { key: "secundario", titulo: "Secundarios" },
+    { key: "compatible", titulo: "Compatibles" },
+  ] as const;
 
-  async function handleToggleActivo(vinculo: OrisProceso) {
-    setGuardandoId(vinculo.id);
-    await actualizarOrisProceso(vinculo.id, { activo: !vinculo.activo });
-    setGuardandoId(null);
-    refetch();
-  }
+  const gruposPorRol = useMemo(() => {
+    const grupos: Record<string, OrisProceso[]> = {
+      principal: [],
+      secundario: [],
+      compatible: [],
+      otros: [],
+    };
+    for (const vinculo of vinculosDeEsteOris) {
+      const rol = (vinculo.rol ?? "").trim().toLowerCase();
+      if (rol === "principal" || rol === "secundario" || rol === "compatible") {
+        grupos[rol].push(vinculo);
+      } else {
+        grupos.otros.push(vinculo);
+      }
+    }
+    return grupos;
+  }, [vinculosDeEsteOris]);
 
   async function handleQuitar(vinculoId: string, nombre: string) {
     const ok = await confirm({
@@ -182,83 +193,93 @@ function ProcesosCompatiblesBloque({
           Sin información registrada — ningún proceso está vinculado a este Oris todavía.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-          {vinculosDeEsteOris.map((vinculo) => {
-            const proceso = procesos.find((p) => p.id === vinculo.proceso_id);
-            const ocupado = guardandoId === vinculo.id;
-            return (
-              <div
-                key={vinculo.id}
-                className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border transition-colors ${
-                  vinculo.activo
-                    ? "border-transparent hover:border-primary/10 hover:bg-primary/[0.03]"
-                    : "border-primary/10 bg-primary/[0.02] opacity-50"
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={!onAbrirProceso}
-                    onClick={() => proceso && onAbrirProceso?.(proceso.id)}
-                    title={onAbrirProceso ? "Ver/editar este proceso" : undefined}
-                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
-                      onAbrirProceso ? "cursor-pointer hover:underline hover:text-primary" : ""
-                    }`}
-                  >
-                    {proceso?.nombre ?? vinculo.proceso_id.slice(0, 8)}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuitar(vinculo.id, proceso?.nombre ?? vinculo.proceso_id)}
-                    disabled={ocupado}
-                    title="Desvincular de este Oris"
-                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
-                  >
-                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <input
-                    type="number"
-                    defaultValue={vinculo.prioridad ?? ""}
-                    key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
-                    onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
-                    disabled={ocupado}
-                    placeholder="Prioridad"
-                    title="Prioridad"
-                    className="w-20 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-
-                  {vinculo.rol && (
-                    <span
-                      title="Rol tal como está definido en Supabase"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-micro font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
-                    >
-                      {vinculo.rol}
-                    </span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActivo(vinculo)}
-                    disabled={ocupado}
-                    title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
-                      vinculo.activo
-                        ? "text-primary/70 border-primary/20 bg-primary/5"
-                        : "text-primary/35 border-primary/10 bg-primary/5"
-                    } disabled:opacity-40`}
-                  >
-                    {vinculo.activo ? "Activo" : "Inactivo"}
-                  </button>
+        <div className="flex flex-col gap-2.5">
+          {SECCIONES_ROL.map(({ key, titulo }) =>
+            gruposPorRol[key].length > 0 ? (
+              <div key={key} className="flex flex-col gap-1">
+                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                  {titulo}
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  {gruposPorRol[key].map((vinculo) => (
+                    <ProcesoVinculadoItem
+                      key={vinculo.id}
+                      vinculo={vinculo}
+                      proceso={procesos.find((p) => p.id === vinculo.proceso_id)}
+                      ocupado={guardandoId === vinculo.id}
+                      onAbrirProceso={onAbrirProceso}
+                      onQuitar={handleQuitar}
+                    />
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            ) : null,
+          )}
+
+          {gruposPorRol.otros.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                Otros
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                {gruposPorRol.otros.map((vinculo) => (
+                  <ProcesoVinculadoItem
+                    key={vinculo.id}
+                    vinculo={vinculo}
+                    proceso={procesos.find((p) => p.id === vinculo.proceso_id)}
+                    ocupado={guardandoId === vinculo.id}
+                    onAbrirProceso={onAbrirProceso}
+                    onQuitar={handleQuitar}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Tarjeta individual de un proceso vinculado, sin el input de prioridad
+ *  ni el toggle activo/inactivo — el agrupamiento por secciones (ver
+ *  SECCIONES_ROL más arriba) ya comunica esa jerarquía visualmente. */
+function ProcesoVinculadoItem({
+  vinculo,
+  proceso,
+  ocupado,
+  onAbrirProceso,
+  onQuitar,
+}: {
+  vinculo: OrisProceso;
+  proceso: Proceso | undefined;
+  ocupado: boolean;
+  onAbrirProceso?: (procesoId: string) => void;
+  onQuitar: (vinculoId: string, nombre: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors">
+      <button
+        type="button"
+        disabled={!onAbrirProceso}
+        onClick={() => proceso && onAbrirProceso?.(proceso.id)}
+        title={onAbrirProceso ? "Ver/editar este proceso" : undefined}
+        className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+          onAbrirProceso ? "cursor-pointer hover:underline hover:text-primary" : ""
+        }`}
+      >
+        {proceso?.nombre ?? vinculo.proceso_id.slice(0, 8)}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onQuitar(vinculo.id, proceso?.nombre ?? vinculo.proceso_id)}
+        disabled={ocupado}
+        title="Desvincular de este Oris"
+        className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+      >
+        {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+      </button>
     </div>
   );
 }
