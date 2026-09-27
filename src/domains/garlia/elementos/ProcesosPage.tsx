@@ -1595,6 +1595,7 @@ function OrisPanelFlotanteInline({
         <div className="overflow-y-auto px-4 py-3">
           <OrisEditor
             oris={oris}
+            onBack={onCerrar}
             embedded
             hideHeader
             nombreExterno={nombre}
