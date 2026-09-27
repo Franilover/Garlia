@@ -32,6 +32,7 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { OrisEditor } from "./OrisEditor";
 import { SimuladorEterium } from "./SimuladorEterium";
 import { useProcesos } from "@/domains/garlia/elementos/useProcesos";
+import { useProcesosQueUsanIum } from "@/domains/garlia/elementos/useProcesoConfiguracionIum";
 import { ProcesoPanelFlotante } from "@/domains/garlia/elementos/ProcesosPage";
 import type { Proceso } from "@/domains/garlia/elementos/types";
 import { IumVisual, ParticulaVisual, type LetraATS, type GeometriaIum } from "./ParticulaVisual";
@@ -698,6 +699,7 @@ function TodasLasBasesView({
           onEliminar={onEliminarIum}
           geometriaDe={geometriaDe}
           onAbrirOris={(orisId) => setPanelFisicaActivo({ tipo: "oris", id: orisId })}
+          onAbrirProceso={(procesoId) => setProcesoAbiertoId(procesoId)}
         />
       )}
 
@@ -1274,6 +1276,7 @@ function IumEditor({
   onEliminar,
   geometriaDe,
   onAbrirOris,
+  onAbrirProceso,
 }: {
   ium: Ium;
   embedded?: boolean;
@@ -1288,6 +1291,10 @@ function IumEditor({
    *  este panel de Ium y abre el panel flotante de ese Oris. Sin esto, la
    *  sección no se dibuja (mismo criterio que onEliminar opcional). */
   onAbrirOris?: (orisId: string) => void;
+  /** Ídem para "Usado en X Procesos": clickear un chip cierra este panel
+   *  y abre el del Proceso correspondiente (su Configuración IUM vigente
+   *  usa este Ium). Sin esto, la sección no se dibuja. */
+  onAbrirProceso?: (procesoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [saving, setSaving] = useState(false);
@@ -1310,6 +1317,20 @@ function IumEditor({
   // La sección en sí solo se DIBUJA si se pasó onAbrirOris (ver JSX abajo).
   const { orisDe } = useOrisQueUsanIum();
   const orisQueUsanEsteIum = useMemo(() => orisDe(ium.id), [orisDe, ium.id]);
+
+  // "Usado en X Procesos": mismo criterio que "Usado en X Oris" arriba —
+  // el hook se llama siempre, la sección solo se DIBUJA si se pasó
+  // onAbrirProceso. procesosDe() devuelve nombres (la vista de flujo ya
+  // trae "proceso" resuelto); se cruzan con useProcesos() para poder
+  // navegar por id al clickear el chip.
+  const { procesosDe } = useProcesosQueUsanIum();
+  const { items: todosLosProcesos } = useProcesos();
+  const procesosQueUsanEsteIum = useMemo(() => {
+    const nombres = procesosDe(ium.id);
+    return nombres
+      .map((nombre) => todosLosProcesos.find((p) => p.nombre === nombre))
+      .filter((p): p is Proceso => !!p);
+  }, [procesosDe, todosLosProcesos, ium.id]);
 
   async function persist(cambios: Partial<Ium>) {
     setSaving(true);
@@ -1449,6 +1470,38 @@ function IumEditor({
               )}
             </div>
           )}
+
+          {/* "Usado en X Procesos" — chip por cada Proceso cuya
+              Configuración IUM vigente incluye este Ium (como origen o
+              destino de algún enlace). Clickearlo cierra este panel y abre
+              el del Proceso correspondiente (ver onAbrirProceso →
+              FisicaPage). Solo se dibuja si el contenedor pasó
+              onAbrirProceso — mismo criterio que "Usado en X Oris". */}
+          {onAbrirProceso && (
+            <div className="shrink-0 flex flex-col gap-1">
+              <label className="text-micro uppercase tracking-wide text-primary/35">
+                Usado en {procesosQueUsanEsteIum.length} Procesos
+              </label>
+              {procesosQueUsanEsteIum.length === 0 ? (
+                <p className="text-micro text-primary/25 italic py-1">
+                  Ningún Proceso usa este Ium todavía.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {procesosQueUsanEsteIum.map((proceso) => (
+                    <button
+                      key={proceso.id}
+                      type="button"
+                      onClick={() => onAbrirProceso(proceso.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide border border-primary/15 text-primary/70 hover:bg-primary/10 hover:border-primary/35 transition-colors cursor-pointer"
+                    >
+                      {proceso.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1468,6 +1521,7 @@ function IumPanelFlotante({
   onEliminar,
   geometriaDe,
   onAbrirOris,
+  onAbrirProceso,
 }: {
   ium: Ium;
   onCerrar: () => void;
@@ -1477,6 +1531,9 @@ function IumPanelFlotante({
   /** Ver comentario en IumEditor — click en un chip de "Usado en X Oris"
    *  cierra este panel y abre el del Oris correspondiente. */
   onAbrirOris?: (orisId: string) => void;
+  /** Ídem para "Usado en X Procesos" — cierra este panel y abre el del
+   *  Proceso correspondiente. */
+  onAbrirProceso?: (procesoId: string) => void;
 }) {
   const { confirm, ConfirmModal } = useConfirm();
   const [nombreLocal, setNombreLocal] = useState(ium.nombre ?? "");
@@ -1613,6 +1670,7 @@ function IumPanelFlotante({
             }
             geometriaDe={geometriaDe}
             onAbrirOris={onAbrirOris}
+            onAbrirProceso={onAbrirProceso}
           />
         </div>
       </div>

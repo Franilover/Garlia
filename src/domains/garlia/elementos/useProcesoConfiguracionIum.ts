@@ -134,3 +134,35 @@ export function useProcesoConfiguracionIum(procesoId: string | null) {
     loading: loadingActual || loadingFlujo,
   };
 }
+
+/**
+ * Índice inverso de v_proceso_configuracion_ium_flujo_v1: para un Ium dado
+ * (por su ium_id, sea como origen o como destino de algún enlace), qué
+ * Procesos lo usan en su Configuración IUM vigente — mismo criterio que
+ * useOrisQueUsanIum() en fisica/useOrisConIums.ts (sección "Usado en X
+ * Oris" de IumEditor), acá para la sección equivalente "Usado en X
+ * Procesos". Reutiliza el mismo useSupabaseData(CONFIG_FLUJO.tabla) que ya
+ * carga useProcesoConfiguracionIum, así que no dispara un fetch nuevo.
+ */
+export function useProcesosQueUsanIum() {
+  const { data: flujos, loading: loadingFlujo } = useSupabaseData<ProcesoConfiguracionIumFlujo>(
+    CONFIG_FLUJO.tabla,
+    { select: CONFIG_FLUJO.select, order: { campo: "orden_union" } },
+  );
+
+  /** Nombres de proceso (únicos) en cuya Configuración IUM vigente aparece
+   *  el Ium dado, ya sea como origen o como destino de algún enlace del
+   *  flujo — v_proceso_configuracion_ium_flujo_v1 ya trae "proceso"
+   *  resuelto por fila, así que no hace falta cruzar con useProcesos()
+   *  salvo para poder navegar (onAbrirProceso recibe el nombre, igual que
+   *  el resto de chips de esta ficha usa nombre, no id, para abrir). */
+  const procesosDe = (iumId: string): string[] => {
+    const nombres = new Set<string>();
+    for (const f of flujos) {
+      if (f.ium_origen_id === iumId || f.ium_destino_id === iumId) nombres.add(f.proceso);
+    }
+    return Array.from(nombres).sort((a, b) => a.localeCompare(b));
+  };
+
+  return { procesosDe, loading: loadingFlujo };
+}
