@@ -1524,6 +1524,21 @@ function OrisPanelFlotanteInline({
 
   useEffect(() => setNombre(oris.nombre), [oris.id, oris.nombre]);
 
+  // Mismo patrón que ProcesoPanelFlotante/FenomenoPanelFlotante: Esc
+  // cierra, y se bloquea el scroll del fondo mientras está abierto.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCerrar();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previous;
+    };
+  }, [onCerrar]);
+
   async function guardarNombre() {
     if (nombre === oris.nombre) return;
     setSaving(true);
@@ -1563,36 +1578,60 @@ function OrisPanelFlotanteInline({
     }
   }
 
+  if (typeof document === "undefined") return null;
+
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm px-3">
-      <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-primary/15 bg-[var(--panel-bg,#0d0d10)] shadow-2xl">
-        <div className="flex items-center gap-2 border-b border-primary/10 px-4 py-3">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{ background: "color-mix(in srgb, var(--primary) 35%, transparent)", backdropFilter: "blur(8px)" }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCerrar();
+      }}
+    >
+      <div
+        className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+          animation: "popIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          style={{
+            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
+            background: "color-mix(in srgb, var(--primary) 3%, transparent)",
+          }}
+        >
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onBlur={guardarNombre}
-            className="min-w-0 flex-1 bg-transparent text-base font-bold text-primary outline-none"
+            className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
             placeholder="Nombre del Oris"
           />
-          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary/40" />}
-          <button
-            type="button"
-            onClick={handleEliminar}
-            title="Eliminar Oris"
-            className="rounded-md p-1.5 text-primary/40 hover:bg-red-500/10 hover:text-red-400"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          <div className="shrink-0 flex items-center gap-1.5">
+            {saving && <Loader2 size={14} className="animate-spin text-primary/40" />}
+            <button
+              type="button"
+              onClick={handleEliminar}
+              title="Eliminar Oris"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest border border-red-500/15 text-red-400/50 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
+            >
+              <Trash2 size={10} />
+            </button>
+          </div>
           <button
             type="button"
             onClick={onCerrar}
-            title="Cerrar"
-            className="rounded-md p-1.5 text-primary/40 hover:bg-primary/10 hover:text-primary"
+            title="Cerrar (Esc)"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X size={16} />
           </button>
         </div>
-        <div className="overflow-y-auto px-4 py-3">
+        <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
           <OrisEditor
             oris={oris}
             onBack={onCerrar}
