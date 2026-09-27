@@ -1182,7 +1182,7 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
     acoplamiento: "acoplamiento",
   };
   const tiposUsados = useMemo(
-    () => Array.from(new Set(aristas.map((a) => a.tipo))),
+    () => Array.from(new Set(aristas.map((a) => a.tipo).filter((t): t is string => !!t))),
     [aristas],
   );
 
