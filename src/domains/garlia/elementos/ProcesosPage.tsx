@@ -35,6 +35,10 @@ import { useFenomenos } from "./useFenomenos";
 import { useOris } from "@/domains/garlia/fisica/useFisica";
 import type { Oris } from "@/domains/garlia/fisica/types";
 import { OrisEditor } from "@/domains/garlia/fisica/OrisEditor";
+import { iumAFilaIum, particulasDeIum } from "@/domains/garlia/fisica/types";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
+import { useGeometriaIums } from "@/domains/garlia/fisica/useGeometriaIums";
+import { IumGlifo } from "@/domains/garlia/fisica/ParticulaVisual";
 import { ReaccionPanelFlotante } from "./ReaccionesPage";
 import { ElementoPanelFlotante } from "./ElementosPage";
 import { FenomenoPanelFlotante } from "./FenomenosPage";
@@ -1056,6 +1060,20 @@ function FenomenosRelacionadosBloque({
  * sobre un layout perfecto.
  */
 function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[] }) {
+  // Partículas reales (A/T/S) y geometría real de cada Ium — mismo patrón
+  // que OrisEditor.tsx usa para alimentar OrisTopologiaVisual: cada nodo del
+  // grafo dibuja el Ium tal como es, no un rectángulo de texto genérico.
+  const { items: iums } = useIumsConParticulas();
+  const iumPorId = useMemo(
+    () => Object.fromEntries(iums.map((i) => [i.id, iumAFilaIum(i)])),
+    [iums],
+  );
+  const { geometriaDe } = useGeometriaIums();
+  const particulasDe = (iumId: string) => {
+    const fila = iumPorId[iumId];
+    return fila ? particulasDeIum(fila) : [];
+  };
+
   const { columnas, aristas, nodoPos } = useMemo(() => {
     const nombrePorId = new Map<string, string>();
     const salidas = new Map<string, Set<string>>();
@@ -1100,10 +1118,12 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
     }
     const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
 
-    const ANCHO_COL = 168;
-    const ALTO_FILA = 52;
-    const PAD_X = 12;
-    const PAD_Y = 12;
+    // Columnas/filas más amplias que la versión de texto: el glifo real
+    // (partículas sobre geometría) necesita más espacio que un rect+label.
+    const ANCHO_COL = 130;
+    const ALTO_FILA = 96;
+    const PAD_X = 40;
+    const PAD_Y = 40;
 
     const pos = new Map<string, { x: number; y: number }>();
     columnasOrdenadas.forEach((nivel, colIdx) => {
@@ -1129,21 +1149,26 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
       desde: pos.get(f.ium_origen_id)!,
       hasta: pos.get(f.ium_destino_id)!,
       tipo: f.tipo_union,
+      idOrigen: f.ium_origen_id,
+      idDestino: f.ium_destino_id,
     }));
 
     return { columnas, aristas, nodoPos: pos };
   }, [flujo]);
 
-  const NODO_W = 148;
-  const NODO_H = 30;
-  const anchoTotal = columnas.length * 168;
-  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 52;
+  // Radio del glifo (mismo orden de magnitud que R_NODO en
+  // OrisTopologiaVisual.tsx) y el centro de cada nodo dentro de su celda.
+  const R_NODO = 22;
+  const CENTRO_X = R_NODO + 4;
+  const CENTRO_Y = R_NODO + 4;
+  const anchoTotal = columnas.length * 130 + 40;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 96 + 40;
 
   return (
     <svg
-      viewBox={`0 0 ${anchoTotal} ${altoTotal + NODO_H}`}
+      viewBox={`0 0 ${anchoTotal} ${altoTotal}`}
       className="w-full h-auto"
-      style={{ minHeight: Math.min(altoTotal + NODO_H, 220) }}
+      style={{ minHeight: Math.min(altoTotal, 260) }}
     >
       <defs>
         <marker
@@ -1160,13 +1185,13 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
       </defs>
 
       {aristas.map((a) => {
-        const x1 = a.desde.x + NODO_W;
-        const y1 = a.desde.y + NODO_H / 2;
-        const x2 = a.hasta.x;
-        const y2 = a.hasta.y + NODO_H / 2;
+        const x1 = a.desde.x + CENTRO_X + R_NODO;
+        const y1 = a.desde.y + CENTRO_Y;
+        const x2 = a.hasta.x + CENTRO_X - R_NODO;
+        const y2 = a.hasta.y + CENTRO_Y;
         const mismaColumna = a.desde.x === a.hasta.x;
         const path = mismaColumna
-          ? `M ${x1 - NODO_W / 2} ${y1} C ${x1 + 40} ${y1}, ${x1 + 40} ${y2}, ${x1 - NODO_W / 2} ${y2}`
+          ? `M ${a.desde.x + CENTRO_X} ${a.desde.y + CENTRO_Y + R_NODO} C ${a.desde.x + CENTRO_X + 36} ${y1 + 20}, ${a.hasta.x + CENTRO_X + 36} ${y2 - 20}, ${a.hasta.x + CENTRO_X} ${a.hasta.y + CENTRO_Y - R_NODO}`
           : `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
         return (
           <path
@@ -1182,31 +1207,45 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
       })}
 
       {columnas.map((columna) =>
-        columna.map((nodo) => (
-          <g key={nodo.id} transform={`translate(${nodo.pos.x}, ${nodo.pos.y})`}>
-            <rect
-              width={NODO_W}
-              height={NODO_H}
-              rx={6}
-              fill="var(--primary)"
-              fillOpacity={0.06}
-              stroke="var(--primary)"
-              strokeOpacity={0.2}
-            />
-            <text
-              x={NODO_W / 2}
-              y={NODO_H / 2}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="var(--primary)"
-              fillOpacity={0.75}
-              fontSize={10}
-              fontWeight={700}
-            >
-              {nodo.nombre.length > 20 ? `${nodo.nombre.slice(0, 19)}…` : nodo.nombre}
-            </text>
-          </g>
-        )),
+        columna.map((nodo) => {
+          const cx = nodo.pos.x + CENTRO_X;
+          const cy = nodo.pos.y + CENTRO_Y;
+          return (
+            <g key={nodo.id}>
+              <title>{nodo.nombre}</title>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={R_NODO + 2}
+                strokeWidth={0.8}
+                style={{
+                  fill: "var(--bg-main)",
+                  stroke: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
+              <IumGlifo
+                cx={cx}
+                cy={cy}
+                r={R_NODO * 0.78}
+                particulas={particulasDe(nodo.id)}
+                geometria={geometriaDe(nodo.id).geometria}
+              />
+              <text
+                x={cx}
+                y={cy + R_NODO + 14}
+                textAnchor="middle"
+                fontSize={9.5}
+                fontWeight={700}
+                paintOrder="stroke"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                style={{ fill: "var(--primary)", stroke: "var(--bg-main)" }}
+              >
+                {nodo.nombre.length > 16 ? `${nodo.nombre.slice(0, 15)}…` : nodo.nombre}
+              </text>
+            </g>
+          );
+        }),
       )}
     </svg>
   );
