@@ -1117,6 +1117,8 @@ class AgendaFraniDB extends Dexie {
   // que el resto de FilaGenericaDexie.
   v_clado_editor_opciones_v1!: Table<FilaGenericaDexie, string>;
   v_clado_editor_reglas_v1!: Table<FilaGenericaDexie, string>;
+  // oris_procesos: tabla puente Oris↔Proceso — ver version(51).stores() más abajo.
+  oris_procesos!: Table<FilaGenericaDexie, string>;
 
   constructor() {
     super("AgendaFranilover");
@@ -2221,6 +2223,17 @@ class AgendaFraniDB extends Dexie {
       clado_relaciones: "id, clado_origen_id, clado_destino_id",
       v_clado_editor_opciones_v1: "id, campo",
       v_clado_editor_reglas_v1: "id",
+    });
+
+    // ─── v51: oris_procesos — tabla puente Oris↔Proceso (bloque "Procesos
+    // compatibles" de OrisEditor.tsx y OrisCompatiblesBloque de
+    // ProcesosPage.tsx). Antes sin cache local: ambos leían directo contra
+    // Supabase en cada apertura del editor. Mismo patrón que oris_iums
+    // (v34): tabla real con "id" propio, editable, entra también en
+    // OFFLINE_WRITABLE (ver useSupabaseData.ts) porque se escribe desde el
+    // frontend (vincularOrisAProceso/desvincularOrisDeProceso).
+    this.version(51).stores({
+      oris_procesos: "id, oris_id, proceso_id",
     });
   }
 }

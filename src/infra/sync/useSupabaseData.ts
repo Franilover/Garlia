@@ -203,6 +203,10 @@ const DEXIE_TABLES = new Set([
   "clado_relaciones",
   "v_clado_editor_opciones_v1",
   "v_clado_editor_reglas_v1",
+  // ─── v51: oris_procesos — tabla puente Oris↔Proceso, ver v51 en
+  // infra/supabase/db.ts. Usada por ProcesosCompatiblesBloque
+  // (fisica/OrisEditor.tsx) y OrisCompatiblesBloque (elementos/ProcesosPage.tsx).
+  "oris_procesos",
 ]);
 
 const OFFLINE_WRITABLE = new Set([
@@ -299,6 +303,13 @@ const OFFLINE_WRITABLE = new Set([
   // DEXIE_TABLES (lectura) y useTagsCompuestos.ts escribe a Dexie a mano
   // con su propia key compuesta, mismo espíritu pero sin pasar por este
   // helper genérico.
+  // ─── v51: oris_procesos — tabla puente Oris↔Proceso con "id" propio (ver
+  // v51 en infra/supabase/db.ts). vincularOrisAProceso/desvincularOrisDeProceso
+  // (persistirOrisProceso.ts) hacen insert/delete directo contra Supabase, no
+  // pasan por addRow/updateRow/deleteRow de este hook — pero refetch() sí
+  // usa el fetchData cache-first genérico, así que entra en DEXIE_TABLES
+  // (lectura instantánea) y aquí por completitud/mismo criterio que oris_iums.
+  "oris_procesos",
 ]);
 
 // Tablas con ID numérico autogenerado por la DB — no se pueden crear offline
