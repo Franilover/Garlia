@@ -18,18 +18,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   activarPreparacionIum,
+  crearAlmacenamientoIumObjeto,
   crearPreparacionIum,
   evaluarPreparacionIum,
   listarAlmacenamientosDelObjeto,
   listarConfiguracionesDisponibles,
   listarOrisCatalogo,
   listarPreparacionesDeAlmacenamiento,
+  listarSoportesAlmacenamiento,
 } from "./iumsPreparadosService";
 import type {
   AlmacenamientoIumObjeto,
   ConfiguracionIumDisponible,
   PreparacionIum,
+  ResultadoCrearAlmacenamientoIum,
   ResultadoCrearPreparacionIum,
+  SoporteAlmacenamientoIum,
 } from "./iumsPreparados.types";
 
 export function useIumsPreparados(itemId: string) {
@@ -106,6 +110,42 @@ export function useIumsPreparados(itemId: string) {
   const todasLasPreparaciones = useMemo(
     () => Object.values(preparacionesPorAlmacenamiento).flat(),
     [preparacionesPorAlmacenamiento],
+  );
+
+  // ── Crear almacenamiento IUM del objeto ──────────────────────────────
+  const [soportesObjeto, setSoportesObjeto] = useState<SoporteAlmacenamientoIum[]>([]);
+  const [loadingSoportes, setLoadingSoportes] = useState(false);
+
+  const cargarSoportesObjeto = useCallback(async () => {
+    setLoadingSoportes(true);
+    try {
+      const rows = await listarSoportesAlmacenamiento({ tipo: "objeto" });
+      setSoportesObjeto(rows);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingSoportes(false);
+    }
+  }, []);
+
+  const crearAlmacenamiento = useCallback(
+    async (params: {
+      soporteTipoId: string;
+      nombre?: string;
+      personajeId?: string | null;
+    }): Promise<ResultadoCrearAlmacenamientoIum> => {
+      const resultado = await crearAlmacenamientoIumObjeto({
+        itemId,
+        soporteTipoId: params.soporteTipoId,
+        nombre: params.nombre,
+        personajeId: params.personajeId,
+      });
+      if (resultado.estado === "creado") {
+        await cargarAlmacenamientos();
+      }
+      return resultado;
+    },
+    [itemId, cargarAlmacenamientos],
   );
 
   // ── Selector "Añadir preparación" ────────────────────────────────────
@@ -193,6 +233,11 @@ export function useIumsPreparados(itemId: string) {
     almacenamientos,
     preparacionesPorAlmacenamiento,
     todasLasPreparaciones,
+
+    soportesObjeto,
+    loadingSoportes,
+    cargarSoportesObjeto,
+    crearAlmacenamiento,
 
     orisCatalogo,
     orisSelId,

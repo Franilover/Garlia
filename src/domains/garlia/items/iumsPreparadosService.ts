@@ -26,6 +26,7 @@ import type {
   ConfiguracionIumDisponible,
   ConfiguracionSnapshot,
   PreparacionIum,
+  ResultadoCrearAlmacenamientoIum,
   ResultadoCrearPreparacionIum,
   ResultadoEvaluarPreparacionIum,
   SoporteAlmacenamientoIum,
@@ -230,6 +231,50 @@ export async function listarPreparacionesDeAlmacenamiento(
       updatedAt: r.updated_at as string,
     };
   });
+}
+
+/** Catálogo de soportes de almacenamiento IUM activos, opcionalmente
+ *  filtrado por tipo (ej. 'objeto') — el ticket exige no hardcodear
+ *  soportes: el selector de "Crear almacenamiento" solo puede elegir entre
+ *  lo que esta función devuelve desde soportes_almacenamiento_ium_v1. */
+export async function listarSoportesAlmacenamiento(params?: {
+  tipo?: string;
+}): Promise<SoporteAlmacenamientoIum[]> {
+  let query = supabase
+    .from("soportes_almacenamiento_ium_v1")
+    .select(
+      "id, codigo, nombre, tipo, descripcion, capacidad_orden, estabilidad, aislamiento, factor_geometria, tasa_disolucion_base_h, reutilizable, activo",
+    )
+    .eq("activo", true);
+
+  if (params?.tipo) query = query.eq("tipo", params.tipo);
+
+  const { data, error } = await query.order("nombre", { ascending: true });
+  if (error) throw new Error(`listarSoportesAlmacenamiento: ${error.message}`);
+
+  return (data ?? []).map(mapSoporte);
+}
+
+/** Crea el almacenamiento IUM del objeto usando exclusivamente la función
+ *  canónica crear_almacenamiento_ium_objeto_v1 — la BD ya valida que el
+ *  objeto exista (objeto_no_encontrado) y que el soporte exista
+ *  (soporte_almacenamiento_no_encontrado); acá no se duplica esa
+ *  validación ni se inserta directo en almacenamientos_ium_v1. */
+export async function crearAlmacenamientoIumObjeto(params: {
+  itemId: string;
+  soporteTipoId: string;
+  nombre?: string;
+  personajeId?: string | null;
+}): Promise<ResultadoCrearAlmacenamientoIum> {
+  const { data, error } = await supabase.rpc("crear_almacenamiento_ium_objeto_v1", {
+    p_item_id: params.itemId,
+    p_soporte_tipo_id: params.soporteTipoId,
+    p_nombre: params.nombre ?? null,
+    p_personaje_id: params.personajeId ?? null,
+  });
+
+  if (error) throw new Error(`crearAlmacenamientoIumObjeto: ${error.message}`);
+  return data as ResultadoCrearAlmacenamientoIum;
 }
 
 /** Configuraciones IUM disponibles para un proceso+Oris concretos — sale de

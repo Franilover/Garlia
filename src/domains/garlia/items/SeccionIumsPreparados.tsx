@@ -508,6 +508,130 @@ function FormularioAgregarPreparacion({
   );
 }
 
+/** Formulario guiado de "Crear almacenamiento IUM": solo permite elegir
+ *  entre los soportes reales de tipo 'objeto' (soportes_almacenamiento_ium_v1),
+ *  nunca un valor inventado. La creación usa exclusivamente
+ *  crear_almacenamiento_ium_objeto_v1, que ya valida que el objeto exista. */
+function FormularioCrearAlmacenamiento({
+  hook,
+  onCreado,
+  onCancelar,
+}: {
+  hook: ReturnType<typeof useIumsPreparados>;
+  onCreado: () => void;
+  onCancelar: () => void;
+}) {
+  const { soportesObjeto, loadingSoportes, crearAlmacenamiento } = hook;
+  const [soporteTipoId, setSoporteTipoId] = useState<string | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
+
+  const handleCrear = async () => {
+    if (!soporteTipoId) return;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const r = await crearAlmacenamiento({
+        soporteTipoId,
+        nombre: nombre.trim() || undefined,
+      });
+      if (r.estado === "creado") {
+        setResultado({ ok: true, mensaje: "Almacenamiento IUM creado correctamente." });
+        onCreado();
+      } else {
+        setResultado({
+          ok: false,
+          mensaje: r.razon ? `Rechazado por Supabase: ${r.razon}` : `Rechazado (estado: ${r.estado}).`,
+        });
+      }
+    } catch (e) {
+      setResultado({ ok: false, mensaje: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/15 p-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">
+        Crear almacenamiento IUM
+      </p>
+
+      <div>
+        <label className="mb-1 block text-[9px] font-black uppercase tracking-widest text-primary/35">
+          Soporte de almacenamiento
+        </label>
+        {loadingSoportes ? (
+          <LoadingRow>Cargando soportes disponibles…</LoadingRow>
+        ) : soportesObjeto.length === 0 ? (
+          <EmptyRow>
+            No hay ningún soporte activo de tipo &apos;objeto&apos; en
+            soportes_almacenamiento_ium_v1. No se puede crear un almacenamiento sin uno.
+          </EmptyRow>
+        ) : (
+          <select
+            value={soporteTipoId ?? ""}
+            onChange={(e) => setSoporteTipoId(e.target.value || null)}
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-xs font-bold text-primary/85 outline-none focus:border-primary/40"
+          >
+            <option value="" className="bg-[var(--bg-main)]">
+              — seleccionar soporte —
+            </option>
+            {soportesObjeto.map((s) => (
+              <option key={s.id} value={s.id} className="bg-[var(--bg-main)]">
+                {s.nombre} (capacidad {s.capacidadOrden.toFixed(0)})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {soporteTipoId ? (
+        <div>
+          <label className="mb-1 block text-[9px] font-black uppercase tracking-widest text-primary/35">
+            Nombre (opcional)
+          </label>
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej: Núcleo interno de la espada"
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-xs font-bold text-primary/85 outline-none focus:border-primary/40"
+          />
+        </div>
+      ) : null}
+
+      {resultado ? (
+        <div
+          className={`rounded-lg border p-2.5 text-[11px] font-bold ${
+            resultado.ok ? "border-emerald-500/20 text-emerald-500" : "border-red-500/20 text-red-400"
+          }`}
+        >
+          {resultado.mensaje}
+        </div>
+      ) : null}
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={handleCrear}
+          disabled={!soporteTipoId || enviando}
+          className="rounded-lg bg-primary/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/85 transition-colors hover:bg-primary/15 disabled:opacity-40"
+        >
+          {enviando ? "Creando…" : "Crear almacenamiento"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancelar}
+          className="rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function SeccionIumsPreparados({ itemId }: { itemId: string }) {
   const hook = useIumsPreparados(itemId);
   const {
@@ -522,6 +646,7 @@ export function SeccionIumsPreparados({ itemId }: { itemId: string }) {
 
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [agregandoEnAlmacenamiento, setAgregandoEnAlmacenamiento] = useState<string | null>(null);
+  const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(false);
 
   if (loading) return <LoadingRow>Cargando almacenamientos y preparaciones del objeto…</LoadingRow>;
 
@@ -533,14 +658,36 @@ export function SeccionIumsPreparados({ itemId }: { itemId: string }) {
     );
   }
 
-  // Estado 1: el objeto no tiene ningún almacenamiento IUM.
+  // Estado 1: el objeto no tiene ningún almacenamiento IUM. Se ofrece
+  // crear uno acá mismo (crear_almacenamiento_ium_objeto_v1), en vez de
+  // dejar un callejón sin salida.
   if (almacenamientos.length === 0) {
     return (
-      <EmptyRow>
-        Este objeto no tiene almacenamiento IUM (<code>almacenamientos_ium_v1</code> con
-        <code> ubicacion_tipo=&apos;objeto&apos;</code> y <code>ubicacion_id</code> igual a este objeto). No
-        puede tener preparaciones IUM hasta que se cree uno.
-      </EmptyRow>
+      <div className="flex flex-col gap-3">
+        <EmptyRow>
+          Este objeto no tiene almacenamiento IUM (<code>almacenamientos_ium_v1</code> con
+          <code> ubicacion_tipo=&apos;objeto&apos;</code> y <code>ubicacion_id</code> igual a este objeto). No
+          puede tener preparaciones IUM hasta que se cree uno.
+        </EmptyRow>
+        {creandoAlmacenamiento ? (
+          <FormularioCrearAlmacenamiento
+            hook={hook}
+            onCreado={() => setCreandoAlmacenamiento(false)}
+            onCancelar={() => setCreandoAlmacenamiento(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setCreandoAlmacenamiento(true);
+              hook.cargarSoportesObjeto();
+            }}
+            className="self-start rounded-lg border border-dashed border-primary/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 transition-colors hover:border-primary/35 hover:text-primary/60"
+          >
+            + Crear almacenamiento IUM
+          </button>
+        )}
+      </div>
     );
   }
 

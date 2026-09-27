@@ -151,6 +151,19 @@ export interface PreparacionIum {
   updatedAt: string;
 }
 
+/** Resultado crudo (jsonb) de crear_almacenamiento_ium_objeto_v1. */
+export interface ResultadoCrearAlmacenamientoIum {
+  estado: string;
+  razon?: string;
+  almacenamiento_id?: string;
+  item_id?: string;
+  soporte_tipo_id?: string;
+  soporte_codigo?: string;
+  soporte_nombre?: string;
+  ubicacion_tipo?: string;
+  [key: string]: unknown;
+}
+
 /** Resultado crudo (jsonb) de crear_preparacion_ium_v1 — se presenta tal
  *  cual, sin traducir "razon"/"estado" a texto inventado. */
 export interface ResultadoCrearPreparacionIum {
