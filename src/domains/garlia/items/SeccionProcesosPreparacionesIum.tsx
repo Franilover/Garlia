@@ -1157,7 +1157,7 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
       {/* ── Procesos que facilita ── */}
       <div className="flex flex-col gap-2.5">
         <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">Procesos que facilita</p>
@@ -1201,7 +1201,7 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
       </div>
 
       {/* ── Preparaciones IUM existentes ── */}
-      <div className="flex flex-col gap-2.5 border-t border-primary/10 pt-4">
+      <div className="flex flex-col gap-2.5">
         <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">IUMs preparados</p>
 
         {almacenamientos.length === 0 ? (

@@ -431,53 +431,51 @@ export function EditorItem({
               />
             </div>
 
-            {/* Física del objeto (Modelo físico canónico v218). La
-                sección "Física del objeto"/"Geometría" es solo lectura:
-                item_materiales es la fuente principal; compuesto_id es
-                solo compatibilidad secundaria y nunca se suma. La
-                composición de materiales sí es editable dentro de este
-                panel (capa "Editar composición") — al cambiar algo,
-                Supabase recalcula vía trigger y acá se vuelve a pedir el
-                item con la misma query real que lo cargó. */}
-            <div className="rounded-lg border border-primary/10 p-2">
-              <PanelFisicaObjeto
-                itemId={item.id}
-                propiedadesFisicas={form.propiedades_fisicas}
-                estadoFisico={form.estado_fisico}
-                geometriaFisica={form.geometria_fisica}
-                onRefrescarItem={refrescarPropiedadesFisicas}
-                modo={modoVista}
-              />
+            {/* Descripción, a la izquierda del bloque de Física del
+                objeto (antes vivía abajo, en una fila aparte junto a
+                IUMs preparados). */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-start">
+              <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
+                <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                  Descripción
+                </label>
+                <RichEditor
+                  minHeight="12.5rem"
+                  placeholder="Qué es, qué hace, su historia…"
+                  value={form.descripcion ?? ""}
+                  wikiEntities={entities}
+                  onChange={(v) => setForm((f: Item) => ({ ...f, descripcion: v }))}
+                  onWikilinkNavigate={onWikilink}
+                />
+              </div>
+
+              {/* Física del objeto (Modelo físico canónico v218). La
+                  sección "Física del objeto"/"Geometría" es solo lectura:
+                  item_materiales es la fuente principal; compuesto_id es
+                  solo compatibilidad secundaria y nunca se suma. La
+                  composición de materiales sí es editable dentro de este
+                  panel (capa "Editar composición") — al cambiar algo,
+                  Supabase recalcula vía trigger y acá se vuelve a pedir el
+                  item con la misma query real que lo cargó. */}
+              <div className="rounded-lg border border-primary/10 p-2">
+                <PanelFisicaObjeto
+                  itemId={item.id}
+                  propiedadesFisicas={form.propiedades_fisicas}
+                  estadoFisico={form.estado_fisico}
+                  geometriaFisica={form.geometria_fisica}
+                  onRefrescarItem={refrescarPropiedadesFisicas}
+                  modo={modoVista}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Descripción + IUMs preparados. Antes la segunda columna quedaba
-            vacía en desktop (se había sacado
-            MaterialesPropiedadesFisicasItem); ahora ese hueco lo ocupa la
-            sección nueva "IUMs preparados", al lado de Descripción. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-          <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
-            <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Descripción
-            </label>
-            <RichEditor
-              minHeight="12.5rem"
-              placeholder="Qué es, qué hace, su historia…"
-              value={form.descripcion ?? ""}
-              wikiEntities={entities}
-              onChange={(v) => setForm((f: Item) => ({ ...f, descripcion: v }))}
-              onWikilinkNavigate={onWikilink}
-            />
-          </div>
-
-          {/* IUMs preparados — reemplaza el flujo anterior de selección
-              directa de configuración por el flujo canónico completo:
-              Procesos que facilita → Configuración IUM → Preparación →
-              Almacenamiento. Toda la información sale de Supabase. */}
-          <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
-            <SeccionProcesosPreparacionesIum itemId={item.id} />
-          </div>
+        {/* Procesos que facilita (izquierda) + IUMs preparados (derecha).
+            El propio componente ya arma el grid de dos columnas
+            internamente. */}
+        <div className="rounded-lg border border-primary/10 p-2">
+          <SeccionProcesosPreparacionesIum itemId={item.id} />
         </div>
       </div>
 
