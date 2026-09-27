@@ -1344,21 +1344,6 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
             <span className="text-xs text-primary/35">v{configuracion.version}</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-micro">
-            <span className="text-primary/40">Topología</span>
-            <span className="text-primary/65 text-right truncate">
-              {configuracion.topologia ?? "Sin información registrada"}
-            </span>
-            <span className="text-primary/40">Oris principal</span>
-            <span className="text-primary/65 text-right truncate">
-              {configuracion.oris_principal ?? "Sin información registrada"}
-            </span>
-            <span className="text-primary/40">Oris compatibles</span>
-            <span className="text-primary/65 text-right truncate">
-              {configuracion.oris_compatibles ?? "Sin información registrada"}
-            </span>
-          </div>
-
           {flujo.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-primary/45">Enlaces</span>
