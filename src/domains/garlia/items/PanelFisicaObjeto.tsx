@@ -74,7 +74,7 @@ function PropertyCell({
     >
       <span className="text-micro font-bold text-primary/50 truncate">{label}</span>
       <span
-        className={`text-micro font-black text-primary/70 shrink-0 truncate max-w-[6.5rem] text-right ${
+        className={`text-micro font-black text-primary/70 shrink-0 truncate max-w-[9rem] text-right ${
           esHumana ? "capitalize" : "tabular-nums"
         }`}
       >
@@ -229,13 +229,21 @@ export function PanelFisicaObjeto({
           // su propio renderer (EditorGeometriaItem más abajo, etc.), pero
           // su nombre/orden como sección igual proviene del contrato si se
           // necesita mostrarlos con encabezado propio.
-          <div className="grid grid-cols-2 gap-3 items-start">
+          // Antes cada grupo (Masa/Volumen/Densidad, Estabilidad/Rigidez/
+          // Flexibilidad, etc.) era una celda propia de un grid de 2
+          // columnas — si todas las propiedades caían en pocos grupos,
+          // una sola columna terminaba con todo apilado y la otra vacía.
+          // Ahora se usa columnas CSS (column-count) sobre la lista plana
+          // de propiedades: el navegador reparte por altura real entre
+          // las 2 columnas sin importar cuántos grupos haya, y cada
+          // propiedad no se corta a mitad de columna (break-inside-avoid).
+          <div className="[column-count:1] min-[420px]:[column-count:2] gap-x-3">
             {gruposContrato
               .filter((g: GrupoContrato) =>
                 g.propiedades.some((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined),
               )
               .map((g: GrupoContrato) => (
-                <div key={g.grupo} className="flex flex-col gap-0.5">
+                <div key={g.grupo} className="flex flex-col gap-0.5 break-inside-avoid mb-2">
                   <SubGroupLabel>{g.grupo_nombre}</SubGroupLabel>
                   {g.propiedades
                     .filter((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined)

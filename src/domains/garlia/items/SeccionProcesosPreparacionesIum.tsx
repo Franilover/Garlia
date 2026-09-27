@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 
 import { useProcesosPreparacionesIum } from "./useProcesosPreparacionesIum";
 import { useProcesos } from "../elementos/useProcesos";
@@ -151,9 +152,11 @@ function TarjetaProceso({
             <button
               type="button"
               onClick={() => setConfirmando(true)}
-              className="rounded-lg border border-red-500/15 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
+              aria-label="Quitar proceso"
+              title="Quitar proceso"
+              className="rounded-lg border border-red-500/15 p-1.5 text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
             >
-              Quitar
+              <Trash2 size={13} />
             </button>
           )}
         </div>
@@ -883,9 +886,11 @@ function TarjetaAlmacenamiento({
             <button
               type="button"
               onClick={() => setConfirmandoEliminar(true)}
-              className="rounded-lg border border-red-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
+              aria-label="Eliminar almacenamiento"
+              title="Eliminar almacenamiento"
+              className="rounded-lg border border-red-500/15 p-1.5 text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
             >
-              Eliminar
+              <Trash2 size={13} />
             </button>
           )}
         </div>
@@ -1160,7 +1165,31 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
       {/* ── Procesos que facilita ── */}
       <div className="flex flex-col gap-2.5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">Procesos que facilita</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">Procesos que facilita</p>
+          {agregandoProceso ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                setAgregandoProceso(true);
+                hook.cargarCatalogoProcesos();
+              }}
+              aria-label="Agregar proceso"
+              title="Agregar proceso"
+              className="rounded-lg border border-primary/15 p-1 text-primary/50 transition-colors hover:border-primary/30 hover:text-primary/80"
+            >
+              <Plus size={13} />
+            </button>
+          )}
+        </div>
+
+        {agregandoProceso ? (
+          <FormularioAgregarProceso
+            hook={hook}
+            onAgregado={() => setAgregandoProceso(false)}
+            onCancelar={() => setAgregandoProceso(false)}
+          />
+        ) : null}
 
         {procesos.length === 0 ? null : (
           procesos.map((p) => (
@@ -1179,35 +1208,43 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
             No se pudo quitar el proceso: {errorQuitarProceso}
           </div>
         ) : null}
-
-        {agregandoProceso ? (
-          <FormularioAgregarProceso
-            hook={hook}
-            onAgregado={() => setAgregandoProceso(false)}
-            onCancelar={() => setAgregandoProceso(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setAgregandoProceso(true);
-              hook.cargarCatalogoProcesos();
-            }}
-            className="self-start rounded-lg border border-dashed border-primary/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 transition-colors hover:border-primary/35 hover:text-primary/60"
-          >
-            + Agregar proceso
-          </button>
-        )}
       </div>
 
       {/* ── Preparaciones IUM existentes ── */}
       <div className="flex flex-col gap-2.5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">IUMs preparados</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">IUMs preparados</p>
+          {creandoAlmacenamiento ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                setCreandoAlmacenamiento(true);
+                hook.cargarSoportesObjeto();
+              }}
+              aria-label="Crear almacenamiento IUM"
+              title="Crear almacenamiento IUM"
+              className="rounded-lg border border-primary/15 p-1 text-primary/50 transition-colors hover:border-primary/30 hover:text-primary/80"
+            >
+              <Plus size={13} />
+            </button>
+          )}
+        </div>
+
+        {/* Un objeto puede tener más de un almacenamiento IUM (sin unicidad
+            en almacenamientos_ium_v1 sobre ubicacion_id) — disponible
+            siempre, no solo cuando la lista está vacía. */}
+        {creandoAlmacenamiento ? (
+          <FormularioCrearAlmacenamiento
+            hook={hook}
+            onCreado={() => setCreandoAlmacenamiento(false)}
+            onCancelar={() => setCreandoAlmacenamiento(false)}
+          />
+        ) : null}
 
         {almacenamientos.length === 0 ? (
           <EmptyRow>
             Este objeto no tiene almacenamiento IUM todavía. Se crea automáticamente al preparar la
-            primera configuración desde un proceso, o podés crearlo directamente acá abajo.
+            primera configuración desde un proceso, o podés crearlo directamente con el botón de arriba.
           </EmptyRow>
         ) : (
           almacenamientos.map((a) => (
@@ -1226,28 +1263,6 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
               }}
             />
           ))
-        )}
-
-        {/* Un objeto puede tener más de un almacenamiento IUM (sin unicidad
-            en almacenamientos_ium_v1 sobre ubicacion_id) — disponible
-            siempre, no solo cuando la lista está vacía. */}
-        {creandoAlmacenamiento ? (
-          <FormularioCrearAlmacenamiento
-            hook={hook}
-            onCreado={() => setCreandoAlmacenamiento(false)}
-            onCancelar={() => setCreandoAlmacenamiento(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setCreandoAlmacenamiento(true);
-              hook.cargarSoportesObjeto();
-            }}
-            className="self-start rounded-lg border border-dashed border-primary/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 transition-colors hover:border-primary/35 hover:text-primary/60"
-          >
-            {almacenamientos.length === 0 ? "+ Crear almacenamiento IUM" : "+ Crear otro almacenamiento IUM"}
-          </button>
         )}
       </div>
 

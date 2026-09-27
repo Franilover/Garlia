@@ -434,7 +434,7 @@ export function EditorItem({
             {/* Descripción, a la izquierda del bloque de Física del
                 objeto (antes vivía abajo, en una fila aparte junto a
                 IUMs preparados). */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr] gap-2 items-start">
               <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
                 <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
                   Descripción
