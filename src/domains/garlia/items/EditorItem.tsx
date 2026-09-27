@@ -28,6 +28,7 @@ import type { WikiEntity } from "@/ui/Markdown/commandItems";
 import { RichEditor } from "@/editor/lexical";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { PanelFisicaObjeto } from "@/domains/garlia/items/PanelFisicaObjeto";
+import { SeccionIumsPreparados } from "@/domains/garlia/items/SeccionIumsPreparados";
 import { useItemMateriales } from "@/domains/garlia/items/useItemMateriales";
 import { useMateriales } from "@/domains/garlia/materiales/useMateriales";
 import { MaterialEditorFlotante } from "@/domains/garlia/materiales/MaterialesPage";
@@ -480,6 +481,17 @@ export function EditorItem({
           </div>
 
           <div />
+        </div>
+
+        {/* IUMs preparados — preparaciones IUM almacenadas en este objeto
+            (almacenamientos_ium_v1 → preparaciones_ium_v1). Sección nueva,
+            misma tarjeta que el resto del editor; toda la información sale
+            de Supabase, sin reconstruir configuraciones desde oris_iums. */}
+        <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
+          <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+            IUMs preparados
+          </label>
+          <SeccionIumsPreparados itemId={item.id} />
         </div>
       </div>
 
