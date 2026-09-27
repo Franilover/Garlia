@@ -688,6 +688,117 @@ function TarjetaPreparacion({
   );
 }
 
+function FormularioCrearAlmacenamiento({
+  hook,
+  onCreado,
+  onCancelar,
+}: {
+  hook: ReturnType<typeof useProcesosPreparacionesIum>;
+  onCreado: () => void;
+  onCancelar: () => void;
+}) {
+  const { soportesObjeto, loadingSoportes, crearAlmacenamiento } = hook;
+  const [soporteTipoId, setSoporteTipoId] = useState<string | null>(null);
+  const [nombre, setNombre] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<{ ok: boolean; mensaje: string } | null>(null);
+
+  const handleCrear = async () => {
+    if (!soporteTipoId) return;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const r = await crearAlmacenamiento({ soporteTipoId, nombre: nombre.trim() || undefined });
+      if (r.estado === "creado") {
+        setResultado({ ok: true, mensaje: "Almacenamiento IUM creado correctamente." });
+        onCreado();
+      } else {
+        setResultado({ ok: false, mensaje: r.razon ? `Rechazado: ${r.razon}` : `Rechazado (${r.estado}).` });
+      }
+    } catch (e) {
+      setResultado({ ok: false, mensaje: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/15 p-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">
+        Crear almacenamiento IUM
+      </p>
+
+      <div>
+        <label className="mb-1 block text-[9px] font-black uppercase tracking-widest text-primary/35">
+          Soporte de almacenamiento
+        </label>
+        {loadingSoportes ? (
+          <LoadingRow>Cargando soportes disponibles…</LoadingRow>
+        ) : soportesObjeto.length === 0 ? (
+          <EmptyRow>No hay ningún soporte activo de tipo &apos;objeto&apos; disponible.</EmptyRow>
+        ) : (
+          <select
+            value={soporteTipoId ?? ""}
+            onChange={(e) => setSoporteTipoId(e.target.value || null)}
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-xs font-bold text-primary/85 outline-none focus:border-primary/40"
+          >
+            <option value="" className="bg-[var(--bg-main)]">
+              — seleccionar soporte —
+            </option>
+            {soportesObjeto.map((s) => (
+              <option key={s.id} value={s.id} className="bg-[var(--bg-main)]">
+                {s.nombre} (capacidad {s.capacidadOrden.toFixed(0)})
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {soporteTipoId ? (
+        <div>
+          <label className="mb-1 block text-[9px] font-black uppercase tracking-widest text-primary/35">
+            Nombre (opcional)
+          </label>
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ej: Núcleo interno de la espada"
+            className="w-full rounded-lg border border-primary/15 bg-transparent px-3 py-2 text-xs font-bold text-primary/85 outline-none focus:border-primary/40"
+          />
+        </div>
+      ) : null}
+
+      {resultado ? (
+        <div
+          className={`rounded-lg border p-2.5 text-[11px] font-bold ${
+            resultado.ok ? "border-emerald-500/20 text-emerald-500" : "border-red-500/20 text-red-400"
+          }`}
+        >
+          {resultado.mensaje}
+        </div>
+      ) : null}
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={handleCrear}
+          disabled={!soporteTipoId || enviando}
+          className="rounded-lg bg-primary/10 px-3.5 py-2 text-[10px] font-black uppercase tracking-widest text-primary/85 transition-colors hover:bg-primary/15 disabled:opacity-40"
+        >
+          {enviando ? "Creando…" : "Crear almacenamiento"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancelar}
+          className="rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Sección principal ─────────────────────────────────────────────────
 
 export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) {
@@ -697,6 +808,7 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
   const [agregandoProceso, setAgregandoProceso] = useState(false);
   const [configuracionSel, setConfiguracionSel] = useState<ConfiguracionDeProceso | null>(null);
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
+  const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(false);
 
   const todasLasPreparaciones = almacenamientos.flatMap((a) => a.preparaciones);
 
@@ -790,7 +902,7 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
         {almacenamientos.length === 0 ? (
           <EmptyRow>
             Este objeto no tiene almacenamiento IUM todavía. Se crea automáticamente al preparar la
-            primera configuración desde un proceso.
+            primera configuración desde un proceso, o podés crearlo directamente acá abajo.
           </EmptyRow>
         ) : todasLasPreparaciones.length === 0 ? (
           <EmptyRow>Este objeto tiene almacenamiento IUM pero ninguna preparación todavía.</EmptyRow>
@@ -804,6 +916,28 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
               onReevaluar={() => reevaluarPreparacion(p.id)}
             />
           ))
+        )}
+
+        {/* Un objeto puede tener más de un almacenamiento IUM (sin unicidad
+            en almacenamientos_ium_v1 sobre ubicacion_id) — disponible
+            siempre, no solo cuando la lista está vacía. */}
+        {creandoAlmacenamiento ? (
+          <FormularioCrearAlmacenamiento
+            hook={hook}
+            onCreado={() => setCreandoAlmacenamiento(false)}
+            onCancelar={() => setCreandoAlmacenamiento(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setCreandoAlmacenamiento(true);
+              hook.cargarSoportesObjeto();
+            }}
+            className="self-start rounded-lg border border-dashed border-primary/20 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 transition-colors hover:border-primary/35 hover:text-primary/60"
+          >
+            {almacenamientos.length === 0 ? "+ Crear almacenamiento IUM" : "+ Crear otro almacenamiento IUM"}
+          </button>
         )}
       </div>
     </div>
