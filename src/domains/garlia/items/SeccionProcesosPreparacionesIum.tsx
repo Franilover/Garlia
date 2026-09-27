@@ -688,6 +688,58 @@ function TarjetaPreparacion({
   );
 }
 
+// ── Almacenamiento IUM del objeto — agrupa sus preparaciones (o muestra
+// que está vacío). Antes la sección "IUMs preparados" aplanaba TODOS los
+// almacenamientos a una sola lista de preparaciones (almacenamientos.
+// flatMap(a => a.preparaciones)): un almacenamiento recién creado, sin
+// preparaciones todavía, no aparecía en ningún lado — ni su nombre, ni
+// que existía — dando la falsa sensación de que "crear almacenamiento"
+// no hacía nada, aunque el registro sí quedaba en Supabase. Ahora cada
+// almacenamiento se muestra siempre, con sus preparaciones anidadas
+// debajo (o un aviso de que todavía no tiene ninguna).
+function TarjetaAlmacenamiento({
+  almacenamiento,
+  abiertaId,
+  onToggle,
+  onReevaluar,
+}: {
+  almacenamiento: AlmacenamientoIumObjeto;
+  abiertaId: string | null;
+  onToggle: (id: string) => void;
+  onReevaluar: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-primary/10 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="text-xs font-black text-primary/80">{almacenamiento.nombre}</p>
+          <StatusPill tone={toneDeEstado(almacenamiento.estado)}>{almacenamiento.estado}</StatusPill>
+        </div>
+        <span className="text-[10px] font-bold text-primary/35">
+          {almacenamiento.soporteNombre ?? almacenamiento.soporteCodigo ?? "soporte sin resolver"}
+          {almacenamiento.capacidadOrden != null ? ` · capacidad ${almacenamiento.capacidadOrden}` : ""}
+        </span>
+      </div>
+
+      {almacenamiento.preparaciones.length === 0 ? (
+        <EmptyRow>Este almacenamiento todavía no tiene ninguna preparación.</EmptyRow>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {almacenamiento.preparaciones.map((p) => (
+            <TarjetaPreparacion
+              key={p.id}
+              preparacion={p}
+              abierta={abiertaId === p.id}
+              onToggle={() => onToggle(p.id)}
+              onReevaluar={() => onReevaluar(p.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormularioCrearAlmacenamiento({
   hook,
   onCreado,
@@ -814,8 +866,6 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(false);
 
-  const todasLasPreparaciones = almacenamientos.flatMap((a) => a.preparaciones);
-
   if (loading) return <LoadingRow>Cargando procesos y preparaciones del objeto…</LoadingRow>;
 
   if (error) {
@@ -908,16 +958,14 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
             Este objeto no tiene almacenamiento IUM todavía. Se crea automáticamente al preparar la
             primera configuración desde un proceso, o podés crearlo directamente acá abajo.
           </EmptyRow>
-        ) : todasLasPreparaciones.length === 0 ? (
-          <EmptyRow>Este objeto tiene almacenamiento IUM pero ninguna preparación todavía.</EmptyRow>
         ) : (
-          todasLasPreparaciones.map((p) => (
-            <TarjetaPreparacion
-              key={p.id}
-              preparacion={p}
-              abierta={abiertaId === p.id}
-              onToggle={() => setAbiertaId((cur) => (cur === p.id ? null : p.id))}
-              onReevaluar={() => reevaluarPreparacion(p.id)}
+          almacenamientos.map((a) => (
+            <TarjetaAlmacenamiento
+              key={a.id}
+              almacenamiento={a}
+              abiertaId={abiertaId}
+              onToggle={(id) => setAbiertaId((cur) => (cur === id ? null : id))}
+              onReevaluar={(id) => reevaluarPreparacion(id)}
             />
           ))
         )}
