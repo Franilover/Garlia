@@ -1118,12 +1118,12 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
     }
     const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
 
-    // Columnas/filas más amplias que la versión de texto: el glifo real
-    // (partículas sobre geometría) necesita más espacio que un rect+label.
+    // El glifo real necesita más espacio horizontal que un rect+label, pero
+    // sin nombre debajo la fila puede ser más baja que en la versión de texto.
     const ANCHO_COL = 130;
-    const ALTO_FILA = 96;
+    const ALTO_FILA = 62;
     const PAD_X = 40;
-    const PAD_Y = 40;
+    const PAD_Y = 15;
 
     const pos = new Map<string, { x: number; y: number }>();
     columnasOrdenadas.forEach((nivel, colIdx) => {
@@ -1158,33 +1158,47 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
 
   // Radio del glifo (mismo orden de magnitud que R_NODO en
   // OrisTopologiaVisual.tsx) y el centro de cada nodo dentro de su celda.
+  // Sin texto del nombre debajo (el IUM ya se identifica desde el menú de
+  // Oris), así que la fila puede ser más baja que antes.
   const R_NODO = 22;
   const CENTRO_X = R_NODO + 4;
   const CENTRO_Y = R_NODO + 4;
+  const ALTO_LEYENDA = 20;
   const anchoTotal = columnas.length * 130 + 40;
-  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 96 + 40;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 62 + 30 + ALTO_LEYENDA;
+
+  // Mismos colores/trazos que OrisTopologiaVisual.tsx, para que "dirigida",
+  // "recíproca" y "acoplamiento" se lean igual en toda la app.
+  const TRAZO_UNION = "color-mix(in srgb, var(--primary) 70%, transparent)";
+  const TRAZO_RECIPROCA = "var(--primary)";
+  const TEXTOS_TIPO: Record<string, string> = {
+    dirigida: "dirigida",
+    reciproca: "recíproca",
+    acoplamiento: "acoplamiento",
+  };
+  const tiposUsados = useMemo(
+    () => Array.from(new Set(aristas.map((a) => a.tipo))),
+    [aristas],
+  );
 
   return (
     <svg
       viewBox={`0 0 ${anchoTotal} ${altoTotal}`}
       className="w-full h-auto"
-      style={{ minHeight: Math.min(altoTotal, 260) }}
+      style={{ minHeight: Math.min(altoTotal, 220) }}
     >
       <defs>
-        <marker
-          id="flecha-config-ium"
-          viewBox="0 0 10 10"
-          refX="9"
-          refY="5"
-          markerWidth="6"
-          markerHeight="6"
-          orient="auto-start-reverse"
-        >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)" fillOpacity="0.4" />
+        <marker id="flecha-config-ium" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_UNION }} />
+        </marker>
+        <marker id="flecha-config-ium-rec" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_RECIPROCA }} />
         </marker>
       </defs>
 
       {aristas.map((a) => {
+        const esRec = a.tipo === "reciproca";
+        const esAcop = a.tipo === "acoplamiento";
         const x1 = a.desde.x + CENTRO_X + R_NODO;
         const y1 = a.desde.y + CENTRO_Y;
         const x2 = a.hasta.x + CENTRO_X - R_NODO;
@@ -1198,10 +1212,12 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
             key={a.key}
             d={path}
             fill="none"
-            stroke="var(--primary)"
-            strokeOpacity={0.3}
-            strokeWidth={1.5}
-            markerEnd="url(#flecha-config-ium)"
+            strokeWidth={esRec ? 2 : 1.6}
+            strokeLinecap="round"
+            strokeDasharray={esAcop ? "4 4" : undefined}
+            style={{ stroke: esRec ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            markerEnd={esAcop ? undefined : `url(#${esRec ? "flecha-config-ium-rec" : "flecha-config-ium"})`}
+            markerStart={esRec ? `url(#flecha-config-ium-rec)` : undefined}
           />
         );
       })}
@@ -1230,23 +1246,29 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
                 particulas={particulasDe(nodo.id)}
                 geometria={geometriaDe(nodo.id).geometria}
               />
-              <text
-                x={cx}
-                y={cy + R_NODO + 14}
-                textAnchor="middle"
-                fontSize={9.5}
-                fontWeight={700}
-                paintOrder="stroke"
-                strokeWidth={3}
-                strokeLinejoin="round"
-                style={{ fill: "var(--primary)", stroke: "var(--bg-main)" }}
-              >
-                {nodo.nombre.length > 16 ? `${nodo.nombre.slice(0, 15)}…` : nodo.nombre}
-              </text>
             </g>
           );
         }),
       )}
+
+      {tiposUsados.length > 1 &&
+        tiposUsados.map((tipo, i) => (
+          <g key={tipo} transform={`translate(${8 + i * 90}, ${altoTotal - ALTO_LEYENDA / 2})`}>
+            <line
+              x1={0}
+              y1={0}
+              x2={16}
+              y2={0}
+              strokeWidth={tipo === "reciproca" ? 2 : 1.5}
+              strokeLinecap="round"
+              strokeDasharray={tipo === "acoplamiento" ? "3 3" : undefined}
+              style={{ stroke: tipo === "reciproca" ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            />
+            <text x={21} y={2.5} fontSize={7.5} style={{ fill: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              {TEXTOS_TIPO[tipo] ?? tipo}
+            </text>
+          </g>
+        ))}
     </svg>
   );
 }
