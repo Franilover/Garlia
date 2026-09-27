@@ -43,11 +43,7 @@ import {
   actualizarProcesoReaccion,
   desvincularReaccionDeProceso,
 } from "./persistirProcesoReaccion";
-import {
-  vincularOrisAProceso,
-  actualizarOrisProceso,
-  desvincularOrisDeProceso,
-} from "./persistirOrisProceso";
+import { vincularOrisAProceso, desvincularOrisDeProceso } from "./persistirOrisProceso";
 import {
   vincularElementoAProceso,
   actualizarElementoProceso,
@@ -450,10 +446,11 @@ function ReaccionesVinculadasBloque({
  * mostrando qué Procesos) — ver CompatibleProcesses en fisica/OrisEditor.tsx,
  * que reutiliza este mismo bloque en su modo "desde Oris".
  *
- * El "rol" se muestra tal cual viene de Supabase (badge de solo lectura,
- * no un select que lo reinterprete — spec sección 5) mientras que
- * "prioridad" y "notas" sí son editables inline, porque son campos propios
- * de la relación sin significado narrativo fijo que cuidar.
+ * El "rol" ya no se muestra como badge individual: se usa para agrupar
+ * los vínculos en secciones (Principales/Secundarios/Compatibles/Otros,
+ * ver SECCIONES_ROL más abajo). La tarjeta de cada vínculo queda mínima
+ * — solo nombre y desvincular, sin prioridad, notas ni toggle activo,
+ * ver OrisVinculadoItem.
  */
 function OrisCompatiblesBloque({
   procesoId,
@@ -516,13 +513,6 @@ function OrisCompatiblesBloque({
     }
     return grupos;
   }, [vinculosDeEsteProceso]);
-
-  async function handleNotasBlur(vinculoId: string, notas: string) {
-    setGuardandoId(vinculoId);
-    await actualizarOrisProceso(vinculoId, { notas: notas.trim() || null });
-    setGuardandoId(null);
-    refetch();
-  }
 
   async function handleQuitar(vinculoId: string, nombre: string) {
     const ok = await confirm({
@@ -628,7 +618,6 @@ function OrisCompatiblesBloque({
                       ocupado={guardandoId === vinculo.id}
                       onAbrirOris={onAbrirOris}
                       onQuitar={handleQuitar}
-                      onNotasBlur={handleNotasBlur}
                     />
                   ))}
                 </div>
@@ -650,7 +639,6 @@ function OrisCompatiblesBloque({
                     ocupado={guardandoId === vinculo.id}
                     onAbrirOris={onAbrirOris}
                     onQuitar={handleQuitar}
-                    onNotasBlur={handleNotasBlur}
                   />
                 ))}
               </div>
@@ -662,61 +650,47 @@ function OrisCompatiblesBloque({
   );
 }
 
-/** Tarjeta individual de un Oris vinculado, sin el input de prioridad ni
- *  el toggle activo/inactivo — el agrupamiento por secciones (ver
- *  SECCIONES_ROL más arriba) ya comunica esa jerarquía visualmente.
- *  Notas se conserva porque es información propia del vínculo, no un
- *  estado de prioridad/actividad. */
+/** Tarjeta individual de un Oris vinculado — solo el nombre y desvincular.
+ *  Sin prioridad, sin toggle activo/inactivo, sin notas: el agrupamiento
+ *  por secciones (ver SECCIONES_ROL más arriba) ya comunica la jerarquía
+ *  visualmente, y esto queda igual de minimalista que ProcesoVinculadoItem
+ *  en fisica/OrisEditor.tsx. */
 function OrisVinculadoItem({
   vinculo,
   orisRelacionado,
   ocupado,
   onAbrirOris,
   onQuitar,
-  onNotasBlur,
 }: {
   vinculo: OrisProceso;
   orisRelacionado: Oris | undefined;
   ocupado: boolean;
   onAbrirOris?: (orisId: string) => void;
   onQuitar: (vinculoId: string, nombre: string) => void;
-  onNotasBlur: (vinculoId: string, notas: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors">
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          disabled={!onAbrirOris}
-          onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
-          title={onAbrirOris ? "Ver/editar este Oris" : undefined}
-          className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
-            onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
-          }`}
-        >
-          {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
-        </button>
+    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors">
+      <button
+        type="button"
+        disabled={!onAbrirOris}
+        onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
+        title={onAbrirOris ? "Ver/editar este Oris" : undefined}
+        className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+          onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
+        }`}
+      >
+        {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
+      </button>
 
-        <button
-          type="button"
-          onClick={() => onQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
-          disabled={ocupado}
-          title="Desvincular de este proceso"
-          className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
-        >
-          {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
-        </button>
-      </div>
-
-      <input
-        defaultValue={vinculo.notas ?? ""}
-        key={`notas-${vinculo.id}-${vinculo.notas ?? ""}`}
-        onBlur={(e) => onNotasBlur(vinculo.id, e.target.value)}
+      <button
+        type="button"
+        onClick={() => onQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
         disabled={ocupado}
-        placeholder="Notas"
-        title="Notas"
-        className="w-full bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
-      />
+        title="Desvincular de este proceso"
+        className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+      >
+        {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+      </button>
     </div>
   );
 }
