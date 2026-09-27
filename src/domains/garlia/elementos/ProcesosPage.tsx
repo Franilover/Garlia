@@ -1076,12 +1076,15 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
 
   const { columnas, aristas, nodoPos } = useMemo(() => {
     const nombrePorId = new Map<string, string>();
+    const rolPorId = new Map<string, string>();
     const salidas = new Map<string, Set<string>>();
     const entradas = new Map<string, Set<string>>();
 
     for (const f of flujo) {
       nombrePorId.set(f.ium_origen_id, f.ium_origen);
       nombrePorId.set(f.ium_destino_id, f.ium_destino);
+      if (f.participacion_origen) rolPorId.set(f.ium_origen_id, f.participacion_origen);
+      if (f.participacion_destino) rolPorId.set(f.ium_destino_id, f.participacion_destino);
       if (!salidas.has(f.ium_origen_id)) salidas.set(f.ium_origen_id, new Set());
       salidas.get(f.ium_origen_id)!.add(f.ium_destino_id);
       if (!entradas.has(f.ium_destino_id)) entradas.set(f.ium_destino_id, new Set());
@@ -1118,10 +1121,11 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
     }
     const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
 
-    // El glifo real necesita más espacio horizontal que un rect+label, pero
-    // sin nombre debajo la fila puede ser más baja que en la versión de texto.
+    // El glifo real necesita más espacio horizontal que un rect+label; con
+    // la etiqueta de rol debajo del nodo, la fila vuelve a necesitar algo
+    // más de alto que la versión sin ningún texto.
     const ANCHO_COL = 130;
-    const ALTO_FILA = 62;
+    const ALTO_FILA = 78;
     const PAD_X = 40;
     const PAD_Y = 15;
 
@@ -1140,6 +1144,7 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
       (porColumna.get(nivel) ?? []).map((id) => ({
         id,
         nombre: nombrePorId.get(id) ?? id.slice(0, 8),
+        rol: rolPorId.get(id) ?? null,
         pos: pos.get(id)!,
       })),
     );
@@ -1165,7 +1170,7 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
   const CENTRO_Y = R_NODO + 4;
   const ALTO_LEYENDA = 20;
   const anchoTotal = columnas.length * 130 + 40;
-  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 62 + 30 + ALTO_LEYENDA;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 78 + 30 + ALTO_LEYENDA;
 
   // Mismos colores/trazos que OrisTopologiaVisual.tsx, para que "dirigida",
   // "recíproca" y "acoplamiento" se lean igual en toda la app.
@@ -1246,6 +1251,20 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
                 particulas={particulasDe(nodo.id)}
                 geometria={geometriaDe(nodo.id).geometria}
               />
+              {nodo.rol && (
+                <text
+                  x={cx}
+                  y={cy + R_NODO + 13}
+                  textAnchor="middle"
+                  fontSize={7.5}
+                  paintOrder="stroke"
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                  style={{ fill: "color-mix(in srgb, var(--primary) 60%, transparent)", stroke: "var(--bg-main)" }}
+                >
+                  {nodo.rol.replace(/_/g, " ")}
+                </text>
+              )}
             </g>
           );
         }),
@@ -1338,18 +1357,7 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
             <span className="text-primary/65 text-right truncate">
               {configuracion.oris_compatibles ?? "Sin información registrada"}
             </span>
-            <span className="text-primary/40">IUMs / uniones</span>
-            <span className="text-primary/65 text-right">
-              {configuracion.n_iums} / {configuracion.n_uniones}
-            </span>
           </div>
-
-          {configuracion.iums && (
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-primary/45">IUMs participantes</span>
-              <p className="text-micro text-primary/60 leading-relaxed">{configuracion.iums}</p>
-            </div>
-          )}
 
           {flujo.length > 0 && (
             <div className="flex flex-col gap-1">
