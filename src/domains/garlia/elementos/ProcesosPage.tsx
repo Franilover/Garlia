@@ -488,25 +488,38 @@ function OrisCompatiblesBloque({
     [oris, vinculosDeEsteProceso],
   );
 
-  async function handlePrioridadBlur(vinculoId: string, valor: string) {
-    const prioridad = valor.trim() === "" ? null : Number(valor);
-    if (prioridad !== null && !Number.isFinite(prioridad)) return;
-    setGuardandoId(vinculoId);
-    await actualizarOrisProceso(vinculoId, { prioridad });
-    setGuardandoId(null);
-    refetch();
-  }
+  // Agrupación por secciones según el texto libre de `rol` (ver placeholder
+  // del input de abajo: "principal, secundario, compatible") — mismo
+  // patrón que ProcesosCompatiblesBloque en fisica/OrisEditor.tsx. Un rol
+  // que no calce con esos tres términos, o vínculos sin rol, caen en
+  // "Otros" para no perder datos existentes.
+  const SECCIONES_ROL = [
+    { key: "principal", titulo: "Principales" },
+    { key: "secundario", titulo: "Secundarios" },
+    { key: "compatible", titulo: "Compatibles" },
+  ] as const;
+
+  const gruposPorRol = useMemo(() => {
+    const grupos: Record<string, OrisProceso[]> = {
+      principal: [],
+      secundario: [],
+      compatible: [],
+      otros: [],
+    };
+    for (const vinculo of vinculosDeEsteProceso) {
+      const rol = (vinculo.rol ?? "").trim().toLowerCase();
+      if (rol === "principal" || rol === "secundario" || rol === "compatible") {
+        grupos[rol].push(vinculo);
+      } else {
+        grupos.otros.push(vinculo);
+      }
+    }
+    return grupos;
+  }, [vinculosDeEsteProceso]);
 
   async function handleNotasBlur(vinculoId: string, notas: string) {
     setGuardandoId(vinculoId);
     await actualizarOrisProceso(vinculoId, { notas: notas.trim() || null });
-    setGuardandoId(null);
-    refetch();
-  }
-
-  async function handleToggleActivo(vinculo: OrisProceso) {
-    setGuardandoId(vinculo.id);
-    await actualizarOrisProceso(vinculo.id, { activo: !vinculo.activo });
     setGuardandoId(null);
     refetch();
   }
@@ -599,91 +612,111 @@ function OrisCompatiblesBloque({
           Sin información registrada — ningún Oris está vinculado a este proceso todavía.
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
-          {vinculosDeEsteProceso.map((vinculo) => {
-            const orisRelacionado = oris.find((o) => o.id === vinculo.oris_id);
-            const ocupado = guardandoId === vinculo.id;
-            return (
-              <div
-                key={vinculo.id}
-                className={`flex flex-col gap-1 px-2 py-1.5 rounded-md border transition-colors ${
-                  vinculo.activo
-                    ? "border-transparent hover:border-primary/10 hover:bg-primary/[0.03]"
-                    : "border-primary/10 bg-primary/[0.02] opacity-50"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    disabled={!onAbrirOris}
-                    onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
-                    title={onAbrirOris ? "Ver/editar este Oris" : undefined}
-                    className={`flex items-center gap-1 text-micro font-bold text-primary/70 truncate text-left ${
-                      onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
-                    }`}
-                  >
-                    {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
-                  </button>
-
-                  {vinculo.rol && (
-                    <span
-                      title="Rol tal como está definido en Supabase"
-                      className="shrink-0 px-1.5 py-0.5 rounded text-micro font-bold text-primary/60 bg-primary/5 border border-primary/10 capitalize"
-                    >
-                      {vinculo.rol}
-                    </span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActivo(vinculo)}
-                    disabled={ocupado}
-                    title={vinculo.activo ? "Desactivar sin eliminar" : "Reactivar"}
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-micro font-bold border transition-colors ${
-                      vinculo.activo
-                        ? "text-primary/70 border-primary/20 bg-primary/5"
-                        : "text-primary/35 border-primary/10 bg-primary/5"
-                    } disabled:opacity-40`}
-                  >
-                    {vinculo.activo ? "Activo" : "Inactivo"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
-                    disabled={ocupado}
-                    title="Desvincular de este proceso"
-                    className="ml-auto shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
-                  >
-                    {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <input
-                    type="number"
-                    defaultValue={vinculo.prioridad ?? ""}
-                    key={`prioridad-${vinculo.id}-${vinculo.prioridad ?? ""}`}
-                    onBlur={(e) => handlePrioridadBlur(vinculo.id, e.target.value)}
-                    disabled={ocupado}
-                    placeholder="#"
-                    title="Prioridad"
-                    className="w-10 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                  <input
-                    defaultValue={vinculo.notas ?? ""}
-                    key={`notas-${vinculo.id}-${vinculo.notas ?? ""}`}
-                    onBlur={(e) => handleNotasBlur(vinculo.id, e.target.value)}
-                    disabled={ocupado}
-                    placeholder="Notas"
-                    title="Notas"
-                    className="flex-1 min-w-0 bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
-                  />
+        <div className="flex flex-col gap-2.5">
+          {SECCIONES_ROL.map(({ key, titulo }) =>
+            gruposPorRol[key].length > 0 ? (
+              <div key={key} className="flex flex-col gap-1">
+                <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                  {titulo}
+                </span>
+                <div className="flex flex-col gap-1">
+                  {gruposPorRol[key].map((vinculo) => (
+                    <OrisVinculadoItem
+                      key={vinculo.id}
+                      vinculo={vinculo}
+                      orisRelacionado={oris.find((o) => o.id === vinculo.oris_id)}
+                      ocupado={guardandoId === vinculo.id}
+                      onAbrirOris={onAbrirOris}
+                      onQuitar={handleQuitar}
+                      onNotasBlur={handleNotasBlur}
+                    />
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            ) : null,
+          )}
+
+          {gruposPorRol.otros.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25">
+                Otros
+              </span>
+              <div className="flex flex-col gap-1">
+                {gruposPorRol.otros.map((vinculo) => (
+                  <OrisVinculadoItem
+                    key={vinculo.id}
+                    vinculo={vinculo}
+                    orisRelacionado={oris.find((o) => o.id === vinculo.oris_id)}
+                    ocupado={guardandoId === vinculo.id}
+                    onAbrirOris={onAbrirOris}
+                    onQuitar={handleQuitar}
+                    onNotasBlur={handleNotasBlur}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Tarjeta individual de un Oris vinculado, sin el input de prioridad ni
+ *  el toggle activo/inactivo — el agrupamiento por secciones (ver
+ *  SECCIONES_ROL más arriba) ya comunica esa jerarquía visualmente.
+ *  Notas se conserva porque es información propia del vínculo, no un
+ *  estado de prioridad/actividad. */
+function OrisVinculadoItem({
+  vinculo,
+  orisRelacionado,
+  ocupado,
+  onAbrirOris,
+  onQuitar,
+  onNotasBlur,
+}: {
+  vinculo: OrisProceso;
+  orisRelacionado: Oris | undefined;
+  ocupado: boolean;
+  onAbrirOris?: (orisId: string) => void;
+  onQuitar: (vinculoId: string, nombre: string) => void;
+  onNotasBlur: (vinculoId: string, notas: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-transparent hover:border-primary/10 hover:bg-primary/[0.03] transition-colors">
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={!onAbrirOris}
+          onClick={() => orisRelacionado && onAbrirOris?.(orisRelacionado.id)}
+          title={onAbrirOris ? "Ver/editar este Oris" : undefined}
+          className={`min-w-0 flex-1 truncate text-left text-micro font-bold text-primary/70 ${
+            onAbrirOris ? "cursor-pointer hover:underline hover:text-primary" : ""
+          }`}
+        >
+          {orisRelacionado?.nombre ?? vinculo.oris_id.slice(0, 8)}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onQuitar(vinculo.id, orisRelacionado?.nombre ?? vinculo.oris_id)}
+          disabled={ocupado}
+          title="Desvincular de este proceso"
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-primary/25 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-30"
+        >
+          {ocupado ? <Loader2 size={10} className="animate-spin" /> : <Trash2 size={10} />}
+        </button>
+      </div>
+
+      <input
+        defaultValue={vinculo.notas ?? ""}
+        key={`notas-${vinculo.id}-${vinculo.notas ?? ""}`}
+        onBlur={(e) => onNotasBlur(vinculo.id, e.target.value)}
+        disabled={ocupado}
+        placeholder="Notas"
+        title="Notas"
+        className="w-full bg-primary/5 rounded px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+      />
     </div>
   );
 }
