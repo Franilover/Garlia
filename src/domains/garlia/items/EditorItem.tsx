@@ -476,9 +476,6 @@ export function EditorItem({
               Procesos que facilita → Configuración IUM → Preparación →
               Almacenamiento. Toda la información sale de Supabase. */}
           <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
-            <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Procesos y preparaciones IUM
-            </label>
             <SeccionProcesosPreparacionesIum itemId={item.id} />
           </div>
         </div>

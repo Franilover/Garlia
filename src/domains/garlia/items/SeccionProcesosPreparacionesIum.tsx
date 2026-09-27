@@ -110,7 +110,7 @@ function TarjetaProceso({
           onAbrir();
         }
       }}
-      className="flex cursor-pointer flex-col gap-2 rounded-xl border border-primary/10 p-3.5 transition-colors hover:border-primary/25 hover:bg-primary/5"
+      className="flex cursor-pointer flex-col gap-2 p-3.5 transition-colors hover:bg-primary/5"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-black text-primary/85">{proceso.procesoNombre}</p>
@@ -868,7 +868,7 @@ function TarjetaAlmacenamiento({
   const tienePreparaciones = almacenamiento.preparaciones.length > 0;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-primary/10 p-3">
+    <div className="flex flex-col gap-2 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <p className="text-xs font-black text-primary/80">{almacenamiento.nombre}</p>
@@ -961,9 +961,7 @@ function TarjetaAlmacenamiento({
         </div>
       ) : null}
 
-      {almacenamiento.preparaciones.length === 0 ? (
-        <EmptyRow>Este almacenamiento todavía no tiene ninguna preparación.</EmptyRow>
-      ) : (
+      {almacenamiento.preparaciones.length === 0 ? null : (
         <div className="flex flex-col gap-2">
           {almacenamiento.preparaciones.map((p) => (
             <TarjetaPreparacion
@@ -1164,9 +1162,7 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
       <div className="flex flex-col gap-2.5">
         <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">Procesos que facilita</p>
 
-        {procesos.length === 0 ? (
-          <EmptyRow>Este objeto no tiene ningún proceso vinculado todavía.</EmptyRow>
-        ) : (
+        {procesos.length === 0 ? null : (
           procesos.map((p) => (
             <TarjetaProceso
               key={p.itemProcesoId}
