@@ -1323,25 +1323,27 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
         <p className="py-1 text-micro text-primary/30">Sin configuración IUM</p>
       ) : (
         <div className="flex flex-col gap-2 mt-1">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center justify-between gap-1.5 flex-wrap">
             <span className="text-micro font-bold text-primary/70">
               {configuracion.configuracion ?? "Configuración sin nombre"}
             </span>
-            <span
-              title="Estado real registrado en Supabase — nunca se presenta como canónica si no lo es"
-              className={`px-1.5 py-0.5 rounded text-xs font-bold border capitalize ${
-                configuracion.estado === "canonica"
-                  ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
-                  : configuracion.estado === "propuesta"
-                    ? "text-amber-500/70 border-amber-500/20 bg-amber-500/5"
-                    : "text-primary/50 border-primary/15 bg-primary/5"
-              }`}
-            >
-              {configuracion.estado === "propuesta"
-                ? "Configuración en revisión"
-                : configuracion.estado.replace(/_/g, " ")}
-            </span>
-            <span className="text-xs text-primary/35">v{configuracion.version}</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                title="Estado real registrado en Supabase — nunca se presenta como canónica si no lo es"
+                className={`px-1.5 py-0.5 rounded text-xs font-bold border capitalize ${
+                  configuracion.estado === "canonica"
+                    ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                    : configuracion.estado === "propuesta"
+                      ? "text-amber-500/70 border-amber-500/20 bg-amber-500/5"
+                      : "text-primary/50 border-primary/15 bg-primary/5"
+                }`}
+              >
+                {configuracion.estado === "propuesta"
+                  ? "Configuración en revisión"
+                  : configuracion.estado.replace(/_/g, " ")}
+              </span>
+              <span className="text-xs text-primary/35">v{configuracion.version}</span>
+            </div>
           </div>
 
           {flujo.length > 0 && (
@@ -1497,31 +1499,33 @@ function ProcesoEditor({
       {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
       <div className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
-          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Descripción
-            </span>
-            <textarea
-              className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
-              placeholder="Qué es este proceso, en qué contexto ocurre…"
-              value={local.descripcion ?? ""}
-              onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
-              onBlur={() => campoBlur("descripcion")}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 items-start">
+          <div className="flex flex-col gap-3 min-w-0">
+            <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Descripción
+              </span>
+              <textarea
+                className="w-full min-h-[5rem] bg-transparent px-0 py-1 text-sm leading-relaxed text-primary/70 resize-none outline-none transition-colors placeholder:text-primary/25"
+                placeholder="Qué es este proceso, en qué contexto ocurre…"
+                value={local.descripcion ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, descripcion: e.target.value }))}
+                onBlur={() => campoBlur("descripcion")}
+              />
+            </div>
 
-          <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              Condiciones
-            </span>
-            <textarea
-              className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
-              placeholder="Bajo qué condiciones ocurre este proceso…"
-              value={local.condiciones ?? ""}
-              onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
-              onBlur={() => campoBlur("condiciones")}
-            />
+            <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+              <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+                Condiciones
+              </span>
+              <textarea
+                className="w-full min-h-[6rem] bg-transparent px-0 py-1 text-micro leading-relaxed text-primary/55 resize-none outline-none transition-colors placeholder:text-primary/25 whitespace-pre-wrap"
+                placeholder="Bajo qué condiciones ocurre este proceso…"
+                value={local.condiciones ?? ""}
+                onChange={(e) => setLocal((p) => ({ ...p, condiciones: e.target.value }))}
+                onBlur={() => campoBlur("condiciones")}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
