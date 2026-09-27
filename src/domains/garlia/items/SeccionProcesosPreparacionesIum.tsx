@@ -18,6 +18,8 @@
 import React, { useState } from "react";
 
 import { useProcesosPreparacionesIum } from "./useProcesosPreparacionesIum";
+import { useProcesos } from "../elementos/useProcesos";
+import { ProcesoPanelFlotante } from "../elementos/ProcesosPage";
 import type {
   AlmacenamientoIumObjeto,
   ConfiguracionDeProceso,
@@ -84,24 +86,31 @@ const ROLES: RolProceso[] = ["principal", "compatible", "secundario"];
 
 function TarjetaProceso({
   proceso,
-  seleccionado,
   quitando,
-  onVerConfiguraciones,
+  onAbrir,
   onQuitar,
 }: {
   proceso: ProcesoDelObjeto;
-  seleccionado: boolean;
   quitando: boolean;
-  onVerConfiguraciones: () => void;
+  onAbrir: () => void;
   onQuitar: () => void;
 }) {
   const [confirmando, setConfirmando] = useState(false);
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${
-        seleccionado ? "border-primary/30 bg-primary/5" : "border-primary/10"
-      }`}
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        if (!confirmando) onAbrir();
+      }}
+      onKeyDown={(e) => {
+        if (!confirmando && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onAbrir();
+        }
+      }}
+      className="flex cursor-pointer flex-col gap-2 rounded-xl border border-primary/10 p-3.5 transition-colors hover:border-primary/25 hover:bg-primary/5"
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-black text-primary/85">{proceso.procesoNombre}</p>
@@ -115,7 +124,7 @@ function TarjetaProceso({
           {proceso.configuracionesDisponibles}{" "}
           {proceso.configuracionesDisponibles === 1 ? "configuración disponible" : "configuraciones disponibles"}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {confirmando ? (
             <>
               <span className="text-[10px] font-bold text-red-400">¿Quitar?</span>
@@ -139,23 +148,13 @@ function TarjetaProceso({
               </button>
             </>
           ) : (
-            <>
-              <button
-                type="button"
-                onClick={onVerConfiguraciones}
-                disabled={proceso.configuracionesDisponibles === 0}
-                className="rounded-lg border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                {seleccionado ? "Ocultar" : "Ver configuraciones"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmando(true)}
-                className="rounded-lg border border-red-500/15 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
-              >
-                Quitar
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => setConfirmando(true)}
+              className="rounded-lg border border-red-500/15 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
+            >
+              Quitar
+            </button>
           )}
         </div>
       </div>
@@ -1141,6 +1140,14 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
   const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(false);
   const [ultimoIntentoEliminarId, setUltimoIntentoEliminarId] = useState<string | null>(null);
 
+  // Panel flotante real de ProcesosPage.tsx, desacoplado de
+  // `procesoSeleccionado` (que sigue usándose solo para el selector de
+  // configuraciones en el flujo de "+ Añadir preparación" desde un
+  // almacenamiento — ver FormularioElegirConfiguracionParaAlmacenamiento).
+  const [procesoAbiertoId, setProcesoAbiertoId] = useState<string | null>(null);
+  const { items: catalogoProcesos, setItems: setCatalogoProcesos } = useProcesos();
+  const procesoAbierto = catalogoProcesos.find((p) => p.id === procesoAbiertoId) ?? null;
+
   if (loading) return <LoadingRow>Cargando procesos y preparaciones del objeto…</LoadingRow>;
 
   if (error) {
@@ -1161,53 +1168,13 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
           <EmptyRow>Este objeto no tiene ningún proceso vinculado todavía.</EmptyRow>
         ) : (
           procesos.map((p) => (
-            <div key={p.itemProcesoId} className="flex flex-col gap-2">
-              <TarjetaProceso
-                proceso={p}
-                seleccionado={procesoSeleccionado?.itemProcesoId === p.itemProcesoId}
-                quitando={quitandoProcesoId === p.itemProcesoId}
-                onVerConfiguraciones={() => {
-                  setConfiguracionSel(null);
-                  setProcesoSeleccionado((cur) =>
-                    cur?.itemProcesoId === p.itemProcesoId ? null : p,
-                  );
-                }}
-                onQuitar={() => {
-                  if (procesoSeleccionado?.itemProcesoId === p.itemProcesoId) {
-                    setProcesoSeleccionado(null);
-                  }
-                  quitarProceso(p.itemProcesoId).catch(() => {});
-                }}
-              />
-              {procesoSeleccionado?.itemProcesoId === p.itemProcesoId ? (
-                <div className="flex flex-col gap-2 pl-3">
-                  {loadingConfiguraciones ? (
-                    <LoadingRow>Cargando configuraciones…</LoadingRow>
-                  ) : configuraciones.length === 0 ? (
-                    <EmptyRow>No hay configuraciones IUM registradas para este proceso.</EmptyRow>
-                  ) : (
-                    configuraciones.map((c) => (
-                      <TarjetaConfiguracion
-                        key={c.configuracionId}
-                        configuracion={c}
-                        onSeleccionar={() => setConfiguracionSel(c)}
-                      />
-                    ))
-                  )}
-                  {configuracionSel && configuraciones.some((c) => c.configuracionId === configuracionSel.configuracionId) ? (
-                    <FormularioPrepararConfiguracion
-                      configuracion={configuracionSel}
-                      hook={hook}
-                      onPreparada={() => {
-                        setConfiguracionSel(null);
-                        setProcesoSeleccionado(null);
-                      }}
-                      onCancelar={() => setConfiguracionSel(null)}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
+            <TarjetaProceso
+              key={p.itemProcesoId}
+              proceso={p}
+              quitando={quitandoProcesoId === p.itemProcesoId}
+              onAbrir={() => setProcesoAbiertoId(p.procesoId)}
+              onQuitar={() => quitarProceso(p.itemProcesoId).catch(() => {})}
+            />
           ))
         )}
 
@@ -1287,6 +1254,18 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
           </button>
         )}
       </div>
+
+      {procesoAbierto ? (
+        <ProcesoPanelFlotante
+          proceso={procesoAbierto}
+          onCerrar={() => setProcesoAbiertoId(null)}
+          onActualizar={(id, cambios) => {
+            setCatalogoProcesos((cur) =>
+              cur.map((item) => (item.id === id ? { ...item, ...cambios } : item)),
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }
