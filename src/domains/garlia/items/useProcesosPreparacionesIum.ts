@@ -18,6 +18,8 @@ import {
   activarPreparacion,
   crearAlmacenamientoDelObjeto,
   crearPreparacionEnObjeto,
+  desvincularProcesoDelObjeto,
+  eliminarAlmacenamientoDelObjeto,
   evaluarPreparacion,
   listarCatalogoProcesos,
   listarConfiguracionesDeProceso,
@@ -33,6 +35,8 @@ import type {
   ProcesoDelObjeto,
   ResultadoCrearAlmacenamiento,
   ResultadoCrearPreparacion,
+  ResultadoDesvincularProceso,
+  ResultadoEliminarAlmacenamiento,
   RolProceso,
   SoporteAlmacenamientoIum,
 } from "./procesosPreparacionesIum.types";
@@ -79,6 +83,31 @@ export function useProcesosPreparacionesIum(itemId: string) {
       await cargarProcesos();
     },
     [itemId, cargarProcesos],
+  );
+
+  // Estado local: quitar un proceso tampoco debe poder tumbar el panel
+  // entero vía el `error` global (mismo motivo que errorSoportes).
+  const [quitandoProcesoId, setQuitandoProcesoId] = useState<string | null>(null);
+  const [errorQuitarProceso, setErrorQuitarProceso] = useState<string | null>(null);
+
+  const quitarProceso = useCallback(
+    async (itemProcesoId: string): Promise<ResultadoDesvincularProceso> => {
+      setQuitandoProcesoId(itemProcesoId);
+      setErrorQuitarProceso(null);
+      try {
+        const resultado = await desvincularProcesoDelObjeto(itemProcesoId);
+        if (resultado.estado === "desvinculado") await cargarProcesos();
+        else setErrorQuitarProceso(resultado.razon ?? resultado.estado);
+        return resultado;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setErrorQuitarProceso(msg);
+        throw e;
+      } finally {
+        setQuitandoProcesoId(null);
+      }
+    },
+    [cargarProcesos],
   );
 
   // ── Configuraciones del proceso seleccionado ───────────────────────
@@ -170,6 +199,35 @@ export function useProcesosPreparacionesIum(itemId: string) {
     [itemId, cargarPreparados],
   );
 
+  // Estado local, mismo motivo que errorQuitarProceso: un rechazo (p.ej.
+  // "tiene_preparaciones") no debe tumbar el panel entero.
+  const [eliminandoAlmacenamientoId, setEliminandoAlmacenamientoId] = useState<string | null>(null);
+  const [errorEliminarAlmacenamiento, setErrorEliminarAlmacenamiento] = useState<string | null>(null);
+
+  const quitarAlmacenamiento = useCallback(
+    async (almacenamientoId: string, forzarCascada = false): Promise<ResultadoEliminarAlmacenamiento> => {
+      setEliminandoAlmacenamientoId(almacenamientoId);
+      setErrorEliminarAlmacenamiento(null);
+      try {
+        const resultado = await eliminarAlmacenamientoDelObjeto({ almacenamientoId, forzarCascada });
+        if (resultado.estado === "eliminado") await cargarPreparados();
+        else if (resultado.razon !== "tiene_preparaciones") {
+          // "tiene_preparaciones" es una decisión que la UI resuelve
+          // pidiendo confirmación de cascada, no un error real.
+          setErrorEliminarAlmacenamiento(resultado.razon ?? resultado.estado);
+        }
+        return resultado;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setErrorEliminarAlmacenamiento(msg);
+        throw e;
+      } finally {
+        setEliminandoAlmacenamientoId(null);
+      }
+    },
+    [cargarPreparados],
+  );
+
   // ── Preparar la configuración seleccionada ──────────────────────────
   const crearPreparacion = useCallback(
     async (params: {
@@ -224,6 +282,9 @@ export function useProcesosPreparacionesIum(itemId: string) {
     loadingCatalogoProcesos,
     cargarCatalogoProcesos,
     agregarProceso,
+    quitarProceso,
+    quitandoProcesoId,
+    errorQuitarProceso,
 
     procesoSeleccionado,
     setProcesoSeleccionado,
@@ -236,6 +297,9 @@ export function useProcesosPreparacionesIum(itemId: string) {
     errorSoportes,
     cargarSoportesObjeto,
     crearAlmacenamiento,
+    quitarAlmacenamiento,
+    eliminandoAlmacenamientoId,
+    errorEliminarAlmacenamiento,
 
     crearPreparacion,
     reevaluarPreparacion,

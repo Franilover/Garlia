@@ -31,6 +31,8 @@ import type {
   ProcesoDelObjeto,
   ResultadoCrearAlmacenamiento,
   ResultadoCrearPreparacion,
+  ResultadoDesvincularProceso,
+  ResultadoEliminarAlmacenamiento,
   ResultadoEvaluarPreparacion,
   RolProceso,
   SoporteAlmacenamientoIum,
@@ -344,4 +346,35 @@ export async function activarPreparacion(params: {
   });
   if (error) throw new Error(`activarPreparacion: ${error.message}`);
   return data as Record<string, unknown>;
+}
+
+// ── 7. Eliminar / desvincular ──────────────────────────────────────────
+
+/** Desvincula (soft-delete, estado='inactivo') un proceso del objeto.
+ *  v_item_editor_procesos_v1 filtra por estado='activo', así que esto
+ *  basta para que desaparezca de la lista sin borrar historial. */
+export async function desvincularProcesoDelObjeto(
+  itemProcesoId: string,
+): Promise<ResultadoDesvincularProceso> {
+  const { data, error } = await supabase.rpc("desvincular_proceso_item_v1", {
+    p_item_proceso_id: itemProcesoId,
+  });
+  if (error) throw new Error(`desvincularProcesoDelObjeto: ${error.message}`);
+  return data as ResultadoDesvincularProceso;
+}
+
+/** Elimina (hard-delete) un almacenamiento IUM. Por defecto rechaza si
+ *  tiene preparaciones dependientes (razon: "tiene_preparaciones"); pasar
+ *  forzarCascada=true para borrarlas también — la UI debe confirmar
+ *  explícitamente con el usuario antes de reintentar así. */
+export async function eliminarAlmacenamientoDelObjeto(params: {
+  almacenamientoId: string;
+  forzarCascada?: boolean;
+}): Promise<ResultadoEliminarAlmacenamiento> {
+  const { data, error } = await supabase.rpc("eliminar_almacenamiento_ium_v1", {
+    p_almacenamiento_id: params.almacenamientoId,
+    p_forzar_cascada: params.forzarCascada ?? false,
+  });
+  if (error) throw new Error(`eliminarAlmacenamientoDelObjeto: ${error.message}`);
+  return data as ResultadoEliminarAlmacenamiento;
 }

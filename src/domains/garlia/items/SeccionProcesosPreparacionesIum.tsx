@@ -85,12 +85,18 @@ const ROLES: RolProceso[] = ["principal", "compatible", "secundario"];
 function TarjetaProceso({
   proceso,
   seleccionado,
+  quitando,
   onVerConfiguraciones,
+  onQuitar,
 }: {
   proceso: ProcesoDelObjeto;
   seleccionado: boolean;
+  quitando: boolean;
   onVerConfiguraciones: () => void;
+  onQuitar: () => void;
 }) {
+  const [confirmando, setConfirmando] = useState(false);
+
   return (
     <div
       className={`flex flex-col gap-2 rounded-xl border p-3.5 transition-colors ${
@@ -109,14 +115,49 @@ function TarjetaProceso({
           {proceso.configuracionesDisponibles}{" "}
           {proceso.configuracionesDisponibles === 1 ? "configuración disponible" : "configuraciones disponibles"}
         </span>
-        <button
-          type="button"
-          onClick={onVerConfiguraciones}
-          disabled={proceso.configuracionesDisponibles === 0}
-          className="rounded-lg border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          {seleccionado ? "Ocultar" : "Ver configuraciones"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {confirmando ? (
+            <>
+              <span className="text-[10px] font-bold text-red-400">¿Quitar?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmando(false);
+                  onQuitar();
+                }}
+                disabled={quitando}
+                className="rounded-lg border border-red-500/25 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-40"
+              >
+                {quitando ? "Quitando…" : "Sí"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                className="rounded-lg px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+              >
+                No
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onVerConfiguraciones}
+                disabled={proceso.configuracionesDisponibles === 0}
+                className="rounded-lg border border-primary/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/60 transition-colors hover:border-primary/30 hover:text-primary/85 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                {seleccionado ? "Ocultar" : "Ver configuraciones"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(true)}
+                className="rounded-lg border border-red-500/15 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
+              >
+                Quitar
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -282,11 +323,16 @@ function TarjetaConfiguracion({
 function FormularioPrepararConfiguracion({
   configuracion,
   hook,
+  almacenamientoIdFijo,
   onPreparada,
   onCancelar,
 }: {
   configuracion: ConfiguracionDeProceso;
   hook: ReturnType<typeof useProcesosPreparacionesIum>;
+  /** Cuando el formulario se abre desde una tarjeta de almacenamiento
+   *  concreta ("+ Añadir preparación"), el almacenamiento ya está
+   *  elegido y no se muestra el selector. */
+  almacenamientoIdFijo?: string;
   onPreparada: () => void;
   onCancelar: () => void;
 }) {
@@ -294,9 +340,11 @@ function FormularioPrepararConfiguracion({
     hook;
 
   const [almacenamientoId, setAlmacenamientoId] = useState<string | null>(
-    almacenamientos[0]?.id ?? null,
+    almacenamientoIdFijo ?? almacenamientos[0]?.id ?? null,
   );
-  const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(almacenamientos.length === 0);
+  const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(
+    !almacenamientoIdFijo && almacenamientos.length === 0,
+  );
   const [soporteTipoId, setSoporteTipoId] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
   const [calidad, setCalidad] = useState(0.5);
@@ -363,7 +411,9 @@ function FormularioPrepararConfiguracion({
         {configuracion.topologiaId ? <StatusPill>Topología: {configuracion.topologiaId}</StatusPill> : null}
       </div>
 
-      {/* Almacenamiento del objeto */}
+      {/* Almacenamiento del objeto — oculto si ya viene fijado por la
+          tarjeta de almacenamiento desde la que se abrió este formulario */}
+      {almacenamientoIdFijo ? null : (
       <div>
         <label className="mb-1 block text-[9px] font-black uppercase tracking-widest text-primary/35">
           Almacenamiento del objeto
@@ -422,6 +472,7 @@ function FormularioPrepararConfiguracion({
           </select>
         )}
       </div>
+      )}
 
       {!creandoAlmacenamiento && almacenamientoId ? (
         <>
@@ -688,6 +739,101 @@ function TarjetaPreparacion({
   );
 }
 
+/** Abierto desde "+ Añadir preparación" en una tarjeta de almacenamiento
+ *  concreta. El usuario elige proceso → configuración exactamente igual
+ *  que en "Procesos que facilita"; el almacenamiento ya está fijado, así
+ *  que FormularioPrepararConfiguracion no vuelve a preguntarlo. */
+function FormularioElegirConfiguracionParaAlmacenamiento({
+  almacenamientoId,
+  hook,
+  onPreparada,
+  onCancelar,
+}: {
+  almacenamientoId: string;
+  hook: ReturnType<typeof useProcesosPreparacionesIum>;
+  onPreparada: () => void;
+  onCancelar: () => void;
+}) {
+  const { procesos, configuraciones, loadingConfiguraciones, procesoSeleccionado, setProcesoSeleccionado } = hook;
+  const [configuracionSel, setConfiguracionSel] = useState<ConfiguracionDeProceso | null>(null);
+
+  if (configuracionSel) {
+    return (
+      <FormularioPrepararConfiguracion
+        configuracion={configuracionSel}
+        hook={hook}
+        almacenamientoIdFijo={almacenamientoId}
+        onPreparada={onPreparada}
+        onCancelar={() => setConfiguracionSel(null)}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-primary/15 p-4">
+      <p className="text-[10px] font-black uppercase tracking-widest text-primary/40">
+        Elegir proceso y configuración a preparar acá
+      </p>
+
+      {procesos.length === 0 ? (
+        <EmptyRow>Este objeto no tiene ningún proceso vinculado todavía.</EmptyRow>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {procesos.map((p) => (
+            <div key={p.itemProcesoId} className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setProcesoSeleccionado((cur) => (cur?.itemProcesoId === p.itemProcesoId ? null : p))
+                }
+                disabled={p.configuracionesDisponibles === 0}
+                className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+                  procesoSeleccionado?.itemProcesoId === p.itemProcesoId
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-primary/10 hover:border-primary/20"
+                }`}
+              >
+                <span className="text-xs font-black text-primary/85">{p.procesoNombre}</span>
+                <span className="text-[10px] font-bold text-primary/35">
+                  {p.configuracionesDisponibles} config.
+                </span>
+              </button>
+              {procesoSeleccionado?.itemProcesoId === p.itemProcesoId ? (
+                <div className="flex flex-col gap-2 pl-3">
+                  {loadingConfiguraciones ? (
+                    <LoadingRow>Cargando configuraciones…</LoadingRow>
+                  ) : configuraciones.length === 0 ? (
+                    <EmptyRow>No hay configuraciones IUM registradas para este proceso.</EmptyRow>
+                  ) : (
+                    configuraciones.map((c) => (
+                      <TarjetaConfiguracion
+                        key={c.configuracionId}
+                        configuracion={c}
+                        onSeleccionar={() => setConfiguracionSel(c)}
+                      />
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          setProcesoSeleccionado(null);
+          onCancelar();
+        }}
+        className="self-start rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+      >
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
 // ── Almacenamiento IUM del objeto — agrupa sus preparaciones (o muestra
 // que está vacío). Antes la sección "IUMs preparados" aplanaba TODOS los
 // almacenamientos a una sola lista de preparaciones (almacenamientos.
@@ -700,14 +846,28 @@ function TarjetaPreparacion({
 function TarjetaAlmacenamiento({
   almacenamiento,
   abiertaId,
+  hook,
+  eliminando,
+  errorEliminar,
   onToggle,
   onReevaluar,
+  onEliminar,
 }: {
   almacenamiento: AlmacenamientoIumObjeto;
   abiertaId: string | null;
+  hook: ReturnType<typeof useProcesosPreparacionesIum>;
+  eliminando: boolean;
+  errorEliminar: string | null;
   onToggle: (id: string) => void;
   onReevaluar: (id: string) => void;
+  onEliminar: (forzarCascada: boolean) => void;
 }) {
+  const [agregandoPreparacion, setAgregandoPreparacion] = useState(false);
+  const [confirmandoEliminar, setConfirmandoEliminar] = useState(false);
+  const [pidiendoCascada, setPidiendoCascada] = useState(false);
+
+  const tienePreparaciones = almacenamiento.preparaciones.length > 0;
+
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-primary/10 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -715,11 +875,92 @@ function TarjetaAlmacenamiento({
           <p className="text-xs font-black text-primary/80">{almacenamiento.nombre}</p>
           <StatusPill tone={toneDeEstado(almacenamiento.estado)}>{almacenamiento.estado}</StatusPill>
         </div>
-        <span className="text-[10px] font-bold text-primary/35">
-          {almacenamiento.soporteNombre ?? almacenamiento.soporteCodigo ?? "soporte sin resolver"}
-          {almacenamiento.capacidadOrden != null ? ` · capacidad ${almacenamiento.capacidadOrden}` : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-primary/35">
+            {almacenamiento.soporteNombre ?? almacenamiento.soporteCodigo ?? "soporte sin resolver"}
+            {almacenamiento.capacidadOrden != null ? ` · capacidad ${almacenamiento.capacidadOrden}` : ""}
+          </span>
+          {confirmandoEliminar ? null : (
+            <button
+              type="button"
+              onClick={() => setConfirmandoEliminar(true)}
+              className="rounded-lg border border-red-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-red-400/70 transition-colors hover:border-red-500/30 hover:text-red-400"
+            >
+              Eliminar
+            </button>
+          )}
+        </div>
       </div>
+
+      {confirmandoEliminar ? (
+        <div className="flex flex-col gap-2 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+          {pidiendoCascada ? (
+            <>
+              <p className="text-[11px] leading-5 text-red-400">
+                Este almacenamiento tiene {almacenamiento.preparaciones.length}{" "}
+                {almacenamiento.preparaciones.length === 1 ? "preparación" : "preparaciones"}. Eliminarlo
+                también borrará esas preparaciones. ¿Continuar de todas formas?
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onEliminar(true)}
+                  disabled={eliminando}
+                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400 disabled:opacity-40"
+                >
+                  {eliminando ? "Eliminando…" : "Sí, eliminar todo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPidiendoCascada(false);
+                    setConfirmandoEliminar(false);
+                  }}
+                  className="rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] leading-5 text-red-400">
+                ¿Eliminar el almacenamiento &quot;{almacenamiento.nombre}&quot;? Esta acción no se puede
+                deshacer.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (tienePreparaciones) {
+                      setPidiendoCascada(true);
+                      return;
+                    }
+                    onEliminar(false);
+                  }}
+                  disabled={eliminando}
+                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-400 disabled:opacity-40"
+                >
+                  {eliminando ? "Eliminando…" : "Sí, eliminar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoEliminar(false)}
+                  className="rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/40 hover:text-primary/60"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {errorEliminar ? (
+        <div className="rounded-lg border border-red-500/20 p-2.5 text-[11px] font-bold text-red-400">
+          No se pudo eliminar: {errorEliminar}
+        </div>
+      ) : null}
 
       {almacenamiento.preparaciones.length === 0 ? (
         <EmptyRow>Este almacenamiento todavía no tiene ninguna preparación.</EmptyRow>
@@ -735,6 +976,23 @@ function TarjetaAlmacenamiento({
             />
           ))}
         </div>
+      )}
+
+      {agregandoPreparacion ? (
+        <FormularioElegirConfiguracionParaAlmacenamiento
+          almacenamientoId={almacenamiento.id}
+          hook={hook}
+          onPreparada={() => setAgregandoPreparacion(false)}
+          onCancelar={() => setAgregandoPreparacion(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAgregandoPreparacion(true)}
+          className="self-start rounded-lg border border-dashed border-primary/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-primary/40 transition-colors hover:border-primary/35 hover:text-primary/60"
+        >
+          + Añadir preparación
+        </button>
       )}
     </div>
   );
@@ -859,12 +1117,29 @@ function FormularioCrearAlmacenamiento({
 
 export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) {
   const hook = useProcesosPreparacionesIum(itemId);
-  const { loading, error, procesos, procesoSeleccionado, setProcesoSeleccionado, configuraciones, loadingConfiguraciones, almacenamientos, reevaluarPreparacion } = hook;
+  const {
+    loading,
+    error,
+    procesos,
+    procesoSeleccionado,
+    setProcesoSeleccionado,
+    configuraciones,
+    loadingConfiguraciones,
+    almacenamientos,
+    reevaluarPreparacion,
+    quitarProceso,
+    quitandoProcesoId,
+    errorQuitarProceso,
+    quitarAlmacenamiento,
+    eliminandoAlmacenamientoId,
+    errorEliminarAlmacenamiento,
+  } = hook;
 
   const [agregandoProceso, setAgregandoProceso] = useState(false);
   const [configuracionSel, setConfiguracionSel] = useState<ConfiguracionDeProceso | null>(null);
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [creandoAlmacenamiento, setCreandoAlmacenamiento] = useState(false);
+  const [ultimoIntentoEliminarId, setUltimoIntentoEliminarId] = useState<string | null>(null);
 
   if (loading) return <LoadingRow>Cargando procesos y preparaciones del objeto…</LoadingRow>;
 
@@ -890,11 +1165,18 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
               <TarjetaProceso
                 proceso={p}
                 seleccionado={procesoSeleccionado?.itemProcesoId === p.itemProcesoId}
+                quitando={quitandoProcesoId === p.itemProcesoId}
                 onVerConfiguraciones={() => {
                   setConfiguracionSel(null);
                   setProcesoSeleccionado((cur) =>
                     cur?.itemProcesoId === p.itemProcesoId ? null : p,
                   );
+                }}
+                onQuitar={() => {
+                  if (procesoSeleccionado?.itemProcesoId === p.itemProcesoId) {
+                    setProcesoSeleccionado(null);
+                  }
+                  quitarProceso(p.itemProcesoId).catch(() => {});
                 }}
               />
               {procesoSeleccionado?.itemProcesoId === p.itemProcesoId ? (
@@ -928,6 +1210,12 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
             </div>
           ))
         )}
+
+        {errorQuitarProceso ? (
+          <div className="rounded-lg border border-red-500/20 p-2.5 text-[11px] font-bold text-red-400">
+            No se pudo quitar el proceso: {errorQuitarProceso}
+          </div>
+        ) : null}
 
         {agregandoProceso ? (
           <FormularioAgregarProceso
@@ -964,8 +1252,15 @@ export function SeccionProcesosPreparacionesIum({ itemId }: { itemId: string }) 
               key={a.id}
               almacenamiento={a}
               abiertaId={abiertaId}
+              hook={hook}
+              eliminando={eliminandoAlmacenamientoId === a.id}
+              errorEliminar={eliminandoAlmacenamientoId === null && errorEliminarAlmacenamiento && a.id === ultimoIntentoEliminarId ? errorEliminarAlmacenamiento : null}
               onToggle={(id) => setAbiertaId((cur) => (cur === id ? null : id))}
               onReevaluar={(id) => reevaluarPreparacion(id)}
+              onEliminar={(forzarCascada) => {
+                setUltimoIntentoEliminarId(a.id);
+                quitarAlmacenamiento(a.id, forzarCascada).catch(() => {});
+              }}
             />
           ))
         )}

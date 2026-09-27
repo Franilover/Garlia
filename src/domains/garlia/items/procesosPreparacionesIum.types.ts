@@ -177,3 +177,23 @@ export interface ResultadoEvaluarPreparacion {
   coherencia_actual?: number;
   [key: string]: unknown;
 }
+
+/** Resultado crudo (jsonb) de desvincular_proceso_item_v1. */
+export interface ResultadoDesvincularProceso {
+  estado: string;
+  razon?: string;
+  item_proceso_id?: string;
+  [key: string]: unknown;
+}
+
+/** Resultado crudo (jsonb) de eliminar_almacenamiento_ium_v1. Cuando
+ *  razon === "tiene_preparaciones", num_preparaciones indica cuántas se
+ *  perderían si se reintenta con forzarCascada = true. */
+export interface ResultadoEliminarAlmacenamiento {
+  estado: string;
+  razon?: string;
+  almacenamiento_id?: string;
+  num_preparaciones?: number;
+  preparaciones_eliminadas?: number;
+  [key: string]: unknown;
+}
