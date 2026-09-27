@@ -54,7 +54,10 @@ import {
   actualizarFenomenoProceso,
   desvincularFenomenoDeProceso,
 } from "./persistirFenomenoProceso";
-import { useProcesoConfiguracionIum } from "./useProcesoConfiguracionIum";
+import {
+  useProcesoConfiguracionIum,
+  type ProcesoConfiguracionIumFlujo,
+} from "./useProcesoConfiguracionIum";
 import {
   CONFIG_ELEMENTO_PROCESOS,
   CONFIG_FENOMENO_PROCESOS,
@@ -1040,6 +1043,176 @@ function FenomenosRelacionadosBloque({
 }
 
 /**
+ * Diagrama de flujo simple (SVG, layout automático) para los "Enlaces" de
+ * una Configuración IUM: en vez de listar "origen → destino (tipo)" como
+ * texto plano, dibuja cada IUM como un nodo y cada enlace como una flecha
+ * entre nodos, agrupando en columnas por nivel (BFS desde los nodos sin
+ * entradas) — mismo criterio que un diagrama de flujo tipo Sugiyama
+ * simplificado, sin depender de topologías T01…T07 (esas son específicas
+ * de OrisTopologiaVisual.tsx; acá el grafo puede ser cualquier forma).
+ *
+ * Si el grafo tiene ciclos o nodos desconectados de las fuentes, esos nodos
+ * caen todos en la columna 0 — se prioriza siempre mostrar algo legible por
+ * sobre un layout perfecto.
+ */
+function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[] }) {
+  const { columnas, aristas, nodoPos } = useMemo(() => {
+    const nombrePorId = new Map<string, string>();
+    const salidas = new Map<string, Set<string>>();
+    const entradas = new Map<string, Set<string>>();
+
+    for (const f of flujo) {
+      nombrePorId.set(f.ium_origen_id, f.ium_origen);
+      nombrePorId.set(f.ium_destino_id, f.ium_destino);
+      if (!salidas.has(f.ium_origen_id)) salidas.set(f.ium_origen_id, new Set());
+      salidas.get(f.ium_origen_id)!.add(f.ium_destino_id);
+      if (!entradas.has(f.ium_destino_id)) entradas.set(f.ium_destino_id, new Set());
+      entradas.get(f.ium_destino_id)!.add(f.ium_origen_id);
+    }
+
+    const ids = Array.from(nombrePorId.keys());
+    const nivelPorId = new Map<string, number>();
+    const fuentes = ids.filter((id) => !entradas.has(id) || entradas.get(id)!.size === 0);
+    const cola = (fuentes.length > 0 ? fuentes : ids).map((id) => ({ id, nivel: 0 }));
+    for (const { id } of cola) nivelPorId.set(id, 0);
+
+    let cursor = 0;
+    while (cursor < cola.length) {
+      const { id, nivel } = cola[cursor++];
+      for (const destinoId of salidas.get(id) ?? []) {
+        const nivelActual = nivelPorId.get(destinoId);
+        const nivelPropuesto = nivel + 1;
+        if (nivelActual === undefined || nivelPropuesto > nivelActual) {
+          nivelPorId.set(destinoId, nivelPropuesto);
+          cola.push({ id: destinoId, nivel: nivelPropuesto });
+        }
+      }
+    }
+    // Cualquier nodo que el BFS no haya alcanzado (ciclo puro, sin fuente
+    // clara) igual necesita una posición — cae en la columna 0.
+    for (const id of ids) if (!nivelPorId.has(id)) nivelPorId.set(id, 0);
+
+    const porColumna = new Map<number, string[]>();
+    for (const id of ids) {
+      const nivel = nivelPorId.get(id)!;
+      if (!porColumna.has(nivel)) porColumna.set(nivel, []);
+      porColumna.get(nivel)!.push(id);
+    }
+    const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
+
+    const ANCHO_COL = 168;
+    const ALTO_FILA = 52;
+    const PAD_X = 12;
+    const PAD_Y = 12;
+
+    const pos = new Map<string, { x: number; y: number }>();
+    columnasOrdenadas.forEach((nivel, colIdx) => {
+      const idsDeColumna = porColumna.get(nivel)!;
+      idsDeColumna.forEach((id, filaIdx) => {
+        pos.set(id, {
+          x: PAD_X + colIdx * ANCHO_COL,
+          y: PAD_Y + filaIdx * ALTO_FILA,
+        });
+      });
+    });
+
+    const columnas = columnasOrdenadas.map((nivel) =>
+      (porColumna.get(nivel) ?? []).map((id) => ({
+        id,
+        nombre: nombrePorId.get(id) ?? id.slice(0, 8),
+        pos: pos.get(id)!,
+      })),
+    );
+
+    const aristas = flujo.map((f, idx) => ({
+      key: `${f.ium_origen_id}-${f.ium_destino_id}-${idx}`,
+      desde: pos.get(f.ium_origen_id)!,
+      hasta: pos.get(f.ium_destino_id)!,
+      tipo: f.tipo_union,
+    }));
+
+    return { columnas, aristas, nodoPos: pos };
+  }, [flujo]);
+
+  const NODO_W = 148;
+  const NODO_H = 30;
+  const anchoTotal = columnas.length * 168;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 52;
+
+  return (
+    <svg
+      viewBox={`0 0 ${anchoTotal} ${altoTotal + NODO_H}`}
+      className="w-full h-auto"
+      style={{ minHeight: Math.min(altoTotal + NODO_H, 220) }}
+    >
+      <defs>
+        <marker
+          id="flecha-config-ium"
+          viewBox="0 0 10 10"
+          refX="9"
+          refY="5"
+          markerWidth="6"
+          markerHeight="6"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)" fillOpacity="0.4" />
+        </marker>
+      </defs>
+
+      {aristas.map((a) => {
+        const x1 = a.desde.x + NODO_W;
+        const y1 = a.desde.y + NODO_H / 2;
+        const x2 = a.hasta.x;
+        const y2 = a.hasta.y + NODO_H / 2;
+        const mismaColumna = a.desde.x === a.hasta.x;
+        const path = mismaColumna
+          ? `M ${x1 - NODO_W / 2} ${y1} C ${x1 + 40} ${y1}, ${x1 + 40} ${y2}, ${x1 - NODO_W / 2} ${y2}`
+          : `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
+        return (
+          <path
+            key={a.key}
+            d={path}
+            fill="none"
+            stroke="var(--primary)"
+            strokeOpacity={0.3}
+            strokeWidth={1.5}
+            markerEnd="url(#flecha-config-ium)"
+          />
+        );
+      })}
+
+      {columnas.map((columna) =>
+        columna.map((nodo) => (
+          <g key={nodo.id} transform={`translate(${nodo.pos.x}, ${nodo.pos.y})`}>
+            <rect
+              width={NODO_W}
+              height={NODO_H}
+              rx={6}
+              fill="var(--primary)"
+              fillOpacity={0.06}
+              stroke="var(--primary)"
+              strokeOpacity={0.2}
+            />
+            <text
+              x={NODO_W / 2}
+              y={NODO_H / 2}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill="var(--primary)"
+              fillOpacity={0.75}
+              fontSize={10}
+              fontWeight={700}
+            >
+              {nodo.nombre.length > 20 ? `${nodo.nombre.slice(0, 19)}…` : nodo.nombre}
+            </text>
+          </g>
+        )),
+      )}
+    </svg>
+  );
+}
+
+/**
  * Sección "Configuración IUM" (spec secciones 7/8): intervención mediante
  * IUM que manipula este proceso natural — visualmente separada de la
  * información propia del fenómeno. Solo lectura acá (la config en sí se
@@ -1120,20 +1293,8 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
           {flujo.length > 0 && (
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-primary/45">Enlaces</span>
-              <div className="flex flex-col gap-1">
-                {flujo.map((f, idx) => (
-                  <div
-                    key={`${f.ium_origen_id}-${f.ium_destino_id}-${idx}`}
-                    className="flex items-center gap-1 text-micro text-primary/60"
-                  >
-                    <span className="truncate">{f.ium_origen}</span>
-                    <span className="text-primary/30 shrink-0">→</span>
-                    <span className="truncate">{f.ium_destino}</span>
-                    {f.tipo_union && (
-                      <span className="ml-auto shrink-0 text-primary/35">({f.tipo_union})</span>
-                    )}
-                  </div>
-                ))}
+              <div className="rounded-md border border-primary/10 bg-primary/[0.02] p-2 overflow-x-auto">
+                <ConfiguracionIumGrafo flujo={flujo} />
               </div>
             </div>
           )}
