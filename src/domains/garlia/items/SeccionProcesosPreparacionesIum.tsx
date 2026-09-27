@@ -697,7 +697,7 @@ function FormularioCrearAlmacenamiento({
   onCreado: () => void;
   onCancelar: () => void;
 }) {
-  const { soportesObjeto, loadingSoportes, crearAlmacenamiento } = hook;
+  const { soportesObjeto, loadingSoportes, errorSoportes, crearAlmacenamiento } = hook;
   const [soporteTipoId, setSoporteTipoId] = useState<string | null>(null);
   const [nombre, setNombre] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -734,6 +734,10 @@ function FormularioCrearAlmacenamiento({
         </label>
         {loadingSoportes ? (
           <LoadingRow>Cargando soportes disponibles…</LoadingRow>
+        ) : errorSoportes ? (
+          <div className="rounded-lg border border-red-500/20 p-2.5 text-[11px] font-bold text-red-400">
+            {errorSoportes}
+          </div>
         ) : soportesObjeto.length === 0 ? (
           <EmptyRow>No hay ningún soporte activo de tipo &apos;objeto&apos; disponible.</EmptyRow>
         ) : (

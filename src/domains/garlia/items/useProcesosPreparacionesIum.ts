@@ -139,13 +139,19 @@ export function useProcesosPreparacionesIum(itemId: string) {
   // ── Almacenamiento: crear si el objeto todavía no tiene ─────────────
   const [soportesObjeto, setSoportesObjeto] = useState<SoporteAlmacenamientoIum[]>([]);
   const [loadingSoportes, setLoadingSoportes] = useState(false);
+  // Error propio: un fallo acá NUNCA debe tumbar todo el panel (que usa
+  // `error` global para un early-return total). Antes reusaba setError()
+  // y un fallo en esta llamada colapsaba "Procesos" + "IUMs preparados"
+  // enteros, dando la sensación de que el botón "no hacía nada".
+  const [errorSoportes, setErrorSoportes] = useState<string | null>(null);
 
   const cargarSoportesObjeto = useCallback(async () => {
     setLoadingSoportes(true);
+    setErrorSoportes(null);
     try {
       setSoportesObjeto(await listarSoportesAlmacenamiento({ tipo: "objeto" }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setErrorSoportes(e instanceof Error ? e.message : String(e));
     } finally {
       setLoadingSoportes(false);
     }
@@ -227,6 +233,7 @@ export function useProcesosPreparacionesIum(itemId: string) {
     almacenamientos,
     soportesObjeto,
     loadingSoportes,
+    errorSoportes,
     cargarSoportesObjeto,
     crearAlmacenamiento,
 
