@@ -461,10 +461,10 @@ export function EditorItem({
           </div>
         </div>
 
-        {/* Descripción. Se quitó el bloque "Propiedades físicas de los
-            materiales" (MaterialesPropiedadesFisicasItem) que ocupaba la
-            segunda columna; se deja la grid de 2 columnas con la segunda
-            vacía para no tocar el resto del layout de la fila. */}
+        {/* Descripción + IUMs preparados. Antes la segunda columna quedaba
+            vacía en desktop (se había sacado
+            MaterialesPropiedadesFisicasItem); ahora ese hueco lo ocupa la
+            sección nueva "IUMs preparados", al lado de Descripción. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
           <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
             <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
@@ -480,18 +480,16 @@ export function EditorItem({
             />
           </div>
 
-          <div />
-        </div>
-
-        {/* IUMs preparados — preparaciones IUM almacenadas en este objeto
-            (almacenamientos_ium_v1 → preparaciones_ium_v1). Sección nueva,
-            misma tarjeta que el resto del editor; toda la información sale
-            de Supabase, sin reconstruir configuraciones desde oris_iums. */}
-        <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
-          <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            IUMs preparados
-          </label>
-          <SeccionIumsPreparados itemId={item.id} />
+          {/* IUMs preparados — preparaciones IUM almacenadas en este objeto
+              (almacenamientos_ium_v1 → preparaciones_ium_v1). Toda la
+              información sale de Supabase, sin reconstruir configuraciones
+              desde oris_iums. */}
+          <div className="rounded-lg border border-primary/10 p-2 flex flex-col gap-1.5">
+            <label className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              IUMs preparados
+            </label>
+            <SeccionIumsPreparados itemId={item.id} />
+          </div>
         </div>
       </div>
 
