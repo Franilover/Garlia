@@ -48,7 +48,6 @@ import { ElementoPanelFlotante } from "@/domains/garlia/elementos/ElementosPage"
 import { ReaccionPanelFlotante } from "@/domains/garlia/elementos/ReaccionesPage";
 import { CONFIG_MATERIAL_COMPONENTES, type MaterialComponente } from "@/domains/garlia/materiales/types";
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
-import { useItemHabilidadesReaccion } from "@/domains/garlia/_shared/useItemHabilidadesReaccion";
 
 import { SelectorImagen } from "@/domains/garlia/_shared/UIComponents";
 import { EditorHeaderBar } from "@/domains/garlia/_shared/EditorHeaderBar";
@@ -105,15 +104,7 @@ export function EditorItem({
   const { items: elementos, setItems: setElementos } = useElementos();
   const { items: compuestos, setItems: setCompuestos } = useCompuestosConElementos();
 
-  // Habilidades del item = N Reacciones del catálogo global de Química,
-  // vinculadas N:N vía la tabla puente item_habilidades (item_id,
-  // reaccion_id — múltiples filas por item). Editar una Reacción acá afecta
-  // a todo lo que la use — Procesos de Flora/Minerales incluidos.
   const { items: reacciones, setItems: setReacciones } = useReacciones();
-  const habilidades = useItemHabilidadesReaccion({
-    itemId: item.id,
-    catalogo: reacciones,
-  });
 
   function onReaccionActualizadaLocal(id: string, updates: any) {
     setReacciones((prev) => prev.map((r) => (r.id === id ? { ...r, ...updates } : r)));

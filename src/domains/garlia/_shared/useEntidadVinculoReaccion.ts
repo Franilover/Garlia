@@ -3,11 +3,11 @@
 /**
  * useEntidadVinculoReaccion.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Vínculo 1:1 entre una entidad (PlantaProceso, MineralProceso, o el propio
- * Item vía item_habilidades) y un Proceso/Reacción de la tabla real
- * "reacciones" (catálogo separado de "grupos_compuestos" — Procesos y
- * Habilidades siguen siendo EL MISMO catálogo entre sí, solo aislado del
- * resto de Química), vía columna `reaccion_id` directa — sin tabla puente.
+ * Vínculo 1:1 entre una entidad (PlantaProceso, MineralProceso) y un
+ * Proceso/Reacción de la tabla real "reacciones" (catálogo separado de
+ * "grupos_compuestos" — Procesos y Habilidades siguen siendo EL MISMO
+ * catálogo entre sí, solo aislado del resto de Química), vía columna
+ * `reaccion_id` directa — sin tabla puente.
  *
  * La Reacción vinculada ES la reacción real del catálogo — no hay copia.
  * Editarla acá (o desde Química) actualiza todo lo que la use.
