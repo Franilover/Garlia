@@ -15,7 +15,6 @@ import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
 
 import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
-import type { PanelHeaderExterno } from "@/domains/garlia/biologia/panelHeaderExterno";
 
 import { SelectorReinosMulti } from "./SelectorReinosMulti";
 import { BIOMA_ICON, type Bioma, type Ecosistema } from "./types";
@@ -34,7 +33,6 @@ export function PanelBioma({
   onCrearEcosistema,
   creandoEcosistema,
   modoPopover = false,
-  headerExterno,
 }: {
   bioma: Bioma;
   /** Reinos (por id) con territorio en este bioma — vive en la tabla
@@ -55,10 +53,6 @@ export function PanelBioma({
    *  navegación de por medio — el popover se cierra con click afuera,
    *  Escape, o este botón. */
   modoPopover?: boolean;
-  /** Si viene, el panel NO dibuja su barra propia (volver/nombre/borrar/
-   *  guardar): el contenedor (PanelFlotanteGlobal) ya tiene una barra
-   *  superior única y recibe el nombre/guardar vía este callback. */
-  headerExterno?: (h: PanelHeaderExterno) => void;
 }) {
   const [nombre, setNombre] = useState(bioma.nombre);
   const [afinidad, setAfinidad] = useState(bioma.afinidad ?? "");
@@ -77,19 +71,6 @@ export function PanelBioma({
   const guardar = () => {
     onSave({ nombre: nombre.trim() || bioma.nombre, afinidad, descripcion });
   };
-
-  // Header externo: publica nombre editable + guardar hacia el contenedor.
-  const guardarRef = React.useRef(guardar);
-  guardarRef.current = guardar;
-  useEffect(() => {
-    headerExterno?.({
-      nombre,
-      setNombre,
-      guardar: () => guardarRef.current(),
-      sidebarMobile: () => setMobileSidebarOpen(true),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nombre, headerExterno]);
 
   // ── Reinos (M:N vía bioma_reinos) — sección de barra lateral, mismo
   // patrón que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). ──
@@ -174,7 +155,6 @@ export function PanelBioma({
   return (
     <div className={modoPopover ? "flex h-full min-h-0" : undefined}>
       <div className={modoPopover ? "flex-1 min-w-0 flex flex-col min-h-0" : undefined}>
-      {!headerExterno && (
       <div className="flex items-center justify-between gap-2 mb-4">
         <button
           type="button"
@@ -224,7 +204,6 @@ export function PanelBioma({
           </button>
         </div>
       </div>
-      )}
 
       {modoPopover ? (
         <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">

@@ -24,7 +24,7 @@
  * click en el backdrop.
  */
 
-import { Bug, Check, Compass, Crown, Diamond, Gem, Leaf, MapPin, Save, SlidersHorizontal, Sprout, Trash2, Users, X } from "lucide-react";
+import { Bug, Check, Crown, Diamond, Gem, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -44,10 +44,6 @@ import { useFlora } from "@/domains/garlia/flora/useFlora";
 import { type Flora } from "@/domains/garlia/flora/types";
 import { MineralEditor } from "@/domains/garlia/minerales/MineralEditor";
 import { useMinerales } from "@/domains/garlia/minerales/useMinerales";
-import { BiomaFlotante } from "@/domains/garlia/biologia/BiomaFlotante";
-import { EcosistemaFlotante } from "@/domains/garlia/biologia/EcosistemaFlotante";
-import { useBiomas, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
-import type { Bioma, Ecosistema } from "@/domains/garlia/biologia/types";
 import { type Mineral } from "@/domains/garlia/minerales/types";
 import type { Personaje } from "@garlia/personajes";
 import type { Criatura } from "@/domains/garlia/criaturas/types";
@@ -96,8 +92,6 @@ export function PanelFlotanteGlobal() {
   const { data: ciudades } = useSupabaseData<Ciudad>("ciudades");
   const { flora } = useFlora();
   const { minerales } = useMinerales();
-  const { biomas } = useBiomas();
-  const { ecosistemas } = useEcosistemas();
 
   useEffect(() => {
     if (!entidad) return;
@@ -123,8 +117,6 @@ export function PanelFlotanteGlobal() {
   const floraSel = entidad.kind === "flora" ? flora.find((x) => x.id === entidad.id) : null;
   const mineralSel = entidad.kind === "mineral" ? minerales.find((x) => x.id === entidad.id) : null;
   const ciudad = entidad.kind === "ciudad" ? ciudades.find((x) => x.id === entidad.id) : null;
-  const biomaSel = entidad.kind === "bioma" ? biomas.find((x) => x.id === entidad.id) : null;
-  const ecosistemaSel = entidad.kind === "ecosistema" ? ecosistemas.find((x) => x.id === entidad.id) : null;
   if (entidad.kind === "personaje" && !personaje) return null;
   if (entidad.kind === "criatura" && !criatura) return null;
   if (entidad.kind === "reino" && !reino) return null;
@@ -132,8 +124,6 @@ export function PanelFlotanteGlobal() {
   if (entidad.kind === "flora" && !floraSel) return null;
   if (entidad.kind === "mineral" && !mineralSel) return null;
   if (entidad.kind === "ciudad" && !ciudad) return null;
-  if (entidad.kind === "bioma" && !biomaSel) return null;
-  if (entidad.kind === "ecosistema" && !ecosistemaSel) return null;
 
   const Icon =
     entidad.kind === "personaje"
@@ -148,11 +138,7 @@ export function PanelFlotanteGlobal() {
               ? Leaf
               : entidad.kind === "mineral"
                 ? Diamond
-                : entidad.kind === "bioma"
-                  ? Compass
-                  : entidad.kind === "ecosistema"
-                    ? Sprout
-                    : MapPin;
+                : MapPin;
   const label =
     entidad.kind === "personaje"
       ? "Personaje"
@@ -166,11 +152,7 @@ export function PanelFlotanteGlobal() {
               ? "Flora"
               : entidad.kind === "mineral"
                 ? "Mineral"
-                : entidad.kind === "bioma"
-                  ? "Bioma"
-                  : entidad.kind === "ecosistema"
-                    ? "Ecosistema"
-                    : "Ciudad";
+                : "Ciudad";
   const nombre =
     entidad.kind === "personaje"
       ? personaje!.nombre
@@ -184,11 +166,7 @@ export function PanelFlotanteGlobal() {
               ? floraSel!.nombre
               : entidad.kind === "mineral"
                 ? mineralSel!.nombre
-                : entidad.kind === "bioma"
-                  ? biomaSel!.nombre
-                  : entidad.kind === "ecosistema"
-                    ? ecosistemaSel!.nombre
-                    : ciudad!.nombre;
+                : ciudad!.nombre;
 
   return createPortal(
     <div
@@ -378,18 +356,6 @@ export function PanelFlotanteGlobal() {
               key={mineralSel!.id}
               mineral={mineralSel as Mineral}
               onDeleted={() => cerrar()}
-              onHeaderControlsChange={setHeaderControls}
-            />
-          ) : entidad.kind === "bioma" ? (
-            <BiomaFlotante
-              key={biomaSel!.id}
-              bioma={biomaSel as Bioma}
-              onHeaderControlsChange={setHeaderControls}
-            />
-          ) : entidad.kind === "ecosistema" ? (
-            <EcosistemaFlotante
-              key={ecosistemaSel!.id}
-              ecosistema={ecosistemaSel as Ecosistema}
               onHeaderControlsChange={setHeaderControls}
             />
           ) : (
