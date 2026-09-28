@@ -11,14 +11,29 @@
 import { ArrowLeft, Compass, Leaf, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
+import { useMobileAsidePanel, useRegisterMobileAside } from "@/hooks/ui/useMobileAsidePanel";
 import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
+import { type SaveStatus } from "@/ui/saveStatus";
 
+import {
+  usePublishHeaderControls,
+  type OnHeaderControlsChange,
+} from "@/domains/garlia/_shared/useEditorHeaderControls";
 import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
 
 import { SelectorReinosMulti } from "./SelectorReinosMulti";
 import { BIOMA_ICON, type Bioma, type Ecosistema } from "./types";
 import { useEcosistemas } from "./useBiologia";
+
+/** Registra el aside de este panel en el store global (para que aparezca el
+ *  botón "Entidades" en la barra del panel flotante) mientras esté montado.
+ *  Va en un componente aparte para poder montarlo condicionalmente sin
+ *  llamar un hook dentro de un `if`. */
+function RegistroAsideMovil() {
+  useRegisterMobileAside();
+  return null;
+}
 
 export function PanelBioma({
   bioma,
@@ -33,6 +48,7 @@ export function PanelBioma({
   onCrearEcosistema,
   creandoEcosistema,
   modoPopover = false,
+  onHeaderControlsChange,
 }: {
   bioma: Bioma;
   /** Reinos (por id) con territorio en este bioma — vive en la tabla
@@ -53,14 +69,33 @@ export function PanelBioma({
    *  navegación de por medio — el popover se cierra con click afuera,
    *  Escape, o este botón. */
   modoPopover?: boolean;
+  /** Si se pasa, el panel NO dibuja su propia cabecera (volver/nombre/
+   *  eliminar/guardar): publica esos controles al contenedor — típicamente
+   *  PanelFlotanteGlobal — igual que Flora/Mineral/Criatura/Reino. El
+   *  layout interno (contenido + barra lateral de Reinos/Ecosistemas)
+   *  queda idéntico. Implica el layout de dos columnas (como modoPopover). */
+  onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
   const [nombre, setNombre] = useState(bioma.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  // Con header publicado el panel siempre usa el layout de dos columnas
+  // (contenido + aside), que es el diseño del popover original.
+  const layoutDosColumnas = modoPopover || !!onHeaderControlsChange;
   const [afinidad, setAfinidad] = useState(bioma.afinidad ?? "");
   const [descripcion, setDescripcion] = useState(bioma.descripcion ?? "");
   // Barra lateral de Reinos/Ecosistemas: en celular arranca oculta (mismo
   // comportamiento que EditorCriatura/EditorReino) y se abre con el botón
   // "Entidades" de la barra de título; en desktop (sm+) sigue fija al lado.
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarLocal, setMobileSidebarLocal] = useState(false);
+  // Con header publicado el botón "Entidades" vive en la barra superior del
+  // panel flotante global y se comunica vía useMobileAsidePanel — igual que
+  // EditorCriatura/EditorReino. Sin header publicado se usa el estado local.
+  const usaAsideGlobal = !!onHeaderControlsChange;
+  const asideGlobalAbierto = useMobileAsidePanel((st) => st.open);
+  const cerrarAsideGlobal = useMobileAsidePanel((st) => st.close);
+  const mobileSidebarOpen = usaAsideGlobal ? asideGlobalAbierto : mobileSidebarLocal;
+  const setMobileSidebarOpen = (v: boolean) =>
+    usaAsideGlobal ? (v ? undefined : cerrarAsideGlobal()) : setMobileSidebarLocal(v);
 
   useEffect(() => {
     setNombre(bioma.nombre);
@@ -69,8 +104,32 @@ export function PanelBioma({
   }, [bioma.id]);
 
   const guardar = () => {
-    onSave({ nombre: nombre.trim() || bioma.nombre, afinidad, descripcion });
+    setStatus("saving");
+    try {
+      onSave({ nombre: nombre.trim() || bioma.nombre, afinidad, descripcion });
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("error");
+    }
   };
+
+  // Controles de la barra superior compartida (ver useEditorHeaderControls).
+  // Sin receptor (pantalla completa), no hace nada y se dibuja la cabecera
+  // propia de más abajo.
+  usePublishHeaderControls(
+    {
+      IconoFallback: BIOMA_ICON,
+      nombre,
+      placeholderNombre: "Nombre del bioma…",
+      onChangeNombre: setNombre,
+      onBlurNombre: guardar,
+      status,
+      onGuardar: guardar,
+      onEliminar: onDelete,
+    },
+    onHeaderControlsChange,
+  );
 
   // ── Reinos (M:N vía bioma_reinos) — sección de barra lateral, mismo
   // patrón que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). ──
@@ -153,8 +212,19 @@ export function PanelBioma({
   );
 
   return (
-    <div className={modoPopover ? "flex h-full min-h-0" : undefined}>
-      <div className={modoPopover ? "flex-1 min-w-0 flex flex-col min-h-0" : undefined}>
+    <div className={layoutDosColumnas ? "flex flex-1 h-full min-h-0" : undefined}>
+      {usaAsideGlobal && <RegistroAsideMovil />}
+      <div
+        className={
+          layoutDosColumnas
+            ? `flex-1 min-w-0 flex flex-col min-h-0 ${usaAsideGlobal ? "p-4" : ""}`
+            : undefined
+        }
+      >
+      {/* Cabecera propia: solo cuando nadie publica los controles (pantalla
+          completa / popover legado). Con onHeaderControlsChange la dibuja
+          el contenedor, igual que en el resto de las entidades. */}
+      {!onHeaderControlsChange && (
       <div className="flex items-center justify-between gap-2 mb-4">
         <button
           type="button"
@@ -204,8 +274,9 @@ export function PanelBioma({
           </button>
         </div>
       </div>
+      )}
 
-      {modoPopover ? (
+      {layoutDosColumnas ? (
         <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
           <div>
             <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1">
@@ -314,9 +385,11 @@ export function PanelBioma({
           arranca oculta (hidden sm:flex) y se abre como drawer con el
           botón "Entidades" de la barra de título — mismo comportamiento
           que EditorCriatura/EditorReino. */}
-      {modoPopover && (
+      {layoutDosColumnas && (
         <aside
-          className="hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden -my-4 -mr-4 pl-0"
+          className={`hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden pl-0 ${
+            usaAsideGlobal ? "" : "-my-4 -mr-4"
+          }`}
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             background: "color-mix(in srgb, var(--primary) 1%, transparent)",
@@ -328,7 +401,7 @@ export function PanelBioma({
       )}
 
       {/* ── Barra lateral — mobile drawer ─────────────────────────────────── */}
-      {modoPopover && mobileSidebarOpen && (
+      {layoutDosColumnas && mobileSidebarOpen && (
         <div className="sm:hidden fixed inset-0 z-[10000] flex justify-end">
           <div
             className="absolute inset-0"

@@ -39,7 +39,10 @@ export interface EditorHeaderControls {
   prefix?: ReactNode;
   nombre: string;
   placeholderNombre: string;
-  onChangeNombre: (nombre: string) => void;
+  /** Si es undefined, el nombre se muestra como texto de SOLO LECTURA (no
+   *  input) — para entidades que no se renombran desde la app (p. ej.
+   *  Hábitat, que sale de una vista de Supabase). */
+  onChangeNombre?: (nombre: string) => void;
   /** Se llama al perder foco del input de nombre, para editores que
    *  autoguardan on-blur (Flora/Mineral) en vez de con botón Guardar. */
   onBlurNombre?: () => void;
@@ -50,8 +53,11 @@ export interface EditorHeaderControls {
    *  header si nombre+subtitulo no entran en una línea. */
   subtitulo?: ReactNode;
   status: SaveStatus;
-  onGuardar: () => void;
-  onEliminar: () => void;
+  /** Opcionales: si faltan, el contenedor no dibuja el botón Guardar /
+   *  Eliminar ni el indicador de guardado. Los editores existentes los
+   *  pasan siempre, así que su comportamiento no cambia. */
+  onGuardar?: () => void;
+  onEliminar?: () => void;
   /** Botones o controles extra específicos del editor (dado D&D, toggles
    *  de panel en Criatura, etc.), renderizados entre el nombre y las
    *  acciones de guardar/eliminar. */

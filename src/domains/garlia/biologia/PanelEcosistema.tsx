@@ -15,8 +15,15 @@
 import { ArrowLeft, Bug, Compass, Gem, Leaf, Plus, Salad, SlidersHorizontal, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
+import { useMobileAsidePanel, useRegisterMobileAside } from "@/hooks/ui/useMobileAsidePanel";
 import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
+import { type SaveStatus } from "@/ui/saveStatus";
+
+import {
+  usePublishHeaderControls,
+  type OnHeaderControlsChange,
+} from "@/domains/garlia/_shared/useEditorHeaderControls";
 
 import { SelectorFloraMulti } from "@/domains/garlia/flora/SelectorFloraMulti";
 import { useFloraCatalogoMin } from "@/domains/garlia/flora/useFloraCatalogoMin";
@@ -209,6 +216,13 @@ function PanelCadena({
 
 // ─── Panel de detalle de ecosistema ──────────────────────────────────────────
 
+/** Registra el aside en el store global (botón "Entidades" en la barra del
+ *  panel flotante) mientras esté montado — ver PanelBioma. */
+function RegistroAsideMovil() {
+  useRegisterMobileAside();
+  return null;
+}
+
 export function PanelEcosistema({
   ecosistema,
   floraIds,
@@ -227,6 +241,7 @@ export function PanelEcosistema({
   onSelectMineral,
   onSelectBioma,
   modoPopover = false,
+  onHeaderControlsChange,
 }: {
   ecosistema: Ecosistema;
   /** Flora (por id) que crece/habita en este ecosistema — vive en la
@@ -255,16 +270,28 @@ export function PanelEcosistema({
   /** true cuando se renderiza dentro de un popover flotante: el botón
    *  izquierdo pasa de "volver" (flecha) a "cerrar" (X). */
   modoPopover?: boolean;
+  /** Si se pasa, el panel NO dibuja su cabecera propia: publica nombre/
+   *  guardar/eliminar al contenedor (PanelFlotanteGlobal) como el resto de
+   *  las entidades. El layout interno (contenido + aside) no cambia. */
+  onHeaderControlsChange?: OnHeaderControlsChange;
 }) {
   const { biomas } = useBiomas();
   const [nombre, setNombre] = useState(ecosistema.nombre);
+  const [status, setStatus] = useState<SaveStatus>("idle");
+  const layoutDosColumnas = modoPopover || !!onHeaderControlsChange;
   const [clima, setClima] = useState(ecosistema.clima ?? "");
   const [descripcion, setDescripcion] = useState(ecosistema.descripcion ?? "");
   // Barra lateral (Flora/Minerales/Reino/Cadenas, según el resto del
   // archivo): en celular arranca oculta y se abre con el botón "Entidades"
   // de la barra de título — mismo comportamiento que EditorCriatura/
   // EditorReino/PanelBioma.
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarLocal, setMobileSidebarLocal] = useState(false);
+  const usaAsideGlobal = !!onHeaderControlsChange;
+  const asideGlobalAbierto = useMobileAsidePanel((st) => st.open);
+  const cerrarAsideGlobal = useMobileAsidePanel((st) => st.close);
+  const mobileSidebarOpen = usaAsideGlobal ? asideGlobalAbierto : mobileSidebarLocal;
+  const setMobileSidebarOpen = (v: boolean) =>
+    usaAsideGlobal ? (v ? undefined : cerrarAsideGlobal()) : setMobileSidebarLocal(v);
 
   useEffect(() => {
     setNombre(ecosistema.nombre);
@@ -273,8 +300,29 @@ export function PanelEcosistema({
   }, [ecosistema.id]);
 
   const guardar = () => {
-    onSave({ nombre: nombre.trim() || ecosistema.nombre, clima, descripcion });
+    setStatus("saving");
+    try {
+      onSave({ nombre: nombre.trim() || ecosistema.nombre, clima, descripcion });
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch {
+      setStatus("error");
+    }
   };
+
+  usePublishHeaderControls(
+    {
+      IconoFallback: Leaf,
+      nombre,
+      placeholderNombre: "Nombre del ecosistema…",
+      onChangeNombre: setNombre,
+      onBlurNombre: guardar,
+      status,
+      onGuardar: guardar,
+      onEliminar: onDelete,
+    },
+    onHeaderControlsChange,
+  );
 
   // ── Barra lateral — Criaturas / Flora / Minerales / Reino, mismo patrón
   // que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). El
@@ -396,8 +444,16 @@ export function PanelEcosistema({
   );
 
   return (
-    <div className={modoPopover ? "flex h-full min-h-0" : undefined}>
-      <div className={modoPopover ? "flex-1 min-w-0 flex flex-col min-h-0" : undefined}>
+    <div className={layoutDosColumnas ? "flex flex-1 h-full min-h-0" : undefined}>
+      {usaAsideGlobal && <RegistroAsideMovil />}
+      <div
+        className={
+          layoutDosColumnas
+            ? `flex-1 min-w-0 flex flex-col min-h-0 ${usaAsideGlobal ? "p-4" : ""}`
+            : undefined
+        }
+      >
+      {!onHeaderControlsChange && (
       <div className="flex items-center justify-between gap-2 mb-4">
         <button
           type="button"
@@ -447,8 +503,9 @@ export function PanelEcosistema({
           </button>
         </div>
       </div>
+      )}
 
-      {modoPopover ? (
+      {layoutDosColumnas ? (
         <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -669,9 +726,11 @@ export function PanelEcosistema({
           (hidden sm:flex) y se abre como drawer con el botón "Entidades" de
           la barra de título — mismo comportamiento que EditorCriatura/
           EditorReino/PanelBioma. */}
-      {modoPopover && (
+      {layoutDosColumnas && (
         <aside
-          className="hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden -my-4 -mr-4 pl-0"
+          className={`hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden pl-0 ${
+            usaAsideGlobal ? "" : "-my-4 -mr-4"
+          }`}
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
             background: "color-mix(in srgb, var(--primary) 1%, transparent)",
@@ -683,7 +742,7 @@ export function PanelEcosistema({
       )}
 
       {/* ── Barra lateral — mobile drawer ─────────────────────────────────── */}
-      {modoPopover && mobileSidebarOpen && (
+      {layoutDosColumnas && mobileSidebarOpen && (
         <div className="sm:hidden fixed inset-0 z-[10000] flex justify-end">
           <div
             className="absolute inset-0"

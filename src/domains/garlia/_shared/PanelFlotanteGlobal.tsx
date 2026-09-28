@@ -24,7 +24,7 @@
  * click en el backdrop.
  */
 
-import { Bug, Check, Crown, Diamond, Gem, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
+import { Bug, Check, Compass, Crown, Diamond, Gem, Layers, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -42,6 +42,10 @@ import { CiudadEditor } from "@garlia/ciudades";
 import { FloraEditor } from "@/domains/garlia/flora/FloraEditor";
 import { useFlora } from "@/domains/garlia/flora/useFlora";
 import { type Flora } from "@/domains/garlia/flora/types";
+import { BiomaEditor } from "@/domains/garlia/biologia/BiomaEditor";
+import { EcosistemaEditor } from "@/domains/garlia/biologia/EcosistemaEditor";
+import { HabitatEditor } from "@/domains/garlia/biologia/HabitatEditor";
+import { useBiomas, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
 import { MineralEditor } from "@/domains/garlia/minerales/MineralEditor";
 import { useMinerales } from "@/domains/garlia/minerales/useMinerales";
 import { type Mineral } from "@/domains/garlia/minerales/types";
@@ -92,6 +96,8 @@ export function PanelFlotanteGlobal() {
   const { data: ciudades } = useSupabaseData<Ciudad>("ciudades");
   const { flora } = useFlora();
   const { minerales } = useMinerales();
+  const { biomas } = useBiomas();
+  const { ecosistemas } = useEcosistemas();
 
   useEffect(() => {
     if (!entidad) return;
@@ -117,6 +123,9 @@ export function PanelFlotanteGlobal() {
   const floraSel = entidad.kind === "flora" ? flora.find((x) => x.id === entidad.id) : null;
   const mineralSel = entidad.kind === "mineral" ? minerales.find((x) => x.id === entidad.id) : null;
   const ciudad = entidad.kind === "ciudad" ? ciudades.find((x) => x.id === entidad.id) : null;
+  const biomaSel = entidad.kind === "bioma" ? biomas.find((x) => x.id === entidad.id) : null;
+  const ecosistemaSel =
+    entidad.kind === "ecosistema" ? ecosistemas.find((x) => x.id === entidad.id) : null;
   if (entidad.kind === "personaje" && !personaje) return null;
   if (entidad.kind === "criatura" && !criatura) return null;
   if (entidad.kind === "reino" && !reino) return null;
@@ -124,6 +133,10 @@ export function PanelFlotanteGlobal() {
   if (entidad.kind === "flora" && !floraSel) return null;
   if (entidad.kind === "mineral" && !mineralSel) return null;
   if (entidad.kind === "ciudad" && !ciudad) return null;
+  if (entidad.kind === "bioma" && !biomaSel) return null;
+  if (entidad.kind === "ecosistema" && !ecosistemaSel) return null;
+  // "habitat": lo resuelve HabitatEditor por id (viene de una vista, no de
+  // una tabla sincronizada), así que acá no hay guarda.
 
   const Icon =
     entidad.kind === "personaje"
@@ -138,7 +151,13 @@ export function PanelFlotanteGlobal() {
               ? Leaf
               : entidad.kind === "mineral"
                 ? Diamond
-                : MapPin;
+                : entidad.kind === "bioma"
+                  ? Compass
+                  : entidad.kind === "ecosistema"
+                    ? Leaf
+                    : entidad.kind === "habitat"
+                      ? Layers
+                      : MapPin;
   const label =
     entidad.kind === "personaje"
       ? "Personaje"
@@ -152,7 +171,13 @@ export function PanelFlotanteGlobal() {
               ? "Flora"
               : entidad.kind === "mineral"
                 ? "Mineral"
-                : "Ciudad";
+                : entidad.kind === "bioma"
+                  ? "Bioma"
+                  : entidad.kind === "ecosistema"
+                    ? "Ecosistema"
+                    : entidad.kind === "habitat"
+                      ? "Hábitat"
+                      : "Ciudad";
   const nombre =
     entidad.kind === "personaje"
       ? personaje!.nombre
@@ -166,7 +191,13 @@ export function PanelFlotanteGlobal() {
               ? floraSel!.nombre
               : entidad.kind === "mineral"
                 ? mineralSel!.nombre
-                : ciudad!.nombre;
+                : entidad.kind === "bioma"
+                  ? biomaSel!.nombre
+                  : entidad.kind === "ecosistema"
+                    ? ecosistemaSel!.nombre
+                    : entidad.kind === "habitat"
+                      ? "" // HabitatEditor publica el nombre; sin fallback previo
+                      : ciudad!.nombre;
 
   return createPortal(
     <div
@@ -214,13 +245,20 @@ export function PanelFlotanteGlobal() {
               lectura como fallback para no parpadear a vacío. */}
           {headerControls ? (
             <>
-              <input
-                className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-                placeholder={headerControls.placeholderNombre}
-                value={headerControls.nombre ?? ""}
-                onChange={(e) => headerControls.onChangeNombre(e.target.value)}
-                onBlur={headerControls.onBlurNombre}
-              />
+              {headerControls.onChangeNombre ? (
+                <input
+                  className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+                  placeholder={headerControls.placeholderNombre}
+                  value={headerControls.nombre ?? ""}
+                  onChange={(e) => headerControls.onChangeNombre?.(e.target.value)}
+                  onBlur={headerControls.onBlurNombre}
+                />
+              ) : (
+                // Solo lectura (p. ej. Hábitat, que sale de una vista).
+                <p className="flex-1 min-w-0 text-sm font-black text-primary truncate">
+                  {headerControls.nombre}
+                </p>
+              )}
               {headerControls.subtitulo && (
                 <span
                   className="shrink min-w-0 truncate text-micro font-bold text-primary/40"
@@ -234,9 +272,10 @@ export function PanelFlotanteGlobal() {
                 </span>
               )}
               {headerControls.extra}
+              {(headerControls.onGuardar || headerControls.onEliminar) && (
               <div className="shrink-0 flex items-center gap-1.5">
                 <SaveIndicatorInline status={headerControls.status} />
-                {confirmandoEliminar ? (
+                {headerControls.onEliminar && (confirmandoEliminar ? (
                   <div className="flex items-center gap-1.5">
                     <span className="text-micro font-black uppercase text-red-400 tracking-wide">
                       ¿Eliminar?
@@ -247,7 +286,7 @@ export function PanelFlotanteGlobal() {
                       type="button"
                       onClick={() => {
                         setConfirmandoEliminar(false);
-                        headerControls.onEliminar();
+                        headerControls.onEliminar?.();
                       }}
                     >
                       <Check size={11} />
@@ -269,16 +308,19 @@ export function PanelFlotanteGlobal() {
                   >
                     <Trash2 size={10} />
                   </button>
+                ))}
+                {headerControls.onGuardar && (
+                  <button
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+                    disabled={headerControls.status === "saving"}
+                    type="button"
+                    onClick={headerControls.onGuardar}
+                  >
+                    <Save size={10} /> Guardar
+                  </button>
                 )}
-                <button
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-micro font-black uppercase tracking-widest bg-primary text-btn-text hover:bg-primary/90 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
-                  disabled={headerControls.status === "saving"}
-                  type="button"
-                  onClick={headerControls.onGuardar}
-                >
-                  <Save size={10} /> Guardar
-                </button>
               </div>
+              )}
             </>
           ) : (
             <p className="flex-1 min-w-0 text-xs font-bold text-primary truncate">{nombre}</p>
@@ -318,7 +360,7 @@ export function PanelFlotanteGlobal() {
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           {entidad.kind === "personaje" ? (
             <PersonajeEditor
               key={personaje!.id}
@@ -356,6 +398,24 @@ export function PanelFlotanteGlobal() {
               key={mineralSel!.id}
               mineral={mineralSel as Mineral}
               onDeleted={() => cerrar()}
+              onHeaderControlsChange={setHeaderControls}
+            />
+          ) : entidad.kind === "bioma" ? (
+            <BiomaEditor
+              key={biomaSel!.id}
+              bioma={biomaSel!}
+              onHeaderControlsChange={setHeaderControls}
+            />
+          ) : entidad.kind === "ecosistema" ? (
+            <EcosistemaEditor
+              key={ecosistemaSel!.id}
+              ecosistema={ecosistemaSel!}
+              onHeaderControlsChange={setHeaderControls}
+            />
+          ) : entidad.kind === "habitat" ? (
+            <HabitatEditor
+              key={entidad.id}
+              habitatId={entidad.id}
               onHeaderControlsChange={setHeaderControls}
             />
           ) : (

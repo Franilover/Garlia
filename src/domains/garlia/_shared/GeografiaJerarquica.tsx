@@ -31,9 +31,8 @@
  *
  * Modo "ojo apagado" (mostrarPersonajes=false): en vez de Reino → Ciudad →
  * Personajes, se muestra Bioma → Reinos directo, usando Bioma.reino_ids
- * (M:N). El título de cada Bioma abre un popover flotante local con su
- * editor (ver PopoverFlotante + BiomaPopoverContent), sin navegar fuera de
- * esta vista.
+ * (M:N). El título de cada Bioma abre el panel flotante global
+ * (abrirPanel("bioma", id)), sin navegar fuera de esta vista.
  * (M:N) — no pasa por Ecosistema (eso queda exclusivo de CriaturasJerarquica,
  * donde Ecosistema es el hábitat de Criatura). Un reino que ningún bioma
  * lista cae en "Sin bioma".
@@ -57,9 +56,7 @@ import { EntityCard } from "./EntityCard";
 import { GrupoFiltroBarra, type GrupoFiltroSubtipo } from "./GrupoFiltroDropdown";
 import { BuscadorInline } from "./BuscadorInline";
 import { useRightClickDrag } from "./DragDropReasignable";
-import { PopoverFlotante } from "./PopoverFlotante";
 import { usePanelFlotante } from "./usePanelFlotanteStore";
-import { BiomaPopoverContent } from "@/domains/garlia/biologia/BiomaPopoverContent";
 import type { SectionKey } from "@/domains/garlia/_shared/useMundoNavigationStore";
 
 export type GrupoPersonajeSubtipo = GrupoFiltroSubtipo;
@@ -333,13 +330,6 @@ export function GeografiaJerarquica({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-
-  // Popover flotante del editor de bioma (reemplaza la navegación a
-  // pantalla completa: click en el título de un bioma abre este panel
-  // anclado en vez de onOpen("biomas", id)).
-  const [biomaAbierto, setBiomaAbierto] = useState<{ id: string; anchor: HTMLElement } | null>(
-    null,
-  );
 
   // Vista rápida flotante de Personaje: click izquierdo en una EntityCard
   // de personaje abre el panel flotante global (siempre centrado en
@@ -1004,7 +994,7 @@ export function GeografiaJerarquica({
                   >
                     <button
                       type="button"
-                      onClick={(e) => setBiomaAbierto({ id: bioma.id, anchor: e.currentTarget })}
+                      onClick={() => abrirPanel("bioma", bioma.id)}
                       title={bioma.nombre}
                       className="flex items-center gap-1.5 px-1 text-micro font-black uppercase tracking-[0.15em] text-primary/50 hover:text-accent transition-colors"
                     >
@@ -1064,20 +1054,6 @@ export function GeografiaJerarquica({
       )}
       {dragReino.overlay}
       {dragPersonaje.overlay}
-
-      {biomaAbierto &&
-        biomas.some((b) => b.id === biomaAbierto.id) && (
-          <PopoverFlotante
-            anchor={biomaAbierto.anchor}
-            onClose={() => setBiomaAbierto(null)}
-            width={640}
-            maxHeight={480}
-            centerVertically
-            centerHorizontally
-          >
-            <BiomaPopoverContent biomaId={biomaAbierto.id} onClose={() => setBiomaAbierto(null)} />
-          </PopoverFlotante>
-        )}
 
     </div>
   );

@@ -14,11 +14,13 @@
  *   [Ecosistema 2]
  *   ...
  *
- * El chip "Ecosistema" (y el título de su Bioma agrupador) abren un popover
- * flotante local con su editor (ver PopoverFlotante + EcosistemaPopoverContent
- * / BiomaPopoverContent más abajo), sin navegar fuera de esta vista. Lo mismo
- * el nombre de cada HÁBITAT (modo ojo OFF): abre HabitatPopoverContent, donde
- * se ven/editan sus habitantes (organismos y criaturas) y su ambiente. Cada
+ * El chip "Ecosistema" (y el título de su Bioma agrupador) abren el panel
+ * flotante global (abrirPanel("ecosistema"|"bioma", id), ver
+ * PanelFlotanteGlobal), sin navegar fuera de esta vista. Lo mismo el nombre
+ * de cada HÁBITAT (modo ojo OFF): abrirPanel("habitat", id), donde se
+ * ven/editan sus habitantes (organismos y criaturas) y su ambiente. Al
+ * cambiar habitantes, el panel invalida el mapa ecológico vía el store y
+ * EntidadesPage lo recarga. Cada
  * card de "Criatura" conserva su título-botón propio que abre su editor
  * completo (openEntity("criaturas", id)) y por dentro sigue mostrando la
  * grilla de personajes tal cual antes.
@@ -65,11 +67,7 @@ import { EntityCard } from "@/domains/garlia/_shared/EntityCard";
 import { GrupoFiltroBarra, type GrupoFiltroSubtipo } from "@/domains/garlia/_shared/GrupoFiltroDropdown";
 import { BuscadorInline } from "@/domains/garlia/_shared/BuscadorInline";
 import { useRightClickDrag } from "@/domains/garlia/_shared/DragDropReasignable";
-import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
-import { BiomaPopoverContent } from "@/domains/garlia/biologia/BiomaPopoverContent";
-import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
-import { HabitatPopoverContent } from "@/domains/garlia/biologia/HabitatPopoverContent";
 import type {
   HabitatEcologico,
   PresenciaEcologica,
@@ -131,11 +129,6 @@ interface Props {
    *  criaturas que antes colgaban directo del ecosistema ahora se ven acá,
    *  dentro de su hábitat. */
   presencias?: PresenciaEcologica[];
-  /** Recarga hábitats y presencias del mapa ecológico. Se invoca tras añadir
-   *  o quitar un habitante desde el menú flotante de un hábitat, para que los
-   *  chips de esta vista reflejen el cambio. Si no se pasa, el menú de
-   *  hábitat sigue funcionando pero la vista no se actualiza hasta recargar. */
-  onRefrescarMapaEcologico?: () => void;
   /** Biomas — nivel jerárquico por encima de Ecosistema (Bioma → Ecosistema
    *  → Criatura → Personajes), opcional idem. Solo se usa en modo "ojo
    *  apagado"; en modo "ojo prendido" no aplica (vista plana por especie). */
@@ -495,7 +488,6 @@ export function CriaturasJerarquica({
   biomas = [],
   habitats = [],
   presencias = [],
-  onRefrescarMapaEcologico,
   flora = [],
   minerales = [],
   loading,
@@ -532,42 +524,21 @@ export function CriaturasJerarquica({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // Popovers flotantes de bioma/ecosistema (reemplazan la navegación a
-  // pantalla completa: click en un ecosistema o en el título de su bioma
-  // abre un panel anclado en vez de onOpen("ecosistemas"/"biomas", id)).
-  const [ecosistemaAbierto, setEcosistemaAbierto] = useState<{
-    id: string;
-    anchor: HTMLElement;
-  } | null>(null);
-  const [biomaAbierto, setBiomaAbierto] = useState<{ id: string; anchor: HTMLElement } | null>(
-    null,
-  );
-  // Menú flotante de un hábitat (click en el nombre del hábitat, modo ojo OFF).
-  // Se guarda el id (no el objeto): el hábitat se resuelve en cada render
-  // contra `habitats`, así que si el mapa se refresca el menú no queda con
-  // datos viejos; y si el hábitat desaparece, el menú se cierra solo.
-  const [habitatAbierto, setHabitatAbierto] = useState<{
-    id: string;
-    anchor: HTMLElement;
-  } | null>(null);
   // Vista rápida flotante de Personaje/Criatura: click izquierdo abre el
   // panel flotante global (siempre centrado en pantalla) — ver
   // PanelFlotanteGlobal, montado una sola vez en EditorMundoRoot.
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
   // Envuelven las props onCreateBioma/onCreateEcosistema (que crean la
-  // entidad y devuelven su id) para además abrir el popover de edición
-  // anclado al botón "Añadir…" que disparó la acción, en vez de navegar a
-  // pantalla completa.
-  const handleCreateBioma = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    const anchor = e.currentTarget;
+  // entidad y devuelven su id) para además abrir su panel flotante global
+  // recién creada, en vez de navegar a pantalla completa.
+  const handleCreateBioma = async () => {
     const resultado = await onCreateBioma?.();
-    if (resultado) setBiomaAbierto({ id: resultado, anchor });
+    if (resultado) abrirPanel("bioma", resultado);
   };
-  const handleCreateEcosistema = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    const anchor = e.currentTarget;
+  const handleCreateEcosistema = async () => {
     const resultado = await onCreateEcosistema?.();
-    if (resultado) setEcosistemaAbierto({ id: resultado, anchor });
+    if (resultado) abrirPanel("ecosistema", resultado);
   };
 
   // Arrastre (click derecho) de chips de Criatura → se sueltan sobre una
@@ -991,7 +962,7 @@ export function CriaturasJerarquica({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={(e) => setHabitatAbierto({ id: h.habitat_id, anchor: e.currentTarget })}
+            onClick={() => abrirPanel("habitat", h.habitat_id)}
             title={`${h.tipo_habitat_nombre ?? h.habitat} — abrir hábitat`}
             className="text-micro font-black uppercase tracking-[0.15em] text-primary/45 hover:text-accent transition-colors truncate text-left"
           >
@@ -1038,7 +1009,7 @@ export function CriaturasJerarquica({
         <div className="px-3 py-3 flex items-center gap-2">
           <button
             type="button"
-            onClick={(e) => setEcosistemaAbierto({ id: eco.id, anchor: e.currentTarget })}
+            onClick={() => abrirPanel("ecosistema", eco.id)}
             {...(onAsignarEcosistemaABioma ? dragEcosistema.dragHandlers(eco.id) : {})}
             title={
               onAsignarEcosistemaABioma
@@ -1364,9 +1335,8 @@ export function CriaturasJerarquica({
                     >
                       <button
                         type="button"
-                        onClick={(e) =>
-                          grupo.key !== "__sin_bioma__" &&
-                          setBiomaAbierto({ id: grupo.key, anchor: e.currentTarget })
+                        onClick={() =>
+                          grupo.key !== "__sin_bioma__" && abrirPanel("bioma", grupo.key)
                         }
                         disabled={grupo.key === "__sin_bioma__"}
                         title={grupo.label}
@@ -1410,9 +1380,7 @@ export function CriaturasJerarquica({
                                     ? dragEcosistema.dragHandlers(eco.id)
                                     : undefined
                                 }
-                                onClick={(e) =>
-                                  setEcosistemaAbierto({ id: eco.id, anchor: e.currentTarget })
-                                }
+                                onClick={() => abrirPanel("ecosistema", eco.id)}
                               />
                             ))}
                           </div>
@@ -1503,61 +1471,6 @@ export function CriaturasJerarquica({
       {dragCriatura.overlay}
       {dragPersonaje.overlay}
       {dragEcosistema.overlay}
-
-      {ecosistemaAbierto &&
-        ecosistemas.some((e) => e.id === ecosistemaAbierto.id) && (
-          <PopoverFlotante
-            anchor={ecosistemaAbierto.anchor}
-            onClose={() => setEcosistemaAbierto(null)}
-            width={640}
-            maxHeight={560}
-            centerVertically
-            centerHorizontally
-          >
-            <EcosistemaPopoverContent
-              ecosistemaId={ecosistemaAbierto.id}
-              onClose={() => setEcosistemaAbierto(null)}
-              onSelectCriatura={(id) => abrirPanel("criatura", id)}
-            />
-          </PopoverFlotante>
-        )}
-
-      {habitatAbierto &&
-        (() => {
-          const habitatSel = habitats.find((h) => h.habitat_id === habitatAbierto.id);
-          if (!habitatSel) return null;
-          return (
-            <PopoverFlotante
-              anchor={habitatAbierto.anchor}
-              onClose={() => setHabitatAbierto(null)}
-              width={560}
-              maxHeight={640}
-              centerVertically
-              centerHorizontally
-            >
-              <HabitatPopoverContent
-                habitat={habitatSel}
-                onClose={() => setHabitatAbierto(null)}
-                onCambio={onRefrescarMapaEcologico}
-                onSelectCriatura={(id) => abrirPanel("criatura", id)}
-              />
-            </PopoverFlotante>
-          );
-        })()}
-
-      {biomaAbierto &&
-        biomas.some((b) => b.id === biomaAbierto.id) && (
-          <PopoverFlotante
-            anchor={biomaAbierto.anchor}
-            onClose={() => setBiomaAbierto(null)}
-            width={640}
-            maxHeight={480}
-            centerVertically
-            centerHorizontally
-          >
-            <BiomaPopoverContent biomaId={biomaAbierto.id} onClose={() => setBiomaAbierto(null)} />
-          </PopoverFlotante>
-        )}
     </div>
   );
 }

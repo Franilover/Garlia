@@ -3,9 +3,12 @@
 /**
  * HabitatPopoverContent.tsx
  * ───────────────────────────────────────────────────────────────────────────
- * Menú flotante de un HÁBITAT (se abre al hacer click en el nombre de un
- * hábitat dentro de CriaturasJerarquica). Pensado para usarse dentro de
- * <PopoverFlotante>, igual que EcosistemaPopoverContent / BiomaPopoverContent.
+ * Cuerpo del panel de un HÁBITAT (se abre al hacer click en el nombre de un
+ * hábitat dentro de CriaturasJerarquica). Lo monta HabitatEditor dentro de
+ * PanelFlotanteGlobal con `sinCabecera` (la barra superior la publica el
+ * editor). Sin `sinCabecera` conserva la cabecera propia (uso en popover).
+ * Ya no existen BiomaPopoverContent/EcosistemaPopoverContent: Bioma y
+ * Ecosistema usan BiomaEditor/EcosistemaEditor.
  *
  *   ┌─ Gran Saltus › Dosel ────────────────────────── ✕ ┐
  *   │ Tipo: Dosel · dentro de: General                    │
@@ -161,10 +164,16 @@ export function HabitatPopoverContent({
   onClose,
   onCambio,
   onSelectCriatura,
+  sinCabecera = false,
 }: {
   /** Hábitat tal como lo entrega v_habitats_ecosistemas_v1. */
   habitat: HabitatEcologico;
   onClose: () => void;
+  /** true cuando lo monta HabitatEditor dentro de PanelFlotanteGlobal: la
+   *  cabecera (breadcrumb, nombre, tipo, cerrar) la dibuja el contenedor
+   *  con los controles publicados, así que acá se omite para no duplicarla.
+   *  Habitantes y Ambiente quedan idénticos. */
+  sinCabecera?: boolean;
   /** Se invoca tras añadir/quitar una presencia (refresca el mapa). */
   onCambio?: () => void;
   /** Abre el panel flotante de una criatura (click en el ícono junto al nombre). */
@@ -247,6 +256,7 @@ export function HabitatPopoverContent({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
+      {!sinCabecera && (
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-micro font-bold uppercase tracking-[0.12em] text-primary/40 truncate">
@@ -277,6 +287,13 @@ export function HabitatPopoverContent({
           <X size={14} />
         </button>
       </div>
+      )}
+
+      {/* Sin cabecera propia, la descripción (que vivía en ella) se conserva
+          como primer bloque del cuerpo. */}
+      {sinCabecera && habitat.descripcion_habitat && (
+        <p className="mb-3 text-xs text-primary/60">{habitat.descripcion_habitat}</p>
+      )}
 
       {error && (
         <div className="mb-2 flex items-center gap-1.5 rounded-md border border-red-400/25 bg-red-400/5 px-2 py-1.5 text-micro font-bold text-red-400">

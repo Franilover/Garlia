@@ -19,7 +19,7 @@
  */
 
 import { Gem, Leaf, Mountain, Music, Plus, Sprout, StickyNote } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { PanelEditor } from "@/domains/garlia/canciones/editor/PanelEditor";
 import { ModalNuevaCancion } from "@/domains/garlia/canciones/modals/ModalNuevaCancion";
@@ -136,6 +136,14 @@ export function EntidadesPage({ section, selectedId }: Props) {
     loading: loadingMapaEco,
     refrescar: refrescarMapaEco,
   } = useMapaEcologico();
+  // El panel flotante de un hábitat (HabitatEditor) incrementa este contador
+  // al añadir/quitar habitantes; se refresca el mapa para que los chips de
+  // esta vista reflejen el cambio sin recargar.
+  const mapaEcologicoVersion = usePanelFlotante((st) => st.mapaEcologicoVersion);
+  useEffect(() => {
+    if (mapaEcologicoVersion > 0) void refrescarMapaEco();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapaEcologicoVersion]);
   const { biomas, loading: loadingBiomas, creating: creatingBiomas, crear: crearBioma, actualizar: actualizarBioma } = useBiomas();
   // biomas.reino_ids ya no es columna de Supabase (M:N normalizada en
   // bioma_reinos) — se reconstruye acá para no tocar el contrato de
@@ -1009,7 +1017,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
           biomas={biomasConReinoIds}
           habitats={habitatsEco}
           presencias={presenciasEco}
-          onRefrescarMapaEcologico={() => void refrescarMapaEco()}
           flora={flora}
           minerales={minerales}
           mostrarPersonajes={mostrarPersonajes}

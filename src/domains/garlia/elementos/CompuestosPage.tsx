@@ -1743,7 +1743,7 @@ export function CompuestoPanelFlotante({
                 className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
                 placeholder={headerControls.placeholderNombre}
                 value={headerControls.nombre ?? ""}
-                onChange={(e) => headerControls.onChangeNombre(e.target.value)}
+                onChange={(e) => headerControls.onChangeNombre?.(e.target.value)}
                 onBlur={headerControls.onBlurNombre}
               />
               {headerControls.subtitulo && (
