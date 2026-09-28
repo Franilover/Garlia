@@ -134,6 +134,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
     habitats: habitatsEco,
     presencias: presenciasEco,
     loading: loadingMapaEco,
+    refrescar: refrescarMapaEco,
   } = useMapaEcologico();
   const { biomas, loading: loadingBiomas, creating: creatingBiomas, crear: crearBioma, actualizar: actualizarBioma } = useBiomas();
   // biomas.reino_ids ya no es columna de Supabase (M:N normalizada en
@@ -1008,6 +1009,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
           biomas={biomasConReinoIds}
           habitats={habitatsEco}
           presencias={presenciasEco}
+          onRefrescarMapaEcologico={() => void refrescarMapaEco()}
           flora={flora}
           minerales={minerales}
           mostrarPersonajes={mostrarPersonajes}

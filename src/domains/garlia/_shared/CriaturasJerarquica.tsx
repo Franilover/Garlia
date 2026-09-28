@@ -16,7 +16,9 @@
  *
  * El chip "Ecosistema" (y el título de su Bioma agrupador) abren un popover
  * flotante local con su editor (ver PopoverFlotante + EcosistemaPopoverContent
- * / BiomaPopoverContent más abajo), sin navegar fuera de esta vista. Cada
+ * / BiomaPopoverContent más abajo), sin navegar fuera de esta vista. Lo mismo
+ * el nombre de cada HÁBITAT (modo ojo OFF): abre HabitatPopoverContent, donde
+ * se ven/editan sus habitantes (organismos y criaturas) y su ambiente. Cada
  * card de "Criatura" conserva su título-botón propio que abre su editor
  * completo (openEntity("criaturas", id)) y por dentro sigue mostrando la
  * grilla de personajes tal cual antes.
@@ -67,6 +69,7 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { BiomaPopoverContent } from "@/domains/garlia/biologia/BiomaPopoverContent";
 import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
+import { HabitatPopoverContent } from "@/domains/garlia/biologia/HabitatPopoverContent";
 import type {
   HabitatEcologico,
   PresenciaEcologica,
@@ -128,6 +131,11 @@ interface Props {
    *  criaturas que antes colgaban directo del ecosistema ahora se ven acá,
    *  dentro de su hábitat. */
   presencias?: PresenciaEcologica[];
+  /** Recarga hábitats y presencias del mapa ecológico. Se invoca tras añadir
+   *  o quitar un habitante desde el menú flotante de un hábitat, para que los
+   *  chips de esta vista reflejen el cambio. Si no se pasa, el menú de
+   *  hábitat sigue funcionando pero la vista no se actualiza hasta recargar. */
+  onRefrescarMapaEcologico?: () => void;
   /** Biomas — nivel jerárquico por encima de Ecosistema (Bioma → Ecosistema
    *  → Criatura → Personajes), opcional idem. Solo se usa en modo "ojo
    *  apagado"; en modo "ojo prendido" no aplica (vista plana por especie). */
@@ -487,6 +495,7 @@ export function CriaturasJerarquica({
   biomas = [],
   habitats = [],
   presencias = [],
+  onRefrescarMapaEcologico,
   flora = [],
   minerales = [],
   loading,
@@ -533,6 +542,14 @@ export function CriaturasJerarquica({
   const [biomaAbierto, setBiomaAbierto] = useState<{ id: string; anchor: HTMLElement } | null>(
     null,
   );
+  // Menú flotante de un hábitat (click en el nombre del hábitat, modo ojo OFF).
+  // Se guarda el id (no el objeto): el hábitat se resuelve en cada render
+  // contra `habitats`, así que si el mapa se refresca el menú no queda con
+  // datos viejos; y si el hábitat desaparece, el menú se cierra solo.
+  const [habitatAbierto, setHabitatAbierto] = useState<{
+    id: string;
+    anchor: HTMLElement;
+  } | null>(null);
   // Vista rápida flotante de Personaje/Criatura: click izquierdo abre el
   // panel flotante global (siempre centrado en pantalla) — ver
   // PanelFlotanteGlobal, montado una sola vez en EditorMundoRoot.
@@ -972,12 +989,14 @@ export function CriaturasJerarquica({
         style={h.nivel > 0 ? { marginLeft: h.nivel * 12 } : undefined}
       >
         <div className="flex items-center gap-1.5">
-          <span
-            className="text-micro font-black uppercase tracking-[0.15em] text-primary/45 truncate"
-            title={h.tipo_habitat_nombre ?? h.habitat}
+          <button
+            type="button"
+            onClick={(e) => setHabitatAbierto({ id: h.habitat_id, anchor: e.currentTarget })}
+            title={`${h.tipo_habitat_nombre ?? h.habitat} — abrir hábitat`}
+            className="text-micro font-black uppercase tracking-[0.15em] text-primary/45 hover:text-accent transition-colors truncate text-left"
           >
             {h.habitat}
-          </span>
+          </button>
           {ps.length > 0 && (
             <span className="text-micro font-bold text-primary/30 shrink-0">{ps.length}</span>
           )}
@@ -1502,6 +1521,29 @@ export function CriaturasJerarquica({
             />
           </PopoverFlotante>
         )}
+
+      {habitatAbierto &&
+        (() => {
+          const habitatSel = habitats.find((h) => h.habitat_id === habitatAbierto.id);
+          if (!habitatSel) return null;
+          return (
+            <PopoverFlotante
+              anchor={habitatAbierto.anchor}
+              onClose={() => setHabitatAbierto(null)}
+              width={560}
+              maxHeight={640}
+              centerVertically
+              centerHorizontally
+            >
+              <HabitatPopoverContent
+                habitat={habitatSel}
+                onClose={() => setHabitatAbierto(null)}
+                onCambio={onRefrescarMapaEcologico}
+                onSelectCriatura={(id) => abrirPanel("criatura", id)}
+              />
+            </PopoverFlotante>
+          );
+        })()}
 
       {biomaAbierto &&
         biomas.some((b) => b.id === biomaAbierto.id) && (

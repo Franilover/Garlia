@@ -13,8 +13,9 @@
  * ecosistema_participantes.habitat_id):
  *
  *  - v_habitats_ecosistemas_v1
- *      habitat_id, habitat, tipo_habitat, tipo_habitat_nombre,
- *      ecosistema_id, ecosistema, habitat_padre_id, habitat_padre, orden
+ *      habitat_id, habitat, descripcion_habitat, tipo_habitat,
+ *      tipo_habitat_nombre, ecosistema_id, ecosistema, bioma_id, bioma,
+ *      habitat_padre_id, habitat_padre, orden
  *  - v_ecosistema_participantes_habitats_v1
  *      participante, ecosistema, organismo / criatura, tipo_participante,
  *      habitat, tipo_habitat, habitat_padre, tipo_presencia
@@ -33,10 +34,13 @@ import { supabase } from "@/infra/supabase/supabase";
 export interface HabitatEcologico {
   habitat_id: string;
   habitat: string;
+  descripcion_habitat: string | null;
   tipo_habitat: string | null;
   tipo_habitat_nombre: string | null;
   ecosistema_id: string;
   ecosistema: string | null;
+  bioma_id: string | null;
+  bioma: string | null;
   habitat_padre_id: string | null;
   habitat_padre: string | null;
   orden: number | null;
@@ -60,7 +64,7 @@ export interface PresenciaEcologica {
 }
 
 const SELECT_HABITATS =
-  "habitat_id, habitat, tipo_habitat, tipo_habitat_nombre, ecosistema_id, ecosistema, habitat_padre_id, habitat_padre, orden";
+  "habitat_id, habitat, descripcion_habitat, tipo_habitat, tipo_habitat_nombre, ecosistema_id, ecosistema, bioma_id, bioma, habitat_padre_id, habitat_padre, orden";
 
 // Columnas verificadas contra Supabase (information_schema) — no usar "*":
 // la vista trae ids/joins de más y esto documenta el contrato real.
@@ -102,32 +106,43 @@ export function useMapaEcologico() {
   const [presencias, setPresencias] = useState<PresenciaEcologica[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /** Lee ambas vistas y actualiza el estado. `estaCancelado` permite al efecto
+   *  de montaje descartar el resultado si el componente ya se desmontó, para
+   *  no setear estado huérfano. */
+  const cargar = useCallback(async (estaCancelado: () => boolean = () => false) => {
+    const [h, p] = await Promise.all([
+      supabase.from("v_habitats_ecosistemas_v1").select(SELECT_HABITATS).order("orden"),
+      supabase
+        .from("v_ecosistema_participantes_habitats_v1")
+        .select(SELECT_PRESENCIAS)
+        .eq("activo", true),
+    ]);
+    if (estaCancelado()) return;
+    if (h.error) console.error("[useMapaEcologico] hábitats:", h.error);
+    if (p.error) console.error("[useMapaEcologico] presencias:", p.error);
+    setHabitats((h.data as HabitatEcologico[] | null) ?? []);
+    setPresencias(
+      sinGemelosOrganismo(
+        ((p.data as Record<string, unknown>[] | null) ?? []).map(normalizarPresencia),
+      ),
+    );
+  }, []);
+
   useEffect(() => {
     let cancelado = false;
-    (async () => {
-      setLoading(true);
-      const [h, p] = await Promise.all([
-        supabase.from("v_habitats_ecosistemas_v1").select(SELECT_HABITATS).order("orden"),
-        supabase
-          .from("v_ecosistema_participantes_habitats_v1")
-          .select(SELECT_PRESENCIAS)
-          .eq("activo", true),
-      ]);
-      if (cancelado) return;
-      if (h.error) console.error("[useMapaEcologico] hábitats:", h.error);
-      if (p.error) console.error("[useMapaEcologico] presencias:", p.error);
-      setHabitats((h.data as HabitatEcologico[] | null) ?? []);
-      setPresencias(
-        sinGemelosOrganismo(
-          ((p.data as Record<string, unknown>[] | null) ?? []).map(normalizarPresencia),
-        ),
-      );
-      setLoading(false);
-    })();
+    setLoading(true);
+    void cargar(() => cancelado).finally(() => {
+      if (!cancelado) setLoading(false);
+    });
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [cargar]);
+
+  /** Recarga silenciosa (sin poner loading=true, para no reemplazar toda la
+   *  vista por "Cargando…"): se usa tras editar presencias desde el menú
+   *  flotante de un hábitat, así los chips del mapa reflejan el cambio. */
+  const refrescar = useCallback(() => cargar(), [cargar]);
 
   /** Hábitats de un ecosistema, ordenados por `orden` (los de la vista ya
    *  vienen ordenados; se reordena por seguridad tras filtrar). */
@@ -169,6 +184,7 @@ export function useMapaEcologico() {
     habitats,
     presencias,
     loading,
+    refrescar,
     habitatsDe,
     presenciasDeHabitat,
     criaturaIdsDeEcosistema,
