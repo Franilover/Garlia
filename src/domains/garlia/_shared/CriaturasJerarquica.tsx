@@ -814,6 +814,9 @@ export function CriaturasJerarquica({
   };
 
   function distribuirEnColumnas(list: Ecosistema[]): Ecosistema[][] {
+    // Modelo de hábitats: el reparto en columnas lo hace CSS (columns +
+    // break-inside-avoid), no hace falta estimar alturas.
+    if (usaModeloHabitats) return [list];
     const columnas: Ecosistema[][] = Array.from({ length: numColumnas }, () => []);
     const alturas = new Array(numColumnas).fill(0);
     for (const eco of list) {
@@ -950,21 +953,25 @@ export function CriaturasJerarquica({
     );
   };
 
-  // ── Hábitat: título (con indentación si es sub-hábitat) + sus presencias ──
+  // ── Hábitat: título (con rama vertical si es sub-hábitat) + sus presencias.
+  // Versión compacta: título y chips más chicos para que quepan dos
+  // ecosistemas por columna de bioma.
   const renderHabitat = (h: HabitatEcologico & { nivel: number }) => {
     const ps = presenciasDeHabitat(h.habitat_id);
     return (
       <div
         key={h.habitat_id}
-        className="flex flex-col gap-1"
-        style={h.nivel > 0 ? { marginLeft: h.nivel * 12 } : undefined}
+        className={`flex flex-col gap-0.5 ${
+          h.nivel > 0 ? "border-l border-primary/15 pl-2" : ""
+        }`}
+        style={h.nivel > 0 ? { marginLeft: h.nivel * 8 } : undefined}
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => abrirPanel("habitat", h.habitat_id)}
             title={`${h.tipo_habitat_nombre ?? h.habitat} — abrir hábitat`}
-            className="text-micro font-black uppercase tracking-[0.15em] text-primary/45 hover:text-accent transition-colors truncate text-left"
+            className="text-micro font-black uppercase tracking-[0.12em] text-primary/45 hover:text-accent transition-colors truncate text-left"
           >
             {h.habitat}
           </button>
@@ -975,7 +982,7 @@ export function CriaturasJerarquica({
         {ps.length === 0 ? (
           <div className="text-micro text-primary/25">Sin presencias</div>
         ) : (
-          <div className="flex flex-wrap gap-1.5">{ps.map((x) => renderPresencia(x))}</div>
+          <div className="flex flex-wrap gap-1">{ps.map((x) => renderPresencia(x))}</div>
         )}
       </div>
     );
@@ -1003,10 +1010,14 @@ export function CriaturasJerarquica({
         key={eco.id}
         {...dropHandlers}
         className={`w-full rounded-lg border overflow-hidden transition-colors ${
-          dropActive ? "border-accent/50 bg-accent/5" : "border-primary/10"
-        }`}
+          usaModeloHabitats ? "break-inside-avoid" : ""
+        } ${dropActive ? "border-accent/50 bg-accent/5" : "border-primary/10"}`}
       >
-        <div className="px-3 py-3 flex items-center gap-2">
+        <div
+          className={`flex items-center gap-2 ${
+            usaModeloHabitats ? "px-2.5 py-2" : "px-3 py-3"
+          }`}
+        >
           <button
             type="button"
             onClick={() => abrirPanel("ecosistema", eco.id)}
@@ -1040,7 +1051,7 @@ export function CriaturasJerarquica({
           // que antes colgaban directo del ecosistema ahora viven acá,
           // dentro del hábitat donde están presentes (multihábitat: la
           // misma criatura puede aparecer en varios hábitats).
-          <div className="px-3 pb-3 flex flex-col gap-2.5">
+          <div className="px-2.5 pb-2.5 flex flex-col gap-2">
             {habitatsDe(eco.id).length === 0 ? (
               <div className="text-micro text-primary/25">Sin hábitats</div>
             ) : (
@@ -1283,7 +1294,14 @@ export function CriaturasJerarquica({
               //  - Un bioma sin ningún ecosistema se muestra igual, como
               //    chip de bioma sin contenido debajo.
               // + "Sin bioma" al final para ecosistemas huérfanos.
-              [
+              <div
+                className={
+                  usaModeloHabitats
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 items-start"
+                    : "flex flex-col gap-8"
+                }
+              >
+              {[
                 ...biomas.map((bioma) => ({
                   key: bioma.id,
                   label: bioma.nombre,
@@ -1342,7 +1360,6 @@ export function CriaturasJerarquica({
                         title={grupo.label}
                         className="flex items-center gap-1.5 px-1 text-micro font-black uppercase tracking-[0.15em] text-primary/50 hover:text-accent transition-colors disabled:hover:text-primary/50 disabled:cursor-default"
                       >
-                        <Compass size={11} className="shrink-0 text-accent/50" />
                         {grupo.label}
                       </button>
                     </div>
@@ -1350,7 +1367,15 @@ export function CriaturasJerarquica({
                       <div className="text-micro text-primary/25 px-1">Sin ecosistemas</div>
                     ) : (
                       <>
-                        {grupo.columnas.some((c) => c.length > 0) && (
+                        {usaModeloHabitats &&
+                          grupo.columnas.some((c) => c.length > 0) && (
+                            <div className="columns-1 sm:columns-2 gap-3 [&>*]:mb-3">
+                              {grupo.columnas
+                                .flat()
+                                .map((eco) => renderTarjetaEcosistema(eco))}
+                            </div>
+                          )}
+                        {!usaModeloHabitats && grupo.columnas.some((c) => c.length > 0) && (
                           <div className="flex items-start gap-6">
                             {grupo.columnas.map((columna, colIdx) => (
                               <div
@@ -1389,7 +1414,8 @@ export function CriaturasJerarquica({
                     )}
                   </div>
                   );
-                })
+                })}
+              </div>
             : // Sin biomas cargados: comportamiento anterior, un único
               // masonry plano de todos los ecosistemas con contenido, más
               // los vacíos como chips.
