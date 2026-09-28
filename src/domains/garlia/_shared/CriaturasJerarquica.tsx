@@ -1442,7 +1442,8 @@ export function CriaturasJerarquica({
             <div>
               {hayEcosistemasConCriaturas && <div className="h-px mb-2 bg-primary/10" />}
               <div className="mb-2 px-1 text-micro font-bold uppercase tracking-[0.12em] text-primary/40">
-                Sin ecosistema
+                {usaModeloHabitats ? "Sin hábitat asignado" : "Sin ecosistema"}
+                <span className="ml-1.5 text-primary/30">{criaturasSinEcoOrdenadas.length}</span>
               </div>
               <div className="flex flex-wrap gap-6">
                 {criaturasSinEcoOrdenadas.map((c) => renderCriaturaCard(c, disponibleColumna))}
