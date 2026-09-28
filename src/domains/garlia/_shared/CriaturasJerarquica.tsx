@@ -1347,7 +1347,9 @@ export function CriaturasJerarquica({
                   <div key={grupo.key} className="flex flex-col gap-3">
                     <div
                       {...dropHandlersBioma}
-                      className={`self-start rounded-md transition-colors ${
+                      className={`${
+                        usaModeloHabitats ? "self-center" : "self-start"
+                      } rounded-md transition-colors ${
                         dropActiveBioma ? "ring-2 ring-accent/60 bg-accent/5" : ""
                       }`}
                     >
