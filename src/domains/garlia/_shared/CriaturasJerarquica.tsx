@@ -21,7 +21,19 @@
  * completo (openEntity("criaturas", id)) y por dentro sigue mostrando la
  * grilla de personajes tal cual antes.
  *
- * Relaciones usadas:
+ * MODO OJO OFF (modelo ecológico canónico):
+ *
+ *   [Bioma]
+ *   [Ecosistema]
+ *   [Hábitat]  ← General / Suelo / Sotobosque / Dosel (con sub-hábitats)
+ *   [Presencias] ← criaturas y organismos presentes en ese hábitat
+ *
+ *  Las presencias vienen de v_ecosistema_participantes_habitats_v1 y los
+ *  hábitats de v_habitats_ecosistemas_v1 (ver useMapaEcologico). Con esas
+ *  props presentes, ecosistema_criaturas (legacy) deja de usarse para
+ *  agrupar; sin ellas, se mantiene el comportamiento anterior.
+ *
+ * Relaciones usadas (modo anterior / fallback):
  *  - Tabla puente ecosistema_criaturas (ruta canónica v226, ver prop
  *    criaturaIdsDeEcosistema) → agrupa criaturas bajo cada ecosistema que
  *    las contiene. Una criatura sin ecosistema, o cuyo ecosistema no está
@@ -55,6 +67,10 @@ import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 import { BiomaPopoverContent } from "@/domains/garlia/biologia/BiomaPopoverContent";
 import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
+import type {
+  HabitatEcologico,
+  PresenciaEcologica,
+} from "@/domains/garlia/biologia/useMapaEcologico";
 import type { SectionKey } from "@/domains/garlia/_shared/useMundoNavigationStore";
 
 interface Criatura {
@@ -101,6 +117,17 @@ interface Props {
    *  Ecosistema.criatura_ids, columna retirada). Si no se pasa, se asume
    *  que ningún ecosistema tiene criaturas asignadas. */
   criaturaIdsDeEcosistema?: (ecosistemaId: string) => string[];
+  /** Hábitats del mapa ecológico canónico (v_habitats_ecosistemas_v1) —
+   *  nivel entre Ecosistema y Presencias en modo "ojo apagado":
+   *  Bioma → Ecosistema → Hábitat → Presencias. Opcional: sin esto el
+   *  modo ojo OFF cae al comportamiento anterior (criaturas directo bajo
+   *  el ecosistema). */
+  habitats?: HabitatEcologico[];
+  /** Presencias ecológicas (v_ecosistema_participantes_habitats_v1): un
+   *  participante (criatura u organismo) ubicado en un hábitat. Las
+   *  criaturas que antes colgaban directo del ecosistema ahora se ven acá,
+   *  dentro de su hábitat. */
+  presencias?: PresenciaEcologica[];
   /** Biomas — nivel jerárquico por encima de Ecosistema (Bioma → Ecosistema
    *  → Criatura → Personajes), opcional idem. Solo se usa en modo "ojo
    *  apagado"; en modo "ojo prendido" no aplica (vista plana por especie). */
@@ -115,8 +142,11 @@ interface Props {
   /** Controla el modo de la vista:
    *  - true (ojo): Personajes agrupados por especie (Criatura), sin
    *    Ecosistema por encima — vista plana Criatura → Personajes.
-   *  - false (sin ojo): Criaturas, Flora y Minerales agrupados por
-   *    Ecosistema, sin mostrar personajes en ningún lado.
+   *  - false (sin ojo): jerarquía ecológica Bioma → Ecosistema →
+   *    Hábitat → Presencias (las criaturas/organismos que antes colgaban
+   *    directo del ecosistema ahora se ven dentro de su hábitat), sin
+   *    mostrar personajes en ningún lado. Sin `habitats` cae al modo
+   *    anterior Ecosistema → Criatura.
    *  Por defecto true. */
   mostrarPersonajes?: boolean;
   onOpen: (section: SectionKey, id: string) => void;
@@ -455,6 +485,8 @@ export function CriaturasJerarquica({
   ecosistemas = [],
   criaturaIdsDeEcosistema = () => [],
   biomas = [],
+  habitats = [],
+  presencias = [],
   flora = [],
   minerales = [],
   loading,
@@ -568,8 +600,21 @@ export function CriaturasJerarquica({
 
   // Criaturas agrupadas por ecosistema, vía tabla puente ecosistema_criaturas
   // (ruta canónica v226 — reemplaza la antigua Ecosistema.criatura_ids).
+  // Modelo nuevo (Bioma → Ecosistema → Hábitat → Presencias): si llegan
+  // hábitats, la pertenencia criatura↔ecosistema sale de las PRESENCIAS
+  // (fuente canónica), no de la tabla legacy ecosistema_criaturas.
+  const usaModeloHabitats = habitats.length > 0;
+  const idsCriaturaDeEcosistema = (ecosistemaId: string): string[] => {
+    if (!usaModeloHabitats) return criaturaIdsDeEcosistema(ecosistemaId);
+    const ids = new Set<string>();
+    for (const x of presencias) {
+      if (x.ecosistema_id === ecosistemaId && x.criatura_id) ids.add(x.criatura_id);
+    }
+    return [...ids];
+  };
+
   const criaturasDe = (ecosistemaId: string) => {
-    const ids = new Set(criaturaIdsDeEcosistema(ecosistemaId));
+    const ids = new Set(idsCriaturaDeEcosistema(ecosistemaId));
     return criaturasBase
       .filter((c) => ids.has(c.id))
       .sort((a, b) => personajesDe(b.nombre).length - personajesDe(a.nombre).length);
@@ -604,13 +649,28 @@ export function CriaturasJerarquica({
   // Una criatura "tiene ecosistema" si algún ecosistema de la base la lista
   // en la tabla puente ecosistema_criaturas.
   const criaturaTieneEcosistema = (criaturaId: string) =>
-    ecosistemas.some((e) => criaturaIdsDeEcosistema(e.id).includes(criaturaId));
+    ecosistemas.some((e) => idsCriaturaDeEcosistema(e.id).includes(criaturaId));
 
   // La búsqueda matchea ecosistema, cualquiera de sus criaturas, o
   // cualquiera de sus personajes — se muestra el ecosistema completo.
   const ecosistemasVisibles = qCriatura
     ? ecosistemas.filter((e) => {
         if (e.nombre?.toLocaleLowerCase("es").includes(qCriatura)) return true;
+        if (
+          usaModeloHabitats &&
+          (habitats.some(
+            (h) =>
+              h.ecosistema_id === e.id &&
+              (h.habitat ?? "").toLocaleLowerCase("es").includes(qCriatura),
+          ) ||
+            presencias.some(
+              (x) =>
+                x.ecosistema_id === e.id &&
+                (x.nombre ?? "").toLocaleLowerCase("es").includes(qCriatura),
+            ))
+        ) {
+          return true;
+        }
         return criaturasDe(e.id).some(
           (c) =>
             c.nombre?.toLocaleLowerCase("es").includes(qCriatura) ||
@@ -621,16 +681,52 @@ export function CriaturasJerarquica({
       })
     : ecosistemas;
 
+  // ── Hábitats y presencias (modelo nuevo) ──────────────────────────────────
+  // Hábitats de un ecosistema, ordenados por `orden`. Jerarquía interna
+  // (habitat_padre_id) se respeta: primero los raíz y, debajo de cada uno,
+  // sus hijos, para que "Dosel" quede bajo su padre si lo tiene.
+  const habitatsDe = (ecosistemaId: string): (HabitatEcologico & { nivel: number })[] => {
+    const propios = habitats
+      .filter((h) => h.ecosistema_id === ecosistemaId)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+    const ids = new Set(propios.map((h) => h.habitat_id));
+    const raices = propios.filter((h) => !h.habitat_padre_id || !ids.has(h.habitat_padre_id));
+    const salida: (HabitatEcologico & { nivel: number })[] = [];
+    const visitados = new Set<string>();
+    const recorrer = (h: HabitatEcologico, nivel: number) => {
+      if (visitados.has(h.habitat_id)) return;
+      visitados.add(h.habitat_id);
+      salida.push({ ...h, nivel });
+      propios.filter((x) => x.habitat_padre_id === h.habitat_id).forEach((x) => recorrer(x, nivel + 1));
+    };
+    raices.forEach((h) => recorrer(h, 0));
+    return salida;
+  };
+
+  const presenciasDeHabitat = (habitatId: string) =>
+    presencias.filter((x) => x.habitat_id === habitatId);
+
+  // Total de presencias de un ecosistema (para ordenar y para "tiene contenido").
+  const totalPresenciasDe = (ecosistemaId: string) =>
+    presencias.filter((x) => x.ecosistema_id === ecosistemaId).length;
+
   // Un ecosistema "tiene contenido" si tiene al menos una criatura, una
   // flora o un mineral asociado — antes solo se miraba criaturasDe(e.id),
   // por lo que un ecosistema con solo flora/minerales (sin criaturas)
   // caía en "vacío" y se mostraba como chip sin poder ver sus plantas o
   // minerales hasta que se le agregara una criatura. Bug corregido acá.
   const tieneContenido = (e: Ecosistema) =>
-    criaturasDe(e.id).length > 0 || floraDe(e.id).length > 0 || mineralesDe(e.id).length > 0;
+    usaModeloHabitats
+      ? habitatsDe(e.id).length > 0 ||
+        totalPresenciasDe(e.id) > 0 ||
+        floraDe(e.id).length > 0 ||
+        mineralesDe(e.id).length > 0
+      : criaturasDe(e.id).length > 0 || floraDe(e.id).length > 0 || mineralesDe(e.id).length > 0;
 
-  const ecosistemasOrdenados = [...ecosistemasVisibles].sort(
-    (a, b) => criaturasDe(b.id).length - criaturasDe(a.id).length,
+  const ecosistemasOrdenados = [...ecosistemasVisibles].sort((a, b) =>
+    usaModeloHabitats
+      ? totalPresenciasDe(b.id) - totalPresenciasDe(a.id)
+      : criaturasDe(b.id).length - criaturasDe(a.id).length,
   );
   const ecosistemasConCriaturas = ecosistemasOrdenados.filter(tieneContenido);
   const ecosistemasVacios = ecosistemasOrdenados.filter((e) => !tieneContenido(e));
@@ -687,6 +783,20 @@ export function CriaturasJerarquica({
   // ecosistema con solo flora/minerales medía altura 0 de contenido y
   // rompía el layout masonry).
   const altoEcosistema = (ecosistema: Ecosistema) => {
+    if (usaModeloHabitats) {
+      // Cada hábitat: barra de título del hábitat + filas de chips de
+      // presencias (aprox. 26px por fila, ~3 chips por fila en una columna).
+      const alturaBarraTitulo = 38;
+      const paddingContenido = 24;
+      const hs = habitatsDe(ecosistema.id);
+      const chipsPorFila = Math.max(1, Math.floor((anchoColumnaMasonry - 56) / 110));
+      const alturaHabitats = hs.reduce((sum, h) => {
+        const n = presenciasDeHabitat(h.habitat_id).length;
+        const filasChips = Math.max(1, Math.ceil(n / chipsPorFila));
+        return sum + 22 + filasChips * 26 + 8;
+      }, 0);
+      return alturaBarraTitulo + paddingContenido + alturaHabitats;
+    }
     const conteos = criaturasDe(ecosistema.id).map((c) => totalDe(c)).sort((a, b) => b - a);
     const disponible = anchoColumnaMasonry - 32; // px-3 a ambos lados aprox
     const gapInterno = 24;
@@ -755,7 +865,9 @@ export function CriaturasJerarquica({
               variant="criatura"
               maxWidthPx={160}
               dragProps={
-                onAsignarCriaturaAEcosistema ? dragCriatura.dragHandlers(criatura.id) : undefined
+                onAsignarCriaturaAEcosistema && !usaModeloHabitats
+                  ? dragCriatura.dragHandlers(criatura.id)
+                  : undefined
               }
               onClick={() => abrirPanel("criatura", criatura.id)}
               onCreate={onCreatePersonaje ? () => onCreatePersonaje(criatura) : undefined}
@@ -790,7 +902,9 @@ export function CriaturasJerarquica({
           variant="criatura"
           maxWidthPx={vacia ? 140 : anchoPx}
           dragProps={
-            onAsignarCriaturaAEcosistema ? dragCriatura.dragHandlers(criatura.id) : undefined
+            onAsignarCriaturaAEcosistema && !usaModeloHabitats
+              ? dragCriatura.dragHandlers(criatura.id)
+              : undefined
           }
           onClick={() => abrirPanel("criatura", criatura.id)}
           onCreate={onCreatePersonaje ? () => onCreatePersonaje(criatura) : undefined}
@@ -820,14 +934,77 @@ export function CriaturasJerarquica({
     );
   };
 
+  // ── Presencia: criatura u organismo presente en un hábitat ────────────────
+  // Criatura → chip con acento, abre el panel flotante de criatura.
+  // Organismo (flora, etc.) → chip informativo sin click: organismo_id NO es
+  // un flora.id, así que no se puede abrir el panel de flora con él.
+  const renderPresencia = (x: PresenciaEcologica) => {
+    const etiqueta = x.nombre ?? "Sin nombre";
+    if (x.criatura_id) {
+      return (
+        <NodoTitulo
+          key={`${x.participante_id}:${x.habitat_id}`}
+          label={etiqueta}
+          variant="criatura"
+          maxWidthPx={160}
+          onClick={() => abrirPanel("criatura", x.criatura_id!)}
+        />
+      );
+    }
+    return (
+      <span
+        key={`${x.participante_id}:${x.habitat_id}`}
+        title={x.tipo_presencia ? `${etiqueta} — ${x.tipo_presencia}` : etiqueta}
+        className="px-2.5 py-0.5 rounded-full text-micro font-bold tracking-wide truncate max-w-[160px] bg-primary/5 text-primary/55 border border-primary/10"
+      >
+        {etiqueta}
+      </span>
+    );
+  };
+
+  // ── Hábitat: título (con indentación si es sub-hábitat) + sus presencias ──
+  const renderHabitat = (h: HabitatEcologico & { nivel: number }) => {
+    const ps = presenciasDeHabitat(h.habitat_id);
+    return (
+      <div
+        key={h.habitat_id}
+        className="flex flex-col gap-1"
+        style={h.nivel > 0 ? { marginLeft: h.nivel * 12 } : undefined}
+      >
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-micro font-black uppercase tracking-[0.15em] text-primary/45 truncate"
+            title={h.tipo_habitat_nombre ?? h.habitat}
+          >
+            {h.habitat}
+          </span>
+          {ps.length > 0 && (
+            <span className="text-micro font-bold text-primary/30 shrink-0">{ps.length}</span>
+          )}
+        </div>
+        {ps.length === 0 ? (
+          <div className="text-micro text-primary/25">Sin presencias</div>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">{ps.map((x) => renderPresencia(x))}</div>
+        )}
+      </div>
+    );
+  };
+
   // ── Card de ecosistema individual (idéntica a la de antes, extraída para
   // poder repetirla dentro de cada bloque de bioma sin duplicar el JSX) ────
   const renderTarjetaEcosistema = (eco: Ecosistema) => {
     const zoneId = `eco:${eco.id}`;
-    const dropActive = !!onAsignarCriaturaAEcosistema && dragCriatura.esZonaActiva(zoneId);
-    const dropHandlers = onAsignarCriaturaAEcosistema
+    // Modelo nuevo: asignar una criatura a un ecosistema escribiría en la
+    // tabla legacy ecosistema_criaturas, que ya no alimenta esta vista
+    // (las presencias salen de v_ecosistema_participantes_habitats_v1 y
+    // requieren elegir hábitat). Se desactiva el drop para no dejar una
+    // acción que "funciona" pero no se refleja en pantalla.
+    const dropCriaturaActivo = !!onAsignarCriaturaAEcosistema && !usaModeloHabitats;
+    const dropActive = dropCriaturaActivo && dragCriatura.esZonaActiva(zoneId);
+    const dropHandlers = dropCriaturaActivo
       ? dragCriatura.dropHandlers(zoneId, (criaturaId) =>
-          onAsignarCriaturaAEcosistema(criaturaId, eco.id),
+          onAsignarCriaturaAEcosistema!(criaturaId, eco.id),
         )
       : {};
 
@@ -868,12 +1045,26 @@ export function CriaturasJerarquica({
             onOpenItem={(id) => abrirPanel("mineral", id)}
           />
         </div>
-        <div className="px-3 pb-3 flex flex-wrap gap-6">
-          {criaturasDe(eco.id).length === 0 && onAsignarCriaturaAEcosistema && (
-            <div className="text-micro text-primary/25">Soltá una criatura acá</div>
-          )}
-          {criaturasDe(eco.id).map((c) => renderCriaturaCard(c, disponibleColumna))}
-        </div>
+        {usaModeloHabitats ? (
+          // ── Modelo nuevo: Ecosistema → Hábitat → Presencias. Las criaturas
+          // que antes colgaban directo del ecosistema ahora viven acá,
+          // dentro del hábitat donde están presentes (multihábitat: la
+          // misma criatura puede aparecer en varios hábitats).
+          <div className="px-3 pb-3 flex flex-col gap-2.5">
+            {habitatsDe(eco.id).length === 0 ? (
+              <div className="text-micro text-primary/25">Sin hábitats</div>
+            ) : (
+              habitatsDe(eco.id).map((h) => renderHabitat(h))
+            )}
+          </div>
+        ) : (
+          <div className="px-3 pb-3 flex flex-wrap gap-6">
+            {criaturasDe(eco.id).length === 0 && onAsignarCriaturaAEcosistema && (
+              <div className="text-micro text-primary/25">Soltá una criatura acá</div>
+            )}
+            {criaturasDe(eco.id).map((c) => renderCriaturaCard(c, disponibleColumna))}
+          </div>
+        )}
       </div>
     );
   };
@@ -914,7 +1105,7 @@ export function CriaturasJerarquica({
             <BuscadorInline
               value={busqueda}
               onChange={onBusquedaChange}
-              placeholder="Buscar ecosistema, criatura o personaje…"
+              placeholder="Buscar ecosistema, hábitat, criatura o personaje…"
             />
           )}
           <div className="hidden md:contents">

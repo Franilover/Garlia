@@ -58,6 +58,7 @@ import { EntityCardGrid } from "@/domains/garlia/_shared/EntityCardGrid";
 import { GeografiaJerarquica, type GrupoPersonajeSubtipo } from "@/domains/garlia/_shared/GeografiaJerarquica";
 import { GrupoFiltroBarra, GrupoFiltroDropdown, type GrupoFiltroSubtipo } from "@/domains/garlia/_shared/GrupoFiltroDropdown";
 import { CriaturasJerarquica } from "@/domains/garlia/_shared/CriaturasJerarquica";
+import { useMapaEcologico } from "@/domains/garlia/biologia/useMapaEcologico";
 import { ItemsJerarquia } from "@/domains/garlia/_shared/ItemsJerarquia";
 import { AgrupacionPersonajesDropdown } from "@/domains/garlia/_shared/AgrupacionPersonajesDropdown";
 import { BuscadorInline } from "@/domains/garlia/_shared/BuscadorInline";
@@ -127,6 +128,13 @@ export function EntidadesPage({ section, selectedId }: Props) {
   // ya no vive en ecosistemas.criatura_ids (columna retirada).
   const { criaturaIdsDe: criaturaIdsDeEcosistema, asignar: asignarCriaturaAEcosistemaBridge } =
     useEcosistemaCriaturas();
+  // Mapa ecológico canónico (Bioma → Ecosistema → Hábitat → Presencias),
+  // solo lectura desde las vistas de Supabase — ver useMapaEcologico.
+  const {
+    habitats: habitatsEco,
+    presencias: presenciasEco,
+    loading: loadingMapaEco,
+  } = useMapaEcologico();
   const { biomas, loading: loadingBiomas, creating: creatingBiomas, crear: crearBioma, actualizar: actualizarBioma } = useBiomas();
   // biomas.reino_ids ya no es columna de Supabase (M:N normalizada en
   // bioma_reinos) — se reconstruye acá para no tocar el contrato de
@@ -998,10 +1006,19 @@ export function EntidadesPage({ section, selectedId }: Props) {
           ecosistemas={ecosistemasConFloraIds}
           criaturaIdsDeEcosistema={criaturaIdsDeEcosistema}
           biomas={biomasConReinoIds}
+          habitats={habitatsEco}
+          presencias={presenciasEco}
           flora={flora}
           minerales={minerales}
           mostrarPersonajes={mostrarPersonajes}
-          loading={loadingC || loadingP || loadingEco || loadingEcosistemaFlora || loadingBiomas}
+          loading={
+            loadingC ||
+            loadingP ||
+            loadingEco ||
+            loadingEcosistemaFlora ||
+            loadingBiomas ||
+            loadingMapaEco
+          }
           gruposCriaturasPorSubtipo={gruposCriaturasPorSubtipo}
           grupoSeleccionadoId={grupoCriaturaSeleccionadoId}
           onSeleccionarGrupo={setGrupoCriaturaSeleccionadoId}
