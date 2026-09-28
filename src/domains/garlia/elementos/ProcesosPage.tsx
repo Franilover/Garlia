@@ -35,9 +35,10 @@ import { useFenomenos } from "./useFenomenos";
 import { useOris } from "@/domains/garlia/fisica/useFisica";
 import type { Oris } from "@/domains/garlia/fisica/types";
 import { OrisEditor } from "@/domains/garlia/fisica/OrisEditor";
-import { iumAFilaIum, particulasDeIum } from "@/domains/garlia/fisica/types";
+import { iumAFilaIum, particulasDeIum, type Ium } from "@/domains/garlia/fisica/types";
 import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
 import { useGeometriaIums } from "@/domains/garlia/fisica/useGeometriaIums";
+import { IumPanelFlotante } from "@/domains/garlia/fisica/FisicaPage";
 import { IumGlifo } from "@/domains/garlia/fisica/ParticulaVisual";
 import { ReaccionPanelFlotante } from "./ReaccionesPage";
 import { ElementoPanelFlotante } from "./ElementosPage";
@@ -1059,7 +1060,16 @@ function FenomenosRelacionadosBloque({
  * caen todos en la columna 0 — se prioriza siempre mostrar algo legible por
  * sobre un layout perfecto.
  */
-function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[] }) {
+function ConfiguracionIumGrafo({
+  flujo,
+  onClickNodo,
+}: {
+  flujo: ProcesoConfiguracionIumFlujo[];
+  /** Mismo patrón que OrisTopologiaVisual.tsx: sin esta prop el grafo es
+   *  puramente visual; con ella, cada nodo se vuelve clicable y abre el
+   *  panel flotante del Ium correspondiente. */
+  onClickNodo?: (iumId: string) => void;
+}) {
   // Partículas reales (A/T/S) y geometría real de cada Ium — mismo patrón
   // que OrisEditor.tsx usa para alimentar OrisTopologiaVisual: cada nodo del
   // grafo dibuja el Ium tal como es, no un rectángulo de texto genérico.
@@ -1201,6 +1211,14 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
           <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_RECIPROCA }} />
         </marker>
       </defs>
+      {/* Mismo hover que OrisTopologiaVisual.tsx: el disco de fondo baja
+          opacidad al pasar el mouse, para que el nodo se lea interactivo. */}
+      {onClickNodo && (
+        <style>{`
+          .oris-nodo-clicable circle { transition: opacity 120ms ease; }
+          .oris-nodo-clicable:hover circle { opacity: 0.7; }
+        `}</style>
+      )}
 
       {aristas.map((a) => {
         const esRec = a.tipo === "reciproca";
@@ -1232,8 +1250,14 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
         columna.map((nodo) => {
           const cx = nodo.pos.x + CENTRO_X;
           const cy = nodo.pos.y + CENTRO_Y;
+          const clicable = !!onClickNodo;
           return (
-            <g key={nodo.id}>
+            <g
+              key={nodo.id}
+              onClick={clicable ? () => onClickNodo!(nodo.id) : undefined}
+              style={clicable ? { cursor: "pointer" } : undefined}
+              className={clicable ? "oris-nodo-clicable" : undefined}
+            >
               <title>{`${nodo.nombre}${nodo.rol ? ` — ${nodo.rol.replace(/_/g, " ")}` : ""}`}</title>
               <circle
                 cx={cx}
@@ -1329,6 +1353,15 @@ function ConfiguracionIumGrafo({ flujo }: { flujo: ProcesoConfiguracionIumFlujo[
 function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
   const { configuracion, flujo, loading } = useProcesoConfiguracionIum(procesoId);
 
+  // Panel flotante del Ium al hacer click en un nodo del grafo — mismo
+  // patrón que OrisEditor.tsx (onAbrirIum → setPanelFisicaActivo en
+  // FisicaPage.tsx), pero acá el catálogo y el panel se resuelven en el
+  // propio bloque porque ProcesosPage no tiene ese estado compartido.
+  const [iumAbiertoId, setIumAbiertoId] = useState<string | null>(null);
+  const { items: iumsCatalogo, setItems: setIumsCatalogo } = useIumsConParticulas();
+  const { geometriaDe } = useGeometriaIums();
+  const iumAbierto = iumsCatalogo.find((i) => i.id === iumAbiertoId) ?? null;
+
   if (loading) return null;
 
   return (
@@ -1371,7 +1404,7 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-primary/45">Enlaces</span>
               <div className="rounded-md border border-primary/10 bg-primary/[0.02] p-2 overflow-x-auto">
-                <ConfiguracionIumGrafo flujo={flujo} />
+                <ConfiguracionIumGrafo flujo={flujo} onClickNodo={(iumId) => setIumAbiertoId(iumId)} />
               </div>
             </div>
           )}
@@ -1386,6 +1419,19 @@ function ConfiguracionIumBloque({ procesoId }: { procesoId: string }) {
           )}
         </div>
       )}
+
+      {iumAbierto ? (
+        <IumPanelFlotante
+          ium={iumAbierto}
+          geometriaDe={geometriaDe}
+          onCerrar={() => setIumAbiertoId(null)}
+          onActualizar={(id, cambios) => {
+            setIumsCatalogo((cur) =>
+              cur.map((item) => (item.id === id ? { ...item, ...cambios } : item)),
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }

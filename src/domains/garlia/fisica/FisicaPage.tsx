@@ -1514,7 +1514,7 @@ function IumEditor({
  * backdrop con blur, animación popIn, Escape para cerrar), reemplazando
  * el popover chico anclado que se usaba antes para Iums.
  */
-function IumPanelFlotante({
+export function IumPanelFlotante({
   ium,
   onCerrar,
   onActualizar,
