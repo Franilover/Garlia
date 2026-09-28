@@ -17,7 +17,7 @@ import {
   Leaf,
   Plus,
 } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
@@ -48,8 +48,6 @@ import { useFlora } from "./useFlora";
 import { usePlantaOrganosProcesos } from "./usePlantaOrganosProcesos";
 import { type Flora, type PlantaProceso } from "./types";
 import { useEcosistemas, useEcosistemaFlora } from "@/domains/garlia/biologia/useBiologia";
-import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
-import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 import { type ItemProceso } from "./SelectorConsumeProduce";
@@ -77,10 +75,6 @@ export function FloraEditorMejorado({
 
   const [form, setForm] = useState<Flora>(floraProp);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [ecosistemaAbierto, setEcosistemaAbierto] = useState<{
-    id: string;
-    anchor: HTMLElement;
-  } | null>(null);
   // Panel flotante de Elemento, Compuesto, Órgano, Célula o Tejido, abierto
   // al clickear un item elegido en Consume/Produce, en la Fórmula química
   // de un Órgano, en "hecho de: [Célula]" de una fila de Tejido, o en el
@@ -93,11 +87,6 @@ export function FloraEditorMejorado({
   // montados acá — usePanelFlotante reemplaza en vez de apilar (ver su store).
   const abrirPanelGlobal = usePanelFlotante((st) => st.abrir);
   const abrirCriatura = (id: string) => abrirPanelGlobal("criatura", id);
-  // Último elemento DOM clickeado dentro de la barra de Ecosistemas — usado
-  // como anchor del PopoverFlotante, ya que SeccionEntidad.onEntityClick
-  // solo entrega el id, no el evento/elemento.
-  const lastEntityClickTarget = useRef<HTMLElement | null>(null);
-  const asideEcosistemasRef = useRef<HTMLElement | null>(null);
 
   // Catálogo de Órganos: tabla real "organos" (catálogo propio, separado
   // de "formaciones" que usan Minerales/Items, compartido con Órganos de
@@ -255,19 +244,11 @@ export function FloraEditorMejorado({
                 </div>
 
                 {/* Ecosistemas — barra vertical lateral, mismo patrón que
-                    SeccionEntidad en EditorCriatura/PanelBioma.
-                    onEntityClick de SeccionEntidad solo entrega el id, no el
-                    elemento clickeado — se captura acá con onClickCapture
-                    para usarlo como anchor del PopoverFlotante (centrado, así
-                    que no depende de la posición exacta del anchor). */}
+                    SeccionEntidad en EditorCriatura/PanelBioma. */}
                 <aside
-                  ref={asideEcosistemasRef}
                   className="shrink-0 w-44 flex flex-col border-l overflow-y-auto"
                   style={{
                     borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                  }}
-                  onClickCapture={(e) => {
-                    lastEntityClickTarget.current = e.target as HTMLElement;
                   }}
                 >
                   <SeccionEntidad
@@ -280,13 +261,7 @@ export function FloraEditorMejorado({
                     loading={loadingEcosistemas}
                     saving={false}
                     selectedIds={ecosistemaIds}
-                    onEntityClick={(id) =>
-                      setEcosistemaAbierto({
-                        id,
-                        anchor:
-                          lastEntityClickTarget.current ?? asideEcosistemasRef.current ?? document.body,
-                      })
-                    }
+                    onEntityClick={(id) => abrirPanelGlobal("ecosistema", id)}
                     onToggle={handleToggleEcosistema}
                   />
                 </aside>
@@ -356,23 +331,6 @@ export function FloraEditorMejorado({
           </div>
         </div>
       </div>
-
-      {/* Popovers flotantes */}
-      {ecosistemaAbierto && (
-        <PopoverFlotante
-          anchor={ecosistemaAbierto.anchor}
-          onClose={() => setEcosistemaAbierto(null)}
-          width={640}
-          maxHeight={560}
-          centerVertically
-          centerHorizontally
-        >
-          <EcosistemaPopoverContent
-            ecosistemaId={ecosistemaAbierto.id}
-            onClose={() => setEcosistemaAbierto(null)}
-          />
-        </PopoverFlotante>
-      )}
 
       {/* Panel flotante de Elemento o Compuesto, abierto al clickear un item
           elegido en Consume/Produce o en la Fórmula química de un Órgano. */}

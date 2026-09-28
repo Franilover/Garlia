@@ -20,7 +20,7 @@
  */
 
 import { Gem, Leaf } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { RichEditor } from "@/editor/lexical";
 import { SeccionEntidad } from "@/ui/SeccionEntidad";
@@ -44,8 +44,7 @@ import { useMinerales } from "./useMinerales";
 import { useMineralFormacionesProcesos } from "./useMineralFormacionesProcesos";
 import { type Mineral, type MineralProceso } from "./types";
 import { useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
-import { EcosistemaPopoverContent } from "@/domains/garlia/biologia/EcosistemaPopoverContent";
-import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 export function MineralEditor({
   mineral: mineralProp,
@@ -66,18 +65,9 @@ export function MineralEditor({
   const [form, setForm] = useState<Mineral>(mineralProp);
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
-  // Popover flotante de ecosistema — mismo patrón que el chip de Ecosistema
-  // en CriaturasJerarquica/GeografiaJerarquica (PopoverFlotante anclado al
-  // elemento clickeado, sin navegar a pantalla completa).
-  const [ecosistemaAbierto, setEcosistemaAbierto] = useState<{
-    id: string;
-    anchor: HTMLElement;
-  } | null>(null);
-  // Último elemento DOM clickeado dentro de la barra de Ecosistemas — usado
-  // como anchor del PopoverFlotante, ya que SeccionEntidad.onEntityClick
-  // solo entrega el id, no el evento/elemento. Mismo patrón que FloraEditor.
-  const lastEntityClickTarget = useRef<HTMLElement | null>(null);
-  const asideEcosistemasRef = useRef<HTMLElement | null>(null);
+  // Click en un Ecosistema de la barra lateral → panel flotante global
+  // (reemplaza en vez de apilar — ver usePanelFlotanteStore).
+  const abrirPanelGlobal = usePanelFlotante((st) => st.abrir);
 
   // Ecosistemas donde aparece este mineral — vínculo inverso: vive en
   // Ecosistema.mineral_ids, no en Mineral. Mismo patrón que FloraEditor.
@@ -176,18 +166,11 @@ export function MineralEditor({
                   </div>
 
                   {/* Ecosistemas — barra vertical lateral, mismo patrón que
-                      SeccionEntidad en FloraEditor/EditorCriatura/PanelBioma.
-                      onEntityClick de SeccionEntidad solo entrega el id, no el
-                      elemento clickeado — se captura acá con onClickCapture
-                      para usarlo como anchor del PopoverFlotante. */}
+                      SeccionEntidad en FloraEditor/EditorCriatura/PanelBioma. */}
                   <aside
-                    ref={asideEcosistemasRef}
                     className="shrink-0 w-44 flex flex-col border-l overflow-y-auto"
                     style={{
                       borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-                    }}
-                    onClickCapture={(e) => {
-                      lastEntityClickTarget.current = e.target as HTMLElement;
                     }}
                   >
                     <SeccionEntidad
@@ -200,13 +183,7 @@ export function MineralEditor({
                       loading={loadingEcosistemas}
                       saving={false}
                       selectedIds={ecosistemaIds}
-                      onEntityClick={(id) =>
-                        setEcosistemaAbierto({
-                          id,
-                          anchor:
-                            lastEntityClickTarget.current ?? asideEcosistemasRef.current ?? document.body,
-                        })
-                      }
+                      onEntityClick={(id) => abrirPanelGlobal("ecosistema", id)}
                       onToggle={handleToggleEcosistema}
                     />
                   </aside>
@@ -226,22 +203,6 @@ export function MineralEditor({
             setCompuestos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
           }
         />
-      )}
-
-      {ecosistemaAbierto && (
-        <PopoverFlotante
-          anchor={ecosistemaAbierto.anchor}
-          onClose={() => setEcosistemaAbierto(null)}
-          width={640}
-          maxHeight={560}
-          centerVertically
-          centerHorizontally
-        >
-          <EcosistemaPopoverContent
-            ecosistemaId={ecosistemaAbierto.id}
-            onClose={() => setEcosistemaAbierto(null)}
-          />
-        </PopoverFlotante>
       )}
     </div>
   );

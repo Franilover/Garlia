@@ -4,7 +4,7 @@
  * usePanelFlotante (Zustand)
  * ───────────────────────────────────────────────────────────────────────────
  * Estado global único para el panel flotante de "vista rápida" de
- * Personaje/Criatura/Reino/Item. Reemplaza el sistema anterior de click del medio +
+ * Personaje/Criatura/Reino/Item/Flora/Mineral/Ciudad/Bioma/Ecosistema. Reemplaza el sistema anterior de click del medio +
  * FullscreenEntityPanel (pantalla completa) y los estados locales
  * personajeAbierto/criaturaAbierta/reinoAbierto duplicados en
  * GeografiaJerarquica y CriaturasJerarquica.
@@ -26,7 +26,16 @@
 
 import { create } from "zustand";
 
-export type PanelFlotanteKind = "personaje" | "criatura" | "reino" | "item" | "flora" | "mineral" | "ciudad";
+export type PanelFlotanteKind =
+  | "personaje"
+  | "criatura"
+  | "reino"
+  | "item"
+  | "flora"
+  | "mineral"
+  | "ciudad"
+  | "bioma"
+  | "ecosistema";
 
 interface PanelFlotanteState {
   entidad: { kind: PanelFlotanteKind; id: string } | null;

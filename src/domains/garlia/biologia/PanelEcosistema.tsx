@@ -24,6 +24,7 @@ import { SelectorMineralesMulti } from "@/domains/garlia/minerales/SelectorMiner
 import { useMineralesCatalogoMin } from "@/domains/garlia/minerales/useMineralesCatalogoMin";
 import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
 import { useCriaturasCatalogoMin } from "@/domains/garlia/runas/useCriaturasCatalogoMin";
+import type { PanelHeaderExterno } from "@/domains/garlia/biologia/panelHeaderExterno";
 
 import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
 import { useBiomas, useEcosistemaCriaturas } from "./useBiologia";
@@ -227,6 +228,7 @@ export function PanelEcosistema({
   onSelectMineral,
   onSelectBioma,
   modoPopover = false,
+  headerExterno,
 }: {
   ecosistema: Ecosistema;
   /** Flora (por id) que crece/habita en este ecosistema — vive en la
@@ -255,6 +257,9 @@ export function PanelEcosistema({
   /** true cuando se renderiza dentro de un popover flotante: el botón
    *  izquierdo pasa de "volver" (flecha) a "cerrar" (X). */
   modoPopover?: boolean;
+  /** Ver PanelBioma.headerExterno — oculta la barra propia y publica
+   *  nombre/guardar al header único del panel flotante global. */
+  headerExterno?: (h: PanelHeaderExterno) => void;
 }) {
   const { biomas } = useBiomas();
   const [nombre, setNombre] = useState(ecosistema.nombre);
@@ -275,6 +280,19 @@ export function PanelEcosistema({
   const guardar = () => {
     onSave({ nombre: nombre.trim() || ecosistema.nombre, clima, descripcion });
   };
+
+  // Header externo: publica nombre editable + guardar hacia el contenedor.
+  const guardarRef = React.useRef(guardar);
+  guardarRef.current = guardar;
+  useEffect(() => {
+    headerExterno?.({
+      nombre,
+      setNombre,
+      guardar: () => guardarRef.current(),
+      sidebarMobile: () => setMobileSidebarOpen(true),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombre, headerExterno]);
 
   // ── Barra lateral — Criaturas / Flora / Minerales / Reino, mismo patrón
   // que Personajes/Criaturas/Ítems en LoreTab (reinos/EditorReino). El
@@ -398,6 +416,7 @@ export function PanelEcosistema({
   return (
     <div className={modoPopover ? "flex h-full min-h-0" : undefined}>
       <div className={modoPopover ? "flex-1 min-w-0 flex flex-col min-h-0" : undefined}>
+      {!headerExterno && (
       <div className="flex items-center justify-between gap-2 mb-4">
         <button
           type="button"
@@ -447,6 +466,7 @@ export function PanelEcosistema({
           </button>
         </div>
       </div>
+      )}
 
       {modoPopover ? (
         <div className="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto">
