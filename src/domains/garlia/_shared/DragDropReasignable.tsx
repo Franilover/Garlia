@@ -59,7 +59,7 @@ export function useRightClickDrag<T>({ label }: UseRightClickDragOptions<T>) {
   const estadoRef = useRef<EstadoArrastre<T> | null>(null);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const dropTargetsRef = useRef<
-    Map<string, { onDrop: (payload: T) => void }>
+    Map<string, { onDrop: (payload: T, shiftKey: boolean) => void }>
   >(new Map());
 
   estadoRef.current = estado;
@@ -104,7 +104,7 @@ export function useRightClickDrag<T>({ label }: UseRightClickDragOptions<T>) {
         const zonaId = zona?.getAttribute("data-drop-zone-id") ?? null;
         if (zonaId) {
           const target = dropTargetsRef.current.get(zonaId);
-          target?.onDrop(cur.payload);
+          target?.onDrop(cur.payload, e.shiftKey);
         }
       }
       limpiar();
@@ -153,9 +153,10 @@ export function useRightClickDrag<T>({ label }: UseRightClickDragOptions<T>) {
   );
 
   /** Handlers para el elemento que puede recibir un drop. `onDrop` recibe el
-   *  payload arrastrado. Se registra/desregistra en un ref (no en el DOM)
+   *  payload arrastrado y si Shift estaba presionado al soltar.
+   *  Se registra/desregistra en un ref (no en el DOM)
    *  para no depender de eventos nativos onDrop/onDragOver del navegador. */
-  const dropHandlers = useCallback((zoneId: string, onDrop: (payload: T) => void) => {
+  const dropHandlers = useCallback((zoneId: string, onDrop: (payload: T, shiftKey: boolean) => void) => {
     dropTargetsRef.current.set(zoneId, { onDrop });
     return {
       "data-drop-zone-id": zoneId,

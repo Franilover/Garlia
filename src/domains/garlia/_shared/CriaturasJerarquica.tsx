@@ -165,6 +165,19 @@ interface Props {
    *  que en GeografiaJerarquica) — setea Ecosistema.bioma_id. Si el
    *  elemento no acepta esta prop, los ecosistemas no son arrastrables. */
   onAsignarEcosistemaABioma?: (ecosistemaId: string, biomaId: string) => void;
+  /** Mueve o clona una presencia (criatura dentro de un hábitat) a otro
+   *  hábitat vía click derecho arrastrar (modo `usaModeloHabitats`).
+   *  - `soloAnadir = false` (sin Shift): mueve — quita del hábitat origen.
+   *  - `soloAnadir = true` (con Shift): añade — la criatura queda también
+   *    en el hábitat origen (multihábitat).
+   *  Si no se pasa esta prop, los chips de criatura en hábitats no serán
+   *  arrastrables en modo `usaModeloHabitats`. */
+  onMoverCriaturaAHabitat?: (
+    presencia: PresenciaEcologica,
+    targetHabitatId: string,
+    targetEcosistemaId: string,
+    soloAnadir: boolean,
+  ) => void;
   /** Mueve un personaje a otra criatura (especie) — arrastre por click
    *  derecho de una EntityCard de personaje sobre una card de criatura en
    *  modo "ojo ON". `criaturaNombre` es null para dejarlo sin especie
@@ -498,6 +511,7 @@ export function CriaturasJerarquica({
   creatingCriatura,
   onAsignarCriaturaAEcosistema,
   onAsignarEcosistemaABioma,
+  onMoverCriaturaAHabitat,
   onMoverPersonaje,
   onCreateEcosistema,
   creatingEcosistema,
@@ -555,6 +569,15 @@ export function CriaturasJerarquica({
   // sobre el título de un Bioma.
   const dragEcosistema = useRightClickDrag<string>({
     label: (id) => ecosistemas.find((e) => e.id === id)?.nombre ?? "",
+  });
+  // Arrastre (click derecho) de pills de Criatura dentro de un Hábitat →
+  // se sueltan sobre otro bloque de Hábitat (modo usaModeloHabitats).
+  // El payload es la PresenciaEcologica completa (incluye participante_id,
+  // criatura_id y habitat_id origen) para que el handler de drop pueda
+  // operar directamente sin búsquedas adicionales.
+  // Shift al soltar → añadir (multihábitat), sin Shift → mover.
+  const dragPresencia = useRightClickDrag<PresenciaEcologica>({
+    label: (p) => p.nombre ?? "",
   });
 
   useLayoutEffect(() => {
@@ -932,6 +955,12 @@ export function CriaturasJerarquica({
   const renderPresencia = (x: PresenciaEcologica) => {
     const etiqueta = x.nombre ?? "Sin nombre";
     if (x.criatura_id) {
+      // Si el padre proveyó el handler de mover, el chip se vuelve
+      // arrastrable. El originZoneId es el hábitat donde vive esta
+      // presencia, así ese bloque NO se ilumina como zona activa.
+      const dProps = onMoverCriaturaAHabitat
+        ? dragPresencia.dragHandlers(x, `habitat:${x.habitat_id}`)
+        : undefined;
       return (
         <NodoTitulo
           key={`${x.participante_id}:${x.habitat_id}`}
@@ -939,6 +968,7 @@ export function CriaturasJerarquica({
           variant="criatura"
           maxWidthPx={160}
           onClick={() => abrirPanel("criatura", x.criatura_id!)}
+          dragProps={dProps}
         />
       );
     }
@@ -958,12 +988,29 @@ export function CriaturasJerarquica({
   // ecosistemas por columna de bioma.
   const renderHabitat = (h: HabitatEcologico & { nivel: number }) => {
     const ps = presenciasDeHabitat(h.habitat_id);
+    const zoneIdHab = `habitat:${h.habitat_id}`;
+
+    // Drop zone activa solo si hay un dragPresencia en curso.
+    const dropHabActivo = !!onMoverCriaturaAHabitat && dragPresencia.esZonaActiva(zoneIdHab);
+    const dropHabHandlers = onMoverCriaturaAHabitat
+      ? dragPresencia.dropHandlers(zoneIdHab, (presencia, shiftKey) => {
+          if (presencia.habitat_id === h.habitat_id) return; // no-op mismo hábitat
+          onMoverCriaturaAHabitat(presencia, h.habitat_id, h.ecosistema_id, shiftKey);
+        })
+      : {};
+
+    // Muestra "Suelta aquí" solo cuando hay un arrastre activo de presencia
+    // (y este hábitat no es el origen del arrastre).
+    const arrastandoPresencia =
+      dragPresencia.arrastrando && !!onMoverCriaturaAHabitat;
+
     return (
       <div
         key={h.habitat_id}
-        className={`flex flex-col gap-0.5 ${
+        {...dropHabHandlers}
+        className={`flex flex-col gap-0.5 rounded transition-colors ${
           h.nivel > 0 ? "border-l border-primary/15 pl-2" : ""
-        }`}
+        } ${dropHabActivo ? "bg-accent/8 outline outline-1 outline-accent/40" : ""}`}
         style={h.nivel > 0 ? { marginLeft: h.nivel * 8 } : undefined}
       >
         <div className="flex items-center gap-1">
@@ -980,9 +1027,20 @@ export function CriaturasJerarquica({
           )}
         </div>
         {ps.length === 0 ? (
-          <div className="text-micro text-primary/25">Sin presencias</div>
+          arrastandoPresencia ? (
+            <div className="text-micro text-accent/50 italic">Suelta aquí</div>
+          ) : (
+            <div className="text-micro text-primary/25">Sin presencias</div>
+          )
         ) : (
-          <div className="flex flex-wrap gap-1">{ps.map((x) => renderPresencia(x))}</div>
+          <div className="flex flex-wrap gap-1">
+            {ps.map((x) => renderPresencia(x))}
+            {arrastandoPresencia && (
+              <span className="px-2 py-0.5 rounded-full text-micro italic text-accent/50 border border-dashed border-accent/30">
+                + Suelta aquí
+              </span>
+            )}
+          </div>
         )}
       </div>
     );
@@ -1498,6 +1556,7 @@ export function CriaturasJerarquica({
         </div>
       )}
       {dragCriatura.overlay}
+      {dragPresencia.overlay}
       {dragPersonaje.overlay}
       {dragEcosistema.overlay}
     </div>

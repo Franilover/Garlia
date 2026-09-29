@@ -59,6 +59,7 @@ import { GeografiaJerarquica, type GrupoPersonajeSubtipo } from "@/domains/garli
 import { GrupoFiltroBarra, GrupoFiltroDropdown, type GrupoFiltroSubtipo } from "@/domains/garlia/_shared/GrupoFiltroDropdown";
 import { CriaturasJerarquica } from "@/domains/garlia/_shared/CriaturasJerarquica";
 import { useMapaEcologico } from "@/domains/garlia/biologia/useMapaEcologico";
+import { moverPresenciaEntreHabitats } from "@/domains/garlia/biologia/presenciaService";
 import { ItemsJerarquia } from "@/domains/garlia/_shared/ItemsJerarquia";
 import { AgrupacionPersonajesDropdown } from "@/domains/garlia/_shared/AgrupacionPersonajesDropdown";
 import { BuscadorInline } from "@/domains/garlia/_shared/BuscadorInline";
@@ -472,6 +473,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
 
   const openEntity = useMundoNavigation((s) => s.openEntity);
   const abrirPanel = usePanelFlotante((s) => s.abrir);
+  const invalidarMapaEcologico = usePanelFlotante((s) => s.invalidarMapaEcologico);
   const clearSelection = useMundoNavigation((s) => s.clearSelection);
 
   const selectedPersonaje = useMemo(
@@ -1080,6 +1082,14 @@ export function EntidadesPage({ section, selectedId }: Props) {
           }}
           onMoverPersonaje={async (personajeId, criaturaNombre) => {
             await updatePersonaje(personajeId, { especie: criaturaNombre ?? undefined });
+          }}
+          onMoverCriaturaAHabitat={async (presencia, targetHabitatId, targetEcosistemaId, soloAnadir) => {
+            try {
+              await moverPresenciaEntreHabitats(presencia, targetHabitatId, targetEcosistemaId, soloAnadir);
+              invalidarMapaEcologico();
+            } catch (e) {
+              console.error("[EntidadesPage] moverPresenciaAHabitat:", e);
+            }
           }}
           onOpen={(section, id) => openEntity(section, id)}
         />
