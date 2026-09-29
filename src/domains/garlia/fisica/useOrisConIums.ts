@@ -117,7 +117,9 @@ export async function sincronizarIumsDeOris(
   }
 
   const actualesPorIum = new Map((actuales ?? []).map((r) => [r.ium_id, r.cantidad]));
-  const nuevosIds = Object.keys(nuevaComposicion);
+  // oris_iums exige cantidad > 0 (CHECK en Supabase): una cantidad <= 0
+  // significa "quitar ese Ium", nunca se manda como upsert.
+  const nuevosIds = Object.keys(nuevaComposicion).filter((id) => nuevaComposicion[id] > 0);
 
   const aQuitar = [...actualesPorIum.keys()].filter((id) => !nuevosIds.includes(id));
   const aUpsertear = nuevosIds.filter(

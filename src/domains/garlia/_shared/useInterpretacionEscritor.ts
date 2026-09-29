@@ -277,7 +277,7 @@ export function renombrarClaves(
  * idéntico.
  *
  * FE-018: antes, una tarjeta `p` sin interpretación se devolvía "tal cual",
- * lo que en el caller (TarjetaPropiedad, modo "humana") terminaba cayendo
+ * lo que en el caller (TarjetaPropiedad, modo "escritor") terminaba cayendo
  * de vuelta al valor técnico como fallback visual. La regla del contrato es
  * estricta: sin interpretación válida, la propiedad se OCULTA en modo
  * Escritor, no se sustituye. Por eso esta función ahora FILTRA en vez de

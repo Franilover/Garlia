@@ -4,10 +4,12 @@
  * SelectorEcosistemasDeEntidad.tsx
  * ───────────────────────────────────────────────────────────────────────────
  * Edición INVERSA del vínculo Ecosistema ↔ Flora/Mineral: el vínculo real
- * vive en Ecosistema.flora_ids / mineral_ids (arrays en el ecosistema), no
- * en Flora/Mineral. Este selector se monta en FloraEditor/MineralEditor y
- * permite elegir en qué Ecosistema(s) vive esta entidad — por dentro,
- * actualiza el array correspondiente de cada Ecosistema afectado.
+ * vive en el Ecosistema, no en Flora/Mineral: la Flora en la tabla puente
+ * ecosistema_flora (M:N) y los Minerales en Ecosistema.mineral_ids (array
+ * embebido, sigue siendo columna). Este selector se monta en
+ * FloraEditor/MineralEditor y permite elegir en qué Ecosistema(s) vive
+ * esta entidad — por dentro, escribe en la tabla puente o actualiza el
+ * array de cada Ecosistema afectado.
  *
  * Mismo lenguaje visual que SelectorFloraMulti/SelectorCriaturasMulti
  * (chips + buscador en portal), pero resolviendo la relación al revés.

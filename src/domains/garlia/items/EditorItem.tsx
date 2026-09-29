@@ -58,6 +58,7 @@ import {
 import { useWikilink } from "@/domains/garlia/_shared/WikilinkContext";
 import { type Item } from "@garlia/items";
 import { type SaveStatus } from "@/ui/saveStatus";
+import type { ModoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
 
 export function EditorItem({
   item,
@@ -88,12 +89,11 @@ export function EditorItem({
   // Toggle "Científico ↔ Escritor" del header — mismo patrón que
   // ElementoEditor/CompuestoEditor/MaterialEditorFlotante: alterna cómo se
   // muestran las propiedades físicas del objeto (valor técnico vs. nivel +
-  // explicación en lenguaje llano), sin recalcular nada. Objeto todavía no
-  // tiene capa humana propia calculada en Supabase, así que en modo
-  // Escritor cada celda cae de vuelta al valor técnico automáticamente
-  // (ver PropertyCell en PanelFisicaObjeto) — el toggle ya queda listo
-  // para cuando esa capa exista.
-  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
+  // explicación en lenguaje llano), sin recalcular nada. FE-019: en modo
+  // Escritor solo se muestran las propiedades con interpretación humana
+  // válida; las demás se ocultan y nunca caen al valor técnico (ver
+  // esVisible en PanelFisicaObjeto).
+  const [modoVista, setModoVista] = useState<ModoPresentacion>("cientifico");
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
   const [editandoReaccionId, setEditandoReaccionId] = useState<string | null>(null);
   const { onWikilink } = useWikilink();
@@ -260,21 +260,21 @@ export function EditorItem({
   const modoVistaBtn = (
     <button
       type="button"
-      onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+      onClick={() => setModoVista((m) => (m === "cientifico" ? "escritor" : "cientifico"))}
       title={
-        modoVista === "quimica"
+        modoVista === "cientifico"
           ? "Ver explicación en lenguaje llano de las propiedades"
           : "Ver valores y fórmulas técnicas"
       }
-      aria-pressed={modoVista === "humana"}
+      aria-pressed={modoVista === "escritor"}
       className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
-        modoVista === "humana"
+        modoVista === "escritor"
           ? "border-accent/40 bg-accent/10 text-accent"
           : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
       }`}
     >
-      {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-      <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+      {modoVista === "escritor" ? <UserRound size={11} /> : <Beaker size={11} />}
+      <span className="hidden sm:inline">{modoVista === "escritor" ? "Escritor" : "Científico"}</span>
     </button>
   );
 

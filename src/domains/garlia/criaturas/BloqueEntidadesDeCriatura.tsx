@@ -8,7 +8,8 @@
  *   - Ítems que tienen a esta criatura como origen directo (columna
  *     `criatura_id`).
  *   - Flora y Minerales de todo Ecosistema donde esta criatura habita
- *     (vía Ecosistema.flora_ids / mineral_ids).
+ *     (Flora vía la tabla puente ecosistema_flora; Minerales vía
+ *     Ecosistema.mineral_ids, que sigue siendo columna).
  * Todo de solo lectura + navegación — la edición del vínculo vive en el
  * editor de cada entidad (selector "Criatura" en Ítems, selector
  * "Criaturas que lo habitan" en Ecosistema).

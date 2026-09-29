@@ -135,6 +135,7 @@ import {
   type TipoAfinidad,
   type TipoEnlace,
 } from "./types";
+import type { ModoPresentacion } from "../_shared/useContratoPresentacion";
 
 // ─── Descarga: todos los compuestos en un solo JSON ────────────────────────
 // Autocontenido: además de nombre/símbolo/notas/componentes crudos, incluye
@@ -386,14 +387,14 @@ function formulaExpandidaCompuesto(
 
 function PropiedadesFisicasCompuestoBloque({
   propiedades,
-  modo = "quimica",
+  modo = "cientifico",
   resumenHumano,
 }: {
   propiedades: PropiedadCalculada[];
-  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+  /** "cientifico" (default): valor + fórmula técnica, como siempre. "escritor":
    *  nivel + explicación en lenguaje llano — ver botón Científico ↔
    *  Escritor en el header de CompuestoEditor. */
-  modo?: "quimica" | "humana";
+  modo?: ModoPresentacion;
   /** Frase de propiedades_emergentes.humano.resumen (composición +
    *  estabilidad en lenguaje llano) — se muestra arriba de la grilla solo
    *  en modo Humana. Null si el compuesto no tiene capa humana todavía. */
@@ -405,7 +406,7 @@ function PropiedadesFisicasCompuestoBloque({
   // clasificación") — 5 columnas las apretaba demasiado.
   return (
     <div className="flex flex-col gap-2">
-      {modo === "humana" && resumenHumano && (
+      {modo === "escritor" && resumenHumano && (
         <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
           {resumenHumano}
         </p>
@@ -1088,9 +1089,9 @@ function CompuestoEditor({
   // en lenguaje llano) sin recalcular nada. La capa humana viene del
   // contrato canónico de Supabase (v_frontend_escritor_propiedades_
   // interpretadas, ver useInterpretacionEscritor) y solo se consulta
-  // cuando el modo es "humana". Los valores internos del estado siguen
-  // siendo "quimica"/"humana", solo cambió la etiqueta visible.
-  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
+  // cuando el modo es "escritor". Los valores del estado son los del
+  // contrato de presentación (ModoPresentacion, FE-018).
+  const [modoVista, setModoVista] = useState<ModoPresentacion>("cientifico");
   const [editandoElementoIdLocal, setEditandoElementoIdLocal] = useState<string | null>(null);
   const editandoElementoId =
     elementoAbiertoProp !== undefined ? elementoAbiertoProp : editandoElementoIdLocal;
@@ -1197,16 +1198,16 @@ function CompuestoEditor({
   // grid separados. Si el compuesto no tiene fila auxiliar todavía o sigue
   // cargando, propiedadesDeEstabilidadDetalle devuelve [] y no se nota hueco.
   // Capa humana (modo Escritor): nivel + significado del motor de
-  // interpretación de Supabase. Solo se consulta en modo "humana"; el
+  // interpretación de Supabase. Solo se consulta en modo "escritor"; el
   // frontend no aplica umbrales ni textos propios (ver
-  // useInterpretacionEscritor). En modo "quimica" nunca se pide (queda
+  // useInterpretacionEscritor). En modo "cientifico" nunca se pide (queda
   // {}) y las propiedades técnicas se muestran sin fusionar/filtrar (ver
   // propiedadesFisicas más abajo) — la regla estricta de ocultamiento sin
-  // interpretación aplica solo dentro de modo "humana".
+  // interpretación aplica solo dentro de modo "escritor".
   const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
     "compuesto",
     compuesto.id,
-    modoVista === "humana",
+    modoVista === "escritor",
   );
   const interpretaciones = useMemo(
     () => renombrarClaves(interpretacionesCrudas, ALIAS_COMPUESTO),
@@ -1220,19 +1221,19 @@ function CompuestoEditor({
   const { filas: filasContratoEscritor } = useContratoPresentacion(
     "compuesto",
     "escritor",
-    modoVista === "humana",
+    modoVista === "escritor",
   );
 
   const propiedadesFisicas = useMemo(
     () => [
       // FE-018 fix: la regla estricta de ocultamiento (fusionarConTarjetasDeVista
       // → fusionarInterpretaciones) es SOLO para modo Escritor. En modo
-      // Científico ("quimica") no hay interpretaciones cargadas a propósito
+      // Científico ("cientifico") no hay interpretaciones cargadas a propósito
       // (el hook está desactivado arriba), así que aplicar la fusión acá
       // ocultaba TODAS las propiedades técnicas al no encontrar match — se
       // usa la lista técnica sin filtrar en científico, y solo se fusiona/
       // filtra en modo humana.
-      ...(modoVista === "humana"
+      ...(modoVista === "escritor"
         ? fusionarConTarjetasDeVista(
             propiedadesCalculadasDeCompuesto(local),
             interpretaciones,
@@ -1372,21 +1373,21 @@ function CompuestoEditor({
         </button>
         <button
           type="button"
-          onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+          onClick={() => setModoVista((m) => (m === "cientifico" ? "escritor" : "cientifico"))}
           title={
-            modoVista === "quimica"
+            modoVista === "cientifico"
               ? "Ver explicación en lenguaje llano de las propiedades"
               : "Ver valores y fórmulas técnicas"
           }
-          aria-pressed={modoVista === "humana"}
+          aria-pressed={modoVista === "escritor"}
           className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
-            modoVista === "humana"
+            modoVista === "escritor"
               ? "border-accent/40 bg-accent/10 text-accent"
               : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
           }`}
         >
-          {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-          <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+          {modoVista === "escritor" ? <UserRound size={11} /> : <Beaker size={11} />}
+          <span className="hidden sm:inline">{modoVista === "escritor" ? "Escritor" : "Científico"}</span>
         </button>
       </>
     ),

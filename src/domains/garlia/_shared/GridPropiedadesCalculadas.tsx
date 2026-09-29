@@ -18,6 +18,7 @@ import React from "react";
 
 import { InfoFormulasPopover } from "@/domains/garlia/elementos/InfoFormulasPopover";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
+import type { ModoPresentacion } from "./useContratoPresentacion";
 
 /** Claves de metadata (no métricas) que no se muestran como tarjeta. */
 const CLAVES_METADATA = new Set(["fuente", "metodo", "version", "ponderacion"]);
@@ -186,13 +187,12 @@ export function propiedadesCalculadasGenerico(
  */
 /** Una tarjeta individual de propiedad — extraído para no duplicar el JSX
  *  entre el render agrupado y el plano de abajo. */
-function TarjetaPropiedad({ p, modo = "quimica" }: { p: PropiedadCalculada; modo?: "quimica" | "humana" }) {
-  // Modo Humana: si esta propiedad no tiene capa humana calculada todavía
-  // (ver interpretacionHumanaDeCompuesto), cae de vuelta al valor técnico
-  // en vez de mostrar un hueco — mismo criterio que el resto del sistema
-  // (no inventar "??" cuando falta un dato, ver comentario en
-  // formulaExpandidaCompuesto).
-  const esHumana = modo === "humana" && p.nivelHumano !== undefined;
+function TarjetaPropiedad({ p, modo = "cientifico" }: { p: PropiedadCalculada; modo?: ModoPresentacion }) {
+  // Modo Humana (FE-019): TarjetaPropiedadesFisicas ya descartó las
+  // propiedades sin interpretación humana válida, así que toda tarjeta que
+  // llega acá en este modo tiene nivelHumano. Nunca se sustituye por el
+  // valor técnico.
+  const esHumana = modo === "escritor";
 
   // Modo Escritor: MISMO diseño que Científico (mismos colores, misma
   // barra de proporción, sin fondo de acento ni frase debajo). Lo único que
@@ -230,7 +230,7 @@ export function TarjetaPropiedadesFisicas({
   propiedades,
   columnas = 3,
   titulo = "Propiedades físicas",
-  modo = "quimica",
+  modo = "cientifico",
 }: {
   propiedades: PropiedadCalculada[];
   /** Cuántas columnas usar en el grid — Compuesto tiene más propiedades
@@ -241,21 +241,20 @@ export function TarjetaPropiedadesFisicas({
    *  ("Propiedades") porque el desglose real vive en los subtítulos de
    *  cada grupo (p.grupo) — ver ElementoEditor. */
   titulo?: string;
-  /** "quimica" (default): valor numérico + fórmula técnica, igual que
-   *  siempre. "humana": nivel cualitativo + explicación en lenguaje llano
+  /** "cientifico" (default): valor numérico + fórmula técnica, igual que
+   *  siempre. "escritor": nivel cualitativo + explicación en lenguaje llano
    *  (propiedades_emergentes.interpretacion_humana) — ver botón Científico
    *  ↔ Escritor en ElementoEditor/CompuestoEditor/MaterialEditor.
-   *  Propiedades sin capa humana calculada todavía caen de vuelta al valor
-   *  técnico (ver TarjetaPropiedad). */
-  modo?: "quimica" | "humana";
+   *  Propiedades sin interpretación humana válida se ocultan (FE-019): no
+   *  hay fallback al valor técnico. */
+  modo?: ModoPresentacion;
 }) {
-  // Modo Humana: las propiedades sin capa humana calculada (clasificación,
-  // estructura, fórmula canónica, etc. — texto técnico que no tiene
-  // traducción a nivel cualitativo) ya no se ocultan — se muestran igual
-  // que en modo Química (fallback automático en TarjetaPropiedad, ver
-  // esHumana ahí) para que el toggle no haga desaparecer tarjetas, solo
-  // cambie de vista las que sí tienen traducción humana.
-  const conValor = propiedades.filter((p) => p.valor !== null);
+  // Modo Humana (FE-019): solo se muestran las propiedades con
+  // interpretación humana válida (nivelHumano). Las que no la tienen se
+  // ocultan; nunca se degradan al valor técnico. NULL nunca equivale a 0.
+  const visibles =
+    modo === "escritor" ? propiedades.filter((p) => p.nivelHumano !== undefined) : propiedades;
+  const conValor = visibles.filter((p) => p.valor !== null);
   if (conValor.length === 0) return null;
 
   const gridCols = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" }[columnas];
@@ -278,7 +277,7 @@ export function TarjetaPropiedadesFisicas({
           >
             {titulo}
           </span>
-          {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
+          {modo === "cientifico" && <InfoFormulasPopover propiedades={conValor} />}
         </div>
         <div className={`grid ${gridCols} gap-1.5 min-w-0`}>
           {conValor.map((p) => (
@@ -321,7 +320,7 @@ export function TarjetaPropiedadesFisicas({
         >
           {titulo}
         </span>
-        {modo === "quimica" && <InfoFormulasPopover propiedades={conValor} />}
+        {modo === "cientifico" && <InfoFormulasPopover propiedades={conValor} />}
       </div>
       <div className="flex flex-col gap-2.5 min-w-0">
         {grupos.map((g, i) => (

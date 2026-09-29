@@ -109,7 +109,11 @@ export async function sincronizarParticulasDeIum(
   }
 
   const actualesPorParticula = new Map((actuales ?? []).map((r) => [r.particula_id, r.cantidad]));
-  const nuevaPorParticula = new Map(nuevaComposicion.map((c) => [c.particula_id, c.cantidad]));
+  // iums_particulas exige cantidad >= 1 (CHECK en Supabase): una cantidad
+  // <= 0 significa "quitar esa partícula", nunca se manda como upsert.
+  const nuevaPorParticula = new Map(
+    nuevaComposicion.filter((c) => c.cantidad > 0).map((c) => [c.particula_id, c.cantidad]),
+  );
 
   const aQuitar = [...actualesPorParticula.keys()].filter((id) => !nuevaPorParticula.has(id));
   const aUpsertear = [...nuevaPorParticula.keys()].filter(

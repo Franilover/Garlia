@@ -13,6 +13,7 @@ import {
   useContratoPresentacion,
   type GrupoContrato,
 } from "@/domains/garlia/_shared/useContratoPresentacion";
+import type { ModoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
 
 /** Intenta parsear un string como número (para valores de
  *  v_frontend_worldbuilder_propiedades_entidad, que llegan serializados
@@ -43,12 +44,12 @@ function formatValue(value: unknown): string {
  *  espaciado, apoyándose en el contenedor exterior para el límite visual.
  *
  *  `modo` acompaña al toggle Científico ↔ Escritor del header de
- *  EditorItem. En modo "humana" muestra nivel + significado tal como los
+ *  EditorItem. En modo "escritor" muestra nivel + significado tal como los
  *  entrega el motor de interpretación de Supabase (vista
  *  v_frontend_escritor_propiedades_interpretadas, ver
  *  useInterpretacionEscritor) — sin umbrales ni textos propios acá. Si la
  *  propiedad no viene interpretada (ej. factor_geometrico), el valor
- *  técnico se sigue mostrando en modo "quimica"; el toggle a modo "humana"
+ *  técnico se sigue mostrando en modo "cientifico"; el toggle a modo "escritor"
  *  no oculta la celda acá (a diferencia de TarjetaPropiedad/
  *  fusionarInterpretaciones), pero tampoco inventa nivel/significado — solo
  *  cae a formatValue(value) porque `esHumana` requiere `interpretacion`
@@ -56,17 +57,19 @@ function formatValue(value: unknown): string {
 function PropertyCell({
   label,
   value,
-  modo = "quimica",
+  modo = "cientifico",
   interpretacion,
 }: {
   label: string;
   value: unknown;
-  modo?: "quimica" | "humana";
+  modo?: ModoPresentacion;
   interpretacion?: InterpretacionEscritor;
 }) {
   // Modo Escritor: mismo diseño que Científico; solo cambia el valor por el
-  // nivel del motor. La explicación queda como tooltip.
-  const esHumana = modo === "humana" && !!interpretacion;
+  // nivel del motor. La explicación queda como tooltip. FE-019: el caller ya
+  // descartó las propiedades sin interpretación válida, así que en este modo
+  // nunca se muestra el valor técnico.
+  const esHumana = modo === "escritor";
   return (
     <div
       title={esHumana ? (interpretacion?.significado ?? undefined) : undefined}
@@ -130,7 +133,7 @@ export function PanelFisicaObjeto({
   estadoFisico,
   geometriaFisica,
   onRefrescarItem,
-  modo = "quimica",
+  modo = "cientifico",
 }: {
   itemId: string;
   propiedadesFisicas?: (Record<string, unknown> & { estado?: string; fuente_fisica?: string }) | null;
@@ -144,18 +147,18 @@ export function PanelFisicaObjeto({
    *  vez. Sin esto, la sección de física quedaría mostrando el valor
    *  anterior hasta recargar el editor entero. */
   onRefrescarItem?: () => void;
-  /** "quimica" (default): valor técnico plano, como siempre. "humana":
+  /** "cientifico" (default): valor técnico plano, como siempre. "escritor":
    *  mismo lenguaje visual "chip" que TarjetaPropiedad en modo Escritor —
    *  ver botón Científico ↔ Escritor en el header de EditorItem. */
-  modo?: "quimica" | "humana";
+  modo?: ModoPresentacion;
 }) {
   const { items: materialesCatalogo, loading: loadingCatalogo } = useMateriales();
   const { items: composicion, loading: loadingComposicion } = useItemMateriales(itemId);
   const [editandoComposicion, setEditandoComposicion] = useState(false);
 
   // Capa humana (modo Escritor) desde el motor de Supabase, solo en modo
-  // "humana". Claves ya alineadas con las de este panel (dureza, interaccion…).
-  const { interpretaciones } = useInterpretacionEscritor("objeto", itemId, modo === "humana");
+  // "escritor". Claves ya alineadas con las de este panel (dureza, interaccion…).
+  const { interpretaciones } = useInterpretacionEscritor("objeto", itemId, modo === "escritor");
 
   // Grupos/propiedades/orden/nombres de Objeto en modo científico salen del
   // contrato de presentación — ya no de MAGNITUDES_OBJETO/GEOMETRIA_OBJETO/
@@ -175,6 +178,12 @@ export function PanelFisicaObjeto({
   const valoresCientificos: Record<string, string | null> = {};
 
   const propiedades = propiedadesFisicas ?? {};
+
+  // FE-019: en modo Escritor solo se muestran las propiedades con
+  // interpretación humana válida; sin ella se ocultan (nunca se cae al valor
+  // técnico). En modo Científico se muestra toda propiedad presente.
+  const esVisible = (clave: string): boolean =>
+    propiedades[clave] !== undefined && (modo !== "escritor" || !!interpretaciones[clave]);
   // OJO: items.estado_fisico ("calculado" | "pendiente" | ...) y
   // propiedades_fisicas.estado ("calculable" | "sin_materiales" |
   // "incompleto_geometria") son dos vocabularios distintos que responden
@@ -244,7 +253,7 @@ export function PanelFisicaObjeto({
           <div className="[column-count:1] min-[420px]:[column-count:2] gap-x-3">
             {gruposContrato
               .filter((g: GrupoContrato) =>
-                g.propiedades.some((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined),
+                g.propiedades.some((p) => p.propiedad_clave && esVisible(p.propiedad_clave)),
               )
               .map((g: GrupoContrato) => (
                 <React.Fragment key={g.grupo}>
@@ -252,7 +261,7 @@ export function PanelFisicaObjeto({
                     <SubGroupLabel>{g.grupo_nombre}</SubGroupLabel>
                   </div>
                   {g.propiedades
-                    .filter((p) => p.propiedad_clave && propiedades[p.propiedad_clave] !== undefined)
+                    .filter((p) => p.propiedad_clave && esVisible(p.propiedad_clave))
                     .map((p) => {
                       const clave = p.propiedad_clave as string;
                       // FE-019: valor de la vista canónica si está presente

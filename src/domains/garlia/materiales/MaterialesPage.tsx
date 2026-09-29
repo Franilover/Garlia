@@ -99,7 +99,7 @@ import {
   fusionarInterpretaciones,
   useInterpretacionEscritor,
 } from "@/domains/garlia/_shared/useInterpretacionEscritor";
-import { useContratoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
+import { useContratoPresentacion, type ModoPresentacion } from "@/domains/garlia/_shared/useContratoPresentacion";
 import type { PropiedadCalculada } from "@/domains/garlia/elementos/types";
 import { ComboSelector } from "@/ui/ComboSelector";
 import { useConfirm } from "@/ui/ConfirmModal";
@@ -379,10 +379,10 @@ function MaterialDetail({
   onCompuestoAbiertoIdChange,
   onComponentesCargados,
   onElementosCargados,
-  modo = "quimica",
+  modo = "cientifico",
 }: {
   material: Material;
-  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+  /** "cientifico" (default): valor + fórmula técnica, como siempre. "escritor":
    *  nivel + explicación en lenguaje llano — ver botón Científico ↔
    *  Escritor en el header de MaterialEditorFlotante, mismo patrón que
    *  ElementoEditor/CompuestoEditor. La capa humana viene del contrato
@@ -391,7 +391,7 @@ function MaterialDetail({
    *  interpreta se OCULTA en este modo — nunca cae de vuelta al valor
    *  técnico como sustituto (regla estricta FE-018, ver
    *  fusionarInterpretaciones). */
-  modo?: "quimica" | "humana";
+  modo?: ModoPresentacion;
   /** Controlado opcionalmente desde MaterialEditorFlotante, que necesita el
    *  mismo estado para que el nivel "Compuesto" del breadcrumb superior
    *  (Elemento › Compuesto › Materiales) navegue al mismo sub-panel que
@@ -555,11 +555,11 @@ function MaterialDetail({
   // no mostrar "sin dato" un instante y después aparecer.
   const propiedades = material.propiedades_calculadas ?? {};
   // Capa humana (modo Escritor) desde el motor de Supabase — solo se
-  // consulta en modo "humana". Sin umbrales ni textos propios acá.
+  // consulta en modo "escritor". Sin umbrales ni textos propios acá.
   const { interpretaciones } = useInterpretacionEscritor(
     "material",
     material.id,
-    modo === "humana",
+    modo === "escritor",
   );
   // Contrato de presentación (modo escritor): única fuente autorizada de
   // nombre/descripción/grupo para propiedades interpretadas sin tarjeta
@@ -568,7 +568,7 @@ function MaterialDetail({
   const { filas: filasContratoEscritorMaterial } = useContratoPresentacion(
     "material",
     "escritor",
-    modo === "humana",
+    modo === "escritor",
   );
   const propiedadesGenerico = propiedadesCalculadasGenerico(propiedades).map((p) => ({
     ...p,
@@ -591,7 +591,7 @@ function MaterialDetail({
   // UI) contra el mismo mapa de interpretaciones de Material.
   const perfilReactivoParaFusion = perfilReactivoCrudo.map((p) => ({ ...p, clave: p.claveInterpretacion }));
   const perfilReactivoFusionado =
-    modo === "humana"
+    modo === "escritor"
       ? fusionarInterpretaciones(perfilReactivoParaFusion, interpretaciones).map((p, i) => ({
           ...p,
           clave: perfilReactivoCrudo[i].clave, // restaura clave `pr_...` para key de React / tarjeta
@@ -604,7 +604,7 @@ function MaterialDetail({
     // propósito (hook desactivado arriba) y aplicar la fusión ahí ocultaba
     // todas las propiedades técnicas. En científico se muestra la lista
     // técnica sin filtrar.
-    ...(modo === "humana"
+    ...(modo === "escritor"
       ? fusionarConTarjetasDeVista(propiedadesGenerico, interpretaciones, filasContratoEscritorMaterial)
       : propiedadesGenerico),
     ...perfilReactivoFusionado,
@@ -888,7 +888,7 @@ export function MaterialEditorFlotante({
   // propiedades físicas (valor técnico vs. nivel + explicación en lenguaje
   // llano), sin recalcular nada. Ver comentario en MaterialDetail sobre el
   // fallback automático mientras Material no tenga capa humana propia.
-  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
+  const [modoVista, setModoVista] = useState<ModoPresentacion>("cientifico");
   const [compuestoAbiertoId, setCompuestoAbiertoId] = useState<string | null>(null);
   // Compuestos vinculados a este material, reportados por MaterialDetail
   // una vez resueltos contra el catálogo — alimenta el nivel "Compuesto"
@@ -1057,21 +1057,21 @@ export function MaterialEditorFlotante({
 
           <button
             type="button"
-            onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+            onClick={() => setModoVista((m) => (m === "cientifico" ? "escritor" : "cientifico"))}
             title={
-              modoVista === "quimica"
+              modoVista === "cientifico"
                 ? "Ver explicación en lenguaje llano de las propiedades"
                 : "Ver valores y fórmulas técnicas"
             }
-            aria-pressed={modoVista === "humana"}
+            aria-pressed={modoVista === "escritor"}
             className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
-              modoVista === "humana"
+              modoVista === "escritor"
                 ? "border-accent/40 bg-accent/10 text-accent"
                 : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
             }`}
           >
-            {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-            <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+            {modoVista === "escritor" ? <UserRound size={11} /> : <Beaker size={11} />}
+            <span className="hidden sm:inline">{modoVista === "escritor" ? "Escritor" : "Científico"}</span>
           </button>
 
           <div className="shrink-0 flex items-center gap-1.5">

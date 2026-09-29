@@ -74,6 +74,7 @@ import {
 } from "./types";
 import { useParticulas } from "../fisica/useFisica";
 import { useElementoSitiosEnlace, type ElementoSitioEnlace } from "./useElementoSitiosEnlace";
+import type { ModoPresentacion } from "../_shared/useContratoPresentacion";
 
 interface Props {
   elemento: Elemento;
@@ -115,10 +116,10 @@ export function ElementoEditor({
   // (valor técnico vs. nivel + explicación en lenguaje llano), sin
   // recalcular nada. La capa humana viene del contrato canónico de
   // Supabase (v_frontend_escritor_propiedades_interpretadas, ver
-  // useInterpretacionEscritor) y solo se consulta en modo "humana". Los
-  // valores internos del estado siguen siendo "quimica"/"humana" (no se
-  // tocan tipos ni claves de datos), solo cambió la etiqueta visible.
-  const [modoVista, setModoVista] = useState<"quimica" | "humana">("quimica");
+  // useInterpretacionEscritor) y solo se consulta en modo "escritor". Los
+  // valores del estado son los del contrato de presentación
+  // (ModoPresentacion: "cientifico" | "escritor", FE-018).
+  const [modoVista, setModoVista] = useState<ModoPresentacion>("cientifico");
 
   useEffect(() => setLocal(elemento), [elemento]);
 
@@ -179,7 +180,7 @@ export function ElementoEditor({
   const { interpretaciones: interpretacionesCrudas } = useInterpretacionEscritor(
     "elemento",
     elemento.id,
-    modoVista === "humana",
+    modoVista === "escritor",
   );
   const interpretaciones = useMemo(
     () => renombrarClaves(interpretacionesCrudas, ALIAS_ELEMENTO),
@@ -191,7 +192,7 @@ export function ElementoEditor({
       // interpretación válida — correcto solo en modo Escritor. En modo
       // científico `interpretaciones` está vacío a propósito (hook
       // desactivado arriba); fusionar ahí ocultaba toda la lista técnica.
-      modoVista === "humana"
+      modoVista === "escritor"
         ? fusionarInterpretaciones(propiedadesCalculadasDeElemento(local), interpretaciones)
         : propiedadesCalculadasDeElemento(local),
     [local, interpretaciones, modoVista],
@@ -266,21 +267,21 @@ export function ElementoEditor({
         />
         <button
           type="button"
-          onClick={() => setModoVista((m) => (m === "quimica" ? "humana" : "quimica"))}
+          onClick={() => setModoVista((m) => (m === "cientifico" ? "escritor" : "cientifico"))}
           title={
-            modoVista === "quimica"
+            modoVista === "cientifico"
               ? "Ver explicación en lenguaje llano de las propiedades"
               : "Ver valores y fórmulas técnicas"
           }
-          aria-pressed={modoVista === "humana"}
+          aria-pressed={modoVista === "escritor"}
           className={`shrink-0 flex items-center gap-1 px-2 h-6 rounded-md border text-micro font-black uppercase tracking-widest transition-all cursor-pointer ${
-            modoVista === "humana"
+            modoVista === "escritor"
               ? "border-accent/40 bg-accent/10 text-accent"
               : "border-primary/15 text-primary/40 hover:text-primary hover:border-primary/35 hover:bg-primary/5"
           }`}
         >
-          {modoVista === "humana" ? <UserRound size={11} /> : <Beaker size={11} />}
-          <span className="hidden sm:inline">{modoVista === "humana" ? "Escritor" : "Científico"}</span>
+          {modoVista === "escritor" ? <UserRound size={11} /> : <Beaker size={11} />}
+          <span className="hidden sm:inline">{modoVista === "escritor" ? "Escritor" : "Científico"}</span>
         </button>
       </>
     ),
@@ -522,15 +523,15 @@ function SitiosEnlaceBloque({
  */
 function PropiedadesFisicasBloque({
   propiedades,
-  modo = "quimica",
+  modo = "cientifico",
   resumenHumano,
 }: {
   propiedades: PropiedadCalculada[];
-  /** "quimica" (default): valor + fórmula técnica, como siempre. "humana":
+  /** "cientifico" (default): valor + fórmula técnica, como siempre. "escritor":
    *  nivel + explicación en lenguaje llano — ver botón Científico ↔
    *  Escritor en el header de ElementoEditor, mismo patrón que
    *  CompuestoEditor. */
-  modo?: "quimica" | "humana";
+  modo?: ModoPresentacion;
   /** Frase de propiedades_emergentes.humano.resumen — se muestra arriba de
    *  la grilla solo en modo Humana. Null si el elemento no tiene capa
    *  humana todavía. */
@@ -543,7 +544,7 @@ function PropiedadesFisicasBloque({
   // (que tiene menos texto por etiqueta).
   return (
     <div className="flex flex-col gap-2">
-      {modo === "humana" && resumenHumano && (
+      {modo === "escritor" && resumenHumano && (
         <p className="text-micro leading-relaxed text-primary/60 bg-accent/5 border border-accent/15 rounded-md px-2.5 py-2">
           {resumenHumano}
         </p>
