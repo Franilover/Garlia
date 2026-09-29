@@ -10,15 +10,18 @@
  * Ya no existen BiomaPopoverContent/EcosistemaPopoverContent: Bioma y
  * Ecosistema usan BiomaEditor/EcosistemaEditor.
  *
- *   ┌─ Gran Saltus › Dosel ────────────────────────── ✕ ┐
- *   │ Tipo: Dosel · dentro de: General                    │
- *   ├─ Habitantes ────────────────────────────────────────┤
- *   │ [Organismos | Criaturas]   🔍 buscar…               │
- *   │ ☑ Lignianos          compatible                     │
- *   │ ☐ Flor Gelida        sin evaluar                    │
- *   ├─ Ambiente (valores efectivos) ──────────────────────┤
- *   │ Temperatura media   288.15 uΘ   · heredado: bioma   │
- *   └─────────────────────────────────────────────────────┘
+ * Layout de dos columnas — mismo patrón que PanelBioma/PanelEcosistema:
+ * cuerpo (Ambiente) + barra lateral a la derecha con SeccionEntidad para
+ * Criaturas y Organismos. Acá SÍ se puede añadir/quitar (a diferencia de
+ * PanelEcosistema): el hábitat es el lugar canónico donde vive la presencia
+ * real (ecosistema_participantes ⋈ ecosistema_participante_habitats).
+ *
+ *   ┌─ Gran Saltus › Dosel ─────────────────────┬─ Criaturas ──┐
+ *   │ Ambiente (valores efectivos)               │ ☑ Lignianos  │
+ *   │ Temperatura media   288.15 uΘ · bioma       │ ☐ Feerin     │
+ *   │                                             ├─ Organismos ─┤
+ *   │                                             │ ☑ Flor Gelida│
+ *   └─────────────────────────────────────────────┴──────────────┘
  *
  * SUPABASE MANDA: la compatibilidad, la herencia de factores y las unidades
  * vienen ya resueltas de las vistas canónicas (ver useHabitatHabitantes).
@@ -26,34 +29,31 @@
  *
  * Compatibilidad = ADVERTENCIA, no bloqueo: la tabla de reglas empieza vacía
  * a propósito (todo es "sin_evaluar") y el canon lo decide el autor. Un
- * candidato "incompatible" se puede marcar igual, pero pide confirmación.
+ * candidato "incompatible" se puede marcar igual, pero pide confirmación
+ * (acá, vía window.confirm — SeccionEntidad no tiene UI de confirmación
+ * inline por fila).
  */
 
-import { AlertTriangle, Check, Layers, Loader2, Search, Sprout, Bug, X } from "lucide-react";
+import { AlertTriangle, Bug, Layers, SlidersHorizontal, Sprout, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
+
+import { useMobileAsidePanel, useRegisterMobileAside } from "@/hooks/ui/useMobileAsidePanel";
+import { SeccionEntidad } from "@/ui/SeccionEntidad";
 
 import {
   type CandidatoHabitante,
-  type CompatibilidadHabitat,
   type FactorEfectivo,
-  type TipoParticipanteHabitat,
   useHabitatHabitantes,
 } from "@/domains/garlia/biologia/useHabitatHabitantes";
 import type { HabitatEcologico } from "@/domains/garlia/biologia/useMapaEcologico";
 
-const ETIQUETA_COMPAT: Record<CompatibilidadHabitat, string> = {
-  compatible: "Compatible",
-  posible: "Posible",
-  incompatible: "Incompatible",
-  sin_evaluar: "Sin evaluar",
-};
-
-const ESTILO_COMPAT: Record<CompatibilidadHabitat, string> = {
-  compatible: "bg-primary/10 text-primary/70 border-primary/20",
-  posible: "bg-primary/5 text-primary/55 border-primary/10",
-  incompatible: "bg-red-400/10 text-red-400 border-red-400/25",
-  sin_evaluar: "bg-transparent text-primary/30 border-primary/10",
-};
+/** Registra el aside de este panel en el store global (para que aparezca el
+ *  botón "Entidades" en la barra del panel flotante) mientras esté montado.
+ *  Mismo patrón que PanelBioma/PanelEcosistema. */
+function RegistroAsideMovil() {
+  useRegisterMobileAside();
+  return null;
+}
 
 const ETIQUETA_FUENTE: Record<string, string> = {
   habitat: "propio",
@@ -70,93 +70,12 @@ function formatearValor(f: FactorEfectivo): string {
   return f.unidad_simbolo ? `${txt} ${f.unidad_simbolo}` : txt;
 }
 
-function FilaHabitante({
-  cand,
-  pendiente,
-  confirmando,
-  onToggle,
-  onConfirmar,
-  onCancelar,
-}: {
-  cand: CandidatoHabitante;
-  pendiente: boolean;
-  confirmando: boolean;
-  onToggle: () => void;
-  onConfirmar: () => void;
-  onCancelar: () => void;
-}) {
-  return (
-    <div
-      className={`rounded-lg border transition-colors ${
-        cand.es_presente ? "border-primary/20 bg-primary/[0.04]" : "border-transparent"
-      }`}
-    >
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={cand.es_presente}
-        disabled={pendiente}
-        onClick={onToggle}
-        title={cand.descripcion_compatibilidad ?? undefined}
-        className="w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-60"
-      >
-        <span
-          className={`shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-            cand.es_presente
-              ? "bg-primary border-primary text-bg-main"
-              : "border-primary/25 text-transparent"
-          }`}
-        >
-          {pendiente ? (
-            <Loader2 size={10} className="animate-spin text-primary/60" />
-          ) : (
-            <Check size={10} strokeWidth={3} />
-          )}
-        </span>
-        <span className="flex-1 min-w-0 truncate text-xs font-semibold text-primary/80">
-          {cand.nombre}
-        </span>
-        {cand.es_presente && cand.tipo_presencia && (
-          <span className="shrink-0 text-micro text-primary/35">{cand.tipo_presencia}</span>
-        )}
-        <span
-          className={`shrink-0 px-1.5 py-px rounded-full border text-micro font-bold uppercase tracking-wide ${ESTILO_COMPAT[cand.compatibilidad]}`}
-        >
-          {ETIQUETA_COMPAT[cand.compatibilidad]}
-        </span>
-      </button>
-
-      {confirmando && (
-        <div className="mx-2 mb-2 flex items-start gap-2 rounded-md border border-red-400/25 bg-red-400/5 px-2 py-1.5">
-          <AlertTriangle size={12} className="shrink-0 mt-0.5 text-red-400" />
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-bold text-red-400">
-              {cand.nombre} está marcado como incompatible con este hábitat.
-            </p>
-            {cand.descripcion_compatibilidad && (
-              <p className="mt-0.5 text-micro text-primary/50">{cand.descripcion_compatibilidad}</p>
-            )}
-            <div className="mt-1.5 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onConfirmar}
-                className="text-micro font-black uppercase tracking-widest px-2 py-1 rounded bg-red-400/15 text-red-400 hover:bg-red-400/25 transition-colors"
-              >
-                Añadir de todos modos
-              </button>
-              <button
-                type="button"
-                onClick={onCancelar}
-                className="text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+/** Adapta un candidato al formato { id, nombre } que espera SeccionEntidad.
+ *  id = criatura_id u organismo_id (NO `clave`, que mezcla el prefijo
+ *  tipo: — SeccionEntidad usa `id` tal cual para selectedIds/onToggle). */
+function aEntidadBase(c: CandidatoHabitante): { id: string; nombre: string } {
+  const id = (c.tipo_participante === "criatura" ? c.criatura_id : c.organismo_id) ?? c.clave;
+  return { id, nombre: c.nombre };
 }
 
 export function HabitatPopoverContent({
@@ -182,79 +101,96 @@ export function HabitatPopoverContent({
   const { candidatos, factores, loading, error, pendientes, añadir, quitar } =
     useHabitatHabitantes(habitat.habitat_id, habitat.ecosistema_id, onCambio);
 
-  const [tab, setTab] = useState<TipoParticipanteHabitat>("criatura");
-  const [busqueda, setBusqueda] = useState("");
-  const [soloPresentes, setSoloPresentes] = useState(false);
-  /** Clave del candidato "incompatible" pendiente de confirmar. */
-  const [confirmando, setConfirmando] = useState<string | null>(null);
+  // Layout de dos columnas (cuerpo + barra lateral a la derecha), mismo
+  // patrón que PanelBioma/PanelEcosistema: solo aplica cuando lo monta
+  // HabitatEditor dentro de un panel flotante (sinCabecera=true).
+  const layoutDosColumnas = sinCabecera;
+  const [mobileSidebarLocal, setMobileSidebarLocal] = useState(false);
+  const asideGlobalAbierto = useMobileAsidePanel((st) => st.open);
+  const cerrarAsideGlobal = useMobileAsidePanel((st) => st.close);
+  const mobileSidebarOpen = layoutDosColumnas ? asideGlobalAbierto : mobileSidebarLocal;
+  const setMobileSidebarOpen = (v: boolean) =>
+    layoutDosColumnas ? (v ? undefined : cerrarAsideGlobal()) : setMobileSidebarLocal(v);
 
-  const conteo = useMemo(() => {
-    const c = { organismo: 0, criatura: 0, presentesOrganismo: 0, presentesCriatura: 0 };
-    for (const x of candidatos) {
-      c[x.tipo_participante] += 1;
-      if (x.es_presente) {
-        if (x.tipo_participante === "organismo") c.presentesOrganismo += 1;
-        else c.presentesCriatura += 1;
+  const criaturasCandidatas = useMemo(
+    () => candidatos.filter((c) => c.tipo_participante === "criatura"),
+    [candidatos],
+  );
+  const organismosCandidatos = useMemo(
+    () => candidatos.filter((c) => c.tipo_participante === "organismo"),
+    [candidatos],
+  );
+  const criaturasPresentesIds = criaturasCandidatas.filter((c) => c.es_presente).map((c) => c.criatura_id!);
+  const organismosPresentesIds = organismosCandidatos
+    .filter((c) => c.es_presente)
+    .map((c) => c.organismo_id!);
+
+  /** onToggle común para ambas SeccionEntidad: recibe el id (criatura_id u
+   *  organismo_id) y busca el candidato correspondiente en la lista dada. */
+  const hacerToggle =
+    (lista: CandidatoHabitante[]) =>
+    (id: string, add: boolean) => {
+      const cand =
+        lista.find((c) => c.criatura_id === id) ?? lista.find((c) => c.organismo_id === id);
+      if (!cand) return;
+      if (!add) {
+        void quitar(cand);
+        return;
       }
-    }
-    return c;
-  }, [candidatos]);
-
-  const visibles = useMemo(() => {
-    const q = busqueda.trim().toLocaleLowerCase("es");
-    return candidatos.filter(
-      (c) =>
-        c.tipo_participante === tab &&
-        (!soloPresentes || c.es_presente) &&
-        (!q || c.nombre.toLocaleLowerCase("es").includes(q)),
-    );
-  }, [candidatos, tab, busqueda, soloPresentes]);
-
-  const alternar = (c: CandidatoHabitante) => {
-    if (c.es_presente) {
-      void quitar(c);
-    } else if (c.compatibilidad === "incompatible") {
-      setConfirmando(c.clave);
-    } else {
-      void añadir(c);
-    }
-  };
+      if (cand.compatibilidad === "incompatible") {
+        const ok = window.confirm(
+          `${cand.nombre} está marcado como incompatible con este hábitat` +
+            (cand.descripcion_compatibilidad ? `: ${cand.descripcion_compatibilidad}` : ".") +
+            "\n\n¿Añadir de todos modos?",
+        );
+        if (!ok) return;
+      }
+      void añadir(cand);
+    };
 
   const factoresConValor = factores.filter((f) => !f.falta_valor);
   const factoresFaltantes = factores.filter((f) => f.falta_valor);
 
-  const TabBtn = ({
-    valor,
-    Icon,
-    label,
-    presentes,
-    total,
-  }: {
-    valor: TipoParticipanteHabitat;
-    Icon: React.ElementType;
-    label: string;
-    presentes: number;
-    total: number;
-  }) => (
-    <button
-      type="button"
-      onClick={() => setTab(valor)}
-      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-micro font-black uppercase tracking-widest transition-colors ${
-        tab === valor
-          ? "bg-primary/10 text-primary"
-          : "text-primary/40 hover:text-primary hover:bg-primary/5"
-      }`}
-    >
-      <Icon size={11} />
-      {label}
-      <span className="font-bold text-primary/35">
-        {presentes}/{total}
-      </span>
-    </button>
+  // ── Barra lateral — SeccionEntidad para Criaturas y Organismos ──────────
+  // Acá SÍ se añade/quita (a diferencia de PanelEcosistema): el hábitat es
+  // el lugar canónico de la presencia real.
+  const sidebar = (
+    <>
+      <SeccionEntidad
+        allEntities={criaturasCandidatas.map(aEntidadBase)}
+        emptyLabel="Sin criaturas candidatas"
+        fallbackIcon={<Bug size={14} strokeWidth={1} />}
+        fill={false}
+        icon={<Bug size={9} />}
+        label="Criaturas"
+        loading={loading}
+        saving={pendientes.size > 0}
+        selectedIds={criaturasPresentesIds}
+        onEntityClick={onSelectCriatura}
+        onToggle={hacerToggle(criaturasCandidatas)}
+      />
+      <div
+        style={{
+          borderTop: "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
+        }}
+      />
+      <SeccionEntidad
+        allEntities={organismosCandidatos.map(aEntidadBase)}
+        emptyLabel="Sin organismos candidatos"
+        fallbackIcon={<Sprout size={14} strokeWidth={1} />}
+        fill={false}
+        icon={<Sprout size={9} />}
+        label="Organismos"
+        loading={loading}
+        saving={pendientes.size > 0}
+        selectedIds={organismosPresentesIds}
+        onToggle={hacerToggle(organismosCandidatos)}
+      />
+    </>
   );
 
-  return (
-    <div className="flex flex-col h-full min-h-0">
+  const cuerpo = (
+    <>
       {/* ── Cabecera ─────────────────────────────────────────────────── */}
       {!sinCabecera && (
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -278,14 +214,27 @@ export function HabitatPopoverContent({
             <p className="mt-1.5 text-xs text-primary/60">{habitat.descripcion_habitat}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          title="Cerrar"
-          className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
-        >
-          <X size={14} />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {layoutDosColumnas && (
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              title="Entidades"
+              aria-label="Entidades"
+              className="sm:hidden p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
+            >
+              <SlidersHorizontal size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            title="Cerrar"
+            className="shrink-0 p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/5 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
       </div>
       )}
 
@@ -302,109 +251,8 @@ export function HabitatPopoverContent({
         </div>
       )}
 
-      {/* ── Habitantes ───────────────────────────────────────────────── */}
-      <div className="flex flex-col min-h-0 flex-1">
-        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 mb-1.5">
-          Habitantes
-        </span>
-        <div className="flex items-center gap-1 mb-2">
-          <TabBtn
-            valor="criatura"
-            Icon={Bug}
-            label="Criaturas"
-            presentes={conteo.presentesCriatura}
-            total={conteo.criatura}
-          />
-          <TabBtn
-            valor="organismo"
-            Icon={Sprout}
-            label="Organismos"
-            presentes={conteo.presentesOrganismo}
-            total={conteo.organismo}
-          />
-          <button
-            type="button"
-            onClick={() => setSoloPresentes((v) => !v)}
-            aria-pressed={soloPresentes}
-            className={`ml-auto px-2 py-1 rounded-lg text-micro font-black uppercase tracking-widest transition-colors ${
-              soloPresentes
-                ? "bg-primary/10 text-primary"
-                : "text-primary/35 hover:text-primary hover:bg-primary/5"
-            }`}
-          >
-            Presentes
-          </button>
-        </div>
-
-        <div className="relative mb-2">
-          <Search
-            size={12}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-primary/30"
-          />
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder={tab === "criatura" ? "Buscar criatura…" : "Buscar organismo…"}
-            className="w-full bg-primary/[0.04] border border-primary/10 rounded-lg pl-8 pr-7 py-1.5 text-micro font-semibold text-primary outline-none focus:border-primary/25 placeholder:text-primary/30 placeholder:font-normal"
-          />
-          {busqueda && (
-            <button
-              type="button"
-              onClick={() => setBusqueda("")}
-              title="Limpiar búsqueda"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-primary/30 hover:text-primary/60 transition-colors"
-            >
-              <X size={12} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 min-h-[120px] max-h-64 overflow-y-auto flex flex-col gap-0.5 pr-0.5">
-          {loading ? (
-            <div className="py-4 text-micro text-primary/30 text-center">Cargando…</div>
-          ) : visibles.length === 0 ? (
-            <div className="py-4 text-micro text-primary/25 text-center">
-              {busqueda
-                ? "Sin resultados"
-                : soloPresentes
-                  ? "Nadie presente todavía"
-                  : "Sin candidatos"}
-            </div>
-          ) : (
-            visibles.map((c) => (
-              <div key={c.clave} className="flex items-start gap-1">
-                <div className="flex-1 min-w-0">
-                  <FilaHabitante
-                    cand={c}
-                    pendiente={pendientes.has(c.clave)}
-                    confirmando={confirmando === c.clave}
-                    onToggle={() => alternar(c)}
-                    onConfirmar={() => {
-                      setConfirmando(null);
-                      void añadir(c);
-                    }}
-                    onCancelar={() => setConfirmando(null)}
-                  />
-                </div>
-                {c.tipo_participante === "criatura" && c.criatura_id && onSelectCriatura && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectCriatura(c.criatura_id!)}
-                    title={`Abrir ${c.nombre}`}
-                    className="shrink-0 mt-1.5 p-1 rounded text-primary/25 hover:text-accent hover:bg-primary/5 transition-colors"
-                  >
-                    <Bug size={11} />
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* ── Ambiente (factores efectivos, solo lectura) ──────────────── */}
-      <div className="mt-3 pt-3 border-t border-primary/10">
+      <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40">
             Ambiente
@@ -444,6 +292,77 @@ export function HabitatPopoverContent({
           <p className="mt-1.5 text-micro text-primary/25">↑ valor heredado del ecosistema o bioma</p>
         )}
       </div>
+
+      {/* Fuera del layout de dos columnas (uso legado en popover sin
+          onHeaderControlsChange) las SeccionEntidad se apilan debajo, para
+          no perder la función en ese modo. */}
+      {!layoutDosColumnas && (
+        <div className="mt-3 pt-3 border-t border-primary/10 flex flex-col gap-3">
+          {sidebar}
+        </div>
+      )}
+    </>
+  );
+
+  if (!layoutDosColumnas) {
+    return <div className="flex flex-col h-full min-h-0">{cuerpo}</div>;
+  }
+
+  return (
+    <div className="flex flex-1 h-full min-h-0">
+      <RegistroAsideMovil />
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">{cuerpo}</div>
+
+      {/* ── Barra lateral — sección Entidad (Criaturas + Organismos) ──
+          Mismo patrón visual que PanelBioma/PanelEcosistema: aside a la
+          derecha en desktop, drawer en celular. */}
+      <aside
+        className="hidden sm:flex shrink-0 w-44 flex-col border-l overflow-y-auto overflow-x-hidden pl-0"
+        style={{
+          borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
+          background: "color-mix(in srgb, var(--primary) 1%, transparent)",
+          scrollbarWidth: "none",
+        }}
+      >
+        {sidebar}
+      </aside>
+
+      {/* ── Barra lateral — mobile drawer ── mismo diseño que
+          PanelBioma/PanelEcosistema (ancho 200px, header "Entidades"). */}
+      {mobileSidebarOpen && (
+        <div className="sm:hidden fixed inset-0 z-[10000] flex justify-end">
+          <div
+            className="absolute inset-0"
+            style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+          <div
+            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+            style={{
+              width: "200px",
+              background: "var(--white-custom, var(--bg-main))",
+              borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              scrollbarWidth: "none",
+            }}
+          >
+            <div
+              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
+            >
+              <span className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
+                <SlidersHorizontal size={9} /> Entidades
+              </span>
+              <button
+                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
+                onClick={() => setMobileSidebarOpen(false)}
+              >
+                <X size={13} />
+              </button>
+            </div>
+            {sidebar}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
