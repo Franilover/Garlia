@@ -1044,11 +1044,11 @@ export function CriaturasJerarquica({
       ...dropCriaturaNuevaHandlers,
       // onDragOver/onDrop pueden pisar — los unimos manualmente para que
       // ambos listeners coexistan sin pisarse.
-      onDragOver: (e: React.DragEvent) => {
+      onDragOver: (e: React.DragEvent<HTMLElement>) => {
         (dropPresenciaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
         (dropCriaturaNuevaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
       },
-      onDrop: (e: React.DragEvent) => {
+      onDrop: (e: React.DragEvent<HTMLElement>) => {
         (dropPresenciaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
         (dropCriaturaNuevaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
       },
@@ -1137,12 +1137,12 @@ export function CriaturasJerarquica({
       ...dropCriaturaHandlers,
       ...dropFloraHandlers,
       ...dropMineralHandlers,
-      onDragOver: (e: React.DragEvent) => {
+      onDragOver: (e: React.DragEvent<HTMLElement>) => {
         (dropCriaturaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
         (dropFloraHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
         (dropMineralHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
       },
-      onDrop: (e: React.DragEvent) => {
+      onDrop: (e: React.DragEvent<HTMLElement>) => {
         (dropCriaturaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
         (dropFloraHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
         (dropMineralHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
