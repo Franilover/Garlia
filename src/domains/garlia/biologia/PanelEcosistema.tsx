@@ -30,7 +30,6 @@ import { useFloraCatalogoMin } from "@/domains/garlia/flora/useFloraCatalogoMin"
 import { SelectorMineralesMulti } from "@/domains/garlia/minerales/SelectorMineralesMulti";
 import { useMineralesCatalogoMin } from "@/domains/garlia/minerales/useMineralesCatalogoMin";
 import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
-import { useCriaturasCatalogoMin } from "@/domains/garlia/runas/useCriaturasCatalogoMin";
 
 import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
 import { useBiomas } from "./useBiologia";
@@ -347,8 +346,6 @@ export function PanelEcosistema({
   const habitatsDelEcosistema = habitatsDe(ecosistema.id);
   const mineralIds = ecosistema.mineral_ids ?? [];
 
-  const { criaturas: catalogoCriaturas, loading: loadingCatalogoCriaturas } =
-    useCriaturasCatalogoMin();
   const { flora: catalogoFlora, loading: loadingCatalogoFlora } = useFloraCatalogoMin();
   const { minerales: catalogoMinerales, loading: loadingCatalogoMinerales } =
     useMineralesCatalogoMin();
@@ -380,27 +377,93 @@ export function PanelEcosistema({
 
   const sidebar = (
     <>
-      <SeccionEntidad
-        allEntities={catalogoCriaturas.map((c) => ({
-          id: c.id,
-          nombre: c.nombre,
-          imagen_url: c.imagen_url,
-        }))}
-        emptyLabel="Sin criaturas"
-        fallbackIcon={<Bug size={14} strokeWidth={1} />}
-        fill={false}
-        icon={<Bug size={9} />}
-        label="Criaturas"
-        loading={loadingCatalogoCriaturas || loadingMapaEco}
-        saving={false}
-        selectedIds={criaturaIds}
-        onEntityClick={onSelectCriatura}
-        // Solo navegación: una criatura pertenece a este ecosistema porque
-        // vive en uno de sus hábitats. Para añadir o quitar una criatura
-        // hay que entrar al hábitat correspondiente (más abajo) — mismo
-        // criterio que la sección "Reinos" de acá abajo.
-        onToggle={() => {}}
-      />
+      {/* Criaturas — clon visual de SeccionEntidad en modo solo-lectura,
+       *  agrupado por hábitat en vez de por selección libre. No usa el
+       *  componente SeccionEntidad real a propósito: ese componente
+       *  siempre renderiza su propio botón "Añadir" + combo con TODO el
+       *  catálogo y una "X" de quitar por chip — no tiene modo readOnly.
+       *  Acá una criatura pertenece a este ecosistema porque vive en uno
+       *  de sus hábitats, no porque se la "añada" al ecosistema
+       *  directamente: añadir/quitar se hace entrando al hábitat (click
+       *  en su nombre, abajo), igual que en CriaturasJerarquica. */}
+      <div className="shrink-0 flex flex-col">
+        {/* Cabecera — mismo layout/tipografía que la cabecera de
+         *  SeccionEntidad, sin el trigger del combo. */}
+        <div className="shrink-0 flex items-center justify-between px-2 py-1">
+          <span
+            className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] leading-none"
+            style={{ color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}
+          >
+            <Bug size={9} />
+            Criaturas
+          </span>
+          {criaturaIds.length > 0 && (
+            <span
+              className="text-micro font-black tabular-nums"
+              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
+            >
+              {criaturaIds.length}
+            </span>
+          )}
+        </div>
+
+        {loadingMapaEco ? (
+          <p className="text-micro font-black uppercase text-primary/20 px-2.5 py-2 text-center tracking-[0.2em] italic">
+            Cargando…
+          </p>
+        ) : criaturaIds.length === 0 ? (
+          <p className="text-micro font-black uppercase text-primary/20 px-2.5 py-2 text-center tracking-[0.2em] italic">
+            Sin criaturas
+          </p>
+        ) : (
+          // Agrupado por hábitat — mismo patrón visual que el modo
+          // `groups` de SeccionEntidad (header de grupo + filas debajo).
+          habitatsDelEcosistema
+            .map((h) => ({ habitat: h, presentes: presenciasDeHabitat(h.habitat_id) }))
+            .filter((g) => g.presentes.length > 0)
+            .map(({ habitat, presentes }) => (
+              <React.Fragment key={habitat.habitat_id}>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 px-3 py-0.5 hover:opacity-70 transition-opacity"
+                  title={`Abrir hábitat ${habitat.habitat}`}
+                  onClick={() => onSelectHabitat?.(habitat.habitat_id)}
+                >
+                  <span
+                    className="text-micro font-black uppercase tracking-[0.2em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
+                  >
+                    {habitat.habitat}
+                  </span>
+                </button>
+                {presentes.map((p) => (
+                  <div
+                    key={p.participante_id}
+                    className="group flex items-center gap-2 px-2.5 py-1.5 transition-all hover:bg-primary/[0.04]"
+                    style={{ cursor: p.criatura_id ? "pointer" : "default" }}
+                    onClick={() => (p.criatura_id ? onSelectCriatura?.(p.criatura_id) : undefined)}
+                  >
+                    <div
+                      className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-micro font-black uppercase"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                        color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                      }}
+                    >
+                      {(p.nombre ?? "?").charAt(0)}
+                    </div>
+                    <span
+                      className="flex-1 min-w-0 text-micro font-black uppercase tracking-wide leading-tight break-words truncate"
+                      style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
+                    >
+                      {p.nombre}
+                    </span>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))
+        )}
+      </div>
       {sectionDivider}
       <SeccionEntidad
         allEntities={catalogoFlora.map((f) => ({
