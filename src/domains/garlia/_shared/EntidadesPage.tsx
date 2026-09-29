@@ -59,7 +59,10 @@ import { GeografiaJerarquica, type GrupoPersonajeSubtipo } from "@/domains/garli
 import { GrupoFiltroBarra, GrupoFiltroDropdown, type GrupoFiltroSubtipo } from "@/domains/garlia/_shared/GrupoFiltroDropdown";
 import { CriaturasJerarquica } from "@/domains/garlia/_shared/CriaturasJerarquica";
 import { useMapaEcologico } from "@/domains/garlia/biologia/useMapaEcologico";
-import { moverPresenciaEntreHabitats } from "@/domains/garlia/biologia/presenciaService";
+import {
+  asignarCriaturaAHabitat,
+  moverPresenciaEntreHabitats,
+} from "@/domains/garlia/biologia/presenciaService";
 import { ItemsJerarquia } from "@/domains/garlia/_shared/ItemsJerarquia";
 import { AgrupacionPersonajesDropdown } from "@/domains/garlia/_shared/AgrupacionPersonajesDropdown";
 import { BuscadorInline } from "@/domains/garlia/_shared/BuscadorInline";
@@ -119,8 +122,11 @@ export function EntidadesPage({ section, selectedId }: Props) {
   // ecosistema_flora) — se reconstruye acá, mismo criterio que
   // biomasConReinoIds, para no tocar el contrato de ItemsJerarquia /
   // CriaturasJerarquica (siguen esperando Ecosistema.flora_ids como antes).
-  const { floraIdsDe: floraIdsDeEcosistema, loading: loadingEcosistemaFlora } =
-    useEcosistemaFlora();
+  const {
+    floraIdsDe: floraIdsDeEcosistema,
+    setFloraDeEcosistema,
+    loading: loadingEcosistemaFlora,
+  } = useEcosistemaFlora();
   const ecosistemasConFloraIds = useMemo(
     () => ecosistemas.map((e) => ({ ...e, flora_ids: floraIdsDeEcosistema(e.id) })),
     [ecosistemas, floraIdsDeEcosistema],
@@ -1082,6 +1088,29 @@ export function EntidadesPage({ section, selectedId }: Props) {
           }}
           onMoverPersonaje={async (personajeId, criaturaNombre) => {
             await updatePersonaje(personajeId, { especie: criaturaNombre ?? undefined });
+          }}
+          // Criatura "Sin hábitat asignado" → hábitat (arrastre click derecho).
+          onAsignarCriaturaAHabitat={async (criaturaId, habitatId, ecosistemaId) => {
+            try {
+              await asignarCriaturaAHabitat(criaturaId, habitatId, ecosistemaId);
+              invalidarMapaEcologico();
+            } catch (e) {
+              console.error("[EntidadesPage] asignarCriaturaAHabitat:", e);
+            }
+          }}
+          // Flora "sin ecosistema" → ecosistema (tabla puente ecosistema_flora).
+          onAsignarFloraAEcosistema={async (floraId, ecosistemaId) => {
+            const actuales = floraIdsDeEcosistema(ecosistemaId);
+            if (actuales.includes(floraId)) return;
+            await setFloraDeEcosistema(ecosistemaId, [...actuales, floraId]);
+          }}
+          // Mineral "sin ecosistema" → ecosistema (Ecosistema.mineral_ids, igual
+          // que PanelEcosistema / SelectorMineralesMulti).
+          onAsignarMineralAEcosistema={async (mineralId, ecosistemaId) => {
+            const eco = ecosistemas.find((e) => e.id === ecosistemaId);
+            const actuales: string[] = Array.isArray(eco?.mineral_ids) ? eco!.mineral_ids : [];
+            if (actuales.includes(mineralId)) return;
+            await actualizarEcosistema(ecosistemaId, { mineral_ids: [...actuales, mineralId] });
           }}
           onMoverCriaturaAHabitat={async (presencia, targetHabitatId, targetEcosistemaId, soloAnadir) => {
             try {

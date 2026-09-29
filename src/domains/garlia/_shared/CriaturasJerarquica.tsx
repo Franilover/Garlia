@@ -1102,9 +1102,12 @@ export function CriaturasJerarquica({
     );
   };
 
-  // ── Card de ecosistema individual (idéntica a la de antes, extraída para
-  // poder repetirla dentro de cada bloque de bioma sin duplicar el JSX) ────
-  const renderTarjetaEcosistema = (eco: Ecosistema) => {
+  // ── Zona de drop de un ecosistema (criatura legacy / flora / mineral) ─────
+  // Extraída para usarla tanto en la card completa como en el chip de los
+  // ecosistemas "vacíos" (sin hábitats, flora ni minerales): antes esos chips
+  // no aceptaban drops, así que era imposible soltar la primera flora/mineral
+  // sobre un ecosistema recién creado.
+  const ecoDrop = (eco: Ecosistema) => {
     const zoneId = `eco:${eco.id}`;
     // Modelo nuevo: asignar una criatura a un ecosistema escribiría en la
     // tabla legacy ecosistema_criaturas, que ya no alimenta esta vista
@@ -1148,6 +1151,13 @@ export function CriaturasJerarquica({
         (dropMineralHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
       },
     };
+    return { dropHandlers, dropActive };
+  };
+
+  // ── Card de ecosistema individual (idéntica a la de antes, extraída para
+  // poder repetirla dentro de cada bloque de bioma sin duplicar el JSX) ────
+  const renderTarjetaEcosistema = (eco: Ecosistema) => {
+    const { dropHandlers, dropActive } = ecoDrop(eco);
 
     return (
       <div
@@ -1541,19 +1551,29 @@ export function CriaturasJerarquica({
                               gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
                             }}
                           >
-                            {grupo.vacios.map((eco) => (
-                              <NodoTitulo
-                                key={eco.id}
-                                fill
-                                label={eco.nombre}
-                                dragProps={
-                                  onAsignarEcosistemaABioma
-                                    ? dragEcosistema.dragHandlers(eco.id)
-                                    : undefined
-                                }
-                                onClick={() => abrirPanel("ecosistema", eco.id)}
-                              />
-                            ))}
+                            {grupo.vacios.map((eco) => {
+                              const { dropHandlers, dropActive } = ecoDrop(eco);
+                              return (
+                                <div
+                                  key={eco.id}
+                                  {...dropHandlers}
+                                  className={`rounded-full transition-colors ${
+                                    dropActive ? "ring-2 ring-accent/60 bg-accent/5" : ""
+                                  }`}
+                                >
+                                  <NodoTitulo
+                                    fill
+                                    label={eco.nombre}
+                                    dragProps={
+                                      onAsignarEcosistemaABioma
+                                        ? dragEcosistema.dragHandlers(eco.id)
+                                        : undefined
+                                    }
+                                    onClick={() => abrirPanel("ecosistema", eco.id)}
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </>

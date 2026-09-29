@@ -108,3 +108,25 @@ export async function moverPresenciaEntreHabitats(
     if (errDel) throw errDel;
   }
 }
+
+/**
+ * Asigna una criatura (que hoy no tiene hábitat) a un hábitat concreto.
+ * Arrastre desde el bloque "Sin hábitat asignado" de CriaturasJerarquica.
+ *
+ *  1. Busca/crea el participante (ecosistema_participantes) de la criatura
+ *     en el ecosistema del hábitat.
+ *  2. Inserta la presencia en ecosistema_participante_habitats.
+ *
+ * Idempotente: si la presencia ya existe (23505) no es error.
+ */
+export async function asignarCriaturaAHabitat(
+  criaturaId: string,
+  habitatId: string,
+  ecosistemaId: string,
+): Promise<void> {
+  const participanteId = await obtenerOCrearParticipante(ecosistemaId, criaturaId, null);
+  const { error } = await supabase
+    .from("ecosistema_participante_habitats")
+    .insert({ participante_id: participanteId, habitat_id: habitatId });
+  if (error && error.code !== "23505") throw error;
+}
