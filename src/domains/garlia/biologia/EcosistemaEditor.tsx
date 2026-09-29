@@ -75,6 +75,7 @@ export function EcosistemaEditor({
       onSelectCriatura={(id) => abrirPanel("criatura", id)}
       onSelectFlora={(id) => abrirPanel("flora", id)}
       onSelectMineral={(id) => abrirPanel("mineral", id)}
+      onSelectHabitat={(id) => abrirPanel("habitat", id)}
       onSelectBioma={(id) =>
         enPanelFlotante ? abrirPanel("bioma", id) : openEntity("biomas", id)
       }

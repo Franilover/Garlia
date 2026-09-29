@@ -33,7 +33,8 @@ import { useReinosMin } from "@/domains/garlia/reinos/useReinosMin";
 import { useCriaturasCatalogoMin } from "@/domains/garlia/runas/useCriaturasCatalogoMin";
 
 import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
-import { useBiomas, useEcosistemaCriaturas } from "./useBiologia";
+import { useBiomas } from "./useBiologia";
+import { useMapaEcologico } from "./useMapaEcologico";
 import {
   ROL_TROFICO_LABEL,
   ROLES_TROFICOS,
@@ -240,6 +241,7 @@ export function PanelEcosistema({
   onSelectFlora,
   onSelectMineral,
   onSelectBioma,
+  onSelectHabitat,
   modoPopover = false,
   onHeaderControlsChange,
 }: {
@@ -267,6 +269,10 @@ export function PanelEcosistema({
   onSelectMineral?: (id: string) => void;
   /** Abre el editor completo del bioma actualmente seleccionado. */
   onSelectBioma?: (id: string) => void;
+  /** Abre el panel flotante del hábitat clickeado (mismo patrón que
+   *  CriaturasJerarquica: abrirPanel("habitat", id)). Las criaturas ya no
+   *  se añaden desde acá: se navega al hábitat y se gestionan ahí. */
+  onSelectHabitat?: (id: string) => void;
   /** true cuando se renderiza dentro de un popover flotante: el botón
    *  izquierdo pasa de "volver" (flecha) a "cerrar" (X). */
   modoPopover?: boolean;
@@ -329,11 +335,16 @@ export function PanelEcosistema({
   // Reino no vive en el ecosistema directamente: se deriva del bioma_id
   // (vía bioma_reinos), y esta sección solo lo muestra como referencia
   // navegable — no es editable desde acá (se edita en el Bioma).
-  // Ruta canónica v226: la pertenencia de criaturas a este ecosistema vive
-  // en la tabla puente ecosistema_criaturas, no en una columna embebida.
-  const { criaturaIdsDe, asignar: asignarCriaturaAEcosistema, desasignar: desasignarCriaturaDeEcosistema } =
-    useEcosistemaCriaturas();
-  const criaturaIds = criaturaIdsDe(ecosistema.id);
+  //
+  // Criaturas: la pertenencia real vive en el modelo Hábitat
+  // (ecosistema_participantes ⋈ ecosistema_participante_habitats), no en
+  // el ecosistema. Acá solo se LEE (vía useMapaEcologico, que consulta las
+  // vistas canónicas) y se navega — añadir/quitar una criatura se hace
+  // desde el hábitat donde vive, igual que en CriaturasJerarquica.
+  const { habitatsDe, presenciasDeHabitat, criaturaIdsDeEcosistema, loading: loadingMapaEco } =
+    useMapaEcologico();
+  const criaturaIds = criaturaIdsDeEcosistema(ecosistema.id);
+  const habitatsDelEcosistema = habitatsDe(ecosistema.id);
   const mineralIds = ecosistema.mineral_ids ?? [];
 
   const { criaturas: catalogoCriaturas, loading: loadingCatalogoCriaturas } =
@@ -350,10 +361,6 @@ export function PanelEcosistema({
     [catalogoReinos],
   );
 
-  const handleToggleCriatura = (id: string, add: boolean) =>
-    add
-      ? asignarCriaturaAEcosistema(id, ecosistema.id)
-      : desasignarCriaturaDeEcosistema(id, ecosistema.id);
   const handleToggleFlora = (id: string, add: boolean) =>
     onChangeFlora(add ? [...floraIds, id] : floraIds.filter((x) => x !== id));
   const handleToggleMineral = (id: string, add: boolean) =>
@@ -384,11 +391,15 @@ export function PanelEcosistema({
         fill={false}
         icon={<Bug size={9} />}
         label="Criaturas"
-        loading={loadingCatalogoCriaturas}
+        loading={loadingCatalogoCriaturas || loadingMapaEco}
         saving={false}
         selectedIds={criaturaIds}
         onEntityClick={onSelectCriatura}
-        onToggle={handleToggleCriatura}
+        // Solo navegación: una criatura pertenece a este ecosistema porque
+        // vive en uno de sus hábitats. Para añadir o quitar una criatura
+        // hay que entrar al hábitat correspondiente (más abajo) — mismo
+        // criterio que la sección "Reinos" de acá abajo.
+        onToggle={() => {}}
       />
       {sectionDivider}
       <SeccionEntidad
@@ -652,21 +663,58 @@ export function PanelEcosistema({
           </div>
 
           <div className="mb-4">
-            <SelectorCriaturasMulti
-              ids={criaturaIds}
-              onChange={(nuevosIds) => {
-                const anteriores = new Set(criaturaIds);
-                const siguientes = new Set(nuevosIds);
-                for (const id of nuevosIds) {
-                  if (!anteriores.has(id)) asignarCriaturaAEcosistema(id, ecosistema.id);
-                }
-                for (const id of criaturaIds) {
-                  if (!siguientes.has(id)) desasignarCriaturaDeEcosistema(id, ecosistema.id);
-                }
-              }}
-              onSelectCriatura={onSelectCriatura}
-              label="Criaturas que lo habitan"
-            />
+            <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/40 block mb-1.5">
+              Criaturas que lo habitan
+            </span>
+            {/* Solo lectura + navegación: las criaturas de un ecosistema son
+             *  las que están presentes en alguno de sus hábitats. Añadir o
+             *  quitar una criatura se hace desde el hábitat, no desde acá
+             *  (mismo modelo que CriaturasJerarquica). */}
+            {loadingMapaEco ? (
+              <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+            ) : habitatsDelEcosistema.length === 0 ? (
+              <p className="text-micro text-primary/25 italic py-1">
+                Este ecosistema todavía no tiene hábitats.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {habitatsDelEcosistema.map((h) => {
+                  const presentes = presenciasDeHabitat(h.habitat_id);
+                  return (
+                    <div key={h.habitat_id}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectHabitat?.(h.habitat_id)}
+                        className="text-micro font-bold text-primary/60 hover:text-primary transition-colors mb-1"
+                      >
+                        {h.habitat}
+                      </button>
+                      {presentes.length === 0 ? (
+                        <p className="text-micro text-primary/25 italic py-0.5">
+                          Sin criaturas asignadas — añadilas desde el hábitat
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {presentes.map((p) => (
+                            <button
+                              key={p.participante_id}
+                              type="button"
+                              title={p.nombre ?? undefined}
+                              onClick={() =>
+                                p.criatura_id ? onSelectCriatura?.(p.criatura_id) : undefined
+                              }
+                              className="px-2 py-1 rounded-full border border-primary/10 bg-primary/[0.02] hover:border-primary/25 transition-colors text-micro font-bold text-primary/70 truncate max-w-[160px]"
+                            >
+                              {p.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="mb-4">

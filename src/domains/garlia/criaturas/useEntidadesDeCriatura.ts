@@ -12,9 +12,12 @@
  *   - Flora: tampoco tiene columna directa — vive en la tabla puente
  *     `ecosistema_flora` (M:N, ecosistemas.flora_ids ya no es columna).
  *   Ambas se muestran acá, al mismo nivel que Items, para la Flora/Minerales
- *   de todo Ecosistema ligado a esta criatura vía la tabla puente
- *   `ecosistema_criaturas` (ruta canónica v226; solo lectura acá — la
- *   edición del vínculo vive en PanelEcosistema).
+ *   de todo Ecosistema ligado a esta criatura. El vínculo real Criatura↔
+ *   Ecosistema vive en el modelo de Hábitats (`ecosistema_participantes`,
+ *   filtrado por `criatura_id`); la vieja tabla puente `ecosistema_criaturas`
+ *   quedó sin uso (0 filas) tras la migración a Hábitats y ya no se
+ *   consulta acá. Solo lectura — la edición del vínculo vive en el Hábitat
+ *   (HabitatPopoverContent / useHabitatHabitantes).
  *
  * Ruta destino:
  *   src/features/editorGarlia/hooks/criaturas/useEntidadesDeCriatura.ts
@@ -56,12 +59,14 @@ export function useEntidadesDeCriatura(criaturaId: string) {
           .select("id, nombre, imagen_url")
           .eq("criatura_id", criaturaId)
           .order("nombre"),
-        // Ruta canónica v226: ecosistema_criaturas es la tabla puente que
-        // liga esta criatura a sus ecosistemas.
+        // Modelo canónico (Hábitats): ecosistema_participantes liga esta
+        // criatura a sus ecosistemas — reemplaza a la tabla legacy
+        // ecosistema_criaturas, que ya no tiene datos.
         supabase
-          .from("ecosistema_criaturas")
+          .from("ecosistema_participantes")
           .select("ecosistema_id")
-          .eq("criatura_id", criaturaId),
+          .eq("criatura_id", criaturaId)
+          .eq("activo", true),
       ]);
 
       const ecosistemaIds = (vinculos ?? []).map((v: any) => v.ecosistema_id as string);
