@@ -24,6 +24,12 @@ interface SmartImageProps {
   fallbackIcon?: React.ReactNode;
 }
 
+// DEBUG TEMPORAL (sacar cuando se confirme el fix): texto encima de la
+// imagen cuando falla o queda atascada, SOLO dentro de la app de Tauri.
+// Reemplaza a logcat: sacar captura de pantalla y pasarla.
+const enTauri = () =>
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
 export const SmartImage = ({
   src,
   alt,
@@ -44,28 +50,82 @@ export const SmartImage = ({
   // pasan a false solos y la nueva URL tiene otra chance.
   //
   // Antes había un useEffect([srcFinal]) que hacía setLoaded(false) al
-  // montar. Con imágenes ya cacheadas (volver a una lista, o abrir el
-  // detalle de un libro cuya portada se acaba de ver en la lista), el
-  // evento `load` puede dispararse ANTES de que corra ese efecto: onLoad
-  // ponía loaded=true, el efecto lo pisaba con false, y como el navegador
-  // no vuelve a disparar `load`, la imagen quedaba invisible (opacity 0)
-  // con el skeleton para siempre. Con imágenes NO cacheadas (primera
-  // carga) el `load` llega después del efecto y todo andaba bien.
+  // montar. Con imágenes ya cacheadas, el `load` puede dispararse ANTES de
+  // ese efecto: onLoad ponía loaded=true, el efecto lo pisaba con false, y
+  // como el navegador no vuelve a disparar `load`, la imagen quedaba
+  // invisible con el skeleton para siempre.
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [erroredSrc, setErroredSrc] = useState<string | null>(null);
+  const [dbg, setDbg] = useState("");
   const loaded = loadedSrc === srcFinal;
   const errored = erroredSrc === srcFinal;
 
   const imgRef = useRef<HTMLImageElement>(null);
+  const loadedRef = useRef(false);
+  loadedRef.current = loaded;
 
-  // Red de seguridad: si la imagen ya estaba completa cuando montó (y el
-  // evento `load` se perdió), la marcamos como cargada.
+  // Red de seguridad: si la imagen ya estaba completa cuando montó (o el
+  // evento `load` se perdió por cualquier motivo), la marcamos como cargada.
   useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth > 0) {
-      setLoadedSrc(srcFinal);
-    }
+    const revisar = () => {
+      const img = imgRef.current;
+      if (img && img.complete && img.naturalWidth > 0) {
+        setLoadedSrc(srcFinal);
+      }
+    };
+    revisar();
+    const t1 = setTimeout(revisar, 500);
+    const t2 = setTimeout(revisar, 1500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [srcFinal]);
+
+  // DEBUG TEMPORAL: diagnóstico visible si falla o queda atascada > 3 s.
+  useEffect(() => {
+    setDbg("");
+    if (!srcFinal || !enTauri()) return;
+
+    let cancelado = false;
+    const diagnosticar = async (motivo: string) => {
+      const img = imgRef.current;
+      let red = "";
+      try {
+        const r = await fetch(srcFinal);
+        red = `${r.status} ${r.headers.get("content-type")}`;
+      } catch {
+        red = "fetch error";
+      }
+      if (cancelado) return;
+      setDbg(
+        `[${motivo}] ${red} complete=${img?.complete} nw=${img?.naturalWidth} ` +
+          `page=${window.location.pathname}${window.location.search} src=${srcFinal}`,
+      );
+    };
+
+    if (errored) {
+      void diagnosticar("ERR");
+      return () => {
+        cancelado = true;
+      };
+    }
+
+    const t = setTimeout(() => {
+      if (!loadedRef.current) void diagnosticar("STUCK");
+    }, 3000);
+    return () => {
+      cancelado = true;
+      clearTimeout(t);
+    };
+  }, [srcFinal, errored]);
+
+  const overlayDbg =
+    dbg && !loaded ? (
+      <span className="absolute inset-0 z-30 overflow-hidden break-all bg-black/75 p-1 text-[8px] leading-tight text-white pointer-events-none">
+        {dbg}
+      </span>
+    ) : null;
 
   if (!src || errored) {
     return (
@@ -75,6 +135,7 @@ export const SmartImage = ({
         <span className="text-primary/20">
           {fallbackIcon ?? <ImageOff size={18} />}
         </span>
+        {overlayDbg}
       </div>
     );
   }
@@ -110,6 +171,7 @@ export const SmartImage = ({
           onLoad={() => setLoadedSrc(srcFinal)}
         />
       </MotionDiv>
+      {overlayDbg}
     </div>
   );
 };
