@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence } from 'framer-motion';
 import { ImageOff } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { MotionDiv } from "@/ui/Motion";
 
@@ -33,19 +33,38 @@ export const SmartImage = ({
   cacheBust = false,
   fallbackIcon,
 }: SmartImageProps) => {
-  const [loaded, setLoaded] = useState(false);
-  const [errored, setErrored] = useState(false);
-
   const srcFinal =
     src && cacheBust
       ? `${src}${src.includes('?') ? '&' : '?'}v=${SESSION_TS}`
       : src;
 
-  // Si cambia el src (ej. otra canción/libro), dale otra chance: puede que
-  // la nueva URL sí cargue bien aunque la anterior haya fallado.
+  // Estado "derivado del src": en vez de booleanos que hay que resetear con
+  // un useEffect cuando cambia el src, guardamos QUÉ src cargó / falló.
+  // Así, si el src cambia (ej. otro libro/canción), `loaded` y `errored`
+  // pasan a false solos y la nueva URL tiene otra chance.
+  //
+  // Antes había un useEffect([srcFinal]) que hacía setLoaded(false) al
+  // montar. Con imágenes ya cacheadas (volver a una lista, o abrir el
+  // detalle de un libro cuya portada se acaba de ver en la lista), el
+  // evento `load` puede dispararse ANTES de que corra ese efecto: onLoad
+  // ponía loaded=true, el efecto lo pisaba con false, y como el navegador
+  // no vuelve a disparar `load`, la imagen quedaba invisible (opacity 0)
+  // con el skeleton para siempre. Con imágenes NO cacheadas (primera
+  // carga) el `load` llega después del efecto y todo andaba bien.
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const [erroredSrc, setErroredSrc] = useState<string | null>(null);
+  const loaded = loadedSrc === srcFinal;
+  const errored = erroredSrc === srcFinal;
+
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Red de seguridad: si la imagen ya estaba completa cuando montó (y el
+  // evento `load` se perdió), la marcamos como cargada.
   useEffect(() => {
-    setErrored(false);
-    setLoaded(false);
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoadedSrc(srcFinal);
+    }
   }, [srcFinal]);
 
   if (!src || errored) {
@@ -80,14 +99,15 @@ export const SmartImage = ({
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <img
+          ref={imgRef}
           alt={alt || "Imagen de Franilover Art"}
           className={`w-full h-full transition-all duration-700 ${
             contain ? 'object-contain' : 'object-cover'
           } ${loaded ? 'blur-0' : 'blur-xl'}`}
           loading={priority ? "eager" : "lazy"}
           src={srcFinal}
-          onError={() => setErrored(true)}
-          onLoad={() => setLoaded(true)}
+          onError={() => setErroredSrc(srcFinal)}
+          onLoad={() => setLoadedSrc(srcFinal)}
         />
       </MotionDiv>
     </div>
