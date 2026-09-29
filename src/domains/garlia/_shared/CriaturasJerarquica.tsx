@@ -165,6 +165,21 @@ interface Props {
    *  que en GeografiaJerarquica) — setea Ecosistema.bioma_id. Si el
    *  elemento no acepta esta prop, los ecosistemas no son arrastrables. */
   onAsignarEcosistemaABioma?: (ecosistemaId: string, biomaId: string) => void;
+  /** Asigna una criatura sin hábitat a un hábitat concreto (arrastre por
+   *  click derecho de un chip de criatura desde el bloque "Sin hábitat
+   *  asignado" sobre un bloque de Hábitat en modo `usaModeloHabitats`).
+   *  Crea el participante en ecosistema_participantes + su entrada en
+   *  ecosistema_participante_habitats. */
+  onAsignarCriaturaAHabitat?: (
+    criaturaId: string,
+    habitatId: string,
+    ecosistemaId: string,
+  ) => void;
+  /** Asigna una entidad de Flora desde el bloque "sin ecosistema" a un
+   *  ecosistema (arrastre por click derecho sobre la card de ecosistema). */
+  onAsignarFloraAEcosistema?: (floraId: string, ecosistemaId: string) => void;
+  /** Asigna un Mineral desde el bloque "sin ecosistema" a un ecosistema. */
+  onAsignarMineralAEcosistema?: (mineralId: string, ecosistemaId: string) => void;
   /** Mueve o clona una presencia (criatura dentro de un hábitat) a otro
    *  hábitat vía click derecho arrastrar (modo `usaModeloHabitats`).
    *  - `soloAnadir = false` (sin Shift): mueve — quita del hábitat origen.
@@ -510,6 +525,9 @@ export function CriaturasJerarquica({
   onCreatePersonaje,
   creatingCriatura,
   onAsignarCriaturaAEcosistema,
+  onAsignarCriaturaAHabitat,
+  onAsignarFloraAEcosistema,
+  onAsignarMineralAEcosistema,
   onAsignarEcosistemaABioma,
   onMoverCriaturaAHabitat,
   onMoverPersonaje,
@@ -569,6 +587,15 @@ export function CriaturasJerarquica({
   // sobre el título de un Bioma.
   const dragEcosistema = useRightClickDrag<string>({
     label: (id) => ecosistemas.find((e) => e.id === id)?.nombre ?? "",
+  });
+  // Arrastre (click derecho) de chips de Flora sin ecosistema → se sueltan
+  // sobre una card de Ecosistema para asignarles el ecosistema.
+  const dragFlora = useRightClickDrag<string>({
+    label: (id) => flora.find((f) => f.id === id)?.nombre ?? "",
+  });
+  // Arrastre (click derecho) de chips de Mineral sin ecosistema → idem.
+  const dragMineral = useRightClickDrag<string>({
+    label: (id) => minerales.find((m) => m.id === id)?.nombre ?? "",
   });
   // Arrastre (click derecho) de pills de Criatura dentro de un Hábitat →
   // se sueltan sobre otro bloque de Hábitat (modo usaModeloHabitats).
@@ -879,7 +906,8 @@ export function CriaturasJerarquica({
               variant="criatura"
               maxWidthPx={160}
               dragProps={
-                onAsignarCriaturaAEcosistema && !usaModeloHabitats
+                (onAsignarCriaturaAEcosistema && !usaModeloHabitats) ||
+                (onAsignarCriaturaAHabitat && usaModeloHabitats)
                   ? dragCriatura.dragHandlers(criatura.id)
                   : undefined
               }
@@ -916,7 +944,8 @@ export function CriaturasJerarquica({
           variant="criatura"
           maxWidthPx={vacia ? 140 : anchoPx}
           dragProps={
-            onAsignarCriaturaAEcosistema && !usaModeloHabitats
+            (onAsignarCriaturaAEcosistema && !usaModeloHabitats) ||
+            (onAsignarCriaturaAHabitat && usaModeloHabitats)
               ? dragCriatura.dragHandlers(criatura.id)
               : undefined
           }
@@ -990,19 +1019,46 @@ export function CriaturasJerarquica({
     const ps = presenciasDeHabitat(h.habitat_id);
     const zoneIdHab = `habitat:${h.habitat_id}`;
 
-    // Drop zone activa solo si hay un dragPresencia en curso.
-    const dropHabActivo = !!onMoverCriaturaAHabitat && dragPresencia.esZonaActiva(zoneIdHab);
-    const dropHabHandlers = onMoverCriaturaAHabitat
+    // Drop zone para presencias existentes (mover entre hábitats).
+    const dropPresenciaActivo = !!onMoverCriaturaAHabitat && dragPresencia.esZonaActiva(zoneIdHab);
+    const dropPresenciaHandlers = onMoverCriaturaAHabitat
       ? dragPresencia.dropHandlers(zoneIdHab, (presencia, shiftKey) => {
-          if (presencia.habitat_id === h.habitat_id) return; // no-op mismo hábitat
+          if (presencia.habitat_id === h.habitat_id) return;
           onMoverCriaturaAHabitat(presencia, h.habitat_id, h.ecosistema_id, shiftKey);
         })
       : {};
+    // Drop zone para criaturas nuevas desde "Sin hábitat asignado".
+    const dropCriaturaNuevaActivo =
+      !!onAsignarCriaturaAHabitat && dragCriatura.esZonaActiva(zoneIdHab);
+    const dropCriaturaNuevaHandlers = onAsignarCriaturaAHabitat
+      ? dragCriatura.dropHandlers(zoneIdHab, (criaturaId) =>
+          onAsignarCriaturaAHabitat(criaturaId, h.habitat_id, h.ecosistema_id),
+        )
+      : {};
+    // Combinar ambos drop handlers: el último en llegar gana, pero como
+    // solo uno de los dos drags estará activo a la vez, simplemente
+    // fusionamos los event handlers.
+    const dropHabActivo = dropPresenciaActivo || dropCriaturaNuevaActivo;
+    const dropHabHandlers = {
+      ...dropPresenciaHandlers,
+      ...dropCriaturaNuevaHandlers,
+      // onDragOver/onDrop pueden pisar — los unimos manualmente para que
+      // ambos listeners coexistan sin pisarse.
+      onDragOver: (e: React.DragEvent) => {
+        (dropPresenciaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
+        (dropCriaturaNuevaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
+      },
+      onDrop: (e: React.DragEvent) => {
+        (dropPresenciaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
+        (dropCriaturaNuevaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
+      },
+    };
 
-    // Muestra "Suelta aquí" solo cuando hay un arrastre activo de presencia
-    // (y este hábitat no es el origen del arrastre).
+    // Muestra "Suelta aquí" cuando hay un arrastre activo de presencia
+    // o de criatura nueva (desde "Sin hábitat asignado").
     const arrastandoPresencia =
-      dragPresencia.arrastrando && !!onMoverCriaturaAHabitat;
+      (dragPresencia.arrastrando && !!onMoverCriaturaAHabitat) ||
+      (dragCriatura.arrastrando && !!onAsignarCriaturaAHabitat);
 
     return (
       <div
@@ -1056,12 +1112,42 @@ export function CriaturasJerarquica({
     // requieren elegir hábitat). Se desactiva el drop para no dejar una
     // acción que "funciona" pero no se refleja en pantalla.
     const dropCriaturaActivo = !!onAsignarCriaturaAEcosistema && !usaModeloHabitats;
-    const dropActive = dropCriaturaActivo && dragCriatura.esZonaActiva(zoneId);
-    const dropHandlers = dropCriaturaActivo
+    const dropCriaturaHandlers = dropCriaturaActivo
       ? dragCriatura.dropHandlers(zoneId, (criaturaId) =>
           onAsignarCriaturaAEcosistema!(criaturaId, eco.id),
         )
       : {};
+    const dropFloraActivo = !!onAsignarFloraAEcosistema && dragFlora.esZonaActiva(zoneId);
+    const dropFloraHandlers = onAsignarFloraAEcosistema
+      ? dragFlora.dropHandlers(zoneId, (floraId) =>
+          onAsignarFloraAEcosistema(floraId, eco.id),
+        )
+      : {};
+    const dropMineralActivo = !!onAsignarMineralAEcosistema && dragMineral.esZonaActiva(zoneId);
+    const dropMineralHandlers = onAsignarMineralAEcosistema
+      ? dragMineral.dropHandlers(zoneId, (mineralId) =>
+          onAsignarMineralAEcosistema(mineralId, eco.id),
+        )
+      : {};
+    const dropActive =
+      (dropCriaturaActivo && dragCriatura.esZonaActiva(zoneId)) ||
+      dropFloraActivo ||
+      dropMineralActivo;
+    const dropHandlers = {
+      ...dropCriaturaHandlers,
+      ...dropFloraHandlers,
+      ...dropMineralHandlers,
+      onDragOver: (e: React.DragEvent) => {
+        (dropCriaturaHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
+        (dropFloraHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
+        (dropMineralHandlers as React.HTMLAttributes<HTMLElement>).onDragOver?.(e);
+      },
+      onDrop: (e: React.DragEvent) => {
+        (dropCriaturaHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
+        (dropFloraHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
+        (dropMineralHandlers as React.HTMLAttributes<HTMLElement>).onDrop?.(e);
+      },
+    };
 
     return (
       <div
@@ -1527,6 +1613,11 @@ export function CriaturasJerarquica({
                     label={f.nombre}
                     variant="flora"
                     maxWidthPx={160}
+                    dragProps={
+                      onAsignarFloraAEcosistema
+                        ? dragFlora.dragHandlers(f.id)
+                        : undefined
+                    }
                     onClick={() => abrirPanel("flora", f.id)}
                   />
                 ))}
@@ -1536,6 +1627,11 @@ export function CriaturasJerarquica({
                     label={m.nombre}
                     variant="mineral"
                     maxWidthPx={160}
+                    dragProps={
+                      onAsignarMineralAEcosistema
+                        ? dragMineral.dragHandlers(m.id)
+                        : undefined
+                    }
                     onClick={() => abrirPanel("mineral", m.id)}
                   />
                 ))}
@@ -1559,6 +1655,8 @@ export function CriaturasJerarquica({
       {dragPresencia.overlay}
       {dragPersonaje.overlay}
       {dragEcosistema.overlay}
+      {dragFlora.overlay}
+      {dragMineral.overlay}
     </div>
   );
 }
