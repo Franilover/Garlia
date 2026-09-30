@@ -606,7 +606,7 @@ function IumNodeSVG({
       {/* Nombre */}
       <text
         x={0}
-        y={visR + 10}
+        y={visR + 18}
         textAnchor="middle"
         dominantBaseline="hanging"
         fontSize={9}
@@ -620,7 +620,7 @@ function IumNodeSVG({
       {principal && (
         <text
           x={0}
-          y={visR + 22}
+          y={visR + 32}
           textAnchor="middle"
           dominantBaseline="hanging"
           fontSize={7.5}
@@ -1308,26 +1308,13 @@ export default function SimuladorIUM() {
                 const y1 = orComp  ? orComp.y  : orPos.y;
                 const x2 = dstComp ? dstComp.x : dstPos.x;
                 const y2 = dstComp ? dstComp.y : dstPos.y;
-                const mx = (x1 + x2) / 2;
-                const my = (y1 + y2) / 2;
-                const dx = x2 - x1; const dy = y2 - y1;
-                const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                const perp = Math.min(50, len * 0.25);
-                const cpx = mx - (dy / len) * perp;
-                const cpy = my + (dx / len) * perp;
-                const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
                 return (
-                  <path
-                    key={`ghost-${i}`}
-                    d={d}
-                    fill="none"
-                    strokeWidth={1.2}
-                    strokeDasharray="5 4"
-                    style={{
-                      stroke: "color-mix(in srgb, var(--primary) 20%, transparent)",
-                      pointerEvents: "none",
-                      transition: "stroke 0.2s",
-                    }}
+                  <ConnectionLine
+                    key={`topo-${i}`}
+                    x1={x1} y1={y1}
+                    x2={x2} y2={y2}
+                    tipo={u.tipo_union}
+                    label={u.tipo_union}
                   />
                 );
               });
@@ -1402,25 +1389,27 @@ export default function SimuladorIUM() {
                       strokeDasharray={ocupado ? undefined : "4 3"}
                       style={{ transition: "fill 0.15s, stroke 0.15s" }}
                     />
-                    {/* Etiqueta de posición */}
+                    {/* Etiqueta de posición — dentro del círculo, arriba */}
                     <text
-                      x={pos.x} y={pos.y + NODE_R + 22}
+                      x={pos.x} y={pos.y - (NODE_R + 10) + 14}
                       textAnchor="middle"
+                      dominantBaseline="middle"
                       style={{
-                        fontSize: 10, fontWeight: 700,
-                        fill: slotDropdown?.key === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        fontSize: 10, fontWeight: 800,
+                        fill: slotDropdown?.key === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
                         pointerEvents: "none", userSelect: "none", letterSpacing: "0.12em",
                       }}
                     >
                       {posUI}
                     </text>
-                    {/* Si está vacío: icono + */}
+                    {/* Si está vacío: icono + centrado */}
                     {!ocupado && (
                       <text
-                        x={pos.x} y={pos.y + 5}
+                        x={pos.x} y={pos.y + 6}
                         textAnchor="middle"
+                        dominantBaseline="middle"
                         style={{
-                          fontSize: 22, fontWeight: 300,
+                          fontSize: 26, fontWeight: 200,
                           fill: slotDropdown?.key === key
                             ? "var(--primary)"
                             : "color-mix(in srgb, var(--primary) 28%, transparent)",
