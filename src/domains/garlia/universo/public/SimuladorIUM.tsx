@@ -1229,18 +1229,6 @@ export default function SimuladorIUM() {
             </div>
           )}
 
-          {/* Instrucciones interacción */}
-          {componentes.length > 0 && (
-            <div style={{ padding: "5px 8px", borderRadius: "var(--radius-card)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-              <p style={{ fontSize: 7.5, margin: 0, color: "color-mix(in srgb, var(--primary) 45%, transparent)", lineHeight: 1.6 }}>
-                🖱 Arrastra nodos con click izquierdo<br />
-                🔗 Click derecho para iniciar/terminar unión<br />
-                🖱 Rueda para zoom · Arrastra fondo para pan<br />
-                🗑 Click en conexión para eliminarla
-              </p>
-            </div>
-          )}
-
           {/* IUMs seleccionados */}
           {componentes.length > 0 && (
             <div>
