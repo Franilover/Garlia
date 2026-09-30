@@ -845,10 +845,9 @@ export default function SimuladorIUM() {
       if (!slotsLibres.length) return; // topología llena
       const key = slotsLibres[0];
       const { x, y } = slots[key];
-      setComponentes((prev) => [...prev, {
-        uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
-        posicion: toUI(key), x, y,
-      }]);
+      const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: toUI(key), x, y };
+      setComponentes((prev) => [...prev, newComp]);
+      cablearSlot(newComp, componentes);
     } else {
       const idx = componentes.length;
       const { x, y } = autoPos(idx);
@@ -858,7 +857,7 @@ export default function SimuladorIUM() {
         posicion: posLibre, x, y,
       }]);
     }
-  }, [componentes, posicionesUsadas, topoSeleccionada]);
+  }, [componentes, posicionesUsadas, topoSeleccionada, cablearSlot]);
 
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
@@ -1042,14 +1041,36 @@ export default function SimuladorIUM() {
 
   // ── Confirmar enlace ──────────────────────────────────────────────────────
 
+  // Helper: dado un nuevo componente recién añadido, crea los enlaces de topología
+  // que conectan su slot con los slots ya ocupados.
+  const cablearSlot = useCallback((newComp: ComponenteLab, compsPrevios: ComponenteLab[]) => {
+    if (!topoSeleccionada) return;
+    const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+    const todosComps = [...compsPrevios, newComp];
+    const nuevosEnlaces: EnlaceLab[] = [];
+    for (const u of topoSeleccionada.uniones) {
+      const orPosUI  = toUI(u.origen_posicion);
+      const dstPosUI = toUI(u.destino_posicion);
+      if (orPosUI !== newComp.posicion && dstPosUI !== newComp.posicion) continue;
+      const orComp  = orPosUI  === newComp.posicion ? newComp : todosComps.find((c) => c.posicion === orPosUI);
+      const dstComp = dstPosUI === newComp.posicion ? newComp : todosComps.find((c) => c.posicion === dstPosUI);
+      if (!orComp || !dstComp) continue;
+      // No duplicar si ya existe ese enlace
+      const yaExiste = enlaces.some((e) => e.origen_uid === orComp.uid && e.destino_uid === dstComp.uid);
+      if (!yaExiste) {
+        nuevosEnlaces.push({ uid: genUID(), origen_uid: orComp.uid, destino_uid: dstComp.uid, tipo_union: u.tipo_union });
+      }
+    }
+    if (nuevosEnlaces.length) setEnlaces((prev) => [...prev, ...nuevosEnlaces]);
+  }, [topoSeleccionada, enlaces]);
+
   const elegirIumEnSlot = useCallback((ium: IumCatalogo, slotKey: string, posUI: string, sx: number, sy: number) => {
-    setComponentes((prev) => [...prev, {
-      uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
-      posicion: posUI, x: sx, y: sy,
-    }]);
+    const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: posUI, x: sx, y: sy };
+    setComponentes((prev) => [...prev, newComp]);
+    cablearSlot(newComp, componentes);
     setSlotDropdown(null);
     setBusquedaSlot("");
-  }, []);
+  }, [componentes, cablearSlot]);
 
   const confirmarEnlace = useCallback(() => {
     if (!modalTipo) return;
