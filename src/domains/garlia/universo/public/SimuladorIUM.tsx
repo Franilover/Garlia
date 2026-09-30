@@ -676,14 +676,16 @@ export default function SimuladorIUM() {
   const onSVGMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     const svgPos = screenToSVG(e.clientX, e.clientY);
 
-    if (dragging.current) {
-      const dx = svgPos.x - dragging.current.startMouseX;
-      const dy = svgPos.y - dragging.current.startMouseY;
-      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragging.current.moved = true;
-      const nx = dragging.current.startNodeX + dx;
-      const ny = dragging.current.startNodeY + dy;
+    const drag = dragging.current;
+    if (drag) {
+      const dx = svgPos.x - drag.startMouseX;
+      const dy = svgPos.y - drag.startMouseY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag.moved = true;
+      const nx = drag.startNodeX + dx;
+      const ny = drag.startNodeY + dy;
+      const uid = drag.uid;
       setComponentes((prev) =>
-        prev.map((c) => c.uid === dragging.current!.uid ? { ...c, x: nx, y: ny } : c),
+        prev.map((c) => c.uid === uid ? { ...c, x: nx, y: ny } : c),
       );
     }
 
@@ -713,14 +715,15 @@ export default function SimuladorIUM() {
   }, [viewBox.x, viewBox.y]);
 
   const onCanvasMouseMoveForPan = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!panStart.current || dragging.current) return;
+    const pan = panStart.current;
+    if (!pan || dragging.current) return;
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     const scaleX = viewBox.w / rect.width;
     const scaleY = viewBox.h / rect.height;
-    const dx = (e.clientX - panStart.current.mx) * scaleX;
-    const dy = (e.clientY - panStart.current.my) * scaleY;
-    setViewBox((v) => ({ ...v, x: panStart.current!.vx - dx, y: panStart.current!.vy - dy }));
+    const dx = (e.clientX - pan.mx) * scaleX;
+    const dy = (e.clientY - pan.my) * scaleY;
+    setViewBox((v) => ({ ...v, x: pan.vx - dx, y: pan.vy - dy }));
   }, [viewBox.w, viewBox.h]);
 
   const onCanvasMouseUp = useCallback(() => { panStart.current = null; }, []);
