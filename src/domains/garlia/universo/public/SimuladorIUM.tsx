@@ -1486,26 +1486,6 @@ export default function SimuladorIUM() {
           </div>
         )}
 
-        {/* Botón simular */}
-        <div style={{ padding: "6px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
-          <button
-            onClick={simular}
-            disabled={!componentes.length || simulando}
-            style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-              padding: "6px 0", borderRadius: "var(--radius-btn)",
-              background: componentes.length && !simulando ? "var(--primary)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
-              color: componentes.length && !simulando ? "#fff" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              border: "none", cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
-            }}
-          >
-            {simulando
-              ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando...</>
-              : <><Play size={10} /> Probar</>
-            }
-          </button>
-        </div>
       </div>
 
       {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
@@ -1611,27 +1591,6 @@ export default function SimuladorIUM() {
             </div>
           )}
 
-          {errorSim && (
-            <div style={{ padding: "7px 9px", borderRadius: "var(--radius-card)", border: "1px solid color-mix(in srgb, var(--error,#ef4444) 35%, transparent)", background: "color-mix(in srgb, var(--error,#ef4444) 6%, transparent)" }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                <AlertTriangle size={10} style={{ color: "var(--error,#ef4444)", flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <p style={{ fontSize: 9, fontWeight: 700, margin: "0 0 2px", color: "var(--error,#ef4444)" }}>Error del motor</p>
-                  <p style={{ fontSize: 8, margin: 0 }}>{errorSim}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {resultado && <ResultadoPanel resultado={resultado} nombreIum={(id) => (id ? iumMap.get(id)?.nombre ?? id : "Un IUM")} />}
-
-          {!resultado && !errorSim && (
-            <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 22%, transparent)", textAlign: "center", padding: "20px 8px", margin: 0, lineHeight: 1.6 }}>
-              {componentes.length
-                ? "Une los IUMs y presiona Probar para ver qué ocurre"
-                : "Agrega IUMs, únelos y presiona Probar"}
-            </p>
-          )}
         </div>
       </div>
 
@@ -1763,6 +1722,89 @@ export default function SimuladorIUM() {
         <Network size={18} />
       </button>
 
+      {/* ── Botón Probar flotante (esquina superior derecha) ────────────────── */}
+      <button
+        onClick={simular}
+        disabled={!componentes.length || simulando}
+        style={{
+          position: "fixed", top: 16, right: 16, zIndex: 600,
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "8px 16px", borderRadius: 999,
+          background: componentes.length && !simulando
+            ? "var(--primary)"
+            : "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
+          color: componentes.length && !simulando
+            ? "#fff"
+            : "color-mix(in srgb, var(--primary) 35%, transparent)",
+          border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+          cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
+          fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+          boxShadow: componentes.length && !simulando
+            ? "0 4px 18px color-mix(in srgb, var(--primary) 38%, transparent)"
+            : "none",
+          transition: "background 0.2s, box-shadow 0.2s",
+        }}
+      >
+        {simulando
+          ? <><Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
+          : <><Play size={11} /> Probar</>}
+      </button>
+
+      {/* ── Modal resultado ─────────────────────────────────────────────────── */}
+      {(resultado || errorSim) && (
+        <div
+          onClick={() => { setResultado(null); setErrorSim(null); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 700,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "color-mix(in srgb, var(--bg-main) 55%, transparent)",
+            backdropFilter: "blur(4px)",
+            padding: "20px 16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-main)",
+              border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+              borderRadius: 16,
+              boxShadow: "0 16px 56px color-mix(in srgb, var(--primary) 22%, transparent)",
+              width: "100%", maxWidth: 360,
+              overflow: "hidden",
+              animation: "modal-aparecer 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px 0" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                Resultado
+              </span>
+              <button
+                onClick={() => { setResultado(null); setErrorSim(null); }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 2, lineHeight: 1, display: "flex" }}
+              >
+                <X size={13} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div style={{ padding: "10px 16px 18px" }}>
+              {errorSim ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <AlertTriangle size={14} style={{ color: "var(--error,#ef4444)", flexShrink: 0, marginTop: 1 }} />
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, margin: "0 0 3px", color: "var(--error,#ef4444)" }}>Error del motor</p>
+                    <p style={{ fontSize: 9, margin: 0 }}>{errorSim}</p>
+                  </div>
+                </div>
+              ) : resultado ? (
+                <ResultadoPanel resultado={resultado} nombreIum={(id) => (id ? iumMap.get(id)?.nombre ?? id : "Un IUM")} />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         /* ── Layout ── */
         .sim-root { display: grid; grid-template-columns: 190px 1fr 260px; height: calc(100vh - 80px); overflow: hidden; }
@@ -1796,6 +1838,7 @@ export default function SimuladorIUM() {
         @keyframes aparecer { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
         @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
         @keyframes destello { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.95; } }
+        @keyframes modal-aparecer { from { opacity: 0; transform: translateY(12px) scale(0.95); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
   );
