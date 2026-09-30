@@ -592,7 +592,7 @@ function IumNodeSVG({
         dominantBaseline="central"
         fontSize={7.5}
         fontWeight={900}
-        style={{ fill: "#fff", pointerEvents: "none" }}
+        style={{ fill: "var(--btn-text)", pointerEvents: "none" }}
       >
         {comp.posicion}
       </text>
@@ -605,7 +605,7 @@ function IumNodeSVG({
         dominantBaseline="hanging"
         fontSize={9}
         fontWeight={700}
-        style={{ fill: "var(--fg-main, #f0f0f0)", pointerEvents: "none", filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))" }}
+        style={{ fill: "var(--foreground)", pointerEvents: "none", filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))" }}
       >
         {comp.ium_nombre}
       </text>
@@ -684,7 +684,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
     }}>
       {tipo === "exito" && (
         <>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--fg-main))` }}>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--foreground))` }}>
             ¡Algo ocurre!
           </p>
           <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.proceso_principal}</p>
@@ -703,7 +703,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
       {tipo === "inestable" && (
         <>
           <p style={{ fontSize: 13, fontWeight: 800, margin: 0 }}>Reacción inestable</p>
-          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 60%, transparent)" }}>
+          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
             La combinación vibra, pero no termina de decidirse. Algo debe inclinar la balanza.
           </p>
         </>
@@ -712,7 +712,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
       {tipo === "nada" && (
         <>
           <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>No ocurre nada… todavía</p>
-          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 50%, transparent)" }}>
+          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
             Prueba otras piezas, otras uniones u otra forma.
           </p>
         </>
@@ -1214,7 +1214,7 @@ export default function SimuladorIUM() {
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar..."
-              style={{ border: "none", background: "transparent", fontSize: 10, color: "var(--fg-main)", outline: "none", width: "100%" }}
+              style={{ border: "none", background: "transparent", fontSize: 10, color: "var(--foreground)", outline: "none", width: "100%" }}
             />
           </div>
         </div>
@@ -1302,7 +1302,7 @@ export default function SimuladorIUM() {
               display: "flex", alignItems: "center", gap: 5,
               padding: "6px 14px", borderRadius: 999,
               background: "var(--primary)",
-              color: "color-mix(in srgb, var(--primary) 5%, #000)",
+              color: "var(--btn-text)",
               border: "none",
               cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
               opacity: componentes.length && !simulando ? 1 : 0.35,
@@ -1564,7 +1564,7 @@ export default function SimuladorIUM() {
                       if (!activa) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                     }}
                   >
-                    <span style={{ fontSize: 9, fontWeight: activa ? 800 : 400, color: activa ? "var(--primary)" : "var(--fg-main)" }}>
+                    <span style={{ fontSize: 9, fontWeight: activa ? 800 : 400, color: activa ? "var(--primary)" : "var(--foreground)" }}>
                       {t.nombre}
                     </span>
                   </button>
@@ -1590,7 +1590,7 @@ export default function SimuladorIUM() {
                     <select
                       value={e.tipo_union}
                       onChange={(ev) => setEnlaces((prev) => prev.map((x) => x.uid === e.uid ? { ...x, tipo_union: ev.target.value } : x))}
-                      style={{ fontSize: 8, background: "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", borderRadius: 3, color: "var(--fg-main)", padding: "1px 3px" }}
+                      style={{ fontSize: 8, background: "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", borderRadius: 3, color: "var(--foreground)", padding: "1px 3px" }}
                     >
                       {TIPOS_UNION.map((t) => <option key={t} value={t}>{NOMBRE_UNION[t] ?? t}</option>)}
                     </select>
@@ -1647,7 +1647,7 @@ export default function SimuladorIUM() {
                   value={busquedaSlot}
                   onChange={(e) => setBusquedaSlot(e.target.value)}
                   placeholder="Buscar..."
-                  style={{ border: "none", background: "transparent", fontSize: 10, outline: "none", width: "100%", color: "var(--fg-main)" }}
+                  style={{ border: "none", background: "transparent", fontSize: 10, outline: "none", width: "100%", color: "var(--foreground)" }}
                 />
               </div>
               {/* Lista */}
@@ -1697,19 +1697,19 @@ export default function SimuladorIUM() {
                 <button onClick={() => setModalTipo(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={12} /></button>
               </div>
               <p style={{ fontSize: 9, margin: 0, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                <strong style={{ color: "var(--fg-main)" }}>{or?.posicion} {or?.ium_nombre}</strong>
+                <strong style={{ color: "var(--foreground)" }}>{or?.posicion} {or?.ium_nombre}</strong>
                 {" → "}
-                <strong style={{ color: "var(--fg-main)" }}>{dst?.posicion} {dst?.ium_nombre}</strong>
+                <strong style={{ color: "var(--foreground)" }}>{dst?.posicion} {dst?.ium_nombre}</strong>
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 <label style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tipo de unión</label>
                 <select value={linkingTipo} onChange={(e) => setLinkingTipo(e.target.value)}
-                  style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--fg-main)" }}>
+                  style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--foreground)" }}>
                   {TIPOS_UNION.map((t) => <option key={t} value={t}>{NOMBRE_UNION[t] ?? t}</option>)}
                 </select>
               </div>
               <button onClick={confirmarEnlace}
-                style={{ padding: "6px 0", borderRadius: "var(--radius-btn)", background: "var(--primary)", color: "#fff", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+                style={{ padding: "6px 0", borderRadius: "var(--radius-btn)", background: "var(--primary)", color: "var(--btn-text)", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
                 Confirmar unión
               </button>
             </div>
@@ -1799,7 +1799,7 @@ export default function SimuladorIUM() {
         .sim-fab-izq, .sim-fab-der {
           position: fixed; bottom: 24px; z-index: 500;
           width: 50px; height: 50px; border-radius: 50%;
-          background: var(--primary); color: #fff;
+          background: var(--primary); color: var(--btn-text);
           border: none; cursor: pointer;
           align-items: center; justify-content: center;
           box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 40%, transparent);
