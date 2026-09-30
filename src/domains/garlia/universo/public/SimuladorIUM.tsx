@@ -789,7 +789,7 @@ export default function SimuladorIUM() {
                 }}
               >
                 <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-                <span style={{ fontSize: 10, fontWeight: 600, truncate: "ellipsis" }}>
+                <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {ium.nombre}
                 </span>
               </button>
