@@ -32,25 +32,25 @@ export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: str
   A: {
     bg: "color-mix(in srgb, var(--primary) 42%, var(--bg-main))",
     border: "color-mix(in srgb, var(--primary) 60%, var(--bg-main))",
-    fg: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))",
+    fg: "color-mix(in srgb, var(--foreground) 90%, var(--primary))",
   },
   // T = media
   T: {
     bg: "color-mix(in srgb, var(--primary) 26%, var(--bg-main))",
     border: "color-mix(in srgb, var(--primary) 45%, var(--bg-main))",
-    fg: "color-mix(in srgb, var(--fg-main) 85%, var(--primary))",
+    fg: "color-mix(in srgb, var(--foreground) 85%, var(--primary))",
   },
   // S = más oscura (menos --primary, más fondo)
   S: {
     bg: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
     border: "color-mix(in srgb, var(--primary) 32%, var(--bg-main))",
-    fg: "color-mix(in srgb, var(--fg-main) 80%, var(--primary))",
+    fg: "color-mix(in srgb, var(--foreground) 80%, var(--primary))",
   },
   // I = Transformación inversa — entre T y S
   I: {
     bg: "color-mix(in srgb, var(--primary) 20%, var(--bg-main))",
     border: "color-mix(in srgb, var(--primary) 38%, var(--bg-main))",
-    fg: "color-mix(in srgb, var(--fg-main) 82%, var(--primary))",
+    fg: "color-mix(in srgb, var(--foreground) 82%, var(--primary))",
   },
 };
 
@@ -536,7 +536,7 @@ export function IumGlifo({
                 dominantBaseline="central"
                 fontSize={pr * 0.6}
                 fontWeight={900}
-                style={{ fill: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))" }}
+                style={{ fill: "color-mix(in srgb, var(--foreground) 90%, var(--primary))" }}
               >
                 {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
               </text>
@@ -623,7 +623,7 @@ export function IumVisual({
             dominantBaseline="central"
             fontSize={pr * 0.6}
             fontWeight={900}
-            style={{ fill: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))" }}
+            style={{ fill: "color-mix(in srgb, var(--foreground) 90%, var(--primary))" }}
           >
             {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
           </text>
