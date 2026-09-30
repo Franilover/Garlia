@@ -3,8 +3,10 @@
 /**
  * SimuladorIUM.tsx — Laboratorio visual de IUMs
  *
- * Canvas SVG central: cada IUM se muestra con su gráfico real de partículas
- * (IumVisual) y las uniones se dibujan como flechas SVG con bezier.
+ * Canvas SVG libre:
+ *  - Click izquierdo + drag → mover nodo
+ *  - Click derecho sobre nodo → iniciar unión (arrastrar hasta otro nodo)
+ *  - Auto-fit para que todos los nodos quepan sin scroll
  *
  * SUPABASE MANDA: no se inventa ningún IUM, proceso, ORIS ni resultado.
  */
@@ -23,7 +25,13 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import {
@@ -32,11 +40,10 @@ import {
 } from "@/domains/garlia/fisica/ParticulaVisual";
 import {
   particulasDeIum,
-  PARTICULA_QUIMICA_FORMULA,
   type FilaIum,
 } from "@/domains/garlia/fisica/types";
 
-// ─── Tipos ──────────────────────────────────────────────────────────────────
+// ─── Tipos ───────────────────────────────────────────────────────────────────
 
 interface IumCatalogo {
   id: string;
@@ -65,6 +72,8 @@ interface ComponenteLab {
   ium_id: string;
   ium_nombre: string;
   posicion: string;
+  x: number;
+  y: number;
 }
 
 interface EnlaceLab {
@@ -87,50 +96,49 @@ interface ResultadoSimulador {
   [key: string]: unknown;
 }
 
-// ─── Constantes canvas ──────────────────────────────────────────────────────
+// ─── Constantes de layout ─────────────────────────────────────────────────────
 
 const POSICIONES = ["A", "B", "C", "D", "N", "M", "X", "Y", "Z"];
 const TIPOS_UNION = ["dirigida", "bidireccional", "convergente", "divergente"];
-const VISUAL_SIZE = 80;   // px del IumVisual
-const VISUAL_R   = VISUAL_SIZE / 2;
-const LABEL_H    = 36;    // espacio nombre + posición bajo el visual
-const NODE_H     = VISUAL_SIZE + LABEL_H;
-const V_GAP      = 72;
-const NODE_STEP  = NODE_H + V_GAP;
-const TOP_PAD    = 24;
-const CANVAS_CX  = 140;  // centro horizontal de los nodos
+
+// Tamaño del nodo
+const NODE_R = 44;      // radio del círculo de fondo
+const LABEL_H = 34;     // espacio de texto debajo del visual
+const VIS_SIZE = 72;    // tamaño del IumVisual
+const VIS_R = VIS_SIZE / 2;
+
+// Margen entre nodos al hacer auto-layout al agregar
+const AUTO_COLS = 3;
+const AUTO_STEP_X = 160;
+const AUTO_STEP_Y = 180;
+const AUTO_ORIGIN_X = 80;
+const AUTO_ORIGIN_Y = 80;
 
 let uidCounter = 0;
 const genUID = () => `lab_${++uidCounter}_${Date.now()}`;
 
-// ─── Hooks de datos ──────────────────────────────────────────────────────────
+// ─── Hooks de datos ───────────────────────────────────────────────────────────
 
-/** Trae iums + composición de partículas + geometría en una sola batería de queries */
 function useIumsCatalogo() {
   const [iums, setIums] = useState<IumCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let vivo = true;
-
     async function cargar() {
-      // 1) IUMs base
       const { data: baseData } = await supabase
         .from("iums")
         .select("id, orden, nombre, detalle, extra")
         .order("orden");
 
-      // 2) Relación IUM → partículas (id, nombre) a través de iums_particulas
       const { data: pRelData } = await supabase
         .from("iums_particulas")
         .select("ium_id, particula_id, cantidad");
 
-      // 3) Partículas (id, nombre) para resolver el nombre
       const { data: partData } = await supabase
         .from("particulas")
         .select("id, nombre");
 
-      // 4) Geometría
       const { data: geoData } = await supabase
         .from("v_iums_geometria_canonica_v1")
         .select("ium_id, geometria");
@@ -141,7 +149,6 @@ function useIumsCatalogo() {
         (partData ?? []).map((p: { id: string; nombre: string }) => [p.id, p.nombre]),
       );
 
-      // Composición por ium_id
       const composPorIum = new Map<string, { particula: string; cantidad: number }[]>();
       for (const fila of pRelData ?? []) {
         const nombre = nombreDePart.get(fila.particula_id);
@@ -151,7 +158,6 @@ function useIumsCatalogo() {
         composPorIum.set(fila.ium_id, arr);
       }
 
-      // Geometría por ium_id
       const geoPorIum = new Map<string, GeometriaIum>(
         (geoData ?? []).map((g: { ium_id: string; geometria: string }) => [
           g.ium_id,
@@ -172,7 +178,6 @@ function useIumsCatalogo() {
       setIums(result);
       setLoading(false);
     }
-
     cargar();
     return () => { vivo = false; };
   }, []);
@@ -182,7 +187,6 @@ function useIumsCatalogo() {
 
 function useIumSalidas(iumIds: string[]) {
   const [salidas, setSalidas] = useState<IumSalidaFuncional[]>([]);
-
   useEffect(() => {
     if (!iumIds.length) { setSalidas([]); return; }
     supabase
@@ -193,62 +197,65 @@ function useIumSalidas(iumIds: string[]) {
       .then(({ data }) => setSalidas(data ?? []));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(iumIds.slice().sort())]);
-
   return salidas;
 }
 
-// ─── Helpers de posición de nodo ────────────────────────────────────────────
-
-function nodeCY(index: number) {
-  return TOP_PAD + index * NODE_STEP + VISUAL_R;
-}
-
-// ─── Flecha SVG ──────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ARROW_COLOR = "color-mix(in srgb, var(--primary) 55%, transparent)";
-const ARROW_MARKER_ID = "sim-arrow";
+const ARROW_ID = "sim-arrow-head";
 
-function ConnectionPath({
-  x1, y1, x2, y2, label, tipo,
+function autoPos(index: number): { x: number; y: number } {
+  const col = index % AUTO_COLS;
+  const row = Math.floor(index / AUTO_COLS);
+  return {
+    x: AUTO_ORIGIN_X + col * AUTO_STEP_X,
+    y: AUTO_ORIGIN_Y + row * AUTO_STEP_Y,
+  };
+}
+
+// ─── Conexión SVG ─────────────────────────────────────────────────────────────
+
+function ConnectionLine({
+  x1, y1, x2, y2, tipo, label, onRemove,
 }: {
   x1: number; y1: number; x2: number; y2: number;
-  label?: string; tipo: string;
+  tipo: string; label?: string; onRemove?: () => void;
 }) {
-  const downward = y2 > y1;
-  const mid = (y1 + y2) / 2;
-  const sameColumn = x1 === x2;
-
-  let d: string;
-  if (sameColumn && downward) {
-    // Curva suave hacia abajo
-    d = `M ${x1} ${y1} C ${x1} ${y1 + 40} ${x2} ${y2 - 40} ${x2} ${y2}`;
-  } else {
-    // Conexión cruzada: curva lateral
-    const offset = 80;
-    d = `M ${x1} ${y1} C ${x1 + offset} ${y1 + 30} ${x2 + offset} ${y2 - 30} ${x2} ${y2}`;
-  }
-
-  const midX = sameColumn ? x1 : x1 + 50;
-  const midY = mid;
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  // Control point perpendicular offset para que no queden rectas
+  const perp = Math.min(50, len * 0.25);
+  const cpx = mx - (dy / len) * perp;
+  const cpy = my + (dx / len) * perp;
+  const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
 
   return (
     <g>
+      {/* Hit area más gruesa para interacción */}
+      <path d={d} fill="none" strokeWidth={12} stroke="transparent"
+        style={{ cursor: "pointer" }}
+        onClick={onRemove}
+      />
       <path
         d={d}
         fill="none"
         strokeWidth={1.5}
         strokeDasharray={tipo === "bidireccional" ? "4 3" : undefined}
-        markerEnd={`url(#${ARROW_MARKER_ID})`}
-        style={{ stroke: ARROW_COLOR }}
+        markerEnd={`url(#${ARROW_ID})`}
+        style={{ stroke: ARROW_COLOR, pointerEvents: "none" }}
       />
       {label && (
         <text
-          x={midX + 6}
-          y={midY}
-          fontSize={8}
+          x={cpx}
+          y={cpy - 5}
+          fontSize={7.5}
           fontWeight={700}
-          dominantBaseline="central"
-          style={{ fill: ARROW_COLOR, letterSpacing: "0.04em" }}
+          textAnchor="middle"
+          style={{ fill: ARROW_COLOR, pointerEvents: "none", letterSpacing: "0.04em" }}
         >
           {label}
         </text>
@@ -257,35 +264,36 @@ function ConnectionPath({
   );
 }
 
-// ─── Nodo de IUM en el canvas ────────────────────────────────────────────────
+// ─── Nodo IUM draggable ───────────────────────────────────────────────────────
 
-function IumNode({
+function IumNodeSVG({
   comp,
   iumData,
   salidas,
-  posicionesUsadas,
-  index,
+  selected,
+  linking,
+  onMouseDownDrag,
+  onContextMenu,
   onRemove,
-  onPosicion,
+  onMouseEnter,
+  onMouseLeave,
+  scale,
 }: {
   comp: ComponenteLab;
   iumData: IumCatalogo | undefined;
   salidas: IumSalidaFuncional[];
-  posicionesUsadas: string[];
-  index: number;
+  selected: boolean;
+  linking: boolean;
+  onMouseDownDrag: (e: React.MouseEvent) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
   onRemove: () => void;
-  onPosicion: (p: string) => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  scale: number;
 }) {
-  const cy = nodeCY(index);
-  const topY = cy - VISUAL_R;
-  const labelY = cy + VISUAL_R + 4;
-
+  const { x, y } = comp;
   const principal = salidas.find((s) => s.es_principal);
-  const disponibles = POSICIONES.filter(
-    (p) => p === comp.posicion || !posicionesUsadas.includes(p),
-  );
 
-  // Datos para IumVisual
   const filaIum: FilaIum | undefined = iumData
     ? {
         id: iumData.id,
@@ -295,69 +303,90 @@ function IumNode({
         composicion: iumData.composicion,
       }
     : undefined;
-
   const particulas = filaIum ? particulasDeIum(filaIum) : [];
 
+  // Radio del visual escalado para mantener proporción en zoom-out
+  const visR = VIS_R;
+
   return (
-    <g>
-      {/* Halo de fondo */}
+    <g
+      transform={`translate(${x}, ${y})`}
+      style={{ cursor: "grab" }}
+      onMouseDown={onMouseDownDrag}
+      onContextMenu={onContextMenu}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {/* Halo highlight cuando está en modo linking o seleccionado */}
+      {(linking || selected) && (
+        <circle
+          r={visR + 12}
+          fill="none"
+          stroke={linking ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)"}
+          strokeWidth={linking ? 2 : 1}
+          strokeDasharray={linking ? undefined : "3 3"}
+          style={{ transition: "stroke 0.15s" }}
+        />
+      )}
+
+      {/* Fondo */}
       <circle
-        cx={CANVAS_CX}
-        cy={cy}
-        r={VISUAL_R + 6}
+        r={visR + 6}
         style={{
-          fill: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          stroke: "color-mix(in srgb, var(--primary) 18%, transparent)",
-          strokeWidth: 1,
+          fill: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
+          stroke: selected
+            ? "var(--primary)"
+            : "color-mix(in srgb, var(--primary) 18%, transparent)",
+          strokeWidth: selected ? 1.5 : 1,
         }}
       />
 
-      {/* IumVisual como foreignObject */}
+      {/* IumVisual */}
       <foreignObject
-        x={CANVAS_CX - VISUAL_R}
-        y={topY}
-        width={VISUAL_SIZE}
-        height={VISUAL_SIZE}
-        style={{ overflow: "visible" }}
+        x={-visR}
+        y={-visR}
+        width={VIS_SIZE}
+        height={VIS_SIZE}
+        style={{ overflow: "visible", pointerEvents: "none" }}
       >
-        <div style={{ width: VISUAL_SIZE, height: VISUAL_SIZE }}>
+        <div style={{ width: VIS_SIZE, height: VIS_SIZE }}>
           <IumVisual
             particulas={particulas}
             geometria={iumData?.geometria}
-            size={VISUAL_SIZE}
+            size={VIS_SIZE}
             showToggle={false}
           />
         </div>
       </foreignObject>
 
-      {/* Badge de posición */}
+      {/* Badge posición */}
       <circle
-        cx={CANVAS_CX + VISUAL_R - 2}
-        cy={cy - VISUAL_R + 2}
-        r={10}
+        cx={visR - 2}
+        cy={-visR + 2}
+        r={9}
         style={{ fill: "var(--primary)" }}
       />
       <text
-        x={CANVAS_CX + VISUAL_R - 2}
-        y={cy - VISUAL_R + 2}
+        x={visR - 2}
+        y={-visR + 2}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={8}
+        fontSize={7.5}
         fontWeight={900}
-        style={{ fill: "#fff" }}
+        style={{ fill: "#fff", pointerEvents: "none" }}
       >
         {comp.posicion}
       </text>
 
       {/* Nombre */}
       <text
-        x={CANVAS_CX}
-        y={labelY + 8}
+        x={0}
+        y={visR + 10}
         textAnchor="middle"
         dominantBaseline="hanging"
-        fontSize={10}
+        fontSize={9}
         fontWeight={700}
-        style={{ fill: "var(--fg-main)" }}
+        style={{ fill: "var(--fg-main)", pointerEvents: "none" }}
       >
         {comp.ium_nombre}
       </text>
@@ -365,12 +394,15 @@ function IumNode({
       {/* Salida principal */}
       {principal && (
         <text
-          x={CANVAS_CX}
-          y={labelY + 22}
+          x={0}
+          y={visR + 22}
           textAnchor="middle"
           dominantBaseline="hanging"
-          fontSize={8}
-          style={{ fill: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+          fontSize={7.5}
+          style={{
+            fill: "color-mix(in srgb, var(--primary) 48%, transparent)",
+            pointerEvents: "none",
+          }}
         >
           ↳ {principal.nombre}
         </text>
@@ -378,64 +410,34 @@ function IumNode({
 
       {/* Botón eliminar */}
       <foreignObject
-        x={CANVAS_CX + VISUAL_R + 6}
-        y={cy - 8}
+        x={visR + 4}
+        y={-visR - 2}
         width={16}
         height={16}
+        style={{ pointerEvents: "all" }}
       >
         <button
-          onClick={onRemove}
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          title="Eliminar"
           style={{
-            width: 16,
-            height: 16,
-            borderRadius: "50%",
+            width: 16, height: 16, borderRadius: "50%",
             border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-            background: "var(--bg-main)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
+            background: "var(--bg-main)", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
           }}
         >
-          <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+          <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
         </button>
-      </foreignObject>
-
-      {/* Selector de posición */}
-      <foreignObject
-        x={CANVAS_CX - VISUAL_R - 52}
-        y={cy - 11}
-        width={48}
-        height={22}
-      >
-        <select
-          value={comp.posicion}
-          onChange={(e) => onPosicion(e.target.value)}
-          style={{
-            width: 48,
-            fontSize: 9,
-            background: "var(--bg-main)",
-            border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-            borderRadius: 4,
-            color: "var(--fg-main)",
-            padding: "2px 3px",
-          }}
-        >
-          {disponibles.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
       </foreignObject>
     </g>
   );
 }
 
-// ─── Sub-componente: resultado del motor ─────────────────────────────────────
+// ─── Panel resultado ──────────────────────────────────────────────────────────
 
 function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
   const [expandido, setExpandido] = useState(true);
-
   const candidatos = resultado.procesos_candidatos as Array<{ nombre?: string }> | undefined;
   const oris       = resultado.oris_candidatos as Array<{ nombre?: string }> | undefined;
   const incomp     = resultado.incompatibilidades as Array<{ motivo?: string; descripcion?: string }> | undefined;
@@ -443,25 +445,16 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
   const hayError   = resultado.estado === "incompatible" || resultado.estado === "error" || !!(incomp?.length);
 
   return (
-    <div
-      style={{
-        border: `1px solid ${hayError ? "color-mix(in srgb, var(--error,#ef4444) 40%, transparent)" : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{
+      border: `1px solid ${hayError
+        ? "color-mix(in srgb, var(--error,#ef4444) 40%, transparent)"
+        : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+      borderRadius: "var(--radius-card)",
+      overflow: "hidden",
+    }}>
       <button
         onClick={() => setExpandido(!expandido)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "5px 10px",
-          background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-          border: "none",
-          cursor: "pointer",
-        }}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "none", cursor: "pointer" }}
       >
         {expandido ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
         <span style={{ fontSize: 9, fontWeight: 700, flex: 1 }}>Resultado del motor</span>
@@ -475,10 +468,8 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
           </span>
         )}
       </button>
-
       {expandido && (
         <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
-          {/* Procesos */}
           <div>
             <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px" }}>
               Procesos candidatos ({resultado.cantidad_candidatos ?? candidatos?.length ?? 0})
@@ -496,7 +487,6 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
             )}
           </div>
 
-          {/* ORIS */}
           {!!oris?.length && (
             <div>
               <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px" }}>
@@ -513,7 +503,6 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
             </div>
           )}
 
-          {/* Incompatibilidades */}
           {hayError && (
             <div>
               <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--error,#ef4444) 80%, var(--fg-main))", margin: "0 0 3px" }}>
@@ -531,7 +520,6 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
             </div>
           )}
 
-          {/* JSON completo */}
           <details>
             <summary style={{ fontSize: 8, fontWeight: 700, cursor: "pointer", color: "color-mix(in srgb, var(--primary) 40%, transparent)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Respuesta completa
@@ -546,7 +534,7 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
   );
 }
 
-// ─── Componente principal ────────────────────────────────────────────────────
+// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SimuladorIUM() {
   const { iums, loading: loadingIums } = useIumsCatalogo();
@@ -554,63 +542,236 @@ export default function SimuladorIUM() {
   const [componentes, setComponentes] = useState<ComponenteLab[]>([]);
   const [enlaces, setEnlaces] = useState<EnlaceLab[]>([]);
 
-  // Modal enlace
-  const [modalEnlace, setModalEnlace]       = useState(false);
-  const [enlaceOrigen, setEnlaceOrigen]     = useState("");
-  const [enlaceDestino, setEnlaceDestino]   = useState("");
-  const [enlaceTipo, setEnlaceTipo]         = useState("dirigida");
+  // Drag de nodo
+  const dragging = useRef<{
+    uid: string;
+    startMouseX: number;
+    startMouseY: number;
+    startNodeX: number;
+    startNodeY: number;
+    moved: boolean;
+  } | null>(null);
+
+  // Modo enlace (click derecho)
+  const [linkingFrom, setLinkingFrom] = useState<string | null>(null);
+  const [linkingMouse, setLinkingMouse] = useState<{ x: number; y: number } | null>(null);
+  const [linkingOver, setLinkingOver] = useState<string | null>(null);
+  const [linkingTipo, setLinkingTipo] = useState("dirigida");
+
+  // Modal tipo unión al soltar
+  const [modalTipo, setModalTipo] = useState<{
+    origenUid: string;
+    destinoUid: string;
+  } | null>(null);
+
+  // Viewport transform (pan + zoom)
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 600 });
+  const svgRef = useRef<SVGSVGElement>(null);
+  const panStart = useRef<{ mx: number; my: number; vx: number; vy: number } | null>(null);
 
   // Simulador
-  const [simulando, setSimulando]     = useState(false);
-  const [resultado, setResultado]     = useState<ResultadoSimulador | null>(null);
-  const [errorSim, setErrorSim]       = useState<string | null>(null);
+  const [simulando, setSimulando] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
+  const [errorSim, setErrorSim] = useState<string | null>(null);
 
-  const iumIds  = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
+  const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
   const salidas = useIumSalidas(iumIds);
-
-  const iumMap = useMemo(
-    () => new Map(iums.map((i) => [i.id, i])),
-    [iums],
-  );
+  const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
 
   const iumsFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
-    return q ? iums.filter((i) => i.nombre.toLowerCase().includes(q) || i.detalle.toLowerCase().includes(q)) : iums;
+    return q
+      ? iums.filter((i) => i.nombre.toLowerCase().includes(q) || i.detalle.toLowerCase().includes(q))
+      : iums;
   }, [iums, busqueda]);
 
   const posicionesUsadas = useMemo(() => componentes.map((c) => c.posicion), [componentes]);
 
-  // Altura del canvas SVG
-  const canvasH = useMemo(
-    () => Math.max(220, TOP_PAD * 2 + componentes.length * NODE_STEP),
-    [componentes.length],
-  );
-  // Ancho: espacio para nodo + selector izq + botón der + margen etiqueta conexión
-  const canvasW = 320;
+  // ── Conversión coordenadas pantalla → SVG ─────────────────────────────────
 
-  // Agregar IUM
+  const screenToSVG = useCallback((screenX: number, screenY: number) => {
+    if (!svgRef.current) return { x: screenX, y: screenY };
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = viewBox.w / rect.width;
+    const scaleY = viewBox.h / rect.height;
+    return {
+      x: viewBox.x + (screenX - rect.left) * scaleX,
+      y: viewBox.y + (screenY - rect.top) * scaleY,
+    };
+  }, [viewBox]);
+
+  // ── Agregar IUM ───────────────────────────────────────────────────────────
+
   const agregarIum = useCallback((ium: IumCatalogo) => {
+    const idx = componentes.length;
+    const { x, y } = autoPos(idx);
     const posLibre = POSICIONES.find((p) => !posicionesUsadas.includes(p)) ?? "X";
-    setComponentes((prev) => [...prev, { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: posLibre }]);
-  }, [posicionesUsadas]);
+    setComponentes((prev) => [...prev, {
+      uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
+      posicion: posLibre, x, y,
+    }]);
+  }, [componentes.length, posicionesUsadas]);
 
-  const cambiarPosicion = useCallback((uid: string, p: string) =>
-    setComponentes((prev) => prev.map((c) => c.uid === uid ? { ...c, posicion: p } : c)), []);
+  // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
-  const eliminarComponente = useCallback((uid: string) => {
-    setComponentes((prev) => prev.filter((c) => c.uid !== uid));
-    setEnlaces((prev) => prev.filter((e) => e.origen_uid !== uid && e.destino_uid !== uid));
+  const fitAll = useCallback(() => {
+    if (!componentes.length) {
+      setViewBox({ x: 0, y: 0, w: 800, h: 600 });
+      return;
+    }
+    const padding = 100;
+    const xs = componentes.map((c) => c.x);
+    const ys = componentes.map((c) => c.y);
+    const minX = Math.min(...xs) - padding;
+    const minY = Math.min(...ys) - padding;
+    const maxX = Math.max(...xs) + padding;
+    const maxY = Math.max(...ys) + padding;
+    setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+  }, [componentes]);
+
+  // Auto-fit cuando cambia el número de componentes
+  useEffect(() => { fitAll(); }, [componentes.length]);
+
+  // ── Drag de nodo ──────────────────────────────────────────────────────────
+
+  const onNodeMouseDown = useCallback((uid: string, e: React.MouseEvent) => {
+    if (e.button !== 0) return; // solo click izquierdo
+    e.preventDefault();
+    e.stopPropagation();
+    const comp = componentes.find((c) => c.uid === uid);
+    if (!comp) return;
+    const svgPos = screenToSVG(e.clientX, e.clientY);
+    dragging.current = {
+      uid,
+      startMouseX: svgPos.x,
+      startMouseY: svgPos.y,
+      startNodeX: comp.x,
+      startNodeY: comp.y,
+      moved: false,
+    };
+  }, [componentes, screenToSVG]);
+
+  // ── Click derecho en nodo = iniciar enlace ─────────────────────────────────
+
+  const onNodeContextMenu = useCallback((uid: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (linkingFrom) {
+      // Soltar enlace sobre este nodo
+      if (linkingFrom !== uid) {
+        setModalTipo({ origenUid: linkingFrom, destinoUid: uid });
+      }
+      setLinkingFrom(null);
+      setLinkingMouse(null);
+      setLinkingOver(null);
+    } else {
+      setLinkingFrom(uid);
+      const svgPos = screenToSVG(e.clientX, e.clientY);
+      setLinkingMouse(svgPos);
+    }
+  }, [linkingFrom, screenToSVG]);
+
+  // ── Mouse move en SVG ─────────────────────────────────────────────────────
+
+  const onSVGMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const svgPos = screenToSVG(e.clientX, e.clientY);
+
+    if (dragging.current) {
+      const dx = svgPos.x - dragging.current.startMouseX;
+      const dy = svgPos.y - dragging.current.startMouseY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragging.current.moved = true;
+      const nx = dragging.current.startNodeX + dx;
+      const ny = dragging.current.startNodeY + dy;
+      setComponentes((prev) =>
+        prev.map((c) => c.uid === dragging.current!.uid ? { ...c, x: nx, y: ny } : c),
+      );
+    }
+
+    if (linkingFrom) {
+      setLinkingMouse(svgPos);
+    }
+  }, [screenToSVG, linkingFrom]);
+
+  // ── Mouse up ──────────────────────────────────────────────────────────────
+
+  const onSVGMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    dragging.current = null;
+
+    // Si venía enlazando y soltó sobre el fondo (no sobre otro nodo) → cancelar
+    if (linkingFrom && !linkingOver) {
+      setLinkingFrom(null);
+      setLinkingMouse(null);
+    }
+  }, [linkingFrom, linkingOver]);
+
+  // ── Pan del canvas (arrastrar fondo) ──────────────────────────────────────
+
+  const onCanvasMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return;
+    if ((e.target as Element).closest("[data-ium-node]")) return;
+    panStart.current = { mx: e.clientX, my: e.clientY, vx: viewBox.x, vy: viewBox.y };
+  }, [viewBox.x, viewBox.y]);
+
+  const onCanvasMouseMoveForPan = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!panStart.current || dragging.current) return;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const scaleX = viewBox.w / rect.width;
+    const scaleY = viewBox.h / rect.height;
+    const dx = (e.clientX - panStart.current.mx) * scaleX;
+    const dy = (e.clientY - panStart.current.my) * scaleY;
+    setViewBox((v) => ({ ...v, x: panStart.current!.vx - dx, y: panStart.current!.vy - dy }));
+  }, [viewBox.w, viewBox.h]);
+
+  const onCanvasMouseUp = useCallback(() => { panStart.current = null; }, []);
+
+  // ── Zoom con rueda ────────────────────────────────────────────────────────
+
+  const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    const factor = e.deltaY > 0 ? 1.12 : 0.89;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mouseX = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.w;
+    const mouseY = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.h;
+    const nw = viewBox.w * factor;
+    const nh = viewBox.h * factor;
+    setViewBox({
+      x: mouseX - (mouseX - viewBox.x) * factor,
+      y: mouseY - (mouseY - viewBox.y) * factor,
+      w: nw, h: nh,
+    });
+  }, [viewBox]);
+
+  // ── Cancelar enlace con Escape ────────────────────────────────────────────
+
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLinkingFrom(null);
+        setLinkingMouse(null);
+        setLinkingOver(null);
+      }
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
   }, []);
 
-  const agregarEnlace = useCallback(() => {
-    if (!enlaceOrigen || !enlaceDestino || enlaceOrigen === enlaceDestino) return;
-    setEnlaces((prev) => [...prev, { uid: genUID(), origen_uid: enlaceOrigen, destino_uid: enlaceDestino, tipo_union: enlaceTipo }]);
-    setModalEnlace(false);
-    setEnlaceOrigen(""); setEnlaceDestino(""); setEnlaceTipo("dirigida");
-  }, [enlaceOrigen, enlaceDestino, enlaceTipo]);
+  // ── Confirmar enlace ──────────────────────────────────────────────────────
 
-  const cambiarTipoUnion = useCallback((uid: string, t: string) =>
-    setEnlaces((prev) => prev.map((e) => e.uid === uid ? { ...e, tipo_union: t } : e)), []);
+  const confirmarEnlace = useCallback(() => {
+    if (!modalTipo) return;
+    setEnlaces((prev) => [...prev, {
+      uid: genUID(),
+      origen_uid: modalTipo.origenUid,
+      destino_uid: modalTipo.destinoUid,
+      tipo_union: linkingTipo,
+    }]);
+    setModalTipo(null);
+    setLinkingTipo("dirigida");
+  }, [modalTipo, linkingTipo]);
+
+  // ── Simular ────────────────────────────────────────────────────────────────
 
   const limpiar = useCallback(() => {
     setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null);
@@ -639,12 +800,20 @@ export default function SimuladorIUM() {
     }
   }, [componentes, enlaces]);
 
+  // ── Scale actual (para info) ───────────────────────────────────────────────
+
+  const currentScale = useMemo(() => {
+    if (!svgRef.current) return 1;
+    const rect = svgRef.current.getBoundingClientRect();
+    return rect.width / viewBox.w;
+  }, [viewBox.w]);
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "190px 1fr 260px", height: "calc(100vh - 80px)", overflow: "hidden" }}>
 
-      {/* ── Izquierda: catálogo ──────────────────────────────────────────────── */}
+      {/* ── Izquierda: catálogo ─────────────────────────────────────────────── */}
       <div style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 6px" }}>
@@ -660,7 +829,6 @@ export default function SimuladorIUM() {
             />
           </div>
         </div>
-
         <div style={{ flex: 1, overflowY: "auto" }}>
           {loadingIums ? (
             <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
@@ -694,7 +862,7 @@ export default function SimuladorIUM() {
         </div>
       </div>
 
-      {/* ── Centro: canvas SVG ───────────────────────────────────────────────── */}
+      {/* ── Centro: canvas libre ────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
         {/* Toolbar */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
@@ -702,12 +870,16 @@ export default function SimuladorIUM() {
           <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", flex: 1 }}>
             Canvas — {componentes.length} IUM{componentes.length !== 1 ? "s" : ""}
           </span>
-          {componentes.length > 1 && (
-            <button onClick={() => setModalEnlace(true)}
-              style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 8, fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-btn)", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", background: "transparent", cursor: "pointer", color: "var(--fg-main)" }}>
-              <Link2 size={9} /> Unir
-            </button>
+          {linkingFrom && (
+            <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)", animation: "pulse 1s ease-in-out infinite" }}>
+              Click derecho en destino →
+            </span>
           )}
+          <button onClick={fitAll}
+            title="Ajustar vista"
+            style={{ border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: "transparent", cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)", fontSize: 8, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+            Fit
+          </button>
           {componentes.length > 0 && (
             <button onClick={limpiar}
               style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
@@ -716,68 +888,91 @@ export default function SimuladorIUM() {
           )}
         </div>
 
-        {/* SVG canvas scrolleable */}
-        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-          {componentes.length === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 8 }}>
-              <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
-              <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 180, margin: 0, lineHeight: 1.6 }}>
-                Agrega IUMs desde el panel izquierdo
-              </p>
-            </div>
-          ) : (
-            <svg
-              width="100%"
-              viewBox={`0 0 ${canvasW} ${canvasH}`}
-              style={{ display: "block", minHeight: canvasH }}
-            >
-              <defs>
-                <marker
-                  id={ARROW_MARKER_ID}
-                  markerWidth="7"
-                  markerHeight="7"
-                  refX="6"
-                  refY="3"
-                  orient="auto"
-                >
-                  <path d="M0,0.5 L0,5.5 L6.5,3 z" style={{ fill: ARROW_COLOR }} />
-                </marker>
-              </defs>
+        {/* SVG canvas */}
+        {componentes.length === 0 ? (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
+            <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 200, margin: 0, lineHeight: 1.6 }}>
+              Agrega IUMs desde el panel izquierdo.<br />
+              <span style={{ fontSize: 9 }}>Arrastra para mover · click derecho para unir</span>
+            </p>
+          </div>
+        ) : (
+          <svg
+            ref={svgRef}
+            style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
+            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+            onMouseDown={(e) => { onCanvasMouseDown(e); }}
+            onMouseMove={(e) => { onSVGMouseMove(e); onCanvasMouseMoveForPan(e); }}
+            onMouseUp={(e) => { onSVGMouseUp(e); onCanvasMouseUp(); }}
+            onMouseLeave={() => { dragging.current = null; panStart.current = null; }}
+            onWheel={onWheel}
+            onContextMenu={(e) => {
+              // Si click derecho en fondo mientras enlazando → cancelar
+              if (linkingFrom) { e.preventDefault(); setLinkingFrom(null); setLinkingMouse(null); setLinkingOver(null); }
+            }}
+          >
+            <defs>
+              <marker id={ARROW_ID} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                <path d="M0,0.5 L0,5.5 L6.5,3 z" style={{ fill: ARROW_COLOR }} />
+              </marker>
+            </defs>
 
-              {/* Conexiones */}
-              {enlaces.map((e) => {
-                const iOr  = componentes.findIndex((c) => c.uid === e.origen_uid);
-                const iDst = componentes.findIndex((c) => c.uid === e.destino_uid);
-                if (iOr < 0 || iDst < 0) return null;
-                const y1 = nodeCY(iOr) + VISUAL_R + 4;
-                const y2 = nodeCY(iDst) - VISUAL_R - 4;
-                return (
-                  <ConnectionPath
-                    key={e.uid}
-                    x1={CANVAS_CX} y1={y1}
-                    x2={CANVAS_CX} y2={y2}
-                    tipo={e.tipo_union}
-                    label={e.tipo_union}
-                  />
-                );
-              })}
+            {/* Conexiones existentes */}
+            {enlaces.map((e) => {
+              const or  = componentes.find((c) => c.uid === e.origen_uid);
+              const dst = componentes.find((c) => c.uid === e.destino_uid);
+              if (!or || !dst) return null;
+              return (
+                <ConnectionLine
+                  key={e.uid}
+                  x1={or.x} y1={or.y}
+                  x2={dst.x} y2={dst.y}
+                  tipo={e.tipo_union}
+                  label={e.tipo_union}
+                  onRemove={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
+                />
+              );
+            })}
 
-              {/* Nodos */}
-              {componentes.map((comp, i) => (
-                <IumNode
-                  key={comp.uid}
+            {/* Línea de enlace en progreso */}
+            {linkingFrom && linkingMouse && (() => {
+              const from = componentes.find((c) => c.uid === linkingFrom);
+              if (!from) return null;
+              return (
+                <line
+                  x1={from.x} y1={from.y}
+                  x2={linkingMouse.x} y2={linkingMouse.y}
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  style={{ stroke: "var(--primary)", pointerEvents: "none" }}
+                />
+              );
+            })()}
+
+            {/* Nodos */}
+            {componentes.map((comp) => (
+              <g key={comp.uid} data-ium-node="true">
+                <IumNodeSVG
                   comp={comp}
                   iumData={iumMap.get(comp.ium_id)}
                   salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
-                  posicionesUsadas={posicionesUsadas}
-                  index={i}
-                  onRemove={() => eliminarComponente(comp.uid)}
-                  onPosicion={(p) => cambiarPosicion(comp.uid, p)}
+                  selected={false}
+                  linking={linkingFrom === comp.uid}
+                  scale={currentScale}
+                  onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
+                  onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
+                  onRemove={() => {
+                    setComponentes((prev) => prev.filter((c) => c.uid !== comp.uid));
+                    setEnlaces((prev) => prev.filter((e) => e.origen_uid !== comp.uid && e.destino_uid !== comp.uid));
+                  }}
+                  onMouseEnter={() => setLinkingOver(comp.uid)}
+                  onMouseLeave={() => setLinkingOver(null)}
                 />
-              ))}
-            </svg>
-          )}
-        </div>
+              </g>
+            ))}
+          </svg>
+        )}
 
         {/* Botón simular */}
         <div style={{ padding: "6px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
@@ -785,14 +980,11 @@ export default function SimuladorIUM() {
             onClick={simular}
             disabled={!componentes.length || simulando}
             style={{
-              width: "100%",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-              padding: "6px 0",
-              borderRadius: "var(--radius-btn)",
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              padding: "6px 0", borderRadius: "var(--radius-btn)",
               background: componentes.length && !simulando ? "var(--primary)" : "color-mix(in srgb, var(--primary) 12%, transparent)",
               color: componentes.length && !simulando ? "#fff" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              border: "none",
-              cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
+              border: "none", cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
               fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
             }}
           >
@@ -804,21 +996,32 @@ export default function SimuladorIUM() {
         </div>
       </div>
 
-      {/* ── Derecha: resultados ──────────────────────────────────────────────── */}
+      {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: 0 }}>
             Organización
           </p>
         </div>
-
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
 
-          {/* Resumen */}
+          {/* Instrucciones interacción */}
+          {componentes.length > 0 && (
+            <div style={{ padding: "5px 8px", borderRadius: "var(--radius-card)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+              <p style={{ fontSize: 7.5, margin: 0, color: "color-mix(in srgb, var(--primary) 45%, transparent)", lineHeight: 1.6 }}>
+                🖱 Arrastra nodos con click izquierdo<br />
+                🔗 Click derecho para iniciar/terminar unión<br />
+                🖱 Rueda para zoom · Arrastra fondo para pan<br />
+                🗑 Click en conexión para eliminarla
+              </p>
+            </div>
+          )}
+
+          {/* IUMs seleccionados */}
           {componentes.length > 0 && (
             <div>
               <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 38%, transparent)", margin: "0 0 5px" }}>
-                IUMs seleccionados
+                IUMs ({componentes.length})
               </p>
               {componentes.map((c) => {
                 const principal = salidas.filter((s) => s.ium_id === c.ium_id).find((s) => s.es_principal);
@@ -836,40 +1039,40 @@ export default function SimuladorIUM() {
                   </div>
                 );
               })}
-
-              {enlaces.length > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 38%, transparent)", margin: "0 0 4px" }}>
-                    Uniones
-                  </p>
-                  {enlaces.map((e) => {
-                    const or  = componentes.find((c) => c.uid === e.origen_uid);
-                    const dst = componentes.find((c) => c.uid === e.destino_uid);
-                    return (
-                      <div key={e.uid} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3, fontSize: 9 }}>
-                        <span style={{ fontWeight: 700 }}>{or?.posicion}</span>
-                        <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>→</span>
-                        <span style={{ fontWeight: 700 }}>{dst?.posicion}</span>
-                        <select
-                          value={e.tipo_union}
-                          onChange={(ev) => cambiarTipoUnion(e.uid, ev.target.value)}
-                          style={{ fontSize: 8, background: "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", borderRadius: 3, color: "var(--fg-main)", padding: "1px 3px" }}
-                        >
-                          {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <button onClick={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
-                          style={{ border: "none", background: "none", cursor: "pointer", padding: 0, marginLeft: "auto" }}>
-                          <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Error simulador */}
+          {/* Uniones */}
+          {enlaces.length > 0 && (
+            <div>
+              <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 38%, transparent)", margin: "0 0 4px" }}>
+                Uniones ({enlaces.length})
+              </p>
+              {enlaces.map((e) => {
+                const or  = componentes.find((c) => c.uid === e.origen_uid);
+                const dst = componentes.find((c) => c.uid === e.destino_uid);
+                return (
+                  <div key={e.uid} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3, fontSize: 9 }}>
+                    <span style={{ fontWeight: 700 }}>{or?.posicion}</span>
+                    <span style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>→</span>
+                    <span style={{ fontWeight: 700 }}>{dst?.posicion}</span>
+                    <select
+                      value={e.tipo_union}
+                      onChange={(ev) => setEnlaces((prev) => prev.map((x) => x.uid === e.uid ? { ...x, tipo_union: ev.target.value } : x))}
+                      style={{ fontSize: 8, background: "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", borderRadius: 3, color: "var(--fg-main)", padding: "1px 3px" }}
+                    >
+                      {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button onClick={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
+                      style={{ border: "none", background: "none", cursor: "pointer", padding: 0, marginLeft: "auto" }}>
+                      <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {errorSim && (
             <div style={{ padding: "7px 9px", borderRadius: "var(--radius-card)", border: "1px solid color-mix(in srgb, var(--error,#ef4444) 35%, transparent)", background: "color-mix(in srgb, var(--error,#ef4444) 6%, transparent)" }}>
               <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
@@ -877,9 +1080,6 @@ export default function SimuladorIUM() {
                 <div>
                   <p style={{ fontSize: 9, fontWeight: 700, margin: "0 0 2px", color: "var(--error,#ef4444)" }}>Error del motor</p>
                   <p style={{ fontSize: 8, margin: 0 }}>{errorSim}</p>
-                  <p style={{ fontSize: 7.5, margin: "4px 0 0", color: "color-mix(in srgb, var(--primary) 32%, transparent)" }}>
-                    La RPC simular_organizacion_ium_v1 puede no estar disponible aún o requiere parámetros distintos.
-                  </p>
                 </div>
               </div>
             </div>
@@ -889,62 +1089,55 @@ export default function SimuladorIUM() {
 
           {!resultado && !errorSim && !componentes.length && (
             <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 22%, transparent)", textAlign: "center", padding: "20px 8px", margin: 0, lineHeight: 1.6 }}>
-              Agrega IUMs y presiona Simular para ver la respuesta del motor
+              Agrega IUMs y presiona Simular
             </p>
           )}
         </div>
       </div>
 
-      {/* ── Modal de unión ───────────────────────────────────────────────────── */}
-      {modalEnlace && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 72%, transparent)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => setModalEnlace(false)}
-        >
+      {/* ── Modal tipo de unión ──────────────────────────────────────────────── */}
+      {modalTipo && (() => {
+        const or  = componentes.find((c) => c.uid === modalTipo.origenUid);
+        const dst = componentes.find((c) => c.uid === modalTipo.destinoUid);
+        return (
           <div
-            style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRadius: "var(--radius-card)", padding: 16, minWidth: 240, display: "flex", flexDirection: "column", gap: 10 }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 72%, transparent)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
+            onClick={() => setModalTipo(null)}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <Link2 size={11} />
-              <span style={{ fontSize: 11, fontWeight: 700, flex: 1 }}>Nueva unión</span>
-              <button onClick={() => setModalEnlace(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={12} /></button>
+            <div
+              style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", borderRadius: "var(--radius-card)", padding: 16, minWidth: 220, display: "flex", flexDirection: "column", gap: 10 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Link2 size={11} />
+                <span style={{ fontSize: 11, fontWeight: 700, flex: 1 }}>Nueva unión</span>
+                <button onClick={() => setModalTipo(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={12} /></button>
+              </div>
+              <p style={{ fontSize: 9, margin: 0, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                <strong style={{ color: "var(--fg-main)" }}>{or?.posicion} {or?.ium_nombre}</strong>
+                {" → "}
+                <strong style={{ color: "var(--fg-main)" }}>{dst?.posicion} {dst?.ium_nombre}</strong>
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <label style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tipo de unión</label>
+                <select value={linkingTipo} onChange={(e) => setLinkingTipo(e.target.value)}
+                  style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--fg-main)" }}>
+                  {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <button onClick={confirmarEnlace}
+                style={{ padding: "6px 0", borderRadius: "var(--radius-btn)", background: "var(--primary)", color: "#fff", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700 }}>
+                Confirmar unión
+              </button>
             </div>
-
-            {(["Origen", "Destino"] as const).map((label) => {
-              const val  = label === "Origen" ? enlaceOrigen : enlaceDestino;
-              const setV = label === "Origen" ? setEnlaceOrigen : setEnlaceDestino;
-              return (
-                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  <label style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
-                  <select value={val} onChange={(e) => setV(e.target.value)}
-                    style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--fg-main)" }}>
-                    <option value="">Seleccionar...</option>
-                    {componentes
-                      .filter((c) => label === "Origen" || c.uid !== enlaceOrigen)
-                      .map((c) => <option key={c.uid} value={c.uid}>{c.posicion} — {c.ium_nombre}</option>)}
-                  </select>
-                </div>
-              );
-            })}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <label style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tipo de unión</label>
-              <select value={enlaceTipo} onChange={(e) => setEnlaceTipo(e.target.value)}
-                style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--fg-main)" }}>
-                {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-
-            <button onClick={agregarEnlace} disabled={!enlaceOrigen || !enlaceDestino}
-              style={{ padding: "6px 0", borderRadius: "var(--radius-btn)", background: enlaceOrigen && enlaceDestino ? "var(--primary)" : "color-mix(in srgb, var(--primary) 12%, transparent)", color: enlaceOrigen && enlaceDestino ? "#fff" : "color-mix(in srgb, var(--primary) 30%, transparent)", border: "none", cursor: enlaceOrigen && enlaceDestino ? "pointer" : "not-allowed", fontSize: 10, fontWeight: 700 }}>
-              Agregar unión
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `}</style>
     </div>
   );
 }
