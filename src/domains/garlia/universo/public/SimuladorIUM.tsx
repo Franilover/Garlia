@@ -310,6 +310,119 @@ function autoPos(index: number): { x: number; y: number } {
   };
 }
 
+
+// ─── Sistema de slots por topología ──────────────────────────────────────────
+//
+// Cada topología tiene sus posiciones canónicas en un espacio de 700×700 px.
+// "nucleo" siempre al centro. El resto se distribuye alrededor.
+// Coordenadas SVG (x=0..700, y=0..700).
+
+const CANVAS_W = 700;
+const CANVAS_H = 700;
+const SLOT_SNAP_RADIUS = 80; // px SVG: si el nodo cae dentro, salta al slot
+
+type SlotLayout = Record<string, { x: number; y: number }>;
+
+const LAYOUT_2: SlotLayout = {
+  a:      { x: 200, y: 350 },
+  nucleo: { x: 500, y: 350 },
+};
+const LAYOUT_3_CHAIN: SlotLayout = {
+  a:      { x: 130, y: 350 },
+  nucleo: { x: 370, y: 350 },
+  b:      { x: 610, y: 350 },
+};
+const LAYOUT_3_CONVERGE: SlotLayout = {
+  a:      { x: 170, y: 200 },
+  b:      { x: 530, y: 200 },
+  nucleo: { x: 350, y: 440 },
+};
+const LAYOUT_4_CONVERGE: SlotLayout = {
+  a:      { x: 155, y: 190 },
+  b:      { x: 545, y: 190 },
+  nucleo: { x: 350, y: 360 },
+  c:      { x: 350, y: 560 },
+};
+const LAYOUT_4_STRUCT: SlotLayout = {
+  a:      { x: 170, y: 210 },
+  b:      { x: 530, y: 210 },
+  nucleo: { x: 350, y: 410 },
+  c:      { x: 580, y: 550 },
+};
+const LAYOUT_5_BRANCH: SlotLayout = {
+  a:      { x: 130, y: 350 },
+  nucleo: { x: 350, y: 350 },
+  b:      { x: 570, y: 200 },
+  c:      { x: 570, y: 480 },
+  d:      { x: 570, y: 560 },
+};
+const LAYOUT_5_CYCLE: SlotLayout = {
+  a:      { x: 190, y: 200 },
+  b:      { x: 510, y: 200 },
+  nucleo: { x: 510, y: 450 },
+  c:      { x: 190, y: 450 },
+  d:      { x: 510, y: 580 },
+};
+const LAYOUT_5_CHAIN: SlotLayout = {
+  a:      { x: 100, y: 350 },
+  nucleo: { x: 280, y: 350 },
+  b:      { x: 460, y: 200 },
+  d:      { x: 460, y: 480 },
+  c:      { x: 640, y: 480 },
+};
+const LAYOUT_5_FEED: SlotLayout = {
+  a:      { x: 190, y: 200 },
+  b:      { x: 510, y: 200 },
+  nucleo: { x: 510, y: 420 },
+  c:      { x: 190, y: 420 },
+  d:      { x: 640, y: 420 },
+};
+
+// Mapa nombre→layout. Las claves deben coincidir exactamente con t.nombre en Supabase.
+const TOPO_LAYOUTS: Record<string, SlotLayout> = {
+  "Convergencia nuclear":       LAYOUT_3_CONVERGE,
+  "Convergencia con resolución": LAYOUT_4_CONVERGE,
+  "Estructural":                LAYOUT_4_STRUCT,
+  "Ramificación":               LAYOUT_5_BRANCH,
+  "Ciclo con salida":           LAYOUT_5_CYCLE,
+  "Cadena dinámica":            LAYOUT_5_CHAIN,
+  "Retroalimentación":          LAYOUT_5_FEED,
+};
+
+// Normaliza nombre de posición canónica → clave del layout
+const canonKey = (p: string) => p.toLowerCase().trim();
+
+// Devuelve las coordenadas de todos los slots de una topología
+function getSlotsActivos(topo: TopologiaOris): SlotLayout {
+  const layout = TOPO_LAYOUTS[topo.nombre];
+  if (!layout) return {};
+  return layout;
+}
+
+// Dado (x,y) y los slots activos, devuelve el slot más cercano si está dentro del radio
+function slotMasCercano(
+  x: number, y: number, slots: SlotLayout, radioSVG: number,
+): { key: string; x: number; y: number } | null {
+  let best: { key: string; x: number; y: number; dist: number } | null = null;
+  for (const [key, pos] of Object.entries(slots)) {
+    const dist = Math.hypot(x - pos.x, y - pos.y);
+    if (dist <= radioSVG && (!best || dist < best.dist)) {
+      best = { key, x: pos.x, y: pos.y, dist };
+    }
+  }
+  return best;
+}
+
+// Clave de la posición canónica de un componente dentro de la topología seleccionada
+function claveDeComponente(comp: ComponenteLab, topo: TopologiaOris): string {
+  // Busca qué slot ocupa según su posicion UI ("N","A","B"…)
+  const posUI = comp.posicion.toUpperCase();
+  const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+  const slots = getSlotsActivos(topo);
+  const hit = Object.keys(slots).find((k) => toUI(k) === posUI);
+  return hit ?? comp.posicion;
+}
+
 // ─── Conexión SVG ─────────────────────────────────────────────────────────────
 
 function ConnectionLine({
@@ -677,6 +790,8 @@ export default function SimuladorIUM() {
   const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
   const [errorSim, setErrorSim] = useState<string | null>(null);
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
+  // Slot resaltado mientras arrastra en modo topología
+  const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
 
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
 
@@ -716,14 +831,30 @@ export default function SimuladorIUM() {
   // ── Agregar IUM ───────────────────────────────────────────────────────────
 
   const agregarIum = useCallback((ium: IumCatalogo) => {
-    const idx = componentes.length;
-    const { x, y } = autoPos(idx);
-    const posLibre = POSICIONES.find((p) => !posicionesUsadas.includes(p)) ?? "X";
-    setComponentes((prev) => [...prev, {
-      uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
-      posicion: posLibre, x, y,
-    }]);
-  }, [componentes.length, posicionesUsadas]);
+    if (topoSeleccionada) {
+      // Modo topología: asigna el primer slot libre
+      const slots = getSlotsActivos(topoSeleccionada);
+      const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+      const slotsLibres = Object.keys(slots).filter(
+        (k) => !componentes.some((c) => c.posicion === toUI(k)),
+      );
+      if (!slotsLibres.length) return; // topología llena
+      const key = slotsLibres[0];
+      const { x, y } = slots[key];
+      setComponentes((prev) => [...prev, {
+        uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
+        posicion: toUI(key), x, y,
+      }]);
+    } else {
+      const idx = componentes.length;
+      const { x, y } = autoPos(idx);
+      const posLibre = POSICIONES.find((p) => !posicionesUsadas.includes(p)) ?? "X";
+      setComponentes((prev) => [...prev, {
+        uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
+        posicion: posLibre, x, y,
+      }]);
+    }
+  }, [componentes, posicionesUsadas, topoSeleccionada]);
 
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
@@ -797,27 +928,69 @@ export default function SimuladorIUM() {
       const nx = drag.startNodeX + dx;
       const ny = drag.startNodeY + dy;
       const uid = drag.uid;
-      setComponentes((prev) =>
-        prev.map((c) => c.uid === uid ? { ...c, x: nx, y: ny } : c),
-      );
+
+      if (topoSeleccionada) {
+        // Modo topología: el nodo sigue el cursor pero calculamos el slot más cercano
+        const slots = getSlotsActivos(topoSeleccionada);
+        const snap = slotMasCercano(nx, ny, slots, SLOT_SNAP_RADIUS * 1.8);
+        setDragSlotPreview(snap);
+        setComponentes((prev) =>
+          prev.map((c) => c.uid === uid ? { ...c, x: nx, y: ny } : c),
+        );
+      } else {
+        setComponentes((prev) =>
+          prev.map((c) => c.uid === uid ? { ...c, x: nx, y: ny } : c),
+        );
+      }
     }
 
     if (linkingFrom) {
       setLinkingMouse(svgPos);
     }
-  }, [screenToSVG, linkingFrom]);
+  }, [screenToSVG, linkingFrom, topoSeleccionada]);
 
   // ── Mouse up ──────────────────────────────────────────────────────────────
 
   const onSVGMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const drag = dragging.current;
     dragging.current = null;
 
-    // Si venía enlazando y soltó sobre el fondo (no sobre otro nodo) → cancelar
+    if (drag && drag.moved && topoSeleccionada) {
+      // Snap final: mueve al slot más cercano e intercambia posiciones si estaba ocupado
+      const slots = getSlotsActivos(topoSeleccionada);
+      const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+      setComponentes((prev) => {
+        const nodo = prev.find((c) => c.uid === drag.uid);
+        if (!nodo) return prev;
+        const snap = slotMasCercano(nodo.x, nodo.y, slots, SLOT_SNAP_RADIUS * 2.5);
+        if (!snap) {
+          // Fuera de rango: vuelve a su posición de origen
+          return prev.map((c) => c.uid === drag.uid
+            ? { ...c, x: drag.startNodeX, y: drag.startNodeY }
+            : c);
+        }
+        const newPosUI = toUI(snap.key);
+        const ocupante = prev.find((c) => c.uid !== drag.uid && c.posicion === newPosUI);
+        return prev.map((c) => {
+          if (c.uid === drag.uid) {
+            return { ...c, posicion: newPosUI, x: snap.x, y: snap.y };
+          }
+          if (ocupante && c.uid === ocupante.uid) {
+            // Intercambio: el ocupante toma la posición del nodo arrastrado
+            return { ...c, posicion: nodo.posicion, x: drag.startNodeX, y: drag.startNodeY };
+          }
+          return c;
+        });
+      });
+    }
+
+    setDragSlotPreview(null);
+
     if (linkingFrom && !linkingOver) {
       setLinkingFrom(null);
       setLinkingMouse(null);
     }
-  }, [linkingFrom, linkingOver]);
+  }, [linkingFrom, linkingOver, topoSeleccionada]);
 
   // ── Pan del canvas (arrastrar fondo) ──────────────────────────────────────
 
@@ -945,7 +1118,7 @@ export default function SimuladorIUM() {
   }, [componentes]);
 
   const limpiar = useCallback(() => {
-    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null);
+    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null); setTopoSeleccionada(null); setDragSlotPreview(null);
   }, []);
 
   const simular = useCallback(async () => {
@@ -1228,6 +1401,62 @@ export default function SimuladorIUM() {
                   style={{ stroke: "var(--primary)", pointerEvents: "none" }}
                 />
               );
+            })()}
+
+            {/* Grid de slots de topología */}
+            {topoSeleccionada && (() => {
+              const slots = Object.entries(getSlotsActivos(topoSeleccionada));
+              const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+              return slots.map(([key, pos]) => {
+                const posUI = toUI(key);
+                const ocupado = componentes.some((c) => c.posicion === posUI);
+                const esDragPreview = dragSlotPreview?.key === key;
+                return (
+                  <g key={key}>
+                    {/* Círculo guía del slot */}
+                    <circle
+                      cx={pos.x} cy={pos.y}
+                      r={NODE_R + 10}
+                      fill={esDragPreview
+                        ? "color-mix(in srgb, var(--primary) 16%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 4%, transparent)"}
+                      stroke={esDragPreview
+                        ? "color-mix(in srgb, var(--primary) 70%, transparent)"
+                        : ocupado
+                          ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                          : "color-mix(in srgb, var(--primary) 28%, transparent)"}
+                      strokeWidth={esDragPreview ? 2 : 1}
+                      strokeDasharray={ocupado ? undefined : "4 3"}
+                      style={{ transition: "fill 0.15s, stroke 0.15s" }}
+                    />
+                    {/* Etiqueta de posición */}
+                    <text
+                      x={pos.x} y={pos.y + NODE_R + 22}
+                      textAnchor="middle"
+                      style={{
+                        fontSize: 10, fontWeight: 700, fill: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        pointerEvents: "none", userSelect: "none", letterSpacing: "0.12em",
+                      }}
+                    >
+                      {posUI}
+                    </text>
+                    {/* Si está vacío, muestra un + */}
+                    {!ocupado && (
+                      <text
+                        x={pos.x} y={pos.y + 5}
+                        textAnchor="middle"
+                        style={{
+                          fontSize: 22, fontWeight: 300,
+                          fill: "color-mix(in srgb, var(--primary) 22%, transparent)",
+                          pointerEvents: "none", userSelect: "none",
+                        }}
+                      >
+                        +
+                      </text>
+                    )}
+                  </g>
+                );
+              });
             })()}
 
             {/* Nodos */}
