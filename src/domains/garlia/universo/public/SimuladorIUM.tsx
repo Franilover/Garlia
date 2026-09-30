@@ -1300,6 +1300,26 @@ export default function SimuladorIUM() {
           </div>
         ) : (
           <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+          {/* Botón Probar flotante sobre el canvas */}
+          <button
+            onClick={simular}
+            disabled={!componentes.length || simulando}
+            style={{
+              position: "absolute", top: 12, right: 12, zIndex: 10,
+              display: "flex", alignItems: "center", gap: 5,
+              padding: "6px 14px", borderRadius: 999,
+              background: "var(--primary)",
+              color: "#fff",
+              border: "none",
+              cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
+              opacity: componentes.length && !simulando ? 1 : 0.35,
+              fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+            }}
+          >
+            {simulando
+              ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
+              : <><Play size={10} /> Probar</>}
+          </button>
           <svg
             ref={svgRef}
             style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
@@ -1720,34 +1740,6 @@ export default function SimuladorIUM() {
         style={{ display: "none" }}
       >
         <Network size={18} />
-      </button>
-
-      {/* ── Botón Probar flotante (esquina superior derecha) ────────────────── */}
-      <button
-        onClick={simular}
-        disabled={!componentes.length || simulando}
-        style={{
-          position: "fixed", top: 16, right: 16, zIndex: 600,
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "8px 16px", borderRadius: 999,
-          background: componentes.length && !simulando
-            ? "var(--primary)"
-            : "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
-          color: componentes.length && !simulando
-            ? "#fff"
-            : "color-mix(in srgb, var(--primary) 35%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-          cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
-          fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-          boxShadow: componentes.length && !simulando
-            ? "0 4px 18px color-mix(in srgb, var(--primary) 38%, transparent)"
-            : "none",
-          transition: "background 0.2s, box-shadow 0.2s",
-        }}
-      >
-        {simulando
-          ? <><Loader2 size={11} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
-          : <><Play size={11} /> Probar</>}
       </button>
 
       {/* ── Modal resultado ─────────────────────────────────────────────────── */}
