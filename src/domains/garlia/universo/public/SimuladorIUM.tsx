@@ -84,16 +84,41 @@ interface EnlaceLab {
   tipo_union: string;
 }
 
+interface OrisCandidato {
+  oris_id?: string;
+  oris?: string;
+  rol?: string;
+  prioridad?: number | null;
+  estado_candidato?: string;
+}
+
+interface ProcesoCandidato {
+  proceso_id?: string;
+  proceso?: string;
+  regla_clave?: string;
+  estado_fundamento?: string;
+  patrones_obligatorios?: number;
+  patrones_coincidentes?: number;
+  patrones_totales?: number;
+  completo?: boolean;
+  contexto_cubre_ley?: boolean;
+  es_principal?: boolean;
+  oris?: OrisCandidato[];
+}
+
+// Forma real devuelta por simular_organizacion_ium_v1
 interface ResultadoSimulador {
-  estado?: string;
+  estado?: string;                       // "simulado" | "entrada_invalida"
+  motivo?: string;                       // solo si entrada_invalida
+  invalidos?: { ium_id?: string; motivo?: string }[];
   componentes?: unknown[];
   enlaces?: unknown[];
-  salidas_funcionales?: unknown[];
-  procesos_candidatos?: unknown[];
-  cantidad_candidatos?: number;
-  oris_candidatos?: unknown[];
-  incompatibilidades?: unknown[];
-  motivos?: string[];
+  salidas?: string[];
+  procesos_candidatos?: ProcesoCandidato[];
+  cantidad_procesos_candidatos?: number;
+  proceso_principal?: string | null;
+  desempate?: "patrones" | "contexto" | null;
+  ambiguo?: boolean;
   [key: string]: unknown;
 }
 
@@ -119,7 +144,15 @@ interface TopologiaUnion {
 // ─── Constantes de layout ─────────────────────────────────────────────────────
 
 const POSICIONES = ["A", "B", "C", "D", "N", "M", "X", "Y", "Z"];
-const TIPOS_UNION = ["dirigida", "bidireccional", "convergente", "divergente"];
+// Debe coincidir con tipos_union_ium_v1 (hoy solo "dirigida" tiene patrones que produzcan candidatos)
+const TIPOS_UNION = ["dirigida", "reciproca", "acoplamiento"];
+
+const MOTIVOS_INVALIDO: Record<string, string> = {
+  ium_no_existe: "El IUM no existe en el catálogo",
+  ium_sin_salida_funcional_principal: "El IUM no tiene salida funcional principal",
+  componentes_no_resueltos: "Hay componentes que el motor no pudo resolver",
+  componentes_y_enlaces_deben_ser_arrays: "Componentes y enlaces deben ser listas",
+};
 
 // Tamaño del nodo
 const NODE_R = 44;      // radio del círculo de fondo
@@ -303,7 +336,7 @@ function ConnectionLine({
         d={d}
         fill="none"
         strokeWidth={1.5}
-        strokeDasharray={tipo === "bidireccional" ? "4 3" : undefined}
+        strokeDasharray={tipo === "reciproca" ? "4 3" : tipo === "acoplamiento" ? "1.5 2.5" : undefined}
         markerEnd={`url(#${ARROW_ID})`}
         style={{ stroke: ARROW_COLOR, pointerEvents: "none" }}
       />
@@ -497,11 +530,19 @@ function IumNodeSVG({
 
 function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
   const [expandido, setExpandido] = useState(true);
-  const candidatos = resultado.procesos_candidatos as Array<{ nombre?: string }> | undefined;
-  const oris       = resultado.oris_candidatos as Array<{ nombre?: string }> | undefined;
-  const incomp     = resultado.incompatibilidades as Array<{ motivo?: string; descripcion?: string }> | undefined;
-  const motivos    = resultado.motivos as string[] | undefined;
-  const hayError   = resultado.estado === "incompatible" || resultado.estado === "error" || !!(incomp?.length);
+  const candidatos = resultado.procesos_candidatos ?? [];
+  const invalidos  = resultado.invalidos ?? [];
+  const salidas    = resultado.salidas ?? [];
+  const cantidad   = resultado.cantidad_procesos_candidatos ?? candidatos.length;
+  const hayError   = resultado.estado !== undefined && resultado.estado !== "simulado";
+
+  const etiqueta: React.CSSProperties = {
+    fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em",
+    color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px",
+  };
+  const chip: React.CSSProperties = {
+    fontSize: 9, padding: "1px 6px", borderRadius: 999, fontWeight: 600,
+  };
 
   return (
     <div style={{
@@ -516,66 +557,117 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "none", cursor: "pointer" }}
       >
         {expandido ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
-        <span style={{ fontSize: 9, fontWeight: 700, flex: 1 }}>Resultado del motor</span>
+        <span style={{ fontSize: 9, fontWeight: 700, flex: 1, textAlign: "left" }}>Resultado del motor</span>
         {resultado.estado && (
           <span style={{
             fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
             background: hayError ? "var(--error,#ef4444)" : "var(--success,#22c55e)",
             color: "#fff", textTransform: "uppercase", letterSpacing: "0.06em",
           }}>
-            {resultado.estado}
+            {resultado.estado.replace(/_/g, " ")}
           </span>
         )}
       </button>
+
       {expandido && (
         <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
-          <div>
-            <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px" }}>
-              Procesos candidatos ({resultado.cantidad_candidatos ?? candidatos?.length ?? 0})
-            </p>
-            {candidatos?.length ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                {candidatos.map((p, i) => (
-                  <span key={i} style={{ fontSize: 9, padding: "1px 6px", borderRadius: 999, background: "color-mix(in srgb, var(--primary) 12%, transparent)", fontWeight: 600 }}>
-                    ✓ {p.nombre ?? JSON.stringify(p)}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", margin: 0 }}>Sin procesos candidatos</p>
-            )}
-          </div>
 
-          {!!oris?.length && (
+          {/* Entrada inválida */}
+          {hayError && (
             <div>
-              <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px" }}>
-                ORIS candidatos
+              <p style={{ ...etiqueta, color: "color-mix(in srgb, var(--error,#ef4444) 80%, var(--fg-main))" }}>
+                No se pudo simular
               </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                {oris.map((o, i) => (
-                  <span key={i} style={{ fontSize: 9, padding: "1px 6px", borderRadius: 999, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", fontWeight: 600 }}>
-                    <Zap size={7} style={{ display: "inline", marginRight: 2 }} />
-                    {o.nombre ?? JSON.stringify(o)}
+              {resultado.motivo && (
+                <div style={{ display: "flex", gap: 5, fontSize: 9, marginBottom: 2 }}>
+                  <AlertTriangle size={9} style={{ flexShrink: 0, marginTop: 1, color: "var(--error,#ef4444)" }} />
+                  <span>{MOTIVOS_INVALIDO[resultado.motivo] ?? resultado.motivo}</span>
+                </div>
+              )}
+              {invalidos.map((inv, i) => (
+                <p key={i} style={{ fontSize: 9, margin: "2px 0 0 14px", color: "color-mix(in srgb, var(--error,#ef4444) 60%, var(--fg-main))" }}>
+                  • <strong>{inv.ium_id ?? "?"}</strong>: {MOTIVOS_INVALIDO[inv.motivo ?? ""] ?? inv.motivo ?? "motivo desconocido"}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {/* Proceso principal / desempate / ambigüedad */}
+          {!hayError && resultado.proceso_principal && (
+            <div style={{ padding: "5px 8px", borderRadius: 6, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <p style={etiqueta}>Proceso principal</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 11, fontWeight: 800 }}>★ {resultado.proceso_principal}</span>
+                {resultado.desempate && (
+                  <span style={{ ...chip, border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    {resultado.desempate === "contexto" ? "desempatado por contexto" : "único con más patrones"}
                   </span>
-                ))}
+                )}
               </div>
             </div>
           )}
 
-          {hayError && (
+          {!hayError && resultado.ambiguo && (
+            <div style={{ display: "flex", gap: 5, fontSize: 9, padding: "5px 8px", borderRadius: 6, border: "1px solid color-mix(in srgb, var(--warning,#f59e0b) 45%, transparent)", background: "color-mix(in srgb, var(--warning,#f59e0b) 8%, transparent)" }}>
+              <AlertTriangle size={9} style={{ flexShrink: 0, marginTop: 1, color: "var(--warning,#f59e0b)" }} />
+              <span>Resultado ambiguo: varios procesos empatan en patrones y el contexto no basta para decidir. Aporta las magnitudes que pide la ley cuantitativa de uno de ellos.</span>
+            </div>
+          )}
+
+          {/* Candidatos */}
+          {!hayError && (
             <div>
-              <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--error,#ef4444) 80%, var(--fg-main))", margin: "0 0 3px" }}>
-                Incompatibilidades
-              </p>
-              {incomp?.map((inc, i) => (
-                <div key={i} style={{ display: "flex", gap: 5, fontSize: 9, color: "color-mix(in srgb, var(--error,#ef4444) 70%, var(--fg-main))", marginBottom: 2 }}>
-                  <AlertTriangle size={9} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <span>{inc.motivo ?? inc.descripcion ?? JSON.stringify(inc)}</span>
+              <p style={etiqueta}>Procesos candidatos ({cantidad})</p>
+              {candidatos.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {candidatos.map((p, i) => (
+                    <div key={p.proceso_id ?? i} style={{ padding: "4px 7px", borderRadius: 6, border: `1px solid color-mix(in srgb, var(--primary) ${p.es_principal ? 35 : 14}%, transparent)` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700 }}>{p.es_principal ? "★ " : "✓ "}{p.proceso ?? "(sin nombre)"}</span>
+                        {p.patrones_coincidentes !== undefined && p.patrones_obligatorios !== undefined && (
+                          <span style={{ ...chip, fontSize: 8, background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                            patrones {p.patrones_coincidentes}/{p.patrones_obligatorios}
+                          </span>
+                        )}
+                        {p.contexto_cubre_ley && (
+                          <span style={{ ...chip, fontSize: 8, background: "color-mix(in srgb, var(--success,#22c55e) 18%, transparent)" }}>
+                            contexto cubre la ley
+                          </span>
+                        )}
+                        {p.estado_fundamento && (
+                          <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>{p.estado_fundamento}</span>
+                        )}
+                      </div>
+                      {!!p.oris?.length && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
+                          {p.oris.map((o, j) => (
+                            <span key={o.oris_id ?? j} title={[o.rol, o.estado_candidato].filter(Boolean).join(" · ")}
+                              style={{ ...chip, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                              <Zap size={7} style={{ display: "inline", marginRight: 2 }} />
+                              {o.oris ?? o.oris_id}{o.rol ? ` · ${o.rol}` : ""}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {motivos?.map((m, i) => (
-                <p key={i} style={{ fontSize: 9, margin: "2px 0 0", color: "color-mix(in srgb, var(--error,#ef4444) 60%, var(--fg-main))" }}>• {m}</p>
-              ))}
+              ) : (
+                <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", margin: 0 }}>
+                  Sin procesos candidatos. Revisa que los enlaces sean de tipo «dirigida» y coincidan con las salidas funcionales.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!hayError && !!salidas.length && (
+            <div>
+              <p style={etiqueta}>Salidas funcionales</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {salidas.map((sal) => (
+                  <span key={sal} style={{ ...chip, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>{sal}</span>
+                ))}
+              </div>
             </div>
           )}
 
@@ -637,6 +729,8 @@ export default function SimuladorIUM() {
   const [simulando, setSimulando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
   const [errorSim, setErrorSim] = useState<string | null>(null);
+  const [contextoTxt, setContextoTxt] = useState("");
+  const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
 
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
   const salidas = useIumSalidas(iumIds);
@@ -845,6 +939,8 @@ export default function SimuladorIUM() {
   const aplicarTopologia = useCallback((topo: TopologiaOris) => {
     setTopoSeleccionada(topo);
     setTopoDropdown(false);
+    setResultado(null);
+    setErrorSim(null);
 
     // Posiciones canónicas que la topología usa, en orden de aparición
     const posOrden: string[] = [];
@@ -853,59 +949,103 @@ export default function SimuladorIUM() {
       if (!posOrden.includes(u.destino_posicion)) posOrden.push(u.destino_posicion);
     }
 
-    // Mapear "nucleo" → "N" para que coincida con nuestras posiciones de UI
-    const canonToUI = (p: string) => p === "nucleo" ? "N" : p.toUpperCase();
+    // "nucleo" → "N" para que coincida con las posiciones de la UI
+    const canonToUI = (p: string) => (p === "nucleo" ? "N" : p.toUpperCase());
 
-    // Reasignar posiciones a los componentes existentes en orden
-    setComponentes((prev) => prev.map((c, i) => {
-      const pos = posOrden[i] ? canonToUI(posOrden[i]) : c.posicion;
-      return { ...c, posicion: pos };
+    // Un solo cálculo, sin efectos dentro de updaters: nodo i ↔ posición canónica i
+    const nuevosComps = componentes.map((c, i) => ({
+      ...c,
+      posicion: posOrden[i] ? canonToUI(posOrden[i]) : c.posicion,
     }));
 
-    // Autocompletar los enlaces de la topología sobre los componentes actuales
-    setEnlaces([]);
-    setComponentes((prevComps) => {
-      // Construir mapa posicion → uid usando las posiciones ya asignadas arriba
-      const posMap = new Map<string, string>();
-      prevComps.forEach((c, i) => {
-        const canon = posOrden[i] ? posOrden[i] : "";
-        if (canon) posMap.set(canon, c.uid);
-      });
-
-      const nuevosEnlaces: EnlaceLab[] = [];
-      for (const u of topo.uniones) {
-        const orUid  = posMap.get(u.origen_posicion);
-        const dstUid = posMap.get(u.destino_posicion);
-        if (orUid && dstUid) {
-          nuevosEnlaces.push({
-            uid: genUID(),
-            origen_uid: orUid,
-            destino_uid: dstUid,
-            tipo_union: u.tipo_union,
-          });
-        }
-      }
-      setEnlaces(nuevosEnlaces);
-      return prevComps;
+    const posMap = new Map<string, string>();
+    nuevosComps.forEach((c, i) => {
+      if (posOrden[i]) posMap.set(posOrden[i], c.uid);
     });
-  }, []);
+
+    const nuevosEnlaces: EnlaceLab[] = [];
+    for (const u of topo.uniones) {
+      const orUid  = posMap.get(u.origen_posicion);
+      const dstUid = posMap.get(u.destino_posicion);
+      if (orUid && dstUid) {
+        nuevosEnlaces.push({ uid: genUID(), origen_uid: orUid, destino_uid: dstUid, tipo_union: u.tipo_union });
+      }
+    }
+
+    setComponentes(nuevosComps);
+    setEnlaces(nuevosEnlaces);
+
+    // Avisos cuando nodos y posiciones no coinciden
+    const nPos = posOrden.length;
+    const nNodos = componentes.length;
+    if (nNodos < nPos) {
+      setAvisoTopo(
+        `«${topo.nombre}» usa ${nPos} posiciones y solo hay ${nNodos} nodo${nNodos !== 1 ? "s" : ""}: ` +
+        `se crearon ${nuevosEnlaces.length} de ${topo.uniones.length} enlaces. Agrega ${nPos - nNodos} IUM más y vuelve a aplicarla.`,
+      );
+    } else if (nNodos > nPos) {
+      setAvisoTopo(
+        `«${topo.nombre}» usa ${nPos} posiciones y hay ${nNodos} nodos: ` +
+        `${nNodos - nPos} nodo${nNodos - nPos !== 1 ? "s" : ""} quedaron fuera de la topología y sin enlaces.`,
+      );
+    } else {
+      setAvisoTopo(null);
+    }
+  }, [componentes]);
 
   const limpiar = useCallback(() => {
-    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null);
+    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null);
   }, []);
 
   const simular = useCallback(async () => {
     if (!componentes.length) return;
-    setSimulando(true); setResultado(null); setErrorSim(null);
+    setResultado(null); setErrorSim(null);
+
+    // Contexto opcional (objeto JSON) para desambiguar por magnitudes
+    let contexto: Record<string, unknown> = {};
+    const txt = contextoTxt.trim();
+    if (txt) {
+      try {
+        const parsed: unknown = JSON.parse(txt);
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error('debe ser un objeto JSON, por ejemplo {"temperatura": 300}');
+        }
+        contexto = parsed as Record<string, unknown>;
+      } catch (e) {
+        setErrorSim(`Contexto inválido: ${e instanceof Error ? e.message : String(e)}`);
+        return;
+      }
+    }
+
+    // El motor resuelve enlaces por ium_id: un IUM repetido con enlaces sería ambiguo
+    const conteo = new Map<string, number>();
+    componentes.forEach((c) => conteo.set(c.ium_id, (conteo.get(c.ium_id) ?? 0) + 1));
+    const repetidos = new Set<string>();
+    for (const e of enlaces) {
+      for (const uid of [e.origen_uid, e.destino_uid]) {
+        const c = componentes.find((x) => x.uid === uid);
+        if (c && (conteo.get(c.ium_id) ?? 0) > 1) repetidos.add(c.ium_nombre);
+      }
+    }
+    if (repetidos.size) {
+      setErrorSim(
+        `El motor identifica los enlaces por IUM, no por nodo. Hay IUMs repetidos con enlaces: ${[...repetidos].join(", ")}. ` +
+        `Deja una sola instancia de cada uno.`,
+      );
+      return;
+    }
+
+    setSimulando(true);
     try {
       const payload = {
-        componentes: componentes.map((c) => ({ ium_id: c.ium_id, posicion: c.posicion })),
-        enlaces: enlaces.map((e) => {
+        p_componentes: componentes.map((c) => ({ ium_id: c.ium_id, posicion: c.posicion })),
+        p_enlaces: enlaces.flatMap((e) => {
           const or  = componentes.find((c) => c.uid === e.origen_uid);
           const dst = componentes.find((c) => c.uid === e.destino_uid);
-          return { origen: or?.posicion ?? "", destino: dst?.posicion ?? "", tipo_union: e.tipo_union };
+          if (!or || !dst) return [];
+          return [{ origen: or.ium_id, destino: dst.ium_id, tipo_union: e.tipo_union }];
         }),
-        contexto: {},
+        p_contexto: contexto,
       };
       const { data, error: err } = await supabase.rpc("simular_organizacion_ium_v1" as never, payload as never);
       if (err) setErrorSim(err.message);
@@ -915,7 +1055,7 @@ export default function SimuladorIUM() {
     } finally {
       setSimulando(false);
     }
-  }, [componentes, enlaces]);
+  }, [componentes, enlaces, contextoTxt]);
 
   // ── Scale actual (para info) ───────────────────────────────────────────────
 
@@ -1181,6 +1321,24 @@ export default function SimuladorIUM() {
           </svg>
         )}
 
+        {/* Contexto opcional para desambiguar por magnitudes */}
+        <details style={{ padding: "4px 10px 0", flexShrink: 0 }}>
+          <summary style={{ fontSize: 8, fontWeight: 700, cursor: "pointer", color: "color-mix(in srgb, var(--primary) 45%, transparent)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Contexto (opcional){contextoTxt.trim() ? " ●" : ""}
+          </summary>
+          <textarea
+            value={contextoTxt}
+            onChange={(e) => setContextoTxt(e.target.value)}
+            placeholder={'{"magnitud": valor}'}
+            spellCheck={false}
+            rows={3}
+            style={{ width: "100%", boxSizing: "border-box", marginTop: 3, fontSize: 9, fontFamily: "monospace", padding: 5, borderRadius: 4, resize: "vertical", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", color: "inherit" }}
+          />
+          <p style={{ fontSize: 8, margin: "2px 0 4px", color: "color-mix(in srgb, var(--primary) 40%, transparent)", lineHeight: 1.4 }}>
+            Objeto JSON con las magnitudes que pide la ley cuantitativa de un proceso; sirve para desempatar candidatos.
+          </p>
+        </details>
+
         {/* Botón simular */}
         <div style={{ padding: "6px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
           <button
@@ -1285,6 +1443,13 @@ export default function SimuladorIUM() {
             </div>
           )}
 
+          {avisoTopo && (
+            <div style={{ display: "flex", gap: 6, alignItems: "flex-start", padding: "7px 9px", borderRadius: "var(--radius-card)", border: "1px solid color-mix(in srgb, var(--warning,#f59e0b) 45%, transparent)", background: "color-mix(in srgb, var(--warning,#f59e0b) 8%, transparent)" }}>
+              <AlertTriangle size={10} style={{ color: "var(--warning,#f59e0b)", flexShrink: 0, marginTop: 1 }} />
+              <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5 }}>{avisoTopo}</p>
+            </div>
+          )}
+
           {errorSim && (
             <div style={{ padding: "7px 9px", borderRadius: "var(--radius-card)", border: "1px solid color-mix(in srgb, var(--error,#ef4444) 35%, transparent)", background: "color-mix(in srgb, var(--error,#ef4444) 6%, transparent)" }}>
               <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
@@ -1299,9 +1464,11 @@ export default function SimuladorIUM() {
 
           {resultado && <ResultadoPanel resultado={resultado} />}
 
-          {!resultado && !errorSim && !componentes.length && (
+          {!resultado && !errorSim && (
             <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 22%, transparent)", textAlign: "center", padding: "20px 8px", margin: 0, lineHeight: 1.6 }}>
-              Agrega IUMs y presiona Simular
+              {componentes.length
+                ? "Presiona Simular para ver los procesos candidatos"
+                : "Agrega IUMs y presiona Simular"}
             </p>
           )}
         </div>
