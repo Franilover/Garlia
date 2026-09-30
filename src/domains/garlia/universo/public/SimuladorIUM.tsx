@@ -147,11 +147,15 @@ const POSICIONES = ["A", "B", "C", "D", "N", "M", "X", "Y", "Z"];
 // Debe coincidir con tipos_union_ium_v1 (hoy solo "dirigida" tiene patrones que produzcan candidatos)
 const TIPOS_UNION = ["dirigida", "reciproca", "acoplamiento"];
 
+const NOMBRE_UNION: Record<string, string> = {
+  dirigida: "Dirigida",
+  reciproca: "Recíproca",
+  acoplamiento: "Acoplamiento",
+};
+
 const MOTIVOS_INVALIDO: Record<string, string> = {
-  ium_no_existe: "El IUM no existe en el catálogo",
-  ium_sin_salida_funcional_principal: "El IUM no tiene salida funcional principal",
-  componentes_no_resueltos: "Hay componentes que el motor no pudo resolver",
-  componentes_y_enlaces_deben_ser_arrays: "Componentes y enlaces deben ser listas",
+  ium_no_existe: "no es una pieza conocida",
+  ium_sin_salida_funcional_principal: "todavía no sabe cómo participar en una reacción",
 };
 
 // Tamaño del nodo
@@ -370,7 +374,9 @@ function IumNodeSVG({
   onMouseEnter,
   onMouseLeave,
   scale,
+  reaccion,
 }: {
+  reaccion?: "exito" | "inestable" | null;
   comp: ComponenteLab;
   iumData: IumCatalogo | undefined;
   salidas: IumSalidaFuncional[];
@@ -418,6 +424,20 @@ function IumNodeSVG({
           strokeWidth={linking ? 2 : 1}
           strokeDasharray={linking ? undefined : "3 3"}
           style={{ transition: "stroke 0.15s" }}
+        />
+      )}
+
+      {/* Destello de la reacción */}
+      {reaccion && (
+        <circle
+          r={visR + 16}
+          fill="none"
+          strokeWidth={2.5}
+          style={{
+            stroke: reaccion === "exito" ? "var(--success,#22c55e)" : "var(--warning,#f59e0b)",
+            animation: "destello 1.4s ease-in-out infinite",
+            pointerEvents: "none",
+          }}
         />
       )}
 
@@ -528,158 +548,85 @@ function IumNodeSVG({
 
 // ─── Panel resultado ──────────────────────────────────────────────────────────
 
-function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
-  const [expandido, setExpandido] = useState(true);
+function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulador; nombreIum: (id?: string) => string }) {
   const candidatos = resultado.procesos_candidatos ?? [];
   const invalidos  = resultado.invalidos ?? [];
-  const salidas    = resultado.salidas ?? [];
-  const cantidad   = resultado.cantidad_procesos_candidatos ?? candidatos.length;
-  const hayError   = resultado.estado !== undefined && resultado.estado !== "simulado";
+  const principal  = candidatos.find((p) => p.es_principal);
+  const invalida   = resultado.estado !== undefined && resultado.estado !== "simulado";
 
-  const etiqueta: React.CSSProperties = {
-    fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em",
-    color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 4px",
-  };
-  const chip: React.CSSProperties = {
-    fontSize: 9, padding: "1px 6px", borderRadius: 999, fontWeight: 600,
-  };
+  let tipo: "exito" | "inestable" | "nada" | "invalida" = "nada";
+  if (invalida) tipo = "invalida";
+  else if (resultado.proceso_principal) tipo = "exito";
+  else if (resultado.ambiguo || candidatos.length > 0) tipo = "inestable";
+
+  const oris = Array.from(new Set((principal?.oris ?? []).map((o) => o.oris ?? o.oris_id).filter(Boolean))) as string[];
+
+  const color =
+    tipo === "exito" ? "var(--success,#22c55e)"
+    : tipo === "inestable" ? "var(--warning,#f59e0b)"
+    : tipo === "invalida" ? "var(--error,#ef4444)"
+    : "var(--primary)";
 
   return (
     <div style={{
-      border: `1px solid ${hayError
-        ? "color-mix(in srgb, var(--error,#ef4444) 40%, transparent)"
-        : "color-mix(in srgb, var(--primary) 20%, transparent)"}`,
+      border: `1px solid color-mix(in srgb, ${color} ${tipo === "nada" ? 20 : 45}%, transparent)`,
+      background: `color-mix(in srgb, ${color} ${tipo === "nada" ? 4 : 9}%, transparent)`,
       borderRadius: "var(--radius-card)",
-      overflow: "hidden",
+      padding: "14px 12px",
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center",
+      animation: "aparecer 0.45s ease-out",
     }}>
-      <button
-        onClick={() => setExpandido(!expandido)}
-        style={{ width: "100%", display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "none", cursor: "pointer" }}
-      >
-        {expandido ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
-        <span style={{ fontSize: 9, fontWeight: 700, flex: 1, textAlign: "left" }}>Resultado del motor</span>
-        {resultado.estado && (
-          <span style={{
-            fontSize: 8, fontWeight: 700, padding: "1px 5px", borderRadius: 999,
-            background: hayError ? "var(--error,#ef4444)" : "var(--success,#22c55e)",
-            color: "#fff", textTransform: "uppercase", letterSpacing: "0.06em",
-          }}>
-            {resultado.estado.replace(/_/g, " ")}
-          </span>
-        )}
-      </button>
-
-      {expandido && (
-        <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
-
-          {/* Entrada inválida */}
-          {hayError && (
-            <div>
-              <p style={{ ...etiqueta, color: "color-mix(in srgb, var(--error,#ef4444) 80%, var(--fg-main))" }}>
-                No se pudo simular
-              </p>
-              {resultado.motivo && (
-                <div style={{ display: "flex", gap: 5, fontSize: 9, marginBottom: 2 }}>
-                  <AlertTriangle size={9} style={{ flexShrink: 0, marginTop: 1, color: "var(--error,#ef4444)" }} />
-                  <span>{MOTIVOS_INVALIDO[resultado.motivo] ?? resultado.motivo}</span>
-                </div>
-              )}
-              {invalidos.map((inv, i) => (
-                <p key={i} style={{ fontSize: 9, margin: "2px 0 0 14px", color: "color-mix(in srgb, var(--error,#ef4444) 60%, var(--fg-main))" }}>
-                  • <strong>{inv.ium_id ?? "?"}</strong>: {MOTIVOS_INVALIDO[inv.motivo ?? ""] ?? inv.motivo ?? "motivo desconocido"}
-                </p>
+      {tipo === "exito" && (
+        <>
+          <div style={{ width: 46, height: 46, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${color} 18%, transparent)`, animation: "latido 1.8s ease-in-out infinite" }}>
+            <Zap size={22} style={{ color }} />
+          </div>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--fg-main))` }}>
+            ¡Algo ocurre!
+          </p>
+          <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.proceso_principal}</p>
+          {!!oris.length && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 2 }}>
+              {oris.map((o) => (
+                <span key={o} style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                  {o}
+                </span>
               ))}
             </div>
           )}
+        </>
+      )}
 
-          {/* Proceso principal / desempate / ambigüedad */}
-          {!hayError && resultado.proceso_principal && (
-            <div style={{ padding: "5px 8px", borderRadius: 6, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <p style={etiqueta}>Proceso principal</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 11, fontWeight: 800 }}>★ {resultado.proceso_principal}</span>
-                {resultado.desempate && (
-                  <span style={{ ...chip, border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    {resultado.desempate === "contexto" ? "desempatado por contexto" : "único con más patrones"}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+      {tipo === "inestable" && (
+        <>
+          <AlertTriangle size={26} style={{ color, animation: "latido 1.4s ease-in-out infinite" }} />
+          <p style={{ fontSize: 13, fontWeight: 800, margin: 0 }}>Reacción inestable</p>
+          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 60%, transparent)" }}>
+            La combinación vibra, pero no termina de decidirse. Algo debe inclinar la balanza.
+          </p>
+        </>
+      )}
 
-          {!hayError && resultado.ambiguo && (
-            <div style={{ display: "flex", gap: 5, fontSize: 9, padding: "5px 8px", borderRadius: 6, border: "1px solid color-mix(in srgb, var(--warning,#f59e0b) 45%, transparent)", background: "color-mix(in srgb, var(--warning,#f59e0b) 8%, transparent)" }}>
-              <AlertTriangle size={9} style={{ flexShrink: 0, marginTop: 1, color: "var(--warning,#f59e0b)" }} />
-              <span>Resultado ambiguo: varios procesos empatan en patrones y el contexto no basta para decidir. Aporta las magnitudes que pide la ley cuantitativa de uno de ellos.</span>
-            </div>
-          )}
+      {tipo === "nada" && (
+        <>
+          <FlaskConical size={26} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>No ocurre nada… todavía</p>
+          <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 50%, transparent)" }}>
+            Prueba otras piezas, otras uniones u otra forma.
+          </p>
+        </>
+      )}
 
-          {/* Candidatos */}
-          {!hayError && (
-            <div>
-              <p style={etiqueta}>Procesos candidatos ({cantidad})</p>
-              {candidatos.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  {candidatos.map((p, i) => (
-                    <div key={p.proceso_id ?? i} style={{ padding: "4px 7px", borderRadius: 6, border: `1px solid color-mix(in srgb, var(--primary) ${p.es_principal ? 35 : 14}%, transparent)` }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 10, fontWeight: 700 }}>{p.es_principal ? "★ " : "✓ "}{p.proceso ?? "(sin nombre)"}</span>
-                        {p.patrones_coincidentes !== undefined && p.patrones_obligatorios !== undefined && (
-                          <span style={{ ...chip, fontSize: 8, background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                            patrones {p.patrones_coincidentes}/{p.patrones_obligatorios}
-                          </span>
-                        )}
-                        {p.contexto_cubre_ley && (
-                          <span style={{ ...chip, fontSize: 8, background: "color-mix(in srgb, var(--success,#22c55e) 18%, transparent)" }}>
-                            contexto cubre la ley
-                          </span>
-                        )}
-                        {p.estado_fundamento && (
-                          <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>{p.estado_fundamento}</span>
-                        )}
-                      </div>
-                      {!!p.oris?.length && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
-                          {p.oris.map((o, j) => (
-                            <span key={o.oris_id ?? j} title={[o.rol, o.estado_candidato].filter(Boolean).join(" · ")}
-                              style={{ ...chip, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                              <Zap size={7} style={{ display: "inline", marginRight: 2 }} />
-                              {o.oris ?? o.oris_id}{o.rol ? ` · ${o.rol}` : ""}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", margin: 0 }}>
-                  Sin procesos candidatos. Revisa que los enlaces sean de tipo «dirigida» y coincidan con las salidas funcionales.
-                </p>
-              )}
-            </div>
-          )}
-
-          {!hayError && !!salidas.length && (
-            <div>
-              <p style={etiqueta}>Salidas funcionales</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                {salidas.map((sal) => (
-                  <span key={sal} style={{ ...chip, background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>{sal}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <details>
-            <summary style={{ fontSize: 8, fontWeight: 700, cursor: "pointer", color: "color-mix(in srgb, var(--primary) 40%, transparent)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Respuesta completa
-            </summary>
-            <pre style={{ fontSize: 7.5, overflow: "auto", maxHeight: 200, background: "color-mix(in srgb, var(--primary) 5%, transparent)", borderRadius: 4, padding: 6, marginTop: 3, color: "color-mix(in srgb, var(--primary) 65%, transparent)", lineHeight: 1.4 }}>
-              {JSON.stringify(resultado, null, 2)}
-            </pre>
-          </details>
-        </div>
+      {tipo === "invalida" && (
+        <>
+          <AlertTriangle size={24} style={{ color }} />
+          <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>Hay piezas que aún no pueden reaccionar</p>
+          {invalidos.map((inv, i) => (
+            <p key={i} style={{ fontSize: 9, margin: 0, lineHeight: 1.5 }}>
+              <strong>{nombreIum(inv.ium_id)}</strong> {MOTIVOS_INVALIDO[inv.motivo ?? ""] ?? "no puede participar"}
+            </p>
+          ))}
+        </>
       )}
     </div>
   );
@@ -729,10 +676,18 @@ export default function SimuladorIUM() {
   const [simulando, setSimulando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoSimulador | null>(null);
   const [errorSim, setErrorSim] = useState<string | null>(null);
-  const [contextoTxt, setContextoTxt] = useState("");
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
 
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
+
+  // Si el jugador cambia la combinación, el resultado anterior deja de valer
+  const firmaCombinacion = useMemo(
+    () =>
+      componentes.map((c) => `${c.ium_id}@${c.posicion}`).join("|") + "#" +
+      enlaces.map((e) => `${e.origen_uid}>${e.destino_uid}:${e.tipo_union}`).join("|"),
+    [componentes, enlaces],
+  );
+  useEffect(() => { setResultado(null); setErrorSim(null); }, [firmaCombinacion]);
   const salidas = useIumSalidas(iumIds);
   const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
 
@@ -979,15 +934,11 @@ export default function SimuladorIUM() {
     const nPos = posOrden.length;
     const nNodos = componentes.length;
     if (nNodos < nPos) {
-      setAvisoTopo(
-        `«${topo.nombre}» usa ${nPos} posiciones y solo hay ${nNodos} nodo${nNodos !== 1 ? "s" : ""}: ` +
-        `se crearon ${nuevosEnlaces.length} de ${topo.uniones.length} enlaces. Agrega ${nPos - nNodos} IUM más y vuelve a aplicarla.`,
-      );
+      const f = nPos - nNodos;
+      setAvisoTopo(`Esta forma necesita ${f} IUM${f !== 1 ? "s" : ""} más para completarse. Agrégalos y vuelve a elegirla.`);
     } else if (nNodos > nPos) {
-      setAvisoTopo(
-        `«${topo.nombre}» usa ${nPos} posiciones y hay ${nNodos} nodos: ` +
-        `${nNodos - nPos} nodo${nNodos - nPos !== 1 ? "s" : ""} quedaron fuera de la topología y sin enlaces.`,
-      );
+      const f = nNodos - nPos;
+      setAvisoTopo(`Sobran ${f} IUM${f !== 1 ? "s" : ""}: quedaron fuera de esta forma y sin uniones.`);
     } else {
       setAvisoTopo(null);
     }
@@ -1001,22 +952,6 @@ export default function SimuladorIUM() {
     if (!componentes.length) return;
     setResultado(null); setErrorSim(null);
 
-    // Contexto opcional (objeto JSON) para desambiguar por magnitudes
-    let contexto: Record<string, unknown> = {};
-    const txt = contextoTxt.trim();
-    if (txt) {
-      try {
-        const parsed: unknown = JSON.parse(txt);
-        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-          throw new Error('debe ser un objeto JSON, por ejemplo {"temperatura": 300}');
-        }
-        contexto = parsed as Record<string, unknown>;
-      } catch (e) {
-        setErrorSim(`Contexto inválido: ${e instanceof Error ? e.message : String(e)}`);
-        return;
-      }
-    }
-
     // El motor resuelve enlaces por ium_id: un IUM repetido con enlaces sería ambiguo
     const conteo = new Map<string, number>();
     componentes.forEach((c) => conteo.set(c.ium_id, (conteo.get(c.ium_id) ?? 0) + 1));
@@ -1028,10 +963,7 @@ export default function SimuladorIUM() {
       }
     }
     if (repetidos.size) {
-      setErrorSim(
-        `El motor identifica los enlaces por IUM, no por nodo. Hay IUMs repetidos con enlaces: ${[...repetidos].join(", ")}. ` +
-        `Deja una sola instancia de cada uno.`,
-      );
+      setErrorSim(`Cada IUM solo puede unirse una vez. Quita las copias repetidas de: ${[...repetidos].join(", ")}.`);
       return;
     }
 
@@ -1045,17 +977,18 @@ export default function SimuladorIUM() {
           if (!or || !dst) return [];
           return [{ origen: or.ium_id, destino: dst.ium_id, tipo_union: e.tipo_union }];
         }),
-        p_contexto: contexto,
+        p_contexto: {},
       };
       const { data, error: err } = await supabase.rpc("simular_organizacion_ium_v1" as never, payload as never);
-      if (err) setErrorSim(err.message);
+      if (err) { console.error(err); setErrorSim("El laboratorio no respondió. Inténtalo de nuevo."); }
       else setResultado((data as ResultadoSimulador) ?? { estado: "sin_respuesta" });
     } catch (e) {
-      setErrorSim(e instanceof Error ? e.message : String(e));
+      console.error(e);
+      setErrorSim("El laboratorio no respondió. Inténtalo de nuevo.");
     } finally {
       setSimulando(false);
     }
-  }, [componentes, enlaces, contextoTxt]);
+  }, [componentes, enlaces]);
 
   // ── Scale actual (para info) ───────────────────────────────────────────────
 
@@ -1306,6 +1239,12 @@ export default function SimuladorIUM() {
                   salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
                   selected={false}
                   linking={linkingFrom === comp.uid}
+                  reaccion={
+                    !resultado || resultado.estado !== "simulado" ? null
+                    : resultado.proceso_principal ? "exito"
+                    : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
+                    : null
+                  }
                   scale={currentScale}
                   onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
                   onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
@@ -1320,24 +1259,6 @@ export default function SimuladorIUM() {
             ))}
           </svg>
         )}
-
-        {/* Contexto opcional para desambiguar por magnitudes */}
-        <details style={{ padding: "4px 10px 0", flexShrink: 0 }}>
-          <summary style={{ fontSize: 8, fontWeight: 700, cursor: "pointer", color: "color-mix(in srgb, var(--primary) 45%, transparent)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Contexto (opcional){contextoTxt.trim() ? " ●" : ""}
-          </summary>
-          <textarea
-            value={contextoTxt}
-            onChange={(e) => setContextoTxt(e.target.value)}
-            placeholder={'{"magnitud": valor}'}
-            spellCheck={false}
-            rows={3}
-            style={{ width: "100%", boxSizing: "border-box", marginTop: 3, fontSize: 9, fontFamily: "monospace", padding: 5, borderRadius: 4, resize: "vertical", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", color: "inherit" }}
-          />
-          <p style={{ fontSize: 8, margin: "2px 0 4px", color: "color-mix(in srgb, var(--primary) 40%, transparent)", lineHeight: 1.4 }}>
-            Objeto JSON con las magnitudes que pide la ley cuantitativa de un proceso; sirve para desempatar candidatos.
-          </p>
-        </details>
 
         {/* Botón simular */}
         <div style={{ padding: "6px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
@@ -1354,8 +1275,8 @@ export default function SimuladorIUM() {
             }}
           >
             {simulando
-              ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Simulando...</>
-              : <><Play size={10} /> Simular</>
+              ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando...</>
+              : <><Play size={10} /> Probar</>
             }
           </button>
         </div>
@@ -1431,7 +1352,7 @@ export default function SimuladorIUM() {
                       onChange={(ev) => setEnlaces((prev) => prev.map((x) => x.uid === e.uid ? { ...x, tipo_union: ev.target.value } : x))}
                       style={{ fontSize: 8, background: "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)", borderRadius: 3, color: "var(--fg-main)", padding: "1px 3px" }}
                     >
-                      {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
+                      {TIPOS_UNION.map((t) => <option key={t} value={t}>{NOMBRE_UNION[t] ?? t}</option>)}
                     </select>
                     <button onClick={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
                       style={{ border: "none", background: "none", cursor: "pointer", padding: 0, marginLeft: "auto" }}>
@@ -1462,13 +1383,13 @@ export default function SimuladorIUM() {
             </div>
           )}
 
-          {resultado && <ResultadoPanel resultado={resultado} />}
+          {resultado && <ResultadoPanel resultado={resultado} nombreIum={(id) => (id ? iumMap.get(id)?.nombre ?? id : "Un IUM")} />}
 
           {!resultado && !errorSim && (
             <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 22%, transparent)", textAlign: "center", padding: "20px 8px", margin: 0, lineHeight: 1.6 }}>
               {componentes.length
-                ? "Presiona Simular para ver los procesos candidatos"
-                : "Agrega IUMs y presiona Simular"}
+                ? "Une los IUMs y presiona Probar para ver qué ocurre"
+                : "Agrega IUMs, únelos y presiona Probar"}
             </p>
           )}
         </div>
@@ -1501,7 +1422,7 @@ export default function SimuladorIUM() {
                 <label style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tipo de unión</label>
                 <select value={linkingTipo} onChange={(e) => setLinkingTipo(e.target.value)}
                   style={{ fontSize: 10, padding: "4px 6px", border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)", borderRadius: "var(--radius-btn)", background: "transparent", color: "var(--fg-main)" }}>
-                  {TIPOS_UNION.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TIPOS_UNION.map((t) => <option key={t} value={t}>{NOMBRE_UNION[t] ?? t}</option>)}
                 </select>
               </div>
               <button onClick={confirmarEnlace}
@@ -1516,6 +1437,9 @@ export default function SimuladorIUM() {
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
+        @keyframes latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+        @keyframes destello { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.95; } }
       `}</style>
     </div>
   );
