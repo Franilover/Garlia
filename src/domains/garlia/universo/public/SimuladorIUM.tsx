@@ -1245,53 +1245,6 @@ export default function SimuladorIUM() {
       </>
 
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        {/* Toolbar */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
-          <button className="sim-btn-drawer-der" onClick={() => setDrawerDer(true)}
-            style={{ display: "none", alignItems: "center", gap: 3, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: "transparent", cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)", fontSize: 8, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-            <Network size={9} /> Forma
-          </button>
-          <FlaskConical size={10} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
-          <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", flex: 1 }}>
-            Canvas — {componentes.length} IUM{componentes.length !== 1 ? "s" : ""}
-          </span>
-          {linkingFrom && (
-            <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)", animation: "pulse 1s ease-in-out infinite" }}>
-              Click derecho en destino →
-            </span>
-          )}
-          {/* Indicador compacto de topología en toolbar */}
-          {topoSeleccionada && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4,
-              padding: "2px 7px", borderRadius: "var(--radius-btn)",
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
-            }}>
-              <Network size={9} style={{ color: "var(--primary)" }} />
-              <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)" }}>{topoSeleccionada.nombre}</span>
-              <button
-                onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, marginLeft: 2 }}
-                title="Quitar topología"
-              >
-                <X size={9} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
-              </button>
-            </div>
-          )}
-
-          <button onClick={fitAll}
-            title="Ajustar vista"
-            style={{ border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: "transparent", cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)", fontSize: 8, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-            Fit
-          </button>
-          {componentes.length > 0 && (
-            <button onClick={limpiar}
-              style={{ border: "none", background: "none", cursor: "pointer", padding: "2px 4px", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              <Trash2 size={10} />
-            </button>
-          )}
-        </div>
-
         {/* SVG canvas */}
         {componentes.length === 0 ? (
           <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -1590,12 +1543,6 @@ export default function SimuladorIUM() {
 
                     {/* Selector de topología */}
           <div>
-            <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 6px",
-              display: "flex", alignItems: "center", gap: 5,
-            }}>
-              <Network size={9} /> Forma
-            </p>
 
             <button
               onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
