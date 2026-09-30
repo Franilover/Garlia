@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   FlaskConical,
+  Network,
   Link2,
   Loader2,
   Play,
@@ -94,6 +95,25 @@ interface ResultadoSimulador {
   incompatibilidades?: unknown[];
   motivos?: string[];
   [key: string]: unknown;
+}
+
+
+interface TopologiaOris {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  capacidad_visual: string;
+  activo: boolean;
+  grafico_ascii: string;
+  uniones: TopologiaUnion[];
+}
+
+interface TopologiaUnion {
+  topologia_id: string;
+  origen_posicion: string;
+  destino_posicion: string;
+  tipo_union: string;
+  orden: number;
 }
 
 // ─── Constantes de layout ─────────────────────────────────────────────────────
@@ -183,6 +203,45 @@ function useIumsCatalogo() {
   }, []);
 
   return { iums, loading };
+}
+
+
+function useTopologias() {
+  const [topologias, setTopologias] = useState<TopologiaOris[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let vivo = true;
+    async function cargar() {
+      const [{ data: topoData }, { data: unionData }] = await Promise.all([
+        supabase
+          .from("topologias_oris")
+          .select("id, nombre, descripcion, capacidad_visual, activo, grafico_ascii")
+          .order("nombre"),
+        supabase
+          .from("topologia_uniones")
+          .select("topologia_id, origen_posicion, destino_posicion, tipo_union, orden")
+          .order("orden"),
+      ]);
+      if (!vivo) return;
+      const unionesPorTopo = new Map<string, TopologiaUnion[]>();
+      for (const u of unionData ?? []) {
+        const arr = unionesPorTopo.get(u.topologia_id) ?? [];
+        arr.push(u);
+        unionesPorTopo.set(u.topologia_id, arr);
+      }
+      const result: TopologiaOris[] = (topoData ?? []).map((t) => ({
+        ...t,
+        uniones: unionesPorTopo.get(t.id) ?? [],
+      }));
+      setTopologias(result);
+      setLoading(false);
+    }
+    cargar();
+    return () => { vivo = false; };
+  }, []);
+
+  return { topologias, loading };
 }
 
 function useIumSalidas(iumIds: string[]) {
@@ -538,6 +597,7 @@ function ResultadoPanel({ resultado }: { resultado: ResultadoSimulador }) {
 
 export default function SimuladorIUM() {
   const { iums, loading: loadingIums } = useIumsCatalogo();
+  const { topologias } = useTopologias();
   const [busqueda, setBusqueda] = useState("");
   const [componentes, setComponentes] = useState<ComponenteLab[]>([]);
   const [enlaces, setEnlaces] = useState<EnlaceLab[]>([]);
@@ -557,6 +617,10 @@ export default function SimuladorIUM() {
   const [linkingMouse, setLinkingMouse] = useState<{ x: number; y: number } | null>(null);
   const [linkingOver, setLinkingOver] = useState<string | null>(null);
   const [linkingTipo, setLinkingTipo] = useState("dirigida");
+
+  // Topología seleccionada y dropdown
+  const [topoSeleccionada, setTopoSeleccionada] = useState<TopologiaOris | null>(null);
+  const [topoDropdown, setTopoDropdown] = useState(false);
 
   // Modal tipo unión al soltar
   const [modalTipo, setModalTipo] = useState<{
@@ -776,6 +840,56 @@ export default function SimuladorIUM() {
 
   // ── Simular ────────────────────────────────────────────────────────────────
 
+  // ── Aplicar topología ────────────────────────────────────────────────────────
+
+  const aplicarTopologia = useCallback((topo: TopologiaOris) => {
+    setTopoSeleccionada(topo);
+    setTopoDropdown(false);
+
+    // Posiciones canónicas que la topología usa, en orden de aparición
+    const posOrden: string[] = [];
+    for (const u of topo.uniones) {
+      if (!posOrden.includes(u.origen_posicion)) posOrden.push(u.origen_posicion);
+      if (!posOrden.includes(u.destino_posicion)) posOrden.push(u.destino_posicion);
+    }
+
+    // Mapear "nucleo" → "N" para que coincida con nuestras posiciones de UI
+    const canonToUI = (p: string) => p === "nucleo" ? "N" : p.toUpperCase();
+
+    // Reasignar posiciones a los componentes existentes en orden
+    setComponentes((prev) => prev.map((c, i) => {
+      const pos = posOrden[i] ? canonToUI(posOrden[i]) : c.posicion;
+      return { ...c, posicion: pos };
+    }));
+
+    // Autocompletar los enlaces de la topología sobre los componentes actuales
+    setEnlaces([]);
+    setComponentes((prevComps) => {
+      // Construir mapa posicion → uid usando las posiciones ya asignadas arriba
+      const posMap = new Map<string, string>();
+      prevComps.forEach((c, i) => {
+        const canon = posOrden[i] ? posOrden[i] : "";
+        if (canon) posMap.set(canon, c.uid);
+      });
+
+      const nuevosEnlaces: EnlaceLab[] = [];
+      for (const u of topo.uniones) {
+        const orUid  = posMap.get(u.origen_posicion);
+        const dstUid = posMap.get(u.destino_posicion);
+        if (orUid && dstUid) {
+          nuevosEnlaces.push({
+            uid: genUID(),
+            origen_uid: orUid,
+            destino_uid: dstUid,
+            tipo_union: u.tipo_union,
+          });
+        }
+      }
+      setEnlaces(nuevosEnlaces);
+      return prevComps;
+    });
+  }, []);
+
   const limpiar = useCallback(() => {
     setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null);
   }, []);
@@ -878,6 +992,96 @@ export default function SimuladorIUM() {
               Click derecho en destino →
             </span>
           )}
+          {/* Botón topología con dropdown flotante */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setTopoDropdown((v) => !v)}
+              title="Seleccionar topología"
+              style={{
+                display: "flex", alignItems: "center", gap: 3,
+                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
+                background: topoSeleccionada ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)",
+                fontSize: 8, color: topoSeleccionada ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                fontWeight: topoSeleccionada ? 700 : 400,
+              }}
+            >
+              <Network size={9} />
+              {topoSeleccionada ? topoSeleccionada.id : "Topología"}
+              <ChevronDown size={7} />
+            </button>
+
+            {topoDropdown && (
+              <div
+                style={{
+                  position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 500,
+                  background: "var(--bg-main)",
+                  border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                  borderRadius: "var(--radius-card)",
+                  boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
+                  minWidth: 260, maxWidth: 320,
+                  overflow: "hidden",
+                }}
+                onMouseLeave={() => setTopoDropdown(false)}
+              >
+                {/* Sin topología */}
+                <button
+                  onClick={() => { setTopoSeleccionada(null); setTopoDropdown(false); }}
+                  style={{
+                    width: "100%", textAlign: "left", border: "none",
+                    background: !topoSeleccionada ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "none",
+                    cursor: "pointer", padding: "6px 10px",
+                    fontSize: 9, color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  Sin topología (libre)
+                </button>
+                <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+
+                {topologias.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => aplicarTopologia(t)}
+                    style={{
+                      width: "100%", textAlign: "left", border: "none",
+                      background: topoSeleccionada?.id === t.id
+                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        : "none",
+                      cursor: "pointer", padding: "7px 10px",
+                      display: "flex", flexDirection: "column", gap: 2,
+                      opacity: t.activo ? 1 : 0.45,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = topoSeleccionada?.id === t.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "none"; }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ fontSize: 8, fontWeight: 900, color: "var(--primary)", minWidth: 24 }}>{t.id}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700 }}>{t.nombre}</span>
+                      {!t.activo && (
+                        <span style={{ fontSize: 7, padding: "0 4px", borderRadius: 999, border: "1px solid currentColor", color: "color-mix(in srgb, var(--primary) 30%, transparent)", marginLeft: "auto" }}>
+                          exp
+                        </span>
+                      )}
+                    </div>
+                    {/* grafico_ascii como preview */}
+                    <pre style={{
+                      fontSize: 6.5, margin: "2px 0 0 29px", lineHeight: 1.4,
+                      color: "color-mix(in srgb, var(--primary) 38%, transparent)",
+                      fontFamily: "monospace", whiteSpace: "pre", overflow: "hidden",
+                      maxHeight: 48,
+                    }}>
+                      {t.grafico_ascii}
+                    </pre>
+                    <span style={{ fontSize: 7.5, marginLeft: 29, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      {t.uniones.length} enlace{t.uniones.length !== 1 ? "s" : ""} · {[...new Set([...t.uniones.map(u => u.origen_posicion), ...t.uniones.map(u => u.destino_posicion)])].length} posiciones
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button onClick={fitAll}
             title="Ajustar vista"
             style={{ border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: "transparent", cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)", fontSize: 8, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
@@ -1007,6 +1211,23 @@ export default function SimuladorIUM() {
           </p>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+
+          {/* Topología activa */}
+          {topoSeleccionada && (
+            <div style={{ padding: "7px 9px", borderRadius: "var(--radius-card)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                <Network size={9} style={{ color: "var(--primary)", flexShrink: 0 }} />
+                <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)" }}>{topoSeleccionada.id}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, flex: 1 }}>{topoSeleccionada.nombre}</span>
+              </div>
+              <pre style={{ fontSize: 6.5, margin: 0, lineHeight: 1.4, color: "color-mix(in srgb, var(--primary) 45%, transparent)", fontFamily: "monospace", whiteSpace: "pre", overflow: "auto" }}>
+                {topoSeleccionada.grafico_ascii}
+              </pre>
+              <p style={{ fontSize: 7.5, margin: "4px 0 0", color: "color-mix(in srgb, var(--primary) 35%, transparent)", lineHeight: 1.5 }}>
+                {topoSeleccionada.descripcion}
+              </p>
+            </div>
+          )}
 
           {/* Instrucciones interacción */}
           {componentes.length > 0 && (
