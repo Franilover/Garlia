@@ -1070,27 +1070,28 @@ export default function SimuladorIUM() {
     setResultado(null);
     setErrorSim(null);
 
-    // Posiciones canónicas que la topología usa, en orden de aparición
-    const posOrden: string[] = [];
-    for (const u of topo.uniones) {
-      if (!posOrden.includes(u.origen_posicion)) posOrden.push(u.origen_posicion);
-      if (!posOrden.includes(u.destino_posicion)) posOrden.push(u.destino_posicion);
-    }
-
-    // "nucleo" → "N" para que coincida con las posiciones de la UI
     const canonToUI = (p: string) => (p === "nucleo" ? "N" : p.toUpperCase());
+    const slots = getSlotsActivos(topo);                     // { a: {x,y}, nucleo: {x,y}, … }
+    const slotsOrden = Object.keys(slots);                   // orden del layout
+    const nSlots = slotsOrden.length;
+    const nNodos = componentes.length;
 
-    // Un solo cálculo, sin efectos dentro de updaters: nodo i ↔ posición canónica i
-    const nuevosComps = componentes.map((c, i) => ({
-      ...c,
-      posicion: posOrden[i] ? canonToUI(posOrden[i]) : c.posicion,
-    }));
-
-    const posMap = new Map<string, string>();
-    nuevosComps.forEach((c, i) => {
-      if (posOrden[i]) posMap.set(posOrden[i], c.uid);
+    // Asigna cada nodo existente a un slot en orden: nodo 0 → slot 0, nodo 1 → slot 1, …
+    // Los nodos que superan los slots disponibles quedan sin mover (aviso).
+    const nuevosComps = componentes.map((c, i) => {
+      if (i >= nSlots) return c;                             // sobrante: queda donde está
+      const key = slotsOrden[i];
+      const { x, y } = slots[key];
+      return { ...c, posicion: canonToUI(key), x, y };
     });
 
+    // Mapa posición canónica → uid (solo los que caben en un slot)
+    const posMap = new Map<string, string>();
+    nuevosComps.slice(0, nSlots).forEach((c, i) => {
+      posMap.set(slotsOrden[i], c.uid);
+    });
+
+    // Crear todos los enlaces que la topología define (solo entre nodos asignados)
     const nuevosEnlaces: EnlaceLab[] = [];
     for (const u of topo.uniones) {
       const orUid  = posMap.get(u.origen_posicion);
@@ -1103,15 +1104,12 @@ export default function SimuladorIUM() {
     setComponentes(nuevosComps);
     setEnlaces(nuevosEnlaces);
 
-    // Avisos cuando nodos y posiciones no coinciden
-    const nPos = posOrden.length;
-    const nNodos = componentes.length;
-    if (nNodos < nPos) {
-      const f = nPos - nNodos;
-      setAvisoTopo(`Esta forma necesita ${f} IUM${f !== 1 ? "s" : ""} más para completarse. Agrégalos y vuelve a elegirla.`);
-    } else if (nNodos > nPos) {
-      const f = nNodos - nPos;
-      setAvisoTopo(`Sobran ${f} IUM${f !== 1 ? "s" : ""}: quedaron fuera de esta forma y sin uniones.`);
+    if (nNodos < nSlots) {
+      const f = nSlots - nNodos;
+      setAvisoTopo(`Faltan ${f} IUM${f !== 1 ? "s" : ""} para completar esta forma. Agrégalos desde la lista.`);
+    } else if (nNodos > nSlots) {
+      const f = nNodos - nSlots;
+      setAvisoTopo(`${f} IUM${f !== 1 ? "s" : ""} se quedaron fuera: la forma solo tiene ${nSlots} huecos.`);
     } else {
       setAvisoTopo(null);
     }
