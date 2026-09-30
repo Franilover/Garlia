@@ -678,18 +678,12 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 
   return (
     <div style={{
-      border: `1px solid color-mix(in srgb, ${color} ${tipo === "nada" ? 20 : 45}%, transparent)`,
-      background: `color-mix(in srgb, ${color} ${tipo === "nada" ? 4 : 9}%, transparent)`,
-      borderRadius: "var(--radius-card)",
       padding: "14px 12px",
       display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center",
       animation: "aparecer 0.45s ease-out",
     }}>
       {tipo === "exito" && (
         <>
-          <div style={{ width: 46, height: 46, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${color} 18%, transparent)`, animation: "latido 1.8s ease-in-out infinite" }}>
-            <Zap size={22} style={{ color }} />
-          </div>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--fg-main))` }}>
             ¡Algo ocurre!
           </p>
@@ -708,7 +702,6 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 
       {tipo === "inestable" && (
         <>
-          <AlertTriangle size={26} style={{ color, animation: "latido 1.4s ease-in-out infinite" }} />
           <p style={{ fontSize: 13, fontWeight: 800, margin: 0 }}>Reacción inestable</p>
           <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 60%, transparent)" }}>
             La combinación vibra, pero no termina de decidirse. Algo debe inclinar la balanza.
@@ -718,7 +711,6 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 
       {tipo === "nada" && (
         <>
-          <FlaskConical size={26} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
           <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>No ocurre nada… todavía</p>
           <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--fg-main) 50%, transparent)" }}>
             Prueba otras piezas, otras uniones u otra forma.
@@ -728,7 +720,6 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 
       {tipo === "invalida" && (
         <>
-          <AlertTriangle size={24} style={{ color }} />
           <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>Hay piezas que aún no pueden reaccionar</p>
           {invalidos.map((inv, i) => (
             <p key={i} style={{ fontSize: 9, margin: 0, lineHeight: 1.5 }}>
