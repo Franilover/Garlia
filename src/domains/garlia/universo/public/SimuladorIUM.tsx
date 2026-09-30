@@ -794,6 +794,8 @@ export default function SimuladorIUM() {
   const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
   const [slotDropdown, setSlotDropdown] = useState<{ key: string; posUI: string; x: number; y: number } | null>(null);
   const [busquedaSlot, setBusquedaSlot] = useState("");
+  const [drawerIzq, setDrawerIzq] = useState(false);
+  const [drawerDer, setDrawerDer] = useState(false);
 
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
 
@@ -1186,10 +1188,12 @@ export default function SimuladorIUM() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "190px 1fr 260px", height: "calc(100vh - 80px)", overflow: "hidden" }}>
+    <div className="sim-root">
 
       {/* ── Izquierda: catálogo ─────────────────────────────────────────────── */}
-      <div style={{ borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <>
+      {drawerIzq && <div onClick={() => setDrawerIzq(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)", backdropFilter: "blur(2px)" }} />}
+      <div className={`sim-panel-izq${drawerIzq ? " sim-panel-izq--open" : ""}`}>
         <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 6px" }}>
             IUMs
@@ -1238,9 +1242,15 @@ export default function SimuladorIUM() {
       </div>
 
       {/* ── Centro: canvas libre ────────────────────────────────────────────── */}
+      </>
+
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
         {/* Toolbar */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
+          <button className="sim-btn-drawer-der" onClick={() => setDrawerDer(true)}
+            style={{ display: "none", alignItems: "center", gap: 3, border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", background: "transparent", cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)", fontSize: 8, color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+            <Network size={9} /> Forma
+          </button>
           <FlaskConical size={10} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
           <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", flex: 1 }}>
             Canvas — {componentes.length} IUM{componentes.length !== 1 ? "s" : ""}
@@ -1284,14 +1294,29 @@ export default function SimuladorIUM() {
 
         {/* SVG canvas */}
         {componentes.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
             <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 200, margin: 0, lineHeight: 1.6 }}>
               Agrega IUMs desde el panel izquierdo.<br />
               <span style={{ fontSize: 9 }}>Arrastra para mover · click derecho para unir</span>
             </p>
+            <button className="sim-fab" onClick={() => setDrawerIzq(true)}
+              style={{ position: "absolute", bottom: 16, left: 16, display: "none", alignItems: "center", justifyContent: "center",
+                width: 44, height: 44, borderRadius: "50%", background: "var(--primary)", color: "#fff",
+                border: "none", cursor: "pointer", fontSize: 22, fontWeight: 300,
+                boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+              +
+            </button>
           </div>
         ) : (
+          <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+          <button className="sim-fab" onClick={() => setDrawerIzq(true)}
+            style={{ position: "absolute", bottom: 16, left: 16, zIndex: 50, display: "none", alignItems: "center", justifyContent: "center",
+              width: 44, height: 44, borderRadius: "50%", background: "var(--primary)", color: "#fff",
+              border: "none", cursor: "pointer", fontSize: 22, fontWeight: 300,
+              boxShadow: "0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+            +
+          </button>
           <svg
             ref={svgRef}
             style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
@@ -1523,6 +1548,7 @@ export default function SimuladorIUM() {
               </g>
             ))}
           </svg>
+          </div>
         )}
 
         {/* Botón simular */}
@@ -1548,11 +1574,17 @@ export default function SimuladorIUM() {
       </div>
 
       {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0 }}>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: 0 }}>
+      <>
+      {drawerDer && <div onClick={() => setDrawerDer(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)", backdropFilter: "blur(2px)" }} />}
+      <div className={`sim-panel-der${drawerDer ? " sim-panel-der--open" : ""}`}>
+        <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: 0, flex: 1 }}>
             Organización
           </p>
+          <button className="sim-btn-close-drawer" onClick={() => setDrawerDer(false)}
+            style={{ display: "none", background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+            <X size={14} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+          </button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -1742,6 +1774,8 @@ export default function SimuladorIUM() {
       </div>
 
       {/* ── Modal tipo de unión ──────────────────────────────────────────────── */}
+      </>
+
       {modalTipo && (() => {
         const or  = componentes.find((c) => c.uid === modalTipo.origenUid);
         const dst = componentes.find((c) => c.uid === modalTipo.destinoUid);
@@ -1781,6 +1815,21 @@ export default function SimuladorIUM() {
       })()}
 
       <style>{`
+        /* ── Layout ── */
+        .sim-root { display: grid; grid-template-columns: 190px 1fr 260px; height: calc(100vh - 80px); overflow: hidden; }
+        .sim-panel-izq { border-right: 1px solid color-mix(in srgb, var(--primary) 12%, transparent); display: flex; flex-direction: column; overflow: hidden; }
+        .sim-panel-der { display: flex; flex-direction: column; overflow: hidden; }
+        /* ── Móvil ── */
+        @media (max-width: 700px) {
+          .sim-root { grid-template-columns: 1fr; }
+          .sim-panel-izq { position: fixed; inset: 0 auto 0 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; box-shadow: 4px 0 24px color-mix(in srgb,var(--primary) 12%,transparent); }
+          .sim-panel-izq--open { transform: translateX(0); }
+          .sim-panel-der { position: fixed; inset: 0 0 0 auto; width: min(85vw,320px); z-index: 400; background: var(--bg-main); border-left: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(105%); transition: transform .25s ease; box-shadow: -4px 0 24px color-mix(in srgb,var(--primary) 12%,transparent); }
+          .sim-panel-der--open { transform: translateX(0); }
+          .sim-btn-drawer-der { display: flex !important; }
+          .sim-btn-close-drawer { display: flex !important; }
+          .sim-fab { display: flex !important; }
+        }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes aparecer { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: none; } }
