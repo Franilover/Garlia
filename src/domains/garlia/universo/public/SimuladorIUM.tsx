@@ -557,13 +557,7 @@ function IumNodeSVG({
       {/* Fondo */}
       <circle
         r={visR + 6}
-        style={{
-          fill: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-          stroke: selected
-            ? "var(--primary)"
-            : "color-mix(in srgb, var(--primary) 18%, transparent)",
-          strokeWidth: selected ? 1.5 : 1,
-        }}
+        style={{ fill: "none", stroke: "none" }}
       />
 
       {/* IumVisual */}
@@ -884,33 +878,53 @@ export default function SimuladorIUM() {
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
   const fitAll = useCallback(() => {
+    // Radio visual de cada nodo IUM en coordenadas SVG
+    const NODE_R = 52;
+    // Padding extra alrededor del bounding-box de nodos
+    const PADDING = 90;
+
+    const fitPoints = (points: { x: number; y: number }[]) => {
+      if (!points.length) return;
+      const xs = points.map((p) => p.x);
+      const ys = points.map((p) => p.y);
+      const rawMinX = Math.min(...xs) - NODE_R - PADDING;
+      const rawMinY = Math.min(...ys) - NODE_R - PADDING;
+      const rawMaxX = Math.max(...xs) + NODE_R + PADDING;
+      const rawMaxY = Math.max(...ys) + NODE_R + PADDING;
+      const rawW = rawMaxX - rawMinX;
+      const rawH = rawMaxY - rawMinY;
+
+      // Forzar aspect ratio del contenedor SVG para que no haya zoom asimétrico.
+      // Si no hay ref disponible usamos 4:3 como fallback razonable.
+      const svgEl = svgRef.current;
+      const aspect = svgEl
+        ? svgEl.clientWidth / Math.max(svgEl.clientHeight, 1)
+        : 4 / 3;
+
+      let finalW = rawW;
+      let finalH = rawH;
+      if (rawW / rawH > aspect) {
+        // Ancho manda → crecer alto
+        finalH = rawW / aspect;
+      } else {
+        // Alto manda → crecer ancho
+        finalW = rawH * aspect;
+      }
+      // Centrar el bounding-box dentro del viewBox ajustado
+      const cx = (rawMinX + rawMaxX) / 2;
+      const cy = (rawMinY + rawMaxY) / 2;
+      setViewBox({ x: cx - finalW / 2, y: cy - finalH / 2, w: finalW, h: finalH });
+    };
+
     if (!componentes.length) {
-      // Si hay topología seleccionada, encuadrar sus slots
       if (topoSeleccionada) {
         const slots = Object.values(getSlotsActivos(topoSeleccionada));
-        if (slots.length) {
-          const padding = 120;
-          const xs = slots.map((s) => s.x);
-          const ys = slots.map((s) => s.y);
-          const minX = Math.min(...xs) - padding;
-          const minY = Math.min(...ys) - padding;
-          const maxX = Math.max(...xs) + padding;
-          const maxY = Math.max(...ys) + padding;
-          setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
-          return;
-        }
+        if (slots.length) { fitPoints(slots); return; }
       }
       setViewBox({ x: 0, y: 0, w: 800, h: 600 });
       return;
     }
-    const padding = 100;
-    const xs = componentes.map((c) => c.x);
-    const ys = componentes.map((c) => c.y);
-    const minX = Math.min(...xs) - padding;
-    const minY = Math.min(...ys) - padding;
-    const maxX = Math.max(...xs) + padding;
-    const maxY = Math.max(...ys) + padding;
-    setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+    fitPoints(componentes.map((c) => ({ x: c.x, y: c.y })));
   }, [componentes, topoSeleccionada]);
 
   // Auto-fit cuando cambia el número de componentes, la topología o el tamaño de ventana
