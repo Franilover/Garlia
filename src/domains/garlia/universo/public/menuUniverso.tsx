@@ -46,7 +46,7 @@ export function UniversoTabBar() {
       className="flex items-stretch gap-1 w-full"
       aria-label="Secciones del universo"
     >
-      {secciones.map(({ href, slug, titulo, icon: Icon }) => {
+      {secciones.map(({ href, slug, titulo }) => {
         const active = pathname?.startsWith(href) ?? false;
         return (
           <Link
@@ -68,8 +68,7 @@ export function UniversoTabBar() {
                 : "color-mix(in srgb, var(--primary) 35%, transparent)",
             }}
           >
-            <Icon size={12} strokeWidth={active ? 2.25 : 1.75} className="shrink-0" />
-            <span className="hidden sm:inline text-micro font-bold uppercase tracking-wide truncate">
+            <span className="text-micro font-bold uppercase tracking-wide truncate">
               {titulo}
             </span>
           </Link>
