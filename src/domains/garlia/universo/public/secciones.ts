@@ -1,7 +1,7 @@
 import {
-  BookMarked,
   CircleUser,
   Compass,
+  FlaskConical,
   Sparkles,
   Sprout,
   Telescope,
@@ -51,12 +51,12 @@ export const SECCIONES_UNIVERSO: SeccionUniverso[] = [
     pageKey: "universo_explicacion",
   },
   {
-    slug: "libros",
-    href: "/garlia/universo/libros",
-    titulo: "Libros",
-    descripcion: "Libros de conocimiento liberados al público.",
-    icon: BookMarked,
-    pageKey: "biblioteca_libros",
+    slug: "simulador",
+    href: "/garlia/universo/simulador",
+    titulo: "Simulador",
+    descripcion: "Laboratorio de IUMs: construye combinaciones y prueba el motor real de Garlia.",
+    icon: FlaskConical,
+    pageKey: "universo_simulador",
   },
   {
     slug: "mapa",
