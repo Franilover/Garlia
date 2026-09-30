@@ -1291,6 +1291,48 @@ export default function SimuladorIUM() {
               </marker>
             </defs>
 
+            {/* Uniones fantasma de la topología (entre slots, con o sin IUM) */}
+            {topoSeleccionada && (() => {
+              const slots = getSlotsActivos(topoSeleccionada);
+              const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+              return topoSeleccionada.uniones.map((u, i) => {
+                const orPos  = slots[u.origen_posicion];
+                const dstPos = slots[u.destino_posicion];
+                if (!orPos || !dstPos) return null;
+                // Si ambos slots tienen IUM real, la línea real ya lo cubre
+                const orComp  = componentes.find((c) => c.posicion === toUI(u.origen_posicion));
+                const dstComp = componentes.find((c) => c.posicion === toUI(u.destino_posicion));
+                if (orComp && dstComp) return null;
+                // Coordenadas: usar posición del componente si existe, del slot si no
+                const x1 = orComp  ? orComp.x  : orPos.x;
+                const y1 = orComp  ? orComp.y  : orPos.y;
+                const x2 = dstComp ? dstComp.x : dstPos.x;
+                const y2 = dstComp ? dstComp.y : dstPos.y;
+                const mx = (x1 + x2) / 2;
+                const my = (y1 + y2) / 2;
+                const dx = x2 - x1; const dy = y2 - y1;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                const perp = Math.min(50, len * 0.25);
+                const cpx = mx - (dy / len) * perp;
+                const cpy = my + (dx / len) * perp;
+                const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
+                return (
+                  <path
+                    key={`ghost-${i}`}
+                    d={d}
+                    fill="none"
+                    strokeWidth={1.2}
+                    strokeDasharray="5 4"
+                    style={{
+                      stroke: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                      pointerEvents: "none",
+                      transition: "stroke 0.2s",
+                    }}
+                  />
+                );
+              });
+            })()}
+
             {/* Conexiones existentes */}
             {enlaces.map((e) => {
               const or  = componentes.find((c) => c.uid === e.origen_uid);
