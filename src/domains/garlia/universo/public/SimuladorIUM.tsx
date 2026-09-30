@@ -1250,95 +1250,24 @@ export default function SimuladorIUM() {
               Click derecho en destino →
             </span>
           )}
-          {/* Botón topología con dropdown flotante */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setTopoDropdown((v) => !v)}
-              title="Seleccionar topología"
-              style={{
-                display: "flex", alignItems: "center", gap: 3,
-                border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-                background: topoSeleccionada ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                cursor: "pointer", padding: "2px 6px", borderRadius: "var(--radius-btn)",
-                fontSize: 8, color: topoSeleccionada ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                fontWeight: topoSeleccionada ? 700 : 400,
-              }}
-            >
-              <Network size={9} />
-              {topoSeleccionada ? topoSeleccionada.id : "Topología"}
-              <ChevronDown size={7} />
-            </button>
-
-            {topoDropdown && (
-              <div
-                style={{
-                  position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 500,
-                  background: "var(--bg-main)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
-                  borderRadius: "var(--radius-card)",
-                  boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 12%, transparent)",
-                  minWidth: 260, maxWidth: 320,
-                  overflow: "hidden",
-                }}
-                onMouseLeave={() => setTopoDropdown(false)}
+          {/* Indicador compacto de topología en toolbar */}
+          {topoSeleccionada && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4,
+              padding: "2px 7px", borderRadius: "var(--radius-btn)",
+              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+            }}>
+              <Network size={9} style={{ color: "var(--primary)" }} />
+              <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)" }}>{topoSeleccionada.nombre}</span>
+              <button
+                onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, marginLeft: 2 }}
+                title="Quitar topología"
               >
-                {/* Sin topología */}
-                <button
-                  onClick={() => { setTopoSeleccionada(null); setTopoDropdown(false); }}
-                  style={{
-                    width: "100%", textAlign: "left", border: "none",
-                    background: !topoSeleccionada ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "none",
-                    cursor: "pointer", padding: "6px 10px",
-                    fontSize: 9, color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                    fontStyle: "italic",
-                  }}
-                >
-                  Sin topología (libre)
-                </button>
-                <div style={{ height: 1, background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
-
-                {topologias.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => aplicarTopologia(t)}
-                    style={{
-                      width: "100%", textAlign: "left", border: "none",
-                      background: topoSeleccionada?.id === t.id
-                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
-                        : "none",
-                      cursor: "pointer", padding: "7px 10px",
-                      display: "flex", flexDirection: "column", gap: 2,
-                      opacity: t.activo ? 1 : 0.45,
-                    }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = topoSeleccionada?.id === t.id ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "none"; }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ fontSize: 8, fontWeight: 900, color: "var(--primary)", minWidth: 24 }}>{t.id}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700 }}>{t.nombre}</span>
-                      {!t.activo && (
-                        <span style={{ fontSize: 7, padding: "0 4px", borderRadius: 999, border: "1px solid currentColor", color: "color-mix(in srgb, var(--primary) 30%, transparent)", marginLeft: "auto" }}>
-                          exp
-                        </span>
-                      )}
-                    </div>
-                    {/* grafico_ascii como preview */}
-                    <pre style={{
-                      fontSize: 6.5, margin: "2px 0 0 29px", lineHeight: 1.4,
-                      color: "color-mix(in srgb, var(--primary) 38%, transparent)",
-                      fontFamily: "monospace", whiteSpace: "pre", overflow: "hidden",
-                      maxHeight: 48,
-                    }}>
-                      {t.grafico_ascii}
-                    </pre>
-                    <span style={{ fontSize: 7.5, marginLeft: 29, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                      {t.uniones.length} enlace{t.uniones.length !== 1 ? "s" : ""} · {[...new Set([...t.uniones.map(u => u.origen_posicion), ...t.uniones.map(u => u.destino_posicion)])].length} posiciones
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                <X size={9} style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+              </button>
+            </div>
+          )}
 
           <button onClick={fitAll}
             title="Ajustar vista"
@@ -1627,22 +1556,103 @@ export default function SimuladorIUM() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
 
-          {/* Topología activa */}
-          {topoSeleccionada && (
-            <div style={{ padding: "7px 9px", borderRadius: "var(--radius-card)", background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-                <Network size={9} style={{ color: "var(--primary)", flexShrink: 0 }} />
-                <span style={{ fontSize: 8, fontWeight: 700, color: "var(--primary)" }}>{topoSeleccionada.id}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, flex: 1 }}>{topoSeleccionada.nombre}</span>
-              </div>
-              <pre style={{ fontSize: 6.5, margin: 0, lineHeight: 1.4, color: "color-mix(in srgb, var(--primary) 45%, transparent)", fontFamily: "monospace", whiteSpace: "pre", overflow: "auto" }}>
-                {topoSeleccionada.grafico_ascii}
-              </pre>
-              <p style={{ fontSize: 7.5, margin: "4px 0 0", color: "color-mix(in srgb, var(--primary) 35%, transparent)", lineHeight: 1.5 }}>
-                {topoSeleccionada.descripcion}
-              </p>
+                    {/* Selector de topología */}
+          <div>
+            <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 6px",
+              display: "flex", alignItems: "center", gap: 5,
+            }}>
+              <Network size={9} /> Forma
+            </p>
+
+            <button
+              onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
+              style={{
+                width: "100%", textAlign: "left", border: "1px solid",
+                borderColor: !topoSeleccionada
+                  ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                background: !topoSeleccionada
+                  ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                  : "transparent",
+                cursor: "pointer", padding: "5px 9px", borderRadius: "var(--radius-btn)",
+                fontSize: 9, fontStyle: "italic", marginBottom: 4,
+                color: !topoSeleccionada ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                fontWeight: !topoSeleccionada ? 700 : 400,
+              }}
+            >
+              Libre — sin forma fija
+            </button>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {topologias.map((t) => {
+                const activa = topoSeleccionada?.id === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => aplicarTopologia(t)}
+                    style={{
+                      width: "100%", textAlign: "left", border: "1px solid",
+                      borderColor: activa
+                        ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 12%, transparent)",
+                      background: activa
+                        ? "color-mix(in srgb, var(--primary) 9%, transparent)"
+                        : "transparent",
+                      cursor: "pointer", padding: "6px 9px",
+                      borderRadius: "var(--radius-btn)",
+                      display: "flex", flexDirection: "column", gap: 3,
+                      opacity: t.activo ? 1 : 0.5,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!activa) (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!activa) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, color: activa ? "var(--primary)" : "var(--fg-main)" }}>
+                            {t.nombre}
+                          </span>
+                          {!t.activo && (
+                            <span style={{ fontSize: 7, padding: "0 4px", borderRadius: 999,
+                              border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)",
+                              color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              exp
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                          {[...new Set([...t.uniones.map((u: { origen_posicion: string }) => u.origen_posicion), ...t.uniones.map((u: { destino_posicion: string }) => u.destino_posicion)])].length} huecos
+                          {" · "}{t.uniones.length} enlace{t.uniones.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      {t.grafico_ascii && (
+                        <pre style={{
+                          fontSize: 5.8, lineHeight: 1.35, margin: 0,
+                          color: activa
+                            ? "color-mix(in srgb, var(--primary) 65%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          fontFamily: "monospace", whiteSpace: "pre", flexShrink: 0,
+                        }}>
+                          {t.grafico_ascii}
+                        </pre>
+                      )}
+                    </div>
+                    {activa && t.descripcion && (
+                      <p style={{ fontSize: 7.5, margin: 0,
+                        color: "color-mix(in srgb, var(--primary) 45%, transparent)", lineHeight: 1.45 }}>
+                        {t.descripcion}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
 
           {/* IUMs seleccionados */}
           {componentes.length > 0 && (
