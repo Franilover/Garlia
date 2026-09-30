@@ -1217,31 +1217,58 @@ export default function SimuladorIUM() {
             <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
               <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} />
             </div>
-          ) : iumsFiltrados.map((ium) => (
-            <button
-              key={ium.id}
-              onClick={() => agregarIum(ium)}
-              title={ium.detalle}
-              style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-            >
-              <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {ium.nombre}
-                </span>
-                {ium.composicion.length > 0 && (
-                  <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
-                  </span>
+          ) : (() => {
+            const idsUsados = new Set(componentes.map((c) => c.ium_id));
+            const usados = iumsFiltrados.filter((i) => idsUsados.has(i.id));
+            const disponibles = iumsFiltrados.filter((i) => !idsUsados.has(i.id));
+            return (
+              <>
+                {usados.map((ium) => (
+                  <div
+                    key={ium.id}
+                    title={ium.detalle}
+                    style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--primary)" }}>
+                        {ium.nombre}
+                      </span>
+                      {ium.composicion.length > 0 && (
+                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 45%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {disponibles.map((ium) => (
+                  <button
+                    key={ium.id}
+                    onClick={() => agregarIum(ium)}
+                    title={ium.detalle}
+                    style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                  >
+                    <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                    <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {ium.nombre}
+                      </span>
+                      {ium.composicion.length > 0 && (
+                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+                {!iumsFiltrados.length && (
+                  <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "12px 8px", margin: 0 }}>Sin resultados</p>
                 )}
-              </div>
-            </button>
-          ))}
-          {!loadingIums && !iumsFiltrados.length && (
-            <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "12px 8px", margin: 0 }}>Sin resultados</p>
-          )}
+              </>
+            );
+          })()}
         </div>
       </div>
 
@@ -1520,9 +1547,8 @@ export default function SimuladorIUM() {
                       background: activa
                         ? "color-mix(in srgb, var(--primary) 9%, transparent)"
                         : "transparent",
-                      cursor: "pointer", padding: "6px 9px",
+                      cursor: "pointer", padding: "5px 9px",
                       borderRadius: "var(--radius-btn)",
-                      display: "flex", flexDirection: "column", gap: 3,
                       opacity: t.activo ? 1 : 0.5,
                     }}
                     onMouseEnter={(e) => {
@@ -1532,73 +1558,14 @@ export default function SimuladorIUM() {
                       if (!activa) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 1 }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, color: activa ? "var(--primary)" : "var(--fg-main)" }}>
-                            {t.nombre}
-                          </span>
-                          {!t.activo && (
-                            <span style={{ fontSize: 7, padding: "0 4px", borderRadius: 999,
-                              border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)",
-                              color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                              exp
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                          {[...new Set([...t.uniones.map((u: { origen_posicion: string }) => u.origen_posicion), ...t.uniones.map((u: { destino_posicion: string }) => u.destino_posicion)])].length} huecos
-                          {" · "}{t.uniones.length} enlace{t.uniones.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      {t.grafico_ascii && (
-                        <pre style={{
-                          fontSize: 5.8, lineHeight: 1.35, margin: 0,
-                          color: activa
-                            ? "color-mix(in srgb, var(--primary) 65%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                          fontFamily: "monospace", whiteSpace: "pre", flexShrink: 0,
-                        }}>
-                          {t.grafico_ascii}
-                        </pre>
-                      )}
-                    </div>
-                    {activa && t.descripcion && (
-                      <p style={{ fontSize: 7.5, margin: 0,
-                        color: "color-mix(in srgb, var(--primary) 45%, transparent)", lineHeight: 1.45 }}>
-                        {t.descripcion}
-                      </p>
-                    )}
+                    <span style={{ fontSize: 9, fontWeight: activa ? 800 : 400, color: activa ? "var(--primary)" : "var(--fg-main)" }}>
+                      {t.nombre}
+                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
-
-          {/* IUMs seleccionados */}
-          {componentes.length > 0 && (
-            <div>
-              <p style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "color-mix(in srgb, var(--primary) 38%, transparent)", margin: "0 0 5px" }}>
-                IUMs ({componentes.length})
-              </p>
-              {componentes.map((c) => {
-                const principal = salidas.filter((s) => s.ium_id === c.ium_id).find((s) => s.es_principal);
-                return (
-                  <div key={c.uid} style={{ marginBottom: 5 }}>
-                    <div style={{ display: "flex", gap: 4, alignItems: "baseline" }}>
-                      <span style={{ fontSize: 10, fontWeight: 900, color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{c.posicion}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700 }}>{c.ium_nombre}</span>
-                    </div>
-                    {principal && (
-                      <p style={{ fontSize: 8, margin: 0, paddingLeft: 12, color: "color-mix(in srgb, var(--primary) 42%, transparent)" }}>
-                        ↳ {principal.nombre}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
 
           {/* Uniones */}
           {enlaces.length > 0 && (
@@ -1628,13 +1595,6 @@ export default function SimuladorIUM() {
                   </div>
                 );
               })}
-            </div>
-          )}
-
-          {avisoTopo && (
-            <div style={{ display: "flex", gap: 6, alignItems: "flex-start", padding: "7px 9px", borderRadius: "var(--radius-card)", border: "1px solid color-mix(in srgb, var(--warning,#f59e0b) 45%, transparent)", background: "color-mix(in srgb, var(--warning,#f59e0b) 8%, transparent)" }}>
-              <AlertTriangle size={10} style={{ color: "var(--warning,#f59e0b)", flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5 }}>{avisoTopo}</p>
             </div>
           )}
 
