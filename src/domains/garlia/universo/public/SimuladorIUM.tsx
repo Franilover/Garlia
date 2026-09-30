@@ -783,7 +783,7 @@ export default function SimuladorIUM() {
   // Viewport transform (pan + zoom)
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 600 });
   const svgRef = useRef<SVGSVGElement>(null);
-  const panStart = useRef<{ mx: number; my: number; vx: number; vy: number } | null>(null);
+
 
   // Simulador
   const [simulando, setSimulando] = useState(false);
@@ -892,8 +892,13 @@ export default function SimuladorIUM() {
     setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
   }, [componentes, topoSeleccionada]);
 
-  // Auto-fit cuando cambia el número de componentes o la topología
+  // Auto-fit cuando cambia el número de componentes, la topología o el tamaño de ventana
   useEffect(() => { fitAll(); }, [componentes.length, topoSeleccionada]);
+  useEffect(() => {
+    const fn = () => fitAll();
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, [fitAll]);
 
   // ── Drag de nodo ──────────────────────────────────────────────────────────
 
@@ -1016,41 +1021,8 @@ export default function SimuladorIUM() {
   const onCanvasMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     if ((e.target as Element).closest("[data-ium-node]")) return;
-    panStart.current = { mx: e.clientX, my: e.clientY, vx: viewBox.x, vy: viewBox.y };
     setSlotDropdown(null); setBusquedaSlot("");
-  }, [viewBox.x, viewBox.y]);
-
-  const onCanvasMouseMoveForPan = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    const pan = panStart.current;
-    if (!pan || dragging.current) return;
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const scaleX = viewBox.w / rect.width;
-    const scaleY = viewBox.h / rect.height;
-    const dx = (e.clientX - pan.mx) * scaleX;
-    const dy = (e.clientY - pan.my) * scaleY;
-    setViewBox((v) => ({ ...v, x: pan.vx - dx, y: pan.vy - dy }));
-  }, [viewBox.w, viewBox.h]);
-
-  const onCanvasMouseUp = useCallback(() => { panStart.current = null; }, []);
-
-  // ── Zoom con rueda ────────────────────────────────────────────────────────
-
-  const onWheel = useCallback((e: React.WheelEvent<SVGSVGElement>) => {
-    e.preventDefault();
-    const factor = e.deltaY > 0 ? 1.12 : 0.89;
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const mouseX = viewBox.x + ((e.clientX - rect.left) / rect.width) * viewBox.w;
-    const mouseY = viewBox.y + ((e.clientY - rect.top) / rect.height) * viewBox.h;
-    const nw = viewBox.w * factor;
-    const nh = viewBox.h * factor;
-    setViewBox({
-      x: mouseX - (mouseX - viewBox.x) * factor,
-      y: mouseY - (mouseY - viewBox.y) * factor,
-      w: nw, h: nh,
-    });
-  }, [viewBox]);
+  }, []);
 
   // ── Cancelar enlace con Escape ────────────────────────────────────────────
 
@@ -1194,11 +1166,7 @@ export default function SimuladorIUM() {
 
   // ── Scale actual (para info) ───────────────────────────────────────────────
 
-  const currentScale = useMemo(() => {
-    if (!svgRef.current) return 1;
-    const rect = svgRef.current.getBoundingClientRect();
-    return rect.width / viewBox.w;
-  }, [viewBox.w]);
+  const currentScale = 1;
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -1276,10 +1244,9 @@ export default function SimuladorIUM() {
             style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
             viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
             onMouseDown={(e) => { onCanvasMouseDown(e); }}
-            onMouseMove={(e) => { onSVGMouseMove(e); onCanvasMouseMoveForPan(e); }}
-            onMouseUp={(e) => { onSVGMouseUp(e); onCanvasMouseUp(); }}
-            onMouseLeave={() => { dragging.current = null; panStart.current = null; }}
-            onWheel={onWheel}
+            onMouseMove={(e) => { onSVGMouseMove(e); }}
+            onMouseUp={(e) => { onSVGMouseUp(e); }}
+            onMouseLeave={() => { dragging.current = null; }}
             onContextMenu={(e) => {
               // Si click derecho en fondo mientras enlazando → cancelar
               if (linkingFrom) { e.preventDefault(); setLinkingFrom(null); setLinkingMouse(null); setLinkingOver(null); }
