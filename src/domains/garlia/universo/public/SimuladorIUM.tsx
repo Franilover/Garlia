@@ -605,7 +605,7 @@ function IumNodeSVG({
         dominantBaseline="hanging"
         fontSize={9}
         fontWeight={700}
-        style={{ fill: "var(--foreground)", pointerEvents: "none", filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))" }}
+        style={{ fill: "var(--foreground)", pointerEvents: "none" }}
       >
         {comp.ium_nombre}
       </text>
@@ -622,7 +622,7 @@ function IumNodeSVG({
             fill: "var(--primary)",
             opacity: 0.7,
             pointerEvents: "none",
-            filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))",
+
           }}
         >
           ↳ {principal.nombre}
@@ -1202,7 +1202,7 @@ export default function SimuladorIUM() {
 
       {/* ── Izquierda: catálogo ─────────────────────────────────────────────── */}
       <>
-      {drawerIzq && <div onClick={() => setDrawerIzq(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)", backdropFilter: "blur(2px)" }} />}
+      {drawerIzq && <div onClick={() => setDrawerIzq(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)" }} />}
       <div className={`sim-panel-izq${drawerIzq ? " sim-panel-izq--open" : ""}`}>
         <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: "0 0 6px" }}>
@@ -1503,7 +1503,7 @@ export default function SimuladorIUM() {
 
       {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
       <>
-      {drawerDer && <div onClick={() => setDrawerDer(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)", backdropFilter: "blur(2px)" }} />}
+      {drawerDer && <div onClick={() => setDrawerDer(false)} style={{ position: "fixed", inset: 0, zIndex: 300, background: "color-mix(in srgb, var(--bg-main) 50%, transparent)" }} />}
       <div className={`sim-panel-der${drawerDer ? " sim-panel-der--open" : ""}`}>
         <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 40%, transparent)", margin: 0, flex: 1 }}>
@@ -1620,11 +1620,11 @@ export default function SimuladorIUM() {
         });
         return (
           <div
-            style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 60%, transparent)", backdropFilter: "blur(3px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 60%, transparent)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={() => { setSlotDropdown(null); setBusquedaSlot(""); }}
           >
             <div
-              style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)", borderRadius: 10, boxShadow: "0 12px 40px color-mix(in srgb, var(--primary) 22%, transparent)", overflow: "hidden", display: "flex", flexDirection: "column", width: 260, maxHeight: 380 }}
+              style={{ background: "var(--bg-main)", border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)", borderRadius: 10, overflow: "hidden", display: "flex", flexDirection: "column", width: 260, maxHeight: 380 }}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -1684,7 +1684,7 @@ export default function SimuladorIUM() {
         const dst = componentes.find((c) => c.uid === modalTipo.destinoUid);
         return (
           <div
-            style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 72%, transparent)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ position: "fixed", inset: 0, background: "color-mix(in srgb, var(--bg-main) 72%, transparent)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={() => setModalTipo(null)}
           >
             <div
@@ -1743,7 +1743,6 @@ export default function SimuladorIUM() {
             position: "fixed", inset: 0, zIndex: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
             background: "color-mix(in srgb, var(--bg-main) 55%, transparent)",
-            backdropFilter: "blur(4px)",
             padding: "20px 16px",
           }}
         >
@@ -1753,7 +1752,7 @@ export default function SimuladorIUM() {
               background: "var(--bg-main)",
               border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
               borderRadius: 16,
-              boxShadow: "0 16px 56px color-mix(in srgb, var(--primary) 22%, transparent)",
+
               width: "100%", maxWidth: 360,
               overflow: "hidden",
               animation: "modal-aparecer 0.3s cubic-bezier(0.34,1.56,0.64,1)",
@@ -1802,8 +1801,7 @@ export default function SimuladorIUM() {
           background: var(--primary); color: var(--btn-text);
           border: none; cursor: pointer;
           align-items: center; justify-content: center;
-          box-shadow: 0 4px 18px color-mix(in srgb, var(--primary) 40%, transparent);
-          transition: transform .15s ease, box-shadow .15s ease;
+          transition: transform .15s ease;
         }
         .sim-fab-izq:active, .sim-fab-der:active { transform: scale(0.93); }
         .sim-fab-izq { left: 16px; }
@@ -1811,9 +1809,9 @@ export default function SimuladorIUM() {
         /* ── Móvil ── */
         @media (max-width: 700px) {
           .sim-root { grid-template-columns: 1fr; }
-          .sim-panel-izq { position: fixed; inset: 0 auto 0 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; box-shadow: 4px 0 24px color-mix(in srgb,var(--primary) 12%,transparent); }
+          .sim-panel-izq { position: fixed; inset: 0 auto 0 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; }
           .sim-panel-izq--open { transform: translateX(0); }
-          .sim-panel-der { position: fixed; inset: 0 0 0 auto; width: min(85vw,320px); z-index: 400; background: var(--bg-main); border-left: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(105%); transition: transform .25s ease; box-shadow: -4px 0 24px color-mix(in srgb,var(--primary) 12%,transparent); }
+          .sim-panel-der { position: fixed; inset: 0 0 0 auto; width: min(85vw,320px); z-index: 400; background: var(--bg-main); border-left: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(105%); transition: transform .25s ease; }
           .sim-panel-der--open { transform: translateX(0); }
           .sim-btn-close-drawer { display: flex !important; }
           .sim-fab-izq, .sim-fab-der { display: flex !important; }
