@@ -792,6 +792,8 @@ export default function SimuladorIUM() {
   const [avisoTopo, setAvisoTopo] = useState<string | null>(null);
   // Slot resaltado mientras arrastra en modo topología
   const [dragSlotPreview, setDragSlotPreview] = useState<{ key: string; x: number; y: number } | null>(null);
+  const [slotDropdown, setSlotDropdown] = useState<{ key: string; posUI: string; x: number; y: number } | null>(null);
+  const [busquedaSlot, setBusquedaSlot] = useState("");
 
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
 
@@ -998,6 +1000,7 @@ export default function SimuladorIUM() {
     if (e.button !== 0) return;
     if ((e.target as Element).closest("[data-ium-node]")) return;
     panStart.current = { mx: e.clientX, my: e.clientY, vx: viewBox.x, vy: viewBox.y };
+    setSlotDropdown(null); setBusquedaSlot("");
   }, [viewBox.x, viewBox.y]);
 
   const onCanvasMouseMoveForPan = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1040,6 +1043,8 @@ export default function SimuladorIUM() {
         setLinkingFrom(null);
         setLinkingMouse(null);
         setLinkingOver(null);
+        setSlotDropdown(null);
+        setBusquedaSlot("");
       }
     };
     window.addEventListener("keydown", fn);
@@ -1047,6 +1052,15 @@ export default function SimuladorIUM() {
   }, []);
 
   // ── Confirmar enlace ──────────────────────────────────────────────────────
+
+  const elegirIumEnSlot = useCallback((ium: IumCatalogo, slotKey: string, posUI: string, sx: number, sy: number) => {
+    setComponentes((prev) => [...prev, {
+      uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre,
+      posicion: posUI, x: sx, y: sy,
+    }]);
+    setSlotDropdown(null);
+    setBusquedaSlot("");
+  }, []);
 
   const confirmarEnlace = useCallback(() => {
     if (!modalTipo) return;
@@ -1410,20 +1424,31 @@ export default function SimuladorIUM() {
                 const ocupado = componentes.some((c) => c.posicion === posUI);
                 const esDragPreview = dragSlotPreview?.key === key;
                 return (
-                  <g key={key}>
+                  <g key={key}
+                    onClick={!ocupado ? (e) => {
+                      e.stopPropagation();
+                      setSlotDropdown(slotDropdown?.key === key ? null : { key, posUI, x: pos.x, y: pos.y });
+                      setBusquedaSlot("");
+                    } : undefined}
+                    style={!ocupado ? { cursor: "pointer" } : undefined}
+                  >
                     {/* Círculo guía del slot */}
                     <circle
                       cx={pos.x} cy={pos.y}
                       r={NODE_R + 10}
-                      fill={esDragPreview
-                        ? "color-mix(in srgb, var(--primary) 16%, transparent)"
-                        : "color-mix(in srgb, var(--primary) 4%, transparent)"}
-                      stroke={esDragPreview
-                        ? "color-mix(in srgb, var(--primary) 70%, transparent)"
-                        : ocupado
-                          ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-                          : "color-mix(in srgb, var(--primary) 28%, transparent)"}
-                      strokeWidth={esDragPreview ? 2 : 1}
+                      fill={slotDropdown?.key === key
+                        ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                        : esDragPreview
+                          ? "color-mix(in srgb, var(--primary) 16%, transparent)"
+                          : "color-mix(in srgb, var(--primary) 4%, transparent)"}
+                      stroke={slotDropdown?.key === key
+                        ? "var(--primary)"
+                        : esDragPreview
+                          ? "color-mix(in srgb, var(--primary) 70%, transparent)"
+                          : ocupado
+                            ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 28%, transparent)"}
+                      strokeWidth={slotDropdown?.key === key ? 2 : esDragPreview ? 2 : 1}
                       strokeDasharray={ocupado ? undefined : "4 3"}
                       style={{ transition: "fill 0.15s, stroke 0.15s" }}
                     />
@@ -1432,26 +1457,110 @@ export default function SimuladorIUM() {
                       x={pos.x} y={pos.y + NODE_R + 22}
                       textAnchor="middle"
                       style={{
-                        fontSize: 10, fontWeight: 700, fill: "color-mix(in srgb, var(--primary) 45%, transparent)",
+                        fontSize: 10, fontWeight: 700,
+                        fill: slotDropdown?.key === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
                         pointerEvents: "none", userSelect: "none", letterSpacing: "0.12em",
                       }}
                     >
                       {posUI}
                     </text>
-                    {/* Si está vacío, muestra un + */}
+                    {/* Si está vacío: icono + */}
                     {!ocupado && (
                       <text
                         x={pos.x} y={pos.y + 5}
                         textAnchor="middle"
                         style={{
                           fontSize: 22, fontWeight: 300,
-                          fill: "color-mix(in srgb, var(--primary) 22%, transparent)",
+                          fill: slotDropdown?.key === key
+                            ? "var(--primary)"
+                            : "color-mix(in srgb, var(--primary) 28%, transparent)",
                           pointerEvents: "none", userSelect: "none",
+                          transition: "fill 0.15s",
                         }}
                       >
                         +
                       </text>
                     )}
+
+                    {/* Dropdown de selección de IUM — se renderiza en el slot */}
+                    {slotDropdown?.key === key && (() => {
+                      const DW = 210; const DH = 260;
+                      // Ajustar para que no se salga del canvas (700×700)
+                      const ddx = Math.min(pos.x - DW / 2, CANVAS_W - DW - 10);
+                      const ddy = pos.y + NODE_R + 28;
+                      const iumsDisponibles = iums.filter((u) => {
+                        const ya = componentes.some((c) => c.ium_id === u.id);
+                        const q = busquedaSlot.toLowerCase().trim();
+                        return !ya && (!q || u.nombre.toLowerCase().includes(q) || u.detalle.toLowerCase().includes(q));
+                      });
+                      return (
+                        <foreignObject
+                          x={ddx} y={ddy}
+                          width={DW} height={DH}
+                          style={{ overflow: "visible" }}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <div style={{
+                            background: "var(--bg-main)",
+                            border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)",
+                            borderRadius: 8, boxShadow: "0 8px 28px color-mix(in srgb, var(--primary) 18%, transparent)",
+                            overflow: "hidden", display: "flex", flexDirection: "column",
+                            width: DW, height: DH,
+                          }}>
+                            {/* Header */}
+                            <div style={{ padding: "7px 8px 5px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", display: "flex", alignItems: "center", gap: 5 }}>
+                              <span style={{ fontSize: 9, fontWeight: 800, color: "var(--primary)" }}>{posUI}</span>
+                              <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 45%, transparent)", flex: 1 }}>Elige un IUM</span>
+                              <button
+                                onClick={() => { setSlotDropdown(null); setBusquedaSlot(""); }}
+                                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}
+                              >
+                                <X size={10} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+                              </button>
+                            </div>
+                            {/* Búsqueda */}
+                            <div style={{ padding: "5px 8px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", display: "flex", alignItems: "center", gap: 4 }}>
+                              <Search size={9} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                              <input
+                                autoFocus
+                                value={busquedaSlot}
+                                onChange={(e) => setBusquedaSlot(e.target.value)}
+                                placeholder="Buscar..."
+                                style={{ border: "none", background: "transparent", fontSize: 9, outline: "none", width: "100%", color: "var(--fg-main)" }}
+                              />
+                            </div>
+                            {/* Lista */}
+                            <div style={{ flex: 1, overflowY: "auto" }}>
+                              {iumsDisponibles.length === 0 && (
+                                <p style={{ fontSize: 8, textAlign: "center", padding: "10px 8px", margin: 0, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                                  {componentes.length >= (Object.keys(getSlotsActivos(topoSeleccionada!)).length) ? "Topología llena" : "Sin resultados"}
+                                </p>
+                              )}
+                              {iumsDisponibles.map((u) => (
+                                <button
+                                  key={u.id}
+                                  onClick={() => elegirIumEnSlot(u, key, posUI, pos.x, pos.y)}
+                                  style={{
+                                    width: "100%", textAlign: "left", border: "none", background: "none",
+                                    cursor: "pointer", padding: "5px 10px", display: "flex", flexDirection: "column", gap: 1,
+                                  }}
+                                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                                >
+                                  <span style={{ fontSize: 10, fontWeight: 600 }}>{u.nombre}</span>
+                                  {u.composicion.length > 0 && (
+                                    <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+                                      {u.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </foreignObject>
+                      );
+                    })()}
                   </g>
                 );
               });
