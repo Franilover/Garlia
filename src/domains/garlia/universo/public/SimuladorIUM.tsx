@@ -605,7 +605,7 @@ function IumNodeSVG({
         dominantBaseline="hanging"
         fontSize={9}
         fontWeight={700}
-        style={{ fill: "var(--fg-main)", pointerEvents: "none" }}
+        style={{ fill: "var(--fg-main, #f0f0f0)", pointerEvents: "none", filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))" }}
       >
         {comp.ium_nombre}
       </text>
@@ -619,8 +619,10 @@ function IumNodeSVG({
           dominantBaseline="hanging"
           fontSize={7.5}
           style={{
-            fill: "color-mix(in srgb, var(--primary) 48%, transparent)",
+            fill: "var(--primary)",
+            opacity: 0.7,
             pointerEvents: "none",
+            filter: "drop-shadow(0 1px 2px color-mix(in srgb, var(--bg-main) 80%, transparent))",
           }}
         >
           ↳ {principal.nombre}
@@ -1309,7 +1311,7 @@ export default function SimuladorIUM() {
               display: "flex", alignItems: "center", gap: 5,
               padding: "6px 14px", borderRadius: 999,
               background: "var(--primary)",
-              color: "#fff",
+              color: "color-mix(in srgb, var(--primary) 5%, #000)",
               border: "none",
               cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
               opacity: componentes.length && !simulando ? 1 : 0.35,
