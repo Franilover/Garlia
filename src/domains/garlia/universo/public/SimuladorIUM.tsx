@@ -864,6 +864,21 @@ export default function SimuladorIUM() {
 
   const fitAll = useCallback(() => {
     if (!componentes.length) {
+      // Si hay topología seleccionada, encuadrar sus slots
+      if (topoSeleccionada) {
+        const slots = Object.values(getSlotsActivos(topoSeleccionada));
+        if (slots.length) {
+          const padding = 120;
+          const xs = slots.map((s) => s.x);
+          const ys = slots.map((s) => s.y);
+          const minX = Math.min(...xs) - padding;
+          const minY = Math.min(...ys) - padding;
+          const maxX = Math.max(...xs) + padding;
+          const maxY = Math.max(...ys) + padding;
+          setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+          return;
+        }
+      }
       setViewBox({ x: 0, y: 0, w: 800, h: 600 });
       return;
     }
@@ -875,10 +890,10 @@ export default function SimuladorIUM() {
     const maxX = Math.max(...xs) + padding;
     const maxY = Math.max(...ys) + padding;
     setViewBox({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
-  }, [componentes]);
+  }, [componentes, topoSeleccionada]);
 
-  // Auto-fit cuando cambia el número de componentes
-  useEffect(() => { fitAll(); }, [componentes.length]);
+  // Auto-fit cuando cambia el número de componentes o la topología
+  useEffect(() => { fitAll(); }, [componentes.length, topoSeleccionada]);
 
   // ── Drag de nodo ──────────────────────────────────────────────────────────
 
@@ -1246,7 +1261,7 @@ export default function SimuladorIUM() {
 
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
         {/* SVG canvas */}
-        {componentes.length === 0 ? (
+        {componentes.length === 0 && !topoSeleccionada ? (
           <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
             <p style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 25%, transparent)", textAlign: "center", maxWidth: 200, margin: 0, lineHeight: 1.6 }}>
