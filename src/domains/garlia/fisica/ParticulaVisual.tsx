@@ -26,37 +26,31 @@ import { PARTICULA_INITIAL } from "./types";
 export type LetraATS = "A" | "T" | "S" | "I";
 
 export const LETRA_COLOR: Record<LetraATS, { bg: string; border: string; fg: string }> = {
-  // Paleta sepia/café con distintos valores (claro/medio/oscuro) en vez de
-  // verde/rojo/azul — mismo tono de familia, cada letra se distingue por
-  // luminosidad y no por matiz. fg claro para leerse sobre el tema sepia
-  // oscuro de los admins.
-  // Fondo "falso transparente": mezcla sólida (no color-mix con transparent)
-  // entre el color de la letra y el fondo real de la página (#1a1208, sepia
-  // muy oscuro de los admins) — se ve como si tuviera transparencia dejando
-  // pasar el fondo, pero es 100% opaco, así que no deja ver las flechas o
-  // líneas de conexión de IUMs/Oris detrás.
+  // Paleta basada en --primary del tema: cada letra se distingue por
+  // luminosidad/mezcla, no por matiz fijo, así el color sigue al tema activo.
+  // A = más clara (más --primary mezclado con fondo)
   A: {
-    bg: "color-mix(in srgb, #c9a06a 45%, #1a1208)",
-    border: "#3d2a12",
-    fg: "#f3e6d3",
+    bg: "color-mix(in srgb, var(--primary) 42%, var(--bg-main))",
+    border: "color-mix(in srgb, var(--primary) 60%, var(--bg-main))",
+    fg: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))",
   },
+  // T = media
   T: {
-    bg: "color-mix(in srgb, #8a5a34 45%, #1a1208)",
-    border: "#3d2a12",
-    fg: "#f0dfc9",
+    bg: "color-mix(in srgb, var(--primary) 26%, var(--bg-main))",
+    border: "color-mix(in srgb, var(--primary) 45%, var(--bg-main))",
+    fg: "color-mix(in srgb, var(--fg-main) 85%, var(--primary))",
   },
+  // S = más oscura (menos --primary, más fondo)
   S: {
-    bg: "color-mix(in srgb, #4e3320 45%, #1a1208)",
-    border: "#3d2a12",
-    fg: "#e8d5bd",
+    bg: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
+    border: "color-mix(in srgb, var(--primary) 32%, var(--bg-main))",
+    fg: "color-mix(in srgb, var(--fg-main) 80%, var(--primary))",
   },
-  // I = Transformación inversa (choque A-T en vez de T-A) — mismo tratamiento
-  // sepia que las otras 3, con un valor distinto para diferenciarse de un
-  // vistazo tanto de A (más clara) como de S (más oscura).
+  // I = Transformación inversa — entre T y S
   I: {
-    bg: "color-mix(in srgb, #6b4423 45%, #1a1208)",
-    border: "#3d2a12",
-    fg: "#ecdcc4",
+    bg: "color-mix(in srgb, var(--primary) 20%, var(--bg-main))",
+    border: "color-mix(in srgb, var(--primary) 38%, var(--bg-main))",
+    fg: "color-mix(in srgb, var(--fg-main) 82%, var(--primary))",
   },
 };
 
@@ -519,8 +513,9 @@ export function IumGlifo({
         const p = particulas[i];
         if (modo === "inicial") {
           const idx = Object.keys(PARTICULA_INITIAL).indexOf(p.nombre);
-          const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
-          const tono = tonos[idx % tonos.length];
+          // Niveles de mezcla con --primary para distinguir partículas por luminosidad
+          const mezclas = ["42%", "26%", "14%"];
+          const mezcla = mezclas[idx % mezclas.length];
           return (
             <g key={`${p.nombre}-${i}`}>
               <title>{p.nombre}</title>
@@ -530,8 +525,8 @@ export function IumGlifo({
                 r={pr}
                 strokeWidth={Math.max(0.6, pr * 2 * 0.02)}
                 style={{
-                  fill: `color-mix(in srgb, ${tono} 55%, var(--bg-main))`,
-                  stroke: `color-mix(in srgb, ${tono} 90%, black)`,
+                  fill: `color-mix(in srgb, var(--primary) ${mezcla}, var(--bg-main))`,
+                  stroke: `color-mix(in srgb, var(--primary) 60%, var(--bg-main))`,
                 }}
               />
               <text
@@ -541,7 +536,7 @@ export function IumGlifo({
                 dominantBaseline="central"
                 fontSize={pr * 0.6}
                 fontWeight={900}
-                style={{ fill: "#f3e6d3" }}
+                style={{ fill: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))" }}
               >
                 {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
               </text>
@@ -603,11 +598,11 @@ export function IumVisual({
     pr: number,
   ) => {
     if (modo === "inicial") {
-      // Modo iniciales: mismo criterio sepia que el resto — valores
-      // (claro/medio/oscuro) en vez de matices distintos por tipo.
+      // Modo iniciales: niveles de mezcla con --primary para distinguir
+      // partículas por luminosidad, siguiendo el tema activo.
       const idx = Object.keys(PARTICULA_INITIAL).indexOf(p.nombre);
-      const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
-      const tono = tonos[idx % tonos.length];
+      const mezclas = ["42%", "26%", "14%"];
+      const mezcla = mezclas[idx % mezclas.length];
       return (
         <g key={`${p.nombre}-${i}`}>
           <title>{p.nombre}</title>
@@ -617,8 +612,8 @@ export function IumVisual({
             r={pr}
             strokeWidth={Math.max(0.6, pr * 2 * 0.02)}
             style={{
-              fill: `color-mix(in srgb, ${tono} 55%, var(--bg-main))`,
-              stroke: `color-mix(in srgb, ${tono} 90%, black)`,
+              fill: `color-mix(in srgb, var(--primary) ${mezcla}, var(--bg-main))`,
+              stroke: `color-mix(in srgb, var(--primary) 60%, var(--bg-main))`,
             }}
           />
           <text
@@ -628,7 +623,7 @@ export function IumVisual({
             dominantBaseline="central"
             fontSize={pr * 0.6}
             fontWeight={900}
-            style={{ fill: "#f3e6d3" }}
+            style={{ fill: "color-mix(in srgb, var(--fg-main) 90%, var(--primary))" }}
           >
             {PARTICULA_INITIAL[p.nombre] ?? p.nombre[0]}
           </text>
