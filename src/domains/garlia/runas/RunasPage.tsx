@@ -13,6 +13,7 @@
 
 import {
   Atom,
+  ChevronDown,
   BarChart3,
   Beaker,
   Maximize2,
@@ -777,25 +778,133 @@ function SelectorSeccionMagia({
   const opciones = mostrarTabla
     ? SECCIONES_MAGIA
     : SECCIONES_MAGIA.filter((s) => s.key !== "tabla");
+
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const seccionActiva = opciones.find((o) => o.key === seccion);
+
+  // Cerrar al hacer click fuera
+  React.useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownOpen]);
+
   return (
-    <div className="flex items-center justify-center gap-0.5">
-      {opciones.map(({ key, label, Icon }) => {
-        const activa = seccion === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onCambiarSeccion(key)}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
-              activa ? "bg-primary/10 text-primary" : "text-primary/35 hover:text-primary/60"
-            }`}
+    <>
+      {/* ── MÓVIL: dropdown ──────────────────────────────────────────── */}
+      <div className="relative md:hidden" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setDropdownOpen((o) => !o)}
+          className="flex w-full items-center justify-between gap-2 px-3 transition-colors"
+          style={{
+            height: 32,
+            borderRadius: "var(--radius-btn)",
+            background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+            border: "1.5px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+            color: "var(--primary)",
+          }}
+          aria-haspopup="listbox"
+          aria-expanded={dropdownOpen}
+        >
+          <span className="flex items-center gap-1.5">
+            {seccionActiva && (
+              <seccionActiva.Icon size={12} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em]">
+              {seccionActiva?.label ?? "Sección"}
+            </span>
+          </span>
+          <ChevronDown
+            size={12}
+            strokeWidth={2.5}
+            style={{
+              flexShrink: 0,
+              transition: "transform 0.15s",
+              transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          />
+        </button>
+
+        {dropdownOpen && (
+          <div
+            className="absolute left-0 right-0 top-full mt-1 z-[500] overflow-hidden"
+            role="listbox"
+            style={{
+              background: "var(--bg-main)",
+              border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
+              borderRadius: "var(--radius-card)",
+              boxShadow: "var(--shadow-card)",
+            }}
           >
-            <Icon size={11} />
-            {label}
-          </button>
-        );
-      })}
-    </div>
+            {opciones.map(({ key, label, Icon }) => {
+              const activa = seccion === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="option"
+                  aria-selected={activa}
+                  onClick={() => { onCambiarSeccion(key); setDropdownOpen(false); }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 transition-colors text-left"
+                  style={{
+                    color: activa
+                      ? "var(--primary)"
+                      : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    background: activa
+                      ? "color-mix(in srgb, var(--primary) 7%, transparent)"
+                      : "transparent",
+                  }}
+                >
+                  <Icon size={13} strokeWidth={activa ? 2.5 : 2} style={{ flexShrink: 0 }} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.1em]">
+                    {label}
+                  </span>
+                  {activa && (
+                    <span
+                      className="ml-auto"
+                      style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: "50%",
+                        background: "var(--primary)",
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP: pills horizontales original ─────────────────────── */}
+      <div className="hidden md:flex items-center justify-center gap-0.5">
+        {opciones.map(({ key, label, Icon }) => {
+          const activa = seccion === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onCambiarSeccion(key)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
+                activa ? "bg-primary/10 text-primary" : "text-primary/35 hover:text-primary/60"
+              }`}
+            >
+              <Icon size={11} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
