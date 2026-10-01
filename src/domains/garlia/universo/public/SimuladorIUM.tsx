@@ -1738,6 +1738,7 @@ export default function SimuladorIUM() {
       {/* ── Modal resultado ─────────────────────────────────────────────────── */}
       {(resultado || errorSim) && (
         <div
+          className="sim-modal-res"
           onClick={() => { setResultado(null); setErrorSim(null); }}
           style={{
             position: "fixed", inset: 0, zIndex: 700,
@@ -1791,7 +1792,12 @@ export default function SimuladorIUM() {
 
       <style>{`
         /* ── Layout ── */
-        .sim-root { display: grid; grid-template-columns: 190px 1fr 260px; height: calc(100vh - 80px); overflow: hidden; }
+        .sim-root {
+          /* --sim-nav: alto del navbar móvil (fixed bottom, 56px).
+             --sim-top: lo que ocupa arriba la plantilla (p-3 + tab bar ≈ 61px). */
+          --sim-nav: 56px; --sim-top: 61px;
+          display: grid; grid-template-columns: 190px 1fr 260px; height: calc(100vh - 80px); overflow: hidden;
+        }
         .sim-panel-izq { border-right: 1px solid color-mix(in srgb, var(--primary) 12%, transparent); display: flex; flex-direction: column; overflow: hidden; }
         .sim-panel-der { display: flex; flex-direction: column; overflow: hidden; }
         /* ── FABs móvil (base ocultos) ── */
@@ -1808,13 +1814,17 @@ export default function SimuladorIUM() {
         .sim-fab-der { right: 16px; }
         /* ── Móvil ── */
         @media (max-width: 700px) {
-          .sim-root { grid-template-columns: 1fr; }
-          .sim-panel-izq { position: fixed; inset: 0 auto 0 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; }
+          /* El navbar es fixed abajo: el simulador termina justo encima de él.
+             dvh = viewport real (sin la barra del navegador). El margen negativo
+             anula el pb-20 de la plantilla para que no quede scroll sobrante. */
+          .sim-root { grid-template-columns: 1fr; height: calc(100vh - var(--sim-top) - var(--sim-nav)); height: calc(100dvh - var(--sim-top) - var(--sim-nav)); margin-bottom: -5rem; }
+          .sim-panel-izq { position: fixed; inset: 0 auto var(--sim-nav) 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; }
           .sim-panel-izq--open { transform: translateX(0); }
-          .sim-panel-der { position: fixed; inset: 0 0 0 auto; width: min(85vw,320px); z-index: 400; background: var(--bg-main); border-left: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(105%); transition: transform .25s ease; }
+          .sim-panel-der { position: fixed; inset: 0 0 var(--sim-nav) auto; width: min(85vw,320px); z-index: 400; background: var(--bg-main); border-left: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(105%); transition: transform .25s ease; }
           .sim-panel-der--open { transform: translateX(0); }
           .sim-btn-close-drawer { display: flex !important; }
-          .sim-fab-izq, .sim-fab-der { display: flex !important; }
+          .sim-fab-izq, .sim-fab-der { display: flex !important; bottom: calc(var(--sim-nav) + 16px); }
+          .sim-modal-res { padding-bottom: calc(var(--sim-nav) + 20px) !important; }
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
