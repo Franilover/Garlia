@@ -9,6 +9,12 @@
  *  - Auto-fit para que todos los nodos quepan sin scroll
  *
  * SUPABASE MANDA: no se inventa ningún IUM, proceso, ORIS ni resultado.
+ *
+ * Sistema de descubrimiento:
+ *  - El jugador comienza sin saber qué hace cada IUM.
+ *  - La función se revela tras una reacción exitosa (simulador_conocimiento_ium).
+ *  - La composición también está oculta hasta entonces.
+ *  - Cada simulación tiene un costo en Eterium (simulador_eterium_jugador).
  */
 
 import {
@@ -22,6 +28,7 @@ import {
   Play,
   Plus,
   Search,
+  Sparkles,
   Trash2,
   X,
   Zap,
@@ -66,6 +73,17 @@ interface IumSalidaFuncional {
   formula?: string | null;
   estado: string;
   es_principal: boolean;
+}
+
+interface ConocimientoIum {
+  ium_id: string;
+  funcion_revelada: boolean;
+  veces_en_reaccion_exitosa: number;
+}
+
+interface EteriumJugador {
+  saldo: number;
+  saldo_maximo: number;
 }
 
 interface ComponenteLab {
@@ -156,6 +174,14 @@ const NOMBRE_UNION: Record<string, string> = {
 const MOTIVOS_INVALIDO: Record<string, string> = {
   ium_no_existe: "no es una pieza conocida",
   ium_sin_salida_funcional_principal: "todavía no sabe cómo participar en una reacción",
+};
+
+// Costos de Eterium por tipo de resultado
+const COSTO_ETERIUM: Record<string, number> = {
+  sin_resonancia: 0,
+  resonancia_parcial: 1,
+  reaccion_inestable: 3,
+  proceso_exitoso: 8,
 };
 
 // Tamaño del nodo
@@ -296,6 +322,49 @@ function useIumSalidas(iumIds: string[]) {
   return salidas;
 }
 
+// ─── Hook: conocimiento del jugador sobre los IUMs ─────────────────────────
+
+function useConocimientoIums(perfilId: string | null) {
+  const [conocimiento, setConocimiento] = useState<Map<string, ConocimientoIum>>(new Map());
+
+  const cargar = useCallback(async () => {
+    if (!perfilId) return;
+    const { data } = await supabase
+      .from("simulador_conocimiento_ium")
+      .select("ium_id, funcion_revelada, veces_en_reaccion_exitosa")
+      .eq("perfil_id", perfilId);
+    if (data) {
+      const mapa = new Map<string, ConocimientoIum>();
+      for (const fila of data) mapa.set(fila.ium_id, fila);
+      setConocimiento(mapa);
+    }
+  }, [perfilId]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  return { conocimiento, recargar: cargar };
+}
+
+// ─── Hook: saldo de Eterium del jugador ────────────────────────────────────
+
+function useEteriumJugador(perfilId: string | null) {
+  const [eterium, setEterium] = useState<EteriumJugador>({ saldo: 100, saldo_maximo: 100 });
+
+  const cargar = useCallback(async () => {
+    if (!perfilId) return;
+    const { data } = await supabase
+      .from("simulador_eterium_jugador")
+      .select("saldo, saldo_maximo")
+      .eq("perfil_id", perfilId)
+      .maybeSingle();
+    if (data) setEterium(data);
+  }, [perfilId]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  return { eterium, recargar: cargar };
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ARROW_COLOR = "color-mix(in srgb, var(--primary) 55%, transparent)";
@@ -413,38 +482,31 @@ function slotMasCercano(
   return best;
 }
 
-// Clave de la posición canónica de un componente dentro de la topología seleccionada
-function claveDeComponente(comp: ComponenteLab, topo: TopologiaOris): string {
-  // Busca qué slot ocupa según su posicion UI ("N","A","B"…)
-  const posUI = comp.posicion.toUpperCase();
-  const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
-  const slots = getSlotsActivos(topo);
-  const hit = Object.keys(slots).find((k) => toUI(k) === posUI);
-  return hit ?? comp.posicion;
-}
-
 // ─── Conexión SVG ─────────────────────────────────────────────────────────────
 
 function ConnectionLine({
-  x1, y1, x2, y2, tipo, label, onRemove,
+  x1, y1, x2, y2, tipo, label, onRemove, resonancia,
 }: {
   x1: number; y1: number; x2: number; y2: number;
   tipo: string; label?: string; onRemove?: () => void;
+  resonancia?: boolean;
 }) {
   const mx = (x1 + x2) / 2;
   const my = (y1 + y2) / 2;
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  // Control point perpendicular offset para que no queden rectas
   const perp = Math.min(50, len * 0.25);
   const cpx = mx - (dy / len) * perp;
   const cpy = my + (dx / len) * perp;
   const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
 
+  const strokeColor = resonancia
+    ? "var(--success,#22c55e)"
+    : ARROW_COLOR;
+
   return (
     <g>
-      {/* Hit area más gruesa para interacción */}
       <path d={d} fill="none" strokeWidth={12} stroke="transparent"
         style={{ cursor: "pointer" }}
         onClick={onRemove}
@@ -452,10 +514,15 @@ function ConnectionLine({
       <path
         d={d}
         fill="none"
-        strokeWidth={1.5}
+        strokeWidth={resonancia ? 2.5 : 1.5}
         strokeDasharray={tipo === "reciproca" ? "4 3" : tipo === "acoplamiento" ? "1.5 2.5" : undefined}
         markerEnd={`url(#${ARROW_ID})`}
-        style={{ stroke: ARROW_COLOR, pointerEvents: "none" }}
+        style={{
+          stroke: strokeColor,
+          pointerEvents: "none",
+          filter: resonancia ? "drop-shadow(0 0 4px var(--success,#22c55e))" : undefined,
+          transition: "stroke 0.4s, stroke-width 0.4s",
+        }}
       />
       {label && (
         <text
@@ -464,7 +531,7 @@ function ConnectionLine({
           fontSize={7.5}
           fontWeight={700}
           textAnchor="middle"
-          style={{ fill: ARROW_COLOR, pointerEvents: "none", letterSpacing: "0.04em" }}
+          style={{ fill: strokeColor, pointerEvents: "none", letterSpacing: "0.04em" }}
         >
           {label}
         </text>
@@ -488,6 +555,7 @@ function IumNodeSVG({
   onMouseLeave,
   scale,
   reaccion,
+  funcionRevelada,
 }: {
   reaccion?: "exito" | "inestable" | null;
   comp: ComponenteLab;
@@ -501,9 +569,10 @@ function IumNodeSVG({
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   scale: number;
+  funcionRevelada: boolean;
 }) {
   const { x, y } = comp;
-  const principal = salidas.find((s) => s.es_principal);
+  const principal = funcionRevelada ? salidas.find((s) => s.es_principal) : undefined;
 
   const filaIum: FilaIum | undefined = iumData
     ? {
@@ -516,7 +585,6 @@ function IumNodeSVG({
     : undefined;
   const particulas = filaIum ? particulasDeIum(filaIum) : [];
 
-  // Radio del visual escalado para mantener proporción en zoom-out
   const visR = VIS_R;
 
   return (
@@ -528,7 +596,6 @@ function IumNodeSVG({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Halo highlight cuando está en modo linking o seleccionado */}
       {(linking || selected) && (
         <circle
           r={visR + 12}
@@ -540,7 +607,6 @@ function IumNodeSVG({
         />
       )}
 
-      {/* Destello de la reacción */}
       {reaccion && (
         <circle
           r={visR + 16}
@@ -554,13 +620,11 @@ function IumNodeSVG({
         />
       )}
 
-      {/* Fondo */}
       <circle
         r={visR + 6}
         style={{ fill: "none", stroke: "none" }}
       />
 
-      {/* IumVisual */}
       <foreignObject
         x={-visR}
         y={-visR}
@@ -610,7 +674,7 @@ function IumNodeSVG({
         {comp.ium_nombre}
       </text>
 
-      {/* Salida principal */}
+      {/* Salida principal — solo si fue revelada */}
       {principal && (
         <text
           x={0}
@@ -622,10 +686,27 @@ function IumNodeSVG({
             fill: "var(--primary)",
             opacity: 0.7,
             pointerEvents: "none",
-
           }}
         >
           ↳ {principal.nombre}
+        </text>
+      )}
+
+      {/* Indicador "función desconocida" */}
+      {!funcionRevelada && (
+        <text
+          x={0}
+          y={visR + 32}
+          textAnchor="middle"
+          dominantBaseline="hanging"
+          fontSize={7.5}
+          style={{
+            fill: "color-mix(in srgb, var(--primary) 30%, transparent)",
+            pointerEvents: "none",
+            fontStyle: "italic",
+          }}
+        >
+          ↳ comportamiento desconocido
         </text>
       )}
 
@@ -655,6 +736,121 @@ function IumNodeSVG({
   );
 }
 
+// ─── Badge de Eterium ─────────────────────────────────────────────────────────
+
+function EteriumBadge({ saldo, saldoMaximo, costo }: { saldo: number; saldoMaximo: number; costo: number }) {
+  const pct = Math.max(0, Math.min(1, saldo / (saldoMaximo || 100)));
+  const color = pct > 0.5 ? "var(--primary)" : pct > 0.2 ? "var(--warning,#f59e0b)" : "var(--error,#ef4444)";
+
+  return (
+    <div style={{
+      position: "absolute", top: 12, left: 12, zIndex: 10,
+      display: "flex", flexDirection: "column", gap: 3,
+      background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
+      border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+      borderRadius: 8, padding: "6px 10px", backdropFilter: "blur(6px)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <Zap size={9} style={{ color }} />
+        <span style={{ fontSize: 9, fontWeight: 800, color }}>
+          {Math.floor(saldo)} / {saldoMaximo}
+        </span>
+        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", fontWeight: 400 }}>
+          Eterium
+        </span>
+      </div>
+      {/* Barra */}
+      <div style={{ width: 90, height: 3, borderRadius: 99, background: "color-mix(in srgb, var(--primary) 12%, transparent)", overflow: "hidden" }}>
+        <div style={{ width: `${pct * 100}%`, height: "100%", borderRadius: 99, background: color, transition: "width 0.5s ease" }} />
+      </div>
+      {costo > 0 && (
+        <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
+          Costo estimado: {costo} ⬡
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── Modal de descubrimiento ──────────────────────────────────────────────────
+
+function ModalDescubrimiento({
+  iums,
+  onCerrar,
+}: {
+  iums: { nombre: string; salida?: string }[];
+  onCerrar: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 800,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: "color-mix(in srgb, var(--bg-main) 60%, transparent)",
+        padding: "20px 16px",
+      }}
+      onClick={onCerrar}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--bg-main)",
+          border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
+          borderRadius: 18, padding: "24px 22px",
+          width: "100%", maxWidth: 340,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+          animation: "modal-aparecer 0.4s cubic-bezier(0.34,1.56,0.64,1)",
+          textAlign: "center",
+        }}
+      >
+        <Sparkles size={28} style={{ color: "var(--primary)", animation: "latido 1.6s ease-in-out infinite" }} />
+        <div>
+          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 4px", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+            ¡Primera revelación!
+          </p>
+          <p style={{ fontSize: 16, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
+            {iums.length === 1
+              ? `Comprendes cómo funciona ${iums[0].nombre}`
+              : `Comprendes ${iums.length} nuevas piezas`}
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+          {iums.map((ium, i) => (
+            <div key={i} style={{
+              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+              borderRadius: 10, padding: "8px 14px", textAlign: "left",
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 700, margin: "0 0 2px" }}>{ium.nombre}</p>
+              {ium.salida && (
+                <p style={{ fontSize: 9, margin: 0, color: "var(--primary)", opacity: 0.8 }}>
+                  ↳ {ium.salida}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 9, margin: 0, lineHeight: 1.6, color: "color-mix(in srgb, var(--foreground) 55%, transparent)", maxWidth: 260 }}>
+          Ahora puedes ver qué hace esta pieza en el catálogo. Sigue experimentando para descubrir más.
+        </p>
+
+        <button
+          onClick={onCerrar}
+          style={{
+            padding: "8px 24px", borderRadius: 999,
+            background: "var(--primary)", color: "var(--btn-text)",
+            border: "none", cursor: "pointer", fontSize: 10, fontWeight: 800,
+          }}
+        >
+          Continuar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Panel resultado ──────────────────────────────────────────────────────────
 
 function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulador; nombreIum: (id?: string) => string }) {
@@ -669,6 +865,11 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
   else if (resultado.ambiguo || candidatos.length > 0) tipo = "inestable";
 
   const oris = Array.from(new Set((principal?.oris ?? []).map((o) => o.oris ?? o.oris_id).filter(Boolean))) as string[];
+
+  // Feedback de resonancia parcial
+  const coincidentes = principal?.patrones_coincidentes ?? candidatos[0]?.patrones_coincidentes ?? 0;
+  const totales      = principal?.patrones_totales ?? candidatos[0]?.patrones_totales ?? 0;
+  const hayResonanciaInfo = tipo === "nada" && totales > 0 && coincidentes > 0;
 
   const color =
     tipo === "exito" ? "var(--success,#22c55e)"
@@ -706,14 +907,23 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
           <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--foreground) 60%, transparent)" }}>
             La combinación vibra, pero no termina de decidirse. Algo debe inclinar la balanza.
           </p>
+          {totales > 0 && (
+            <p style={{ fontSize: 8, margin: 0, color: "color-mix(in srgb, var(--warning,#f59e0b) 80%, transparent)" }}>
+              {coincidentes} de {totales} vínculos reconocidos
+            </p>
+          )}
         </>
       )}
 
       {tipo === "nada" && (
         <>
-          <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>No ocurre nada… todavía</p>
+          <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>
+            {hayResonanciaInfo ? "Algo resuena… pero débilmente" : "No ocurre nada… todavía"}
+          </p>
           <p style={{ fontSize: 9, margin: 0, lineHeight: 1.5, color: "color-mix(in srgb, var(--foreground) 50%, transparent)" }}>
-            Prueba otras piezas, otras uniones u otra forma.
+            {hayResonanciaInfo
+              ? `${coincidentes} de ${totales} conexiones reconocidas. Algo falta.`
+              : "Prueba otras piezas, otras uniones u otra forma."}
           </p>
         </>
       )}
@@ -741,6 +951,21 @@ export default function SimuladorIUM() {
   const [componentes, setComponentes] = useState<ComponenteLab[]>([]);
   const [enlaces, setEnlaces] = useState<EnlaceLab[]>([]);
 
+  // Auth: obtener perfil del jugador
+  const [perfilId, setPerfilId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setPerfilId(data?.user?.id ?? null);
+    });
+  }, []);
+
+  // Sistema de descubrimiento
+  const { conocimiento, recargar: recargarConocimiento } = useConocimientoIums(perfilId);
+  const { eterium, recargar: recargarEterium } = useEteriumJugador(perfilId);
+
+  // Modal de revelación
+  const [revelaciones, setRevelaciones] = useState<{ nombre: string; salida?: string }[]>([]);
+
   // Drag de nodo
   const dragging = useRef<{
     uid: string;
@@ -757,9 +982,8 @@ export default function SimuladorIUM() {
   const [linkingOver, setLinkingOver] = useState<string | null>(null);
   const [linkingTipo, setLinkingTipo] = useState("dirigida");
 
-  // Topología seleccionada y dropdown
+  // Topología seleccionada
   const [topoSeleccionada, setTopoSeleccionada] = useState<TopologiaOris | null>(null);
-  const [topoDropdown, setTopoDropdown] = useState(false);
 
   // Modal tipo unión al soltar
   const [modalTipo, setModalTipo] = useState<{
@@ -770,7 +994,6 @@ export default function SimuladorIUM() {
   // Viewport transform (pan + zoom)
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 800, h: 600 });
   const svgRef = useRef<SVGSVGElement>(null);
-
 
   // Simulador
   const [simulando, setSimulando] = useState(false);
@@ -784,7 +1007,30 @@ export default function SimuladorIUM() {
   const [drawerIzq, setDrawerIzq] = useState(false);
   const [drawerDer, setDrawerDer] = useState(false);
 
+  // IDs en canvas para saber qué salidas cargar
   const iumIds = useMemo(() => componentes.map((c) => c.ium_id), [componentes]);
+  const salidas = useIumSalidas(iumIds);
+  const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
+
+  // ── Clasificar resultado para el costo de Eterium ────────────────────────
+  const clasificarResultado = useCallback((res: ResultadoSimulador): string => {
+    if (!res || res.estado !== "simulado") return "sin_resonancia";
+    if (res.proceso_principal) return "proceso_exitoso";
+    const candidatos = res.procesos_candidatos ?? [];
+    if (res.ambiguo || candidatos.length > 0) {
+      const alguno = candidatos[0];
+      if (alguno && (alguno.patrones_coincidentes ?? 0) > 0) return "reaccion_inestable";
+    }
+    // Ver si hay resonancia parcial (patrones coincidentes pero sin proceso)
+    const tieneCoincidencias = candidatos.some((c) => (c.patrones_coincidentes ?? 0) > 0);
+    return tieneCoincidencias ? "resonancia_parcial" : "sin_resonancia";
+  }, []);
+
+  // Costo estimado para mostrar al jugador antes de simular
+  const costoEstimado = useMemo(() => {
+    // No podemos saber el resultado antes de simular — mostramos el máximo posible
+    return componentes.length > 0 ? COSTO_ETERIUM.proceso_exitoso : 0;
+  }, [componentes.length]);
 
   // Si el jugador cambia la combinación, el resultado anterior deja de valer
   const firmaCombinacion = useMemo(
@@ -794,8 +1040,6 @@ export default function SimuladorIUM() {
     [componentes, enlaces],
   );
   useEffect(() => { setResultado(null); setErrorSim(null); }, [firmaCombinacion]);
-  const salidas = useIumSalidas(iumIds);
-  const iumMap = useMemo(() => new Map(iums.map((i) => [i.id, i])), [iums]);
 
   const iumsFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
@@ -845,13 +1089,12 @@ export default function SimuladorIUM() {
 
   const agregarIum = useCallback((ium: IumCatalogo) => {
     if (topoSeleccionada) {
-      // Modo topología: asigna el primer slot libre
       const slots = getSlotsActivos(topoSeleccionada);
       const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
       const slotsLibres = Object.keys(slots).filter(
         (k) => !componentes.some((c) => c.posicion === toUI(k)),
       );
-      if (!slotsLibres.length) return; // topología llena
+      if (!slotsLibres.length) return;
       const key = slotsLibres[0];
       const { x, y } = slots[key];
       const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: toUI(key), x, y };
@@ -871,9 +1114,7 @@ export default function SimuladorIUM() {
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
   const fitAll = useCallback(() => {
-    // Radio visual de cada nodo IUM en coordenadas SVG
     const NODE_R = 52;
-    // Padding extra alrededor del bounding-box de nodos
     const PADDING = 90;
 
     const fitPoints = (points: { x: number; y: number }[]) => {
@@ -887,8 +1128,6 @@ export default function SimuladorIUM() {
       const rawW = rawMaxX - rawMinX;
       const rawH = rawMaxY - rawMinY;
 
-      // Forzar aspect ratio del contenedor SVG para que no haya zoom asimétrico.
-      // Si no hay ref disponible usamos 4:3 como fallback razonable.
       const svgEl = svgRef.current;
       const aspect = svgEl
         ? svgEl.clientWidth / Math.max(svgEl.clientHeight, 1)
@@ -897,13 +1136,10 @@ export default function SimuladorIUM() {
       let finalW = rawW;
       let finalH = rawH;
       if (rawW / rawH > aspect) {
-        // Ancho manda → crecer alto
         finalH = rawW / aspect;
       } else {
-        // Alto manda → crecer ancho
         finalW = rawH * aspect;
       }
-      // Centrar el bounding-box dentro del viewBox ajustado
       const cx = (rawMinX + rawMaxX) / 2;
       const cy = (rawMinY + rawMaxY) / 2;
       setViewBox({ x: cx - finalW / 2, y: cy - finalH / 2, w: finalW, h: finalH });
@@ -920,7 +1156,6 @@ export default function SimuladorIUM() {
     fitPoints(componentes.map((c) => ({ x: c.x, y: c.y })));
   }, [componentes, topoSeleccionada]);
 
-  // Auto-fit cuando cambia el número de componentes, la topología o el tamaño de ventana
   useEffect(() => { fitAll(); }, [componentes.length, topoSeleccionada]);
   useEffect(() => {
     const fn = () => fitAll();
@@ -931,7 +1166,7 @@ export default function SimuladorIUM() {
   // ── Drag de nodo ──────────────────────────────────────────────────────────
 
   const onNodeMouseDown = useCallback((uid: string, e: React.MouseEvent) => {
-    if (e.button !== 0) return; // solo click izquierdo
+    if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
     const comp = componentes.find((c) => c.uid === uid);
@@ -953,7 +1188,6 @@ export default function SimuladorIUM() {
     e.preventDefault();
     e.stopPropagation();
     if (linkingFrom) {
-      // Soltar enlace sobre este nodo
       if (linkingFrom !== uid) {
         setModalTipo({ origenUid: linkingFrom, destinoUid: uid });
       }
@@ -982,7 +1216,6 @@ export default function SimuladorIUM() {
       const uid = drag.uid;
 
       if (topoSeleccionada) {
-        // Modo topología: el nodo sigue el cursor pero calculamos el slot más cercano
         const slots = getSlotsActivos(topoSeleccionada);
         const snap = slotMasCercano(nx, ny, slots, SLOT_SNAP_RADIUS * 1.8);
         setDragSlotPreview(snap);
@@ -1008,7 +1241,6 @@ export default function SimuladorIUM() {
     dragging.current = null;
 
     if (drag && drag.moved && topoSeleccionada) {
-      // Snap final: mueve al slot más cercano e intercambia posiciones si estaba ocupado
       const slots = getSlotsActivos(topoSeleccionada);
       const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
       setComponentes((prev) => {
@@ -1016,7 +1248,6 @@ export default function SimuladorIUM() {
         if (!nodo) return prev;
         const snap = slotMasCercano(nodo.x, nodo.y, slots, SLOT_SNAP_RADIUS * 2.5);
         if (!snap) {
-          // Fuera de rango: vuelve a su posición de origen
           return prev.map((c) => c.uid === drag.uid
             ? { ...c, x: drag.startNodeX, y: drag.startNodeY }
             : c);
@@ -1028,7 +1259,6 @@ export default function SimuladorIUM() {
             return { ...c, posicion: newPosUI, x: snap.x, y: snap.y };
           }
           if (ocupante && c.uid === ocupante.uid) {
-            // Intercambio: el ocupante toma la posición del nodo arrastrado
             return { ...c, posicion: nodo.posicion, x: drag.startNodeX, y: drag.startNodeY };
           }
           return c;
@@ -1090,38 +1320,31 @@ export default function SimuladorIUM() {
     setLinkingTipo("dirigida");
   }, [modalTipo, linkingTipo]);
 
-  // ── Simular ────────────────────────────────────────────────────────────────
-
   // ── Aplicar topología ────────────────────────────────────────────────────────
 
   const aplicarTopologia = useCallback((topo: TopologiaOris) => {
     setTopoSeleccionada(topo);
-    setTopoDropdown(false);
     setResultado(null);
     setErrorSim(null);
 
     const canonToUI = (p: string) => (p === "nucleo" ? "N" : p.toUpperCase());
-    const slots = getSlotsActivos(topo);                     // { a: {x,y}, nucleo: {x,y}, … }
-    const slotsOrden = Object.keys(slots);                   // orden del layout
+    const slots = getSlotsActivos(topo);
+    const slotsOrden = Object.keys(slots);
     const nSlots = slotsOrden.length;
     const nNodos = componentes.length;
 
-    // Asigna cada nodo existente a un slot en orden: nodo 0 → slot 0, nodo 1 → slot 1, …
-    // Los nodos que superan los slots disponibles quedan sin mover (aviso).
     const nuevosComps = componentes.map((c, i) => {
-      if (i >= nSlots) return c;                             // sobrante: queda donde está
+      if (i >= nSlots) return c;
       const key = slotsOrden[i];
       const { x, y } = slots[key];
       return { ...c, posicion: canonToUI(key), x, y };
     });
 
-    // Mapa posición canónica → uid (solo los que caben en un slot)
     const posMap = new Map<string, string>();
     nuevosComps.slice(0, nSlots).forEach((c, i) => {
       posMap.set(slotsOrden[i], c.uid);
     });
 
-    // Crear todos los enlaces que la topología define (solo entre nodos asignados)
     const nuevosEnlaces: EnlaceLab[] = [];
     for (const u of topo.uniones) {
       const orUid  = posMap.get(u.origen_posicion);
@@ -1149,11 +1372,13 @@ export default function SimuladorIUM() {
     setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null); setTopoSeleccionada(null); setDragSlotPreview(null);
   }, []);
 
+  // ── Simular ────────────────────────────────────────────────────────────────
+
   const simular = useCallback(async () => {
     if (!componentes.length) return;
     setResultado(null); setErrorSim(null);
 
-    // El motor resuelve enlaces por ium_id: un IUM repetido con enlaces sería ambiguo
+    // Validar IUMs repetidos con enlaces
     const conteo = new Map<string, number>();
     componentes.forEach((c) => conteo.set(c.ium_id, (conteo.get(c.ium_id) ?? 0) + 1));
     const repetidos = new Set<string>();
@@ -1181,19 +1406,69 @@ export default function SimuladorIUM() {
         p_contexto: {},
       };
       const { data, error: err } = await supabase.rpc("simular_organizacion_ium_v1" as never, payload as never);
-      if (err) { console.error(err); setErrorSim("El laboratorio no respondió. Inténtalo de nuevo."); }
-      else setResultado((data as ResultadoSimulador) ?? { estado: "sin_respuesta" });
+      if (err) {
+        console.error(err);
+        setErrorSim("El laboratorio no respondió. Inténtalo de nuevo.");
+        return;
+      }
+
+      const res = (data as ResultadoSimulador) ?? { estado: "sin_respuesta" };
+      setResultado(res);
+
+      // ── Registrar intento en Supabase ─────────────────────────────────────
+      if (perfilId) {
+        const tipoResultado = clasificarResultado(res);
+        const candidatos = res.procesos_candidatos ?? [];
+        const principal = candidatos.find((p) => p.es_principal) ?? candidatos[0];
+
+        const { data: regData } = await supabase.rpc("registrar_intento_simulador" as never, {
+          p_perfil_id:             perfilId,
+          p_ium_ids:               componentes.map((c) => c.ium_id),
+          p_configuracion:         payload as never,
+          p_resultado_tipo:        tipoResultado,
+          p_proceso_id:            null,
+          p_patrones_coincidentes: principal?.patrones_coincidentes ?? 0,
+          p_patrones_totales:      principal?.patrones_totales ?? 0,
+        } as never);
+
+        // Procesar revelaciones
+        const regResult = regData as { nuevas_revelaciones?: string[] } | null;
+        if (regResult?.nuevas_revelaciones?.length) {
+          // Buscar nombres y salidas de los IUMs revelados
+          const reveladosInfo = regResult.nuevas_revelaciones.map((iumId) => {
+            const iumDato = iumMap.get(iumId);
+            const salidaPrincipal = salidas.find((s) => s.ium_id === iumId && s.es_principal);
+            return {
+              nombre: iumDato?.nombre ?? iumId,
+              salida: salidaPrincipal?.nombre,
+            };
+          });
+          setRevelaciones(reveladosInfo);
+        }
+
+        // Recargar estado de Eterium y conocimiento
+        await Promise.all([recargarEterium(), recargarConocimiento()]);
+      }
+
     } catch (e) {
       console.error(e);
       setErrorSim("El laboratorio no respondió. Inténtalo de nuevo.");
     } finally {
       setSimulando(false);
     }
-  }, [componentes, enlaces]);
+  }, [componentes, enlaces, perfilId, clasificarResultado, iumMap, salidas, recargarEterium, recargarConocimiento]);
 
-  // ── Scale actual (para info) ───────────────────────────────────────────────
+  // ── Scale actual ───────────────────────────────────────────────────────────
 
   const currentScale = 1;
+
+  // ── Determinar resonancia por enlace (para resaltarlos en el canvas) ───────
+
+  const enlacesConResonancia = useMemo(() => {
+    if (!resultado || resultado.estado !== "simulado" || !resultado.proceso_principal) return new Set<string>();
+    // Si hay proceso exitoso, todos los enlaces "brillan" — por ahora resaltamos todos
+    return new Set(enlaces.map((e) => e.uid));
+  }, [resultado, enlaces]);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -1229,46 +1504,64 @@ export default function SimuladorIUM() {
             const disponibles = iumsFiltrados.filter((i) => !idsUsados.has(i.id));
             return (
               <>
-                {usados.map((ium) => (
-                  <div
-                    key={ium.id}
-                    title={ium.detalle}
-                    style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--primary)" }}>
-                        {ium.nombre}
-                      </span>
-                      {ium.composicion.length > 0 && (
-                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 45%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                {usados.map((ium) => {
+                  const revelado = conocimiento.get(ium.id)?.funcion_revelada ?? false;
+                  return (
+                    <div
+                      key={ium.id}
+                      title={ium.detalle}
+                      style={{ width: "100%", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5, background: "color-mix(in srgb, var(--primary) 13%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--primary)" }}>
+                          {ium.nombre}
                         </span>
-                      )}
+                        {/* Composición — solo visible si fue revelado */}
+                        {revelado && ium.composicion.length > 0 && (
+                          <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 45%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                          </span>
+                        )}
+                        {!revelado && (
+                          <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 28%, transparent)", fontStyle: "italic" }}>
+                            comportamiento desconocido
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {disponibles.map((ium) => (
-                  <button
-                    key={ium.id}
-                    onClick={() => agregarIum(ium)}
-                    title={ium.detalle}
-                    style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                  >
-                    <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                    <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {ium.nombre}
-                      </span>
-                      {ium.composicion.length > 0 && (
-                        <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                  );
+                })}
+                {disponibles.map((ium) => {
+                  const revelado = conocimiento.get(ium.id)?.funcion_revelada ?? false;
+                  return (
+                    <button
+                      key={ium.id}
+                      onClick={() => agregarIum(ium)}
+                      title={ium.detalle}
+                      style={{ width: "100%", textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 7%, transparent)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                    >
+                      <Plus size={8} style={{ flexShrink: 0, color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ium.nombre}
                         </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
+                        {/* Composición — solo si fue revelado */}
+                        {revelado && ium.composicion.length > 0 && (
+                          <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {ium.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
+                          </span>
+                        )}
+                        {!revelado && (
+                          <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 25%, transparent)", fontStyle: "italic", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            ?
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
                 {!iumsFiltrados.length && (
                   <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "12px 8px", margin: 0 }}>Sin resultados</p>
                 )}
@@ -1282,7 +1575,6 @@ export default function SimuladorIUM() {
       </>
 
       <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-        {/* SVG canvas */}
         {componentes.length === 0 && !topoSeleccionada ? (
           <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <FlaskConical size={32} style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }} />
@@ -1293,212 +1585,212 @@ export default function SimuladorIUM() {
           </div>
         ) : (
           <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
-          {/* Botón Probar flotante sobre el canvas */}
-          <button
-            onClick={simular}
-            disabled={!componentes.length || simulando}
-            style={{
-              position: "absolute", top: 12, right: 12, zIndex: 10,
-              display: "flex", alignItems: "center", gap: 5,
-              padding: "6px 14px", borderRadius: 999,
-              background: "var(--primary)",
-              color: "var(--btn-text)",
-              border: "none",
-              cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
-              opacity: componentes.length && !simulando ? 1 : 0.35,
-              fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-            }}
-          >
-            {simulando
-              ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
-              : <><Play size={10} /> Probar</>}
-          </button>
-          <svg
-            ref={svgRef}
-            style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
-            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-            onMouseDown={(e) => { onCanvasMouseDown(e); }}
-            onMouseMove={(e) => { onSVGMouseMove(e); }}
-            onMouseUp={(e) => { onSVGMouseUp(e); }}
-            onMouseLeave={() => { dragging.current = null; }}
-            onContextMenu={(e) => {
-              // Si click derecho en fondo mientras enlazando → cancelar
-              if (linkingFrom) { e.preventDefault(); setLinkingFrom(null); setLinkingMouse(null); setLinkingOver(null); }
-            }}
-          >
-            <defs>
-              <marker id={ARROW_ID} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-                <path d="M0,0.5 L0,5.5 L6.5,3 z" style={{ fill: ARROW_COLOR }} />
-              </marker>
-            </defs>
+            {/* Badge de Eterium */}
+            <EteriumBadge
+              saldo={eterium.saldo}
+              saldoMaximo={eterium.saldo_maximo}
+              costo={componentes.length > 0 ? costoEstimado : 0}
+            />
 
-            {/* Uniones fantasma de la topología (entre slots, con o sin IUM) */}
-            {topoSeleccionada && (() => {
-              const slots = getSlotsActivos(topoSeleccionada);
-              const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
-              return topoSeleccionada.uniones.map((u, i) => {
-                const orPos  = slots[u.origen_posicion];
-                const dstPos = slots[u.destino_posicion];
-                if (!orPos || !dstPos) return null;
-                // Si ambos slots tienen IUM real, la línea real ya lo cubre
-                const orComp  = componentes.find((c) => c.posicion === toUI(u.origen_posicion));
-                const dstComp = componentes.find((c) => c.posicion === toUI(u.destino_posicion));
-                if (orComp && dstComp) return null;
-                // Coordenadas: usar posición del componente si existe, del slot si no
-                const x1 = orComp  ? orComp.x  : orPos.x;
-                const y1 = orComp  ? orComp.y  : orPos.y;
-                const x2 = dstComp ? dstComp.x : dstPos.x;
-                const y2 = dstComp ? dstComp.y : dstPos.y;
+            {/* Botón Probar flotante */}
+            <button
+              onClick={simular}
+              disabled={!componentes.length || simulando}
+              style={{
+                position: "absolute", top: 12, right: 12, zIndex: 10,
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "6px 14px", borderRadius: 999,
+                background: "var(--primary)",
+                color: "var(--btn-text)",
+                border: "none",
+                cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
+                opacity: componentes.length && !simulando ? 1 : 0.35,
+                fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+              }}
+            >
+              {simulando
+                ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
+                : <><Play size={10} /> Probar</>}
+            </button>
+            <svg
+              ref={svgRef}
+              style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
+              viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+              onMouseDown={(e) => { onCanvasMouseDown(e); }}
+              onMouseMove={(e) => { onSVGMouseMove(e); }}
+              onMouseUp={(e) => { onSVGMouseUp(e); }}
+              onMouseLeave={() => { dragging.current = null; }}
+              onContextMenu={(e) => {
+                if (linkingFrom) { e.preventDefault(); setLinkingFrom(null); setLinkingMouse(null); setLinkingOver(null); }
+              }}
+            >
+              <defs>
+                <marker id={ARROW_ID} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                  <path d="M0,0.5 L0,5.5 L6.5,3 z" style={{ fill: ARROW_COLOR }} />
+                </marker>
+              </defs>
+
+              {/* Uniones fantasma de la topología */}
+              {topoSeleccionada && (() => {
+                const slots = getSlotsActivos(topoSeleccionada);
+                const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+                return topoSeleccionada.uniones.map((u, i) => {
+                  const orPos  = slots[u.origen_posicion];
+                  const dstPos = slots[u.destino_posicion];
+                  if (!orPos || !dstPos) return null;
+                  const orComp  = componentes.find((c) => c.posicion === toUI(u.origen_posicion));
+                  const dstComp = componentes.find((c) => c.posicion === toUI(u.destino_posicion));
+                  if (orComp && dstComp) return null;
+                  const x1 = orComp  ? orComp.x  : orPos.x;
+                  const y1 = orComp  ? orComp.y  : orPos.y;
+                  const x2 = dstComp ? dstComp.x : dstPos.x;
+                  const y2 = dstComp ? dstComp.y : dstPos.y;
+                  return (
+                    <ConnectionLine
+                      key={`topo-${i}`}
+                      x1={x1} y1={y1}
+                      x2={x2} y2={y2}
+                      tipo={u.tipo_union}
+                      label={u.tipo_union}
+                    />
+                  );
+                });
+              })()}
+
+              {/* Conexiones existentes */}
+              {enlaces.map((e) => {
+                const or  = componentes.find((c) => c.uid === e.origen_uid);
+                const dst = componentes.find((c) => c.uid === e.destino_uid);
+                if (!or || !dst) return null;
                 return (
                   <ConnectionLine
-                    key={`topo-${i}`}
-                    x1={x1} y1={y1}
-                    x2={x2} y2={y2}
-                    tipo={u.tipo_union}
-                    label={u.tipo_union}
+                    key={e.uid}
+                    x1={or.x} y1={or.y}
+                    x2={dst.x} y2={dst.y}
+                    tipo={e.tipo_union}
+                    label={e.tipo_union}
+                    resonancia={enlacesConResonancia.has(e.uid)}
+                    onRemove={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
                   />
                 );
-              });
-            })()}
+              })}
 
-            {/* Conexiones existentes */}
-            {enlaces.map((e) => {
-              const or  = componentes.find((c) => c.uid === e.origen_uid);
-              const dst = componentes.find((c) => c.uid === e.destino_uid);
-              if (!or || !dst) return null;
-              return (
-                <ConnectionLine
-                  key={e.uid}
-                  x1={or.x} y1={or.y}
-                  x2={dst.x} y2={dst.y}
-                  tipo={e.tipo_union}
-                  label={e.tipo_union}
-                  onRemove={() => setEnlaces((prev) => prev.filter((x) => x.uid !== e.uid))}
-                />
-              );
-            })}
-
-            {/* Línea de enlace en progreso */}
-            {linkingFrom && linkingMouse && (() => {
-              const from = componentes.find((c) => c.uid === linkingFrom);
-              if (!from) return null;
-              return (
-                <line
-                  x1={from.x} y1={from.y}
-                  x2={linkingMouse.x} y2={linkingMouse.y}
-                  strokeWidth={1.5}
-                  strokeDasharray="5 3"
-                  style={{ stroke: "var(--primary)", pointerEvents: "none" }}
-                />
-              );
-            })()}
-
-            {/* Grid de slots de topología */}
-            {topoSeleccionada && (() => {
-              const slots = Object.entries(getSlotsActivos(topoSeleccionada));
-              const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
-              return slots.map(([key, pos]) => {
-                const posUI = toUI(key);
-                const ocupado = componentes.some((c) => c.posicion === posUI);
-                const esDragPreview = dragSlotPreview?.key === key;
+              {/* Línea de enlace en progreso */}
+              {linkingFrom && linkingMouse && (() => {
+                const from = componentes.find((c) => c.uid === linkingFrom);
+                if (!from) return null;
                 return (
-                  <g key={key}
-                    onClick={!ocupado ? (e) => {
-                      e.stopPropagation();
-                      setSlotDropdown(slotDropdown?.key === key ? null : { key, posUI, x: pos.x, y: pos.y });
-                      setBusquedaSlot("");
-                    } : undefined}
-                    style={!ocupado ? { cursor: "pointer" } : undefined}
-                  >
-                    {/* Círculo guía del slot */}
-                    <circle
-                      cx={pos.x} cy={pos.y}
-                      r={NODE_R + 10}
-                      fill={slotDropdown?.key === key
-                        ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                        : esDragPreview
-                          ? "color-mix(in srgb, var(--primary) 16%, transparent)"
-                          : "color-mix(in srgb, var(--primary) 4%, transparent)"}
-                      stroke={slotDropdown?.key === key
-                        ? "var(--primary)"
-                        : esDragPreview
-                          ? "color-mix(in srgb, var(--primary) 70%, transparent)"
-                          : ocupado
-                            ? "color-mix(in srgb, var(--primary) 18%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 28%, transparent)"}
-                      strokeWidth={slotDropdown?.key === key ? 2 : esDragPreview ? 2 : 1}
-                      strokeDasharray={ocupado ? undefined : "4 3"}
-                      style={{ transition: "fill 0.15s, stroke 0.15s" }}
-                    />
-                    {/* Etiqueta de posición — dentro del círculo, arriba */}
-                    <text
-                      x={pos.x} y={pos.y - (NODE_R + 10) + 14}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      style={{
-                        fontSize: 10, fontWeight: 800,
-                        fill: slotDropdown?.key === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                        pointerEvents: "none", userSelect: "none", letterSpacing: "0.12em",
-                      }}
+                  <line
+                    x1={from.x} y1={from.y}
+                    x2={linkingMouse.x} y2={linkingMouse.y}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 3"
+                    style={{ stroke: "var(--primary)", pointerEvents: "none" }}
+                  />
+                );
+              })()}
+
+              {/* Grid de slots de topología */}
+              {topoSeleccionada && (() => {
+                const slots = Object.entries(getSlotsActivos(topoSeleccionada));
+                const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
+                return slots.map(([key, pos]) => {
+                  const posUI = toUI(key);
+                  const ocupado = componentes.some((c) => c.posicion === posUI);
+                  const esDragPreview = dragSlotPreview?.key === key;
+                  return (
+                    <g key={key}
+                      onClick={!ocupado ? (e) => {
+                        e.stopPropagation();
+                        setSlotDropdown(slotDropdown?.key === key ? null : { key, posUI, x: pos.x, y: pos.y });
+                        setBusquedaSlot("");
+                      } : undefined}
+                      style={!ocupado ? { cursor: "pointer" } : undefined}
                     >
-                      {posUI}
-                    </text>
-                    {/* Si está vacío: icono + centrado */}
-                    {!ocupado && (
+                      <circle
+                        cx={pos.x} cy={pos.y}
+                        r={NODE_R + 10}
+                        fill={slotDropdown?.key === key
+                          ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                          : esDragPreview
+                            ? "color-mix(in srgb, var(--primary) 16%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 4%, transparent)"}
+                        stroke={slotDropdown?.key === key
+                          ? "var(--primary)"
+                          : esDragPreview
+                            ? "color-mix(in srgb, var(--primary) 70%, transparent)"
+                            : ocupado
+                              ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                              : "color-mix(in srgb, var(--primary) 28%, transparent)"}
+                        strokeWidth={slotDropdown?.key === key ? 2 : esDragPreview ? 2 : 1}
+                        strokeDasharray={ocupado ? undefined : "4 3"}
+                        style={{ transition: "fill 0.15s, stroke 0.15s" }}
+                      />
                       <text
-                        x={pos.x} y={pos.y + 6}
+                        x={pos.x} y={pos.y - (NODE_R + 10) + 14}
                         textAnchor="middle"
                         dominantBaseline="middle"
                         style={{
-                          fontSize: 26, fontWeight: 200,
-                          fill: slotDropdown?.key === key
-                            ? "var(--primary)"
-                            : "color-mix(in srgb, var(--primary) 28%, transparent)",
-                          pointerEvents: "none", userSelect: "none",
-                          transition: "fill 0.15s",
+                          fontSize: 10, fontWeight: 800,
+                          fill: slotDropdown?.key === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+                          pointerEvents: "none", userSelect: "none", letterSpacing: "0.12em",
                         }}
                       >
-                        +
+                        {posUI}
                       </text>
-                    )}
+                      {!ocupado && (
+                        <text
+                          x={pos.x} y={pos.y + 6}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          style={{
+                            fontSize: 26, fontWeight: 200,
+                            fill: slotDropdown?.key === key
+                              ? "var(--primary)"
+                              : "color-mix(in srgb, var(--primary) 28%, transparent)",
+                            pointerEvents: "none", userSelect: "none",
+                            transition: "fill 0.15s",
+                          }}
+                        >
+                          +
+                        </text>
+                      )}
+                    </g>
+                  );
+                });
+              })()}
 
-
-                  </g>
-                );
-              });
-            })()}
-
-            {/* Nodos */}
-            {componentes.map((comp) => (
-              <g key={comp.uid} data-ium-node="true">
-                <IumNodeSVG
-                  comp={comp}
-                  iumData={iumMap.get(comp.ium_id)}
-                  salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
-                  selected={false}
-                  linking={linkingFrom === comp.uid}
-                  reaccion={
-                    !resultado || resultado.estado !== "simulado" ? null
-                    : resultado.proceso_principal ? "exito"
-                    : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
-                    : null
-                  }
-                  scale={currentScale}
-                  onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
-                  onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
-                  onRemove={() => {
-                    setComponentes((prev) => prev.filter((c) => c.uid !== comp.uid));
-                    setEnlaces((prev) => prev.filter((e) => e.origen_uid !== comp.uid && e.destino_uid !== comp.uid));
-                  }}
-                  onMouseEnter={() => setLinkingOver(comp.uid)}
-                  onMouseLeave={() => setLinkingOver(null)}
-                />
-              </g>
-            ))}
-          </svg>
+              {/* Nodos */}
+              {componentes.map((comp) => (
+                <g key={comp.uid} data-ium-node="true">
+                  <IumNodeSVG
+                    comp={comp}
+                    iumData={iumMap.get(comp.ium_id)}
+                    salidas={salidas.filter((s) => s.ium_id === comp.ium_id)}
+                    selected={false}
+                    linking={linkingFrom === comp.uid}
+                    funcionRevelada={conocimiento.get(comp.ium_id)?.funcion_revelada ?? false}
+                    reaccion={
+                      !resultado || resultado.estado !== "simulado" ? null
+                      : resultado.proceso_principal ? "exito"
+                      : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
+                      : null
+                    }
+                    scale={currentScale}
+                    onMouseDownDrag={(e) => onNodeMouseDown(comp.uid, e)}
+                    onContextMenu={(e) => onNodeContextMenu(comp.uid, e)}
+                    onRemove={() => {
+                      setComponentes((prev) => prev.filter((c) => c.uid !== comp.uid));
+                      setEnlaces((prev) => prev.filter((e) => e.origen_uid !== comp.uid && e.destino_uid !== comp.uid));
+                    }}
+                    onMouseEnter={() => setLinkingOver(comp.uid)}
+                    onMouseLeave={() => setLinkingOver(null)}
+                  />
+                </g>
+              ))}
+            </svg>
           </div>
         )}
-
       </div>
 
       {/* ── Derecha: resultados ─────────────────────────────────────────────── */}
@@ -1516,9 +1808,8 @@ export default function SimuladorIUM() {
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
 
-                    {/* Selector de topología */}
+          {/* Selector de topología */}
           <div>
-
             <button
               onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
               style={{
@@ -1610,7 +1901,7 @@ export default function SimuladorIUM() {
       {/* ── Modal tipo de unión ──────────────────────────────────────────────── */}
       </>
 
-      {/* ── Modal añadir IUM a slot (centrado) ─────────────────────────────── */}
+      {/* ── Modal añadir IUM a slot ─────────────────────────────────────────── */}
       {slotDropdown && (() => {
         const { key, posUI, x: sx, y: sy } = slotDropdown;
         const iumsDisponibles = iums.filter((u) => {
@@ -1628,7 +1919,6 @@ export default function SimuladorIUM() {
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: "var(--primary)" }}>{posUI}</span>
                 <span style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 45%, transparent)", flex: 1 }}>Elige un IUM</span>
@@ -1639,7 +1929,6 @@ export default function SimuladorIUM() {
                   <X size={12} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
                 </button>
               </div>
-              {/* Búsqueda */}
               <div style={{ padding: "7px 12px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", display: "flex", alignItems: "center", gap: 6 }}>
                 <Search size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
                 <input
@@ -1650,7 +1939,6 @@ export default function SimuladorIUM() {
                   style={{ border: "none", background: "transparent", fontSize: 10, outline: "none", width: "100%", color: "var(--foreground)" }}
                 />
               </div>
-              {/* Lista */}
               <div style={{ flex: 1, overflowY: "auto" }}>
                 {iumsDisponibles.length === 0 && (
                   <p style={{ fontSize: 9, textAlign: "center", padding: "14px 12px", margin: 0, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
@@ -1666,11 +1954,9 @@ export default function SimuladorIUM() {
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
                   >
                     <span style={{ fontSize: 11, fontWeight: 600 }}>{u.nombre}</span>
-                    {u.composicion.length > 0 && (
-                      <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-                        {u.composicion.map((c) => `${c.cantidad > 1 ? `${c.cantidad}×` : ""}${c.particula}`).join(" · ")}
-                      </span>
-                    )}
+                    <span style={{ fontSize: 8, color: "color-mix(in srgb, var(--primary) 38%, transparent)", fontStyle: "italic" }}>
+                      {conocimiento.get(u.id)?.funcion_revelada ? "conocido" : "desconocido"}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1753,13 +2039,11 @@ export default function SimuladorIUM() {
               background: "var(--bg-main)",
               border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
               borderRadius: 16,
-
               width: "100%", maxWidth: 360,
               overflow: "hidden",
               animation: "modal-aparecer 0.3s cubic-bezier(0.34,1.56,0.64,1)",
             }}
           >
-            {/* Header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px 0" }}>
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
                 Resultado
@@ -1772,7 +2056,6 @@ export default function SimuladorIUM() {
               </button>
             </div>
 
-            {/* Contenido */}
             <div style={{ padding: "10px 16px 18px" }}>
               {errorSim ? (
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
@@ -1790,11 +2073,17 @@ export default function SimuladorIUM() {
         </div>
       )}
 
+      {/* ── Modal de descubrimiento (revelación de función) ──────────────────── */}
+      {revelaciones.length > 0 && (
+        <ModalDescubrimiento
+          iums={revelaciones}
+          onCerrar={() => setRevelaciones([])}
+        />
+      )}
+
       <style>{`
         /* ── Layout ── */
         .sim-root {
-          /* --sim-nav: alto del navbar móvil (fixed bottom, 56px).
-             --sim-top: lo que ocupa arriba la plantilla (p-3 + tab bar ≈ 61px). */
           --sim-nav: 56px; --sim-top: 61px;
           display: grid; grid-template-columns: 190px 1fr 260px; height: calc(100vh - 80px); overflow: hidden;
         }
@@ -1814,9 +2103,6 @@ export default function SimuladorIUM() {
         .sim-fab-der { right: 16px; }
         /* ── Móvil ── */
         @media (max-width: 700px) {
-          /* El navbar es fixed abajo: el simulador termina justo encima de él.
-             dvh = viewport real (sin la barra del navegador). El margen negativo
-             anula el pb-20 de la plantilla para que no quede scroll sobrante. */
           .sim-root { grid-template-columns: 1fr; height: calc(100vh - var(--sim-top) - var(--sim-nav)); height: calc(100dvh - var(--sim-top) - var(--sim-nav)); margin-bottom: -5rem; }
           .sim-panel-izq { position: fixed; inset: 0 auto var(--sim-nav) 0; width: min(80vw,300px); z-index: 400; background: var(--bg-main); border-right: 1px solid color-mix(in srgb,var(--primary) 18%,transparent); transform: translateX(-105%); transition: transform .25s ease; }
           .sim-panel-izq--open { transform: translateX(0); }
