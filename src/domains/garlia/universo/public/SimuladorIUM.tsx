@@ -176,12 +176,12 @@ const MOTIVOS_INVALIDO: Record<string, string> = {
   ium_sin_salida_funcional_principal: "todavía no sabe cómo participar en una reacción",
 };
 
-// Costos de Eterium por tipo de resultado
+// Costos de Eterium por tipo de resultado (deben coincidir con la función en Supabase)
 const COSTO_ETERIUM: Record<string, number> = {
-  sin_resonancia: 0,
-  resonancia_parcial: 1,
-  reaccion_inestable: 3,
-  proceso_exitoso: 8,
+  sin_resonancia: 1,
+  resonancia_parcial: 2,
+  reaccion_inestable: 5,
+  proceso_exitoso: 10,
 };
 
 // Tamaño del nodo
@@ -738,7 +738,7 @@ function IumNodeSVG({
 
 // ─── Badge de Eterium ─────────────────────────────────────────────────────────
 
-function EteriumBadge({ saldo, saldoMaximo, costo }: { saldo: number; saldoMaximo: number; costo: number }) {
+function EteriumBadge({ saldo, saldoMaximo, ultimoCosto }: { saldo: number; saldoMaximo: number; ultimoCosto: number | null }) {
   const pct = Math.max(0, Math.min(1, saldo / (saldoMaximo || 100)));
   const color = pct > 0.5 ? "var(--primary)" : pct > 0.2 ? "var(--warning,#f59e0b)" : "var(--error,#ef4444)";
 
@@ -763,9 +763,9 @@ function EteriumBadge({ saldo, saldoMaximo, costo }: { saldo: number; saldoMaxim
       <div style={{ width: 90, height: 3, borderRadius: 99, background: "color-mix(in srgb, var(--primary) 12%, transparent)", overflow: "hidden" }}>
         <div style={{ width: `${pct * 100}%`, height: "100%", borderRadius: 99, background: color, transition: "width 0.5s ease" }} />
       </div>
-      {costo > 0 && (
-        <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--primary) 38%, transparent)" }}>
-          Costo estimado: {costo} ⬡
+      {ultimoCosto !== null && (
+        <span style={{ fontSize: 7, color: "color-mix(in srgb, var(--primary) 38%, transparent)", animation: "aparecer 0.3s ease" }}>
+          −{ultimoCosto} ⬡ último intento
         </span>
       )}
     </div>
@@ -1026,11 +1026,8 @@ export default function SimuladorIUM() {
     return tieneCoincidencias ? "resonancia_parcial" : "sin_resonancia";
   }, []);
 
-  // Costo estimado para mostrar al jugador antes de simular
-  const costoEstimado = useMemo(() => {
-    // No podemos saber el resultado antes de simular — mostramos el máximo posible
-    return componentes.length > 0 ? COSTO_ETERIUM.proceso_exitoso : 0;
-  }, [componentes.length]);
+  // Último costo real cobrado (se actualiza después de cada simulación)
+  const [ultimoCosto, setUltimoCosto] = useState<number | null>(null);
 
   // Si el jugador cambia la combinación, el resultado anterior deja de valer
   const firmaCombinacion = useMemo(
@@ -1039,7 +1036,7 @@ export default function SimuladorIUM() {
       enlaces.map((e) => `${e.origen_uid}>${e.destino_uid}:${e.tipo_union}`).join("|"),
     [componentes, enlaces],
   );
-  useEffect(() => { setResultado(null); setErrorSim(null); }, [firmaCombinacion]);
+  useEffect(() => { setResultado(null); setErrorSim(null); setUltimoCosto(null); }, [firmaCombinacion]);
 
   const iumsFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
@@ -1431,8 +1428,11 @@ export default function SimuladorIUM() {
           p_patrones_totales:      principal?.patrones_totales ?? 0,
         } as never);
 
+        // Guardar el costo real cobrado
+        const regResult = regData as { nuevas_revelaciones?: string[]; costo_eterium?: number; saldo_restante?: number } | null;
+        if (regResult?.costo_eterium !== undefined) setUltimoCosto(regResult.costo_eterium);
+
         // Procesar revelaciones
-        const regResult = regData as { nuevas_revelaciones?: string[] } | null;
         if (regResult?.nuevas_revelaciones?.length) {
           // Buscar nombres y salidas de los IUMs revelados
           const reveladosInfo = regResult.nuevas_revelaciones.map((iumId) => {
@@ -1589,7 +1589,7 @@ export default function SimuladorIUM() {
             <EteriumBadge
               saldo={eterium.saldo}
               saldoMaximo={eterium.saldo_maximo}
-              costo={componentes.length > 0 ? costoEstimado : 0}
+              ultimoCosto={ultimoCosto}
             />
 
             {/* Botón Probar flotante */}
