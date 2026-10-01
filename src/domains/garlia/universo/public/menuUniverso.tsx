@@ -40,13 +40,15 @@ export function UniversoTabBar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // La tab "explicación" es solo para admins, y la certeza tiene que ser
-  // TOTAL: mientras el servidor no confirmó adminVerificado === true (es
-  // decir, mientras es null/false, incluyendo el estado de carga inicial),
-  // se excluye de la lista. Nada de mostrarla optimistamente con datos de
-  // caché y ocultarla después si resulta que no era admin.
+  // Las tabs "explicación" y "descubrimientos" son solo para admins, y la
+  // certeza tiene que ser TOTAL: mientras el servidor no confirmó
+  // adminVerificado === true (es decir, mientras es null/false, incluyendo
+  // el estado de carga inicial), se excluyen de la lista. Nada de
+  // mostrarlas optimistamente con datos de caché y ocultarlas después si
+  // resulta que no era admin.
+  const SLUGS_SOLO_ADMIN = new Set(["explicacion", "descubrimientos"]);
   const secciones = SECCIONES_UNIVERSO.filter(
-    (s) => s.slug !== "explicacion" || adminVerificado === true,
+    (s) => !SLUGS_SOLO_ADMIN.has(s.slug) || adminVerificado === true,
   );
 
   const seccionActiva = secciones.find((s) => pathname?.startsWith(s.href));
