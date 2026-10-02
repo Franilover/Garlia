@@ -221,14 +221,35 @@ jobs:
 
           echo "OK: libepoxy no está en el AppImage final, se resolverá del sistema del usuario."
 
+      - name: Renombrar artefactos a nombres fijos (para URLs /latest/download/ estables)
+        # Tauri genera nombres con versión (ej. Garlia_0.4.84_amd64.AppImage).
+        # Al renombrar aquí, la URL /releases/latest/download/Garlia_amd64.AppImage
+        # siempre funciona sin importar la versión — no hace falta tocar sobre-mi.tsx.
+        id: renombrado
+        run: |
+          APPIMAGE_ORIG="${{ steps.artefactos.outputs.appimage }}"
+          DEB_ORIG="${{ steps.artefactos.outputs.deb }}"
+          DIR_APPIMAGE=$(dirname "$APPIMAGE_ORIG")
+          DIR_DEB=$(dirname "$DEB_ORIG")
+
+          APPIMAGE_FIXED="$DIR_APPIMAGE/Garlia_amd64.AppImage"
+          DEB_FIXED="$DIR_DEB/Garlia_amd64.deb"
+
+          mv "$APPIMAGE_ORIG" "$APPIMAGE_FIXED"
+          mv "$DEB_ORIG" "$DEB_FIXED"
+
+          echo "appimage=$APPIMAGE_FIXED" >> "$GITHUB_OUTPUT"
+          echo "deb=$DEB_FIXED" >> "$GITHUB_OUTPUT"
+          echo "Renombrados: $APPIMAGE_FIXED | $DEB_FIXED"
+
       - name: Crear el Release (draft) y subir los artefactos
         # draft: true — igual que en build-android: queda oculto hasta que
         # publish-release.yml lo publique cuando ambos builds terminaron.
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ steps.artefactos.outputs.appimage }}
-            ${{ steps.artefactos.outputs.deb }}
+            ${{ steps.renombrado.outputs.appimage }}
+            ${{ steps.renombrado.outputs.deb }}
           name: ${{ github.ref_name }}
           generate_release_notes: true
           draft: true
