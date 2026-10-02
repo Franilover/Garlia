@@ -19,7 +19,7 @@ const fade = (delay = 0) => ({
 type PlatformOption = {
   label: string;
   icon: React.ReactNode;
-  /** URL de descarga. null = no disponible aún */
+  /** URL de descarga directa. null = no disponible aún → muestra "Pronto" */
   url: string | null;
   tag?: string;
 };
@@ -29,7 +29,7 @@ type DownloadPanelProps = {
   description: string;
   platforms: PlatformOption[];
   onClose: () => void;
-  anchorRef: React.RefObject<HTMLButtonElement>;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
 };
 
 // ── PANEL FLOTANTE ─────────────────────────────────────────────────────────────
@@ -37,7 +37,6 @@ type DownloadPanelProps = {
 function DownloadPanel({ title, description, platforms, onClose, anchorRef }: DownloadPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar al hacer click fuera
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (
@@ -53,7 +52,6 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose, anchorRef]);
 
-  // Cerrar con Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -217,7 +215,6 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        {/* Ícono */}
         <div
           className="w-12 h-12 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
           style={{
@@ -229,7 +226,6 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
           {icon}
         </div>
 
-        {/* Texto */}
         <div className="space-y-0.5">
           <p
             className="font-black text-sm leading-snug"
@@ -245,14 +241,12 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
           </p>
         </div>
 
-        {/* Barra hover */}
         <div
           className={`absolute bottom-0 left-0 h-[2px] transition-all duration-500 ease-out rounded-full ${open ? "w-full" : "w-0 group-hover:w-full"}`}
           style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
         />
       </button>
 
-      {/* Panel flotante */}
       {open && (
         <DownloadPanel
           title={label}
@@ -267,26 +261,22 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
 }
 
 // ── DATOS DE DESCARGA ─────────────────────────────────────────────────────────
+// Para activar una plataforma: cambia null por la URL del Release asset.
+// Para desactivarla: pon null → aparece automáticamente como "Pronto".
 
-/**
- * WebApp: el APK/PWA se publica vía GitHub Actions en el mismo repo.
- * Cambia las URLs cuando tengas los artifacts publicados.
- *
- * Juego (Godot): otro repo. Ver comentario abajo.
- */
 const WEBAPP_PLATFORMS: PlatformOption[] = [
   {
     label: "Android",
     icon: <Smartphone size={16} strokeWidth={1.5} />,
-    // URL del APK publicado por GitHub Actions (rama gh-pages o release asset)
-    // Ejemplo: "https://github.com/franiloverart/garlia-web/releases/latest/download/app.apk"
-    url: "https://github.com/TU_USUARIO/TU_REPO_WEB/releases/latest/download/app.apk",
+    // Publicado por el workflow release.yml del repo web (franiloverart/garlia-web o similar)
+    // Una vez que corra el primer Action, la URL será siempre esta:
+    url: null, // → "https://github.com/Franilover/TU_REPO_WEB/releases/latest/download/app.apk"
     tag: "APK",
   },
   {
     label: "Windows",
     icon: <Monitor size={16} strokeWidth={1.5} />,
-    url: null, // No disponible aún
+    url: null,
   },
   {
     label: "Linux",
@@ -299,24 +289,20 @@ const JUEGO_PLATFORMS: PlatformOption[] = [
   {
     label: "Android",
     icon: <Smartphone size={16} strokeWidth={1.5} />,
-    /**
-     * El juego está en OTRO REPO. Opciones (ver comentario al pie del archivo):
-     * A) GitHub Releases del repo del juego → URL directa del asset
-     * B) itch.io → URL pública de descarga
-     * C) GitHub Actions cross-repo → workflow_dispatch o artifact download
-     */
-    url: null,
+    // Necesita preset Android en export_presets.cfg del repo Franilover/Game
+    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.apk"
     tag: "APK",
   },
   {
     label: "Windows",
     icon: <Monitor size={16} strokeWidth={1.5} />,
-    url: null,
+    // Activar después del primer `git tag v0.1 && git push --tags` en Franilover/Game
+    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.exe"
   },
   {
     label: "Linux",
     icon: <Terminal size={16} strokeWidth={1.5} />,
-    url: null,
+    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.x86_64"
   },
 ];
 
@@ -353,11 +339,10 @@ export default function SobreMi() {
     <div className="w-full bg-bg-main min-h-screen selection:bg-primary/10">
       <main className="max-w-7xl mx-auto px-8 md:px-16 pb-40 pt-16 md:pt-24">
 
-        {/* ── SECCIÓN HERO: dos columnas en desktop ── */}
+        {/* ── HERO ── */}
         <section className="mb-24 md:mb-32">
           <div className="flex flex-col md:flex-row md:gap-16 md:items-center">
 
-            {/* Columna izquierda: título + bienvenida */}
             <div className="flex-1 min-w-0">
               <header className="mb-10 flex flex-col items-center text-center">
                 <div className="overflow-visible">
@@ -377,7 +362,6 @@ export default function SobreMi() {
                 </div>
               </header>
 
-              {/* Cuadro de bienvenida */}
               <MotionSection
                 {...fade(0.18)}
                 className="relative flex flex-col items-start text-left py-10 px-8 overflow-hidden"
@@ -398,7 +382,6 @@ export default function SobreMi() {
               </MotionSection>
             </div>
 
-            {/* Columna derecha: enlaces internos en columna */}
             <MotionSection {...fade(0.24)} className="mt-10 md:mt-0 md:w-[28%] shrink-0">
               <div
                 className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-[0.4em] mb-6"
@@ -470,25 +453,15 @@ export default function SobreMi() {
           {...fade(0.28)}
           className="flex items-center gap-5 mb-24 md:mb-32"
         >
-          <div
-            className="h-px flex-1"
-            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-          />
-          <span
-            className="text-xl font-black"
-            style={{ color: "var(--primary)", opacity: 0.15 }}
-          >⚝</span>
-          <div
-            className="h-px flex-1"
-            style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-          />
+          <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          <span className="text-xl font-black" style={{ color: "var(--primary)", opacity: 0.15 }}>⚝</span>
+          <div className="h-px flex-1" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
         </MotionDiv>
 
-        {/* ── GARDEN OF SINS: dos columnas en desktop ── */}
+        {/* ── GARDEN OF SINS ── */}
         <MotionSection {...fade(0.3)} className="mb-24 md:mb-32">
           <div className="flex flex-col md:flex-row md:gap-16 md:items-center">
 
-            {/* Columna izquierda: título */}
             <div className="shrink-0 mb-10 md:mb-0 text-center md:text-left">
               <h2
                 className="font-black italic uppercase leading-[0.9]"
@@ -502,7 +475,6 @@ export default function SobreMi() {
               </h2>
             </div>
 
-            {/* Columna derecha: texto */}
             <div className="flex-1 min-w-0 flex items-center">
               <MotionDiv
                 className="relative pl-8 py-6 pr-6 w-full"
@@ -602,14 +574,8 @@ export default function SobreMi() {
                   {social.icon}
                 </div>
                 <div className="space-y-0.5">
-                  <p
-                    className="font-black text-sm leading-snug"
-                    style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
-                  >{social.label}</p>
-                  <p
-                    className="text-micro font-medium"
-                    style={{ color: "var(--primary)", opacity: 0.35 }}
-                  >{social.handle}</p>
+                  <p className="font-black text-sm leading-snug" style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}>{social.label}</p>
+                  <p className="text-micro font-medium" style={{ color: "var(--primary)", opacity: 0.35 }}>{social.handle}</p>
                 </div>
                 <div
                   className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
@@ -653,43 +619,3 @@ export default function SobreMi() {
     </MotionMain>
   );
 }
-
-/*
- * ┌─────────────────────────────────────────────────────────────────────────┐
- * │  CÓMO CONECTAR EL REPO DEL JUEGO (Godot)                                │
- * ├─────────────────────────────────────────────────────────────────────────┤
- * │                                                                          │
- * │  OPCIÓN A — GitHub Releases (recomendada, más simple)                   │
- * │  ─────────────────────────────────────────────────────                  │
- * │  1. En el repo del juego, crea un workflow que publique en Releases:     │
- * │                                                                          │
- * │     jobs:                                                                │
- * │       release:                                                           │
- * │         steps:                                                           │
- * │           - uses: softprops/action-gh-release@v2                        │
- * │             with:                                                        │
- * │               files: |                                                   │
- * │                 export/android/GoS.apk                                  │
- * │                 export/windows/GoS-Windows.zip                          │
- * │                 export/linux/GoS-Linux.zip                              │
- * │                                                                          │
- * │  2. La URL del asset será siempre:                                       │
- * │     https://github.com/TU_USER/REPO_JUEGO/releases/latest/download/GoS.apk │
- * │                                                                          │
- * │  3. Pega esa URL en JUEGO_PLATFORMS[x].url arriba. Listo.               │
- * │                                                                          │
- * │  OPCIÓN B — itch.io                                                     │
- * │  ─────────────────                                                      │
- * │  Sube el juego a itch.io (gratuito), marca el canal como "public",      │
- * │  y usa el enlace de descarga directa de itch. Ventaja: tienes           │
- * │  estadísticas de descargas.                                             │
- * │                                                                          │
- * │  OPCIÓN C — GitHub Actions cross-repo (avanzado)                        │
- * │  ──────────────────────────────────────────────                         │
- * │  Agrega en el repo del juego un workflow con:                           │
- * │    on: workflow_dispatch                                                 │
- * │  Y desde el repo web dispara el build con el API de GitHub.             │
- * │  Útil si quieres builds on-demand pero es más complejo.                 │
- * │                                                                          │
- * └─────────────────────────────────────────────────────────────────────────┘
- */
