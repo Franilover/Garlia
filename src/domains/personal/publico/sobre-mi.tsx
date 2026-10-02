@@ -1,6 +1,6 @@
 "use client";
 
-import { Instagram, Youtube, Palette, NotebookPen, Download, Gamepad2, X, Smartphone, Monitor, Terminal } from "lucide-react";
+import { Instagram, Youtube, Palette, NotebookPen, Download, X, Smartphone, Monitor, Terminal } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useRef, useEffect } from "react";
 
@@ -72,7 +72,7 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
         background: "var(--white-custom)",
         borderRadius: "var(--radius-card)",
         border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
-        boxShadow: "0 20px 60px color-mix(in srgb, var(--primary) 18%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 8%, transparent)",
+        boxShadow: "var(--shadow-card)",
         padding: "1.5rem",
       }}
     >
@@ -188,7 +188,7 @@ type DownloadButtonProps = {
   delay?: number;
 };
 
-function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: DownloadButtonProps) {
+function DownloadButton({ label, sublabel, icon: _icon, platforms, delay = 0 }: DownloadButtonProps) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -201,32 +201,18 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
       <button
         ref={btnRef}
         onClick={() => setOpen((v) => !v)}
-        className="group w-full flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer"
+        className="w-full flex items-center justify-between px-6 py-4 cursor-pointer"
         style={{
           background: "var(--white-custom)",
           borderRadius: "var(--radius-card)",
-          border: `var(--border-width) solid color-mix(in srgb, var(--primary) ${open ? "22%" : "10%"}, transparent)`,
-          boxShadow: open
-            ? "0 8px 32px color-mix(in srgb, var(--primary) 14%, transparent)"
-            : "var(--shadow-card)",
-          transition: "all 0.22s ease",
+          border: `var(--border-width) solid color-mix(in srgb, var(--primary) ${open ? "20%" : "10%"}, transparent)`,
+          transition: "border-color 0.18s ease",
           outline: "none",
         }}
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <div
-          className="w-12 h-12 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-          style={{
-            borderRadius: "var(--radius-btn)",
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "var(--primary)",
-          }}
-        >
-          {icon}
-        </div>
-
-        <div className="space-y-0.5">
+        <div className="flex flex-col items-start gap-0.5">
           <p
             className="font-black text-sm leading-snug"
             style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
@@ -240,10 +226,10 @@ function DownloadButton({ label, sublabel, icon, platforms, delay = 0 }: Downloa
             {sublabel}
           </p>
         </div>
-
-        <div
-          className={`absolute bottom-0 left-0 h-[2px] transition-all duration-500 ease-out rounded-full ${open ? "w-full" : "w-0 group-hover:w-full"}`}
-          style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+        <Download
+          size={14}
+          strokeWidth={2}
+          style={{ color: "var(--primary)", opacity: open ? 0.6 : 0.25, transition: "opacity 0.18s ease" }}
         />
       </button>
 
@@ -599,14 +585,14 @@ export default function SobreMi() {
             <DownloadButton
               label="WebApp"
               sublabel="Agenda · Notas · Mundo"
-              icon={<Download size={20} strokeWidth={1.5} />}
+              icon={null}
               platforms={WEBAPP_PLATFORMS}
               delay={0.46}
             />
             <DownloadButton
-              label="El Juego"
+              label="Juego"
               sublabel="Garden of Sins"
-              icon={<Gamepad2 size={20} strokeWidth={1.5} />}
+              icon={null}
               platforms={JUEGO_PLATFORMS}
               delay={0.5}
             />
