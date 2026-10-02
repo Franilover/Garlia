@@ -181,14 +181,13 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
 // ── BOTÓN DE DESCARGA ─────────────────────────────────────────────────────────
 
 type DownloadButtonProps = {
+  emoji: string;
   label: string;
-  sublabel: string;
-  icon: React.ReactNode;
   platforms: PlatformOption[];
   delay?: number;
 };
 
-function DownloadButton({ label, sublabel, icon: _icon, platforms, delay = 0 }: DownloadButtonProps) {
+function DownloadButton({ emoji, label, platforms, delay = 0 }: DownloadButtonProps) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -201,7 +200,7 @@ function DownloadButton({ label, sublabel, icon: _icon, platforms, delay = 0 }: 
       <button
         ref={btnRef}
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-6 py-4 cursor-pointer"
+        className="w-full flex items-center justify-between px-5 py-3.5 cursor-pointer"
         style={{
           background: "var(--white-custom)",
           borderRadius: "var(--radius-card)",
@@ -212,31 +211,26 @@ function DownloadButton({ label, sublabel, icon: _icon, platforms, delay = 0 }: 
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <div className="flex flex-col items-start gap-0.5">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base leading-none select-none">{emoji}</span>
           <p
             className="font-black text-sm leading-snug"
             style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
           >
             {label}
           </p>
-          <p
-            className="text-micro font-medium"
-            style={{ color: "var(--primary)", opacity: 0.35 }}
-          >
-            {sublabel}
-          </p>
         </div>
         <Download
-          size={14}
+          size={13}
           strokeWidth={2}
-          style={{ color: "var(--primary)", opacity: open ? 0.6 : 0.25, transition: "opacity 0.18s ease" }}
+          style={{ color: "var(--primary)", opacity: open ? 0.6 : 0.22, transition: "opacity 0.18s ease" }}
         />
       </button>
 
       {open && (
         <DownloadPanel
           title={label}
-          description={sublabel}
+          description=""
           platforms={platforms}
           onClose={() => setOpen(false)}
           anchorRef={btnRef}
@@ -254,20 +248,20 @@ const WEBAPP_PLATFORMS: PlatformOption[] = [
   {
     label: "Android",
     icon: <Smartphone size={16} strokeWidth={1.5} />,
-    // Publicado por el workflow release.yml del repo web (franiloverart/garlia-web o similar)
-    // Una vez que corra el primer Action, la URL será siempre esta:
-    url: null, // → "https://github.com/Franilover/TU_REPO_WEB/releases/latest/download/app.apk"
+    url: "https://github.com/Franilover/Garlia/releases/latest/download/app-universal-release.apk",
     tag: "APK",
   },
   {
     label: "Windows",
     icon: <Monitor size={16} strokeWidth={1.5} />,
-    url: null,
+    url: null, // sin build de Windows aún
   },
   {
     label: "Linux",
     icon: <Terminal size={16} strokeWidth={1.5} />,
-    url: null,
+    // ⚠️ el nombre incluye versión — renombrar en el workflow para que /latest/download/ funcione siempre
+    // Cambiar en release.yml: mv Garlia_*_amd64.AppImage Garlia_amd64.AppImage antes de subir
+    url: "https://github.com/Franilover/Garlia/releases/latest/download/Garlia_amd64.AppImage",
   },
 ];
 
@@ -491,110 +485,113 @@ export default function SobreMi() {
           </div>
         </MotionSection>
 
-        {/* ── REDES SOCIALES ── */}
-        <MotionSection {...fade(0.36)} className="flex flex-col items-center text-center space-y-10">
-          <div
-            className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
-            style={{ color: "var(--primary)", opacity: 0.3 }}
-          >
-            Redes Sociales (Desactivadas)
-          </div>
+        {/* ── REDES SOCIALES + DESCARGAS ── */}
+        <MotionSection {...fade(0.36)} className="flex flex-col md:flex-row md:gap-12 md:items-start gap-10">
 
-          <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                label: "Dibujos",
-                handle: "@franiloverart",
-                href: "https://www.instagram.com/franiloverart/",
-                icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
-              },
-              {
-                label: "Fotos",
-                handle: "@franilover",
-                href: "https://www.instagram.com/franilover/",
-                icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
-              },
-              {
-                label: "YouTube",
-                handle: "@franilover",
-                href: "https://youtube.com/@franilover",
-                icon: <Youtube size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
-              },
-              {
-                label: "TikTok",
-                handle: "@franilover",
-                href: "https://tiktok.com/@franilover",
-                icon: (
-                  <svg fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" style={{ opacity: 0.65 }} viewBox="0 0 24 24" width="20">
-                    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                  </svg>
-                ),
-              },
-            ].map((social, i) => (
-              <MotionA
-                key={social.label}
-                href={social.href}
-                rel="noopener noreferrer"
-                target="_blank"
-                {...fade(0.38 + i * 0.06)}
-                className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
-                style={{
-                  background: "var(--white-custom)",
-                  borderRadius: "var(--radius-card)",
-                  border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  boxShadow: "var(--shadow-card)",
-                }}
-                transition={{ duration: 0.22 }}
-                whileHover={{ y: -4 }}
-              >
-                <div
-                  className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+          {/* Redes Sociales */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6 flex-1">
+            <div
+              className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
+              style={{ color: "var(--primary)", opacity: 0.3 }}
+            >
+              Redes Sociales
+            </div>
+
+            <div className="w-full grid grid-cols-2 gap-4">
+              {[
+                {
+                  label: "Dibujos",
+                  handle: "@franiloverart",
+                  href: "https://www.instagram.com/franiloverart/",
+                  icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
+                  label: "Fotos",
+                  handle: "@franilover",
+                  href: "https://www.instagram.com/franilover/",
+                  icon: <Instagram size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
+                  label: "YouTube",
+                  handle: "@franilover",
+                  href: "https://youtube.com/@franilover",
+                  icon: <Youtube size={20} strokeWidth={1.5} style={{ opacity: 0.65 }} />,
+                },
+                {
+                  label: "TikTok",
+                  handle: "@franilover",
+                  href: "https://tiktok.com/@franilover",
+                  icon: (
+                    <svg fill="none" height="20" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" style={{ opacity: 0.65 }} viewBox="0 0 24 24" width="20">
+                      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                    </svg>
+                  ),
+                },
+              ].map((social, i) => (
+                <MotionA
+                  key={social.label}
+                  href={social.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  {...fade(0.38 + i * 0.06)}
+                  className="group relative flex flex-col items-center gap-3 p-6 overflow-hidden cursor-pointer no-underline"
                   style={{
-                    borderRadius: "var(--radius-btn)",
-                    background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                    color: "var(--primary)",
+                    background: "var(--white-custom)",
+                    borderRadius: "var(--radius-card)",
+                    border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                    boxShadow: "var(--shadow-card)",
                   }}
+                  transition={{ duration: 0.22 }}
+                  whileHover={{ y: -4 }}
                 >
-                  {social.icon}
-                </div>
-                <div className="space-y-0.5">
-                  <p className="font-black text-sm leading-snug" style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}>{social.label}</p>
-                  <p className="text-micro font-medium" style={{ color: "var(--primary)", opacity: 0.35 }}>{social.handle}</p>
-                </div>
-                <div
-                  className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
-                  style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                />
-              </MotionA>
-            ))}
+                  <div
+                    className="w-10 h-10 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{
+                      borderRadius: "var(--radius-btn)",
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    {social.icon}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="font-black text-sm leading-snug" style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}>{social.label}</p>
+                    <p className="text-micro font-medium" style={{ color: "var(--primary)", opacity: 0.35 }}>{social.handle}</p>
+                  </div>
+                  <div
+                    className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 ease-out rounded-full"
+                    style={{ background: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+                  />
+                </MotionA>
+              ))}
+            </div>
           </div>
-        </MotionSection>
 
-        {/* ── DESCARGAS ── */}
-        <MotionSection {...fade(0.44)} className="mt-16 flex flex-col items-center space-y-6">
-          <div
-            className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
-            style={{ color: "var(--primary)", opacity: 0.3 }}
-          >
-            Descargas
+          {/* Descargas */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6 md:w-52 shrink-0">
+            <div
+              className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
+              style={{ color: "var(--primary)", opacity: 0.3 }}
+            >
+              Descargas
+            </div>
+
+            <div className="w-full flex flex-col gap-3">
+              <DownloadButton
+                emoji="🌐"
+                label="WebApp"
+                platforms={WEBAPP_PLATFORMS}
+                delay={0.46}
+              />
+              <DownloadButton
+                emoji="🎮"
+                label="Juego"
+                platforms={JUEGO_PLATFORMS}
+                delay={0.5}
+              />
+            </div>
           </div>
 
-          <div className="w-full flex flex-col sm:flex-row gap-4">
-            <DownloadButton
-              label="WebApp"
-              sublabel="Agenda · Notas · Mundo"
-              icon={null}
-              platforms={WEBAPP_PLATFORMS}
-              delay={0.46}
-            />
-            <DownloadButton
-              label="Juego"
-              sublabel="Garden of Sins"
-              icon={null}
-              platforms={JUEGO_PLATFORMS}
-              delay={0.5}
-            />
-          </div>
         </MotionSection>
 
       </main>
