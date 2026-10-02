@@ -275,20 +275,18 @@ const JUEGO_PLATFORMS: PlatformOption[] = [
   {
     label: "Android",
     icon: <Smartphone size={16} strokeWidth={1.5} />,
-    // Necesita preset Android en export_presets.cfg del repo Franilover/Game
-    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.apk"
+    url: null, // → pendiente: preset Android en export_presets.cfg
     tag: "APK",
   },
   {
     label: "Windows",
     icon: <Monitor size={16} strokeWidth={1.5} />,
-    // Activar después del primer `git tag v0.1 && git push --tags` en Franilover/Game
-    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.exe"
+    url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.exe",
   },
   {
     label: "Linux",
     icon: <Terminal size={16} strokeWidth={1.5} />,
-    url: null, // → "https://github.com/Franilover/Game/releases/latest/download/Garlia.x86_64"
+    url: "https://github.com/Franilover/Game/releases/latest/download/Garlia.x86_64",
   },
 ];
 
