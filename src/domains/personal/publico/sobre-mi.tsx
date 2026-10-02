@@ -1,6 +1,6 @@
 "use client";
 
-import { Instagram, Youtube, Palette, NotebookPen, Download, X, Smartphone, Monitor, Terminal } from "lucide-react";
+import { Instagram, Youtube, Palette, NotebookPen, Download, X, Smartphone, Monitor, Terminal, Globe, Gamepad2 } from "lucide-react";
 import Link from "next/link";
 import React, { useState, useRef, useEffect } from "react";
 
@@ -181,13 +181,13 @@ function DownloadPanel({ title, description, platforms, onClose, anchorRef }: Do
 // ── BOTÓN DE DESCARGA ─────────────────────────────────────────────────────────
 
 type DownloadButtonProps = {
-  emoji: string;
+  icon: React.ReactNode;
   label: string;
   platforms: PlatformOption[];
   delay?: number;
 };
 
-function DownloadButton({ emoji, label, platforms, delay = 0 }: DownloadButtonProps) {
+function DownloadButton({ icon, label, platforms, delay = 0 }: DownloadButtonProps) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -212,7 +212,7 @@ function DownloadButton({ emoji, label, platforms, delay = 0 }: DownloadButtonPr
         aria-haspopup="dialog"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-base leading-none select-none">{emoji}</span>
+          <span style={{ color: "var(--primary)", opacity: 0.5 }}>{icon}</span>
           <p
             className="font-black text-sm leading-snug"
             style={{ color: "var(--primary)", letterSpacing: "-0.01em" }}
@@ -578,13 +578,13 @@ export default function SobreMi() {
 
             <div className="w-full flex flex-col gap-3">
               <DownloadButton
-                emoji="🌐"
+                icon={<Globe size={15} strokeWidth={1.75} />}
                 label="WebApp"
                 platforms={WEBAPP_PLATFORMS}
                 delay={0.46}
               />
               <DownloadButton
-                emoji="🎮"
+                icon={<Gamepad2 size={15} strokeWidth={1.75} />}
                 label="Juego"
                 platforms={JUEGO_PLATFORMS}
                 delay={0.5}
