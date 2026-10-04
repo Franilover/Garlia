@@ -489,7 +489,7 @@ export default function SobreMi() {
         <MotionSection {...fade(0.36)} className="flex flex-col md:flex-row md:gap-12 md:items-start gap-10">
 
           {/* Redes Sociales */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6 flex-1">
+          <div className="flex flex-col items-center text-center space-y-6 flex-1">
             <div
               className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
               style={{ color: "var(--primary)", opacity: 0.3 }}
@@ -568,7 +568,7 @@ export default function SobreMi() {
           </div>
 
           {/* Descargas */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-6 md:w-52 shrink-0">
+          <div className="flex flex-col items-center text-center space-y-6 md:w-52 shrink-0">
             <div
               className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.4em]"
               style={{ color: "var(--primary)", opacity: 0.3 }}

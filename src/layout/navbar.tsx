@@ -28,6 +28,8 @@ import {
   Shirt,
   Upload,
   Wand2,
+  Gamepad2,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -617,6 +619,7 @@ const Navbar = () => {
 
   const isEscritorio = currentPath?.startsWith("/myself/escritorio") ?? false;
   const isGarliaeditor = currentPath?.startsWith("/myself/garlia") ?? false;
+  const isGame = currentPath?.startsWith("/myself/game") ?? false;
   const isGarlia = currentPath?.startsWith("/garlia") ?? false;
   const isPersonal = currentPath?.startsWith("/personal") ?? false;
 
@@ -769,6 +772,32 @@ const Navbar = () => {
       label: "Arte",
       icon: Cat,
       active: isGarliaeditor,
+    },
+  ];
+
+  // ── Game Editor sublinks (flyout flotante, mismo patrón que ítems con subLinks) ─
+  // Personajes/Diálogos → capa _game sobre las entidades canónicas.
+  // Criaturas·IA → editor de ia_config + stats para Godot, intencionalmente
+  // separado de Garlia/Entidades porque el foco aquí es runtime del juego,
+  // no worldbuilding narrativo.
+  const gameSubLinks: NavLinkDef[] = [
+    {
+      href: "/myself/game/personajes",
+      label: "Personajes",
+      icon: Users,
+      active: currentPath?.startsWith("/myself/game/personajes") ?? false,
+    },
+    {
+      href: "/myself/game/dialogos",
+      label: "Diálogos",
+      icon: MessageCircle,
+      active: currentPath?.startsWith("/myself/game/dialogos") ?? false,
+    },
+    {
+      href: "/myself/game/criaturas",
+      label: "Criaturas · IA",
+      icon: Bot,
+      active: currentPath?.startsWith("/myself/game/criaturas") ?? false,
     },
   ];
 
@@ -1240,6 +1269,14 @@ const Navbar = () => {
                       }}
                     />
                   ))}
+                  <SideNavItem
+                    active={isGame}
+                    href="/myself/game"
+                    icon={Gamepad2}
+                    label="Game"
+                    subLinks={gameSubLinks}
+                    onClose={closeAll}
+                  />
                 </>
               )}
             </>
@@ -1467,6 +1504,16 @@ const Navbar = () => {
                     onToggle={() => setAdminSubmenuOpen(true)}
                   />
                 ))}
+                <MobileNavItem
+                  active={isGame}
+                  href="/myself/game"
+                  icon={Gamepad2}
+                  isOpen={mobileOpenMenu === "/myself/game"}
+                  label="Game"
+                  subLinks={gameSubLinks}
+                  onClose={closeAll}
+                  onToggle={() => mobileToggle("/myself/game")}
+                />
               </>
             ) : (
               <>
