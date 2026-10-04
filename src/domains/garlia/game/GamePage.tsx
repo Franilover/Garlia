@@ -6,17 +6,17 @@
  * Tres tabs principales:
  *   MUNDO     → Biomas · Reinos · Ecología
  *   ENTIDADES → Personajes · Criaturas IA · Especies
- *   GAME      → Items · Props · Misiones · Eterium · Social · Recetas
- *              · Factores abióticos · Calendario · Estaciones · Modificadores
+ *   GAME      → Items · Props · Misiones · Social · Recetas
+ *              · Factores abióticos · Modificadores
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bot, Check, ChevronRight, FlaskConical, Globe2, Layers,
   Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
-  Save, Search, Shield, Sparkles, Sword, Trash2, TreePine,
+  Save, Search, Shield, Sword, Trash2, TreePine,
   Users, X, Gamepad2, Package, ScrollText, Leaf, Heart,
-  Utensils, Wind, CalendarDays, Thermometer, Clock,
+  Utensils, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -27,7 +27,7 @@ import { supabase } from "@/infra/supabase/supabase";
 type MainTab = "mundo" | "entidades" | "game";
 type MundoSec = "biomas" | "reinos" | "ecologia";
 type EntidadesSec = "personajes" | "criaturas" | "especies";
-type GameSec = "items" | "props" | "misiones" | "eterium" | "social" | "recetas" | "factores" | "calendario" | "estaciones" | "modificadores";
+type GameSec = "items" | "props" | "misiones" | "social" | "recetas" | "factores" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -1217,63 +1217,6 @@ function EspeciesSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Eterium reglas globales
-// ─────────────────────────────────────────────────────────────────────────────
-
-function EteriumSection() {
-  const [regla, setRegla] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { saving, saved, run } = useSave();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("eterium_reglas_juego_v1").select("*").limit(1).single();
-    setRegla(data);
-    setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const update = (key: string, val: any) => setRegla((prev: any) => ({ ...prev, [key]: val }));
-  const save = () => run(async () => { await supabase.from("eterium_reglas_juego_v1").update(regla).eq("clave", regla.clave); await load(); });
-
-  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>;
-  if (!regla) return <p className="text-sm p-4" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin regla en eterium_reglas_juego_v1</p>;
-
-  const numField = (label: string, key: string, step = 0.01) => (
-    <label className="flex flex-col gap-1">
-      <FL label={label} />
-      <Inp type="number" step={step} value={regla[key] ?? 0} onChange={(e) => update(key, Number(e.target.value))} />
-    </label>
-  );
-
-  return (
-    <div className="rounded-2xl p-5 overflow-y-auto" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-bold" style={{ color: "var(--primary)" }}>Reglas globales Eterium — v{regla.version}</h2>
-        <SaveBtn saving={saving} saved={saved} onClick={save} />
-      </div>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {numField("Límite estable (S)", "limite_estable_s", 0.1)}
-        {numField("Escala runtime", "escala_runtime", 0.01)}
-        {numField("Recuperación pasiva /s", "recuperacion_pasiva_s_por_segundo", 0.01)}
-        {numField("Curación intervalo (s)", "curacion_intervalo_s", 0.1)}
-        {numField("Curación costo S/tick", "curacion_costo_s_por_tick", 0.01)}
-        {numField("Curación vida/s", "curacion_vida_por_s", 0.1)}
-        {numField("Absorción eficiencia", "absorcion_eficiencia", 0.01)}
-        {numField("Carrera — costo S/s", "carrera_eterium_costo_s_por_segundo", 0.01)}
-        {numField("Carrera — mult. vel.", "carrera_eterium_multiplicador_velocidad", 0.01)}
-        {numField("Carrera — rec. stamina/s", "carrera_eterium_recuperacion_stamina_por_segundo", 0.01)}
-      </div>
-      <div className="mt-4">
-        <FL label="Rendimiento por base S (JSON)" />
-        <div className="mt-1" style={{ minHeight: "100px" }}>
-          <JsonEditor value={regla.rendimiento_por_base_s ?? {}} onChange={(v) => update("rendimiento_por_base_s", v)} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // GAME — Social + Regalos
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1412,15 +1355,13 @@ function RecetasSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AMBIENTE — Factores abióticos · Calendario · Estaciones · Modificadores
+// AMBIENTE — Factores abióticos · Modificadores
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AmbSub = "factores" | "calendario" | "estaciones" | "modificadores";
+type AmbSub = "factores" | "modificadores";
 
 const AMB_SUBS: { key: AmbSub; label: string }[] = [
   { key: "factores", label: "Factores abióticos" },
-  { key: "calendario", label: "Calendario" },
-  { key: "estaciones", label: "Estaciones" },
   { key: "modificadores", label: "Modificadores" },
 ];
 
@@ -1435,17 +1376,6 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
   const [fNombre, setFNombre] = useState(""); const [fClave, setFClave] = useState(""); const [fDesc, setFDesc] = useState("");
   const [fCat, setFCat] = useState(""); const [fTipo, setFTipo] = useState(""); const [fMin, setFMin] = useState(""); const [fMax, setFMax] = useState(""); const [fActivo, setFActivo] = useState(true);
 
-  // calendario_config (1 fila)
-  const [calConfig, setCalConfig] = useState<any>(null);
-  const { saving: savingCal, saved: savedCal, run: runCal } = useSave();
-  const [calDias, setCalDias] = useState(7); const [calHoras, setCalHoras] = useState(24); const [calAnio, setCalAnio] = useState(1);
-
-  // calendario_estaciones
-  const [estaciones, setEstaciones] = useState<any[]>([]);
-  const [selE, setSelE] = useState<any>(null);
-  const { saving: savingE, saved: savedE, run: runE } = useSave();
-  const [eNombre, setENombre] = useState(""); const [eDias, setEDias] = useState(0); const [eOrden, setEOrden] = useState(0);
-
   // estacion_modificadores_abioticos
   const [modificadores, setModificadores] = useState<any[]>([]);
   const [selM, setSelM] = useState<any>(null);
@@ -1456,16 +1386,11 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [f, cc, e, m] = await Promise.all([
+    const [f, m] = await Promise.all([
       supabase.from("factores_abioticos").select("id,clave,nombre,descripcion,categoria,tipo_valor,rango_min,rango_max,orden,activo").order("orden"),
-      supabase.from("calendario_config").select("*").limit(1).single(),
-      supabase.from("calendario_estaciones").select("id,nombre,duracion_dias,orden").order("orden"),
       supabase.from("estacion_modificadores_abioticos").select("id,estacion_id,factor_id,delta_numerico,fuente,metodo,activo").order("created_at"),
     ]);
     setFactores(f.data ?? []);
-    setCalConfig(cc.data ?? null);
-    if (cc.data) { setCalDias(cc.data.dias_por_semana); setCalHoras(cc.data.horas_por_dia); setCalAnio(cc.data.anio_inicio); }
-    setEstaciones(e.data ?? []);
     setModificadores(m.data ?? []);
     setLoading(false);
   }, []);
@@ -1479,19 +1404,6 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
     await load();
   });
 
-  // calendario handler
-  const saveCal = () => runCal(async () => {
-    if (calConfig) await supabase.from("calendario_config").update({ dias_por_semana: calDias, horas_por_dia: calHoras, anio_inicio: calAnio }).eq("id", calConfig.id);
-    await load();
-  });
-
-  // estaciones handlers
-  const pickE = (e: any) => { setSelE(e); setENombre(e.nombre); setEDias(e.duracion_dias); setEOrden(e.orden); };
-  const saveE = () => runE(async () => {
-    await supabase.from("calendario_estaciones").update({ nombre: eNombre, duracion_dias: eDias, orden: eOrden }).eq("id", selE.id);
-    await load();
-  });
-
   // modificadores handlers
   const pickM = (m: any) => { setSelM(m); setIsNewM(false); setMDelta(m.delta_numerico); setMFuente(m.fuente); setMMetodo(m.metodo); setMActivo(m.activo); setMEstacionId(m.estacion_id); setMFactorId(m.factor_id); };
   const startNewM = () => { setSelM(null); setIsNewM(true); setMDelta(0); setMFuente(""); setMMetodo("multiplicar"); setMActivo(true); setMEstacionId(""); setMFactorId(""); };
@@ -1502,7 +1414,6 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
   });
   const delM = async (id: string) => { if (!confirm("¿Eliminar modificador?")) return; await supabase.from("estacion_modificadores_abioticos").delete().eq("id", id); if (selM?.id === id) { setSelM(null); setIsNewM(false); } await load(); };
 
-  const estacionName = (id: string) => estaciones.find((e) => e.id === id)?.nombre ?? "—";
   const factorName = (id: string) => factores.find((f) => f.id === id)?.nombre ?? "—";
 
   return (
@@ -1549,57 +1460,6 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
               </div>
             )}
 
-            {/* ── CALENDARIO CONFIG ── */}
-            {sub === "calendario" && (
-              <Panel title="Configuración del calendario" saveBtn={<SaveBtn saving={savingCal} saved={savedCal} onClick={saveCal} />}>
-                {!calConfig && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin fila de configuración en Supabase.</p>}
-                {calConfig && (
-                  <div className="flex flex-col gap-4 max-w-sm">
-                    <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                      Estos valores definen la estructura temporal del mundo de Garlia que usa Godot.
-                    </p>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Días por semana" />
-                      <Inp type="number" value={calDias} onChange={(e) => setCalDias(Number(e.target.value))} />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Horas por día" />
-                      <Inp type="number" value={calHoras} onChange={(e) => setCalHoras(Number(e.target.value))} />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Año de inicio" />
-                      <Inp type="number" value={calAnio} onChange={(e) => setCalAnio(Number(e.target.value))} />
-                    </label>
-                  </div>
-                )}
-              </Panel>
-            )}
-
-            {/* ── ESTACIONES ── */}
-            {sub === "estaciones" && (
-              <div className="flex gap-4 h-full min-h-0">
-                <SideList items={estaciones} selectedId={selE?.id} onSelect={pickE} loading={false} width={220}
-                  renderItem={(e, active) => (
-                    <SideItem key={e.id} active={active} onClick={() => pickE(e)}>
-                      <span className="text-xs w-5 shrink-0 font-mono text-center" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{e.orden}</span>
-                      <span className="flex-1 text-sm font-medium truncate">{e.nombre}</span>
-                      <Bdg text={`${e.duracion_dias}d`} active={active} />
-                    </SideItem>
-                  )} />
-                {selE ? (
-                  <Panel title={selE.nombre} saveBtn={<SaveBtn saving={savingE} saved={savedE} disabled={!eNombre.trim()} onClick={saveE} />}>
-                    <div className="flex flex-col gap-3 max-w-sm">
-                      <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Duración (días)" /><Inp type="number" value={eDias} onChange={(e) => setEDias(Number(e.target.value))} /></label>
-                        <label className="flex flex-col gap-1 w-24"><FL label="Orden" /><Inp type="number" value={eOrden} onChange={(e) => setEOrden(Number(e.target.value))} /></label>
-                      </div>
-                    </div>
-                  </Panel>
-                ) : <Panel empty emptyIcon={<CalendarDays size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-              </div>
-            )}
-
             {/* ── MODIFICADORES ESTACIONALES ── */}
             {sub === "modificadores" && (
               <div className="flex gap-4 h-full min-h-0">
@@ -1608,23 +1468,18 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
                     <SideItem key={m.id} active={active} onClick={() => pickM(m)}>
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className="text-sm font-medium truncate">{factorName(m.factor_id)}</span>
-                        <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{estacionName(m.estacion_id)}</span>
+                        <span className="text-xs truncate font-mono" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{m.estacion_id ?? "—"}</span>
                       </div>
                       <Bdg text={`${m.delta_numerico > 0 ? "+" : ""}${m.delta_numerico}`} active={m.activo} />
                       <button type="button" onClick={(ev) => { ev.stopPropagation(); delM(m.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
                     </SideItem>
                   )} />
                 {(selM || isNewM) ? (
-                  <Panel title={isNewM ? "Nuevo modificador" : `${factorName(selM.factor_id)} · ${estacionName(selM.estacion_id)}`}
+                  <Panel title={isNewM ? "Nuevo modificador" : `${factorName(selM.factor_id)}`}
                     saveBtn={<SaveBtn saving={savingM} saved={savedM} disabled={!mEstacionId || !mFactorId} onClick={saveM} />}>
                     <div className="flex flex-col gap-3 overflow-y-auto flex-1">
                       <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Estación" />
-                          <Sel value={mEstacionId} onChange={(e) => setMEstacionId(e.target.value)}>
-                            <option value="">— estación —</option>
-                            {estaciones.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                          </Sel>
-                        </label>
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Estación ID" /><Inp value={mEstacionId} onChange={(e) => setMEstacionId(e.target.value)} placeholder="UUID estación" /></label>
                         <label className="flex flex-col gap-1 flex-1"><FL label="Factor abiótico" />
                           <Sel value={mFactorId} onChange={(e) => setMFactorId(e.target.value)}>
                             <option value="">— factor —</option>
@@ -1674,12 +1529,9 @@ const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
   { key: "items", label: "Items", icon: Sword },
   { key: "props", label: "Props", icon: Package },
   { key: "misiones", label: "Misiones", icon: ScrollText },
-  { key: "eterium", label: "Eterium", icon: Sparkles },
   { key: "social", label: "Social", icon: Heart },
   { key: "recetas", label: "Recetas", icon: Utensils },
   { key: "factores", label: "Factores abióticos", icon: Thermometer },
-  { key: "calendario", label: "Calendario", icon: CalendarDays },
-  { key: "estaciones", label: "Estaciones", icon: Wind },
   { key: "modificadores", label: "Modificadores", icon: Clock },
 ];
 
@@ -1707,7 +1559,7 @@ export default function GamePage() {
     else setGameSec(k as GameSec);
   };
 
-  const ambSubs: AmbSub[] = ["factores", "calendario", "estaciones", "modificadores"];
+  const ambSubs: AmbSub[] = ["factores", "modificadores"];
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
@@ -1755,7 +1607,6 @@ export default function GamePage() {
             {gameSec === "items" && <ItemsSection />}
             {gameSec === "props" && <PropsSection />}
             {gameSec === "misiones" && <MisionesSection />}
-            {gameSec === "eterium" && <EteriumSection />}
             {gameSec === "social" && <SocialSection />}
             {gameSec === "recetas" && <RecetasSection />}
             {ambSubs.includes(gameSec as AmbSub) && <AmbienteSection activeSub={gameSec as AmbSub} />}
