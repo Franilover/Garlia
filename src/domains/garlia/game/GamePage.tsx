@@ -408,9 +408,11 @@ function PersonajesSection() {
 
 // ── Sección: Diálogos ─────────────────────────────────────────────────────
 
+type PersonajeNombre = { id: string; nombre: string };
+
 function DialogosSection() {
   const [dialogos, setDialogos] = useState<DialogoGame[]>([]);
-  const [personajes, setPersonajes] = useState<PersonajeGame[]>([]);
+  const [personajes, setPersonajes] = useState<PersonajeNombre[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<DialogoGame | null>(null);
   const [query, setQuery] = useState("");
