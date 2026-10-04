@@ -29,7 +29,6 @@ import {
   Upload,
   Wand2,
   Gamepad2,
-  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -775,31 +774,7 @@ const Navbar = () => {
     },
   ];
 
-  // ── Game Editor sublinks (flyout flotante, mismo patrón que ítems con subLinks) ─
-  // Personajes/Diálogos → capa _game sobre las entidades canónicas.
-  // Criaturas·IA → editor de ia_config + stats para Godot, intencionalmente
-  // separado de Garlia/Entidades porque el foco aquí es runtime del juego,
-  // no worldbuilding narrativo.
-  const gameSubLinks: NavLinkDef[] = [
-    {
-      href: "/myself/game/personajes",
-      label: "Personajes",
-      icon: Users,
-      active: currentPath?.startsWith("/myself/game/personajes") ?? false,
-    },
-    {
-      href: "/myself/game/dialogos",
-      label: "Diálogos",
-      icon: MessageCircle,
-      active: currentPath?.startsWith("/myself/game/dialogos") ?? false,
-    },
-    {
-      href: "/myself/game/criaturas",
-      label: "Criaturas · IA",
-      icon: Bot,
-      active: currentPath?.startsWith("/myself/game/criaturas") ?? false,
-    },
-  ];
+
 
   // ── Submenú admin (desktop) ──────────────────────────────────────────────
   // Reemplaza a <MundoTabs /> (que vivía arriba del editor): toda la
@@ -1274,7 +1249,6 @@ const Navbar = () => {
                     href="/myself/game"
                     icon={Gamepad2}
                     label="Game"
-                    subLinks={gameSubLinks}
                     onClose={closeAll}
                   />
                 </>
@@ -1508,11 +1482,10 @@ const Navbar = () => {
                   active={isGame}
                   href="/myself/game"
                   icon={Gamepad2}
-                  isOpen={mobileOpenMenu === "/myself/game"}
+                  isOpen={false}
                   label="Game"
-                  subLinks={gameSubLinks}
                   onClose={closeAll}
-                  onToggle={() => mobileToggle("/myself/game")}
+                  onToggle={closeAll}
                 />
               </>
             ) : (
