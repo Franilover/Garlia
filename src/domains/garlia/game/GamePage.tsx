@@ -1,407 +1,142 @@
 "use client";
 
 /**
- * GamePage — /myself/game
+ * GamePage — /myself/game  v3
  * ──────────────────────────────────────────────────────────────────────────
- * Editor de contenido Godot. Dos tabs principales:
- *   MUNDO     → Biomas · Ecosistemas · Hábitats · Reinos
- *   ENTIDADES → Personajes · Criaturas (IA)
- *
- * Misma lógica de navegación que Myself Garlia: al entrar a Game
- * se muestra su propio layout con sub-secciones, ocultando las del resto.
- *
- * Regla: SUPABASE MANDA. Todo guarda directo; Godot lee.
+ * Tres tabs principales:
+ *   MUNDO     → Biomas · Ecosistemas · Hábitats · Reinos · Ecología
+ *   ENTIDADES → Personajes · Criaturas IA
+ *   GAME      → Items · Props · Misiones · Especies · Eterium · Social · Recetas
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Bot,
-  Check,
-  Globe2,
-  Layers,
-  Loader2,
-  MapPin,
-  MessageCircle,
-  Mountain,
-  Pencil,
-  Plus,
-  Save,
-  Search,
-  Shield,
-  Trash2,
-  TreePine,
-  Users,
-  X,
+  Bot, Check, ChevronRight, FlaskConical, Globe2, Layers,
+  Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
+  Save, Search, Shield, Sparkles, Sword, Trash2, TreePine,
+  Users, X, Gamepad2, Package, ScrollText, Leaf, Heart,
+  Utensils,
 } from "lucide-react";
-
 import { supabase } from "@/infra/supabase/supabase";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tipos
+// Shared primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface Bioma {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  afinidad: string;
-  orden: number;
-}
+type MainTab = "mundo" | "entidades" | "game";
+type MundoSec = "biomas" | "ecosistemas" | "habitats" | "reinos" | "ecologia";
+type EntidadesSec = "personajes" | "criaturas";
+type GameSec = "items" | "props" | "misiones" | "especies" | "eterium" | "social" | "recetas";
 
-interface Ecosistema {
-  id: string;
-  nombre: string;
-  clima: string;
-  descripcion: string;
-  tipo_entorno: string;
-  bioma_id: string | null;
-}
+const inputStyle: React.CSSProperties = {
+  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+  color: "var(--primary)",
+};
 
-interface Habitat {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  ecosistema_id: string;
-  tipo_habitat_id: string;
-  activo: boolean;
-}
-
-interface TipoHabitat {
-  id: string;
-  clave: string;
-  nombre: string;
-}
-
-interface Reino {
-  id: string;
-  nombre: string;
-  descripcion: string | null;
-  publicado: boolean;
-}
-
-interface ReinoGame {
-  id: string;
-  reino_id: string;
-  clave: string;
-  nombre: string | null;
-  descripcion: string | null;
-  activo: boolean;
-  orden: number;
-  propiedades: Record<string, unknown>;
-}
-
-interface PersonajeGame {
-  id: string;
-  nombre: string;
-  criatura_id: string;
-  activo: boolean;
-  updated_at: string;
-}
-
-interface DialogoGame {
-  id: string;
-  personaje_id: string;
-  clave: string;
-  dialogo: Record<string, unknown>;
-  activo: boolean;
-}
-
-interface Criatura {
-  id: string;
-  nombre: string;
-  imagen_url: string | null;
-  ia_config: Record<string, unknown>;
-  dialogo: Record<string, unknown>;
-}
-
-type MainTab = "mundo" | "entidades";
-
-type MundoSection = "biomas" | "ecosistemas" | "habitats" | "reinos";
-type EntidadesSection = "personajes" | "criaturas";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared UI primitives
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Badge({ text, active }: { text: string; active: boolean }) {
+function FL({ label }: { label: string }) {
   return (
-    <span
-      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-      style={{
-        background: active
-          ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-          : "color-mix(in srgb, var(--primary) 6%, transparent)",
-        color: active
-          ? "var(--primary)"
-          : "color-mix(in srgb, var(--primary) 35%, transparent)",
-      }}
-    >
-      {text}
+    <span className="text-xs font-semibold tracking-wide" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+      {label}
     </span>
   );
 }
-
-function JsonEditor({
-  value,
-  onChange,
-}: {
-  value: Record<string, unknown>;
-  onChange: (v: Record<string, unknown>) => void;
-}) {
-  const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
-  const [error, setError] = useState<string | null>(null);
-  const prevStr = useRef(JSON.stringify(value));
-
-  useEffect(() => {
-    const s = JSON.stringify(value);
-    if (s !== prevStr.current) {
-      setRaw(JSON.stringify(value, null, 2));
-      setError(null);
-      prevStr.current = s;
-    }
-  }, [value]);
-
-  const handleChange = (text: string) => {
-    setRaw(text);
-    try {
-      onChange(JSON.parse(text));
-      setError(null);
-    } catch {
-      setError("JSON inválido");
-    }
-  };
-
+function Inp(p: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...p} className="px-3 py-2 rounded-xl text-sm outline-none w-full" style={inputStyle} />;
+}
+function TA(p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...p} className="px-3 py-2 rounded-xl text-sm outline-none w-full resize-none" style={inputStyle} rows={p.rows ?? 3} />;
+}
+function Sel(p: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
+  return <select {...p} className="px-3 py-2 rounded-xl text-sm outline-none w-full" style={inputStyle} />;
+}
+function Bdg({ text, active }: { text: string; active: boolean }) {
   return (
-    <div className="flex flex-col gap-1 h-full">
-      <textarea
-        className="flex-1 font-mono text-xs p-3 rounded-xl resize-none outline-none"
-        style={{
-          background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-          border: `1px solid ${
-            error
-              ? "var(--destructive, #ef4444)"
-              : "color-mix(in srgb, var(--primary) 12%, transparent)"
-          }`,
-          color: "var(--primary)",
-          minHeight: "180px",
-        }}
-        value={raw}
-        onChange={(e) => handleChange(e.target.value)}
-        spellCheck={false}
-      />
-      {error && (
-        <p className="text-xs" style={{ color: "var(--destructive, #ef4444)" }}>
-          {error}
-        </p>
-      )}
-    </div>
+    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{
+      background: active ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "color-mix(in srgb, var(--primary) 6%, transparent)",
+      color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
+    }}>{text}</span>
   );
 }
-
-function SaveBtn({
-  saving,
-  saved,
-  disabled,
-  onClick,
-}: {
-  saving: boolean;
-  saved: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
+function SaveBtn({ saving, saved, disabled, onClick }: { saving: boolean; saved: boolean; disabled?: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={saving || disabled}
+    <button type="button" onClick={onClick} disabled={saving || disabled}
       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-      style={{
-        background: saved
-          ? "color-mix(in srgb, var(--primary) 15%, transparent)"
-          : "var(--primary)",
-        color: saved ? "var(--primary)" : "var(--btn-text, #fff)",
-        opacity: disabled ? 0.4 : 1,
-      }}
-    >
-      {saving ? (
-        <Loader2 size={12} className="animate-spin" />
-      ) : saved ? (
-        <Check size={12} />
-      ) : (
-        <Save size={12} />
-      )}
+      style={{ background: saved ? "color-mix(in srgb, var(--primary) 15%, transparent)" : "var(--primary)", color: saved ? "var(--primary)" : "var(--btn-text,#fff)", opacity: disabled ? 0.4 : 1 }}>
+      {saving ? <Loader2 size={12} className="animate-spin" /> : saved ? <Check size={12} /> : <Save size={12} />}
       {saved ? "Guardado" : "Guardar"}
     </button>
   );
 }
 
-// Lista lateral genérica
-function SideList<T extends { id: string }>({
-  items,
-  selectedId,
-  onSelect,
-  onNew,
-  newLabel,
-  isNew,
-  loading,
-  renderItem,
-  width = 240,
-  searchPlaceholder = "Buscar…",
-  filterFn,
-}: {
-  items: T[];
-  selectedId: string | undefined;
-  onSelect: (item: T) => void;
-  onNew?: () => void;
-  newLabel?: string;
-  isNew?: boolean;
-  loading: boolean;
-  renderItem: (item: T, active: boolean) => React.ReactNode;
-  width?: number;
-  searchPlaceholder?: string;
-  filterFn?: (item: T, q: string) => boolean;
-}) {
-  const [query, setQuery] = useState("");
-  const filtered = query && filterFn ? items.filter((i) => filterFn(i, query)) : items;
-
+function JsonEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (v: Record<string, unknown>) => void }) {
+  const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
+  const [err, setErr] = useState<string | null>(null);
+  const prev = useRef(JSON.stringify(value));
+  useEffect(() => {
+    const s = JSON.stringify(value);
+    if (s !== prev.current) { setRaw(JSON.stringify(value, null, 2)); setErr(null); prev.current = s; }
+  }, [value]);
   return (
-    <div
-      className="flex flex-col shrink-0 rounded-2xl overflow-hidden"
-      style={{
-        width: `${width}px`,
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))",
-      }}
-    >
-      <div
-        className="p-2 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-      >
-        <div
-          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg"
-          style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-        >
-          <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-          <input
-            className="flex-1 bg-transparent text-sm outline-none"
-            style={{ color: "var(--primary)" }}
-            placeholder={searchPlaceholder}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {onNew && (
-        <div
-          className="p-2 border-b"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-        >
-          <button
-            type="button"
-            onClick={onNew}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-            style={{
-              background: isNew
-                ? "color-mix(in srgb, var(--primary) 12%, transparent)"
-                : "color-mix(in srgb, var(--primary) 6%, transparent)",
-              color: "var(--primary)",
-            }}
-          >
-            <Plus size={12} /> {newLabel ?? "Nuevo"}
-          </button>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2
-              size={16}
-              className="animate-spin"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            />
-          </div>
-        ) : filtered.length === 0 ? (
-          <p
-            className="text-center py-8 text-xs"
-            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-          >
-            Sin resultados
-          </p>
-        ) : (
-          filtered.map((item) => renderItem(item, item.id === selectedId))
-        )}
-      </div>
+    <div className="flex flex-col gap-1 h-full">
+      <textarea className="flex-1 font-mono text-xs p-3 rounded-xl resize-none outline-none" spellCheck={false}
+        style={{ ...inputStyle, border: `1px solid ${err ? "var(--destructive,#ef4444)" : "color-mix(in srgb, var(--primary) 12%, transparent)"}`, minHeight: "160px" }}
+        value={raw} onChange={(e) => { setRaw(e.target.value); try { onChange(JSON.parse(e.target.value)); setErr(null); } catch { setErr("JSON inválido"); } }} />
+      {err && <p className="text-xs" style={{ color: "var(--destructive,#ef4444)" }}>{err}</p>}
     </div>
   );
 }
 
-function SideItem({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function SideItem({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors group"
-      style={{
-        background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-        color: active
-          ? "var(--primary)"
-          : "color-mix(in srgb, var(--primary) 70%, transparent)",
-        borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
-      }}
-    >
+    <button type="button" onClick={onClick} className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors group"
+      style={{ background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 70%, transparent)", borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent" }}>
       {children}
     </button>
   );
 }
 
-function EditorPanel({
-  title,
-  saveBtn,
-  children,
-  empty,
-}: {
-  title?: string;
-  saveBtn?: React.ReactNode;
-  children: React.ReactNode;
-  empty?: boolean;
-}) {
-  if (empty) {
-    return (
-      <div
-        className="flex-1 rounded-2xl flex items-center justify-center"
-        style={{ border: "1px dashed color-mix(in srgb, var(--primary) 10%, transparent)" }}
-      >
-        <p className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-          Seleccioná un ítem
-        </p>
-      </div>
-    );
-  }
+function SideList<T extends { id: string }>({ items, selectedId, onSelect, onNew, newLabel, isNew, loading, renderItem, width = 240, searchPlaceholder = "Buscar…", filterFn }:
+  { items: T[]; selectedId?: string; onSelect: (i: T) => void; onNew?: () => void; newLabel?: string; isNew?: boolean; loading: boolean; renderItem: (i: T, active: boolean) => React.ReactNode; width?: number; searchPlaceholder?: string; filterFn?: (i: T, q: string) => boolean }) {
+  const [q, setQ] = useState("");
+  const filtered = q && filterFn ? items.filter((i) => filterFn(i, q)) : items;
   return (
-    <div
-      className="flex-1 rounded-2xl p-5 flex flex-col gap-4 min-h-0"
-      style={{
-        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-        background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-      }}
-    >
+    <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden" style={{ width: `${width}px`, border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
+      <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <input className="flex-1 bg-transparent text-sm outline-none" style={{ color: "var(--primary)" }} placeholder={searchPlaceholder} value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+      </div>
+      {onNew && (
+        <div className="p-2 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+          <button type="button" onClick={onNew} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: isNew ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "color-mix(in srgb, var(--primary) 6%, transparent)", color: "var(--primary)" }}>
+            <Plus size={12} />{newLabel ?? "Nuevo"}
+          </button>
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto">
+        {loading ? <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+          : filtered.length === 0 ? <p className="text-center py-8 text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin resultados</p>
+          : filtered.map((i) => renderItem(i, i.id === selectedId))}
+      </div>
+    </div>
+  );
+}
+
+function Panel({ title, saveBtn, empty, emptyIcon, children }: { title?: string; saveBtn?: React.ReactNode; empty?: boolean; emptyIcon?: React.ReactNode; children?: React.ReactNode }) {
+  if (empty) return (
+    <div className="flex-1 rounded-2xl flex flex-col items-center justify-center gap-2" style={{ border: "1px dashed color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+      {emptyIcon}
+      <p className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Seleccioná un ítem</p>
+    </div>
+  );
+  return (
+    <div className="flex-1 rounded-2xl p-5 flex flex-col gap-4 min-h-0" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
       {(title || saveBtn) && (
         <div className="flex items-center justify-between shrink-0">
-          {title && (
-            <h2 className="text-sm font-bold" style={{ color: "var(--primary)" }}>
-              {title}
-            </h2>
-          )}
+          {title && <h2 className="text-sm font-bold" style={{ color: "var(--primary)" }}>{title}</h2>}
           {saveBtn}
         </div>
       )}
@@ -410,54 +145,25 @@ function EditorPanel({
   );
 }
 
-function FieldLabel({ label }: { label: string }) {
+function Divider({ label }: { label: string }) {
   return (
-    <span
-      className="text-xs font-semibold tracking-wide"
-      style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-    >
+    <div className="shrink-0 text-xs font-semibold uppercase tracking-wide pt-2 pb-1"
+      style={{ color: "var(--primary)", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
       {label}
-    </span>
+    </div>
   );
 }
 
-const inputStyle = {
-  background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-  color: "var(--primary)",
-};
-
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className="px-3 py-2 rounded-xl text-sm outline-none w-full"
-      style={inputStyle}
-    />
-  );
-}
-
-function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return (
-    <textarea
-      {...props}
-      className="px-3 py-2 rounded-xl text-sm outline-none w-full resize-none"
-      style={inputStyle}
-      rows={props.rows ?? 3}
-    />
-  );
-}
-
-function Select(
-  props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }
-) {
-  return (
-    <select
-      {...props}
-      className="px-3 py-2 rounded-xl text-sm outline-none w-full"
-      style={inputStyle}
-    />
-  );
+function useSave() {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const run = async (fn: () => Promise<void>) => {
+    setSaving(true);
+    await fn();
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  return { saving, saved, run };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -465,94 +171,38 @@ function Select(
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BiomasSection() {
-  const [items, setItems] = useState<Bioma[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Bioma | null>(null);
+  const [sel, setSel] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { saving, saved, run } = useSave();
+  const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [afinidad, setAfinidad] = useState("");
 
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [afinidad, setAfinidad] = useState("");
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("biomas").select("id,nombre,descripcion,afinidad,orden").order("orden");
-    setItems(data ?? []);
-    setLoading(false);
-  }, []);
-
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("biomas").select("id,nombre,descripcion,afinidad,orden").order("orden"); setItems(data ?? []); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
-
-  const pick = (b: Bioma) => {
-    setSelected(b); setIsNew(false); setSaved(false);
-    setNombre(b.nombre); setDescripcion(b.descripcion); setAfinidad(b.afinidad);
-  };
-  const startNew = () => {
-    setSelected(null); setIsNew(true); setSaved(false);
-    setNombre(""); setDescripcion(""); setAfinidad("");
-  };
-  const save = async () => {
-    if (!nombre.trim()) return;
-    setSaving(true);
-    if (isNew) {
-      await supabase.from("biomas").insert({ nombre, descripcion, afinidad });
-    } else if (selected) {
-      await supabase.from("biomas").update({ nombre, descripcion, afinidad }).eq("id", selected.id);
-    }
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    await load();
-  };
-  const remove = async (id: string) => {
-    if (!confirm("¿Eliminar bioma?")) return;
-    await supabase.from("biomas").delete().eq("id", id);
-    if (selected?.id === id) { setSelected(null); setIsNew(false); }
-    await load();
-  };
+  const pick = (b: any) => { setSel(b); setIsNew(false); setNombre(b.nombre); setDesc(b.descripcion); setAfinidad(b.afinidad); };
+  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setDesc(""); setAfinidad(""); };
+  const save = () => run(async () => { const p = { nombre, descripcion: desc, afinidad }; isNew ? await supabase.from("biomas").insert(p) : await supabase.from("biomas").update(p).eq("id", sel.id); await load(); });
+  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("biomas").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList
-        items={items}
-        selectedId={selected?.id}
-        onSelect={pick}
-        onNew={startNew}
-        newLabel="Nuevo bioma"
-        isNew={isNew}
-        loading={loading}
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo bioma" isNew={isNew} loading={loading}
         filterFn={(b, q) => b.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(b, active) => (
           <SideItem key={b.id} active={active} onClick={() => pick(b)}>
             <span className="flex-1 text-sm font-medium truncate">{b.nombre}</span>
-            <Badge text={b.afinidad || "?"} active={active} />
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); remove(b.id); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <Bdg text={b.afinidad || "?"} active={active} />
+            <button type="button" onClick={(e) => { e.stopPropagation(); del(b.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
           </SideItem>
-        )}
-      />
-
-      {(selected || isNew) ? (
-        <EditorPanel
-          title={isNew ? "Nuevo bioma" : selected!.nombre}
-          saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}
-        >
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1"><FieldLabel label="Nombre" /><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            <label className="flex flex-col gap-1"><FieldLabel label="Afinidad" /><Input value={afinidad} onChange={(e) => setAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
-            <label className="flex flex-col gap-1"><FieldLabel label="Descripción" /><Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={4} /></label>
-          </div>
-        </EditorPanel>
-      ) : (
-        <EditorPanel empty />
-      )}
+        )} />
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nuevo bioma" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
+          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+          <label className="flex flex-col gap-1"><FL label="Afinidad" /><Inp value={afinidad} onChange={(e) => setAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
+          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} /></label>
+        </Panel>
+      ) : <Panel empty />}
     </div>
   );
 }
@@ -562,113 +212,51 @@ function BiomasSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function EcosistemasSection() {
-  const [items, setItems] = useState<Ecosistema[]>([]);
-  const [biomas, setBiomas] = useState<{ id: string; nombre: string }[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [biomas, setBiomas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Ecosistema | null>(null);
+  const [sel, setSel] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const [nombre, setNombre] = useState("");
-  const [clima, setClima] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [tipoEntorno, setTipoEntorno] = useState("");
-  const [biomaId, setBiomaId] = useState("");
+  const { saving, saved, run } = useSave();
+  const [nombre, setNombre] = useState(""); const [clima, setClima] = useState(""); const [desc, setDesc] = useState(""); const [tipoEntorno, setTipoEntorno] = useState(""); const [biomaId, setBiomaId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("ecosistemas").select("id,nombre,clima,descripcion,tipo_entorno,bioma_id").order("nombre");
     const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
-    setItems(data ?? []);
-    setBiomas(b ?? []);
-    setLoading(false);
+    setItems(data ?? []); setBiomas(b ?? []); setLoading(false);
   }, []);
-
   useEffect(() => { load(); }, [load]);
-
-  const pick = (e: Ecosistema) => {
-    setSelected(e); setIsNew(false); setSaved(false);
-    setNombre(e.nombre); setClima(e.clima); setDescripcion(e.descripcion);
-    setTipoEntorno(e.tipo_entorno); setBiomaId(e.bioma_id ?? "");
-  };
-  const startNew = () => {
-    setSelected(null); setIsNew(true); setSaved(false);
-    setNombre(""); setClima(""); setDescripcion(""); setTipoEntorno(""); setBiomaId("");
-  };
-  const save = async () => {
-    if (!nombre.trim()) return;
-    setSaving(true);
-    const payload = { nombre, clima, descripcion, tipo_entorno: tipoEntorno, bioma_id: biomaId || null };
-    if (isNew) await supabase.from("ecosistemas").insert(payload);
-    else if (selected) await supabase.from("ecosistemas").update(payload).eq("id", selected.id);
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    await load();
-  };
-  const remove = async (id: string) => {
-    if (!confirm("¿Eliminar ecosistema?")) return;
-    await supabase.from("ecosistemas").delete().eq("id", id);
-    if (selected?.id === id) { setSelected(null); setIsNew(false); }
-    await load();
-  };
-
+  const pick = (e: any) => { setSel(e); setIsNew(false); setNombre(e.nombre); setClima(e.clima); setDesc(e.descripcion); setTipoEntorno(e.tipo_entorno); setBiomaId(e.bioma_id ?? ""); };
+  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setClima(""); setDesc(""); setTipoEntorno(""); setBiomaId(""); };
+  const save = () => run(async () => { const p = { nombre, clima, descripcion: desc, tipo_entorno: tipoEntorno, bioma_id: biomaId || null }; isNew ? await supabase.from("ecosistemas").insert(p) : await supabase.from("ecosistemas").update(p).eq("id", sel.id); await load(); });
+  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("ecosistemas").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
   const biomaName = (id: string | null) => biomas.find((b) => b.id === id)?.nombre ?? "—";
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList
-        items={items}
-        selectedId={selected?.id}
-        onSelect={pick}
-        onNew={startNew}
-        newLabel="Nuevo ecosistema"
-        isNew={isNew}
-        loading={loading}
-        width={260}
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo ecosistema" isNew={isNew} loading={loading} width={260}
         filterFn={(e, q) => e.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(e, active) => (
           <SideItem key={e.id} active={active} onClick={() => pick(e)}>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-medium truncate">{e.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                {biomaName(e.bioma_id)}
-              </span>
+              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{biomaName(e.bioma_id)}</span>
             </div>
-            <button
-              type="button"
-              onClick={(ev) => { ev.stopPropagation(); remove(e.id); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(e.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
           </SideItem>
-        )}
-      />
-
-      {(selected || isNew) ? (
-        <EditorPanel
-          title={isNew ? "Nuevo ecosistema" : selected!.nombre}
-          saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}
-        >
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1"><FieldLabel label="Nombre" /><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FieldLabel label="Clima" /><Input value={clima} onChange={(e) => setClima(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FieldLabel label="Tipo entorno" /><Input value={tipoEntorno} onChange={(e) => setTipoEntorno(e.target.value)} /></label>
-            </div>
-            <label className="flex flex-col gap-1">
-              <FieldLabel label="Bioma" />
-              <Select value={biomaId} onChange={(e) => setBiomaId(e.target.value)}>
-                <option value="">— sin bioma —</option>
-                {biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-              </Select>
-            </label>
-            <label className="flex flex-col gap-1"><FieldLabel label="Descripción" /><Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={4} /></label>
+        )} />
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nuevo ecosistema" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
+          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+          <div className="flex gap-3">
+            <label className="flex flex-col gap-1 flex-1"><FL label="Clima" /><Inp value={clima} onChange={(e) => setClima(e.target.value)} /></label>
+            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo entorno" /><Inp value={tipoEntorno} onChange={(e) => setTipoEntorno(e.target.value)} /></label>
           </div>
-        </EditorPanel>
-      ) : <EditorPanel empty />}
+          <label className="flex flex-col gap-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">— sin bioma —</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
+          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} /></label>
+        </Panel>
+      ) : <Panel empty />}
     </div>
   );
 }
@@ -678,728 +266,1159 @@ function EcosistemasSection() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function HabitatsSection() {
-  const [items, setItems] = useState<Habitat[]>([]);
-  const [ecosistemas, setEcosistemas] = useState<{ id: string; nombre: string }[]>([]);
-  const [tipos, setTipos] = useState<TipoHabitat[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [ecos, setEcos] = useState<any[]>([]);
+  const [tipos, setTipos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Habitat | null>(null);
+  const [sel, setSel] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [ecosistemaId, setEcosistemaId] = useState("");
-  const [tipoId, setTipoId] = useState("");
-  const [activo, setActivo] = useState(true);
+  const { saving, saved, run } = useSave();
+  const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [ecoId, setEcoId] = useState(""); const [tipoId, setTipoId] = useState(""); const [activo, setActivo] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("habitats").select("id,nombre,descripcion,ecosistema_id,tipo_habitat_id,activo").order("nombre");
     const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
     const { data: t } = await supabase.from("tipos_habitat").select("id,clave,nombre").order("nombre");
-    setItems(data ?? []);
-    setEcosistemas(e ?? []);
-    setTipos(t ?? []);
-    setLoading(false);
+    setItems(data ?? []); setEcos(e ?? []); setTipos(t ?? []); setLoading(false);
   }, []);
-
   useEffect(() => { load(); }, [load]);
-
-  const pick = (h: Habitat) => {
-    setSelected(h); setIsNew(false); setSaved(false);
-    setNombre(h.nombre); setDescripcion(h.descripcion ?? "");
-    setEcosistemaId(h.ecosistema_id); setTipoId(h.tipo_habitat_id); setActivo(h.activo);
-  };
-  const startNew = () => {
-    setSelected(null); setIsNew(true); setSaved(false);
-    setNombre(""); setDescripcion(""); setEcosistemaId(""); setTipoId(""); setActivo(true);
-  };
-  const save = async () => {
-    if (!nombre.trim() || !ecosistemaId || !tipoId) return;
-    setSaving(true);
-    const payload = { nombre, descripcion, ecosistema_id: ecosistemaId, tipo_habitat_id: tipoId, activo };
-    if (isNew) await supabase.from("habitats").insert(payload);
-    else if (selected) await supabase.from("habitats").update(payload).eq("id", selected.id);
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    await load();
-  };
-  const remove = async (id: string) => {
-    if (!confirm("¿Eliminar hábitat?")) return;
-    await supabase.from("habitats").delete().eq("id", id);
-    if (selected?.id === id) { setSelected(null); setIsNew(false); }
-    await load();
-  };
-
-  const ecoName = (id: string) => ecosistemas.find((e) => e.id === id)?.nombre ?? "—";
+  const pick = (h: any) => { setSel(h); setIsNew(false); setNombre(h.nombre); setDesc(h.descripcion ?? ""); setEcoId(h.ecosistema_id); setTipoId(h.tipo_habitat_id); setActivo(h.activo); };
+  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setDesc(""); setEcoId(""); setTipoId(""); setActivo(true); };
+  const save = () => run(async () => { const p = { nombre, descripcion: desc, ecosistema_id: ecoId, tipo_habitat_id: tipoId, activo }; isNew ? await supabase.from("habitats").insert(p) : await supabase.from("habitats").update(p).eq("id", sel.id); await load(); });
+  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("habitats").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+  const ecoName = (id: string) => ecos.find((e) => e.id === id)?.nombre ?? "—";
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList
-        items={items}
-        selectedId={selected?.id}
-        onSelect={pick}
-        onNew={startNew}
-        newLabel="Nuevo hábitat"
-        isNew={isNew}
-        loading={loading}
-        width={260}
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo hábitat" isNew={isNew} loading={loading} width={260}
         filterFn={(h, q) => h.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(h, active) => (
           <SideItem key={h.id} active={active} onClick={() => pick(h)}>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-medium truncate">{h.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                {ecoName(h.ecosistema_id)}
-              </span>
+              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{ecoName(h.ecosistema_id)}</span>
             </div>
-            <Badge text={h.activo ? "on" : "off"} active={h.activo} />
-            <button
-              type="button"
-              onClick={(ev) => { ev.stopPropagation(); remove(h.id); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <Bdg text={h.activo ? "on" : "off"} active={h.activo} />
+            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(h.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
           </SideItem>
-        )}
-      />
-
-      {(selected || isNew) ? (
-        <EditorPanel
-          title={isNew ? "Nuevo hábitat" : selected!.nombre}
-          saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !ecosistemaId || !tipoId} onClick={save} />}
-        >
-          <div className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1"><FieldLabel label="Nombre" /><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1">
-                <FieldLabel label="Ecosistema" />
-                <Select value={ecosistemaId} onChange={(e) => setEcosistemaId(e.target.value)}>
-                  <option value="">— seleccionar —</option>
-                  {ecosistemas.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </Select>
-              </label>
-              <label className="flex flex-col gap-1 flex-1">
-                <FieldLabel label="Tipo hábitat" />
-                <Select value={tipoId} onChange={(e) => setTipoId(e.target.value)}>
-                  <option value="">— seleccionar —</option>
-                  {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                </Select>
-              </label>
-            </div>
-            <label className="flex flex-col gap-1"><FieldLabel label="Descripción" /><Textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} rows={3} /></label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
-              <span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span>
-            </label>
+        )} />
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nuevo hábitat" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !ecoId || !tipoId} onClick={save} />}>
+          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+          <div className="flex gap-3">
+            <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">— seleccionar —</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
+            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo hábitat" /><Sel value={tipoId} onChange={(e) => setTipoId(e.target.value)}><option value="">— seleccionar —</option>{tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}</Sel></label>
           </div>
-        </EditorPanel>
-      ) : <EditorPanel empty />}
+          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></label>
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+        </Panel>
+      ) : <Panel empty />}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Reinos  (canónico + game layer)
+// MUNDO — Reinos
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ReinosSection() {
-  const [reinos, setReinos] = useState<Reino[]>([]);
-  const [reinosGame, setReinosGame] = useState<ReinoGame[]>([]);
+  const [reinos, setReinos] = useState<any[]>([]);
+  const [reinosGame, setReinosGame] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCanon, setSelectedCanon] = useState<Reino | null>(null);
-  const [gameRow, setGameRow] = useState<ReinoGame | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  // game fields
-  const [clave, setClave] = useState("");
-  const [nombreGame, setNombreGame] = useState("");
-  const [descripcionGame, setDescripcionGame] = useState("");
-  const [activo, setActivo] = useState(true);
-  const [orden, setOrden] = useState(0);
-  const [propiedades, setPropiedades] = useState<Record<string, unknown>>({});
+  const [sel, setSel] = useState<any>(null);
+  const [gameRow, setGameRow] = useState<any>(null);
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombreG, setNombreG] = useState(""); const [descG, setDescG] = useState(""); const [activo, setActivo] = useState(true); const [orden, setOrden] = useState(0); const [props, setProps] = useState<Record<string, unknown>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data: r } = await supabase.from("reinos").select("id,nombre,descripcion,publicado").order("nombre");
     const { data: rg } = await supabase.from("reinos_game").select("*").order("orden");
-    setReinos(r ?? []);
-    setReinosGame(rg ?? []);
-    setLoading(false);
+    setReinos(r ?? []); setReinosGame(rg ?? []); setLoading(false);
   }, []);
-
   useEffect(() => { load(); }, [load]);
-
-  const pick = (r: Reino) => {
-    setSelectedCanon(r); setSaved(false);
+  const pick = (r: any) => {
+    setSel(r);
     const rg = reinosGame.find((g) => g.reino_id === r.id) ?? null;
-    setGameRow(rg);
-    setClave(rg?.clave ?? "");
-    setNombreGame(rg?.nombre ?? "");
-    setDescripcionGame(rg?.descripcion ?? "");
-    setActivo(rg?.activo ?? true);
-    setOrden(rg?.orden ?? 0);
-    setPropiedades(rg?.propiedades ?? {});
+    setGameRow(rg); setClave(rg?.clave ?? ""); setNombreG(rg?.nombre ?? ""); setDescG(rg?.descripcion ?? ""); setActivo(rg?.activo ?? true); setOrden(rg?.orden ?? 0); setProps(rg?.propiedades ?? {});
   };
-
-  const save = async () => {
-    if (!selectedCanon || !clave.trim()) return;
-    setSaving(true);
-    const payload = {
-      reino_id: selectedCanon.id,
-      clave: clave.trim(),
-      nombre: nombreGame || null,
-      descripcion: descripcionGame || null,
-      activo,
-      orden,
-      propiedades,
-    };
-    if (gameRow) {
-      await supabase.from("reinos_game").update(payload).eq("id", gameRow.id);
-    } else {
-      const { data } = await supabase.from("reinos_game").insert(payload).select().single();
-      setGameRow(data);
-    }
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const save = () => run(async () => {
+    if (!sel || !clave.trim()) return;
+    const p = { reino_id: sel.id, clave: clave.trim(), nombre: nombreG || null, descripcion: descG || null, activo, orden, propiedades: props };
+    if (gameRow) await supabase.from("reinos_game").update(p).eq("id", gameRow.id);
+    else { const { data } = await supabase.from("reinos_game").insert(p).select().single(); setGameRow(data); }
     await load();
-  };
+  });
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList
-        items={reinos}
-        selectedId={selectedCanon?.id}
-        onSelect={pick}
-        loading={loading}
-        width={240}
+      <SideList items={reinos} selectedId={sel?.id} onSelect={pick} loading={loading} width={240}
         filterFn={(r, q) => r.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(r, active) => (
           <SideItem key={r.id} active={active} onClick={() => pick(r)}>
             <span className="flex-1 text-sm font-medium truncate">{r.nombre}</span>
-            {reinosGame.some((g) => g.reino_id === r.id) && (
-              <Badge text="game" active={active} />
-            )}
+            {reinosGame.some((g) => g.reino_id === r.id) && <Bdg text="game" active={active} />}
           </SideItem>
-        )}
-      />
-
-      {selectedCanon ? (
-        <EditorPanel
-          title={selectedCanon.nombre}
-          saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim()} onClick={save} />}
-        >
-          <p className="text-xs shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-            {selectedCanon.descripcion ?? "Sin descripción canónica"}
-          </p>
-          <div
-            className="shrink-0 text-xs font-semibold uppercase tracking-wide pt-2 pb-1"
-            style={{
-              color: "var(--primary)",
-              borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          >
-            Capa Game (reinos_game)
-          </div>
-          {!gameRow && (
-            <p className="text-xs shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-              Este reino todavía no tiene entrada en <code>reinos_game</code>. Al guardar se creará.
-            </p>
-          )}
+        )} />
+      {sel ? (
+        <Panel title={sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim()} onClick={save} />}>
+          <p className="text-xs shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{sel.descripcion ?? "Sin descripción canónica"}</p>
+          <Divider label="Capa Game (reinos_game)" />
+          {!gameRow && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin entrada en reinos_game — se creará al guardar.</p>}
           <div className="flex flex-col gap-3 overflow-y-auto flex-1">
             <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FieldLabel label="Clave (Godot)" /><Input value={clave} onChange={(e) => setClave(e.target.value)} placeholder="ej. reino_norte" /></label>
-              <label className="flex flex-col gap-1 w-20"><FieldLabel label="Orden" /><Input type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clave (Godot)" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} placeholder="ej. reino_norte" /></label>
+              <label className="flex flex-col gap-1 w-20"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
             </div>
-            <label className="flex flex-col gap-1"><FieldLabel label="Nombre game (override)" /><Input value={nombreGame} onChange={(e) => setNombreGame(e.target.value)} placeholder="Dejar vacío para usar el canónico" /></label>
-            <label className="flex flex-col gap-1"><FieldLabel label="Descripción game" /><Textarea value={descripcionGame} onChange={(e) => setDescripcionGame(e.target.value)} rows={3} /></label>
-            <label className="flex flex-col gap-1 flex-1 min-h-0">
-              <FieldLabel label="Propiedades (JSON)" />
-              <div style={{ minHeight: "100px" }}>
-                <JsonEditor value={propiedades} onChange={setPropiedades} />
-              </div>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
-              <span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en Godot</span>
-            </label>
+            <label className="flex flex-col gap-1"><FL label="Nombre game (override)" /><Inp value={nombreG} onChange={(e) => setNombreG(e.target.value)} placeholder="Dejar vacío = usa el canónico" /></label>
+            <label className="flex flex-col gap-1"><FL label="Descripción game" /><TA value={descG} onChange={(e) => setDescG(e.target.value)} rows={3} /></label>
+            <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en Godot</span></label>
           </div>
-        </EditorPanel>
-      ) : <EditorPanel empty />}
+        </Panel>
+      ) : <Panel empty />}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTIDADES — Personajes (incluye Diálogos inline)
+// MUNDO — Ecología (bioma_ecosistemas, bioma_reinos, participantes, relaciones, catálogos)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PersonajeNombre = { id: string; nombre: string };
+type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
+
+const ECO_SUBS: { key: EcoSub; label: string }[] = [
+  { key: "bioma_eco", label: "Bioma → Ecosistema" },
+  { key: "bioma_reinos", label: "Bioma → Reinos" },
+  { key: "participantes", label: "Participantes" },
+  { key: "relaciones", label: "Relaciones" },
+  { key: "roles", label: "Roles ecológicos" },
+  { key: "tipos_h", label: "Tipos hábitat" },
+  { key: "tipos_p", label: "Tipos presencia" },
+];
+
+// Tabla simple de relaciones N:M con selector doble
+function RelTable({ rows, catalogo1, catalogo2, label1, label2, id1, id2, tabla, pkComposite = false, extraCols }:
+  { rows: any[]; catalogo1: any[]; catalogo2: any[]; label1: string; label2: string; id1: string; id2: string; tabla: string; pkComposite?: boolean; extraCols?: { key: string; label: string; cat?: any[]; catIdKey?: string; catNameKey?: string }[] }) {
+  const [v1, setV1] = useState(""); const [v2, setV2] = useState(""); const [extras, setExtras] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const name1 = (id: string) => catalogo1.find((c) => c.id === id)?.nombre ?? id.slice(0, 6);
+  const name2 = (id: string) => catalogo2.find((c) => c.id === id)?.nombre ?? id.slice(0, 6);
+
+  const add = async () => {
+    if (!v1 || !v2) return;
+    setSaving(true);
+    const payload: any = { [id1]: v1, [id2]: v2 };
+    extraCols?.forEach((ec) => { if (extras[ec.key]) payload[ec.key] = extras[ec.key]; });
+    await supabase.from(tabla).insert(payload);
+    setSaving(false); setV1(""); setV2(""); setExtras({});
+  };
+  const del = async (row: any) => {
+    if (!confirm("¿Eliminar?")) return;
+    if (pkComposite) await supabase.from(tabla).delete().eq(id1, row[id1]).eq(id2, row[id2]);
+    else await supabase.from(tabla).delete().eq("id", row.id);
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Add row */}
+      <div className="flex gap-2 items-end flex-wrap">
+        <label className="flex flex-col gap-1 flex-1 min-w-32">
+          <FL label={label1} />
+          <Sel value={v1} onChange={(e) => setV1(e.target.value)}>
+            <option value="">— {label1} —</option>
+            {catalogo1.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </Sel>
+        </label>
+        <label className="flex flex-col gap-1 flex-1 min-w-32">
+          <FL label={label2} />
+          <Sel value={v2} onChange={(e) => setV2(e.target.value)}>
+            <option value="">— {label2} —</option>
+            {catalogo2.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </Sel>
+        </label>
+        {extraCols?.map((ec) => (
+          <label key={ec.key} className="flex flex-col gap-1 flex-1 min-w-28">
+            <FL label={ec.label} />
+            {ec.cat ? (
+              <Sel value={extras[ec.key] ?? ""} onChange={(e) => setExtras((prev) => ({ ...prev, [ec.key]: e.target.value }))}>
+                <option value="">—</option>
+                {ec.cat.map((c) => <option key={c.id} value={c.id}>{c[ec.catNameKey ?? "nombre"]}</option>)}
+              </Sel>
+            ) : (
+              <Inp value={extras[ec.key] ?? ""} onChange={(e) => setExtras((prev) => ({ ...prev, [ec.key]: e.target.value }))} />
+            )}
+          </label>
+        ))}
+        <button type="button" onClick={add} disabled={saving || !v1 || !v2}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !v1 || !v2 ? 0.4 : 1 }}>
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
+        </button>
+      </div>
+      {/* Rows */}
+      <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: "340px" }}>
+        {rows.length === 0 ? <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin registros</p>
+          : rows.map((row, i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+              style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{name1(row[id1])}</span>
+              <ChevronRight size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{name2(row[id2])}</span>
+              {extraCols?.map((ec) => row[ec.key] && (
+                <Bdg key={ec.key} text={ec.cat ? (ec.cat.find((c) => c.id === row[ec.key])?.[ec.catNameKey ?? "nombre"] ?? row[ec.key]) : row[ec.key]} active={false} />
+              ))}
+              <button type="button" onClick={() => del(row)} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function EcologiaSection() {
+  const [sub, setSub] = useState<EcoSub>("bioma_eco");
+  const [loading, setLoading] = useState(true);
+  // catalogs
+  const [biomas, setBiomas] = useState<any[]>([]);
+  const [ecos, setEcos] = useState<any[]>([]);
+  const [reinos, setReinos] = useState<any[]>([]);
+  const [criaturas, setCriaturas] = useState<any[]>([]);
+  const [habitats, setHabitats] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [tiposH, setTiposH] = useState<any[]>([]);
+  const [tiposP, setTiposP] = useState<any[]>([]);
+  // rows
+  const [biomaEco, setBiomaEco] = useState<any[]>([]);
+  const [biomaRey, setBiomaRey] = useState<any[]>([]);
+  const [participantes, setParticipantes] = useState<any[]>([]);
+  const [relaciones, setRelaciones] = useState<any[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const all = await Promise.all([
+      supabase.from("biomas").select("id,nombre").order("nombre"),
+      supabase.from("ecosistemas").select("id,nombre").order("nombre"),
+      supabase.from("reinos").select("id,nombre").order("nombre"),
+      supabase.from("criaturas").select("id,nombre").order("nombre"),
+      supabase.from("habitats").select("id,nombre").order("nombre"),
+      supabase.from("roles_ecologicos").select("id,nombre,categoria").order("nombre"),
+      supabase.from("tipos_habitat").select("id,clave,nombre,activo").order("nombre"),
+      supabase.from("tipos_presencia_ecologica").select("id,clave,nombre,activo"),
+      supabase.from("bioma_ecosistemas").select("bioma_id,ecosistema_id"),
+      supabase.from("bioma_reinos").select("bioma_id,reino_id"),
+      supabase.from("ecosistema_participantes").select("id,ecosistema_id,criatura_id,activo"),
+      supabase.from("ecosistema_relaciones_criaturas").select("id,ecosistema_id,criatura_origen_id,criatura_destino_id,tipo_relacion"),
+    ]);
+    setBiomas(all[0].data ?? []); setEcos(all[1].data ?? []); setReinos(all[2].data ?? []);
+    setCriaturas(all[3].data ?? []); setHabitats(all[4].data ?? []); setRoles(all[5].data ?? []);
+    setTiposH(all[6].data ?? []); setTiposP(all[7].data ?? []);
+    setBiomaEco(all[8].data ?? []); setBiomaRey(all[9].data ?? []);
+    setParticipantes(all[10].data ?? []); setRelaciones(all[11].data ?? []);
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // Catálogos CRUD inline
+  const [rolesNew, setRolesNew] = useState(""); const [rolesCat, setRolesCat] = useState(""); const [savingRole, setSavingRole] = useState(false);
+  const addRole = async () => { if (!rolesNew.trim()) return; setSavingRole(true); await supabase.from("roles_ecologicos").insert({ nombre: rolesNew, descripcion: "", categoria: rolesCat }); setSavingRole(false); setRolesNew(""); setRolesCat(""); await load(); };
+  const delRole = async (id: string) => { await supabase.from("roles_ecologicos").delete().eq("id", id); await load(); };
+
+  const [thNew, setThNew] = useState(""); const [thClave, setThClave] = useState(""); const [savingTH, setSavingTH] = useState(false);
+  const addTH = async () => { if (!thNew.trim() || !thClave.trim()) return; setSavingTH(true); await supabase.from("tipos_habitat").insert({ nombre: thNew, clave: thClave, orden: 99, activo: true }); setSavingTH(false); setThNew(""); setThClave(""); await load(); };
+  const delTH = async (id: string) => { await supabase.from("tipos_habitat").delete().eq("id", id); await load(); };
+
+  const [tpNew, setTpNew] = useState(""); const [tpClave, setTpClave] = useState("");  const [savingTP, setSavingTP] = useState(false);
+  const addTP = async () => { if (!tpNew.trim() || !tpClave.trim()) return; setSavingTP(true); await supabase.from("tipos_presencia_ecologica").insert({ nombre: tpNew, clave: tpClave, activo: true }); setSavingTP(false); setTpNew(""); setTpClave(""); await load(); };
+  const delTP = async (id: string) => { await supabase.from("tipos_presencia_ecologica").delete().eq("id", id); await load(); };
+
+  return (
+    <div className="flex flex-col gap-4 h-full min-h-0">
+      {/* Sub-tabs ecología */}
+      <div className="flex gap-0.5 flex-wrap shrink-0">
+        {ECO_SUBS.map(({ key, label }) => (
+          <button key={key} type="button" onClick={() => setSub(key)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: sub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: sub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {loading ? <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div> : (
+          <div className="rounded-2xl p-5" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+            {sub === "bioma_eco" && (
+              <>
+                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Bioma → Ecosistema</h3>
+                <RelTable rows={biomaEco} catalogo1={biomas} catalogo2={ecos} label1="Bioma" label2="Ecosistema" id1="bioma_id" id2="ecosistema_id" tabla="bioma_ecosistemas" pkComposite />
+              </>
+            )}
+            {sub === "bioma_reinos" && (
+              <>
+                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Bioma → Reinos</h3>
+                <RelTable rows={biomaRey} catalogo1={biomas} catalogo2={reinos} label1="Bioma" label2="Reino" id1="bioma_id" id2="reino_id" tabla="bioma_reinos" pkComposite />
+              </>
+            )}
+            {sub === "participantes" && (
+              <>
+                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Participantes de ecosistema</h3>
+                <RelTable rows={participantes} catalogo1={ecos} catalogo2={criaturas} label1="Ecosistema" label2="Criatura" id1="ecosistema_id" id2="criatura_id" tabla="ecosistema_participantes" />
+              </>
+            )}
+            {sub === "relaciones" && (
+              <>
+                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Relaciones entre criaturas</h3>
+                <RelTable rows={relaciones} catalogo1={criaturas} catalogo2={criaturas} label1="Criatura origen" label2="Criatura destino" id1="criatura_origen_id" id2="criatura_destino_id" tabla="ecosistema_relaciones_criaturas"
+                  extraCols={[{ key: "tipo_relacion", label: "Tipo" }, { key: "ecosistema_id", label: "Ecosistema", cat: ecos, catIdKey: "id", catNameKey: "nombre" }]} />
+              </>
+            )}
+            {sub === "roles" && (
+              <>
+                <h3 className="text-sm font-bold mb-3" style={{ color: "var(--primary)" }}>Roles ecológicos</h3>
+                <div className="flex gap-2 mb-3">
+                  <Inp value={rolesNew} onChange={(e) => setRolesNew(e.target.value)} placeholder="Nombre del rol" />
+                  <Inp value={rolesCat} onChange={(e) => setRolesCat(e.target.value)} placeholder="Categoría" />
+                  <button type="button" onClick={addRole} disabled={savingRole || !rolesNew.trim()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+                    style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !rolesNew.trim() ? 0.4 : 1 }}>
+                    {savingRole ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {roles.map((r) => (
+                    <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <span className="flex-1 text-sm" style={{ color: "var(--primary)" }}>{r.nombre}</span>
+                      <Bdg text={r.categoria} active={false} />
+                      <button type="button" onClick={() => delRole(r.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {sub === "tipos_h" && (
+              <>
+                <h3 className="text-sm font-bold mb-3" style={{ color: "var(--primary)" }}>Tipos de hábitat</h3>
+                <div className="flex gap-2 mb-3">
+                  <Inp value={thClave} onChange={(e) => setThClave(e.target.value)} placeholder="Clave (ej. bosque)" />
+                  <Inp value={thNew} onChange={(e) => setThNew(e.target.value)} placeholder="Nombre" />
+                  <button type="button" onClick={addTH} disabled={savingTH || !thNew.trim() || !thClave.trim()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+                    style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !thNew.trim() ? 0.4 : 1 }}>
+                    {savingTH ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {tiposH.map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <span className="text-xs font-mono" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{t.clave}</span>
+                      <span className="flex-1 text-sm" style={{ color: "var(--primary)" }}>{t.nombre}</span>
+                      <Bdg text={t.activo ? "on" : "off"} active={t.activo} />
+                      <button type="button" onClick={() => delTH(t.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {sub === "tipos_p" && (
+              <>
+                <h3 className="text-sm font-bold mb-3" style={{ color: "var(--primary)" }}>Tipos de presencia ecológica</h3>
+                <div className="flex gap-2 mb-3">
+                  <Inp value={tpClave} onChange={(e) => setTpClave(e.target.value)} placeholder="Clave" />
+                  <Inp value={tpNew} onChange={(e) => setTpNew(e.target.value)} placeholder="Nombre" />
+                  <button type="button" onClick={addTP} disabled={savingTP || !tpNew.trim() || !tpClave.trim()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+                    style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !tpNew.trim() ? 0.4 : 1 }}>
+                    {savingTP ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {tiposP.map((t) => (
+                    <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                      <span className="text-xs font-mono" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{t.clave}</span>
+                      <span className="flex-1 text-sm" style={{ color: "var(--primary)" }}>{t.nombre}</span>
+                      <Bdg text={t.activo ? "on" : "off"} active={t.activo} />
+                      <button type="button" onClick={() => delTP(t.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTIDADES — Personajes + Diálogos
+// ─────────────────────────────────────────────────────────────────────────────
 
 function PersonajesSection() {
-  const [personajes, setPersonajes] = useState<PersonajeGame[]>([]);
-  const [criaturas, setCriaturas] = useState<{ id: string; nombre: string }[]>([]);
-  const [dialogos, setDialogos] = useState<{ id: string; clave: string; dialogo: Record<string, unknown>; activo: boolean }[]>([]);
+  const [personajes, setPersonajes] = useState<any[]>([]);
+  const [criaturas, setCriaturas] = useState<any[]>([]);
+  const [dialogos, setDialogos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<PersonajeGame | null>(null);
+  const [sel, setSel] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [savingDialogo, setSavingDialogo] = useState(false);
-  const [savedDialogo, setSavedDialogo] = useState(false);
-  const [selectedDialogo, setSelectedDialogo] = useState<string | null>(null);
-  const [dialogoJson, setDialogoJson] = useState<Record<string, unknown>>({});
-
-  // form
-  const [nombre, setNombre] = useState("");
-  const [criaturaId, setCriaturaId] = useState("");
-  const [activo, setActivo] = useState(true);
+  const { saving, saved, run } = useSave();
+  const { saving: savingD, saved: savedD, run: runD } = useSave();
+  const [selDial, setSelDial] = useState<any>(null);
+  const [dialJson, setDialJson] = useState<Record<string, unknown>>({});
+  const [nombre, setNombre] = useState(""); const [criaturaId, setCriaturaId] = useState(""); const [activo, setActivo] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data: p } = await supabase.from("personajes_game").select("*").order("nombre");
     const { data: c } = await supabase.from("criaturas").select("id,nombre").order("nombre");
-    setPersonajes(p ?? []);
-    setCriaturas(c ?? []);
-    setLoading(false);
+    setPersonajes(p ?? []); setCriaturas(c ?? []); setLoading(false);
   }, []);
-
-  const loadDialogos = useCallback(async (personajeId: string) => {
-    const { data } = await supabase
-      .from("dialogos_game")
-      .select("id,clave,dialogo,activo")
-      .eq("personaje_id", personajeId)
-      .order("clave");
-    setDialogos(data ?? []);
-    setSelectedDialogo(null);
+  const loadDials = useCallback(async (pid: string) => {
+    const { data } = await supabase.from("dialogos_game").select("id,clave,dialogo,activo").eq("personaje_id", pid).order("clave");
+    setDialogos(data ?? []); setSelDial(null);
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const pick = (p: PersonajeGame) => {
-    setSelected(p); setIsNew(false); setSaved(false);
-    setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo);
-    loadDialogos(p.id);
-  };
-  const startNew = () => {
-    setSelected(null); setIsNew(true); setSaved(false);
-    setNombre(""); setCriaturaId(criaturas[0]?.id ?? ""); setActivo(true);
-    setDialogos([]); setSelectedDialogo(null);
-  };
-  const save = async () => {
-    if (!nombre.trim() || !criaturaId) return;
-    setSaving(true);
-    if (isNew) {
-      await supabase.from("personajes_game").insert({ nombre, criatura_id: criaturaId, activo });
-    } else if (selected) {
-      await supabase.from("personajes_game").update({ nombre, criatura_id: criaturaId, activo }).eq("id", selected.id);
-    }
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    await load();
-  };
-  const remove = async (id: string) => {
-    if (!confirm("¿Eliminar personaje?")) return;
-    await supabase.from("personajes_game").delete().eq("id", id);
-    if (selected?.id === id) { setSelected(null); setIsNew(false); setDialogos([]); }
-    await load();
-  };
-  const pickDialogo = (id: string, json: Record<string, unknown>) => {
-    setSelectedDialogo(id); setDialogoJson(json); setSavedDialogo(false);
-  };
-  const saveDialogo = async () => {
-    if (!selectedDialogo) return;
-    setSavingDialogo(true);
-    await supabase.from("dialogos_game").update({ dialogo: dialogoJson }).eq("id", selectedDialogo);
-    setSavingDialogo(false); setSavedDialogo(true);
-    setTimeout(() => setSavedDialogo(false), 2000);
-    if (selected) loadDialogos(selected.id);
-  };
-
-  const criaturaNombre = (id: string) => criaturas.find((c) => c.id === id)?.nombre ?? "—";
+  const pick = (p: any) => { setSel(p); setIsNew(false); setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo); loadDials(p.id); };
+  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setCriaturaId(criaturas[0]?.id ?? ""); setActivo(true); setDialogos([]); setSelDial(null); };
+  const save = () => run(async () => { const p = { nombre, criatura_id: criaturaId, activo }; isNew ? await supabase.from("personajes_game").insert(p) : await supabase.from("personajes_game").update(p).eq("id", sel.id); await load(); });
+  const del = async (id: string) => { if (!confirm("¿Eliminar personaje?")) return; await supabase.from("personajes_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); setDialogos([]); } await load(); };
+  const saveD = () => runD(async () => { if (!selDial) return; await supabase.from("dialogos_game").update({ dialogo: dialJson }).eq("id", selDial.id); if (sel) loadDials(sel.id); });
+  const cName = (id: string) => criaturas.find((c) => c.id === id)?.nombre ?? "—";
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      {/* Lista personajes */}
-      <SideList
-        items={personajes}
-        selectedId={selected?.id}
-        onSelect={pick}
-        onNew={startNew}
-        newLabel="Nuevo personaje"
-        isNew={isNew}
-        loading={loading}
+      <SideList items={personajes} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo personaje" isNew={isNew} loading={loading}
         filterFn={(p, q) => p.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(p, active) => (
           <SideItem key={p.id} active={active} onClick={() => pick(p)}>
             <div className="flex flex-col flex-1 min-w-0">
               <span className="text-sm font-medium truncate">{p.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-                {criaturaNombre(p.criatura_id)}
-              </span>
+              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{cName(p.criatura_id)}</span>
             </div>
-            <Badge text={p.activo ? "on" : "off"} active={p.activo} />
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity ml-1"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
+            <button type="button" onClick={(e) => { e.stopPropagation(); del(p.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
           </SideItem>
-        )}
-      />
+        )} />
 
-      {/* Panel derecho */}
-      {(selected || isNew) ? (
+      {(sel || isNew) ? (
         <div className="flex-1 flex gap-4 min-h-0">
-          {/* Editor personaje */}
-          <EditorPanel
-            title={isNew ? "Nuevo personaje" : selected!.nombre}
-            saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}
-          >
-            <div className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1"><FieldLabel label="Nombre" /><Input value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-              <label className="flex flex-col gap-1">
-                <FieldLabel label="Criatura canónica" />
-                <Select value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}>
-                  <option value="">— seleccionar —</option>
-                  {criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                </Select>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
-                <span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span>
-              </label>
-            </div>
-
-            {/* Diálogos del personaje */}
-            {selected && !isNew && (
+          <Panel title={isNew ? "Nuevo personaje" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}>
+            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+            <label className="flex flex-col gap-1"><FL label="Criatura canónica" /><Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}><option value="">—</option>{criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Sel></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+            {sel && !isNew && (
               <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
-                <div
-                  className="text-xs font-semibold uppercase tracking-wide pt-2"
-                  style={{
-                    color: "var(--primary)",
-                    borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-                  }}
-                >
-                  Diálogos ({dialogos.length})
-                </div>
-                {dialogos.length === 0 ? (
-                  <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
-                ) : (
-                  dialogos.map((d) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => pickDialogo(d.id, d.dialogo)}
+                <Divider label={`Diálogos (${dialogos.length})`} />
+                {dialogos.length === 0 ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
+                  : dialogos.map((d) => (
+                    <button key={d.id} type="button" onClick={() => { setSelDial(d); setDialJson(d.dialogo); }}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors"
-                      style={{
-                        background:
-                          selectedDialogo === d.id
-                            ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 4%, transparent)",
-                        border: `1px solid ${
-                          selectedDialogo === d.id
-                            ? "color-mix(in srgb, var(--primary) 20%, transparent)"
-                            : "color-mix(in srgb, var(--primary) 8%, transparent)"
-                        }`,
-                      }}
-                    >
+                      style={{ background: selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)", border: `1px solid ${selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
                       <MessageCircle size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
-                      <span className="text-xs font-medium truncate" style={{ color: "var(--primary)" }}>{d.clave}</span>
-                      <Badge text={d.activo ? "on" : "off"} active={d.activo} />
+                      <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--primary)" }}>{d.clave}</span>
+                      <Bdg text={d.activo ? "on" : "off"} active={d.activo} />
                     </button>
-                  ))
-                )}
+                  ))}
               </div>
             )}
-          </EditorPanel>
-
-          {/* JSON editor de diálogo */}
-          {selectedDialogo && (
-            <div
-              className="flex flex-col gap-3 min-h-0"
-              style={{ width: "320px" }}
-            >
-              <div
-                className="rounded-2xl p-4 flex flex-col gap-3 flex-1 min-h-0"
-                style={{
-                  border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                  background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-                }}
-              >
+          </Panel>
+          {selDial && (
+            <div className="flex flex-col gap-3 min-h-0 shrink-0" style={{ width: "300px" }}>
+              <div className="rounded-2xl p-4 flex flex-col gap-3 flex-1 min-h-0" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
                 <div className="flex items-center justify-between shrink-0">
-                  <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>
-                    dialogo (JSON)
-                  </span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>dialogo JSON</span>
                   <div className="flex items-center gap-2">
-                    <SaveBtn saving={savingDialogo} saved={savedDialogo} onClick={saveDialogo} />
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDialogo(null)}
-                      style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-                    >
-                      <X size={13} />
-                    </button>
+                    <SaveBtn saving={savingD} saved={savedD} onClick={saveD} />
+                    <button type="button" onClick={() => setSelDial(null)} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}><X size={13} /></button>
                   </div>
                 </div>
-                <div className="flex-1 min-h-0">
-                  <JsonEditor value={dialogoJson} onChange={setDialogoJson} />
-                </div>
+                <div className="flex-1 min-h-0"><JsonEditor value={dialJson} onChange={setDialJson} /></div>
               </div>
             </div>
           )}
         </div>
-      ) : <EditorPanel empty />}
+      ) : <Panel empty />}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTIDADES — Criaturas (IA + diálogo)
+// ENTIDADES — Criaturas IA
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CriaturasSection() {
-  const [criaturas, setCriaturas] = useState<Criatura[]>([]);
+  const [criaturas, setCriaturas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Criatura | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [sel, setSel] = useState<any>(null);
+  const { saving, saved, run } = useSave();
   const [iaConfig, setIaConfig] = useState<Record<string, unknown>>({});
-  const [activeTab, setActiveTab] = useState<"ia" | "dialogo">("ia");
+  const [tab, setTab] = useState<"ia" | "dialogo">("ia");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("criaturas").select("id,nombre,imagen_url,ia_config,dialogo").order("nombre");
-    setCriaturas(data ?? []);
-    setLoading(false);
-  }, []);
-
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("criaturas").select("id,nombre,ia_config,dialogo").order("nombre"); setCriaturas(data ?? []); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
-
-  const pick = (c: Criatura) => {
-    setSelected(c); setSaved(false);
-    setIaConfig(activeTab === "ia" ? (c.ia_config ?? {}) : (c.dialogo ?? {}));
-  };
-
-  useEffect(() => {
-    if (selected) {
-      setIaConfig(activeTab === "ia" ? (selected.ia_config ?? {}) : (selected.dialogo ?? {}));
-      setSaved(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  const save = async () => {
-    if (!selected) return;
-    setSaving(true);
-    const field = activeTab === "ia" ? "ia_config" : "dialogo";
-    await supabase.from("criaturas").update({ [field]: iaConfig }).eq("id", selected.id);
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-    setCriaturas((prev) => prev.map((c) => c.id === selected.id ? { ...c, [field]: iaConfig } : c));
-    setSelected((prev) => prev ? { ...prev, [field]: iaConfig } : prev);
-  };
-
-  const hasIA = (c: Criatura) => Object.keys(c.ia_config ?? {}).length > 0;
+  const pick = (c: any) => { setSel(c); setIaConfig(tab === "ia" ? (c.ia_config ?? {}) : (c.dialogo ?? {})); };
+  useEffect(() => { if (sel) { setIaConfig(tab === "ia" ? (sel.ia_config ?? {}) : (sel.dialogo ?? {})); } }, [tab]); // eslint-disable-line
+  const save = () => run(async () => {
+    if (!sel) return;
+    const field = tab === "ia" ? "ia_config" : "dialogo";
+    await supabase.from("criaturas").update({ [field]: iaConfig }).eq("id", sel.id);
+    setCriaturas((prev) => prev.map((c) => c.id === sel.id ? { ...c, [field]: iaConfig } : c));
+    setSel((prev: any) => prev ? { ...prev, [field]: iaConfig } : prev);
+  });
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList
-        items={criaturas}
-        selectedId={selected?.id}
-        onSelect={pick}
-        loading={loading}
-        width={240}
-        searchPlaceholder="Buscar criatura…"
+      <SideList items={criaturas} selectedId={sel?.id} onSelect={pick} loading={loading} searchPlaceholder="Buscar criatura…"
         filterFn={(c, q) => c.nombre.toLowerCase().includes(q.toLowerCase())}
         renderItem={(c, active) => (
           <SideItem key={c.id} active={active} onClick={() => pick(c)}>
             <span className="flex-1 text-sm font-medium truncate">{c.nombre}</span>
-            {hasIA(c) && <Bot size={10} style={{ color: "var(--primary)", flexShrink: 0 }} />}
+            {Object.keys(c.ia_config ?? {}).length > 0 && <Bot size={10} style={{ color: "var(--primary)", flexShrink: 0 }} />}
           </SideItem>
-        )}
-      />
-
-      {selected ? (
-        <EditorPanel
-          title={selected.nombre}
-          saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}
-        >
-          {/* Tabs ia / dialogo */}
-          <div
-            className="flex shrink-0 gap-1 p-1 rounded-xl self-start"
-            style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}
-          >
-            {(["ia", "dialogo"] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  background: activeTab === tab ? "var(--primary)" : "transparent",
-                  color: activeTab === tab ? "var(--btn-text, #fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-                }}
-              >
-                {tab === "ia" ? "ia_config" : "dialogo"}
+        )} />
+      {sel ? (
+        <Panel title={sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
+          <div className="flex shrink-0 gap-1 p-1 rounded-xl self-start" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+            {(["ia", "dialogo"] as const).map((t) => (
+              <button key={t} type="button" onClick={() => setTab(t)} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                style={{ background: tab === t ? "var(--primary)" : "transparent", color: tab === t ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                {t === "ia" ? "ia_config" : "dialogo"}
               </button>
             ))}
           </div>
-
-          <p className="text-xs shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-            {activeTab === "ia"
-              ? "Configuración de IA — Godot la consume en runtime"
-              : "Árbol de diálogo — Godot lo consume al hablar"}
-          </p>
-
-          <div className="flex-1 min-h-0">
-            <JsonEditor value={iaConfig} onChange={setIaConfig} />
-          </div>
-        </EditorPanel>
-      ) : (
-        <div
-          className="flex-1 rounded-2xl flex flex-col items-center justify-center gap-2"
-          style={{ border: "1px dashed color-mix(in srgb, var(--primary) 10%, transparent)" }}
-        >
-          <Bot size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />
-          <p className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-            Seleccioná una criatura
-          </p>
-          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
-            Las que tienen <Bot size={10} style={{ display: "inline" }} /> ya tienen ia_config
-          </p>
-        </div>
-      )}
+          <div className="flex-1 min-h-0"><JsonEditor value={iaConfig} onChange={setIaConfig} /></div>
+        </Panel>
+      ) : <Panel empty emptyIcon={<Bot size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Configuración de tabs y sub-secciones
+// GAME — Items
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MUNDO_SECCIONES: { key: MundoSection; label: string; icon: React.ElementType }[] = [
+function ItemsSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const { saving, saved, run } = useSave();
+  const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
+
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
+  useEffect(() => { load(); }, [load]);
+  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
+  const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} loading={loading} searchPlaceholder="Buscar item…"
+        filterFn={(i, q) => (i.tipo ?? "").toLowerCase().includes(q.toLowerCase())}
+        renderItem={(i, active) => (
+          <SideItem key={i.id} active={active} onClick={() => pick(i)}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{i.tipo ?? "sin tipo"}</span>
+              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{i.item_id?.slice(0, 8)}…</span>
+            </div>
+            <Bdg text={`×${i.max_stack}`} active={active} />
+          </SideItem>
+        )} />
+      {sel ? (
+        <Panel title={`Item · ${sel.tipo ?? sel.id.slice(0, 8)}`} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
+          <p className="text-xs shrink-0 font-mono" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>item_id: {sel.item_id}</p>
+          <div className="flex gap-3">
+            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
+            <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
+          </div>
+          <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div className="flex-1 min-h-0"><JsonEditor value={props} onChange={setProps} /></div></label>
+        </Panel>
+      ) : <Panel empty emptyIcon={<Package size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Props
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PropsSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [biomas, setBiomas] = useState<any[]>([]);
+  const [ecos, setEcos] = useState<any[]>([]);
+  const [habitats, setHabitats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [tipo, setTipo] = useState(""); const [activo, setActivo] = useState(true);
+  const [orden, setOrden] = useState(0); const [peso, setPeso] = useState(0); const [escala, setEscala] = useState(1);
+  const [biomaId, setBiomaId] = useState(""); const [ecoId, setEcoId] = useState(""); const [habId, setHabId] = useState("");
+  const [props, setProps] = useState<Record<string, unknown>>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("props_game").select("*").order("orden");
+    const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
+    const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
+    const { data: h } = await supabase.from("habitats").select("id,nombre").order("nombre");
+    setItems(data ?? []); setBiomas(b ?? []); setEcos(e ?? []); setHabitats(h ?? []); setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const pick = (p: any) => { setSel(p); setIsNew(false); setClave(p.clave); setNombre(p.nombre); setTipo(p.tipo); setActivo(p.activo); setOrden(p.orden); setPeso(p.peso); setEscala(p.escala); setBiomaId(p.bioma_id ?? ""); setEcoId(p.ecosistema_id ?? ""); setHabId(p.habitat_id ?? ""); setProps(p.propiedades ?? {}); };
+  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setTipo(""); setActivo(true); setOrden(0); setPeso(0); setEscala(1); setBiomaId(""); setEcoId(""); setHabId(""); setProps({}); };
+  const save = () => run(async () => {
+    const p = { clave, nombre, tipo, activo, orden, peso, escala, bioma_id: biomaId || null, ecosistema_id: ecoId || null, habitat_id: habId || null, propiedades: props };
+    isNew ? await supabase.from("props_game").insert(p) : await supabase.from("props_game").update(p).eq("id", sel.id);
+    await load();
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("props_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo prop" isNew={isNew} loading={loading} width={240}
+        filterFn={(p, q) => p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase())}
+        renderItem={(p, active) => (
+          <SideItem key={p.id} active={active} onClick={() => pick(p)}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{p.nombre}</span>
+              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{p.clave}</span>
+            </div>
+            <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
+            <button type="button" onClick={(e) => { e.stopPropagation(); del(p.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+          </SideItem>
+        )} />
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nuevo prop" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
+          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Escala" /><Inp type="number" step="0.1" value={escala} onChange={(e) => setEscala(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Peso" /><Inp type="number" step="0.1" value={peso} onChange={(e) => setPeso(Number(e.target.value))} /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">—</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">—</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Hábitat" /><Sel value={habId} onChange={(e) => setHabId(e.target.value)}><option value="">—</option>{habitats.map((h) => <option key={h.id} value={h.id}>{h.nombre}</option>)}</Sel></label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "120px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          </div>
+        </Panel>
+      ) : <Panel empty />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Misiones (+ objetivos + recompensas inline)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MisionesSection() {
+  const [misiones, setMisiones] = useState<any[]>([]);
+  const [objetivos, setObjetivos] = useState<any[]>([]);
+  const [recompensas, setRecompensas] = useState<any[]>([]);
+  const [criaturas, setCriaturas] = useState<any[]>([]);
+  const [personajes, setPersonajes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [tipo, setTipo] = useState("principal"); const [activo, setActivo] = useState(true); const [autoAceptar, setAutoAceptar] = useState(false); const [orden, setOrden] = useState(0);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: m } = await supabase.from("misiones_game").select("*").order("orden");
+    const { data: c } = await supabase.from("criaturas").select("id,nombre").order("nombre");
+    const { data: p } = await supabase.from("personajes_game").select("id,nombre").order("nombre");
+    setMisiones(m ?? []); setCriaturas(c ?? []); setPersonajes(p ?? []); setLoading(false);
+  }, []);
+  const loadSub = useCallback(async (mid: string) => {
+    const { data: o } = await supabase.from("misiones_objetivos_game").select("*").eq("mision_id", mid).order("orden");
+    const { data: r } = await supabase.from("misiones_recompensas_game").select("*").eq("mision_id", mid).order("orden");
+    setObjetivos(o ?? []); setRecompensas(r ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const pick = (m: any) => { setSel(m); setIsNew(false); setClave(m.clave); setNombre(m.nombre); setDesc(m.descripcion); setTipo(m.tipo); setActivo(m.activo); setAutoAceptar(m.auto_aceptar); setOrden(m.orden); loadSub(m.id); };
+  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setDesc(""); setTipo("principal"); setActivo(true); setAutoAceptar(false); setOrden(0); setObjetivos([]); setRecompensas([]); };
+  const save = () => run(async () => {
+    const p = { clave, nombre, descripcion: desc, tipo, activo, auto_aceptar: autoAceptar, orden };
+    isNew ? await supabase.from("misiones_game").insert(p) : await supabase.from("misiones_game").update(p).eq("id", sel.id);
+    await load();
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar misión?")) return; await supabase.from("misiones_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+
+  const delObj = async (id: string) => { await supabase.from("misiones_objetivos_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
+  const delRec = async (id: string) => { await supabase.from("misiones_recompensas_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      <SideList items={misiones} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva misión" isNew={isNew} loading={loading} width={240}
+        filterFn={(m, q) => m.nombre.toLowerCase().includes(q.toLowerCase())}
+        renderItem={(m, active) => (
+          <SideItem key={m.id} active={active} onClick={() => pick(m)}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{m.nombre}</span>
+              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{m.tipo}</span>
+            </div>
+            <Bdg text={m.activo ? "on" : "off"} active={m.activo} />
+            <button type="button" onClick={(e) => { e.stopPropagation(); del(m.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+          </SideItem>
+        )} />
+
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nueva misión" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
+          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Sel value={tipo} onChange={(e) => setTipo(e.target.value)}><option value="principal">principal</option><option value="secundaria">secundaria</option><option value="diaria">diaria</option><option value="oculta">oculta</option></Sel></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={autoAceptar} onChange={(e) => setAutoAceptar(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Auto-aceptar</span></label>
+            </div>
+
+            {sel && !isNew && (
+              <>
+                <Divider label={`Objetivos (${objetivos.length})`} />
+                {objetivos.map((o) => (
+                  <div key={o.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                    <span className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{o.orden}.</span>
+                    <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{o.descripcion}</span>
+                    <Bdg text={o.tipo} active={false} />
+                    <button type="button" onClick={() => delObj(o.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                  </div>
+                ))}
+
+                <Divider label={`Recompensas (${recompensas.length})`} />
+                {recompensas.map((r) => (
+                  <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                    <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.tipo} × {r.cantidad}</span>
+                    <button type="button" onClick={() => delRec(r.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </Panel>
+      ) : <Panel empty emptyIcon={<ScrollText size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Especies jugables + Eterium
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EspeciesSection() {
+  const [especies, setEspecies] = useState<any[]>([]);
+  const [eteriumV1, setEteriumV1] = useState<any[]>([]);
+  const [eteriumGame, setEteriumGame] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [activo, setActivo] = useState(true); const [orden, setOrden] = useState(0);
+  // eterium v1 fields
+  const [capBase, setCapBase] = useState(0); const [recBase, setRecBase] = useState(0); const [efBase, setEfBase] = useState(0); const [etActivo, setEtActivo] = useState(true);
+  // eterium game fields
+  const [vidaCompartidos, setVidaCompartidos] = useState(false); const [recEterium, setRecEterium] = useState(true); const [etInicial, setEtInicial] = useState(0); const [etgActivo, setEtgActivo] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: e } = await supabase.from("especies_jugables").select("*").order("orden");
+    const { data: ev } = await supabase.from("especie_eterium_v1").select("*");
+    const { data: eg } = await supabase.from("especie_eterium_game").select("*");
+    setEspecies(e ?? []); setEteriumV1(ev ?? []); setEteriumGame(eg ?? []); setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const pick = (e: any) => {
+    setSel(e); setIsNew(false); setClave(e.clave); setNombre(e.nombre); setActivo(e.activo); setOrden(e.orden);
+    const ev = eteriumV1.find((v) => v.especie_id === e.id);
+    if (ev) { setCapBase(ev.capacidad_base); setRecBase(ev.recuperacion_base); setEfBase(ev.eficiencia_base); setEtActivo(ev.activo); }
+    const eg = ev ? eteriumGame.find((g) => g.especie_eterium_id === ev.id) : null;
+    if (eg) { setVidaCompartidos(eg.vida_eterium_compartidos); setRecEterium(eg.recuperacion_eterium); setEtInicial(eg.eterium_inicial); setEtgActivo(eg.activo); }
+  };
+  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setActivo(true); setOrden(0); setCapBase(0); setRecBase(0); setEfBase(0); setEtActivo(true); setVidaCompartidos(false); setRecEterium(true); setEtInicial(0); setEtgActivo(true); };
+  const save = () => run(async () => {
+    const p = { clave, nombre, activo, orden };
+    let espId = sel?.id;
+    if (isNew) { const { data } = await supabase.from("especies_jugables").insert(p).select().single(); espId = data?.id; }
+    else await supabase.from("especies_jugables").update(p).eq("id", espId);
+    if (!espId) return;
+    // upsert eterium_v1
+    const ev = eteriumV1.find((v) => v.especie_id === espId);
+    const evPayload = { especie_id: espId, capacidad_base: capBase, recuperacion_base: recBase, eficiencia_base: efBase, activo: etActivo };
+    let evId = ev?.id;
+    if (ev) await supabase.from("especie_eterium_v1").update(evPayload).eq("id", ev.id);
+    else { const { data } = await supabase.from("especie_eterium_v1").insert(evPayload).select().single(); evId = data?.id; }
+    if (!evId) { await load(); return; }
+    // upsert eterium_game
+    const eg = eteriumGame.find((g) => g.especie_eterium_id === evId);
+    const egPayload = { especie_eterium_id: evId, vida_eterium_compartidos: vidaCompartidos, recuperacion_eterium: recEterium, eterium_inicial: etInicial, activo: etgActivo };
+    if (eg) await supabase.from("especie_eterium_game").update(egPayload).eq("id", eg.id);
+    else await supabase.from("especie_eterium_game").insert(egPayload);
+    await load();
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar especie?")) return; await supabase.from("especies_jugables").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      <SideList items={especies} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva especie" isNew={isNew} loading={loading}
+        filterFn={(e, q) => e.nombre.toLowerCase().includes(q.toLowerCase())}
+        renderItem={(e, active) => (
+          <SideItem key={e.id} active={active} onClick={() => pick(e)}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{e.nombre}</span>
+              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{e.clave}</span>
+            </div>
+            <Bdg text={e.activo ? "on" : "off"} active={e.activo} />
+            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(e.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+          </SideItem>
+        )} />
+
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nueva especie" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
+          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+
+            <Divider label="Eterium base (especie_eterium_v1)" />
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Capacidad base" /><Inp type="number" step="0.1" value={capBase} onChange={(e) => setCapBase(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Recuperación" /><Inp type="number" step="0.1" value={recBase} onChange={(e) => setRecBase(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Eficiencia" /><Inp type="number" step="0.01" value={efBase} onChange={(e) => setEfBase(Number(e.target.value))} /></label>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etActivo} onChange={(e) => setEtActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en v1</span></label>
+
+            <Divider label="Eterium game (especie_eterium_game)" />
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Eterium inicial" /><Inp type="number" value={etInicial} onChange={(e) => setEtInicial(Number(e.target.value))} /></label>
+            </div>
+            <div className="flex gap-4 flex-wrap">
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={vidaCompartidos} onChange={(e) => setVidaCompartidos(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Vida/eterium compartidos</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={recEterium} onChange={(e) => setRecEterium(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Recuperación eterium</span></label>
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etgActivo} onChange={(e) => setEtgActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en game</span></label>
+            </div>
+          </div>
+        </Panel>
+      ) : <Panel empty emptyIcon={<Leaf size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Eterium reglas globales
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EteriumSection() {
+  const [regla, setRegla] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { saving, saved, run } = useSave();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("eterium_reglas_juego_v1").select("*").limit(1).single();
+    setRegla(data);
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const update = (key: string, val: any) => setRegla((prev: any) => ({ ...prev, [key]: val }));
+  const save = () => run(async () => { await supabase.from("eterium_reglas_juego_v1").update(regla).eq("clave", regla.clave); await load(); });
+
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>;
+  if (!regla) return <p className="text-sm p-4" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin regla en eterium_reglas_juego_v1</p>;
+
+  const numField = (label: string, key: string, step = 0.01) => (
+    <label className="flex flex-col gap-1">
+      <FL label={label} />
+      <Inp type="number" step={step} value={regla[key] ?? 0} onChange={(e) => update(key, Number(e.target.value))} />
+    </label>
+  );
+
+  return (
+    <div className="rounded-2xl p-5 overflow-y-auto" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-bold" style={{ color: "var(--primary)" }}>Reglas globales Eterium — v{regla.version}</h2>
+        <SaveBtn saving={saving} saved={saved} onClick={save} />
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        {numField("Límite estable (S)", "limite_estable_s", 0.1)}
+        {numField("Escala runtime", "escala_runtime", 0.01)}
+        {numField("Recuperación pasiva /s", "recuperacion_pasiva_s_por_segundo", 0.01)}
+        {numField("Curación intervalo (s)", "curacion_intervalo_s", 0.1)}
+        {numField("Curación costo S/tick", "curacion_costo_s_por_tick", 0.01)}
+        {numField("Curación vida/s", "curacion_vida_por_s", 0.1)}
+        {numField("Absorción eficiencia", "absorcion_eficiencia", 0.01)}
+        {numField("Carrera — costo S/s", "carrera_eterium_costo_s_por_segundo", 0.01)}
+        {numField("Carrera — mult. vel.", "carrera_eterium_multiplicador_velocidad", 0.01)}
+        {numField("Carrera — rec. stamina/s", "carrera_eterium_recuperacion_stamina_por_segundo", 0.01)}
+      </div>
+      <div className="mt-4">
+        <FL label="Rendimiento por base S (JSON)" />
+        <div className="mt-1" style={{ minHeight: "100px" }}>
+          <JsonEditor value={regla.rendimiento_por_base_s ?? {}} onChange={(v) => update("rendimiento_por_base_s", v)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Social + Regalos
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SocialSection() {
+  const [perfiles, setPerfiles] = useState<any[]>([]);
+  const [regalos, setRegalos] = useState<any[]>([]);
+  const [personajes, setPersonajes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const { saving, saved, run } = useSave();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: s } = await supabase.from("personaje_social_v1").select("*");
+    const { data: r } = await supabase.from("personaje_regalos_v1").select("*");
+    const { data: p } = await supabase.from("personajes_game").select("id,nombre").order("nombre");
+    setPerfiles(s ?? []); setRegalos(r ?? []); setPersonajes(p ?? []); setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const pName = (id: string) => personajes.find((p) => p.id === id)?.nombre ?? id.slice(0, 8);
+  const pick = (p: any) => setSel(p);
+
+  const numF = (label: string, key: string) => (
+    <label className="flex flex-col gap-1">
+      <FL label={label} />
+      <Inp type="number" step="0.01" value={sel?.[key] ?? 0}
+        onChange={(e) => setSel((prev: any) => ({ ...prev, [key]: Number(e.target.value) }))} />
+    </label>
+  );
+  const save = () => run(async () => {
+    if (!sel) return;
+    const { personaje_game_id, created_at, updated_at, ...rest } = sel;
+    await supabase.from("personaje_social_v1").update(rest).eq("personaje_game_id", personaje_game_id);
+    await load();
+  });
+
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>;
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      {/* Lista personajes con social */}
+      <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden" style={{ width: "240px", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
+        <div className="px-3 py-2 text-xs font-semibold border-b" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>Social profiles</div>
+        <div className="flex-1 overflow-y-auto">
+          {perfiles.map((p) => (
+            <SideItem key={p.personaje_game_id} active={sel?.personaje_game_id === p.personaje_game_id} onClick={() => pick(p)}>
+              <span className="flex-1 text-sm font-medium truncate">{pName(p.personaje_game_id)}</span>
+              <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
+            </SideItem>
+          ))}
+        </div>
+      </div>
+
+      {sel ? (
+        <Panel title={`Social — ${pName(sel.personaje_game_id)}`} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
+          <div className="grid grid-cols-2 gap-3 overflow-y-auto flex-1">
+            {numF("Amistad inicial", "amistad_inicial")}
+            {numF("Confianza inicial", "confianza_inicial")}
+            {numF("Respeto inicial", "respeto_inicial")}
+            {numF("Afecto inicial", "afecto_inicial")}
+            {numF("Sociabilidad", "sociabilidad")}
+            {numF("Curiosidad", "curiosidad")}
+            {numF("Generosidad", "generosidad")}
+            {numF("Prudencia", "prudencia")}
+            {numF("Agresividad", "agresividad")}
+          </div>
+          <Divider label={`Regalos de ${pName(sel.personaje_game_id)} (${regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).length})`} />
+          {regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).map((r) => (
+            <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.item_id?.slice(0, 8)}…</span>
+              <Bdg text={r.reaccion} active={r.reaccion === "amor"} />
+            </div>
+          ))}
+        </Panel>
+      ) : <Panel empty emptyIcon={<Heart size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Recetas
+// ─────────────────────────────────────────────────────────────────────────────
+
+function RecetasSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const { saving, saved, run } = useSave();
+  const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [categoria, setCategoria] = useState(""); const [desbloqueada, setDesbloqueada] = useState(true);
+  const [ingredientes, setIngredientes] = useState<Record<string, unknown>>({}); const [resultado, setResultado] = useState<Record<string, unknown>>({}); const [props, setProps] = useState<Record<string, unknown>>({});
+
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("recetas_game").select("*").order("categoria"); setItems(data ?? []); setLoading(false); }, []);
+  useEffect(() => { load(); }, [load]);
+  const pick = (r: any) => { setSel(r); setIsNew(false); setNombre(r.nombre); setDesc(r.descripcion ?? ""); setCategoria(r.categoria); setDesbloqueada(r.desbloqueada_por_defecto); setIngredientes(r.ingredientes ?? {}); setResultado(r.resultado ?? {}); setProps(r.propiedades ?? {}); };
+  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setDesc(""); setCategoria(""); setDesbloqueada(true); setIngredientes({}); setResultado({}); setProps({}); };
+  const save = () => run(async () => {
+    const p = { nombre, descripcion: desc, categoria, desbloqueada_por_defecto: desbloqueada, ingredientes, resultado, propiedades: props };
+    isNew ? await supabase.from("recetas_game").insert(p) : await supabase.from("recetas_game").update(p).eq("id", sel.id);
+    await load();
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar receta?")) return; await supabase.from("recetas_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva receta" isNew={isNew} loading={loading} width={240}
+        filterFn={(r, q) => r.nombre.toLowerCase().includes(q.toLowerCase())}
+        renderItem={(r, active) => (
+          <SideItem key={r.id} active={active} onClick={() => pick(r)}>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{r.nombre}</span>
+              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{r.categoria}</span>
+            </div>
+            <button type="button" onClick={(e) => { e.stopPropagation(); del(r.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+          </SideItem>
+        )} />
+      {(sel || isNew) ? (
+        <Panel title={isNew ? "Nueva receta" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
+          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={categoria} onChange={(e) => setCategoria(e.target.value)} /></label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={desbloqueada} onChange={(e) => setDesbloqueada(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Desbloqueada por defecto</span></label>
+            <label className="flex flex-col gap-1"><FL label="Ingredientes (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={ingredientes} onChange={setIngredientes} /></div></label>
+            <label className="flex flex-col gap-1"><FL label="Resultado (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={resultado} onChange={setResultado} /></div></label>
+            <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+          </div>
+        </Panel>
+      ) : <Panel empty emptyIcon={<Utensils size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tab configs
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = [
   { key: "biomas", label: "Biomas", icon: Mountain },
   { key: "ecosistemas", label: "Ecosistemas", icon: TreePine },
   { key: "habitats", label: "Hábitats", icon: MapPin },
   { key: "reinos", label: "Reinos", icon: Shield },
+  { key: "ecologia", label: "Ecología", icon: Network },
 ];
-
-const ENTIDADES_SECCIONES: { key: EntidadesSection; label: string; icon: React.ElementType }[] = [
+const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
   { key: "personajes", label: "Personajes", icon: Users },
   { key: "criaturas", label: "Criaturas · IA", icon: Bot },
+];
+const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
+  { key: "items", label: "Items", icon: Sword },
+  { key: "props", label: "Props", icon: Package },
+  { key: "misiones", label: "Misiones", icon: ScrollText },
+  { key: "especies", label: "Especies", icon: Leaf },
+  { key: "eterium", label: "Eterium", icon: Sparkles },
+  { key: "social", label: "Social", icon: Heart },
+  { key: "recetas", label: "Recetas", icon: Utensils },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
+const MAIN_TABS: { key: MainTab; label: string; icon: React.ElementType }[] = [
+  { key: "mundo", label: "Mundo", icon: Globe2 },
+  { key: "entidades", label: "Entidades", icon: Layers },
+  { key: "game", label: "Game", icon: Gamepad2 },
+];
+
 export default function GamePage() {
   const [mainTab, setMainTab] = useState<MainTab>("mundo");
-  const [mundoSection, setMundoSection] = useState<MundoSection>("biomas");
-  const [entidadesSection, setEntidadesSection] = useState<EntidadesSection>("personajes");
+  const [mundoSec, setMundoSec] = useState<MundoSec>("biomas");
+  const [entidadesSec, setEntidadesSec] = useState<EntidadesSec>("personajes");
+  const [gameSec, setGameSec] = useState<GameSec>("items");
 
-  const mainTabs: { key: MainTab; label: string; icon: React.ElementType }[] = [
-    { key: "mundo", label: "Mundo", icon: Globe2 },
-    { key: "entidades", label: "Entidades", icon: Layers },
-  ];
-
-  const subSecciones = mainTab === "mundo" ? MUNDO_SECCIONES : ENTIDADES_SECCIONES;
-  const activeSub = mainTab === "mundo" ? mundoSection : entidadesSection;
-  const setActiveSub = (k: string) =>
-    mainTab === "mundo"
-      ? setMundoSection(k as MundoSection)
-      : setEntidadesSection(k as EntidadesSection);
+  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : mainTab === "entidades" ? ENTIDADES_SUBS : GAME_SUBS;
+  const activeSub = mainTab === "mundo" ? mundoSec : mainTab === "entidades" ? entidadesSec : gameSec;
+  const setActiveSub = (k: string) => {
+    if (mainTab === "mundo") setMundoSec(k as MundoSec);
+    else if (mainTab === "entidades") setEntidadesSec(k as EntidadesSec);
+    else setGameSec(k as GameSec);
+  };
 
   return (
-    <div
-      className="flex flex-col h-full min-h-0"
-      style={{ paddingLeft: "52px" }}
-    >
-      {/* ── Barra superior: TABS PRINCIPALES ── */}
-      <div
-        className="shrink-0 flex items-center gap-1 px-4 pt-3 pb-0 border-b"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}
-      >
-        {mainTabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setMainTab(key)}
+    <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
+      {/* Tab principal */}
+      <div className="shrink-0 flex items-center gap-1 px-4 pt-3 pb-0 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+        {MAIN_TABS.map(({ key, label, icon: Icon }) => (
+          <button key={key} type="button" onClick={() => setMainTab(key)}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all rounded-t-lg"
-            style={{
-              background:
-                mainTab === key
-                  ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))"
-                  : "transparent",
-              color:
-                mainTab === key
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              borderBottom: mainTab === key
-                ? "2px solid var(--primary)"
-                : "2px solid transparent",
-              marginBottom: "-1px",
-            }}
-          >
-            <Icon size={13} strokeWidth={mainTab === key ? 2.5 : 2} />
-            {label}
+            style={{ background: mainTab === key ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "transparent", color: mainTab === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)", borderBottom: mainTab === key ? "2px solid var(--primary)" : "2px solid transparent", marginBottom: "-1px" }}>
+            <Icon size={13} strokeWidth={mainTab === key ? 2.5 : 2} />{label}
           </button>
         ))}
       </div>
 
-      {/* ── Barra secundaria: sub-secciones ── */}
-      <div
-        className="shrink-0 flex items-center gap-0.5 px-4 py-2 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
-        }}
-      >
-        {subSecciones.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveSub(key)}
+      {/* Sub-tabs */}
+      <div className="shrink-0 flex items-center gap-0.5 px-4 py-2 border-b flex-wrap"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+        {subSecs.map(({ key, label, icon: Icon }) => (
+          <button key={key} type="button" onClick={() => setActiveSub(key)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{
-              background:
-                activeSub === key
-                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                  : "transparent",
-              color:
-                activeSub === key
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 45%, transparent)",
-            }}
-          >
-            <Icon size={12} strokeWidth={activeSub === key ? 2.5 : 2} />
-            {label}
+            style={{ background: activeSub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: activeSub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+            <Icon size={12} strokeWidth={activeSub === key ? 2.5 : 2} />{label}
           </button>
         ))}
       </div>
 
-      {/* ── Contenido ── */}
+      {/* Contenido */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4">
         {mainTab === "mundo" && (
           <>
-            {mundoSection === "biomas" && <BiomasSection />}
-            {mundoSection === "ecosistemas" && <EcosistemasSection />}
-            {mundoSection === "habitats" && <HabitatsSection />}
-            {mundoSection === "reinos" && <ReinosSection />}
+            {mundoSec === "biomas" && <BiomasSection />}
+            {mundoSec === "ecosistemas" && <EcosistemasSection />}
+            {mundoSec === "habitats" && <HabitatsSection />}
+            {mundoSec === "reinos" && <ReinosSection />}
+            {mundoSec === "ecologia" && <EcologiaSection />}
           </>
         )}
         {mainTab === "entidades" && (
           <>
-            {entidadesSection === "personajes" && <PersonajesSection />}
-            {entidadesSection === "criaturas" && <CriaturasSection />}
+            {entidadesSec === "personajes" && <PersonajesSection />}
+            {entidadesSec === "criaturas" && <CriaturasSection />}
+          </>
+        )}
+        {mainTab === "game" && (
+          <>
+            {gameSec === "items" && <ItemsSection />}
+            {gameSec === "props" && <PropsSection />}
+            {gameSec === "misiones" && <MisionesSection />}
+            {gameSec === "especies" && <EspeciesSection />}
+            {gameSec === "eterium" && <EteriumSection />}
+            {gameSec === "social" && <SocialSection />}
+            {gameSec === "recetas" && <RecetasSection />}
           </>
         )}
       </div>
