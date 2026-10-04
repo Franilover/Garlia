@@ -19,7 +19,65 @@ import {
   Utensils, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
-import { ModalFlotante } from "@/domains/garlia/_shared/ModalFlotante";
+import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PanelModal — wrapper con misma API que ModalFlotante pero usa PopoverFlotante
+// como base (backdrop blur, centrado en pantalla, header con icono/titulo/X)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PanelModal({
+  abierto,
+  onCerrar,
+  titulo,
+  icono,
+  accionesDerecha,
+  children,
+  maxWidth,
+}: {
+  abierto: boolean;
+  onCerrar: () => void;
+  titulo?: React.ReactNode;
+  icono?: React.ReactNode;
+  accionesDerecha?: React.ReactNode;
+  children: React.ReactNode;
+  maxWidth?: string;
+}) {
+  const bodyRef = React.useRef<HTMLElement | null>(null);
+  React.useEffect(() => { bodyRef.current = document.body; }, []);
+  if (!abierto) return null;
+  const widthPx = maxWidth === "max-w-2xl" ? 680 : 780;
+  return (
+    <PopoverFlotante
+      anchor={bodyRef.current}
+      onClose={onCerrar}
+      width={widthPx}
+      maxHeight={Math.round(window.innerHeight * 0.85)}
+      backdrop
+      centerVertically
+      centerHorizontally
+    >
+      {/* Header */}
+      <div className="shrink-0 flex items-center gap-3 -mx-4 -mt-4 px-4 py-3 mb-3 border-b"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+        {icono && (
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 18%, transparent)" }}>
+            <span style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>{icono}</span>
+          </div>
+        )}
+        {titulo && <p className="flex-1 min-w-0 text-sm font-black truncate" style={{ color: "var(--primary)" }}>{titulo}</p>}
+        {accionesDerecha && <div className="shrink-0 flex items-center gap-2">{accionesDerecha}</div>}
+        <button type="button" onClick={onCerrar} title="Cerrar (Esc)"
+          className="shrink-0 p-1.5 rounded-lg transition-colors"
+          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+          <X size={16} />
+        </button>
+      </div>
+      {children}
+    </PopoverFlotante>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared primitives
@@ -1094,7 +1152,7 @@ function GridToolbar({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Items (grid + ModalFlotante)
+// GAME — Items (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ItemsSection() {
@@ -1132,7 +1190,7 @@ function ItemsSection() {
         </div>
       )}
 
-      <ModalFlotante
+      <PanelModal
         abierto={!!sel}
         onCerrar={() => setSel(null)}
         titulo={`Item · ${sel?.tipo ?? sel?.id?.slice(0, 8)}`}
@@ -1145,13 +1203,13 @@ function ItemsSection() {
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
         </div>
         <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "160px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
-      </ModalFlotante>
+      </PanelModal>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Props (grid + ModalFlotante)
+// GAME — Props (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PropsSection() {
@@ -1210,7 +1268,7 @@ function PropsSection() {
         </div>
       )}
 
-      <ModalFlotante
+      <PanelModal
         abierto={abierto}
         onCerrar={() => { setSel(null); setIsNew(false); }}
         titulo={isNew ? "Nuevo prop" : sel?.nombre}
@@ -1239,13 +1297,13 @@ function PropsSection() {
             <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
           )}
         </div>
-      </ModalFlotante>
+      </PanelModal>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Misiones (grid + ModalFlotante)
+// GAME — Misiones (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function MisionesSection() {
@@ -1305,7 +1363,7 @@ function MisionesSection() {
         </div>
       )}
 
-      <ModalFlotante
+      <PanelModal
         abierto={abierto}
         onCerrar={() => { setSel(null); setIsNew(false); }}
         titulo={isNew ? "Nueva misión" : sel?.nombre}
@@ -1351,14 +1409,14 @@ function MisionesSection() {
             </div>
           </>
         )}
-      </ModalFlotante>
+      </PanelModal>
     </div>
   );
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Social (grid + ModalFlotante)
+// GAME — Social (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function SocialSection() {
@@ -1416,7 +1474,7 @@ function SocialSection() {
         </div>
       )}
 
-      <ModalFlotante
+      <PanelModal
         abierto={!!sel}
         onCerrar={() => setSel(null)}
         titulo={`Social — ${sel ? pName(sel.personaje_game_id) : ""}`}
@@ -1445,13 +1503,13 @@ function SocialSection() {
             ))}
           </>
         )}
-      </ModalFlotante>
+      </PanelModal>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Recetas (grid + ModalFlotante)
+// GAME — Recetas (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function RecetasSection() {
@@ -1497,7 +1555,7 @@ function RecetasSection() {
         </div>
       )}
 
-      <ModalFlotante
+      <PanelModal
         abierto={abierto}
         onCerrar={() => { setSel(null); setIsNew(false); }}
         titulo={isNew ? "Nueva receta" : sel?.nombre}
@@ -1518,13 +1576,13 @@ function RecetasSection() {
             <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
           </div>
         )}
-      </ModalFlotante>
+      </PanelModal>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AMBIENTE — Factores abióticos · Modificadores (grid + ModalFlotante)
+// AMBIENTE — Factores abióticos · Modificadores (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AmbSub = "factores" | "modificadores";
@@ -1606,7 +1664,7 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
               />
             ))}
           </div>
-          <ModalFlotante
+          <PanelModal
             abierto={!!selF}
             onCerrar={() => setSelF(null)}
             titulo={selF?.nombre}
@@ -1627,7 +1685,7 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
             </div>
             <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} /></label>
             <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={fActivo} onChange={(e) => setFActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-          </ModalFlotante>
+          </PanelModal>
         </>
       )}
 
@@ -1646,7 +1704,7 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
               />
             ))}
           </div>
-          <ModalFlotante
+          <PanelModal
             abierto={!!selM || isNewM}
             onCerrar={() => { setSelM(null); setIsNewM(false); }}
             titulo={isNewM ? "Nuevo modificador" : factorName(selM?.factor_id)}
@@ -1679,7 +1737,7 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
                 <button type="button" onClick={() => delM(selM.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
               )}
             </div>
-          </ModalFlotante>
+          </PanelModal>
         </>
       )}
     </div>
