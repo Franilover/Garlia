@@ -1745,6 +1745,18 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
 }
 
 
+const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = [
+  { key: "biomas", label: "Biomas", icon: Mountain },
+  { key: "reinos", label: "Reinos", icon: Shield },
+  { key: "ecologia", label: "Ecología", icon: TreePine },
+];
+
+const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
+  { key: "personajes", label: "Personajes", icon: Users },
+  { key: "criaturas", label: "Criaturas IA", icon: Bot },
+  { key: "especies", label: "Especies", icon: Leaf },
+];
+
 const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
   { key: "items", label: "Items", icon: Sword },
   { key: "props", label: "Props", icon: Package },
