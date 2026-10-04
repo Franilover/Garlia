@@ -302,150 +302,133 @@ function BiomasSection() {
   });
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      {/* ── Árbol ── */}
-      <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden" style={{ width: "280px", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
-        {/* header + nuevo bioma */}
-        <div className="flex items-center justify-between px-3 py-2 border-b shrink-0" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>Biomas</span>
-          <button type="button" onClick={addBioma} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold"
-            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}>
-            <Plus size={11} /> Nuevo
-          </button>
-        </div>
-
-        {/* árbol scrollable */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-          ) : biomas.map((b) => {
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {biomas.map((b) => {
             const bEcos = ecos.filter((e) => e.bioma_id === b.id);
-            const open  = !!expanded[b.id];
             return (
               <div key={b.id}>
-                {/* Bioma row */}
-                <button type="button" onClick={() => { toggle(b.id); pickBioma(b); }}
-                  className="w-full flex items-center gap-1.5 px-3 py-2 text-left group transition-colors"
-                  style={rowStyle(iSel("bioma", b.id))}>
-                  <span className="text-[10px] transition-transform" style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>▶</span>
-                  <Mountain size={12} style={{ flexShrink: 0 }} />
-                  <span className="flex-1 text-sm font-semibold truncate">{b.nombre}</span>
-                  {b.afinidad && <Bdg text={b.afinidad} active={iSel("bioma", b.id)} />}
-                  <button type="button" onClick={(ev) => { ev.stopPropagation(); addEco(b.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded" title="+ Ecosistema"
-                    style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                    <Plus size={11} />
+                {/* Bioma pill */}
+                <div className="flex items-center gap-2 mb-2">
+                  <button type="button" onClick={() => pickBioma(b)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-[1.03]"
+                    style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
+                    <Mountain size={11} /> {b.nombre}
+                    {b.afinidad && <span className="opacity-50">· {b.afinidad}</span>}
                   </button>
-                </button>
-
-                {/* Ecosistemas */}
-                {open && bEcos.map((e) => {
-                  const bHabs = habitats.filter((h) => h.ecosistema_id === e.id);
-                  const eOpen = !!expanded[e.id];
-                  return (
-                    <div key={e.id}>
-                      <button type="button" onClick={() => { toggle(e.id); pickEco(e); }}
-                        className="w-full flex items-center gap-1.5 pl-7 pr-3 py-1.5 text-left group transition-colors"
-                        style={rowStyle(iSel("eco", e.id))}>
-                        <span className="text-[10px] transition-transform" style={{ display: "inline-block", transform: eOpen ? "rotate(90deg)" : "rotate(0deg)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>▶</span>
-                        <TreePine size={11} style={{ flexShrink: 0 }} />
-                        <span className="flex-1 text-xs font-medium truncate">{e.nombre}</span>
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); addHab(e.id); }}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 rounded" title="+ Hábitat"
-                          style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                          <Plus size={10} />
-                        </button>
-                      </button>
-
-                      {/* Hábitats */}
-                      {eOpen && bHabs.map((h) => (
-                        <button key={h.id} type="button" onClick={() => pickHab(h)}
-                          className="w-full flex items-center gap-1.5 pl-14 pr-3 py-1.5 text-left group transition-colors"
-                          style={rowStyle(iSel("hab", h.id))}>
-                          <MapPin size={10} style={{ flexShrink: 0 }} />
-                          <span className="flex-1 text-xs truncate">{h.nombre}</span>
-                          <Bdg text={h.activo ? "on" : "off"} active={h.activo} />
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })}
+                  <button type="button" onClick={() => addEco(b.id)}
+                    className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold opacity-50 hover:opacity-100 transition-opacity"
+                    style={{ border: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)", color: "var(--primary)" }}>
+                    <Plus size={9} /> eco
+                  </button>
+                </div>
+                {/* Ecosistemas grid */}
+                {bEcos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pl-4 mb-1">
+                    {bEcos.map((e) => {
+                      const bHabs = habitats.filter((h) => h.ecosistema_id === e.id);
+                      return (
+                        <div key={e.id} className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => pickEco(e)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03]"
+                              style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", color: "color-mix(in srgb, var(--primary) 80%, transparent)" }}>
+                              <TreePine size={10} /> {e.nombre}
+                            </button>
+                            <button type="button" onClick={() => addHab(e.id)}
+                              className="opacity-40 hover:opacity-100 transition-opacity"
+                              style={{ color: "var(--primary)" }} title="+ Hábitat">
+                              <Plus size={9} />
+                            </button>
+                          </div>
+                          {/* Hábitats pills */}
+                          {bHabs.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pl-3">
+                              {bHabs.map((h) => (
+                                <button key={h.id} type="button" onClick={() => pickHab(h)}
+                                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all hover:scale-[1.03]"
+                                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                                  <MapPin size={8} /> {h.nombre}
+                                  <span className="opacity-50">{h.activo ? "" : " ·off"}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
+          <button type="button" onClick={addBioma}
+            className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold opacity-50 hover:opacity-100 transition-opacity"
+            style={{ border: "1px dashed color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" }}>
+            <Plus size={11} /> Nuevo bioma
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* ── Panel derecho ── */}
-      {!sel && <Panel empty emptyIcon={<Mountain size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+      {/* ── Paneles flotantes ── */}
+      <PanelModal abierto={sel?.kind === "bioma"} onCerrar={() => setSel(null)}
+        titulo={biomas.find((x) => x.id === sel?.id)?.nombre ?? "Bioma"} icono={<Mountain size={12} />}
+        accionesDerecha={<div className="flex gap-2">
+          <SaveBtn saving={saving} saved={saved} disabled={!bNombre.trim()} onClick={saveBioma} />
+          <button type="button" onClick={delItem} className="p-1.5 rounded-lg" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={13} /></button>
+        </div>}>
+        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={bNombre} onChange={(e) => setBNombre(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><FL label="Afinidad" /><Inp value={bAfinidad} onChange={(e) => setBAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
+        <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={bDesc} onChange={(e) => setBDesc(e.target.value)} rows={4} /></label>
+      </PanelModal>
 
-      {sel?.kind === "bioma" && (() => {
-        const b = biomas.find((x) => x.id === sel.id);
-        return (
-          <Panel title={b?.nombre ?? "Bioma"}
-            saveBtn={<div className="flex gap-2">
-              <SaveBtn saving={saving} saved={saved} disabled={!bNombre.trim()} onClick={saveBioma} />
-              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
-            </div>}>
-            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={bNombre} onChange={(e) => setBNombre(e.target.value)} /></label>
-            <label className="flex flex-col gap-1"><FL label="Afinidad" /><Inp value={bAfinidad} onChange={(e) => setBAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
-            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={bDesc} onChange={(e) => setBDesc(e.target.value)} rows={4} /></label>
-          </Panel>
-        );
-      })()}
+      <PanelModal abierto={sel?.kind === "eco"} onCerrar={() => setSel(null)}
+        titulo={ecos.find((x) => x.id === sel?.id)?.nombre ?? "Ecosistema"} icono={<TreePine size={12} />}
+        accionesDerecha={<div className="flex gap-2">
+          <SaveBtn saving={saving} saved={saved} disabled={!eNombre.trim()} onClick={saveEco} />
+          <button type="button" onClick={delItem} className="p-1.5 rounded-lg" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={13} /></button>
+        </div>}>
+        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clima" /><Inp value={eClima} onChange={(e) => setEClima(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo entorno" /><Inp value={eTipo} onChange={(e) => setETipo(e.target.value)} /></label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Bioma padre" />
+          <Sel value={eBiomaId} onChange={(e) => setEBiomaId(e.target.value)}>
+            <option value="">— sin bioma —</option>
+            {biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+          </Sel>
+        </label>
+        <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={eDesc} onChange={(e) => setEDesc(e.target.value)} rows={3} /></label>
+      </PanelModal>
 
-      {sel?.kind === "eco" && (() => {
-        const e = ecos.find((x) => x.id === sel.id);
-        return (
-          <Panel title={e?.nombre ?? "Ecosistema"}
-            saveBtn={<div className="flex gap-2">
-              <SaveBtn saving={saving} saved={saved} disabled={!eNombre.trim()} onClick={saveEco} />
-              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
-            </div>}>
-            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Clima" /><Inp value={eClima} onChange={(e) => setEClima(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo entorno" /><Inp value={eTipo} onChange={(e) => setETipo(e.target.value)} /></label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Bioma padre" />
-              <Sel value={eBiomaId} onChange={(e) => setEBiomaId(e.target.value)}>
-                <option value="">— sin bioma —</option>
-                {biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-              </Sel>
-            </label>
-            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={eDesc} onChange={(e) => setEDesc(e.target.value)} rows={3} /></label>
-          </Panel>
-        );
-      })()}
-
-      {sel?.kind === "hab" && (() => {
-        const h = habitats.find((x) => x.id === sel.id);
-        return (
-          <Panel title={h?.nombre ?? "Hábitat"}
-            saveBtn={<div className="flex gap-2">
-              <SaveBtn saving={saving} saved={saved} disabled={!hNombre.trim()} onClick={saveHab} />
-              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
-            </div>}>
-            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={hNombre} onChange={(e) => setHNombre(e.target.value)} /></label>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" />
-                <Sel value={hEcoId} onChange={(e) => setHEcoId(e.target.value)}>
-                  <option value="">— seleccionar —</option>
-                  {ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                </Sel>
-              </label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo hábitat" />
-                <Sel value={hTipoId} onChange={(e) => setHTipoId(e.target.value)}>
-                  <option value="">— seleccionar —</option>
-                  {tiposH.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                </Sel>
-              </label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={hDesc} onChange={(e) => setHDesc(e.target.value)} rows={3} /></label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={hActivo} onChange={(e) => setHActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-          </Panel>
-        );
-      })()}
+      <PanelModal abierto={sel?.kind === "hab"} onCerrar={() => setSel(null)}
+        titulo={habitats.find((x) => x.id === sel?.id)?.nombre ?? "Hábitat"} icono={<MapPin size={12} />}
+        accionesDerecha={<div className="flex gap-2">
+          <SaveBtn saving={saving} saved={saved} disabled={!hNombre.trim()} onClick={saveHab} />
+          <button type="button" onClick={delItem} className="p-1.5 rounded-lg" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={13} /></button>
+        </div>}>
+        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={hNombre} onChange={(e) => setHNombre(e.target.value)} /></label>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" />
+            <Sel value={hEcoId} onChange={(e) => setHEcoId(e.target.value)}>
+              <option value="">— seleccionar —</option>
+              {ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </Sel>
+          </label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo hábitat" />
+            <Sel value={hTipoId} onChange={(e) => setHTipoId(e.target.value)}>
+              <option value="">— seleccionar —</option>
+              {tiposH.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+            </Sel>
+          </label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={hDesc} onChange={(e) => setHDesc(e.target.value)} rows={3} /></label>
+        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={hActivo} onChange={(e) => setHActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+      </PanelModal>
     </div>
   );
 }
@@ -484,32 +467,37 @@ function ReinosSection() {
   });
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={reinos} selectedId={sel?.id} onSelect={pick} loading={loading} width={240}
-        filterFn={(r, q) => r.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(r, active) => (
-          <SideItem key={r.id} active={active} onClick={() => pick(r)}>
-            <span className="flex-1 text-sm font-medium truncate">{r.nombre}</span>
-            {reinosGame.some((g) => g.reino_id === r.id) && <Bdg text="game" active={active} />}
-          </SideItem>
-        )} />
-      {sel ? (
-        <Panel title={sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim()} onClick={save} />}>
-          <p className="text-xs shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{sel.descripcion ?? "Sin descripción canónica"}</p>
-          <Divider label="Capa Game (reinos_game)" />
-          {!gameRow && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin entrada en reinos_game — se creará al guardar.</p>}
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Clave (Godot)" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} placeholder="ej. reino_norte" /></label>
-              <label className="flex flex-col gap-1 w-20"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Nombre game (override)" /><Inp value={nombreG} onChange={(e) => setNombreG(e.target.value)} placeholder="Dejar vacío = usa el canónico" /></label>
-            <label className="flex flex-col gap-1"><FL label="Descripción game" /><TA value={descG} onChange={(e) => setDescG(e.target.value)} rows={3} /></label>
-            <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en Godot</span></label>
-          </div>
-        </Panel>
-      ) : <Panel empty />}
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {reinos.map((r) => (
+            <button key={r.id} type="button" onClick={() => pick(r)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.03]"
+              style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", color: "var(--primary)" }}>
+              <Shield size={10} /> {r.nombre}
+              {reinosGame.some((g) => g.reino_id === r.id) && <span className="opacity-50">· game</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <PanelModal abierto={!!sel} onCerrar={() => setSel(null)}
+        titulo={sel?.nombre} icono={<Shield size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim()} onClick={save} />}>
+        <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{sel?.descripcion ?? "Sin descripción canónica"}</p>
+        <Divider label="Capa Game (reinos_game)" />
+        {!gameRow && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin entrada en reinos_game — se creará al guardar.</p>}
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clave (Godot)" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} placeholder="ej. reino_norte" /></label>
+          <label className="flex flex-col gap-1 w-20"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Nombre game (override)" /><Inp value={nombreG} onChange={(e) => setNombreG(e.target.value)} placeholder="Dejar vacío = usa el canónico" /></label>
+        <label className="flex flex-col gap-1"><FL label="Descripción game" /><TA value={descG} onChange={(e) => setDescG(e.target.value)} rows={3} /></label>
+        <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en Godot</span></label>
+      </PanelModal>
     </div>
   );
 }
@@ -840,58 +828,51 @@ function PersonajesSection() {
   const cName = (id: string) => criaturas.find((c) => c.id === id)?.nombre ?? "—";
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={personajes} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo personaje" isNew={isNew} loading={loading}
-        filterFn={(p, q) => p.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(p, active) => (
-          <SideItem key={p.id} active={active} onClick={() => pick(p)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{p.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{cName(p.criatura_id)}</span>
-            </div>
-            <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
-            <button type="button" onClick={(e) => { e.stopPropagation(); del(p.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-
-      {(sel || isNew) ? (
-        <div className="flex-1 flex gap-4 min-h-0">
-          <Panel title={isNew ? "Nuevo personaje" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}>
-            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            <label className="flex flex-col gap-1"><FL label="Criatura canónica" /><Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}><option value="">—</option>{criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Sel></label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-            {sel && !isNew && (
-              <div className="flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto">
-                <Divider label={`Diálogos (${dialogos.length})`} />
-                {dialogos.length === 0 ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
-                  : dialogos.map((d) => (
-                    <button key={d.id} type="button" onClick={() => { setSelDial(d); setDialJson(d.dialogo); }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors"
-                      style={{ background: selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)", border: `1px solid ${selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
-                      <MessageCircle size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
-                      <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--primary)" }}>{d.clave}</span>
-                      <Bdg text={d.activo ? "on" : "off"} active={d.activo} />
-                    </button>
-                  ))}
-              </div>
-            )}
-          </Panel>
-          {selDial && (
-            <div className="flex flex-col gap-3 min-h-0 shrink-0" style={{ width: "300px" }}>
-              <div className="rounded-2xl p-4 flex flex-col gap-3 flex-1 min-h-0" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-                <div className="flex items-center justify-between shrink-0">
-                  <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>dialogo JSON</span>
-                  <div className="flex items-center gap-2">
-                    <SaveBtn saving={savingD} saved={savedD} onClick={saveD} />
-                    <button type="button" onClick={() => setSelDial(null)} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}><X size={13} /></button>
-                  </div>
-                </div>
-                <div className="flex-1 min-h-0"><JsonEditor value={dialJson} onChange={setDialJson} /></div>
-              </div>
-            </div>
-          )}
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q="" onQ={() => {}} onNew={startNew} newLabel="Nuevo personaje" />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {personajes.map((p) => (
+            <GridCard key={p.id} nombre={p.nombre} sub={cName(p.criatura_id)} badge={p.activo ? "on" : "off"}
+              icono={<Users size={14} />} onClick={() => pick(p)} />
+          ))}
         </div>
-      ) : <Panel empty />}
+      )}
+
+      <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); setSelDial(null); }}
+        titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}>
+        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><FL label="Criatura canónica" /><Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}><option value="">—</option>{criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Sel></label>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          {sel && !isNew && <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>}
+        </div>
+        {sel && !isNew && (
+          <>
+            <Divider label={`Diálogos (${dialogos.length})`} />
+            {dialogos.length === 0 ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
+              : dialogos.map((d) => (
+                <button key={d.id} type="button" onClick={() => { setSelDial(d); setDialJson(d.dialogo); }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors"
+                  style={{ background: selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)", border: `1px solid ${selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
+                  <MessageCircle size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+                  <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--primary)" }}>{d.clave}</span>
+                  <Bdg text={d.activo ? "on" : "off"} active={d.activo} />
+                </button>
+              ))}
+          </>
+        )}
+      </PanelModal>
+
+      {/* Panel diálogo anidado */}
+      <PanelModal abierto={!!selDial} onCerrar={() => setSelDial(null)}
+        titulo={`Diálogo · ${selDial?.clave}`} icono={<MessageCircle size={12} />}
+        accionesDerecha={<SaveBtn saving={savingD} saved={savedD} onClick={saveD} />}>
+        <div style={{ minHeight: "240px" }}><JsonEditor value={dialJson} onChange={setDialJson} /></div>
+      </PanelModal>
     </div>
   );
 }
@@ -921,28 +902,32 @@ function CriaturasSection() {
   });
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={criaturas} selectedId={sel?.id} onSelect={pick} loading={loading} searchPlaceholder="Buscar criatura…"
-        filterFn={(c, q) => c.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(c, active) => (
-          <SideItem key={c.id} active={active} onClick={() => pick(c)}>
-            <span className="flex-1 text-sm font-medium truncate">{c.nombre}</span>
-            {Object.keys(c.ia_config ?? {}).length > 0 && <Bot size={10} style={{ color: "var(--primary)", flexShrink: 0 }} />}
-          </SideItem>
-        )} />
-      {sel ? (
-        <Panel title={sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
-          <div className="flex shrink-0 gap-1 p-1 rounded-xl self-start" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
-            {(["ia", "dialogo"] as const).map((t) => (
-              <button key={t} type="button" onClick={() => setTab(t)} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
-                style={{ background: tab === t ? "var(--primary)" : "transparent", color: tab === t ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
-                {t === "ia" ? "ia_config" : "dialogo"}
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 min-h-0"><JsonEditor value={iaConfig} onChange={setIaConfig} /></div>
-        </Panel>
-      ) : <Panel empty emptyIcon={<Bot size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {criaturas.map((c) => (
+            <GridCard key={c.id} nombre={c.nombre}
+              badge={Object.keys(c.ia_config ?? {}).length > 0 ? "ia" : undefined}
+              icono={<Bot size={14} />} onClick={() => pick(c)} />
+          ))}
+        </div>
+      )}
+
+      <PanelModal abierto={!!sel} onCerrar={() => setSel(null)}
+        titulo={sel?.nombre} icono={<Bot size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
+        <div className="flex shrink-0 gap-1 p-1 rounded-xl self-start" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          {(["ia", "dialogo"] as const).map((t) => (
+            <button key={t} type="button" onClick={() => setTab(t)} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+              style={{ background: tab === t ? "var(--primary)" : "transparent", color: tab === t ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+              {t === "ia" ? "ia_config" : "dialogo"}
+            </button>
+          ))}
+        </div>
+        <div style={{ minHeight: "240px" }}><JsonEditor value={iaConfig} onChange={setIaConfig} /></div>
+      </PanelModal>
     </div>
   );
 }
@@ -1000,50 +985,46 @@ function EspeciesSection() {
   const del = async (id: string) => { if (!confirm("¿Eliminar especie?")) return; await supabase.from("especies_jugables").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={especies} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva especie" isNew={isNew} loading={loading}
-        filterFn={(e, q) => e.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(e, active) => (
-          <SideItem key={e.id} active={active} onClick={() => pick(e)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{e.nombre}</span>
-              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{e.clave}</span>
-            </div>
-            <Bdg text={e.activo ? "on" : "off"} active={e.activo} />
-            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(e.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q="" onQ={() => {}} onNew={startNew} newLabel="Nueva especie" />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {especies.map((e) => (
+            <GridCard key={e.id} nombre={e.nombre} sub={e.clave} badge={e.activo ? "on" : "off"}
+              icono={<Leaf size={14} />} onClick={() => pick(e)} />
+          ))}
+        </div>
+      )}
 
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nueva especie" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-
-            <Divider label="Eterium base (especie_eterium_v1)" />
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Capacidad base" /><Inp type="number" step="0.1" value={capBase} onChange={(e) => setCapBase(Number(e.target.value))} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Recuperación" /><Inp type="number" step="0.1" value={recBase} onChange={(e) => setRecBase(Number(e.target.value))} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Eficiencia" /><Inp type="number" step="0.01" value={efBase} onChange={(e) => setEfBase(Number(e.target.value))} /></label>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etActivo} onChange={(e) => setEtActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en v1</span></label>
-
-            <Divider label="Eterium game (especie_eterium_game)" />
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Eterium inicial" /><Inp type="number" value={etInicial} onChange={(e) => setEtInicial(Number(e.target.value))} /></label>
-            </div>
-            <div className="flex gap-4 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={vidaCompartidos} onChange={(e) => setVidaCompartidos(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Vida/eterium compartidos</span></label>
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={recEterium} onChange={(e) => setRecEterium(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Recuperación eterium</span></label>
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etgActivo} onChange={(e) => setEtgActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en game</span></label>
-            </div>
-          </div>
-        </Panel>
-      ) : <Panel empty emptyIcon={<Leaf size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+      <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); }}
+        titulo={isNew ? "Nueva especie" : sel?.nombre} icono={<Leaf size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+        </div>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          {sel && !isNew && <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>}
+        </div>
+        <Divider label="Eterium base (especie_eterium_v1)" />
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Capacidad base" /><Inp type="number" step="0.1" value={capBase} onChange={(e) => setCapBase(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Recuperación" /><Inp type="number" step="0.1" value={recBase} onChange={(e) => setRecBase(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Eficiencia" /><Inp type="number" step="0.01" value={efBase} onChange={(e) => setEfBase(Number(e.target.value))} /></label>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etActivo} onChange={(e) => setEtActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en v1</span></label>
+        <Divider label="Eterium game (especie_eterium_game)" />
+        <label className="flex flex-col gap-1"><FL label="Eterium inicial" /><Inp type="number" value={etInicial} onChange={(e) => setEtInicial(Number(e.target.value))} /></label>
+        <div className="flex gap-4 flex-wrap">
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={vidaCompartidos} onChange={(e) => setVidaCompartidos(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Vida/eterium compartidos</span></label>
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={recEterium} onChange={(e) => setRecEterium(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Recuperación eterium</span></label>
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={etgActivo} onChange={(e) => setEtgActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en game</span></label>
+        </div>
+      </PanelModal>
     </div>
   );
 }
