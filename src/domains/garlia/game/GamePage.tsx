@@ -19,6 +19,7 @@ import {
   Utensils, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
+import { ModalFlotante } from "@/domains/garlia/_shared/ModalFlotante";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared primitives
@@ -887,233 +888,6 @@ function CriaturasSection() {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME — Items
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ItemsSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const { saving, saved, run } = useSave();
-  const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
-
-  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
-  const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
-
-  return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} loading={loading} searchPlaceholder="Buscar item…"
-        filterFn={(i, q) => (i.tipo ?? "").toLowerCase().includes(q.toLowerCase())}
-        renderItem={(i, active) => (
-          <SideItem key={i.id} active={active} onClick={() => pick(i)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{i.tipo ?? "sin tipo"}</span>
-              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{i.item_id?.slice(0, 8)}…</span>
-            </div>
-            <Bdg text={`×${i.max_stack}`} active={active} />
-          </SideItem>
-        )} />
-      {sel ? (
-        <Panel title={`Item · ${sel.tipo ?? sel.id.slice(0, 8)}`} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
-          <p className="text-xs shrink-0 font-mono" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>item_id: {sel.item_id}</p>
-          <div className="flex gap-3">
-            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
-            <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
-          </div>
-          <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div className="flex-1 min-h-0"><JsonEditor value={props} onChange={setProps} /></div></label>
-        </Panel>
-      ) : <Panel empty emptyIcon={<Package size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME — Props
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PropsSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [biomas, setBiomas] = useState<any[]>([]);
-  const [ecos, setEcos] = useState<any[]>([]);
-  const [habitats, setHabitats] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [tipo, setTipo] = useState(""); const [activo, setActivo] = useState(true);
-  const [orden, setOrden] = useState(0); const [peso, setPeso] = useState(0); const [escala, setEscala] = useState(1);
-  const [biomaId, setBiomaId] = useState(""); const [ecoId, setEcoId] = useState(""); const [habId, setHabId] = useState("");
-  const [props, setProps] = useState<Record<string, unknown>>({});
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("props_game").select("*").order("orden");
-    const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
-    const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
-    const { data: h } = await supabase.from("habitats").select("id,nombre").order("nombre");
-    setItems(data ?? []); setBiomas(b ?? []); setEcos(e ?? []); setHabitats(h ?? []); setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (p: any) => { setSel(p); setIsNew(false); setClave(p.clave); setNombre(p.nombre); setTipo(p.tipo); setActivo(p.activo); setOrden(p.orden); setPeso(p.peso); setEscala(p.escala); setBiomaId(p.bioma_id ?? ""); setEcoId(p.ecosistema_id ?? ""); setHabId(p.habitat_id ?? ""); setProps(p.propiedades ?? {}); };
-  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setTipo(""); setActivo(true); setOrden(0); setPeso(0); setEscala(1); setBiomaId(""); setEcoId(""); setHabId(""); setProps({}); };
-  const save = () => run(async () => {
-    const p = { clave, nombre, tipo, activo, orden, peso, escala, bioma_id: biomaId || null, ecosistema_id: ecoId || null, habitat_id: habId || null, propiedades: props };
-    isNew ? await supabase.from("props_game").insert(p) : await supabase.from("props_game").update(p).eq("id", sel.id);
-    await load();
-  });
-  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("props_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-
-  return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo prop" isNew={isNew} loading={loading} width={240}
-        filterFn={(p, q) => p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(p, active) => (
-          <SideItem key={p.id} active={active} onClick={() => pick(p)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{p.nombre}</span>
-              <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{p.clave}</span>
-            </div>
-            <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
-            <button type="button" onClick={(e) => { e.stopPropagation(); del(p.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nuevo prop" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            </div>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-              <label className="flex flex-col gap-1 w-16"><FL label="Escala" /><Inp type="number" step="0.1" value={escala} onChange={(e) => setEscala(Number(e.target.value))} /></label>
-              <label className="flex flex-col gap-1 w-16"><FL label="Peso" /><Inp type="number" step="0.1" value={peso} onChange={(e) => setPeso(Number(e.target.value))} /></label>
-            </div>
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">—</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">—</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Hábitat" /><Sel value={habId} onChange={(e) => setHabId(e.target.value)}><option value="">—</option>{habitats.map((h) => <option key={h.id} value={h.id}>{h.nombre}</option>)}</Sel></label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "120px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-          </div>
-        </Panel>
-      ) : <Panel empty />}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME — Misiones (+ objetivos + recompensas inline)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function MisionesSection() {
-  const [misiones, setMisiones] = useState<any[]>([]);
-  const [objetivos, setObjetivos] = useState<any[]>([]);
-  const [recompensas, setRecompensas] = useState<any[]>([]);
-  const [criaturas, setCriaturas] = useState<any[]>([]);
-  const [personajes, setPersonajes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [tipo, setTipo] = useState("principal"); const [activo, setActivo] = useState(true); const [autoAceptar, setAutoAceptar] = useState(false); const [orden, setOrden] = useState(0);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: m } = await supabase.from("misiones_game").select("*").order("orden");
-    const { data: c } = await supabase.from("criaturas").select("id,nombre").order("nombre");
-    const { data: p } = await supabase.from("personajes_game").select("id,nombre").order("nombre");
-    setMisiones(m ?? []); setCriaturas(c ?? []); setPersonajes(p ?? []); setLoading(false);
-  }, []);
-  const loadSub = useCallback(async (mid: string) => {
-    const { data: o } = await supabase.from("misiones_objetivos_game").select("*").eq("mision_id", mid).order("orden");
-    const { data: r } = await supabase.from("misiones_recompensas_game").select("*").eq("mision_id", mid).order("orden");
-    setObjetivos(o ?? []); setRecompensas(r ?? []);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const pick = (m: any) => { setSel(m); setIsNew(false); setClave(m.clave); setNombre(m.nombre); setDesc(m.descripcion); setTipo(m.tipo); setActivo(m.activo); setAutoAceptar(m.auto_aceptar); setOrden(m.orden); loadSub(m.id); };
-  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setDesc(""); setTipo("principal"); setActivo(true); setAutoAceptar(false); setOrden(0); setObjetivos([]); setRecompensas([]); };
-  const save = () => run(async () => {
-    const p = { clave, nombre, descripcion: desc, tipo, activo, auto_aceptar: autoAceptar, orden };
-    isNew ? await supabase.from("misiones_game").insert(p) : await supabase.from("misiones_game").update(p).eq("id", sel.id);
-    await load();
-  });
-  const del = async (id: string) => { if (!confirm("¿Eliminar misión?")) return; await supabase.from("misiones_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-
-  const delObj = async (id: string) => { await supabase.from("misiones_objetivos_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
-  const delRec = async (id: string) => { await supabase.from("misiones_recompensas_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
-
-  return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={misiones} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva misión" isNew={isNew} loading={loading} width={240}
-        filterFn={(m, q) => m.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(m, active) => (
-          <SideItem key={m.id} active={active} onClick={() => pick(m)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{m.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{m.tipo}</span>
-            </div>
-            <Bdg text={m.activo ? "on" : "off"} active={m.activo} />
-            <button type="button" onClick={(e) => { e.stopPropagation(); del(m.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nueva misión" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Sel value={tipo} onChange={(e) => setTipo(e.target.value)}><option value="principal">principal</option><option value="secundaria">secundaria</option><option value="diaria">diaria</option><option value="oculta">oculta</option></Sel></label>
-              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={autoAceptar} onChange={(e) => setAutoAceptar(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Auto-aceptar</span></label>
-            </div>
-
-            {sel && !isNew && (
-              <>
-                <Divider label={`Objetivos (${objetivos.length})`} />
-                {objetivos.map((o) => (
-                  <div key={o.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                    <span className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{o.orden}.</span>
-                    <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{o.descripcion}</span>
-                    <Bdg text={o.tipo} active={false} />
-                    <button type="button" onClick={() => delObj(o.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-                  </div>
-                ))}
-
-                <Divider label={`Recompensas (${recompensas.length})`} />
-                {recompensas.map((r) => (
-                  <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
-                    style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                    <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.tipo} × {r.cantidad}</span>
-                    <button type="button" onClick={() => delRec(r.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </Panel>
-      ) : <Panel empty emptyIcon={<ScrollText size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME — Especies jugables + Eterium
-// ─────────────────────────────────────────────────────────────────────────────
-
 function EspeciesSection() {
   const [especies, setEspecies] = useState<any[]>([]);
   const [eteriumV1, setEteriumV1] = useState<any[]>([]);
@@ -1221,12 +995,379 @@ function EspeciesSection() {
 // GAME — Social + Regalos
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared grid helpers — patrón QuimicaPage / ElementoPage
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Casilla de grid genérica */
+function GridCard({
+  nombre,
+  sub,
+  badge,
+  icono,
+  onClick,
+}: {
+  nombre: string;
+  sub?: string;
+  badge?: string;
+  icono?: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col gap-2 p-3 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
+        border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+      }}
+    >
+      {icono && (
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center"
+          style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          <span style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>{icono}</span>
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-bold truncate" style={{ color: "var(--primary)" }}>{nombre}</p>
+        {sub && (
+          <p className="text-[10px] truncate mt-0.5" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{sub}</p>
+        )}
+      </div>
+      {badge && (
+        <span
+          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full self-start"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+            color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+          }}
+        >
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Barra de búsqueda + botón nuevo encima del grid */
+function GridToolbar({
+  q,
+  onQ,
+  onNew,
+  newLabel,
+}: {
+  q: string;
+  onQ: (v: string) => void;
+  onNew?: () => void;
+  newLabel?: string;
+}) {
+  return (
+    <div className="shrink-0 flex items-center gap-2 mb-4">
+      <div
+        className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
+        style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}
+      >
+        <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+        <input
+          className="flex-1 bg-transparent text-xs outline-none"
+          style={{ color: "var(--primary)" }}
+          placeholder="Buscar…"
+          value={q}
+          onChange={(e) => onQ(e.target.value)}
+        />
+      </div>
+      {onNew && (
+        <button
+          type="button"
+          onClick={onNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)" }}
+        >
+          <Plus size={12} /> {newLabel ?? "Nuevo"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Items (grid + ModalFlotante)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ItemsSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [q, setQ] = useState("");
+  const { saving, saved, run } = useSave();
+  const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
+
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
+  useEffect(() => { load(); }, [load]);
+  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
+  const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
+
+  const filtered = q ? items.filter((i) => (i.tipo ?? "").toLowerCase().includes(q.toLowerCase())) : items;
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={q} onQ={setQ} />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {filtered.map((i) => (
+            <GridCard
+              key={i.id}
+              nombre={i.tipo ?? "sin tipo"}
+              sub={i.item_id?.slice(0, 8) + "…"}
+              badge={`×${i.max_stack}`}
+              icono={<Sword size={14} />}
+              onClick={() => pick(i)}
+            />
+          ))}
+        </div>
+      )}
+
+      <ModalFlotante
+        abierto={!!sel}
+        onCerrar={() => setSel(null)}
+        titulo={`Item · ${sel?.tipo ?? sel?.id?.slice(0, 8)}`}
+        icono={<Sword size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
+      >
+        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>item_id: {sel?.item_id}</p>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
+        </div>
+        <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "160px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+      </ModalFlotante>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Props (grid + ModalFlotante)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PropsSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [biomas, setBiomas] = useState<any[]>([]);
+  const [ecos, setEcos] = useState<any[]>([]);
+  const [habitats, setHabitats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [q, setQ] = useState("");
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [tipo, setTipo] = useState(""); const [activo, setActivo] = useState(true);
+  const [orden, setOrden] = useState(0); const [peso, setPeso] = useState(0); const [escala, setEscala] = useState(1);
+  const [biomaId, setBiomaId] = useState(""); const [ecoId, setEcoId] = useState(""); const [habId, setHabId] = useState("");
+  const [props, setProps] = useState<Record<string, unknown>>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase.from("props_game").select("*").order("orden");
+    const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
+    const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
+    const { data: h } = await supabase.from("habitats").select("id,nombre").order("nombre");
+    setItems(data ?? []); setBiomas(b ?? []); setEcos(e ?? []); setHabitats(h ?? []); setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const pick = (p: any) => { setSel(p); setIsNew(false); setClave(p.clave); setNombre(p.nombre); setTipo(p.tipo); setActivo(p.activo); setOrden(p.orden); setPeso(p.peso); setEscala(p.escala); setBiomaId(p.bioma_id ?? ""); setEcoId(p.ecosistema_id ?? ""); setHabId(p.habitat_id ?? ""); setProps(p.propiedades ?? {}); };
+  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setTipo(""); setActivo(true); setOrden(0); setPeso(0); setEscala(1); setBiomaId(""); setEcoId(""); setHabId(""); setProps({}); };
+  const save = () => run(async () => {
+    const p = { clave, nombre, tipo, activo, orden, peso, escala, bioma_id: biomaId || null, ecosistema_id: ecoId || null, habitat_id: habId || null, propiedades: props };
+    isNew ? await supabase.from("props_game").insert(p) : await supabase.from("props_game").update(p).eq("id", sel.id);
+    await load(); if (isNew) setIsNew(false);
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("props_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); } await load(); };
+
+  const filtered = q ? items.filter((p) => p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase())) : items;
+  const abierto = !!sel || isNew;
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nuevo prop" />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {filtered.map((p) => (
+            <GridCard
+              key={p.id}
+              nombre={p.nombre}
+              sub={p.clave}
+              badge={p.activo ? "on" : "off"}
+              icono={<Package size={14} />}
+              onClick={() => pick(p)}
+            />
+          ))}
+        </div>
+      )}
+
+      <ModalFlotante
+        abierto={abierto}
+        onCerrar={() => { setSel(null); setIsNew(false); }}
+        titulo={isNew ? "Nuevo prop" : sel?.nombre}
+        icono={<Package size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}
+      >
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        </div>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Escala" /><Inp type="number" step="0.1" value={escala} onChange={(e) => setEscala(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Peso" /><Inp type="number" step="0.1" value={peso} onChange={(e) => setPeso(Number(e.target.value))} /></label>
+        </div>
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">—</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">—</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Hábitat" /><Sel value={habId} onChange={(e) => setHabId(e.target.value)}><option value="">—</option>{habitats.map((h) => <option key={h.id} value={h.id}>{h.nombre}</option>)}</Sel></label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "120px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          {sel && !isNew && (
+            <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
+          )}
+        </div>
+      </ModalFlotante>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Misiones (grid + ModalFlotante)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MisionesSection() {
+  const [misiones, setMisiones] = useState<any[]>([]);
+  const [objetivos, setObjetivos] = useState<any[]>([]);
+  const [recompensas, setRecompensas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState<any>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [q, setQ] = useState("");
+  const { saving, saved, run } = useSave();
+  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [tipo, setTipo] = useState("principal"); const [activo, setActivo] = useState(true); const [autoAceptar, setAutoAceptar] = useState(false); const [orden, setOrden] = useState(0);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: m } = await supabase.from("misiones_game").select("*").order("orden");
+    setMisiones(m ?? []); setLoading(false);
+  }, []);
+  const loadSub = useCallback(async (mid: string) => {
+    const { data: o } = await supabase.from("misiones_objetivos_game").select("*").eq("mision_id", mid).order("orden");
+    const { data: r } = await supabase.from("misiones_recompensas_game").select("*").eq("mision_id", mid).order("orden");
+    setObjetivos(o ?? []); setRecompensas(r ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const pick = (m: any) => { setSel(m); setIsNew(false); setClave(m.clave); setNombre(m.nombre); setDesc(m.descripcion); setTipo(m.tipo); setActivo(m.activo); setAutoAceptar(m.auto_aceptar); setOrden(m.orden); loadSub(m.id); };
+  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setDesc(""); setTipo("principal"); setActivo(true); setAutoAceptar(false); setOrden(0); setObjetivos([]); setRecompensas([]); };
+  const save = () => run(async () => {
+    const p = { clave, nombre, descripcion: desc, tipo, activo, auto_aceptar: autoAceptar, orden };
+    isNew ? await supabase.from("misiones_game").insert(p) : await supabase.from("misiones_game").update(p).eq("id", sel.id);
+    await load(); if (isNew) setIsNew(false);
+  });
+  const del = async (id: string) => { if (!confirm("¿Eliminar misión?")) return; await supabase.from("misiones_game").delete().eq("id", id); if (sel?.id === id) setSel(null); await load(); };
+  const delObj = async (id: string) => { await supabase.from("misiones_objetivos_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
+  const delRec = async (id: string) => { await supabase.from("misiones_recompensas_game").delete().eq("id", id); if (sel) loadSub(sel.id); };
+
+  const filtered = q ? misiones.filter((m) => m.nombre.toLowerCase().includes(q.toLowerCase())) : misiones;
+  const abierto = !!sel || isNew;
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nueva misión" />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+          {filtered.map((m) => (
+            <GridCard
+              key={m.id}
+              nombre={m.nombre}
+              sub={m.tipo}
+              badge={m.activo ? "on" : "off"}
+              icono={<ScrollText size={14} />}
+              onClick={() => pick(m)}
+            />
+          ))}
+        </div>
+      )}
+
+      <ModalFlotante
+        abierto={abierto}
+        onCerrar={() => { setSel(null); setIsNew(false); }}
+        titulo={isNew ? "Nueva misión" : sel?.nombre}
+        icono={<ScrollText size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}
+        maxWidth="max-w-2xl"
+      >
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Sel value={tipo} onChange={(e) => setTipo(e.target.value)}><option value="principal">principal</option><option value="secundaria">secundaria</option><option value="diaria">diaria</option><option value="oculta">oculta</option></Sel></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></label>
+        <div className="flex gap-4 flex-wrap">
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={autoAceptar} onChange={(e) => setAutoAceptar(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Auto-aceptar</span></label>
+        </div>
+
+        {sel && !isNew && (
+          <>
+            <Divider label={`Objetivos (${objetivos.length})`} />
+            {objetivos.map((o) => (
+              <div key={o.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <span className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{o.orden}.</span>
+                <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{o.descripcion}</span>
+                <Bdg text={o.tipo} active={false} />
+                <button type="button" onClick={() => delObj(o.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+              </div>
+            ))}
+
+            <Divider label={`Recompensas (${recompensas.length})`} />
+            {recompensas.map((r) => (
+              <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+                style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.tipo} × {r.cantidad}</span>
+                <button type="button" onClick={() => delRec(r.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+              </div>
+            ))}
+            <div className="flex justify-end">
+              <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar misión</button>
+            </div>
+          </>
+        )}
+      </ModalFlotante>
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAME — Social (grid + ModalFlotante)
+// ─────────────────────────────────────────────────────────────────────────────
+
 function SocialSection() {
   const [perfiles, setPerfiles] = useState<any[]>([]);
   const [regalos, setRegalos] = useState<any[]>([]);
   const [personajes, setPersonajes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
+  const [q, setQ] = useState("");
   const { saving, saved, run } = useSave();
 
   const load = useCallback(async () => {
@@ -1240,7 +1381,6 @@ function SocialSection() {
 
   const pName = (id: string) => personajes.find((p) => p.id === id)?.nombre ?? id.slice(0, 8);
   const pick = (p: any) => setSel(p);
-
   const numF = (label: string, key: string) => (
     <label className="flex flex-col gap-1">
       <FL label={label} />
@@ -1255,51 +1395,63 @@ function SocialSection() {
     await load();
   });
 
-  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>;
+  const filtered = q ? perfiles.filter((p) => pName(p.personaje_game_id).toLowerCase().includes(q.toLowerCase())) : perfiles;
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      {/* Lista personajes con social */}
-      <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden" style={{ width: "240px", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
-        <div className="px-3 py-2 text-xs font-semibold border-b" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>Social profiles</div>
-        <div className="flex-1 overflow-y-auto">
-          {perfiles.map((p) => (
-            <SideItem key={p.personaje_game_id} active={sel?.personaje_game_id === p.personaje_game_id} onClick={() => pick(p)}>
-              <span className="flex-1 text-sm font-medium truncate">{pName(p.personaje_game_id)}</span>
-              <Bdg text={p.activo ? "on" : "off"} active={p.activo} />
-            </SideItem>
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={q} onQ={setQ} />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {filtered.map((p) => (
+            <GridCard
+              key={p.personaje_game_id}
+              nombre={pName(p.personaje_game_id)}
+              badge={p.activo ? "on" : "off"}
+              icono={<Heart size={14} />}
+              onClick={() => pick(p)}
+            />
           ))}
         </div>
-      </div>
+      )}
 
-      {sel ? (
-        <Panel title={`Social — ${pName(sel.personaje_game_id)}`} saveBtn={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
-          <div className="grid grid-cols-2 gap-3 overflow-y-auto flex-1">
-            {numF("Amistad inicial", "amistad_inicial")}
-            {numF("Confianza inicial", "confianza_inicial")}
-            {numF("Respeto inicial", "respeto_inicial")}
-            {numF("Afecto inicial", "afecto_inicial")}
-            {numF("Sociabilidad", "sociabilidad")}
-            {numF("Curiosidad", "curiosidad")}
-            {numF("Generosidad", "generosidad")}
-            {numF("Prudencia", "prudencia")}
-            {numF("Agresividad", "agresividad")}
-          </div>
-          <Divider label={`Regalos de ${pName(sel.personaje_game_id)} (${regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).length})`} />
-          {regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).map((r) => (
-            <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.item_id?.slice(0, 8)}…</span>
-              <Bdg text={r.reaccion} active={r.reaccion === "amor"} />
-            </div>
-          ))}
-        </Panel>
-      ) : <Panel empty emptyIcon={<Heart size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+      <ModalFlotante
+        abierto={!!sel}
+        onCerrar={() => setSel(null)}
+        titulo={`Social — ${sel ? pName(sel.personaje_game_id) : ""}`}
+        icono={<Heart size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          {numF("Amistad inicial", "amistad_inicial")}
+          {numF("Confianza inicial", "confianza_inicial")}
+          {numF("Respeto inicial", "respeto_inicial")}
+          {numF("Afecto inicial", "afecto_inicial")}
+          {numF("Sociabilidad", "sociabilidad")}
+          {numF("Curiosidad", "curiosidad")}
+          {numF("Generosidad", "generosidad")}
+          {numF("Prudencia", "prudencia")}
+          {numF("Agresividad", "agresividad")}
+        </div>
+        {sel && (
+          <>
+            <Divider label={`Regalos de ${pName(sel.personaje_game_id)} (${regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).length})`} />
+            {regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).map((r) => (
+              <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.item_id?.slice(0, 8)}…</span>
+                <Bdg text={r.reaccion} active={r.reaccion === "amor"} />
+              </div>
+            ))}
+          </>
+        )}
+      </ModalFlotante>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GAME — Recetas
+// GAME — Recetas (grid + ModalFlotante)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function RecetasSection() {
@@ -1307,6 +1459,7 @@ function RecetasSection() {
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
   const [isNew, setIsNew] = useState(false);
+  const [q, setQ] = useState("");
   const { saving, saved, run } = useSave();
   const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [categoria, setCategoria] = useState(""); const [desbloqueada, setDesbloqueada] = useState(true);
   const [ingredientes, setIngredientes] = useState<Record<string, unknown>>({}); const [resultado, setResultado] = useState<Record<string, unknown>>({}); const [props, setProps] = useState<Record<string, unknown>>({});
@@ -1318,44 +1471,60 @@ function RecetasSection() {
   const save = () => run(async () => {
     const p = { nombre, descripcion: desc, categoria, desbloqueada_por_defecto: desbloqueada, ingredientes, resultado, propiedades: props };
     isNew ? await supabase.from("recetas_game").insert(p) : await supabase.from("recetas_game").update(p).eq("id", sel.id);
-    await load();
+    await load(); if (isNew) setIsNew(false);
   });
-  const del = async (id: string) => { if (!confirm("¿Eliminar receta?")) return; await supabase.from("recetas_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
+  const del = async (id: string) => { if (!confirm("¿Eliminar receta?")) return; await supabase.from("recetas_game").delete().eq("id", id); if (sel?.id === id) setSel(null); await load(); };
+
+  const filtered = q ? items.filter((r) => r.nombre.toLowerCase().includes(q.toLowerCase())) : items;
+  const abierto = !!sel || isNew;
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nueva receta" isNew={isNew} loading={loading} width={240}
-        filterFn={(r, q) => r.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(r, active) => (
-          <SideItem key={r.id} active={active} onClick={() => pick(r)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{r.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{r.categoria}</span>
-            </div>
-            <button type="button" onClick={(e) => { e.stopPropagation(); del(r.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nueva receta" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-            <div className="flex gap-3">
-              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-              <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={categoria} onChange={(e) => setCategoria(e.target.value)} /></label>
-            </div>
-            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={desbloqueada} onChange={(e) => setDesbloqueada(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Desbloqueada por defecto</span></label>
-            <label className="flex flex-col gap-1"><FL label="Ingredientes (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={ingredientes} onChange={setIngredientes} /></div></label>
-            <label className="flex flex-col gap-1"><FL label="Resultado (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={resultado} onChange={setResultado} /></div></label>
-            <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nueva receta" />
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+      ) : (
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+          {filtered.map((r) => (
+            <GridCard
+              key={r.id}
+              nombre={r.nombre}
+              sub={r.categoria}
+              icono={<Utensils size={14} />}
+              onClick={() => pick(r)}
+            />
+          ))}
+        </div>
+      )}
+
+      <ModalFlotante
+        abierto={abierto}
+        onCerrar={() => { setSel(null); setIsNew(false); }}
+        titulo={isNew ? "Nueva receta" : sel?.nombre}
+        icono={<Utensils size={12} />}
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}
+      >
+        <div className="flex gap-3">
+          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={categoria} onChange={(e) => setCategoria(e.target.value)} /></label>
+        </div>
+        <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} /></label>
+        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={desbloqueada} onChange={(e) => setDesbloqueada(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Desbloqueada por defecto</span></label>
+        <label className="flex flex-col gap-1"><FL label="Ingredientes (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={ingredientes} onChange={setIngredientes} /></div></label>
+        <label className="flex flex-col gap-1"><FL label="Resultado (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={resultado} onChange={setResultado} /></div></label>
+        <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "80px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+        {sel && !isNew && (
+          <div className="flex justify-end">
+            <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
           </div>
-        </Panel>
-      ) : <Panel empty emptyIcon={<Utensils size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+        )}
+      </ModalFlotante>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AMBIENTE — Factores abióticos · Modificadores
+// AMBIENTE — Factores abióticos · Modificadores (grid + ModalFlotante)
 // ─────────────────────────────────────────────────────────────────────────────
 
 type AmbSub = "factores" | "modificadores";
@@ -1368,6 +1537,7 @@ const AMB_SUBS: { key: AmbSub; label: string }[] = [
 function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
   const sub = activeSub;
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
 
   // factores_abioticos
   const [factores, setFactores] = useState<any[]>([]);
@@ -1396,7 +1566,6 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  // factores handlers
   const pickF = (f: any) => { setSelF(f); setFNombre(f.nombre); setFClave(f.clave); setFDesc(f.descripcion ?? ""); setFCat(f.categoria); setFTipo(f.tipo_valor); setFMin(f.rango_min ?? ""); setFMax(f.rango_max ?? ""); setFActivo(f.activo); };
   const saveF = () => runF(async () => {
     const p = { nombre: fNombre, clave: fClave, descripcion: fDesc, categoria: fCat, tipo_valor: fTipo, rango_min: fMin !== "" ? Number(fMin) : null, rango_max: fMax !== "" ? Number(fMax) : null, activo: fActivo };
@@ -1404,127 +1573,120 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
     await load();
   });
 
-  // modificadores handlers
   const pickM = (m: any) => { setSelM(m); setIsNewM(false); setMDelta(m.delta_numerico); setMFuente(m.fuente); setMMetodo(m.metodo); setMActivo(m.activo); setMEstacionId(m.estacion_id); setMFactorId(m.factor_id); };
   const startNewM = () => { setSelM(null); setIsNewM(true); setMDelta(0); setMFuente(""); setMMetodo("multiplicar"); setMActivo(true); setMEstacionId(""); setMFactorId(""); };
   const saveM = () => runM(async () => {
     const p = { estacion_id: mEstacionId, factor_id: mFactorId, delta_numerico: mDelta, fuente: mFuente, metodo: mMetodo, activo: mActivo };
     isNewM ? await supabase.from("estacion_modificadores_abioticos").insert(p) : await supabase.from("estacion_modificadores_abioticos").update(p).eq("id", selM.id);
-    await load();
+    await load(); if (isNewM) setIsNewM(false);
   });
   const delM = async (id: string) => { if (!confirm("¿Eliminar modificador?")) return; await supabase.from("estacion_modificadores_abioticos").delete().eq("id", id); if (selM?.id === id) { setSelM(null); setIsNewM(false); } await load(); };
 
   const factorName = (id: string) => factores.find((f) => f.id === id)?.nombre ?? "—";
 
-  return (
-    <div className="flex flex-col gap-4 h-full min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-        ) : (
-          <>
-            {/* ── FACTORES ABIÓTICOS ── */}
-            {sub === "factores" && (
-              <div className="flex gap-4 h-full min-h-0">
-                <SideList items={factores} selectedId={selF?.id} onSelect={pickF} loading={false} width={260}
-                  filterFn={(f, q) => f.nombre.toLowerCase().includes(q.toLowerCase())}
-                  renderItem={(f, active) => (
-                    <SideItem key={f.id} active={active} onClick={() => pickF(f)}>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate">{f.nombre}</span>
-                        <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{f.clave}</span>
-                      </div>
-                      <Bdg text={f.activo ? "on" : "off"} active={f.activo} />
-                    </SideItem>
-                  )} />
-                {selF ? (
-                  <Panel title={selF.nombre} saveBtn={<SaveBtn saving={savingF} saved={savedF} disabled={!fNombre.trim()} onClick={saveF} />}>
-                    <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={fNombre} onChange={(e) => setFNombre(e.target.value)} /></label>
-                        <label className="flex flex-col gap-1 w-36"><FL label="Clave (Godot)" /><Inp value={fClave} onChange={(e) => setFClave(e.target.value)} /></label>
-                      </div>
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={fCat} onChange={(e) => setFCat(e.target.value)} placeholder="ej. clima, suelo…" /></label>
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Tipo valor" /><Inp value={fTipo} onChange={(e) => setFTipo(e.target.value)} placeholder="ej. numerico, booleano…" /></label>
-                      </div>
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Rango mín" /><Inp type="number" value={fMin} onChange={(e) => setFMin(e.target.value)} /></label>
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Rango máx" /><Inp type="number" value={fMax} onChange={(e) => setFMax(e.target.value)} /></label>
-                      </div>
-                      <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} /></label>
-                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={fActivo} onChange={(e) => setFActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-                    </div>
-                  </Panel>
-                ) : <Panel empty emptyIcon={<Thermometer size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-              </div>
-            )}
+  const filteredF = q ? factores.filter((f) => f.nombre.toLowerCase().includes(q.toLowerCase()) || f.clave.toLowerCase().includes(q.toLowerCase())) : factores;
+  const filteredM = q ? modificadores.filter((m) => factorName(m.factor_id).toLowerCase().includes(q.toLowerCase())) : modificadores;
 
-            {/* ── MODIFICADORES ESTACIONALES ── */}
-            {sub === "modificadores" && (
-              <div className="flex gap-4 h-full min-h-0">
-                <SideList items={modificadores} selectedId={selM?.id} onSelect={pickM} onNew={startNewM} newLabel="Nuevo modificador" isNew={isNewM} loading={false} width={280}
-                  renderItem={(m, active) => (
-                    <SideItem key={m.id} active={active} onClick={() => pickM(m)}>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate">{factorName(m.factor_id)}</span>
-                        <span className="text-xs truncate font-mono" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{m.estacion_id ?? "—"}</span>
-                      </div>
-                      <Bdg text={`${m.delta_numerico > 0 ? "+" : ""}${m.delta_numerico}`} active={m.activo} />
-                      <button type="button" onClick={(ev) => { ev.stopPropagation(); delM(m.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-                    </SideItem>
-                  )} />
-                {(selM || isNewM) ? (
-                  <Panel title={isNewM ? "Nuevo modificador" : `${factorName(selM.factor_id)}`}
-                    saveBtn={<SaveBtn saving={savingM} saved={savedM} disabled={!mEstacionId || !mFactorId} onClick={saveM} />}>
-                    <div className="flex flex-col gap-3 overflow-y-auto flex-1">
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Estación ID" /><Inp value={mEstacionId} onChange={(e) => setMEstacionId(e.target.value)} placeholder="UUID estación" /></label>
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Factor abiótico" />
-                          <Sel value={mFactorId} onChange={(e) => setMFactorId(e.target.value)}>
-                            <option value="">— factor —</option>
-                            {factores.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-                          </Sel>
-                        </label>
-                      </div>
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Delta numérico" /><Inp type="number" value={mDelta} onChange={(e) => setMDelta(Number(e.target.value))} /></label>
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Método" />
-                          <Sel value={mMetodo} onChange={(e) => setMMetodo(e.target.value)}>
-                            <option value="multiplicar">multiplicar</option>
-                            <option value="sumar">sumar</option>
-                            <option value="reemplazar">reemplazar</option>
-                          </Sel>
-                        </label>
-                      </div>
-                      <label className="flex flex-col gap-1"><FL label="Fuente" /><Inp value={mFuente} onChange={(e) => setMFuente(e.target.value)} placeholder="ej. canon, estimado…" /></label>
-                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={mActivo} onChange={(e) => setMActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-                    </div>
-                  </Panel>
-                ) : <Panel empty emptyIcon={<Clock size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-              </div>
-            )}
-          </>
-        )}
-      </div>
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>;
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      {sub === "factores" && (
+        <>
+          <GridToolbar q={q} onQ={setQ} />
+          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+            {filteredF.map((f) => (
+              <GridCard
+                key={f.id}
+                nombre={f.nombre}
+                sub={f.clave}
+                badge={f.activo ? "on" : "off"}
+                icono={<Thermometer size={14} />}
+                onClick={() => pickF(f)}
+              />
+            ))}
+          </div>
+          <ModalFlotante
+            abierto={!!selF}
+            onCerrar={() => setSelF(null)}
+            titulo={selF?.nombre}
+            icono={<Thermometer size={12} />}
+            accionesDerecha={<SaveBtn saving={savingF} saved={savedF} disabled={!fNombre.trim()} onClick={saveF} />}
+          >
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={fNombre} onChange={(e) => setFNombre(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 w-36"><FL label="Clave (Godot)" /><Inp value={fClave} onChange={(e) => setFClave(e.target.value)} /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={fCat} onChange={(e) => setFCat(e.target.value)} placeholder="ej. clima, suelo…" /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo valor" /><Inp value={fTipo} onChange={(e) => setFTipo(e.target.value)} placeholder="ej. numerico, booleano…" /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Rango mín" /><Inp type="number" value={fMin} onChange={(e) => setFMin(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Rango máx" /><Inp type="number" value={fMax} onChange={(e) => setFMax(e.target.value)} /></label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} /></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={fActivo} onChange={(e) => setFActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          </ModalFlotante>
+        </>
+      )}
+
+      {sub === "modificadores" && (
+        <>
+          <GridToolbar q={q} onQ={setQ} onNew={startNewM} newLabel="Nuevo modificador" />
+          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))" }}>
+            {filteredM.map((m) => (
+              <GridCard
+                key={m.id}
+                nombre={factorName(m.factor_id)}
+                sub={m.estacion_id ?? "—"}
+                badge={`${m.delta_numerico > 0 ? "+" : ""}${m.delta_numerico}`}
+                icono={<Clock size={14} />}
+                onClick={() => pickM(m)}
+              />
+            ))}
+          </div>
+          <ModalFlotante
+            abierto={!!selM || isNewM}
+            onCerrar={() => { setSelM(null); setIsNewM(false); }}
+            titulo={isNewM ? "Nuevo modificador" : factorName(selM?.factor_id)}
+            icono={<Clock size={12} />}
+            accionesDerecha={<SaveBtn saving={savingM} saved={savedM} disabled={!mEstacionId || !mFactorId} onClick={saveM} />}
+          >
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Estación ID" /><Inp value={mEstacionId} onChange={(e) => setMEstacionId(e.target.value)} placeholder="UUID estación" /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Factor abiótico" />
+                <Sel value={mFactorId} onChange={(e) => setMFactorId(e.target.value)}>
+                  <option value="">— factor —</option>
+                  {factores.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+                </Sel>
+              </label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Delta numérico" /><Inp type="number" value={mDelta} onChange={(e) => setMDelta(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Método" />
+                <Sel value={mMetodo} onChange={(e) => setMMetodo(e.target.value)}>
+                  <option value="multiplicar">multiplicar</option>
+                  <option value="sumar">sumar</option>
+                  <option value="reemplazar">reemplazar</option>
+                </Sel>
+              </label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Fuente" /><Inp value={mFuente} onChange={(e) => setMFuente(e.target.value)} placeholder="ej. canon, estimado…" /></label>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={mActivo} onChange={(e) => setMActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+              {selM && !isNewM && (
+                <button type="button" onClick={() => delM(selM.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
+              )}
+            </div>
+          </ModalFlotante>
+        </>
+      )}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tab configs
-// ─────────────────────────────────────────────────────────────────────────────
 
-const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = [
-  { key: "biomas", label: "Biomas", icon: Mountain },
-  { key: "reinos", label: "Reinos", icon: Shield },
-  { key: "ecologia", label: "Ecología", icon: Network },
-];
-const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
-  { key: "personajes", label: "Personajes", icon: Users },
-  { key: "criaturas", label: "Criaturas · IA", icon: Bot },
-  { key: "especies", label: "Especies", icon: Leaf },
-];
 const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
   { key: "items", label: "Items", icon: Sword },
   { key: "props", label: "Props", icon: Package },
