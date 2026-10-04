@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * GamePage — /myself/game  v3
+ * GamePage — /myself/game  v4
  * ──────────────────────────────────────────────────────────────────────────
- * Tres tabs principales:
+ * Cuatro tabs principales:
  *   MUNDO     → Biomas · Ecosistemas · Hábitats · Reinos · Ecología
  *   ENTIDADES → Personajes · Criaturas IA
  *   GAME      → Items · Props · Misiones · Especies · Eterium · Social · Recetas
+ *   AMBIENTE  → Factores abióticos · Calendario · Estaciones · Modificadores
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -15,7 +16,7 @@ import {
   Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
   Save, Search, Shield, Sparkles, Sword, Trash2, TreePine,
   Users, X, Gamepad2, Package, ScrollText, Leaf, Heart,
-  Utensils,
+  Utensils, Wind, CalendarDays, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 
@@ -23,10 +24,11 @@ import { supabase } from "@/infra/supabase/supabase";
 // Shared primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-type MainTab = "mundo" | "entidades" | "game";
-type MundoSec = "biomas" | "ecosistemas" | "habitats" | "reinos" | "ecologia";
+type MainTab = "mundo" | "entidades" | "game" | "ambiente";
+type MundoSec = "biomas" | "reinos" | "ecologia";
 type EntidadesSec = "personajes" | "criaturas";
 type GameSec = "items" | "props" | "misiones" | "especies" | "eterium" | "social" | "recetas";
+type AmbienteSec = "factores" | "calendario" | "estaciones" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -167,153 +169,225 @@ function useSave() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Biomas
+// MUNDO — Biomas (árbol jerárquico Bioma → Ecosistema → Hábitat)
 // ─────────────────────────────────────────────────────────────────────────────
+
+type TreeSel = { kind: "bioma"; id: string } | { kind: "eco"; id: string } | { kind: "hab"; id: string } | null;
 
 function BiomasSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [afinidad, setAfinidad] = useState("");
+  const [biomas,   setBiomas]   = useState<any[]>([]);
+  const [ecos,     setEcos]     = useState<any[]>([]);
+  const [habitats, setHabitats] = useState<any[]>([]);
+  const [tiposH,   setTiposH]   = useState<any[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [sel,      setSel]      = useState<TreeSel>(null);
+  const { saving, saved, run }  = useSave();
 
-  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("biomas").select("id,nombre,descripcion,afinidad,orden").order("orden"); setItems(data ?? []); setLoading(false); }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (b: any) => { setSel(b); setIsNew(false); setNombre(b.nombre); setDesc(b.descripcion); setAfinidad(b.afinidad); };
-  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setDesc(""); setAfinidad(""); };
-  const save = () => run(async () => { const p = { nombre, descripcion: desc, afinidad }; isNew ? await supabase.from("biomas").insert(p) : await supabase.from("biomas").update(p).eq("id", sel.id); await load(); });
-  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("biomas").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-
-  return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo bioma" isNew={isNew} loading={loading}
-        filterFn={(b, q) => b.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(b, active) => (
-          <SideItem key={b.id} active={active} onClick={() => pick(b)}>
-            <span className="flex-1 text-sm font-medium truncate">{b.nombre}</span>
-            <Bdg text={b.afinidad || "?"} active={active} />
-            <button type="button" onClick={(e) => { e.stopPropagation(); del(b.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nuevo bioma" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
-          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-          <label className="flex flex-col gap-1"><FL label="Afinidad" /><Inp value={afinidad} onChange={(e) => setAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
-          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} /></label>
-        </Panel>
-      ) : <Panel empty />}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Ecosistemas
-// ─────────────────────────────────────────────────────────────────────────────
-
-function EcosistemasSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [biomas, setBiomas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [nombre, setNombre] = useState(""); const [clima, setClima] = useState(""); const [desc, setDesc] = useState(""); const [tipoEntorno, setTipoEntorno] = useState(""); const [biomaId, setBiomaId] = useState("");
+  // form bioma
+  const [bNombre, setBNombre] = useState(""); const [bDesc, setBDesc] = useState(""); const [bAfinidad, setBAfinidad] = useState("");
+  // form eco
+  const [eNombre, setENombre] = useState(""); const [eClima, setEClima] = useState(""); const [eDesc, setEDesc] = useState(""); const [eTipo, setETipo] = useState(""); const [eBiomaId, setEBiomaId] = useState("");
+  // form hab
+  const [hNombre, setHNombre] = useState(""); const [hDesc, setHDesc] = useState(""); const [hEcoId, setHEcoId] = useState(""); const [hTipoId, setHTipoId] = useState(""); const [hActivo, setHActivo] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("ecosistemas").select("id,nombre,clima,descripcion,tipo_entorno,bioma_id").order("nombre");
-    const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
-    setItems(data ?? []); setBiomas(b ?? []); setLoading(false);
+    const [b, e, h, t] = await Promise.all([
+      supabase.from("biomas").select("id,nombre,descripcion,afinidad,orden").order("orden"),
+      supabase.from("ecosistemas").select("id,nombre,clima,descripcion,tipo_entorno,bioma_id").order("nombre"),
+      supabase.from("habitats").select("id,nombre,descripcion,ecosistema_id,tipo_habitat_id,activo").order("nombre"),
+      supabase.from("tipos_habitat").select("id,clave,nombre").order("nombre"),
+    ]);
+    setBiomas(b.data ?? []); setEcos(e.data ?? []); setHabitats(h.data ?? []); setTiposH(t.data ?? []);
+    setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
-  const pick = (e: any) => { setSel(e); setIsNew(false); setNombre(e.nombre); setClima(e.clima); setDesc(e.descripcion); setTipoEntorno(e.tipo_entorno); setBiomaId(e.bioma_id ?? ""); };
-  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setClima(""); setDesc(""); setTipoEntorno(""); setBiomaId(""); };
-  const save = () => run(async () => { const p = { nombre, clima, descripcion: desc, tipo_entorno: tipoEntorno, bioma_id: biomaId || null }; isNew ? await supabase.from("ecosistemas").insert(p) : await supabase.from("ecosistemas").update(p).eq("id", sel.id); await load(); });
-  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("ecosistemas").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-  const biomaName = (id: string | null) => biomas.find((b) => b.id === id)?.nombre ?? "—";
+
+  const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
+
+  const pickBioma = (b: any) => { setSel({ kind: "bioma", id: b.id }); setBNombre(b.nombre); setBDesc(b.descripcion ?? ""); setBAfinidad(b.afinidad ?? ""); };
+  const pickEco   = (e: any) => { setSel({ kind: "eco",   id: e.id }); setENombre(e.nombre); setEClima(e.clima ?? ""); setEDesc(e.descripcion ?? ""); setETipo(e.tipo_entorno ?? ""); setEBiomaId(e.bioma_id ?? ""); };
+  const pickHab   = (h: any) => { setSel({ kind: "hab",   id: h.id }); setHNombre(h.nombre); setHDesc(h.descripcion ?? ""); setHEcoId(h.ecosistema_id ?? ""); setHTipoId(h.tipo_habitat_id ?? ""); setHActivo(h.activo); };
+
+  const saveBioma = () => run(async () => { await supabase.from("biomas").update({ nombre: bNombre, descripcion: bDesc, afinidad: bAfinidad }).eq("id", sel!.id); await load(); });
+  const saveEco   = () => run(async () => { await supabase.from("ecosistemas").update({ nombre: eNombre, clima: eClima, descripcion: eDesc, tipo_entorno: eTipo, bioma_id: eBiomaId || null }).eq("id", sel!.id); await load(); });
+  const saveHab   = () => run(async () => { await supabase.from("habitats").update({ nombre: hNombre, descripcion: hDesc, ecosistema_id: hEcoId, tipo_habitat_id: hTipoId, activo: hActivo }).eq("id", sel!.id); await load(); });
+
+  const addEco = async (biomaId: string) => {
+    const { data } = await supabase.from("ecosistemas").insert({ nombre: "Nuevo ecosistema", bioma_id: biomaId, clima: "", tipo_entorno: "", descripcion: "" }).select().single();
+    await load(); if (data) { setExpanded((p) => ({ ...p, [biomaId]: true })); pickEco(data); }
+  };
+  const addHab = async (ecoId: string) => {
+    const tipoDefault = tiposH[0]?.id ?? null;
+    const { data } = await supabase.from("habitats").insert({ nombre: "Nuevo hábitat", ecosistema_id: ecoId, tipo_habitat_id: tipoDefault, activo: true, descripcion: "" }).select().single();
+    await load(); if (data) { setExpanded((p) => ({ ...p, [ecoId]: true })); pickHab(data); }
+  };
+  const addBioma = async () => {
+    const { data } = await supabase.from("biomas").insert({ nombre: "Nuevo bioma", descripcion: "", afinidad: "" }).select().single();
+    await load(); if (data) pickBioma(data);
+  };
+  const delItem = async () => {
+    if (!sel) return;
+    if (!confirm("¿Eliminar?")) return;
+    if (sel.kind === "bioma") await supabase.from("biomas").delete().eq("id", sel.id);
+    if (sel.kind === "eco")   await supabase.from("ecosistemas").delete().eq("id", sel.id);
+    if (sel.kind === "hab")   await supabase.from("habitats").delete().eq("id", sel.id);
+    setSel(null); await load();
+  };
+
+  const iSel = (kind: string, id: string) => sel?.kind === kind && sel?.id === id;
+  const rowStyle = (active: boolean): React.CSSProperties => ({
+    background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
+    color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
+    borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
+  });
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo ecosistema" isNew={isNew} loading={loading} width={260}
-        filterFn={(e, q) => e.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(e, active) => (
-          <SideItem key={e.id} active={active} onClick={() => pick(e)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{e.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{biomaName(e.bioma_id)}</span>
+      {/* ── Árbol ── */}
+      <div className="flex flex-col shrink-0 rounded-2xl overflow-hidden" style={{ width: "280px", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, var(--bg-main))" }}>
+        {/* header + nuevo bioma */}
+        <div className="flex items-center justify-between px-3 py-2 border-b shrink-0" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>Biomas</span>
+          <button type="button" onClick={addBioma} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold"
+            style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)" }}>
+            <Plus size={11} /> Nuevo
+          </button>
+        </div>
+
+        {/* árbol scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+          ) : biomas.map((b) => {
+            const bEcos = ecos.filter((e) => e.bioma_id === b.id);
+            const open  = !!expanded[b.id];
+            return (
+              <div key={b.id}>
+                {/* Bioma row */}
+                <button type="button" onClick={() => { toggle(b.id); pickBioma(b); }}
+                  className="w-full flex items-center gap-1.5 px-3 py-2 text-left group transition-colors"
+                  style={rowStyle(iSel("bioma", b.id))}>
+                  <span className="text-[10px] transition-transform" style={{ display: "inline-block", transform: open ? "rotate(90deg)" : "rotate(0deg)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>▶</span>
+                  <Mountain size={12} style={{ flexShrink: 0 }} />
+                  <span className="flex-1 text-sm font-semibold truncate">{b.nombre}</span>
+                  {b.afinidad && <Bdg text={b.afinidad} active={iSel("bioma", b.id)} />}
+                  <button type="button" onClick={(ev) => { ev.stopPropagation(); addEco(b.id); }}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded" title="+ Ecosistema"
+                    style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                    <Plus size={11} />
+                  </button>
+                </button>
+
+                {/* Ecosistemas */}
+                {open && bEcos.map((e) => {
+                  const bHabs = habitats.filter((h) => h.ecosistema_id === e.id);
+                  const eOpen = !!expanded[e.id];
+                  return (
+                    <div key={e.id}>
+                      <button type="button" onClick={() => { toggle(e.id); pickEco(e); }}
+                        className="w-full flex items-center gap-1.5 pl-7 pr-3 py-1.5 text-left group transition-colors"
+                        style={rowStyle(iSel("eco", e.id))}>
+                        <span className="text-[10px] transition-transform" style={{ display: "inline-block", transform: eOpen ? "rotate(90deg)" : "rotate(0deg)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>▶</span>
+                        <TreePine size={11} style={{ flexShrink: 0 }} />
+                        <span className="flex-1 text-xs font-medium truncate">{e.nombre}</span>
+                        <button type="button" onClick={(ev) => { ev.stopPropagation(); addHab(e.id); }}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 rounded" title="+ Hábitat"
+                          style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+                          <Plus size={10} />
+                        </button>
+                      </button>
+
+                      {/* Hábitats */}
+                      {eOpen && bHabs.map((h) => (
+                        <button key={h.id} type="button" onClick={() => pickHab(h)}
+                          className="w-full flex items-center gap-1.5 pl-14 pr-3 py-1.5 text-left group transition-colors"
+                          style={rowStyle(iSel("hab", h.id))}>
+                          <MapPin size={10} style={{ flexShrink: 0 }} />
+                          <span className="flex-1 text-xs truncate">{h.nombre}</span>
+                          <Bdg text={h.activo ? "on" : "off"} active={h.activo} />
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Panel derecho ── */}
+      {!sel && <Panel empty emptyIcon={<Mountain size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+
+      {sel?.kind === "bioma" && (() => {
+        const b = biomas.find((x) => x.id === sel.id);
+        return (
+          <Panel title={b?.nombre ?? "Bioma"}
+            saveBtn={<div className="flex gap-2">
+              <SaveBtn saving={saving} saved={saved} disabled={!bNombre.trim()} onClick={saveBioma} />
+              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
+            </div>}>
+            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={bNombre} onChange={(e) => setBNombre(e.target.value)} /></label>
+            <label className="flex flex-col gap-1"><FL label="Afinidad" /><Inp value={bAfinidad} onChange={(e) => setBAfinidad(e.target.value)} placeholder="ej. fuego, agua…" /></label>
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={bDesc} onChange={(e) => setBDesc(e.target.value)} rows={4} /></label>
+          </Panel>
+        );
+      })()}
+
+      {sel?.kind === "eco" && (() => {
+        const e = ecos.find((x) => x.id === sel.id);
+        return (
+          <Panel title={e?.nombre ?? "Ecosistema"}
+            saveBtn={<div className="flex gap-2">
+              <SaveBtn saving={saving} saved={saved} disabled={!eNombre.trim()} onClick={saveEco} />
+              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
+            </div>}>
+            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clima" /><Inp value={eClima} onChange={(e) => setEClima(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo entorno" /><Inp value={eTipo} onChange={(e) => setETipo(e.target.value)} /></label>
             </div>
-            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(e.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nuevo ecosistema" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim()} onClick={save} />}>
-          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-          <div className="flex gap-3">
-            <label className="flex flex-col gap-1 flex-1"><FL label="Clima" /><Inp value={clima} onChange={(e) => setClima(e.target.value)} /></label>
-            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo entorno" /><Inp value={tipoEntorno} onChange={(e) => setTipoEntorno(e.target.value)} /></label>
-          </div>
-          <label className="flex flex-col gap-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">— sin bioma —</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
-          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} /></label>
-        </Panel>
-      ) : <Panel empty />}
-    </div>
-  );
-}
+            <label className="flex flex-col gap-1"><FL label="Bioma padre" />
+              <Sel value={eBiomaId} onChange={(e) => setEBiomaId(e.target.value)}>
+                <option value="">— sin bioma —</option>
+                {biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+              </Sel>
+            </label>
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={eDesc} onChange={(e) => setEDesc(e.target.value)} rows={3} /></label>
+          </Panel>
+        );
+      })()}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Hábitats
-// ─────────────────────────────────────────────────────────────────────────────
-
-function HabitatsSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [ecos, setEcos] = useState<any[]>([]);
-  const [tipos, setTipos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [nombre, setNombre] = useState(""); const [desc, setDesc] = useState(""); const [ecoId, setEcoId] = useState(""); const [tipoId, setTipoId] = useState(""); const [activo, setActivo] = useState(true);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("habitats").select("id,nombre,descripcion,ecosistema_id,tipo_habitat_id,activo").order("nombre");
-    const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
-    const { data: t } = await supabase.from("tipos_habitat").select("id,clave,nombre").order("nombre");
-    setItems(data ?? []); setEcos(e ?? []); setTipos(t ?? []); setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (h: any) => { setSel(h); setIsNew(false); setNombre(h.nombre); setDesc(h.descripcion ?? ""); setEcoId(h.ecosistema_id); setTipoId(h.tipo_habitat_id); setActivo(h.activo); };
-  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setDesc(""); setEcoId(""); setTipoId(""); setActivo(true); };
-  const save = () => run(async () => { const p = { nombre, descripcion: desc, ecosistema_id: ecoId, tipo_habitat_id: tipoId, activo }; isNew ? await supabase.from("habitats").insert(p) : await supabase.from("habitats").update(p).eq("id", sel.id); await load(); });
-  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("habitats").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-  const ecoName = (id: string) => ecos.find((e) => e.id === id)?.nombre ?? "—";
-
-  return (
-    <div className="flex gap-4 h-full min-h-0">
-      <SideList items={items} selectedId={sel?.id} onSelect={pick} onNew={startNew} newLabel="Nuevo hábitat" isNew={isNew} loading={loading} width={260}
-        filterFn={(h, q) => h.nombre.toLowerCase().includes(q.toLowerCase())}
-        renderItem={(h, active) => (
-          <SideItem key={h.id} active={active} onClick={() => pick(h)}>
-            <div className="flex flex-col flex-1 min-w-0">
-              <span className="text-sm font-medium truncate">{h.nombre}</span>
-              <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{ecoName(h.ecosistema_id)}</span>
+      {sel?.kind === "hab" && (() => {
+        const h = habitats.find((x) => x.id === sel.id);
+        return (
+          <Panel title={h?.nombre ?? "Hábitat"}
+            saveBtn={<div className="flex gap-2">
+              <SaveBtn saving={saving} saved={saved} disabled={!hNombre.trim()} onClick={saveHab} />
+              <button type="button" onClick={delItem} className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /></button>
+            </div>}>
+            <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={hNombre} onChange={(e) => setHNombre(e.target.value)} /></label>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" />
+                <Sel value={hEcoId} onChange={(e) => setHEcoId(e.target.value)}>
+                  <option value="">— seleccionar —</option>
+                  {ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </Sel>
+              </label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo hábitat" />
+                <Sel value={hTipoId} onChange={(e) => setHTipoId(e.target.value)}>
+                  <option value="">— seleccionar —</option>
+                  {tiposH.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                </Sel>
+              </label>
             </div>
-            <Bdg text={h.activo ? "on" : "off"} active={h.activo} />
-            <button type="button" onClick={(ev) => { ev.stopPropagation(); del(h.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-          </SideItem>
-        )} />
-      {(sel || isNew) ? (
-        <Panel title={isNew ? "Nuevo hábitat" : sel.nombre} saveBtn={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !ecoId || !tipoId} onClick={save} />}>
-          <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-          <div className="flex gap-3">
-            <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">— seleccionar —</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
-            <label className="flex flex-col gap-1 flex-1"><FL label="Tipo hábitat" /><Sel value={tipoId} onChange={(e) => setTipoId(e.target.value)}><option value="">— seleccionar —</option>{tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}</Sel></label>
-          </div>
-          <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={desc} onChange={(e) => setDesc(e.target.value)} rows={3} /></label>
-          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-        </Panel>
-      ) : <Panel empty />}
+            <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={hDesc} onChange={(e) => setHDesc(e.target.value)} rows={3} /></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={hActivo} onChange={(e) => setHActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          </Panel>
+        );
+      })()}
     </div>
   );
 }
@@ -386,12 +460,13 @@ function ReinosSection() {
 // MUNDO — Ecología (bioma_ecosistemas, bioma_reinos, participantes, relaciones, catálogos)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
+type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
 
 const ECO_SUBS: { key: EcoSub; label: string }[] = [
   { key: "bioma_eco", label: "Bioma → Ecosistema" },
   { key: "bioma_reinos", label: "Bioma → Reinos" },
   { key: "participantes", label: "Participantes" },
+  { key: "criatura_roles", label: "Criatura → Roles" },
   { key: "relaciones", label: "Relaciones" },
   { key: "roles", label: "Roles ecológicos" },
   { key: "tipos_h", label: "Tipos hábitat" },
@@ -493,6 +568,7 @@ function EcologiaSection() {
   const [biomaEco, setBiomaEco] = useState<any[]>([]);
   const [biomaRey, setBiomaRey] = useState<any[]>([]);
   const [participantes, setParticipantes] = useState<any[]>([]);
+  const [criaturaRoles, setCriaturaRoles] = useState<any[]>([]);
   const [relaciones, setRelaciones] = useState<any[]>([]);
 
   const load = useCallback(async () => {
@@ -509,13 +585,14 @@ function EcologiaSection() {
       supabase.from("bioma_ecosistemas").select("bioma_id,ecosistema_id"),
       supabase.from("bioma_reinos").select("bioma_id,reino_id"),
       supabase.from("ecosistema_participantes").select("id,ecosistema_id,criatura_id,activo"),
+      supabase.from("ecosistema_criatura_roles").select("id,ecosistema_id,criatura_id,rol_id,es_principal,origen"),
       supabase.from("ecosistema_relaciones_criaturas").select("id,ecosistema_id,criatura_origen_id,criatura_destino_id,tipo_relacion"),
     ]);
     setBiomas(all[0].data ?? []); setEcos(all[1].data ?? []); setReinos(all[2].data ?? []);
     setCriaturas(all[3].data ?? []); setHabitats(all[4].data ?? []); setRoles(all[5].data ?? []);
     setTiposH(all[6].data ?? []); setTiposP(all[7].data ?? []);
     setBiomaEco(all[8].data ?? []); setBiomaRey(all[9].data ?? []);
-    setParticipantes(all[10].data ?? []); setRelaciones(all[11].data ?? []);
+    setParticipantes(all[10].data ?? []); setCriaturaRoles(all[11].data ?? []); setRelaciones(all[12].data ?? []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -565,6 +642,22 @@ function EcologiaSection() {
               <>
                 <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Participantes de ecosistema</h3>
                 <RelTable rows={participantes} catalogo1={ecos} catalogo2={criaturas} label1="Ecosistema" label2="Criatura" id1="ecosistema_id" id2="criatura_id" tabla="ecosistema_participantes" />
+              </>
+            )}
+            {sub === "criatura_roles" && (
+              <>
+                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Criatura → Rol ecológico por ecosistema</h3>
+                <RelTable
+                  rows={criaturaRoles}
+                  catalogo1={criaturas} catalogo2={roles}
+                  label1="Criatura" label2="Rol ecológico"
+                  id1="criatura_id" id2="rol_id"
+                  tabla="ecosistema_criatura_roles"
+                  extraCols={[
+                    { key: "ecosistema_id", label: "Ecosistema", cat: ecos, catIdKey: "id", catNameKey: "nombre" },
+                    { key: "origen", label: "Origen" },
+                  ]}
+                />
               </>
             )}
             {sub === "relaciones" && (
@@ -1320,13 +1413,267 @@ function RecetasSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AMBIENTE — Factores abióticos · Calendario · Estaciones · Modificadores
+// ─────────────────────────────────────────────────────────────────────────────
+
+type AmbSub = "factores" | "calendario" | "estaciones" | "modificadores";
+
+const AMB_SUBS: { key: AmbSub; label: string }[] = [
+  { key: "factores", label: "Factores abióticos" },
+  { key: "calendario", label: "Calendario" },
+  { key: "estaciones", label: "Estaciones" },
+  { key: "modificadores", label: "Modificadores" },
+];
+
+function AmbienteSection() {
+  const [sub, setSub] = useState<AmbSub>("factores");
+  const [loading, setLoading] = useState(true);
+
+  // factores_abioticos
+  const [factores, setFactores] = useState<any[]>([]);
+  const [selF, setSelF] = useState<any>(null);
+  const { saving: savingF, saved: savedF, run: runF } = useSave();
+  const [fNombre, setFNombre] = useState(""); const [fClave, setFClave] = useState(""); const [fDesc, setFDesc] = useState("");
+  const [fCat, setFCat] = useState(""); const [fTipo, setFTipo] = useState(""); const [fMin, setFMin] = useState(""); const [fMax, setFMax] = useState(""); const [fActivo, setFActivo] = useState(true);
+
+  // calendario_config (1 fila)
+  const [calConfig, setCalConfig] = useState<any>(null);
+  const { saving: savingCal, saved: savedCal, run: runCal } = useSave();
+  const [calDias, setCalDias] = useState(7); const [calHoras, setCalHoras] = useState(24); const [calAnio, setCalAnio] = useState(1);
+
+  // calendario_estaciones
+  const [estaciones, setEstaciones] = useState<any[]>([]);
+  const [selE, setSelE] = useState<any>(null);
+  const { saving: savingE, saved: savedE, run: runE } = useSave();
+  const [eNombre, setENombre] = useState(""); const [eDias, setEDias] = useState(0); const [eOrden, setEOrden] = useState(0);
+
+  // estacion_modificadores_abioticos
+  const [modificadores, setModificadores] = useState<any[]>([]);
+  const [selM, setSelM] = useState<any>(null);
+  const { saving: savingM, saved: savedM, run: runM } = useSave();
+  const [mDelta, setMDelta] = useState(0); const [mFuente, setMFuente] = useState(""); const [mMetodo, setMMetodo] = useState(""); const [mActivo, setMActivo] = useState(true);
+  const [mEstacionId, setMEstacionId] = useState(""); const [mFactorId, setMFactorId] = useState("");
+  const [isNewM, setIsNewM] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [f, cc, e, m] = await Promise.all([
+      supabase.from("factores_abioticos").select("id,clave,nombre,descripcion,categoria,tipo_valor,rango_min,rango_max,orden,activo").order("orden"),
+      supabase.from("calendario_config").select("*").limit(1).single(),
+      supabase.from("calendario_estaciones").select("id,nombre,duracion_dias,orden").order("orden"),
+      supabase.from("estacion_modificadores_abioticos").select("id,estacion_id,factor_id,delta_numerico,fuente,metodo,activo").order("created_at"),
+    ]);
+    setFactores(f.data ?? []);
+    setCalConfig(cc.data ?? null);
+    if (cc.data) { setCalDias(cc.data.dias_por_semana); setCalHoras(cc.data.horas_por_dia); setCalAnio(cc.data.anio_inicio); }
+    setEstaciones(e.data ?? []);
+    setModificadores(m.data ?? []);
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // factores handlers
+  const pickF = (f: any) => { setSelF(f); setFNombre(f.nombre); setFClave(f.clave); setFDesc(f.descripcion ?? ""); setFCat(f.categoria); setFTipo(f.tipo_valor); setFMin(f.rango_min ?? ""); setFMax(f.rango_max ?? ""); setFActivo(f.activo); };
+  const saveF = () => runF(async () => {
+    const p = { nombre: fNombre, clave: fClave, descripcion: fDesc, categoria: fCat, tipo_valor: fTipo, rango_min: fMin !== "" ? Number(fMin) : null, rango_max: fMax !== "" ? Number(fMax) : null, activo: fActivo };
+    await supabase.from("factores_abioticos").update(p).eq("id", selF.id);
+    await load();
+  });
+
+  // calendario handler
+  const saveCal = () => runCal(async () => {
+    if (calConfig) await supabase.from("calendario_config").update({ dias_por_semana: calDias, horas_por_dia: calHoras, anio_inicio: calAnio }).eq("id", calConfig.id);
+    await load();
+  });
+
+  // estaciones handlers
+  const pickE = (e: any) => { setSelE(e); setENombre(e.nombre); setEDias(e.duracion_dias); setEOrden(e.orden); };
+  const saveE = () => runE(async () => {
+    await supabase.from("calendario_estaciones").update({ nombre: eNombre, duracion_dias: eDias, orden: eOrden }).eq("id", selE.id);
+    await load();
+  });
+
+  // modificadores handlers
+  const pickM = (m: any) => { setSelM(m); setIsNewM(false); setMDelta(m.delta_numerico); setMFuente(m.fuente); setMMetodo(m.metodo); setMActivo(m.activo); setMEstacionId(m.estacion_id); setMFactorId(m.factor_id); };
+  const startNewM = () => { setSelM(null); setIsNewM(true); setMDelta(0); setMFuente(""); setMMetodo("multiplicar"); setMActivo(true); setMEstacionId(""); setMFactorId(""); };
+  const saveM = () => runM(async () => {
+    const p = { estacion_id: mEstacionId, factor_id: mFactorId, delta_numerico: mDelta, fuente: mFuente, metodo: mMetodo, activo: mActivo };
+    isNewM ? await supabase.from("estacion_modificadores_abioticos").insert(p) : await supabase.from("estacion_modificadores_abioticos").update(p).eq("id", selM.id);
+    await load();
+  });
+  const delM = async (id: string) => { if (!confirm("¿Eliminar modificador?")) return; await supabase.from("estacion_modificadores_abioticos").delete().eq("id", id); if (selM?.id === id) { setSelM(null); setIsNewM(false); } await load(); };
+
+  const estacionName = (id: string) => estaciones.find((e) => e.id === id)?.nombre ?? "—";
+  const factorName = (id: string) => factores.find((f) => f.id === id)?.nombre ?? "—";
+
+  return (
+    <div className="flex flex-col gap-4 h-full min-h-0">
+      {/* Sub-tabs */}
+      <div className="flex gap-0.5 flex-wrap shrink-0">
+        {AMB_SUBS.map(({ key, label }) => (
+          <button key={key} type="button" onClick={() => setSub(key)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: sub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: sub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+        ) : (
+          <>
+            {/* ── FACTORES ABIÓTICOS ── */}
+            {sub === "factores" && (
+              <div className="flex gap-4 h-full min-h-0">
+                <SideList items={factores} selectedId={selF?.id} onSelect={pickF} loading={false} width={260}
+                  filterFn={(f, q) => f.nombre.toLowerCase().includes(q.toLowerCase())}
+                  renderItem={(f, active) => (
+                    <SideItem key={f.id} active={active} onClick={() => pickF(f)}>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-sm font-medium truncate">{f.nombre}</span>
+                        <span className="text-xs font-mono truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{f.clave}</span>
+                      </div>
+                      <Bdg text={f.activo ? "on" : "off"} active={f.activo} />
+                    </SideItem>
+                  )} />
+                {selF ? (
+                  <Panel title={selF.nombre} saveBtn={<SaveBtn saving={savingF} saved={savedF} disabled={!fNombre.trim()} onClick={saveF} />}>
+                    <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={fNombre} onChange={(e) => setFNombre(e.target.value)} /></label>
+                        <label className="flex flex-col gap-1 w-36"><FL label="Clave (Godot)" /><Inp value={fClave} onChange={(e) => setFClave(e.target.value)} /></label>
+                      </div>
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Categoría" /><Inp value={fCat} onChange={(e) => setFCat(e.target.value)} placeholder="ej. clima, suelo…" /></label>
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Tipo valor" /><Inp value={fTipo} onChange={(e) => setFTipo(e.target.value)} placeholder="ej. numerico, booleano…" /></label>
+                      </div>
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Rango mín" /><Inp type="number" value={fMin} onChange={(e) => setFMin(e.target.value)} /></label>
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Rango máx" /><Inp type="number" value={fMax} onChange={(e) => setFMax(e.target.value)} /></label>
+                      </div>
+                      <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={fDesc} onChange={(e) => setFDesc(e.target.value)} rows={3} /></label>
+                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={fActivo} onChange={(e) => setFActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+                    </div>
+                  </Panel>
+                ) : <Panel empty emptyIcon={<Thermometer size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+              </div>
+            )}
+
+            {/* ── CALENDARIO CONFIG ── */}
+            {sub === "calendario" && (
+              <Panel title="Configuración del calendario" saveBtn={<SaveBtn saving={savingCal} saved={savedCal} onClick={saveCal} />}>
+                {!calConfig && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin fila de configuración en Supabase.</p>}
+                {calConfig && (
+                  <div className="flex flex-col gap-4 max-w-sm">
+                    <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                      Estos valores definen la estructura temporal del mundo de Garlia que usa Godot.
+                    </p>
+                    <label className="flex flex-col gap-1">
+                      <FL label="Días por semana" />
+                      <Inp type="number" value={calDias} onChange={(e) => setCalDias(Number(e.target.value))} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <FL label="Horas por día" />
+                      <Inp type="number" value={calHoras} onChange={(e) => setCalHoras(Number(e.target.value))} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <FL label="Año de inicio" />
+                      <Inp type="number" value={calAnio} onChange={(e) => setCalAnio(Number(e.target.value))} />
+                    </label>
+                  </div>
+                )}
+              </Panel>
+            )}
+
+            {/* ── ESTACIONES ── */}
+            {sub === "estaciones" && (
+              <div className="flex gap-4 h-full min-h-0">
+                <SideList items={estaciones} selectedId={selE?.id} onSelect={pickE} loading={false} width={220}
+                  renderItem={(e, active) => (
+                    <SideItem key={e.id} active={active} onClick={() => pickE(e)}>
+                      <span className="text-xs w-5 shrink-0 font-mono text-center" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{e.orden}</span>
+                      <span className="flex-1 text-sm font-medium truncate">{e.nombre}</span>
+                      <Bdg text={`${e.duracion_dias}d`} active={active} />
+                    </SideItem>
+                  )} />
+                {selE ? (
+                  <Panel title={selE.nombre} saveBtn={<SaveBtn saving={savingE} saved={savedE} disabled={!eNombre.trim()} onClick={saveE} />}>
+                    <div className="flex flex-col gap-3 max-w-sm">
+                      <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Duración (días)" /><Inp type="number" value={eDias} onChange={(e) => setEDias(Number(e.target.value))} /></label>
+                        <label className="flex flex-col gap-1 w-24"><FL label="Orden" /><Inp type="number" value={eOrden} onChange={(e) => setEOrden(Number(e.target.value))} /></label>
+                      </div>
+                    </div>
+                  </Panel>
+                ) : <Panel empty emptyIcon={<CalendarDays size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+              </div>
+            )}
+
+            {/* ── MODIFICADORES ESTACIONALES ── */}
+            {sub === "modificadores" && (
+              <div className="flex gap-4 h-full min-h-0">
+                <SideList items={modificadores} selectedId={selM?.id} onSelect={pickM} onNew={startNewM} newLabel="Nuevo modificador" isNew={isNewM} loading={false} width={280}
+                  renderItem={(m, active) => (
+                    <SideItem key={m.id} active={active} onClick={() => pickM(m)}>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-sm font-medium truncate">{factorName(m.factor_id)}</span>
+                        <span className="text-xs truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{estacionName(m.estacion_id)}</span>
+                      </div>
+                      <Bdg text={`${m.delta_numerico > 0 ? "+" : ""}${m.delta_numerico}`} active={m.activo} />
+                      <button type="button" onClick={(ev) => { ev.stopPropagation(); delM(m.id); }} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
+                    </SideItem>
+                  )} />
+                {(selM || isNewM) ? (
+                  <Panel title={isNewM ? "Nuevo modificador" : `${factorName(selM.factor_id)} · ${estacionName(selM.estacion_id)}`}
+                    saveBtn={<SaveBtn saving={savingM} saved={savedM} disabled={!mEstacionId || !mFactorId} onClick={saveM} />}>
+                    <div className="flex flex-col gap-3 overflow-y-auto flex-1">
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Estación" />
+                          <Sel value={mEstacionId} onChange={(e) => setMEstacionId(e.target.value)}>
+                            <option value="">— estación —</option>
+                            {estaciones.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                          </Sel>
+                        </label>
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Factor abiótico" />
+                          <Sel value={mFactorId} onChange={(e) => setMFactorId(e.target.value)}>
+                            <option value="">— factor —</option>
+                            {factores.map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+                          </Sel>
+                        </label>
+                      </div>
+                      <div className="flex gap-3">
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Delta numérico" /><Inp type="number" value={mDelta} onChange={(e) => setMDelta(Number(e.target.value))} /></label>
+                        <label className="flex flex-col gap-1 flex-1"><FL label="Método" />
+                          <Sel value={mMetodo} onChange={(e) => setMMetodo(e.target.value)}>
+                            <option value="multiplicar">multiplicar</option>
+                            <option value="sumar">sumar</option>
+                            <option value="reemplazar">reemplazar</option>
+                          </Sel>
+                        </label>
+                      </div>
+                      <label className="flex flex-col gap-1"><FL label="Fuente" /><Inp value={mFuente} onChange={(e) => setMFuente(e.target.value)} placeholder="ej. canon, estimado…" /></label>
+                      <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={mActivo} onChange={(e) => setMActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+                    </div>
+                  </Panel>
+                ) : <Panel empty emptyIcon={<Clock size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tab configs
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = [
   { key: "biomas", label: "Biomas", icon: Mountain },
-  { key: "ecosistemas", label: "Ecosistemas", icon: TreePine },
-  { key: "habitats", label: "Hábitats", icon: MapPin },
   { key: "reinos", label: "Reinos", icon: Shield },
   { key: "ecologia", label: "Ecología", icon: Network },
 ];
@@ -1348,10 +1695,18 @@ const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
 // Main
 // ─────────────────────────────────────────────────────────────────────────────
 
+const AMBIENTE_SUBS: { key: AmbienteSec; label: string; icon: React.ElementType }[] = [
+  { key: "factores", label: "Factores abióticos", icon: Thermometer },
+  { key: "calendario", label: "Calendario", icon: CalendarDays },
+  { key: "estaciones", label: "Estaciones", icon: Wind },
+  { key: "modificadores", label: "Modificadores", icon: Clock },
+];
+
 const MAIN_TABS: { key: MainTab; label: string; icon: React.ElementType }[] = [
   { key: "mundo", label: "Mundo", icon: Globe2 },
   { key: "entidades", label: "Entidades", icon: Layers },
   { key: "game", label: "Game", icon: Gamepad2 },
+  { key: "ambiente", label: "Ambiente", icon: Wind },
 ];
 
 export default function GamePage() {
@@ -1359,13 +1714,15 @@ export default function GamePage() {
   const [mundoSec, setMundoSec] = useState<MundoSec>("biomas");
   const [entidadesSec, setEntidadesSec] = useState<EntidadesSec>("personajes");
   const [gameSec, setGameSec] = useState<GameSec>("items");
+  const [ambienteSec, setAmbienteSec] = useState<AmbienteSec>("factores");
 
-  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : mainTab === "entidades" ? ENTIDADES_SUBS : GAME_SUBS;
-  const activeSub = mainTab === "mundo" ? mundoSec : mainTab === "entidades" ? entidadesSec : gameSec;
+  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : mainTab === "entidades" ? ENTIDADES_SUBS : mainTab === "game" ? GAME_SUBS : AMBIENTE_SUBS;
+  const activeSub = mainTab === "mundo" ? mundoSec : mainTab === "entidades" ? entidadesSec : mainTab === "game" ? gameSec : ambienteSec;
   const setActiveSub = (k: string) => {
     if (mainTab === "mundo") setMundoSec(k as MundoSec);
     else if (mainTab === "entidades") setEntidadesSec(k as EntidadesSec);
-    else setGameSec(k as GameSec);
+    else if (mainTab === "game") setGameSec(k as GameSec);
+    else setAmbienteSec(k as AmbienteSec);
   };
 
   return (
@@ -1398,8 +1755,6 @@ export default function GamePage() {
         {mainTab === "mundo" && (
           <>
             {mundoSec === "biomas" && <BiomasSection />}
-            {mundoSec === "ecosistemas" && <EcosistemasSection />}
-            {mundoSec === "habitats" && <HabitatsSection />}
             {mundoSec === "reinos" && <ReinosSection />}
             {mundoSec === "ecologia" && <EcologiaSection />}
           </>
@@ -1421,6 +1776,7 @@ export default function GamePage() {
             {gameSec === "recetas" && <RecetasSection />}
           </>
         )}
+        {mainTab === "ambiente" && <AmbienteSection />}
       </div>
     </div>
   );
