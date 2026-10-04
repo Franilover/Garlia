@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * GamePage — /myself/game  v4
+ * GamePage — /myself/game  v5
  * ──────────────────────────────────────────────────────────────────────────
  * Cuatro tabs principales:
- *   MUNDO     → Biomas · Ecosistemas · Hábitats · Reinos · Ecología
+ *   MUNDO     → Biomas · Reinos · Ecología
  *   ENTIDADES → Personajes · Criaturas IA
- *   GAME      → Items · Props · Misiones · Especies · Eterium · Social · Recetas
- *   AMBIENTE  → Factores abióticos · Calendario · Estaciones · Modificadores
+ *   GAME      → Items · Props · Misiones · Especies · Social · Recetas
+ *   AMBIENTE  → Factores abióticos · Modificadores
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -27,8 +27,8 @@ import { supabase } from "@/infra/supabase/supabase";
 type MainTab = "mundo" | "entidades" | "game" | "ambiente";
 type MundoSec = "biomas" | "reinos" | "ecologia";
 type EntidadesSec = "personajes" | "criaturas";
-type GameSec = "items" | "props" | "misiones" | "especies" | "eterium" | "social" | "recetas";
-type AmbienteSec = "factores" | "calendario" | "estaciones" | "modificadores";
+type GameSec = "items" | "props" | "misiones" | "especies" | "social" | "recetas";
+type AmbienteSec = "factores" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -460,16 +460,13 @@ function ReinosSection() {
 // MUNDO — Ecología (bioma_ecosistemas, bioma_reinos, participantes, relaciones, catálogos)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
+type EcoSub = "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_p";
 
 const ECO_SUBS: { key: EcoSub; label: string }[] = [
-  { key: "bioma_eco", label: "Bioma → Ecosistema" },
-  { key: "bioma_reinos", label: "Bioma → Reinos" },
   { key: "participantes", label: "Participantes" },
   { key: "criatura_roles", label: "Criatura → Roles" },
   { key: "relaciones", label: "Relaciones" },
   { key: "roles", label: "Roles ecológicos" },
-  { key: "tipos_h", label: "Tipos hábitat" },
   { key: "tipos_p", label: "Tipos presencia" },
 ];
 
@@ -553,7 +550,7 @@ function RelTable({ rows, catalogo1, catalogo2, label1, label2, id1, id2, tabla,
 }
 
 function EcologiaSection() {
-  const [sub, setSub] = useState<EcoSub>("bioma_eco");
+  const [sub, setSub] = useState<EcoSub>("participantes");
   const [loading, setLoading] = useState(true);
   // catalogs
   const [biomas, setBiomas] = useState<any[]>([]);
@@ -626,18 +623,6 @@ function EcologiaSection() {
       <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div> : (
           <div className="rounded-2xl p-5" style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-            {sub === "bioma_eco" && (
-              <>
-                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Bioma → Ecosistema</h3>
-                <RelTable rows={biomaEco} catalogo1={biomas} catalogo2={ecos} label1="Bioma" label2="Ecosistema" id1="bioma_id" id2="ecosistema_id" tabla="bioma_ecosistemas" pkComposite />
-              </>
-            )}
-            {sub === "bioma_reinos" && (
-              <>
-                <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Bioma → Reinos</h3>
-                <RelTable rows={biomaRey} catalogo1={biomas} catalogo2={reinos} label1="Bioma" label2="Reino" id1="bioma_id" id2="reino_id" tabla="bioma_reinos" pkComposite />
-              </>
-            )}
             {sub === "participantes" && (
               <>
                 <h3 className="text-sm font-bold mb-4" style={{ color: "var(--primary)" }}>Participantes de ecosistema</h3>
@@ -685,30 +670,6 @@ function EcologiaSection() {
                       <span className="flex-1 text-sm" style={{ color: "var(--primary)" }}>{r.nombre}</span>
                       <Bdg text={r.categoria} active={false} />
                       <button type="button" onClick={() => delRole(r.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-            {sub === "tipos_h" && (
-              <>
-                <h3 className="text-sm font-bold mb-3" style={{ color: "var(--primary)" }}>Tipos de hábitat</h3>
-                <div className="flex gap-2 mb-3">
-                  <Inp value={thClave} onChange={(e) => setThClave(e.target.value)} placeholder="Clave (ej. bosque)" />
-                  <Inp value={thNew} onChange={(e) => setThNew(e.target.value)} placeholder="Nombre" />
-                  <button type="button" onClick={addTH} disabled={savingTH || !thNew.trim() || !thClave.trim()} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
-                    style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !thNew.trim() ? 0.4 : 1 }}>
-                    {savingTH ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
-                  </button>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {tiposH.map((t) => (
-                    <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
-                      style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                      <span className="text-xs font-mono" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{t.clave}</span>
-                      <span className="flex-1 text-sm" style={{ color: "var(--primary)" }}>{t.nombre}</span>
-                      <Bdg text={t.activo ? "on" : "off"} active={t.activo} />
-                      <button type="button" onClick={() => delTH(t.id)} className="opacity-0 group-hover:opacity-100" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
                     </div>
                   ))}
                 </div>
@@ -1416,17 +1377,15 @@ function RecetasSection() {
 // AMBIENTE — Factores abióticos · Calendario · Estaciones · Modificadores
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AmbSub = "factores" | "calendario" | "estaciones" | "modificadores";
+type AmbSub = "factores" | "modificadores";
 
 const AMB_SUBS: { key: AmbSub; label: string }[] = [
   { key: "factores", label: "Factores abióticos" },
-  { key: "calendario", label: "Calendario" },
-  { key: "estaciones", label: "Estaciones" },
   { key: "modificadores", label: "Modificadores" },
 ];
 
-function AmbienteSection() {
-  const [sub, setSub] = useState<AmbSub>("factores");
+function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
+  const sub = activeSub;
   const [loading, setLoading] = useState(true);
 
   // factores_abioticos
@@ -1508,17 +1467,6 @@ function AmbienteSection() {
 
   return (
     <div className="flex flex-col gap-4 h-full min-h-0">
-      {/* Sub-tabs */}
-      <div className="flex gap-0.5 flex-wrap shrink-0">
-        {AMB_SUBS.map(({ key, label }) => (
-          <button key={key} type="button" onClick={() => setSub(key)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: sub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: sub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-            {label}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
@@ -1558,57 +1506,6 @@ function AmbienteSection() {
                     </div>
                   </Panel>
                 ) : <Panel empty emptyIcon={<Thermometer size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
-              </div>
-            )}
-
-            {/* ── CALENDARIO CONFIG ── */}
-            {sub === "calendario" && (
-              <Panel title="Configuración del calendario" saveBtn={<SaveBtn saving={savingCal} saved={savedCal} onClick={saveCal} />}>
-                {!calConfig && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin fila de configuración en Supabase.</p>}
-                {calConfig && (
-                  <div className="flex flex-col gap-4 max-w-sm">
-                    <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                      Estos valores definen la estructura temporal del mundo de Garlia que usa Godot.
-                    </p>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Días por semana" />
-                      <Inp type="number" value={calDias} onChange={(e) => setCalDias(Number(e.target.value))} />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Horas por día" />
-                      <Inp type="number" value={calHoras} onChange={(e) => setCalHoras(Number(e.target.value))} />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <FL label="Año de inicio" />
-                      <Inp type="number" value={calAnio} onChange={(e) => setCalAnio(Number(e.target.value))} />
-                    </label>
-                  </div>
-                )}
-              </Panel>
-            )}
-
-            {/* ── ESTACIONES ── */}
-            {sub === "estaciones" && (
-              <div className="flex gap-4 h-full min-h-0">
-                <SideList items={estaciones} selectedId={selE?.id} onSelect={pickE} loading={false} width={220}
-                  renderItem={(e, active) => (
-                    <SideItem key={e.id} active={active} onClick={() => pickE(e)}>
-                      <span className="text-xs w-5 shrink-0 font-mono text-center" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{e.orden}</span>
-                      <span className="flex-1 text-sm font-medium truncate">{e.nombre}</span>
-                      <Bdg text={`${e.duracion_dias}d`} active={active} />
-                    </SideItem>
-                  )} />
-                {selE ? (
-                  <Panel title={selE.nombre} saveBtn={<SaveBtn saving={savingE} saved={savedE} disabled={!eNombre.trim()} onClick={saveE} />}>
-                    <div className="flex flex-col gap-3 max-w-sm">
-                      <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
-                      <div className="flex gap-3">
-                        <label className="flex flex-col gap-1 flex-1"><FL label="Duración (días)" /><Inp type="number" value={eDias} onChange={(e) => setEDias(Number(e.target.value))} /></label>
-                        <label className="flex flex-col gap-1 w-24"><FL label="Orden" /><Inp type="number" value={eOrden} onChange={(e) => setEOrden(Number(e.target.value))} /></label>
-                      </div>
-                    </div>
-                  </Panel>
-                ) : <Panel empty emptyIcon={<CalendarDays size={24} style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }} />} />}
               </div>
             )}
 
@@ -1686,7 +1583,6 @@ const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
   { key: "props", label: "Props", icon: Package },
   { key: "misiones", label: "Misiones", icon: ScrollText },
   { key: "especies", label: "Especies", icon: Leaf },
-  { key: "eterium", label: "Eterium", icon: Sparkles },
   { key: "social", label: "Social", icon: Heart },
   { key: "recetas", label: "Recetas", icon: Utensils },
 ];
@@ -1697,8 +1593,6 @@ const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
 
 const AMBIENTE_SUBS: { key: AmbienteSec; label: string; icon: React.ElementType }[] = [
   { key: "factores", label: "Factores abióticos", icon: Thermometer },
-  { key: "calendario", label: "Calendario", icon: CalendarDays },
-  { key: "estaciones", label: "Estaciones", icon: Wind },
   { key: "modificadores", label: "Modificadores", icon: Clock },
 ];
 
@@ -1771,12 +1665,11 @@ export default function GamePage() {
             {gameSec === "props" && <PropsSection />}
             {gameSec === "misiones" && <MisionesSection />}
             {gameSec === "especies" && <EspeciesSection />}
-            {gameSec === "eterium" && <EteriumSection />}
             {gameSec === "social" && <SocialSection />}
             {gameSec === "recetas" && <RecetasSection />}
           </>
         )}
-        {mainTab === "ambiente" && <AmbienteSection />}
+        {mainTab === "ambiente" && <AmbienteSection activeSub={ambienteSec} />}
       </div>
     </div>
   );
