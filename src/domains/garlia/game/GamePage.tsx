@@ -825,11 +825,11 @@ function PersonajesSection() {
 
   const loadSocial = useCallback(async (pid: string) => {
     const [{ data: s }, { data: r }, { data: it }] = await Promise.all([
-      supabase.from("personaje_social_v1").select("*").eq("personaje_game_id", pid).maybeSingle(),
+      supabase.from("personaje_social_v1").select("*").eq("personaje_game_id", pid),
       supabase.from("personaje_regalos_v1").select("*, items(id,nombre)").eq("personaje_game_id", pid),
       supabase.from("items").select("id,nombre").order("nombre"),
     ]);
-    setSocialPerfil(s ?? null); setRegalos(r ?? []); setItemsCat(it ?? []);
+    setSocialPerfil(s?.[0] ?? null); setRegalos(r ?? []); setItemsCat(it ?? []);
   }, []);
   const loadDials = useCallback(async (pid: string) => {
     const { data } = await supabase.from("dialogos_game").select("id,clave,dialogo,activo").eq("personaje_id", pid).order("clave");
@@ -1225,12 +1225,13 @@ function ItemsSection() {
   const { saving, saved, run } = useSave();
   const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
 
-  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades,items(id,nombre,categoria)").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
   const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
   const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
+  const iNombre = (i: any) => i.items?.nombre ?? i.item_id?.slice(0, 8) + "…";
 
-  const filtered = q ? items.filter((i) => (i.tipo ?? "").toLowerCase().includes(q.toLowerCase())) : items;
+  const filtered = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
 
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
@@ -1242,8 +1243,8 @@ function ItemsSection() {
           {filtered.map((i) => (
             <GridCard
               key={i.id}
-              nombre={i.tipo ?? "sin tipo"}
-              sub={i.item_id?.slice(0, 8) + "…"}
+              nombre={iNombre(i)}
+              sub={i.items?.categoria ?? i.tipo ?? ""}
               badge={`×${i.max_stack}`}
               icono={<Sword size={14} />}
               onClick={() => pick(i)}
@@ -1255,11 +1256,11 @@ function ItemsSection() {
       <PanelModal
         abierto={!!sel}
         onCerrar={() => setSel(null)}
-        titulo={`Item · ${sel?.tipo ?? sel?.id?.slice(0, 8)}`}
+        titulo={iNombre(sel)}
         icono={<Sword size={12} />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
       >
-        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>item_id: {sel?.item_id}</p>
+        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.items?.categoria ?? ""} · {sel?.item_id}</p>
         <div className="flex gap-3">
           <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
