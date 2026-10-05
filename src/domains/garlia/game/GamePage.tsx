@@ -85,7 +85,7 @@ function PanelModal({
 type ActiveTab =
   | "biomas" | "reinos" | "ecologia"
   | "entidades"
-  | "misiones" | "factores" | "modificadores" | "props";
+  | "misiones" | "factores" | "modificadores";
 
 type AmbSub = "factores" | "modificadores";
 
@@ -1285,6 +1285,55 @@ function ItemsSection() {
   const { saving, saved, run } = useSave();
   const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({}); const [recetaId, setRecetaId] = useState("");
 
+  // ── Props panel (anidado) ──
+  const [propsOpen, setPropsOpen]         = useState(false);
+  const [propsItems, setPropsItems]       = useState<any[]>([]);
+  const [propsBiomas, setPropsBiomas]     = useState<any[]>([]);
+  const [propsEcos, setPropsEcos]         = useState<any[]>([]);
+  const [propsHabs, setPropsHabs]         = useState<any[]>([]);
+  const [propsLoading, setPropsLoading]   = useState(false);
+  const [propsSel, setPropsSel]           = useState<any>(null);
+  const [propsIsNew, setPropsIsNew]       = useState(false);
+  const [propsQ, setPropsQ]               = useState("");
+  const [propsFiltroTipo, setPropsFiltroTipo] = useState("");
+  const { saving: savingP, saved: savedP, run: runP } = useSave();
+  const [pClave, setPClave]   = useState(""); const [pNombre, setPNombre] = useState(""); const [pTipo, setPTipo]   = useState(""); const [pActivo, setPActivo] = useState(true);
+  const [pOrden, setPOrden]   = useState(0);  const [pPeso, setPPeso]   = useState(0);    const [pEscala, setPEscala] = useState(1);
+  const [pBiomaId, setPBiomaId] = useState(""); const [pEcoId, setPEcoId] = useState(""); const [pHabId, setPHabId] = useState("");
+  const [pJsonProps, setPJsonProps] = useState<Record<string, unknown>>({});
+
+  const loadProps = useCallback(async () => {
+    setPropsLoading(true);
+    const [{ data: pd }, { data: b }, { data: e }, { data: h }] = await Promise.all([
+      supabase.from("props_game").select("*").order("orden"),
+      supabase.from("biomas").select("id,nombre").order("nombre"),
+      supabase.from("ecosistemas").select("id,nombre").order("nombre"),
+      supabase.from("habitats").select("id,nombre").order("nombre"),
+    ]);
+    setPropsItems(pd ?? []); setPropsBiomas(b ?? []); setPropsEcos(e ?? []); setPropsHabs(h ?? []);
+    setPropsLoading(false);
+  }, []);
+
+  const openProps = () => { loadProps(); setPropsOpen(true); };
+  const pickP = (p: any) => { setPropsSel(p); setPropsIsNew(false); setPClave(p.clave); setPNombre(p.nombre); setPTipo(p.tipo); setPActivo(p.activo); setPOrden(p.orden); setPPeso(p.peso); setPEscala(p.escala); setPBiomaId(p.bioma_id ?? ""); setPEcoId(p.ecosistema_id ?? ""); setPHabId(p.habitat_id ?? ""); setPJsonProps(p.propiedades ?? {}); };
+  const startNewP = () => { setPropsSel(null); setPropsIsNew(true); setPClave(""); setPNombre(""); setPTipo(""); setPActivo(true); setPOrden(0); setPPeso(0); setPEscala(1); setPBiomaId(""); setPEcoId(""); setPHabId(""); setPJsonProps({}); };
+  const saveP = () => runP(async () => {
+    const p = { clave: pClave, nombre: pNombre, tipo: pTipo, activo: pActivo, orden: pOrden, peso: pPeso, escala: pEscala, bioma_id: pBiomaId || null, ecosistema_id: pEcoId || null, habitat_id: pHabId || null, propiedades: pJsonProps };
+    propsIsNew ? await supabase.from("props_game").insert(p) : await supabase.from("props_game").update(p).eq("id", propsSel.id);
+    await loadProps(); if (propsIsNew) setPropsIsNew(false);
+  });
+  const delP = async (id: string) => { if (!confirm("¿Eliminar prop?")) return; await supabase.from("props_game").delete().eq("id", id); if (propsSel?.id === id) setPropsSel(null); await loadProps(); };
+
+  const propsTiposOptions = useMemo(() => {
+    const set = new Set(propsItems.map((p) => p.tipo).filter(Boolean));
+    return [...set].sort().map((t) => ({ value: t as string, label: t as string }));
+  }, [propsItems]);
+  const propsFiltered = propsItems.filter((p) => {
+    const matchQ = !propsQ || p.nombre.toLowerCase().includes(propsQ.toLowerCase()) || p.clave.toLowerCase().includes(propsQ.toLowerCase());
+    const matchT = !propsFiltroTipo || p.tipo === propsFiltroTipo;
+    return matchQ && matchT;
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: itemsData }, { data: recetasData }] = await Promise.all([
@@ -1341,7 +1390,16 @@ function ItemsSection() {
         onCerrar={() => setSel(null)}
         titulo={sel ? iNombre(sel) : ""}
         icono={<Sword size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
+        accionesDerecha={
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={openProps}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02]"
+              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", color: "var(--primary)" }}>
+              <Package size={11} /> Props
+            </button>
+            <SaveBtn saving={saving} saved={saved} onClick={save} />
+          </div>
+        }
       >
         <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.tipo ?? ""} · {sel?.item_id}</p>
         <div className="flex gap-3">
@@ -1359,114 +1417,90 @@ function ItemsSection() {
         </label>
         <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "140px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
       </PanelModal>
-    </div>
-  );
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GAME — Props (grid + PanelModal)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PropsSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [biomas, setBiomas] = useState<any[]>([]);
-  const [ecos, setEcos] = useState<any[]>([]);
-  const [habitats, setHabitats] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const [q, setQ] = useState("");
-  const { saving, saved, run } = useSave();
-  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [tipo, setTipo] = useState(""); const [activo, setActivo] = useState(true);
-  const [orden, setOrden] = useState(0); const [peso, setPeso] = useState(0); const [escala, setEscala] = useState(1);
-  const [biomaId, setBiomaId] = useState(""); const [ecoId, setEcoId] = useState(""); const [habId, setHabId] = useState("");
-  const [props, setProps] = useState<Record<string, unknown>>({});
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase.from("props_game").select("*").order("orden");
-    const { data: b } = await supabase.from("biomas").select("id,nombre").order("nombre");
-    const { data: e } = await supabase.from("ecosistemas").select("id,nombre").order("nombre");
-    const { data: h } = await supabase.from("habitats").select("id,nombre").order("nombre");
-    setItems(data ?? []); setBiomas(b ?? []); setEcos(e ?? []); setHabitats(h ?? []); setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (p: any) => { setSel(p); setIsNew(false); setClave(p.clave); setNombre(p.nombre); setTipo(p.tipo); setActivo(p.activo); setOrden(p.orden); setPeso(p.peso); setEscala(p.escala); setBiomaId(p.bioma_id ?? ""); setEcoId(p.ecosistema_id ?? ""); setHabId(p.habitat_id ?? ""); setProps(p.propiedades ?? {}); };
-  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setTipo(""); setActivo(true); setOrden(0); setPeso(0); setEscala(1); setBiomaId(""); setEcoId(""); setHabId(""); setProps({}); };
-  const save = () => run(async () => {
-    const p = { clave, nombre, tipo, activo, orden, peso, escala, bioma_id: biomaId || null, ecosistema_id: ecoId || null, habitat_id: habId || null, propiedades: props };
-    isNew ? await supabase.from("props_game").insert(p) : await supabase.from("props_game").update(p).eq("id", sel.id);
-    await load(); if (isNew) setIsNew(false);
-  });
-  const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("props_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); } await load(); };
-
-  const [filtroTipoProp, setFiltroTipoProp] = useState("");
-  const tiposPropOptions = useMemo(() => {
-    const set = new Set(items.map((p) => p.tipo).filter(Boolean));
-    return [...set].sort().map((t) => ({ value: t as string, label: t as string }));
-  }, [items]);
-  const filtered = items.filter((p) => {
-    const matchQ = !q || p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase());
-    const matchT = !filtroTipoProp || p.tipo === filtroTipoProp;
-    return matchQ && matchT;
-  });
-  const abierto = !!sel || isNew;
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nuevo prop"
-        filterSlot={<FilterTag value={filtroTipoProp} onChange={setFiltroTipoProp} options={tiposPropOptions} placeholder="Tipo…" />} />
-      {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-      ) : (
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {filtered.map((p) => (
-            <GridCard
-              key={p.id}
-              nombre={p.nombre}
-              sub={p.clave}
-              badge={p.activo ? "on" : "off"}
-              icono={<Package size={14} />}
-              onClick={() => pick(p)}
-            />
-          ))}
-        </div>
-      )}
-
+      {/* ── Panel Props anidado ── */}
       <PanelModal
-        abierto={abierto}
-        onCerrar={() => { setSel(null); setIsNew(false); }}
-        titulo={isNew ? "Nuevo prop" : sel?.nombre}
+        abierto={propsOpen}
+        onCerrar={() => { setPropsOpen(false); setPropsSel(null); setPropsIsNew(false); }}
+        titulo="Props"
         icono={<Package size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}
+        accionesDerecha={
+          propsIsNew || propsSel
+            ? <SaveBtn saving={savingP} saved={savedP} disabled={!pClave.trim() || !pNombre.trim()} onClick={saveP} />
+            : undefined
+        }
       >
-        <div className="flex gap-3">
-          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
-          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        {/* Toolbar interno */}
+        <div className="shrink-0 flex items-center gap-2 mb-3">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+            <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+            <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
+              placeholder="Buscar…" value={propsQ} onChange={(e) => setPropsQ(e.target.value)} />
+          </div>
+          <FilterTag value={propsFiltroTipo} onChange={setPropsFiltroTipo} options={propsTiposOptions} placeholder="Tipo…" />
+          <button type="button" onClick={startNewP}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{ background: propsIsNew ? "color-mix(in srgb, var(--primary) 12%, transparent)" : "var(--primary)", color: propsIsNew ? "var(--primary)" : "var(--btn-text,#fff)" }}>
+            <Plus size={12} /> Nuevo
+          </button>
         </div>
-        <div className="flex gap-3">
-          <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
-          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-          <label className="flex flex-col gap-1 w-16"><FL label="Escala" /><Inp type="number" step="0.1" value={escala} onChange={(e) => setEscala(Number(e.target.value))} /></label>
-          <label className="flex flex-col gap-1 w-16"><FL label="Peso" /><Inp type="number" step="0.1" value={peso} onChange={(e) => setPeso(Number(e.target.value))} /></label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex flex-col gap-1 flex-1"><FL label="Bioma" /><Sel value={biomaId} onChange={(e) => setBiomaId(e.target.value)}><option value="">—</option>{biomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
-          <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={ecoId} onChange={(e) => setEcoId(e.target.value)}><option value="">—</option>{ecos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
-          <label className="flex flex-col gap-1 flex-1"><FL label="Hábitat" /><Sel value={habId} onChange={(e) => setHabId(e.target.value)}><option value="">—</option>{habitats.map((h) => <option key={h.id} value={h.id}>{h.nombre}</option>)}</Sel></label>
-        </div>
-        <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "120px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-          {sel && !isNew && (
-            <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
-          )}
-        </div>
+
+        {/* Grid de props */}
+        {propsLoading ? (
+          <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+        ) : (
+          <div className="grid gap-2 mb-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+            {propsFiltered.map((p) => (
+              <button key={p.id} type="button" onClick={() => pickP(p)}
+                className="group flex flex-col gap-1.5 p-3 rounded-2xl text-left transition-all hover:scale-[1.02]"
+                style={{ background: propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "color-mix(in srgb, var(--primary) 4%, var(--bg-main))", border: `1px solid ${propsSel?.id === p.id ? "color-mix(in srgb, var(--primary) 18%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}` }}>
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                  <Package size={12} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
+                </div>
+                <p className="text-xs font-bold truncate" style={{ color: "var(--primary)" }}>{p.nombre}</p>
+                <p className="text-[10px] truncate" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{p.clave}</p>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full self-start"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                  {p.activo ? "on" : "off"}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Formulario de edición/creación inline */}
+        {(propsSel || propsIsNew) && (
+          <>
+            <div className="shrink-0 h-px mb-3" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={pClave} onChange={(e) => setPClave(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={pNombre} onChange={(e) => setPNombre(e.target.value)} /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={pTipo} onChange={(e) => setPTipo(e.target.value)} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={pOrden} onChange={(e) => setPOrden(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Escala" /><Inp type="number" step="0.1" value={pEscala} onChange={(e) => setPEscala(Number(e.target.value))} /></label>
+              <label className="flex flex-col gap-1 w-16"><FL label="Peso" /><Inp type="number" step="0.1" value={pPeso} onChange={(e) => setPPeso(Number(e.target.value))} /></label>
+            </div>
+            <div className="flex gap-3">
+              <label className="flex flex-col gap-1 flex-1"><FL label="Bioma" /><Sel value={pBiomaId} onChange={(e) => setPBiomaId(e.target.value)}><option value="">—</option>{propsBiomas.map((b) => <option key={b.id} value={b.id}>{b.nombre}</option>)}</Sel></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Ecosistema" /><Sel value={pEcoId} onChange={(e) => setPEcoId(e.target.value)}><option value="">—</option>{propsEcos.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</Sel></label>
+              <label className="flex flex-col gap-1 flex-1"><FL label="Hábitat" /><Sel value={pHabId} onChange={(e) => setPHabId(e.target.value)}><option value="">—</option>{propsHabs.map((h) => <option key={h.id} value={h.id}>{h.nombre}</option>)}</Sel></label>
+            </div>
+            <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "120px" }}><JsonEditor value={pJsonProps} onChange={setPJsonProps} /></div></label>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={pActivo} onChange={(e) => setPActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+              {propsSel && !propsIsNew && (
+                <button type="button" onClick={() => delP(propsSel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>
+              )}
+            </div>
+          </>
+        )}
       </PanelModal>
     </div>
   );
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // GAME — Misiones (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1872,7 +1906,6 @@ const ALL_TABS: TabEntry[] = [
   { key: "misiones",      label: "Misiones",   icon: ScrollText,  group: "game"      },
   { key: "factores",      label: "Factores",   icon: Thermometer, group: "game"      },
   { key: "modificadores", label: "Mods",       icon: Clock,       group: "game"      },
-  { key: "props",         label: "Props",      icon: Package,     group: "game"      },
 ];
 
 
@@ -1921,7 +1954,6 @@ export default function GamePage() {
         {active === "entidades"     && <EntidadesSection />}
         {active === "misiones"      && <MisionesSection />}
         {ambSubs.includes(active as AmbSub) && <AmbienteSection activeSub={active as AmbSub} />}
-        {active === "props"         && <PropsSection />}
       </div>
     </div>
   );
