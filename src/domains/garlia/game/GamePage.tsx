@@ -775,7 +775,7 @@ function PersonajesSection() {
   const [dialJson,   setDialJson]     = useState<Record<string, unknown>>({});
   const [nombre,     setNombre]       = useState("");
   const [criaturaId, setCriaturaId]   = useState("");
-  const [reinoId,    setReinoId]      = useState("");   // reinos_game.id stored in propiedades.reino_game_id
+  const [reinoId,    setReinoId]      = useState("");   // reinos_game.id → columna reino_game_id
   const [activo,     setActivo]       = useState(true);
   // Social
   const [socialOpen,   setSocialOpen]   = useState(false);
@@ -788,7 +788,7 @@ function PersonajesSection() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: p }, { data: c }, { data: rg }] = await Promise.all([
-      supabase.from("personajes_game").select("*").order("nombre"),
+      supabase.from("personajes_game").select("id,nombre,criatura_id,activo,reino_game_id,personaje_id").order("nombre"),
       supabase.from("criaturas").select("id,nombre").order("nombre"),
       supabase.from("reinos_game").select("id,clave,orden,activo,reinos(id,nombre)").order("orden"),
     ]);
@@ -817,7 +817,7 @@ function PersonajesSection() {
   const pick = (p: any) => {
     setSel(p); setIsNew(false);
     setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo);
-    setReinoId(p.propiedades?.reino_game_id ?? "");
+    setReinoId(p.reino_game_id ?? "");
     loadDials(p.id);
   };
   const startNew = () => {
@@ -826,8 +826,7 @@ function PersonajesSection() {
     setDialogos([]); setSelDial(null);
   };
   const save = () => run(async () => {
-    const propiedades = reinoId ? { reino_game_id: reinoId } : {};
-    const p = { nombre, criatura_id: criaturaId, activo, propiedades };
+    const p = { nombre, criatura_id: criaturaId, activo, reino_game_id: reinoId || null };
     isNew
       ? await supabase.from("personajes_game").insert(p)
       : await supabase.from("personajes_game").update(p).eq("id", sel.id);
@@ -865,9 +864,9 @@ function PersonajesSection() {
     : personajes;
 
   const personajesDe = (rg: any) =>
-    personajesFiltrados.filter((p) => (p.propiedades?.reino_game_id ?? "") === rg.id);
+    personajesFiltrados.filter((p) => p.reino_game_id === rg.id);
   const personajesSinReino = personajesFiltrados.filter(
-    (p) => !p.propiedades?.reino_game_id || !reinos.some((r) => r.id === p.propiedades.reino_game_id)
+    (p) => !p.reino_game_id || !reinos.some((r) => r.id === p.reino_game_id)
   );
 
   const reinosConPersonajes = reinos.filter((r) => personajesDe(r).length > 0);
