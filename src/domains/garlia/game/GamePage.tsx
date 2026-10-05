@@ -435,6 +435,17 @@ function BiomasSection() {
   );
 }
 
+const ECO_SUBS: { key: EcoSub; label: string }[] = [
+  { key: "bioma_eco",      label: "Bioma → Ecosistema" },
+  { key: "bioma_reinos",   label: "Bioma → Reinos" },
+  { key: "participantes",  label: "Participantes" },
+  { key: "criatura_roles", label: "Criatura → Rol" },
+  { key: "relaciones",     label: "Relaciones" },
+  { key: "roles",          label: "Roles ecológicos" },
+  { key: "tipos_h",        label: "Tipos hábitat" },
+  { key: "tipos_p",        label: "Tipos presencia" },
+];
+
 function EcologiaSection() {
   const [sub, setSub] = useState<EcoSub>("bioma_eco");
   const [loading, setLoading] = useState(true);
