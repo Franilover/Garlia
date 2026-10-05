@@ -790,7 +790,7 @@ function PersonajesSection() {
     const [{ data: p }, { data: c }, { data: rg }] = await Promise.all([
       supabase.from("personajes_game").select("*").order("nombre"),
       supabase.from("criaturas").select("id,nombre").order("nombre"),
-      supabase.from("reinos_game").select("id,nombre,clave,orden").order("orden"),
+      supabase.from("reinos_game").select("id,clave,orden,activo,reinos(id,nombre)").order("orden"),
     ]);
     setPersonajes(p ?? []);
     setCriaturas(c ?? []);
@@ -907,7 +907,7 @@ function PersonajesSection() {
                   style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
                   <span className="text-xs font-black uppercase tracking-widest"
                     style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                    {rg.nombre ?? rg.clave}
+                    {rg.reinos?.nombre ?? rg.clave}
                   </span>
                 </div>
                 {/* Grid de personajes */}
@@ -961,7 +961,7 @@ function PersonajesSection() {
               {reinosVacios.map((rg) => (
                 <span key={rg.id} className="px-3 py-1 rounded-full text-xs font-semibold"
                   style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
-                  {rg.nombre ?? rg.clave}
+                  {rg.reinos?.nombre ?? rg.clave}
                 </span>
               ))}
             </div>
@@ -989,7 +989,7 @@ function PersonajesSection() {
         <label className="flex flex-col gap-1"><FL label="Reino" />
           <Sel value={reinoId} onChange={(e) => setReinoId(e.target.value)}>
             <option value="">— Sin reino —</option>
-            {reinos.map((r) => <option key={r.id} value={r.id}>{r.nombre ?? r.clave}</option>)}
+            {reinos.map((r) => <option key={r.id} value={r.id}>{r.reinos?.nombre ?? r.clave}</option>)}
           </Sel>
         </label>
         <div className="flex items-center justify-between">
