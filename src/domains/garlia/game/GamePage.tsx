@@ -83,7 +83,7 @@ function PanelModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ActiveTab =
-  | "biomas" | "reinos" | "ecologia"
+  | "biomas" | "ecologia"
   | "entidades"
   | "misiones" | "factores" | "modificadores";
 
@@ -434,171 +434,6 @@ function BiomasSection() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Reinos
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ReinosSection() {
-  const [reinos, setReinos] = useState<any[]>([]);
-  const [reinosGame, setReinosGame] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [gameRow, setGameRow] = useState<any>(null);
-  const { saving, saved, run } = useSave();
-  const [clave, setClave] = useState(""); const [nombreG, setNombreG] = useState(""); const [descG, setDescG] = useState(""); const [activo, setActivo] = useState(true); const [orden, setOrden] = useState(0); const [props, setProps] = useState<Record<string, unknown>>({});
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: r } = await supabase.from("reinos").select("id,nombre,descripcion,publicado").order("nombre");
-    const { data: rg } = await supabase.from("reinos_game").select("*").order("orden");
-    setReinos(r ?? []); setReinosGame(rg ?? []); setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-  const pick = (r: any) => {
-    setSel(r);
-    const rg = reinosGame.find((g) => g.reino_id === r.id) ?? null;
-    setGameRow(rg); setClave(rg?.clave ?? ""); setNombreG(rg?.nombre ?? ""); setDescG(rg?.descripcion ?? ""); setActivo(rg?.activo ?? true); setOrden(rg?.orden ?? 0); setProps(rg?.propiedades ?? {});
-  };
-  const save = () => run(async () => {
-    if (!sel || !clave.trim()) return;
-    const p = { reino_id: sel.id, clave: clave.trim(), nombre: nombreG || null, descripcion: descG || null, activo, orden, propiedades: props };
-    if (gameRow) await supabase.from("reinos_game").update(p).eq("id", gameRow.id);
-    else { const { data } = await supabase.from("reinos_game").insert(p).select().single(); setGameRow(data); }
-    await load();
-  });
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {reinos.map((r) => (
-            <button key={r.id} type="button" onClick={() => pick(r)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-[1.03]"
-              style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", color: "var(--primary)" }}>
-              <Shield size={10} /> {r.nombre}
-              {reinosGame.some((g) => g.reino_id === r.id) && <span className="opacity-50">· game</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <PanelModal abierto={!!sel} onCerrar={() => setSel(null)}
-        titulo={sel?.nombre} icono={<Shield size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim()} onClick={save} />}>
-        <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>{sel?.descripcion ?? "Sin descripción canónica"}</p>
-        <Divider label="Capa Game (reinos_game)" />
-        {!gameRow && <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin entrada en reinos_game — se creará al guardar.</p>}
-        <div className="flex gap-3">
-          <label className="flex flex-col gap-1 flex-1"><FL label="Clave (Godot)" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} placeholder="ej. reino_norte" /></label>
-          <label className="flex flex-col gap-1 w-20"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
-        </div>
-        <label className="flex flex-col gap-1"><FL label="Nombre game (override)" /><Inp value={nombreG} onChange={(e) => setNombreG(e.target.value)} placeholder="Dejar vacío = usa el canónico" /></label>
-        <label className="flex flex-col gap-1"><FL label="Descripción game" /><TA value={descG} onChange={(e) => setDescG(e.target.value)} rows={3} /></label>
-        <label className="flex flex-col gap-1"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "100px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
-        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo en Godot</span></label>
-      </PanelModal>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MUNDO — Ecología (bioma_ecosistemas, bioma_reinos, participantes, relaciones, catálogos)
-// ─────────────────────────────────────────────────────────────────────────────
-
-type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
-
-const ECO_SUBS: { key: EcoSub; label: string }[] = [
-  { key: "bioma_eco", label: "Bioma → Ecosistema" },
-  { key: "bioma_reinos", label: "Bioma → Reinos" },
-  { key: "participantes", label: "Participantes" },
-  { key: "criatura_roles", label: "Criatura → Roles" },
-  { key: "relaciones", label: "Relaciones" },
-  { key: "roles", label: "Roles ecológicos" },
-  { key: "tipos_h", label: "Tipos hábitat" },
-  { key: "tipos_p", label: "Tipos presencia" },
-];
-
-// Tabla simple de relaciones N:M con selector doble
-function RelTable({ rows, catalogo1, catalogo2, label1, label2, id1, id2, tabla, pkComposite = false, extraCols }:
-  { rows: any[]; catalogo1: any[]; catalogo2: any[]; label1: string; label2: string; id1: string; id2: string; tabla: string; pkComposite?: boolean; extraCols?: { key: string; label: string; cat?: any[]; catIdKey?: string; catNameKey?: string }[] }) {
-  const [v1, setV1] = useState(""); const [v2, setV2] = useState(""); const [extras, setExtras] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const name1 = (id: string) => catalogo1.find((c) => c.id === id)?.nombre ?? id.slice(0, 6);
-  const name2 = (id: string) => catalogo2.find((c) => c.id === id)?.nombre ?? id.slice(0, 6);
-
-  const add = async () => {
-    if (!v1 || !v2) return;
-    setSaving(true);
-    const payload: any = { [id1]: v1, [id2]: v2 };
-    extraCols?.forEach((ec) => { if (extras[ec.key]) payload[ec.key] = extras[ec.key]; });
-    await supabase.from(tabla).insert(payload);
-    setSaving(false); setV1(""); setV2(""); setExtras({});
-  };
-  const del = async (row: any) => {
-    if (!confirm("¿Eliminar?")) return;
-    if (pkComposite) await supabase.from(tabla).delete().eq(id1, row[id1]).eq(id2, row[id2]);
-    else await supabase.from(tabla).delete().eq("id", row.id);
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Add row */}
-      <div className="flex gap-2 items-end flex-wrap">
-        <label className="flex flex-col gap-1 flex-1 min-w-32">
-          <FL label={label1} />
-          <Sel value={v1} onChange={(e) => setV1(e.target.value)}>
-            <option value="">— {label1} —</option>
-            {catalogo1.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </Sel>
-        </label>
-        <label className="flex flex-col gap-1 flex-1 min-w-32">
-          <FL label={label2} />
-          <Sel value={v2} onChange={(e) => setV2(e.target.value)}>
-            <option value="">— {label2} —</option>
-            {catalogo2.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </Sel>
-        </label>
-        {extraCols?.map((ec) => (
-          <label key={ec.key} className="flex flex-col gap-1 flex-1 min-w-28">
-            <FL label={ec.label} />
-            {ec.cat ? (
-              <Sel value={extras[ec.key] ?? ""} onChange={(e) => setExtras((prev) => ({ ...prev, [ec.key]: e.target.value }))}>
-                <option value="">—</option>
-                {ec.cat.map((c) => <option key={c.id} value={c.id}>{c[ec.catNameKey ?? "nombre"]}</option>)}
-              </Sel>
-            ) : (
-              <Inp value={extras[ec.key] ?? ""} onChange={(e) => setExtras((prev) => ({ ...prev, [ec.key]: e.target.value }))} />
-            )}
-          </label>
-        ))}
-        <button type="button" onClick={add} disabled={saving || !v1 || !v2}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
-          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: !v1 || !v2 ? 0.4 : 1 }}>
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
-        </button>
-      </div>
-      {/* Rows */}
-      <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: "340px" }}>
-        {rows.length === 0 ? <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin registros</p>
-          : rows.map((row, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
-              style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{name1(row[id1])}</span>
-              <ChevronRight size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-              <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{name2(row[id2])}</span>
-              {extraCols?.map((ec) => row[ec.key] && (
-                <Bdg key={ec.key} text={ec.cat ? (ec.cat.find((c) => c.id === row[ec.key])?.[ec.catNameKey ?? "nombre"] ?? row[ec.key]) : row[ec.key]} active={false} />
-              ))}
-              <button type="button" onClick={() => del(row)} className="opacity-0 group-hover:opacity-100 ml-1" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}><Trash2 size={11} /></button>
-            </div>
-          ))}
-      </div>
-    </div>
-  );
-}
-
 function EcologiaSection() {
   const [sub, setSub] = useState<EcoSub>("bioma_eco");
   const [loading, setLoading] = useState(true);
@@ -792,36 +627,47 @@ function EcologiaSection() {
   );
 }
 
+
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTIDADES — Personajes + Diálogos
+// ENTIDADES — Personajes agrupados por Reino (patrón GeografiaJerarquica)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function PersonajesSection() {
-  const [personajes, setPersonajes] = useState<any[]>([]);
-  const [criaturas, setCriaturas] = useState<any[]>([]);
-  const [dialogos, setDialogos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
+  const [personajes, setPersonajes]   = useState<any[]>([]);
+  const [criaturas,  setCriaturas]    = useState<any[]>([]);
+  const [reinos,     setReinos]       = useState<any[]>([]);   // reinos_game
+  const [dialogos,   setDialogos]     = useState<any[]>([]);
+  const [loading,    setLoading]      = useState(true);
+  const [sel,        setSel]          = useState<any>(null);
+  const [isNew,      setIsNew]        = useState(false);
+  const { saving, saved, run }        = useSave();
   const { saving: savingD, saved: savedD, run: runD } = useSave();
   const { saving: savingSoc, saved: savedSoc, run: runSoc } = useSave();
-  const [selDial, setSelDial] = useState<any>(null);
-  const [dialJson, setDialJson] = useState<Record<string, unknown>>({});
-  const [nombre, setNombre] = useState(""); const [criaturaId, setCriaturaId] = useState(""); const [activo, setActivo] = useState(true);
+  const [selDial,    setSelDial]      = useState<any>(null);
+  const [dialJson,   setDialJson]     = useState<Record<string, unknown>>({});
+  const [nombre,     setNombre]       = useState("");
+  const [criaturaId, setCriaturaId]   = useState("");
+  const [reinoId,    setReinoId]      = useState("");   // reinos_game.id stored in propiedades.reino_game_id
+  const [activo,     setActivo]       = useState(true);
   // Social
-  const [socialOpen, setSocialOpen] = useState(false);
+  const [socialOpen,   setSocialOpen]   = useState(false);
   const [socialPerfil, setSocialPerfil] = useState<any>(null);
-  const [regalos, setRegalos] = useState<any[]>([]);
-  const [itemsCat, setItemsCat] = useState<any[]>([]);
+  const [regalos,      setRegalos]      = useState<any[]>([]);
+  const [itemsCat,     setItemsCat]     = useState<any[]>([]);
+  // Search
+  const [q, setQ]                     = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: p }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: rg }] = await Promise.all([
       supabase.from("personajes_game").select("*").order("nombre"),
       supabase.from("criaturas").select("id,nombre").order("nombre"),
+      supabase.from("reinos_game").select("id,nombre,clave,orden").order("orden"),
     ]);
-    setPersonajes(p ?? []); setCriaturas(c ?? []); setLoading(false);
+    setPersonajes(p ?? []);
+    setCriaturas(c ?? []);
+    setReinos(rg ?? []);
+    setLoading(false);
   }, []);
 
   const loadSocial = useCallback(async (pid: string) => {
@@ -832,17 +678,44 @@ function PersonajesSection() {
     ]);
     setSocialPerfil(s?.[0] ?? null); setRegalos(r ?? []); setItemsCat(it ?? []);
   }, []);
+
   const loadDials = useCallback(async (pid: string) => {
     const { data } = await supabase.from("dialogos_game").select("id,clave,dialogo,activo").eq("personaje_id", pid).order("clave");
     setDialogos(data ?? []); setSelDial(null);
   }, []);
+
   useEffect(() => { load(); }, [load]);
 
-  const pick = (p: any) => { setSel(p); setIsNew(false); setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo); loadDials(p.id); };
-  const startNew = () => { setSel(null); setIsNew(true); setNombre(""); setCriaturaId(criaturas[0]?.id ?? ""); setActivo(true); setDialogos([]); setSelDial(null); };
-  const save = () => run(async () => { const p = { nombre, criatura_id: criaturaId, activo }; isNew ? await supabase.from("personajes_game").insert(p) : await supabase.from("personajes_game").update(p).eq("id", sel.id); await load(); });
-  const del = async (id: string) => { if (!confirm("¿Eliminar personaje?")) return; await supabase.from("personajes_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); setDialogos([]); } await load(); };
-  const saveD = () => runD(async () => { if (!selDial) return; await supabase.from("dialogos_game").update({ dialogo: dialJson }).eq("id", selDial.id); if (sel) loadDials(sel.id); });
+  const pick = (p: any) => {
+    setSel(p); setIsNew(false);
+    setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo);
+    setReinoId(p.propiedades?.reino_game_id ?? "");
+    loadDials(p.id);
+  };
+  const startNew = () => {
+    setSel(null); setIsNew(true);
+    setNombre(""); setCriaturaId(criaturas[0]?.id ?? ""); setActivo(true); setReinoId("");
+    setDialogos([]); setSelDial(null);
+  };
+  const save = () => run(async () => {
+    const propiedades = reinoId ? { reino_game_id: reinoId } : {};
+    const p = { nombre, criatura_id: criaturaId, activo, propiedades };
+    isNew
+      ? await supabase.from("personajes_game").insert(p)
+      : await supabase.from("personajes_game").update(p).eq("id", sel.id);
+    await load();
+  });
+  const del = async (id: string) => {
+    if (!confirm("¿Eliminar personaje?")) return;
+    await supabase.from("personajes_game").delete().eq("id", id);
+    if (sel?.id === id) { setSel(null); setIsNew(false); setDialogos([]); }
+    await load();
+  };
+  const saveD = () => runD(async () => {
+    if (!selDial) return;
+    await supabase.from("dialogos_game").update({ dialogo: dialJson }).eq("id", selDial.id);
+    if (sel) loadDials(sel.id);
+  });
   const cName = (id: string) => criaturas.find((c) => c.id === id)?.nombre ?? "—";
   const openSocial = () => { if (sel) { loadSocial(sel.id); setSocialOpen(true); } };
   const saveSocial = () => runSoc(async () => {
@@ -858,40 +731,144 @@ function PersonajesSection() {
     </label>
   );
 
-  const [qP, setQP] = useState("");
-  const [filtroActivo, setFiltroActivo] = useState("");
-  const filtroActivoOptions = [
-    { value: "activo", label: "Activos" },
-    { value: "inactivo", label: "Inactivos" },
-  ];
-  const personajesFiltrados = personajes.filter((p) => {
-    const matchQ = !qP || p.nombre.toLowerCase().includes(qP.toLowerCase());
-    const matchF = !filtroActivo || (filtroActivo === "activo" ? p.activo : !p.activo);
-    return matchQ && matchF;
-  });
+  // ── Agrupación Reino → Personajes ──────────────────────────────────────
+  const personajesFiltrados = q
+    ? personajes.filter((p) => p.nombre.toLowerCase().includes(q.toLowerCase()))
+    : personajes;
+
+  const personajesDe = (rg: any) =>
+    personajesFiltrados.filter((p) => (p.propiedades?.reino_game_id ?? "") === rg.id);
+  const personajesSinReino = personajesFiltrados.filter(
+    (p) => !p.propiedades?.reino_game_id || !reinos.some((r) => r.id === p.propiedades.reino_game_id)
+  );
+
+  const reinosConPersonajes = reinos.filter((r) => personajesDe(r).length > 0);
+  const reinosVacios        = reinos.filter((r) => personajesDe(r).length === 0);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q={qP} onQ={setQP} onNew={startNew} newLabel="Nuevo personaje"
-        filterSlot={<FilterTag value={filtroActivo} onChange={setFiltroActivo} options={filtroActivoOptions} placeholder="Estado…" />} />
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
+      {/* Toolbar */}
+      <div className="shrink-0 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
+          style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+          <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
+            placeholder="Buscar personaje…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <button type="button" onClick={startNew}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)" }}>
+          <Plus size={12} /> Nuevo personaje
+        </button>
+      </div>
+
       {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+        </div>
       ) : (
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {personajesFiltrados.map((p) => (
-            <GridCard key={p.id} nombre={p.nombre} sub={cName(p.criatura_id)} badge={p.activo ? "on" : "off"}
-              icono={<Users size={14} />} onClick={() => pick(p)} />
-          ))}
+        <div className="flex flex-col gap-5">
+          {/* Reinos con personajes */}
+          {reinosConPersonajes.map((rg) => {
+            const miembros = personajesDe(rg);
+            return (
+              <div key={rg.id} className="rounded-2xl overflow-hidden"
+                style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                {/* Cabecera reino */}
+                <div className="px-4 py-2.5 flex items-center justify-center"
+                  style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
+                  <span className="text-xs font-black uppercase tracking-widest"
+                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                    {rg.nombre ?? rg.clave}
+                  </span>
+                </div>
+                {/* Grid de personajes */}
+                <div className="p-3 grid gap-2"
+                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+                  {miembros.map((p) => (
+                    <GridCard
+                      key={p.id}
+                      nombre={p.nombre}
+                      sub={cName(p.criatura_id)}
+                      badge={p.activo ? undefined : "off"}
+                      icono={<Users size={14} />}
+                      onClick={() => pick(p)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Personajes sin reino */}
+          {personajesSinReino.length > 0 && (
+            <div className="rounded-2xl overflow-hidden"
+              style={{ border: "1px dashed color-mix(in srgb, var(--primary) 12%, transparent)" }}>
+              <div className="px-4 py-2.5 flex items-center justify-center"
+                style={{ borderBottom: "1px dashed color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                <span className="text-xs font-bold uppercase tracking-widest"
+                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                  Sin reino
+                </span>
+              </div>
+              <div className="p-3 grid gap-2"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
+                {personajesSinReino.map((p) => (
+                  <GridCard
+                    key={p.id}
+                    nombre={p.nombre}
+                    sub={cName(p.criatura_id)}
+                    badge={p.activo ? undefined : "off"}
+                    icono={<Users size={14} />}
+                    onClick={() => pick(p)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reinos vacíos (sin personajes) */}
+          {reinosVacios.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {reinosVacios.map((rg) => (
+                <span key={rg.id} className="px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                  {rg.nombre ?? rg.clave}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {personajes.length === 0 && (
+            <p className="text-center py-8 text-xs" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+              Sin personajes
+            </p>
+          )}
         </div>
       )}
 
+      {/* Panel personaje */}
       <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); setSelDial(null); }}
         titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}>
         <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-        <label className="flex flex-col gap-1"><FL label="Criatura canónica" /><Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}><option value="">—</option>{criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</Sel></label>
+        <label className="flex flex-col gap-1"><FL label="Criatura canónica" />
+          <Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}>
+            <option value="">—</option>
+            {criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </Sel>
+        </label>
+        <label className="flex flex-col gap-1"><FL label="Reino" />
+          <Sel value={reinoId} onChange={(e) => setReinoId(e.target.value)}>
+            <option value="">— Sin reino —</option>
+            {reinos.map((r) => <option key={r.id} value={r.id}>{r.nombre ?? r.clave}</option>)}
+          </Sel>
+        </label>
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} />
+            <span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span>
+          </label>
           <div className="flex items-center gap-2">
             {sel && !isNew && (
               <button type="button" onClick={openSocial}
@@ -900,13 +877,20 @@ function PersonajesSection() {
                 <Heart size={11} /> Social
               </button>
             )}
-            {sel && !isNew && <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>}
+            {sel && !isNew && (
+              <button type="button" onClick={() => del(sel.id)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border"
+                style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+                <Trash2 size={11} /> Eliminar
+              </button>
+            )}
           </div>
         </div>
         {sel && !isNew && (
           <>
             <Divider label={`Diálogos (${dialogos.length})`} />
-            {dialogos.length === 0 ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
+            {dialogos.length === 0
+              ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
               : dialogos.map((d) => (
                 <button key={d.id} type="button" onClick={() => { setSelDial(d); setDialJson(d.dialogo); }}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors"
@@ -915,7 +899,8 @@ function PersonajesSection() {
                   <span className="text-xs font-medium truncate flex-1" style={{ color: "var(--primary)" }}>{d.clave}</span>
                   <Bdg text={d.activo ? "on" : "off"} active={d.activo} />
                 </button>
-              ))}
+              ))
+            }
           </>
         )}
       </PanelModal>
@@ -932,7 +917,7 @@ function PersonajesSection() {
         titulo={`Social — ${sel?.nombre ?? ""}`} icono={<Heart size={12} />}
         accionesDerecha={socialPerfil ? <SaveBtn saving={savingSoc} saved={savedSoc} onClick={saveSocial} /> : undefined}>
         {!socialPerfil ? (
-          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin perfil social — no existe entrada en personaje_social_v1.</p>
+          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>Sin perfil social.</p>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
@@ -1900,7 +1885,6 @@ type TabEntry = { key: ActiveTab; label: string; icon: React.ElementType; group:
 
 const ALL_TABS: TabEntry[] = [
   { key: "biomas",        label: "Biomas",     icon: Mountain,    group: "mundo"     },
-  { key: "reinos",        label: "Reinos",     icon: Shield,      group: "mundo"     },
   { key: "ecologia",      label: "Ecología",   icon: TreePine,    group: "mundo"     },
   { key: "entidades",     label: "Entidades",  icon: Layers,      group: "entidades" },
   { key: "misiones",      label: "Misiones",   icon: ScrollText,  group: "game"      },
@@ -1949,7 +1933,6 @@ export default function GamePage() {
       {/* ── Contenido ── */}
       <div className="flex-1 min-h-0 flex flex-col">
         {active === "biomas"        && <BiomasSection />}
-        {active === "reinos"        && <ReinosSection />}
         {active === "ecologia"      && <EcologiaSection />}
         {active === "entidades"     && <EntidadesSection />}
         {active === "misiones"      && <MisionesSection />}
