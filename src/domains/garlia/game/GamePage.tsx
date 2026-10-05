@@ -88,6 +88,7 @@ type ActiveTab =
   | "misiones" | "factores" | "modificadores";
 
 type AmbSub = "factores" | "modificadores";
+type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
