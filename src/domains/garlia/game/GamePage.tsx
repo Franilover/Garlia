@@ -435,6 +435,122 @@ function BiomasSection() {
   );
 }
 
+type ExtraCol = {
+  key: string;
+  label: string;
+  cat?: { id: string; [k: string]: any }[];
+  catIdKey?: string;
+  catNameKey?: string;
+};
+
+function RelTable({
+  rows, catalogo1, catalogo2,
+  label1, label2, id1, id2,
+  tabla, pkComposite,
+  extraCols = [],
+}: {
+  rows: any[];
+  catalogo1: { id: string; nombre: string }[];
+  catalogo2: { id: string; nombre: string }[];
+  label1: string; label2: string;
+  id1: string; id2: string;
+  tabla: string;
+  pkComposite?: boolean;
+  extraCols?: ExtraCol[];
+}) {
+  const [sel1, setSel1] = useState("");
+  const [sel2, setSel2] = useState("");
+  const [extras, setExtras] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [localRows, setLocalRows] = useState<any[]>(rows);
+
+  useEffect(() => { setLocalRows(rows); }, [rows]);
+
+  const name1 = (id: string) => catalogo1.find(x => x.id === id)?.nombre ?? id;
+  const name2 = (id: string) => catalogo2.find(x => x.id === id)?.nombre ?? id;
+  const extraName = (col: ExtraCol, val: string) =>
+    col.cat ? (col.cat.find(x => x[col.catIdKey!] === val)?.[col.catNameKey!] ?? val) : val;
+
+  const add = async () => {
+    if (!sel1 || !sel2) return;
+    setSaving(true);
+    const payload: any = { [id1]: sel1, [id2]: sel2 };
+    extraCols.forEach(c => { if (extras[c.key]) payload[c.key] = extras[c.key]; });
+    const { data, error } = await supabase.from(tabla).insert(payload).select();
+    if (!error && data) {
+      setLocalRows(r => [...r, ...data]);
+      setSel1(""); setSel2(""); setExtras({});
+    }
+    setSaving(false);
+  };
+
+  const remove = async (row: any) => {
+    const key = pkComposite ? `${row[id1]}_${row[id2]}` : row.id;
+    setDeleting(key);
+    let q = supabase.from(tabla).delete();
+    if (pkComposite) { q = (q as any).eq(id1, row[id1]).eq(id2, row[id2]); }
+    else              { q = (q as any).eq("id", row.id); }
+    const { error } = await q;
+    if (!error) setLocalRows(r => r.filter(x => (pkComposite ? !(x[id1] === row[id1] && x[id2] === row[id2]) : x.id !== row.id)));
+    setDeleting(null);
+  };
+
+  const rowKey = (row: any) => pkComposite ? `${row[id1]}_${row[id2]}` : row.id;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Add row */}
+      <div className="flex gap-2 flex-wrap">
+        <Sel value={sel1} onChange={e => setSel1(e.target.value)} style={{ ...inputStyle, width: 180 }}>
+          <option value="">— {label1} —</option>
+          {catalogo1.map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+        </Sel>
+        <Sel value={sel2} onChange={e => setSel2(e.target.value)} style={{ ...inputStyle, width: 180 }}>
+          <option value="">— {label2} —</option>
+          {catalogo2.map(x => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+        </Sel>
+        {extraCols.map(c => c.cat ? (
+          <Sel key={c.key} value={extras[c.key] ?? ""} onChange={e => setExtras(p => ({ ...p, [c.key]: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
+            <option value="">— {c.label} —</option>
+            {c.cat.map((x: any) => <option key={x[c.catIdKey!]} value={x[c.catIdKey!]}>{x[c.catNameKey!]}</option>)}
+          </Sel>
+        ) : (
+          <Inp key={c.key} placeholder={c.label} value={extras[c.key] ?? ""} onChange={e => setExtras(p => ({ ...p, [c.key]: e.target.value }))} style={{ width: 140 }} />
+        ))}
+        <button type="button" onClick={add} disabled={saving || !sel1 || !sel2}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold shrink-0"
+          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)", opacity: (!sel1 || !sel2) ? 0.4 : 1 }}>
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} Añadir
+        </button>
+      </div>
+      {/* Rows */}
+      <div className="flex flex-col gap-1">
+        {localRows.length === 0 && (
+          <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin relaciones</p>
+        )}
+        {localRows.map(row => (
+          <div key={rowKey(row)} className="flex items-center gap-2 px-3 py-2 rounded-xl group"
+            style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <span className="text-sm flex-1" style={{ color: "var(--primary)" }}>
+              {name1(row[id1])} → {name2(row[id2])}
+            </span>
+            {extraCols.map(c => (
+              <Bdg key={c.key} text={`${c.label}: ${extraName(c, row[c.key])}`} active={false} />
+            ))}
+            <button type="button" onClick={() => remove(row)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+              disabled={deleting === rowKey(row)}>
+              {deleting === rowKey(row) ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const ECO_SUBS: { key: EcoSub; label: string }[] = [
   { key: "bioma_eco",      label: "Bioma → Ecosistema" },
   { key: "bioma_reinos",   label: "Bioma → Reinos" },
