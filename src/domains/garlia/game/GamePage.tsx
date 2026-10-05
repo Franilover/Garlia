@@ -1404,6 +1404,7 @@ function SocialSection() {
   const [perfiles, setPerfiles] = useState<any[]>([]);
   const [regalos, setRegalos] = useState<any[]>([]);
   const [personajes, setPersonajes] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
   const [q, setQ] = useState("");
@@ -1411,10 +1412,13 @@ function SocialSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: s } = await supabase.from("personaje_social_v1").select("*");
-    const { data: r } = await supabase.from("personaje_regalos_v1").select("*");
-    const { data: p } = await supabase.from("personajes_game").select("id,nombre").order("nombre");
-    setPerfiles(s ?? []); setRegalos(r ?? []); setPersonajes(p ?? []); setLoading(false);
+    const [{ data: s }, { data: r }, { data: p }, { data: it }] = await Promise.all([
+      supabase.from("personaje_social_v1").select("*"),
+      supabase.from("personaje_regalos_v1").select("*, items(id,nombre)"),
+      supabase.from("personajes_game").select("id,nombre").order("nombre"),
+      supabase.from("items").select("id,nombre").order("nombre"),
+    ]);
+    setPerfiles(s ?? []); setRegalos(r ?? []); setPersonajes(p ?? []); setItems(it ?? []); setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -1478,7 +1482,9 @@ function SocialSection() {
             <Divider label={`Regalos de ${pName(sel.personaje_game_id)} (${regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).length})`} />
             {regalos.filter((r) => r.personaje_game_id === sel.personaje_game_id).map((r) => (
               <div key={r.id} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>{r.item_id?.slice(0, 8)}…</span>
+                <span className="flex-1 text-xs" style={{ color: "var(--primary)" }}>
+                  {r.items?.nombre ?? items.find((i) => i.id === r.item_id)?.nombre ?? r.item_id?.slice(0, 8) + "…"}
+                </span>
                 <Bdg text={r.reaccion} active={r.reaccion === "amor"} />
               </div>
             ))}
