@@ -82,10 +82,12 @@ function PanelModal({
 // Shared primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-type MainTab = "mundo" | "entidades" | "game";
-type MundoSec = "biomas" | "reinos" | "ecologia";
-type EntidadesModo = "items" | "criaturas" | "personajes";
-type GameSec = "misiones" | "factores" | "modificadores" | "props";
+type ActiveTab =
+  | "biomas" | "reinos" | "ecologia"
+  | "entidades"
+  | "misiones" | "factores" | "modificadores" | "props";
+
+type AmbSub = "factores" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -1656,8 +1658,6 @@ function RecetasSection() {
 // AMBIENTE — Factores abióticos · Modificadores (grid + PanelModal)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type AmbSub = "factores" | "modificadores";
-
 const AMB_SUBS: { key: AmbSub; label: string }[] = [
   { key: "factores", label: "Factores abióticos" },
   { key: "modificadores", label: "Modificadores" },
@@ -1816,17 +1816,12 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
 }
 
 
-const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = [
-  { key: "biomas", label: "Biomas", icon: Mountain },
-  { key: "reinos", label: "Reinos", icon: Shield },
-  { key: "ecologia", label: "Ecología", icon: TreePine },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTIDADES — Vista unificada (Items · Criaturas · Personajes) con toggle de
-// modo y selector de filtro/tag al lado del buscador (igual que en
-// EntidadesPage / GeografiaJerarquica / CriaturasJerarquica).
+// modo y selector de filtro/tag al lado del buscador.
 // ─────────────────────────────────────────────────────────────────────────────
+
+type EntidadesModo = "items" | "criaturas" | "personajes";
 
 const ENTIDADES_MODOS: { key: EntidadesModo; label: string; icon: React.ElementType }[] = [
   { key: "items",      label: "Items",      icon: Sword  },
@@ -1839,7 +1834,6 @@ function EntidadesSection() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Barra de modo — compacta, vive dentro del área de contenido */}
       <div className="shrink-0 flex items-center gap-1 px-4 pt-2 pb-1">
         <div className="flex items-center gap-0.5 p-0.5 rounded-xl"
           style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
@@ -1855,8 +1849,6 @@ function EntidadesSection() {
           ))}
         </div>
       </div>
-
-      {/* Sección activa */}
       <div className="flex-1 min-h-0 flex flex-col">
         {modo === "items"      && <ItemsSection />}
         {modo === "criaturas"  && <CriaturasSection />}
@@ -1866,81 +1858,70 @@ function EntidadesSection() {
   );
 }
 
-const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
-  { key: "misiones", label: "Misiones", icon: ScrollText },
-  { key: "factores", label: "Factores abióticos", icon: Thermometer },
-  { key: "modificadores", label: "Modificadores", icon: Clock },
-  { key: "props", label: "Props", icon: Package },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Main
+// Main — fila única de tabs plana
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MAIN_TABS: { key: MainTab; label: string; icon: React.ElementType }[] = [
-  { key: "mundo", label: "Mundo", icon: Globe2 },
-  { key: "entidades", label: "Entidades", icon: Layers },
-  { key: "game", label: "Game", icon: Gamepad2 },
+type TabEntry = { key: ActiveTab; label: string; icon: React.ElementType; group: "mundo" | "entidades" | "game" };
+
+const ALL_TABS: TabEntry[] = [
+  { key: "biomas",        label: "Biomas",     icon: Mountain,    group: "mundo"     },
+  { key: "reinos",        label: "Reinos",     icon: Shield,      group: "mundo"     },
+  { key: "ecologia",      label: "Ecología",   icon: TreePine,    group: "mundo"     },
+  { key: "entidades",     label: "Entidades",  icon: Layers,      group: "entidades" },
+  { key: "misiones",      label: "Misiones",   icon: ScrollText,  group: "game"      },
+  { key: "factores",      label: "Factores",   icon: Thermometer, group: "game"      },
+  { key: "modificadores", label: "Mods",       icon: Clock,       group: "game"      },
+  { key: "props",         label: "Props",      icon: Package,     group: "game"      },
 ];
+
 
 export default function GamePage() {
-  const [mainTab, setMainTab] = useState<MainTab>("mundo");
-  const [mundoSec, setMundoSec] = useState<MundoSec>("biomas");
-  const [gameSec, setGameSec] = useState<GameSec>("misiones");
-
-  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : GAME_SUBS;
-  const activeSub = mainTab === "mundo" ? mundoSec : gameSec;
-  const setActiveSub = (k: string) => {
-    if (mainTab === "mundo") setMundoSec(k as MundoSec);
-    else setGameSec(k as GameSec);
-  };
+  const [active, setActive] = useState<ActiveTab>("biomas");
 
   const ambSubs: AmbSub[] = ["factores", "modificadores"];
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
-      {/* Tab principal */}
-      <div className="shrink-0 flex items-center gap-1 px-4 pt-3 pb-0 border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-        {MAIN_TABS.map(({ key, label, icon: Icon }) => (
-          <button key={key} type="button" onClick={() => setMainTab(key)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all rounded-t-lg"
-            style={{ background: mainTab === key ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "transparent", color: mainTab === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)", borderBottom: mainTab === key ? "2px solid var(--primary)" : "2px solid transparent", marginBottom: "-1px" }}>
-            <Icon size={13} strokeWidth={mainTab === key ? 2.5 : 2} />{label}
-          </button>
-        ))}
+      {/* ── Fila única de tabs plana ── */}
+      <div className="shrink-0 flex items-center gap-0.5 px-3 pt-2 pb-0 border-b overflow-x-auto"
+        style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+        {ALL_TABS.map((tab, i) => {
+          const prev = ALL_TABS[i - 1];
+          const showDivider = prev && prev.group !== tab.group;
+          const Icon = tab.icon;
+          const isActive = active === tab.key;
+          return (
+            <React.Fragment key={tab.key}>
+              {showDivider && (
+                <span className="shrink-0 mx-1 self-stretch"
+                  style={{ width: "1px", background: "color-mix(in srgb, var(--primary) 12%, transparent)", marginTop: "6px", marginBottom: "0px" }} />
+              )}
+              <button type="button" onClick={() => setActive(tab.key)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all rounded-t-lg whitespace-nowrap"
+                style={{
+                  background: isActive ? "color-mix(in srgb, var(--primary) 8%, var(--bg-main))" : "transparent",
+                  color: isActive ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                  borderBottom: isActive ? "2px solid var(--primary)" : "2px solid transparent",
+                  marginBottom: "-1px",
+                  fontWeight: isActive ? 600 : 400,
+                }}>
+                <Icon size={12} strokeWidth={isActive ? 2.5 : 2} />{tab.label}
+              </button>
+            </React.Fragment>
+          );
+        })}
       </div>
 
-      {/* Sub-tabs — solo para Mundo y Game; Entidades no tiene sub-tabs */}
-      {mainTab !== "entidades" && (
-        <div className="shrink-0 flex items-center gap-0.5 px-4 py-2 border-b flex-wrap"
-          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-          {subSecs.map(({ key, label, icon: Icon }) => (
-            <button key={key} type="button" onClick={() => setActiveSub(key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background: activeSub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: activeSub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-              <Icon size={12} strokeWidth={activeSub === key ? 2.5 : 2} />{label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Contenido */}
+      {/* ── Contenido ── */}
       <div className="flex-1 min-h-0 flex flex-col">
-        {mainTab === "mundo" && (
-          <>
-            {mundoSec === "biomas" && <BiomasSection />}
-            {mundoSec === "reinos" && <ReinosSection />}
-            {mundoSec === "ecologia" && <EcologiaSection />}
-          </>
-        )}
-        {mainTab === "entidades" && <EntidadesSection />}
-        {mainTab === "game" && (
-          <>
-            {gameSec === "misiones" && <MisionesSection />}
-            {ambSubs.includes(gameSec as AmbSub) && <AmbienteSection activeSub={gameSec as AmbSub} />}
-            {gameSec === "props" && <PropsSection />}
-          </>
-        )}
+        {active === "biomas"        && <BiomasSection />}
+        {active === "reinos"        && <ReinosSection />}
+        {active === "ecologia"      && <EcologiaSection />}
+        {active === "entidades"     && <EntidadesSection />}
+        {active === "misiones"      && <MisionesSection />}
+        {ambSubs.includes(active as AmbSub) && <AmbienteSection activeSub={active as AmbSub} />}
+        {active === "props"         && <PropsSection />}
       </div>
     </div>
   );
