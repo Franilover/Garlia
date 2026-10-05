@@ -85,7 +85,7 @@ function PanelModal({
 
 type MainTab = "mundo" | "entidades" | "game";
 type MundoSec = "biomas" | "reinos" | "ecologia";
-type EntidadesSec = "personajes" | "criaturas" | "especies";
+type EntidadesSec = "personajes" | "criaturas";
 type GameSec = "items" | "props" | "misiones" | "recetas" | "factores" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
@@ -967,8 +967,18 @@ function CriaturasSection() {
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
   const { saving, saved, run } = useSave();
+  const { saving: savingEsp, saved: savedEsp, run: runEsp } = useSave();
   const [iaConfig, setIaConfig] = useState<Record<string, unknown>>({});
   const [tab, setTab] = useState<"ia" | "dialogo">("ia");
+  // Especie
+  const [especieOpen, setEspecieOpen] = useState(false);
+  const [eteriumV1, setEteriumV1] = useState<any[]>([]);
+  const [eteriumGame, setEteriumGame] = useState<any[]>([]);
+  const [especie, setEspecie] = useState<any>(null);
+  const [isNewEsp, setIsNewEsp] = useState(false);
+  const [eClave, setEClave] = useState(""); const [eNombre, setENombre] = useState(""); const [eActivo, setEActivo] = useState(true); const [eOrden, setEOrden] = useState(0);
+  const [capBase, setCapBase] = useState(0); const [recBase, setRecBase] = useState(0); const [efBase, setEfBase] = useState(0); const [etActivo, setEtActivo] = useState(true);
+  const [vidaCompartidos, setVidaCompartidos] = useState(false); const [recEterium, setRecEterium] = useState(true); const [etInicial, setEtInicial] = useState(0); const [etgActivo, setEtgActivo] = useState(true);
 
   const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("criaturas").select("id,nombre,ia_config,dialogo").order("nombre"); setCriaturas(data ?? []); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
@@ -980,6 +990,51 @@ function CriaturasSection() {
     await supabase.from("criaturas").update({ [field]: iaConfig }).eq("id", sel.id);
     setCriaturas((prev) => prev.map((c) => c.id === sel.id ? { ...c, [field]: iaConfig } : c));
     setSel((prev: any) => prev ? { ...prev, [field]: iaConfig } : prev);
+  });
+
+  const openEspecie = async () => {
+    if (!sel) return;
+    const [{ data: ev }, { data: eg }, { data: esp }] = await Promise.all([
+      supabase.from("especie_eterium_v1").select("*"),
+      supabase.from("especie_eterium_game").select("*"),
+      supabase.from("especies_jugables").select("*").eq("criatura_id", sel.id).maybeSingle(),
+    ]);
+    setEteriumV1(ev ?? []); setEteriumGame(eg ?? []);
+    if (esp) {
+      setEspecie(esp); setIsNewEsp(false);
+      setEClave(esp.clave); setENombre(esp.nombre); setEActivo(esp.activo); setEOrden(esp.orden ?? 0);
+      const evRow = (ev ?? []).find((v: any) => v.especie_id === esp.id);
+      if (evRow) { setCapBase(evRow.capacidad_base); setRecBase(evRow.recuperacion_base); setEfBase(evRow.eficiencia_base); setEtActivo(evRow.activo); }
+      else { setCapBase(0); setRecBase(0); setEfBase(0); setEtActivo(true); }
+      const egRow = evRow ? (eg ?? []).find((g: any) => g.especie_eterium_id === evRow.id) : null;
+      if (egRow) { setVidaCompartidos(egRow.vida_eterium_compartidos); setRecEterium(egRow.recuperacion_eterium); setEtInicial(egRow.eterium_inicial); setEtgActivo(egRow.activo); }
+      else { setVidaCompartidos(false); setRecEterium(true); setEtInicial(0); setEtgActivo(true); }
+    } else {
+      setEspecie(null); setIsNewEsp(true);
+      setEClave(sel.nombre.toLowerCase().replace(/\s+/g, "_")); setENombre(sel.nombre); setEActivo(true); setEOrden(0);
+      setCapBase(0); setRecBase(0); setEfBase(0); setEtActivo(true);
+      setVidaCompartidos(false); setRecEterium(true); setEtInicial(0); setEtgActivo(true);
+    }
+    setEspecieOpen(true);
+  };
+
+  const saveEspecie = () => runEsp(async () => {
+    if (!sel) return;
+    const p = { clave: eClave, nombre: eNombre, activo: eActivo, orden: eOrden, criatura_id: sel.id };
+    let espId = especie?.id;
+    if (isNewEsp) { const { data } = await supabase.from("especies_jugables").insert(p).select().single(); espId = data?.id; setEspecie(data); setIsNewEsp(false); }
+    else await supabase.from("especies_jugables").update(p).eq("id", espId);
+    if (!espId) return;
+    const evRow = eteriumV1.find((v: any) => v.especie_id === espId);
+    const evPayload = { especie_id: espId, capacidad_base: capBase, recuperacion_base: recBase, eficiencia_base: efBase, activo: etActivo };
+    let evId = evRow?.id;
+    if (evRow) await supabase.from("especie_eterium_v1").update(evPayload).eq("id", evRow.id);
+    else { const { data } = await supabase.from("especie_eterium_v1").insert(evPayload).select().single(); evId = data?.id; }
+    if (!evId) return;
+    const egRow = eteriumGame.find((g: any) => g.especie_eterium_id === evId);
+    const egPayload = { especie_eterium_id: evId, vida_eterium_compartidos: vidaCompartidos, recuperacion_eterium: recEterium, eterium_inicial: etInicial, activo: etgActivo };
+    if (egRow) await supabase.from("especie_eterium_game").update(egPayload).eq("id", egRow.id);
+    else await supabase.from("especie_eterium_game").insert(egPayload);
   });
 
   return (
@@ -998,7 +1053,16 @@ function CriaturasSection() {
 
       <PanelModal abierto={!!sel} onCerrar={() => setSel(null)}
         titulo={sel?.nombre} icono={<Bot size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}>
+        accionesDerecha={
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={openEspecie}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02]"
+              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", color: "var(--primary)" }}>
+              <Leaf size={11} /> Especie
+            </button>
+            <SaveBtn saving={saving} saved={saved} onClick={save} />
+          </div>
+        }>
         <div className="flex shrink-0 gap-1 p-1 rounded-xl self-start" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
           {(["ia", "dialogo"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
@@ -1009,88 +1073,17 @@ function CriaturasSection() {
         </div>
         <div style={{ minHeight: "240px" }}><JsonEditor value={iaConfig} onChange={setIaConfig} /></div>
       </PanelModal>
-    </div>
-  );
-}
-function EspeciesSection() {
-  const [especies, setEspecies] = useState<any[]>([]);
-  const [eteriumV1, setEteriumV1] = useState<any[]>([]);
-  const [eteriumGame, setEteriumGame] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<any>(null);
-  const [isNew, setIsNew] = useState(false);
-  const { saving, saved, run } = useSave();
-  const [clave, setClave] = useState(""); const [nombre, setNombre] = useState(""); const [activo, setActivo] = useState(true); const [orden, setOrden] = useState(0);
-  // eterium v1 fields
-  const [capBase, setCapBase] = useState(0); const [recBase, setRecBase] = useState(0); const [efBase, setEfBase] = useState(0); const [etActivo, setEtActivo] = useState(true);
-  // eterium game fields
-  const [vidaCompartidos, setVidaCompartidos] = useState(false); const [recEterium, setRecEterium] = useState(true); const [etInicial, setEtInicial] = useState(0); const [etgActivo, setEtgActivo] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data: e } = await supabase.from("especies_jugables").select("*").order("orden");
-    const { data: ev } = await supabase.from("especie_eterium_v1").select("*");
-    const { data: eg } = await supabase.from("especie_eterium_game").select("*");
-    setEspecies(e ?? []); setEteriumV1(ev ?? []); setEteriumGame(eg ?? []); setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const pick = (e: any) => {
-    setSel(e); setIsNew(false); setClave(e.clave); setNombre(e.nombre); setActivo(e.activo); setOrden(e.orden);
-    const ev = eteriumV1.find((v) => v.especie_id === e.id);
-    if (ev) { setCapBase(ev.capacidad_base); setRecBase(ev.recuperacion_base); setEfBase(ev.eficiencia_base); setEtActivo(ev.activo); }
-    const eg = ev ? eteriumGame.find((g) => g.especie_eterium_id === ev.id) : null;
-    if (eg) { setVidaCompartidos(eg.vida_eterium_compartidos); setRecEterium(eg.recuperacion_eterium); setEtInicial(eg.eterium_inicial); setEtgActivo(eg.activo); }
-  };
-  const startNew = () => { setSel(null); setIsNew(true); setClave(""); setNombre(""); setActivo(true); setOrden(0); setCapBase(0); setRecBase(0); setEfBase(0); setEtActivo(true); setVidaCompartidos(false); setRecEterium(true); setEtInicial(0); setEtgActivo(true); };
-  const save = () => run(async () => {
-    const p = { clave, nombre, activo, orden };
-    let espId = sel?.id;
-    if (isNew) { const { data } = await supabase.from("especies_jugables").insert(p).select().single(); espId = data?.id; }
-    else await supabase.from("especies_jugables").update(p).eq("id", espId);
-    if (!espId) return;
-    // upsert eterium_v1
-    const ev = eteriumV1.find((v) => v.especie_id === espId);
-    const evPayload = { especie_id: espId, capacidad_base: capBase, recuperacion_base: recBase, eficiencia_base: efBase, activo: etActivo };
-    let evId = ev?.id;
-    if (ev) await supabase.from("especie_eterium_v1").update(evPayload).eq("id", ev.id);
-    else { const { data } = await supabase.from("especie_eterium_v1").insert(evPayload).select().single(); evId = data?.id; }
-    if (!evId) { await load(); return; }
-    // upsert eterium_game
-    const eg = eteriumGame.find((g) => g.especie_eterium_id === evId);
-    const egPayload = { especie_eterium_id: evId, vida_eterium_compartidos: vidaCompartidos, recuperacion_eterium: recEterium, eterium_inicial: etInicial, activo: etgActivo };
-    if (eg) await supabase.from("especie_eterium_game").update(egPayload).eq("id", eg.id);
-    else await supabase.from("especie_eterium_game").insert(egPayload);
-    await load();
-  });
-  const del = async (id: string) => { if (!confirm("¿Eliminar especie?")) return; await supabase.from("especies_jugables").delete().eq("id", id); if (sel?.id === id) { setSel(null); setIsNew(false); } await load(); };
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q="" onQ={() => {}} onNew={startNew} newLabel="Nueva especie" />
-      {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
-      ) : (
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {especies.map((e) => (
-            <GridCard key={e.id} nombre={e.nombre} sub={e.clave} badge={e.activo ? "on" : "off"}
-              icono={<Leaf size={14} />} onClick={() => pick(e)} />
-          ))}
-        </div>
-      )}
-
-      <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); }}
-        titulo={isNew ? "Nueva especie" : sel?.nombre} icono={<Leaf size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!clave.trim() || !nombre.trim()} onClick={save} />}>
+      {/* Panel Especie anidado */}
+      <PanelModal abierto={especieOpen} onCerrar={() => setEspecieOpen(false)}
+        titulo={isNewEsp ? `Nueva especie · ${sel?.nombre}` : `Especie · ${eNombre}`} icono={<Leaf size={12} />}
+        accionesDerecha={<SaveBtn saving={savingEsp} saved={savedEsp} disabled={!eClave.trim() || !eNombre.trim()} onClick={saveEspecie} />}>
         <div className="flex gap-3">
-          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={clave} onChange={(e) => setClave(e.target.value)} /></label>
-          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
-          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Clave" /><Inp value={eClave} onChange={(e) => setEClave(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 flex-1"><FL label="Nombre" /><Inp value={eNombre} onChange={(e) => setENombre(e.target.value)} /></label>
+          <label className="flex flex-col gap-1 w-16"><FL label="Orden" /><Inp type="number" value={eOrden} onChange={(e) => setEOrden(Number(e.target.value))} /></label>
         </div>
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={activo} onChange={(e) => setActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
-          {sel && !isNew && <button type="button" onClick={() => del(sel.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs border" style={{ borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}><Trash2 size={11} /> Eliminar</button>}
-        </div>
+        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={eActivo} onChange={(e) => setEActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
         <Divider label="Eterium base (especie_eterium_v1)" />
         <div className="flex gap-3">
           <label className="flex flex-col gap-1 flex-1"><FL label="Capacidad base" /><Inp type="number" step="0.1" value={capBase} onChange={(e) => setCapBase(Number(e.target.value))} /></label>
@@ -1725,7 +1718,6 @@ const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = 
 const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
   { key: "personajes", label: "Personajes", icon: Users },
   { key: "criaturas", label: "Criaturas IA", icon: Bot },
-  { key: "especies", label: "Especies", icon: Leaf },
 ];
 
 const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
@@ -1802,7 +1794,6 @@ export default function GamePage() {
           <>
             {entidadesSec === "personajes" && <PersonajesSection />}
             {entidadesSec === "criaturas" && <CriaturasSection />}
-            {entidadesSec === "especies" && <EspeciesSection />}
           </>
         )}
         {mainTab === "game" && (
