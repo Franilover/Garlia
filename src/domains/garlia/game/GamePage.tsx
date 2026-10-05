@@ -1256,7 +1256,7 @@ function ItemsSection() {
       <PanelModal
         abierto={!!sel}
         onCerrar={() => setSel(null)}
-        titulo={iNombre(sel)}
+        titulo={sel ? iNombre(sel) : ""}
         icono={<Sword size={12} />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
       >
