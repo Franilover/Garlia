@@ -1218,11 +1218,11 @@ function ItemsSection() {
   const { saving, saved, run } = useSave();
   const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
 
-  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades,items(id,nombre,categoria)").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
+  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades,items(id,nombre)").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
   useEffect(() => { load(); }, [load]);
   const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
   const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
-  const iNombre = (i: any) => i.items?.nombre ?? i.item_id?.slice(0, 8) + "…";
+  const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
 
   const filtered = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
 
@@ -1237,7 +1237,7 @@ function ItemsSection() {
             <GridCard
               key={i.id}
               nombre={iNombre(i)}
-              sub={i.items?.categoria ?? i.tipo ?? ""}
+              sub={i.tipo ?? ""}
               badge={`×${i.max_stack}`}
               icono={<Sword size={14} />}
               onClick={() => pick(i)}
@@ -1253,7 +1253,7 @@ function ItemsSection() {
         icono={<Sword size={12} />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} onClick={save} />}
       >
-        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.items?.categoria ?? ""} · {sel?.item_id}</p>
+        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.tipo ?? ""} · {sel?.item_id}</p>
         <div className="flex gap-3">
           <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
