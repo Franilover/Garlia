@@ -5,9 +5,8 @@
  * ──────────────────────────────────────────────────────────────────────────
  * Tres tabs principales:
  *   MUNDO     → Biomas · Reinos · Ecología
- *   ENTIDADES → Personajes · Criaturas IA · Especies
- *   GAME      → Items · Props · Misiones · Social · Recetas
- *              · Factores abióticos · Modificadores
+ *   ENTIDADES → Personajes · Criaturas IA · Items · Props
+ *   GAME      → Misiones · Factores abióticos · Modificadores
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -85,8 +84,8 @@ function PanelModal({
 
 type MainTab = "mundo" | "entidades" | "game";
 type MundoSec = "biomas" | "reinos" | "ecologia";
-type EntidadesSec = "personajes" | "criaturas";
-type GameSec = "items" | "props" | "misiones" | "recetas" | "factores" | "modificadores";
+type EntidadesSec = "personajes" | "criaturas" | "items" | "props";
+type GameSec = "misiones" | "factores" | "modificadores";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -1212,16 +1211,29 @@ function GridToolbar({
 
 function ItemsSection() {
   const [items, setItems] = useState<any[]>([]);
+  const [recetas, setRecetas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
   const [q, setQ] = useState("");
   const { saving, saved, run } = useSave();
-  const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({});
+  const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({}); const [recetaId, setRecetaId] = useState("");
 
-  const load = useCallback(async () => { setLoading(true); const { data } = await supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades,items(id,nombre)").order("created_at"); setItems(data ?? []); setLoading(false); }, []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: itemsData }, { data: recetasData }] = await Promise.all([
+      supabase.from("items_game").select("id,item_id,tipo,max_stack,propiedades,items(id,nombre)").order("created_at"),
+      supabase.from("recetas_game").select("id,nombre,categoria").order("nombre"),
+    ]);
+    setItems(itemsData ?? []); setRecetas(recetasData ?? []); setLoading(false);
+  }, []);
   useEffect(() => { load(); }, [load]);
-  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); setProps(i.propiedades ?? {}); };
-  const save = () => run(async () => { await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: props }).eq("id", sel.id); await load(); });
+  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); const p = i.propiedades ?? {}; setProps(p); setRecetaId(p.receta_id ?? ""); };
+  const save = () => run(async () => {
+    const finalProps = { ...props };
+    if (recetaId) finalProps.receta_id = recetaId; else delete finalProps.receta_id;
+    await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: finalProps }).eq("id", sel.id);
+    await load();
+  });
   const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
 
   const filtered = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
@@ -1258,7 +1270,16 @@ function ItemsSection() {
           <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
         </div>
-        <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "160px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
+        <label className="flex flex-col gap-1">
+          <FL label="Receta asociada" />
+          <Sel value={recetaId} onChange={(e) => setRecetaId(e.target.value)}>
+            <option value="">— sin receta —</option>
+            {recetas.map((r) => (
+              <option key={r.id} value={r.id}>{r.nombre}{r.categoria ? ` · ${r.categoria}` : ""}</option>
+            ))}
+          </Sel>
+        </label>
+        <label className="flex flex-col gap-1 flex-1 min-h-0"><FL label="Propiedades (JSON)" /><div style={{ minHeight: "140px" }}><JsonEditor value={props} onChange={setProps} /></div></label>
       </PanelModal>
     </div>
   );
@@ -1718,14 +1739,12 @@ const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = 
 const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
   { key: "personajes", label: "Personajes", icon: Users },
   { key: "criaturas", label: "Criaturas IA", icon: Bot },
+  { key: "items", label: "Items", icon: Sword },
+  { key: "props", label: "Props", icon: Package },
 ];
 
 const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
-  { key: "items", label: "Items", icon: Sword },
-  { key: "props", label: "Props", icon: Package },
   { key: "misiones", label: "Misiones", icon: ScrollText },
-
-  { key: "recetas", label: "Recetas", icon: Utensils },
   { key: "factores", label: "Factores abióticos", icon: Thermometer },
   { key: "modificadores", label: "Modificadores", icon: Clock },
 ];
@@ -1744,7 +1763,7 @@ export default function GamePage() {
   const [mainTab, setMainTab] = useState<MainTab>("mundo");
   const [mundoSec, setMundoSec] = useState<MundoSec>("biomas");
   const [entidadesSec, setEntidadesSec] = useState<EntidadesSec>("personajes");
-  const [gameSec, setGameSec] = useState<GameSec>("items");
+  const [gameSec, setGameSec] = useState<GameSec>("misiones");
 
   const subSecs = mainTab === "mundo" ? MUNDO_SUBS : mainTab === "entidades" ? ENTIDADES_SUBS : GAME_SUBS;
   const activeSub = mainTab === "mundo" ? mundoSec : mainTab === "entidades" ? entidadesSec : gameSec;
@@ -1794,15 +1813,13 @@ export default function GamePage() {
           <>
             {entidadesSec === "personajes" && <PersonajesSection />}
             {entidadesSec === "criaturas" && <CriaturasSection />}
+            {entidadesSec === "items" && <ItemsSection />}
+            {entidadesSec === "props" && <PropsSection />}
           </>
         )}
         {mainTab === "game" && (
           <>
-            {gameSec === "items" && <ItemsSection />}
-            {gameSec === "props" && <PropsSection />}
             {gameSec === "misiones" && <MisionesSection />}
-
-            {gameSec === "recetas" && <RecetasSection />}
             {ambSubs.includes(gameSec as AmbSub) && <AmbienteSection activeSub={gameSec as AmbSub} />}
           </>
         )}
