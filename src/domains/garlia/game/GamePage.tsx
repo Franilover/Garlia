@@ -9,7 +9,7 @@
  *   GAME      → Misiones · Factores abióticos · Modificadores
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot, Check, ChevronRight, FlaskConical, Globe2, Layers,
   Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
@@ -84,8 +84,8 @@ function PanelModal({
 
 type MainTab = "mundo" | "entidades" | "game";
 type MundoSec = "biomas" | "reinos" | "ecologia";
-type EntidadesSec = "personajes" | "criaturas" | "items" | "props";
-type GameSec = "misiones" | "factores" | "modificadores";
+type EntidadesModo = "items" | "criaturas" | "personajes";
+type GameSec = "misiones" | "factores" | "modificadores" | "props";
 
 const inputStyle: React.CSSProperties = {
   background: "color-mix(in srgb, var(--primary) 5%, transparent)",
@@ -856,14 +856,27 @@ function PersonajesSection() {
     </label>
   );
 
+  const [qP, setQP] = useState("");
+  const [filtroActivo, setFiltroActivo] = useState("");
+  const filtroActivoOptions = [
+    { value: "activo", label: "Activos" },
+    { value: "inactivo", label: "Inactivos" },
+  ];
+  const personajesFiltrados = personajes.filter((p) => {
+    const matchQ = !qP || p.nombre.toLowerCase().includes(qP.toLowerCase());
+    const matchF = !filtroActivo || (filtroActivo === "activo" ? p.activo : !p.activo);
+    return matchQ && matchF;
+  });
+
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q="" onQ={() => {}} onNew={startNew} newLabel="Nuevo personaje" />
+      <GridToolbar q={qP} onQ={setQP} onNew={startNew} newLabel="Nuevo personaje"
+        filterSlot={<FilterTag value={filtroActivo} onChange={setFiltroActivo} options={filtroActivoOptions} placeholder="Estado…" />} />
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {personajes.map((p) => (
+          {personajesFiltrados.map((p) => (
             <GridCard key={p.id} nombre={p.nombre} sub={cName(p.criatura_id)} badge={p.activo ? "on" : "off"}
               icono={<Users size={14} />} onClick={() => pick(p)} />
           ))}
@@ -1036,13 +1049,28 @@ function CriaturasSection() {
     else await supabase.from("especie_eterium_game").insert(egPayload);
   });
 
+  const [qC, setQC] = useState("");
+  const [filtroIa, setFiltroIa] = useState("");
+  const filtroIaOptions = [
+    { value: "con_ia", label: "Con IA" },
+    { value: "sin_ia", label: "Sin IA" },
+  ];
+  const criaturasFiltered = criaturas.filter((c) => {
+    const matchQ = !qC || c.nombre.toLowerCase().includes(qC.toLowerCase());
+    const tieneIa = Object.keys(c.ia_config ?? {}).length > 0;
+    const matchF = !filtroIa || (filtroIa === "con_ia" ? tieneIa : !tieneIa);
+    return matchQ && matchF;
+  });
+
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+      <GridToolbar q={qC} onQ={setQC}
+        filterSlot={<FilterTag value={filtroIa} onChange={setFiltroIa} options={filtroIaOptions} placeholder="IA…" />} />
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
       ) : (
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {criaturas.map((c) => (
+          {criaturasFiltered.map((c) => (
             <GridCard key={c.id} nombre={c.nombre}
               badge={Object.keys(c.ia_config ?? {}).length > 0 ? "ia" : undefined}
               icono={<Bot size={14} />} onClick={() => pick(c)} />
@@ -1164,17 +1192,20 @@ function GridCard({
   );
 }
 
-/** Barra de búsqueda + botón nuevo encima del grid */
+/** Barra de búsqueda + filtro opcional + botón nuevo encima del grid */
 function GridToolbar({
   q,
   onQ,
   onNew,
   newLabel,
+  filterSlot,
 }: {
   q: string;
   onQ: (v: string) => void;
   onNew?: () => void;
   newLabel?: string;
+  /** Elemento extra pegado a la derecha del buscador (selector de filtro/tag) */
+  filterSlot?: React.ReactNode;
 }) {
   return (
     <div className="shrink-0 flex items-center gap-2 mb-4">
@@ -1191,6 +1222,7 @@ function GridToolbar({
           onChange={(e) => onQ(e.target.value)}
         />
       </div>
+      {filterSlot}
       {onNew && (
         <button
           type="button"
@@ -1202,6 +1234,39 @@ function GridToolbar({
         </button>
       )}
     </div>
+  );
+}
+
+/** Selector de filtro/tag compacto — aparece a la derecha del buscador */
+function FilterTag({
+  value,
+  onChange,
+  options,
+  placeholder = "Filtrar…",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="px-2 py-2 rounded-xl text-xs outline-none shrink-0"
+      style={{
+        background: value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 5%, transparent)",
+        border: `1px solid ${value ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)"}`,
+        color: value ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)",
+        minWidth: "90px",
+        maxWidth: "140px",
+      }}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
   );
 }
 
@@ -1236,11 +1301,22 @@ function ItemsSection() {
   });
   const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
 
-  const filtered = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
+  const [filtroTipo, setFiltroTipo] = useState("");
+  const tiposOptions = useMemo(() => {
+    const set = new Set(items.map((i) => i.tipo).filter(Boolean));
+    return [...set].sort().map((t) => ({ value: t as string, label: t as string }));
+  }, [items]);
+
+  const filtered = items.filter((i) => {
+    const matchQ = !q || iNombre(i).toLowerCase().includes(q.toLowerCase());
+    const matchT = !filtroTipo || i.tipo === filtroTipo;
+    return matchQ && matchT;
+  });
 
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q={q} onQ={setQ} />
+      <GridToolbar q={q} onQ={setQ}
+        filterSlot={<FilterTag value={filtroTipo} onChange={setFiltroTipo} options={tiposOptions} placeholder="Tipo…" />} />
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
       ) : (
@@ -1322,12 +1398,22 @@ function PropsSection() {
   });
   const del = async (id: string) => { if (!confirm("¿Eliminar?")) return; await supabase.from("props_game").delete().eq("id", id); if (sel?.id === id) { setSel(null); } await load(); };
 
-  const filtered = q ? items.filter((p) => p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase())) : items;
+  const [filtroTipoProp, setFiltroTipoProp] = useState("");
+  const tiposPropOptions = useMemo(() => {
+    const set = new Set(items.map((p) => p.tipo).filter(Boolean));
+    return [...set].sort().map((t) => ({ value: t as string, label: t as string }));
+  }, [items]);
+  const filtered = items.filter((p) => {
+    const matchQ = !q || p.nombre.toLowerCase().includes(q.toLowerCase()) || p.clave.toLowerCase().includes(q.toLowerCase());
+    const matchT = !filtroTipoProp || p.tipo === filtroTipoProp;
+    return matchQ && matchT;
+  });
   const abierto = !!sel || isNew;
 
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nuevo prop" />
+      <GridToolbar q={q} onQ={setQ} onNew={startNew} newLabel="Nuevo prop"
+        filterSlot={<FilterTag value={filtroTipoProp} onChange={setFiltroTipoProp} options={tiposPropOptions} placeholder="Tipo…" />} />
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
       ) : (
@@ -1736,17 +1822,55 @@ const MUNDO_SUBS: { key: MundoSec; label: string; icon: React.ElementType }[] = 
   { key: "ecologia", label: "Ecología", icon: TreePine },
 ];
 
-const ENTIDADES_SUBS: { key: EntidadesSec; label: string; icon: React.ElementType }[] = [
-  { key: "personajes", label: "Personajes", icon: Users },
-  { key: "criaturas", label: "Criaturas IA", icon: Bot },
-  { key: "items", label: "Items", icon: Sword },
-  { key: "props", label: "Props", icon: Package },
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTIDADES — Vista unificada (Items · Criaturas · Personajes) con toggle de
+// modo y selector de filtro/tag al lado del buscador (igual que en
+// EntidadesPage / GeografiaJerarquica / CriaturasJerarquica).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ENTIDADES_MODOS: { key: EntidadesModo; label: string; icon: React.ElementType }[] = [
+  { key: "items",      label: "Items",      icon: Sword  },
+  { key: "criaturas",  label: "Criaturas",  icon: Bot    },
+  { key: "personajes", label: "Personajes", icon: Users  },
 ];
+
+function EntidadesSection() {
+  const [modo, setModo] = useState<EntidadesModo>("items");
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Barra de modo — compacta, vive dentro del área de contenido */}
+      <div className="shrink-0 flex items-center gap-1 px-4 pt-2 pb-1">
+        <div className="flex items-center gap-0.5 p-0.5 rounded-xl"
+          style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+          {ENTIDADES_MODOS.map(({ key, label, icon: Icon }) => (
+            <button key={key} type="button" onClick={() => setModo(key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: modo === key ? "var(--primary)" : "transparent",
+                color: modo === key ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
+              }}>
+              <Icon size={12} strokeWidth={modo === key ? 2.5 : 2} />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sección activa */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {modo === "items"      && <ItemsSection />}
+        {modo === "criaturas"  && <CriaturasSection />}
+        {modo === "personajes" && <PersonajesSection />}
+      </div>
+    </div>
+  );
+}
 
 const GAME_SUBS: { key: GameSec; label: string; icon: React.ElementType }[] = [
   { key: "misiones", label: "Misiones", icon: ScrollText },
   { key: "factores", label: "Factores abióticos", icon: Thermometer },
   { key: "modificadores", label: "Modificadores", icon: Clock },
+  { key: "props", label: "Props", icon: Package },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1762,14 +1886,12 @@ const MAIN_TABS: { key: MainTab; label: string; icon: React.ElementType }[] = [
 export default function GamePage() {
   const [mainTab, setMainTab] = useState<MainTab>("mundo");
   const [mundoSec, setMundoSec] = useState<MundoSec>("biomas");
-  const [entidadesSec, setEntidadesSec] = useState<EntidadesSec>("personajes");
   const [gameSec, setGameSec] = useState<GameSec>("misiones");
 
-  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : mainTab === "entidades" ? ENTIDADES_SUBS : GAME_SUBS;
-  const activeSub = mainTab === "mundo" ? mundoSec : mainTab === "entidades" ? entidadesSec : gameSec;
+  const subSecs = mainTab === "mundo" ? MUNDO_SUBS : GAME_SUBS;
+  const activeSub = mainTab === "mundo" ? mundoSec : gameSec;
   const setActiveSub = (k: string) => {
     if (mainTab === "mundo") setMundoSec(k as MundoSec);
-    else if (mainTab === "entidades") setEntidadesSec(k as EntidadesSec);
     else setGameSec(k as GameSec);
   };
 
@@ -1788,17 +1910,19 @@ export default function GamePage() {
         ))}
       </div>
 
-      {/* Sub-tabs */}
-      <div className="shrink-0 flex items-center gap-0.5 px-4 py-2 border-b flex-wrap"
-        style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-        {subSecs.map(({ key, label, icon: Icon }) => (
-          <button key={key} type="button" onClick={() => setActiveSub(key)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: activeSub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: activeSub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-            <Icon size={12} strokeWidth={activeSub === key ? 2.5 : 2} />{label}
-          </button>
-        ))}
-      </div>
+      {/* Sub-tabs — solo para Mundo y Game; Entidades no tiene sub-tabs */}
+      {mainTab !== "entidades" && (
+        <div className="shrink-0 flex items-center gap-0.5 px-4 py-2 border-b flex-wrap"
+          style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+          {subSecs.map(({ key, label, icon: Icon }) => (
+            <button key={key} type="button" onClick={() => setActiveSub(key)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ background: activeSub === key ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent", color: activeSub === key ? "var(--primary)" : "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+              <Icon size={12} strokeWidth={activeSub === key ? 2.5 : 2} />{label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Contenido */}
       <div className="flex-1 min-h-0 flex flex-col">
@@ -1809,18 +1933,12 @@ export default function GamePage() {
             {mundoSec === "ecologia" && <EcologiaSection />}
           </>
         )}
-        {mainTab === "entidades" && (
-          <>
-            {entidadesSec === "personajes" && <PersonajesSection />}
-            {entidadesSec === "criaturas" && <CriaturasSection />}
-            {entidadesSec === "items" && <ItemsSection />}
-            {entidadesSec === "props" && <PropsSection />}
-          </>
-        )}
+        {mainTab === "entidades" && <EntidadesSection />}
         {mainTab === "game" && (
           <>
             {gameSec === "misiones" && <MisionesSection />}
             {ambSubs.includes(gameSec as AmbSub) && <AmbienteSection activeSub={gameSec as AmbSub} />}
+            {gameSec === "props" && <PropsSection />}
           </>
         )}
       </div>
