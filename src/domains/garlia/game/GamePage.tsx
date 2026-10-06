@@ -924,7 +924,6 @@ function EcologiaSection() {
 
 function PersonajesSection() {
   const [personajes, setPersonajes]   = useState<any[]>([]);
-  const [criaturas,  setCriaturas]    = useState<any[]>([]);
   const [reinos,     setReinos]       = useState<any[]>([]);   // reinos_game
   const [dialogos,   setDialogos]     = useState<any[]>([]);
   const [loading,    setLoading]      = useState(true);
@@ -937,8 +936,6 @@ function PersonajesSection() {
   const [dialJson,   setDialJson]     = useState<Record<string, unknown>>({});
   const [nombre,     setNombre]       = useState("");
   const [personajeCanonId, setPersonajeCanonId] = useState(""); // FK → personajes.id
-  const [criaturaId, setCriaturaId]   = useState("");
-  const [reinoId,    setReinoId]      = useState("");   // reinos_game.id → columna reino_game_id
   const [activo,     setActivo]       = useState(true);
   // Social
   const [socialOpen,   setSocialOpen]   = useState(false);
@@ -955,14 +952,12 @@ function PersonajesSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: p }, { data: c }, { data: rg }, { data: cp }] = await Promise.all([
-      supabase.from("personajes_game").select("id,nombre,criatura_id,activo,reino_game_id,personaje_id").order("nombre"),
-      supabase.from("criaturas").select("id,nombre").order("nombre"),
+    const [{ data: p }, { data: rg }, { data: cp }] = await Promise.all([
+      supabase.from("personajes_game").select("id,nombre,activo,reino_game_id,personaje_id").order("nombre"),
       supabase.from("reinos_game").select("id,clave,orden,activo,reinos(id,nombre)").order("orden"),
       supabase.from("personajes").select("id,nombre,reino").order("nombre"),
     ]);
     setPersonajes(p ?? []);
-    setCriaturas(c ?? []);
     setReinos(rg ?? []);
     // Canon — siempre fresco para que el dropdown refleje vinculaciones actuales
     const canonData = cp ?? [];
@@ -1000,18 +995,17 @@ function PersonajesSection() {
 
   const pick = (p: any) => {
     setSel(p); setIsNew(false);
-    setNombre(p.nombre); setCriaturaId(p.criatura_id ?? ""); setActivo(p.activo);
-    setReinoId(p.reino_game_id ?? "");
+    setNombre(p.nombre); setActivo(p.activo);
     setPersonajeCanonId(p.personaje_id ?? "");
     loadDials(p.id);
   };
   const startNew = () => {
     setSel(null); setIsNew(true);
-    setNombre(""); setPersonajeCanonId(""); setCriaturaId(""); setActivo(true); setReinoId("");
+    setNombre(""); setPersonajeCanonId(""); setActivo(true);
     setDialogos([]); setSelDial(null);
   };
   const save = () => run(async () => {
-    const p = { nombre, criatura_id: criaturaId || null, activo, reino_game_id: reinoId || null, personaje_id: personajeCanonId || null };
+    const p = { nombre, activo, personaje_id: personajeCanonId || null };
     isNew
       ? await supabase.from("personajes_game").insert(p)
       : await supabase.from("personajes_game").update(p).eq("id", sel.id);
@@ -1028,7 +1022,6 @@ function PersonajesSection() {
     await supabase.from("dialogos_game").update({ dialogo: dialJson }).eq("id", selDial.id);
     if (sel) loadDials(sel.id);
   });
-  const cName = (id: string) => criaturas.find((c) => c.id === id)?.nombre ?? "—";
   const openSocial = () => { if (sel) { loadSocial(sel.id); setSocialOpen(true); } };
   const saveSocial = () => runSoc(async () => {
     if (!sel || !socialPerfil) return;
@@ -1120,7 +1113,6 @@ function PersonajesSection() {
             <GridCard
               key={p.id}
               nombre={p.nombre}
-              sub={cName(p.criatura_id)}
               badge={p.activo ? undefined : "off"}
               icono={<Users size={14} />}
               onClick={() => pick(p)}
@@ -1185,7 +1177,6 @@ function PersonajesSection() {
                     <GridCard
                       key={p.id}
                       nombre={p.nombre}
-                      sub={cName(p.criatura_id)}
                       badge={p.activo ? undefined : "off"}
                       icono={<Users size={14} />}
                       onClick={() => pick(p)}
@@ -1319,18 +1310,6 @@ function PersonajesSection() {
                 <option key={cp.id} value={cp.id}>{cp.nombre}{cp.reino ? ` (${cp.reino})` : ""}</option>
               ))
             }
-          </Sel>
-        </label>
-        <label className="flex flex-col gap-1"><FL label="Criatura canónica" />
-          <Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}>
-            <option value="">—</option>
-            {criaturas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </Sel>
-        </label>
-        <label className="flex flex-col gap-1"><FL label="Reino" />
-          <Sel value={reinoId} onChange={(e) => setReinoId(e.target.value)}>
-            <option value="">— Sin reino —</option>
-            {reinos.map((r) => <option key={r.id} value={r.id}>{r.reinos?.nombre ?? r.clave}</option>)}
           </Sel>
         </label>
         <div className="flex items-center justify-between">
