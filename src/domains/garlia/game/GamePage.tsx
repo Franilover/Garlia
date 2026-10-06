@@ -955,7 +955,7 @@ function PersonajesSection() {
     const [{ data: p }, { data: rg }, { data: cp }] = await Promise.all([
       supabase.from("personajes_game").select("id,nombre,activo,reino_game_id,personaje_id").order("nombre"),
       supabase.from("reinos_game").select("id,clave,orden,activo,reinos(id,nombre)").order("orden"),
-      supabase.from("personajes").select("id,nombre,reino").order("nombre"),
+      supabase.from("personajes").select("id,nombre,reino,especie").order("nombre"),
     ]);
     setPersonajes(p ?? []);
     setReinos(rg ?? []);
@@ -1286,6 +1286,31 @@ function PersonajesSection() {
         titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!personajeCanonId} onClick={save} />}>
         {/* Selector de personaje canónico — en nuevo solo muestra los no vinculados; en edición muestra todos */}
+        {/* Reino y Especie de solo lectura (vienen del personaje canónico) */}
+        {personajeCanonId && (() => {
+          const canon = canonPersonajes.find((p: any) => p.id === personajeCanonId);
+          if (!canon) return null;
+          return (
+            <div className="flex gap-3">
+              {canon.reino && (
+                <div className="flex flex-col gap-1 flex-1">
+                  <FL label="Reino" />
+                  <div className="px-3 py-2 rounded-xl text-sm" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                    {canon.reino}
+                  </div>
+                </div>
+              )}
+              {canon.especie && (
+                <div className="flex flex-col gap-1 flex-1">
+                  <FL label="Especie" />
+                  <div className="px-3 py-2 rounded-xl text-sm" style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
+                    {canon.especie}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         <label className="flex flex-col gap-1">
           <FL label="Personaje canónico" />
           <Sel
@@ -1742,6 +1767,8 @@ function ItemsSection() {
     setCanonAbierto(next);
     if (next) loadCanonItems();
   };
+  const [isNewItem, setIsNewItem] = useState(false);
+  const [itemCanonId, setItemCanonId] = useState("");
   const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({}); const [recetaId, setRecetaId] = useState("");
 
   // ── Props panel (anidado) ──
@@ -1802,11 +1829,17 @@ function ItemsSection() {
     setItems(itemsData ?? []); setRecetas(recetasData ?? []); setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
-  const pick = (i: any) => { setSel(i); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); const p = i.propiedades ?? {}; setProps(p); setRecetaId(p.receta_id ?? ""); };
+  const pick = (i: any) => { setSel(i); setIsNewItem(false); setItemCanonId(i.item_id ?? ""); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); const p = i.propiedades ?? {}; setProps(p); setRecetaId(p.receta_id ?? ""); };
+  const startNewItem = () => { setSel(null); setIsNewItem(true); setItemCanonId(""); setTipo(""); setMaxStack(1); setProps({}); setRecetaId(""); };
   const save = () => run(async () => {
     const finalProps = { ...props };
     if (recetaId) finalProps.receta_id = recetaId; else delete finalProps.receta_id;
-    await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: finalProps }).eq("id", sel.id);
+    if (isNewItem) {
+      await supabase.from("items_game").insert({ item_id: itemCanonId || null, tipo, max_stack: maxStack, propiedades: finalProps });
+    } else {
+      await supabase.from("items_game").update({ tipo, max_stack: maxStack, propiedades: finalProps }).eq("id", sel.id);
+    }
+    setSel(null); setIsNewItem(false);
     await load();
   });
   const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
@@ -1874,6 +1907,11 @@ function ItemsSection() {
           <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
             placeholder="Buscar item…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
+        <button type="button" onClick={() => { loadCanonItems(); startNewItem(); }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+          style={{ background: "var(--primary)", color: "var(--btn-text,#fff)" }}>
+          <Plus size={12} /> Nuevo item
+        </button>
       </div>
 
       {loading ? (
@@ -2000,22 +2038,44 @@ function ItemsSection() {
       )}
 
       <PanelModal
-        abierto={!!sel}
-        onCerrar={() => setSel(null)}
-        titulo={sel ? iNombre(sel) : ""}
+        abierto={!!sel || isNewItem}
+        onCerrar={() => { setSel(null); setIsNewItem(false); }}
+        titulo={isNewItem ? "Nuevo item" : (sel ? iNombre(sel) : "")}
         icono={<Sword size={12} />}
         accionesDerecha={
           <div className="flex items-center gap-2">
-            <button type="button" onClick={openProps}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02]"
-              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", color: "var(--primary)" }}>
-              <Package size={11} /> Props
-            </button>
-            <SaveBtn saving={saving} saved={saved} onClick={save} />
+            {!isNewItem && (
+              <button type="button" onClick={openProps}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02]"
+                style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)", color: "var(--primary)" }}>
+                <Package size={11} /> Props
+              </button>
+            )}
+            <SaveBtn saving={saving} saved={saved} disabled={isNewItem && !itemCanonId} onClick={save} />
           </div>
         }
       >
-        <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.tipo ?? ""} · {sel?.item_id}</p>
+        {isNewItem ? (
+          <label className="flex flex-col gap-1">
+            <FL label="Item canónico" />
+            <Sel value={itemCanonId} onChange={(e) => {
+              const id = e.target.value;
+              setItemCanonId(id);
+              const canon = canonItems.find((i: any) => i.id === id);
+              if (canon?.tipo) setTipo(canon.tipo);
+            }}>
+              <option value="">— Seleccionar —</option>
+              {canonItems
+                .filter((ci: any) => !items.some((ig: any) => ig.item_id === ci.id))
+                .map((ci: any) => (
+                  <option key={ci.id} value={ci.id}>{ci.nombre}{ci.tipo ? ` (${ci.tipo})` : ""}</option>
+                ))
+              }
+            </Sel>
+          </label>
+        ) : (
+          <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.tipo ?? ""} · {sel?.item_id}</p>
+        )}
         <div className="flex gap-3">
           <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
