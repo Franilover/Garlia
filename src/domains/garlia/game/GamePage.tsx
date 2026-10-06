@@ -240,7 +240,6 @@ function BiomasSection() {
   const [habitats, setHabitats] = useState<any[]>([]);
   const [tiposH,   setTiposH]   = useState<any[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sel,      setSel]      = useState<TreeSel>(null);
   const { saving, saved, run }  = useSave();
 
@@ -264,8 +263,6 @@ function BiomasSection() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const toggle = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
-
   const pickBioma = (b: any) => { setSel({ kind: "bioma", id: b.id }); setBNombre(b.nombre); setBDesc(b.descripcion ?? ""); setBAfinidad(b.afinidad ?? ""); };
   const pickEco   = (e: any) => { setSel({ kind: "eco",   id: e.id }); setENombre(e.nombre); setEClima(e.clima ?? ""); setEDesc(e.descripcion ?? ""); setETipo(e.tipo_entorno ?? ""); setEBiomaId(e.bioma_id ?? ""); };
   const pickHab   = (h: any) => { setSel({ kind: "hab",   id: h.id }); setHNombre(h.nombre); setHDesc(h.descripcion ?? ""); setHEcoId(h.ecosistema_id ?? ""); setHTipoId(h.tipo_habitat_id ?? ""); setHActivo(h.activo); };
@@ -276,12 +273,12 @@ function BiomasSection() {
 
   const addEco = async (biomaId: string) => {
     const { data } = await supabase.from("ecosistemas").insert({ nombre: "Nuevo ecosistema", bioma_id: biomaId, clima: "", tipo_entorno: "", descripcion: "" }).select().single();
-    await load(); if (data) { setExpanded((p) => ({ ...p, [biomaId]: true })); pickEco(data); }
+    await load(); if (data) pickEco(data);
   };
   const addHab = async (ecoId: string) => {
     const tipoDefault = tiposH[0]?.id ?? null;
     const { data } = await supabase.from("habitats").insert({ nombre: "Nuevo hábitat", ecosistema_id: ecoId, tipo_habitat_id: tipoDefault, activo: true, descripcion: "" }).select().single();
-    await load(); if (data) { setExpanded((p) => ({ ...p, [ecoId]: true })); pickHab(data); }
+    await load(); if (data) pickHab(data);
   };
   const addBioma = async () => {
     const { data } = await supabase.from("biomas").insert({ nombre: "Nuevo bioma", descripcion: "", afinidad: "" }).select().single();
@@ -296,80 +293,179 @@ function BiomasSection() {
     setSel(null); await load();
   };
 
-  const iSel = (kind: string, id: string) => sel?.kind === kind && sel?.id === id;
-  const rowStyle = (active: boolean): React.CSSProperties => ({
-    background: active ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent",
-    color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 70%, transparent)",
-    borderLeft: active ? "2px solid var(--primary)" : "2px solid transparent",
-  });
+  // ── Helpers de layout ────────────────────────────────────────────────────
+  const ecosDe    = (biomaId: string) => ecos.filter((e) => e.bioma_id === biomaId);
+  const habitsDe  = (ecoId: string)   => habitats.filter((h) => h.ecosistema_id === ecoId);
+  const ecosSinBioma = ecos.filter((e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id));
+
+  // ── Card de ecosistema (mismo patrón que renderTarjetaEcosistema) ────────
+  const renderEcoCard = (e: any) => {
+    const habs = habitsDe(e.id);
+    return (
+      <div
+        key={e.id}
+        className="w-full rounded-lg border border-primary/10 overflow-hidden break-inside-avoid"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}
+      >
+        {/* Header ecosistema */}
+        <div className="flex items-center gap-2 px-2.5 py-2">
+          <button
+            type="button"
+            onClick={() => pickEco(e)}
+            className="flex-1 min-w-0 truncate text-left text-[10px] font-bold uppercase tracking-[0.12em] transition-colors"
+            style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
+          >
+            {e.nombre}
+          </button>
+          <button
+            type="button"
+            onClick={() => addHab(e.id)}
+            title="Nuevo hábitat"
+            className="shrink-0 p-1 rounded-full transition-colors"
+            style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
+          >
+            <Plus size={9} />
+          </button>
+        </div>
+        {/* Hábitats */}
+        <div className="px-2.5 pb-2.5 flex flex-col gap-1.5">
+          {habs.length === 0 ? (
+            <p className="text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+              Sin hábitats
+            </p>
+          ) : (
+            habs.map((h) => (
+              <div key={h.id} className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => pickHab(h)}
+                    className="text-[10px] font-black uppercase tracking-[0.12em] truncate text-left transition-colors hover:text-accent"
+                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
+                  >
+                    {h.nombre}
+                  </button>
+                  {!h.activo && (
+                    <span className="text-[9px] font-bold px-1 rounded-full"
+                      style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      off
+                    </span>
+                  )}
+                </div>
+                {h.descripcion && (
+                  <p className="text-[9px] leading-tight line-clamp-1"
+                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                    {h.descripcion}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
       {loading ? (
-        <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+        </div>
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8 mb-6">
+
+          {/* ── Biomas ── */}
           {biomas.map((b) => {
-            const bEcos = ecos.filter((e) => e.bioma_id === b.id);
+            const bEcos = ecosDe(b.id);
+            const ecosCon    = bEcos.filter((e) => habitsDe(e.id).length > 0);
+            const ecosVacios = bEcos.filter((e) => habitsDe(e.id).length === 0);
             return (
-              <div key={b.id}>
-                {/* Bioma pill */}
-                <div className="flex items-center gap-2 mb-2">
-                  <button type="button" onClick={() => pickBioma(b)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-[1.03]"
-                    style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
-                    <Mountain size={11} /> {b.nombre}
-                    {b.afinidad && <span className="opacity-50">· {b.afinidad}</span>}
+              <div key={b.id} className="flex flex-col gap-3">
+                {/* Título bioma — mismo estilo que CriaturasJerarquica */}
+                <div className="flex items-center gap-2 px-1">
+                  <button
+                    type="button"
+                    onClick={() => pickBioma(b)}
+                    className="text-[11px] font-black uppercase tracking-[0.15em] transition-colors"
+                    style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
+                  >
+                    {b.nombre}
+                    {b.afinidad && (
+                      <span className="ml-1.5 font-semibold normal-case tracking-normal"
+                        style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                        · {b.afinidad}
+                      </span>
+                    )}
                   </button>
-                  <button type="button" onClick={() => addEco(b.id)}
-                    className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold opacity-50 hover:opacity-100 transition-opacity"
-                    style={{ border: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)", color: "var(--primary)" }}>
-                    <Plus size={9} /> eco
+                  <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+                  <button
+                    type="button"
+                    onClick={() => addEco(b.id)}
+                    title="Nuevo ecosistema"
+                    className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-opacity opacity-40 hover:opacity-100"
+                    style={{ border: "1px dashed color-mix(in srgb, var(--primary) 25%, transparent)", color: "var(--primary)" }}
+                  >
+                    <Plus size={9} /> ecosistema
                   </button>
                 </div>
-                {/* Ecosistemas grid */}
-                {bEcos.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pl-4 mb-1">
-                    {bEcos.map((e) => {
-                      const bHabs = habitats.filter((h) => h.ecosistema_id === e.id);
-                      return (
-                        <div key={e.id} className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => pickEco(e)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03]"
-                              style={{ background: "color-mix(in srgb, var(--primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)", color: "color-mix(in srgb, var(--primary) 80%, transparent)" }}>
-                              <TreePine size={10} /> {e.nombre}
-                            </button>
-                            <button type="button" onClick={() => addHab(e.id)}
-                              className="opacity-40 hover:opacity-100 transition-opacity"
-                              style={{ color: "var(--primary)" }} title="+ Hábitat">
-                              <Plus size={9} />
-                            </button>
-                          </div>
-                          {/* Hábitats pills */}
-                          {bHabs.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pl-3">
-                              {bHabs.map((h) => (
-                                <button key={h.id} type="button" onClick={() => pickHab(h)}
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all hover:scale-[1.03]"
-                                  style={{ background: "color-mix(in srgb, var(--primary) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-                                  <MapPin size={8} /> {h.nombre}
-                                  <span className="opacity-50">{h.activo ? "" : " ·off"}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                {/* Masonry de ecosistemas con contenido */}
+                {ecosCon.length > 0 && (
+                  <div className="columns-1 sm:columns-2 lg:columns-3 gap-3 [&>*]:mb-3">
+                    {ecosCon.map(renderEcoCard)}
                   </div>
+                )}
+
+                {/* Ecosistemas vacíos — chips compactos */}
+                {ecosVacios.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {ecosVacios.map((e) => (
+                      <button
+                        key={e.id}
+                        type="button"
+                        onClick={() => pickEco(e)}
+                        className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-colors"
+                        style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
+                      >
+                        {e.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {bEcos.length === 0 && (
+                  <p className="text-[10px] px-1" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Sin ecosistemas
+                  </p>
                 )}
               </div>
             );
           })}
-          <button type="button" onClick={addBioma}
+
+          {/* ── Ecosistemas sin bioma ── */}
+          {ecosSinBioma.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[11px] font-black uppercase tracking-[0.15em]"
+                  style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                  Sin bioma
+                </span>
+                <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }} />
+              </div>
+              <div className="columns-1 sm:columns-2 lg:columns-3 gap-3 [&>*]:mb-3">
+                {ecosSinBioma.map(renderEcoCard)}
+              </div>
+            </div>
+          )}
+
+          {/* ── Botón nuevo bioma ── */}
+          <button
+            type="button"
+            onClick={addBioma}
             className="self-start flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold opacity-50 hover:opacity-100 transition-opacity"
-            style={{ border: "1px dashed color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" }}>
+            style={{ border: "1px dashed color-mix(in srgb, var(--primary) 30%, transparent)", color: "var(--primary)" }}
+          >
             <Plus size={11} /> Nuevo bioma
           </button>
         </div>
