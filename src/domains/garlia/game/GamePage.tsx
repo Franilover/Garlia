@@ -1833,10 +1833,11 @@ function ItemsSection() {
   // Distribución masonry de tipos
   const alturaTipoCard = (tipo: string) => {
     const n = itemsDeTipo(tipo).length;
-    const ITEM_H = 28;
-    const ITEMS_POR_FILA = Math.max(1, Math.floor((anchoCol - 24) / 148));
-    const filas = Math.max(1, Math.ceil(n / ITEMS_POR_FILA));
-    return 44 + filas * ITEM_H + (filas - 1) * 8 + 12;
+    const CHIP_W = 148; // ancho aprox de cada chip
+    const CHIP_H = 32;  // altura aprox de cada chip
+    const CHIPS_POR_FILA = Math.max(1, Math.floor((anchoCol - 24) / (CHIP_W + 4)));
+    const filas = Math.max(1, Math.ceil(n / CHIPS_POR_FILA));
+    return 38 + filas * CHIP_H + (filas - 1) * 4 + 12;
   };
   const columnasTipos: string[][] = Array.from({ length: numColumnas }, () => []);
   const alturas = new Array(numColumnas).fill(0);
@@ -1852,7 +1853,8 @@ function ItemsSection() {
     return (
       <div key={tipo} className="w-full rounded-lg border border-primary/10 overflow-hidden"
         style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-        <div className="px-3 py-3 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+        {/* Header colapsable */}
+        <div className="px-3 py-2.5 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
           <span />
           <span className="min-w-0 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-center"
             style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>
@@ -1862,9 +1864,30 @@ function ItemsSection() {
             {miembros.length}
           </span>
         </div>
-        <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+        {/* Items como chips horizontales compactos */}
+        <div className="px-3 pb-3 flex flex-wrap gap-1">
           {miembros.map((i: any) => (
-            <GridCard key={i.id} nombre={iNombre(i)} badge={`×${i.max_stack}`} icono={<Sword size={14} />} onClick={() => pick(i)} />
+            <button
+              key={i.id}
+              type="button"
+              onClick={() => pick(i)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <Sword size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+              <span className="text-[11px] font-medium truncate max-w-[120px]" style={{ color: "var(--primary)" }}>
+                {iNombre(i)}
+              </span>
+              {i.max_stack > 1 && (
+                <span className="text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0"
+                  style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                  ×{i.max_stack}
+                </span>
+              )}
+            </button>
           ))}
         </div>
       </div>
@@ -1903,16 +1926,36 @@ function ItemsSection() {
               <div className="h-px mb-3 bg-primary/10" />
               <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
                 style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
-                <div className="px-3 py-3 flex items-center gap-2">
+                <div className="px-3 py-2.5 flex items-center gap-2">
                   <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-[0.12em]"
                     style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>Sin tipo</span>
                   <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
                     {itemsSinTipo.length}
                   </span>
                 </div>
-                <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                <div className="px-3 pb-3 flex flex-wrap gap-1">
                   {itemsSinTipo.map((i: any) => (
-                    <GridCard key={i.id} nombre={iNombre(i)} badge={`×${i.max_stack}`} icono={<Sword size={14} />} onClick={() => pick(i)} />
+                    <button
+                      key={i.id}
+                      type="button"
+                      onClick={() => pick(i)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{
+                        background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
+                        border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                      }}
+                    >
+                      <Sword size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
+                      <span className="text-[11px] font-medium truncate max-w-[120px]" style={{ color: "var(--primary)" }}>
+                        {iNombre(i)}
+                      </span>
+                      {i.max_stack > 1 && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded-full shrink-0"
+                          style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                          ×{i.max_stack}
+                        </span>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
