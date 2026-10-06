@@ -1922,7 +1922,7 @@ function ItemsSection() {
     setItems(itemsData ?? []); setRecetas(recetasData ?? []); setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
-  const pick = (i: any) => { setSel(i); setIsNewItem(false); setItemCanonId(i.item_id ?? ""); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); const p = i.propiedades ?? {}; setProps(p); setRecetaId(p.receta_id ?? ""); };
+  const pick = (i: any) => { setSel(i); setIsNewItem(false); setItemCanonId(i.item_id ?? ""); setTipo(i.tipo ?? ""); setMaxStack(i.max_stack); const p = i.propiedades ?? {}; setProps(p); setRecetaId(p.receta_id ?? ""); loadCanonItems(); };
   const startNewItem = () => { setSel(null); setIsNewItem(true); setItemCanonId(""); setTipo(""); setMaxStack(1); setProps({}); setRecetaId(""); };
   const save = () => run(async () => {
     const finalProps = { ...props };
@@ -2155,27 +2155,27 @@ function ItemsSection() {
           </div>
         }
       >
-        {isNewItem ? (
-          <label className="flex flex-col gap-1">
-            <FL label="Item canónico" />
-            <Sel value={itemCanonId} onChange={(e) => {
-              const id = e.target.value;
-              setItemCanonId(id);
-              const canon = canonItems.find((i: any) => i.id === id);
-              if (canon?.tipo) setTipo(canon.tipo);
-            }}>
-              <option value="">— Seleccionar —</option>
-              {canonItems
-                .filter((ci: any) => !items.some((ig: any) => ig.item_id === ci.id))
-                .map((ci: any) => (
-                  <option key={ci.id} value={ci.id}>{ci.nombre}{ci.tipo ? ` (${ci.tipo})` : ""}</option>
-                ))
-              }
-            </Sel>
-          </label>
-        ) : (
-          <p className="text-xs font-mono shrink-0" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>{sel?.tipo ?? ""} · {sel?.item_id}</p>
-        )}
+        <label className="flex flex-col gap-1">
+          <FL label="Item canónico" />
+          <Sel value={itemCanonId} onChange={(e) => {
+            const id = e.target.value;
+            setItemCanonId(id);
+            const canon = canonItems.find((i: any) => i.id === id);
+            if (canon?.tipo) setTipo(canon.tipo);
+          }}>
+            <option value="">— Seleccionar —</option>
+            {canonItems
+              .filter((ci: any) =>
+                isNewItem
+                  ? !items.some((ig: any) => ig.item_id === ci.id)
+                  : !items.some((ig: any) => ig.item_id === ci.id && ig.id !== sel?.id)
+              )
+              .map((ci: any) => (
+                <option key={ci.id} value={ci.id}>{ci.nombre}{ci.tipo ? ` (${ci.tipo})` : ""}</option>
+              ))
+            }
+          </Sel>
+        </label>
         <div className="flex gap-3">
           <label className="flex flex-col gap-1 flex-1"><FL label="Tipo" /><Inp value={tipo} onChange={(e) => setTipo(e.target.value)} /></label>
           <label className="flex flex-col gap-1 w-24"><FL label="Max stack" /><Inp type="number" value={maxStack} onChange={(e) => setMaxStack(Number(e.target.value))} /></label>
