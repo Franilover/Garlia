@@ -954,6 +954,25 @@ function PersonajesSection() {
     </label>
   );
 
+  // ── Masonry layout (mismo que GeografiaJerarquica) ──────────────────────
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerWidth(w);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const GAP = 24;
+  const MIN_COL = 260;
+  const numColumnas = containerWidth > 0 ? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL + GAP))) : 1;
+  const anchoCol = containerWidth > 0 ? Math.floor((containerWidth - GAP * (numColumnas - 1)) / numColumnas) : MIN_COL;
+
   // ── Agrupación Reino → Personajes ──────────────────────────────────────
   const personajesFiltrados = q
     ? personajes.filter((p) => p.nombre.toLowerCase().includes(q.toLowerCase()))
@@ -967,6 +986,61 @@ function PersonajesSection() {
 
   const reinosConPersonajes = reinos.filter((r) => personajesDe(r).length > 0);
   const reinosVacios        = reinos.filter((r) => personajesDe(r).length === 0);
+
+  // Distribuir reinos en columnas masonry (mismo algoritmo que GeografiaJerarquica)
+  const alturaReinoCard = (rg: any) => {
+    const n = personajesDe(rg).length;
+    const ITEM_H = 28; // altura aprox de cada GridCard en fila
+    const ITEMS_POR_FILA = Math.max(1, Math.floor((anchoCol - 24) / 148));
+    const filas = Math.max(1, Math.ceil(n / ITEMS_POR_FILA));
+    return 44 + filas * ITEM_H + (filas - 1) * 8 + 12; // header + filas + gaps + padding
+  };
+  const columnasReinos: any[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  for (const rg of reinosConPersonajes) {
+    let idxMin = 0;
+    for (let i = 1; i < numColumnas; i++) {
+      if (alturas[i] < alturas[idxMin]) idxMin = i;
+    }
+    columnasReinos[idxMin].push(rg);
+    alturas[idxMin] += alturaReinoCard(rg) + GAP;
+  }
+
+  // ── Card de reino individual (GeografiaJerarquica style) ────────────────
+  const renderReinoCard = (rg: any) => {
+    const miembros = personajesDe(rg);
+    return (
+      <div key={rg.id} className="w-full rounded-lg border border-primary/10 overflow-hidden"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+        {/* Header — nombre centrado, mismo que GeografiaJerarquica */}
+        <div className="px-3 py-3 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+          <span />
+          <button
+            type="button"
+            onClick={() => { /* no hay panel de reino en GamePage por ahora */ }}
+            className="min-w-0 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-center transition-colors justify-self-center max-w-full"
+            style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}
+          >
+            {rg.reinos?.nombre ?? rg.clave}
+          </button>
+          <span />
+        </div>
+        {/* Personajes — flex-wrap, mismo que GeografiaJerarquica */}
+        <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+          {miembros.map((p: any) => (
+            <GridCard
+              key={p.id}
+              nombre={p.nombre}
+              sub={cName(p.criatura_id)}
+              badge={p.activo ? undefined : "off"}
+              icono={<Users size={14} />}
+              onClick={() => pick(p)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
@@ -990,25 +1064,35 @@ function PersonajesSection() {
           <Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
         </div>
       ) : (
-        <div className="flex flex-col gap-5">
-          {/* Reinos con personajes */}
-          {reinosConPersonajes.map((rg) => {
-            const miembros = personajesDe(rg);
-            return (
-              <div key={rg.id} className="rounded-2xl overflow-hidden"
-                style={{ border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                {/* Cabecera reino */}
-                <div className="px-4 py-2.5 flex items-center justify-center"
-                  style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 4%, transparent)" }}>
-                  <span className="text-xs font-black uppercase tracking-widest"
-                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
-                    {rg.reinos?.nombre ?? rg.clave}
+        <div className="flex flex-col gap-6">
+
+          {/* Masonry de reinos con personajes */}
+          <div ref={containerRef} className="flex items-start gap-6">
+            {columnasReinos.map((columna, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-6 min-w-0" style={{ width: anchoCol }}>
+                {columna.map(renderReinoCard)}
+              </div>
+            ))}
+          </div>
+
+          {/* Personajes sin reino — card con borde punteado, mismo patrón "Sin ciudad global" */}
+          {personajesSinReino.length > 0 && (
+            <div>
+              <div className="h-px mb-3 bg-primary/10" />
+              <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                <div className="px-3 py-3 flex items-center gap-2">
+                  <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-[0.12em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                    Sin reino
+                  </span>
+                  <span className="text-[10px] font-bold"
+                    style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    {personajesSinReino.length}
                   </span>
                 </div>
-                {/* Grid de personajes */}
-                <div className="p-3 grid gap-2"
-                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
-                  {miembros.map((p) => (
+                <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                  {personajesSinReino.map((p: any) => (
                     <GridCard
                       key={p.id}
                       nombre={p.nombre}
@@ -1020,42 +1104,16 @@ function PersonajesSection() {
                   ))}
                 </div>
               </div>
-            );
-          })}
-
-          {/* Personajes sin reino */}
-          {personajesSinReino.length > 0 && (
-            <div className="rounded-2xl overflow-hidden"
-              style={{ border: "1px dashed color-mix(in srgb, var(--primary) 12%, transparent)" }}>
-              <div className="px-4 py-2.5 flex items-center justify-center"
-                style={{ borderBottom: "1px dashed color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-                <span className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                  Sin reino
-                </span>
-              </div>
-              <div className="p-3 grid gap-2"
-                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
-                {personajesSinReino.map((p) => (
-                  <GridCard
-                    key={p.id}
-                    nombre={p.nombre}
-                    sub={cName(p.criatura_id)}
-                    badge={p.activo ? undefined : "off"}
-                    icono={<Users size={14} />}
-                    onClick={() => pick(p)}
-                  />
-                ))}
-              </div>
             </div>
           )}
 
-          {/* Reinos vacíos (sin personajes) */}
+          {/* Reinos vacíos — chips compactos, mismo patrón GeografiaJerarquica */}
           {reinosVacios.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
+            <div className="flex flex-wrap gap-2">
               {reinosVacios.map((rg) => (
-                <span key={rg.id} className="px-3 py-1 rounded-full text-xs font-semibold"
-                  style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                <span key={rg.id}
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
+                  style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
                   {rg.reinos?.nombre ?? rg.clave}
                 </span>
               ))}
