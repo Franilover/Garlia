@@ -968,12 +968,12 @@ function PersonajesSection() {
   const loadCanon = useCallback(async () => {
     if (canonPersonajes.length > 0) return; // ya cargado
     setCanonLoading(true);
-    const [{ data: cp }, { data: cr }] = await Promise.all([
-      supabase.from("personajes").select("id,nombre,reino_id").order("nombre"),
-      supabase.from("reinos").select("id,nombre").order("nombre"),
-    ]);
-    setCanonPersonajes(cp ?? []);
-    setCanonReinos(cr ?? []);
+    const { data: cp } = await supabase.from("personajes").select("id,nombre,reino").order("nombre");
+    const personajesData = cp ?? [];
+    // Derivar reinos únicos directamente del campo texto "reino"
+    const reinosUnicos = [...new Set(personajesData.map((p: any) => p.reino).filter(Boolean))].sort() as string[];
+    setCanonPersonajes(personajesData);
+    setCanonReinos(reinosUnicos.map((r) => ({ id: r, nombre: r })));
     setCanonLoading(false);
   }, [canonPersonajes.length]);
 
@@ -1236,7 +1236,7 @@ function PersonajesSection() {
             ) : (
               <div className="flex flex-col gap-4">
                 {canonReinos.map((r) => {
-                  const miembros = canonPersonajes.filter((p) => p.reino_id === r.id);
+                  const miembros = canonPersonajes.filter((p) => p.reino === r.nombre);
                   if (miembros.length === 0) return null;
                   return (
                     <div key={r.id} className="w-full rounded-lg border border-primary/10 overflow-hidden"
@@ -1261,7 +1261,7 @@ function PersonajesSection() {
                 })}
                 {/* Personajes canónicos sin reino */}
                 {(() => {
-                  const sinReino = canonPersonajes.filter((p) => !p.reino_id || !canonReinos.some((r) => r.id === p.reino_id));
+                  const sinReino = canonPersonajes.filter((p) => !p.reino);
                   if (sinReino.length === 0) return null;
                   return (
                     <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
@@ -1719,8 +1719,16 @@ function ItemsSection() {
   const loadCanonItems = useCallback(async () => {
     if (canonItems.length > 0) return;
     setCanonLoading(true);
-    const { data } = await supabase.from("items").select("id,nombre,tipo").order("nombre");
-    setCanonItems(data ?? []);
+    const { data } = await supabase
+      .from("items")
+      .select("id,nombre,worldbuilder_tipos_objeto(nombre_humano)")
+      .order("nombre");
+    // Normalizar para que el render use el mismo campo `tipo` como string
+    const normalizado = (data ?? []).map((i: any) => ({
+      ...i,
+      tipo: i.worldbuilder_tipos_objeto?.nombre_humano ?? null,
+    }));
+    setCanonItems(normalizado);
     setCanonLoading(false);
   }, [canonItems.length]);
 
