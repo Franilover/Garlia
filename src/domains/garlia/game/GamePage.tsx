@@ -83,7 +83,7 @@ function PanelModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ActiveTab =
-  | "personajes" | "criaturas" | "biomas" | "items"
+  | "personajes" | "biomas" | "items"
   | "ecologia" | "misiones" | "factores" | "modificadores";
 
 type AmbSub = "factores" | "modificadores";
@@ -234,13 +234,19 @@ function useSave() {
 type TreeSel = { kind: "bioma"; id: string } | { kind: "eco"; id: string } | { kind: "hab"; id: string } | null;
 
 function BiomasSection() {
-  const [biomas,   setBiomas]   = useState<any[]>([]);
-  const [ecos,     setEcos]     = useState<any[]>([]);
-  const [habitats, setHabitats] = useState<any[]>([]);
-  const [tiposH,   setTiposH]   = useState<any[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [sel,      setSel]      = useState<TreeSel>(null);
-  const { saving, saved, run }  = useSave();
+  const [biomas,        setBiomas]        = useState<any[]>([]);
+  const [ecos,          setEcos]          = useState<any[]>([]);
+  const [habitats,      setHabitats]      = useState<any[]>([]);
+  const [tiposH,        setTiposH]        = useState<any[]>([]);
+  const [criaturas,     setCriaturas]     = useState<any[]>([]);
+  const [participantes, setParticipantes] = useState<any[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [sel,           setSel]           = useState<TreeSel>(null);
+  const [selCriatura,   setSelCriatura]   = useState<any>(null);
+  const [iaConfig,      setIaConfig]      = useState<Record<string, unknown>>({});
+  const [criaturaTab,   setCriaturaTab]   = useState<"ia" | "dialogo">("ia");
+  const { saving, saved, run }        = useSave();
+  const { saving: savingC, saved: savedC, run: runC } = useSave();
 
   // form bioma
   const [bNombre, setBNombre] = useState(""); const [bDesc, setBDesc] = useState(""); const [bAfinidad, setBAfinidad] = useState("");
@@ -251,13 +257,16 @@ function BiomasSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [b, e, h, t] = await Promise.all([
+    const [b, e, h, t, c, p] = await Promise.all([
       supabase.from("biomas").select("id,nombre,descripcion,afinidad,orden").order("orden"),
       supabase.from("ecosistemas").select("id,nombre,clima,descripcion,tipo_entorno,bioma_id").order("nombre"),
       supabase.from("habitats").select("id,nombre,descripcion,ecosistema_id,tipo_habitat_id,activo").order("nombre"),
       supabase.from("tipos_habitat").select("id,clave,nombre").order("nombre"),
+      supabase.from("criaturas").select("id,nombre,ia_config,dialogo").order("nombre"),
+      supabase.from("ecosistema_participantes").select("id,ecosistema_id,criatura_id,activo"),
     ]);
     setBiomas(b.data ?? []); setEcos(e.data ?? []); setHabitats(h.data ?? []); setTiposH(t.data ?? []);
+    setCriaturas(c.data ?? []); setParticipantes(p.data ?? []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -296,10 +305,30 @@ function BiomasSection() {
   const ecosDe    = (biomaId: string) => ecos.filter((e) => e.bioma_id === biomaId);
   const habitsDe  = (ecoId: string)   => habitats.filter((h) => h.ecosistema_id === ecoId);
   const ecosSinBioma = ecos.filter((e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id));
+  // criaturas que participan en un ecosistema dado
+  const criaturasDeEco = (ecoId: string) =>
+    participantes
+      .filter((p) => p.ecosistema_id === ecoId)
+      .map((p) => criaturas.find((c) => c.id === p.criatura_id))
+      .filter(Boolean);
 
-  // ── Card de ecosistema (mismo patrón que renderTarjetaEcosistema) ────────
+  const pickCriatura = (c: any) => {
+    setSelCriatura(c);
+    setCriaturaTab("ia");
+    setIaConfig(c.ia_config ?? {});
+  };
+  const saveCriatura = () => runC(async () => {
+    if (!selCriatura) return;
+    const field = criaturaTab === "ia" ? "ia_config" : "dialogo";
+    await supabase.from("criaturas").update({ [field]: iaConfig }).eq("id", selCriatura.id);
+    setCriaturas((prev) => prev.map((c) => c.id === selCriatura.id ? { ...c, [field]: iaConfig } : c));
+    setSelCriatura((prev: any) => prev ? { ...prev, [field]: iaConfig } : prev);
+  });
+
+  // ── Card de ecosistema ────────────────────────────────────────────────────
   const renderEcoCard = (e: any) => {
     const habs = habitsDe(e.id);
+    const ecoCreaturas = criaturasDeEco(e.id);
     return (
       <div
         key={e.id}
@@ -327,14 +356,14 @@ function BiomasSection() {
           </button>
         </div>
         {/* Hábitats */}
-        <div className="px-2.5 pb-2.5 flex flex-col gap-1.5">
+        <div className="px-2.5 pb-2.5 flex flex-col gap-2">
           {habs.length === 0 ? (
             <p className="text-[10px]" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
               Sin hábitats
             </p>
           ) : (
             habs.map((h) => (
-              <div key={h.id} className="flex flex-col gap-0.5">
+              <div key={h.id} className="flex flex-col gap-1">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -359,6 +388,27 @@ function BiomasSection() {
                 )}
               </div>
             ))
+          )}
+          {/* Criaturas del ecosistema */}
+          {ecoCreaturas.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+              {ecoCreaturas.map((c: any) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => pickCriatura(c)}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold transition-colors"
+                  style={{
+                    background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    color: "color-mix(in srgb, var(--primary) 55%, transparent)",
+                  }}
+                >
+                  <Bot size={8} />
+                  {c.nombre}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -525,6 +575,23 @@ function BiomasSection() {
         </div>
         <label className="flex flex-col gap-1"><FL label="Descripción" /><TA value={hDesc} onChange={(e) => setHDesc(e.target.value)} rows={3} /></label>
         <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={hActivo} onChange={(e) => setHActivo(e.target.checked)} /><span className="text-sm" style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>Activo</span></label>
+      </PanelModal>
+
+      {/* Panel criatura (desde Biomas) */}
+      <PanelModal abierto={!!selCriatura} onCerrar={() => setSelCriatura(null)}
+        titulo={selCriatura?.nombre} icono={<Bot size={12} />}
+        accionesDerecha={<SaveBtn saving={savingC} saved={savedC} onClick={saveCriatura} />}>
+        <div className="flex shrink-0 gap-1 p-1 rounded-xl self-start" style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)" }}>
+          {(["ia", "dialogo"] as const).map((t) => (
+            <button key={t} type="button"
+              onClick={() => { setCriaturaTab(t); setIaConfig(t === "ia" ? (selCriatura?.ia_config ?? {}) : (selCriatura?.dialogo ?? {})); }}
+              className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+              style={{ background: criaturaTab === t ? "var(--primary)" : "transparent", color: criaturaTab === t ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)" }}>
+              {t === "ia" ? "ia_config" : "dialogo"}
+            </button>
+          ))}
+        </div>
+        <div style={{ minHeight: "240px" }}><JsonEditor value={iaConfig} onChange={setIaConfig} /></div>
       </PanelModal>
     </div>
   );
@@ -1238,10 +1305,10 @@ function PersonajesSection() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTIDADES — Criaturas IA
+// [CriaturasSection removida — criaturas integradas en BiomasSection]
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CriaturasSection() {
+function _CriaturasSection_REMOVED() {
   const [criaturas, setCriaturas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<any>(null);
@@ -2123,7 +2190,6 @@ type TabEntry = { key: ActiveTab; label: string; icon: React.ElementType; group:
 
 const ALL_TABS: TabEntry[] = [
   { key: "personajes",    label: "Personajes", icon: Users,       group: "entidades" },
-  { key: "criaturas",     label: "Criaturas",  icon: Bot,         group: "entidades" },
   { key: "biomas",        label: "Biomas",     icon: Mountain,    group: "entidades" },
   { key: "items",         label: "Items",      icon: Sword,       group: "entidades" },
   { key: "ecologia",      label: "Ecología",   icon: TreePine,    group: "game"      },
@@ -2173,7 +2239,6 @@ export default function GamePage() {
       {/* ── Contenido ── */}
       <div className="flex-1 min-h-0 flex flex-col">
         {active === "personajes"    && <PersonajesSection />}
-        {active === "criaturas"     && <CriaturasSection />}
         {active === "biomas"        && <BiomasSection />}
         {active === "items"         && <ItemsSection />}
         {active === "ecologia"      && <EcologiaSection />}
