@@ -135,20 +135,205 @@ function SaveBtn({ saving, saved, disabled, onClick }: { saving: boolean; saved:
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// JsonEditor — editor visual de clave→valor con toggle a raw JSON
+// Soporta string · number · boolean como filas editables.
+// Objetos/arrays anidados se muestran como JSON inline editable.
+// ─────────────────────────────────────────────────────────────────────────────
+type JVType = "string" | "number" | "boolean" | "json";
+function detectType(v: unknown): JVType {
+  if (typeof v === "boolean") return "boolean";
+  if (typeof v === "number") return "number";
+  if (typeof v === "string") return "string";
+  return "json";
+}
 function JsonEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (v: Record<string, unknown>) => void }) {
-  const [raw, setRaw] = useState(() => JSON.stringify(value, null, 2));
-  const [err, setErr] = useState<string | null>(null);
+  const [rawMode, setRawMode] = useState(false);
+  const [rawText, setRawText] = useState(() => JSON.stringify(value, null, 2));
+  const [rawErr, setRawErr] = useState<string | null>(null);
+  const [newKey, setNewKey] = useState("");
+  const [newVal, setNewVal] = useState("");
   const prev = useRef(JSON.stringify(value));
+
   useEffect(() => {
     const s = JSON.stringify(value);
-    if (s !== prev.current) { setRaw(JSON.stringify(value, null, 2)); setErr(null); prev.current = s; }
+    if (s !== prev.current) {
+      prev.current = s;
+      setRawText(JSON.stringify(value, null, 2));
+      setRawErr(null);
+    }
   }, [value]);
+
+  const updateKey = (oldKey: string, newKeyName: string) => {
+    if (!newKeyName || newKeyName === oldKey) return;
+    const entries = Object.entries(value);
+    const idx = entries.findIndex(([k]) => k === oldKey);
+    if (idx === -1) return;
+    entries[idx][0] = newKeyName;
+    onChange(Object.fromEntries(entries));
+  };
+
+  const updateVal = (key: string, raw: string, type: JVType) => {
+    let parsed: unknown = raw;
+    if (type === "number") parsed = raw === "" ? 0 : Number(raw);
+    else if (type === "boolean") parsed = raw === "true";
+    else if (type === "json") { try { parsed = JSON.parse(raw); } catch { return; } }
+    onChange({ ...value, [key]: parsed });
+  };
+
+  const changeType = (key: string, newType: JVType) => {
+    const cur = value[key];
+    let coerced: unknown;
+    if (newType === "boolean") coerced = Boolean(cur);
+    else if (newType === "number") coerced = Number(cur) || 0;
+    else if (newType === "string") coerced = String(cur ?? "");
+    else coerced = cur;
+    onChange({ ...value, [key]: coerced });
+  };
+
+  const delKey = (key: string) => {
+    const next = { ...value };
+    delete next[key];
+    onChange(next);
+  };
+
+  const addRow = () => {
+    const k = newKey.trim();
+    if (!k) return;
+    let v: unknown = newVal;
+    const n = Number(newVal);
+    if (newVal === "true") v = true;
+    else if (newVal === "false") v = false;
+    else if (newVal !== "" && !isNaN(n)) v = n;
+    onChange({ ...value, [k]: v });
+    setNewKey(""); setNewVal("");
+  };
+
+  const border = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
+  const bg = "color-mix(in srgb, var(--primary) 4%, transparent)";
+  const muted = "color-mix(in srgb, var(--primary) 35%, transparent)";
+  const cellStyle: React.CSSProperties = { color: "var(--primary)", background: bg, border, borderRadius: "10px", outline: "none", fontSize: "12px", padding: "5px 10px", width: "100%" };
+
+  const typeColors: Record<JVType, string> = {
+    string:  "color-mix(in srgb, #22c55e 60%, var(--primary))",
+    number:  "color-mix(in srgb, #3b82f6 60%, var(--primary))",
+    boolean: "color-mix(in srgb, #f59e0b 60%, var(--primary))",
+    json:    "color-mix(in srgb, #a855f7 60%, var(--primary))",
+  };
+
   return (
-    <div className="flex flex-col gap-1 h-full">
-      <textarea className="flex-1 font-mono text-xs p-3 rounded-xl resize-none outline-none" spellCheck={false}
-        style={{ ...inputStyle, border: `1px solid ${err ? "var(--destructive,#ef4444)" : "color-mix(in srgb, var(--primary) 12%, transparent)"}`, minHeight: "160px" }}
-        value={raw} onChange={(e) => { setRaw(e.target.value); try { onChange(JSON.parse(e.target.value)); setErr(null); } catch { setErr("JSON inválido"); } }} />
-      {err && <p className="text-xs" style={{ color: "var(--destructive,#ef4444)" }}>{err}</p>}
+    <div className="flex flex-col gap-2">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs" style={{ color: muted }}>
+          {Object.keys(value).length} {Object.keys(value).length === 1 ? "campo" : "campos"}
+        </span>
+        <button type="button" onClick={() => { setRawMode(!rawMode); setRawText(JSON.stringify(value, null, 2)); setRawErr(null); }}
+          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors"
+          style={{ background: rawMode ? "color-mix(in srgb, var(--primary) 12%, transparent)" : bg, border, color: rawMode ? "var(--primary)" : muted }}>
+          <span className="font-mono">{"{}"}</span> {rawMode ? "Visual" : "Raw"}
+        </button>
+      </div>
+
+      {rawMode ? (
+        /* ── Raw textarea ── */
+        <div className="flex flex-col gap-1">
+          <textarea className="font-mono text-xs p-3 rounded-xl resize-none outline-none" spellCheck={false}
+            style={{ ...cellStyle, minHeight: "160px", borderColor: rawErr ? "var(--destructive,#ef4444)" : undefined }}
+            value={rawText}
+            onChange={(e) => {
+              setRawText(e.target.value);
+              try { onChange(JSON.parse(e.target.value)); setRawErr(null); } catch { setRawErr("JSON inválido"); }
+            }} />
+          {rawErr && <p className="text-xs" style={{ color: "var(--destructive,#ef4444)" }}>{rawErr}</p>}
+        </div>
+      ) : (
+        /* ── Visual rows ── */
+        <div className="flex flex-col gap-1.5">
+          {Object.entries(value).map(([k, v]) => {
+            const type = detectType(v);
+            return (
+              <div key={k} className="flex items-center gap-1.5">
+                {/* Key */}
+                <input
+                  className="font-mono text-xs shrink-0"
+                  style={{ ...cellStyle, width: "130px", fontWeight: 600 }}
+                  defaultValue={k}
+                  onBlur={(e) => updateKey(k, e.target.value.trim())}
+                />
+                {/* Type badge */}
+                <select
+                  value={type}
+                  onChange={(e) => changeType(k, e.target.value as JVType)}
+                  style={{ background: bg, border, borderRadius: "8px", color: typeColors[type], fontSize: "11px", padding: "4px 6px", outline: "none", cursor: "pointer", fontWeight: 600, shrink: 0 } as React.CSSProperties}
+                >
+                  <option value="string">str</option>
+                  <option value="number">num</option>
+                  <option value="boolean">bool</option>
+                  <option value="json">json</option>
+                </select>
+                {/* Value */}
+                <div className="flex-1 min-w-0">
+                  {type === "boolean" ? (
+                    <button type="button"
+                      onClick={() => onChange({ ...value, [k]: !v })}
+                      style={{ ...cellStyle, textAlign: "left", cursor: "pointer", fontWeight: 700, color: v ? typeColors.boolean : muted }}
+                    >
+                      {v ? "true" : "false"}
+                    </button>
+                  ) : type === "json" ? (
+                    <input
+                      className="font-mono text-xs"
+                      style={{ ...cellStyle, color: typeColors.json }}
+                      defaultValue={JSON.stringify(v)}
+                      onBlur={(e) => updateVal(k, e.target.value, "json")}
+                    />
+                  ) : (
+                    <input
+                      type={type === "number" ? "number" : "text"}
+                      className="text-xs"
+                      style={cellStyle}
+                      defaultValue={String(v ?? "")}
+                      onBlur={(e) => updateVal(k, e.target.value, type)}
+                    />
+                  )}
+                </div>
+                {/* Delete */}
+                <button type="button" onClick={() => delKey(k)}
+                  className="shrink-0 p-1.5 rounded-lg transition-colors hover:opacity-100"
+                  style={{ color: muted, opacity: 0.6 }}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
+
+          {/* Add row */}
+          <div className="flex items-center gap-1.5 pt-1 border-t" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+            <input
+              placeholder="clave"
+              className="font-mono text-xs shrink-0"
+              style={{ ...cellStyle, width: "130px" }}
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addRow()}
+            />
+            <input
+              placeholder="valor"
+              className="text-xs flex-1 min-w-0"
+              style={cellStyle}
+              value={newVal}
+              onChange={(e) => setNewVal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addRow()}
+            />
+            <button type="button" onClick={addRow} disabled={!newKey.trim()}
+              className="shrink-0 p-1.5 rounded-lg transition-all hover:scale-[1.05]"
+              style={{ background: newKey.trim() ? "var(--primary)" : bg, color: newKey.trim() ? "var(--btn-text,#fff)" : muted, border }}>
+              <Plus size={12} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
