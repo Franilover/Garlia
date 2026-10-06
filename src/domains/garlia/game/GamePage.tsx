@@ -11,14 +11,15 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bot, Check, ChevronRight, FlaskConical, Globe2,
-  Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
+  Bot, Check, ChevronRight, ExternalLink, FlaskConical, Globe2,
+  Link2, Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
   Save, Search, Shield, Sword, Trash2, TreePine,
   Users, X, Gamepad2, Package, ScrollText, Leaf, Heart,
   Utensils, Thermometer, Clock,
 } from "lucide-react";
 import { supabase } from "@/infra/supabase/supabase";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PanelModal — wrapper con misma API que ModalFlotante pero usa PopoverFlotante
@@ -1127,6 +1128,12 @@ function PersonajesSection() {
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
       {/* Toolbar */}
       <div className="shrink-0 flex items-center gap-2">
+        {/* Izquierda: Vincular + Abrir en canon */}
+        <ToolbarCanonBtns
+          onVincular={startNew}
+          canonId={sel?.personaje_id ?? null}
+          kind="personaje"
+        />
         <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
           style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
@@ -1599,6 +1606,58 @@ function _CriaturasSection_REMOVED() {
 // Shared grid helpers — patrón QuimicaPage / ElementoPage
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ToolbarCanonBtns — dos botones de esquina izquierda en barras de Personajes/Items
+//   • Vincular: abre el modal de nuevo para vincular con el canon
+//   • Abrir en canon: abre el PanelFlotante global del registro canónico
+//     (solo activo cuando hay un item/personaje seleccionado con ID canónico)
+// ─────────────────────────────────────────────────────────────────────────────
+function ToolbarCanonBtns({
+  onVincular,
+  canonId,
+  kind,
+}: {
+  onVincular: () => void;
+  canonId: string | null;
+  kind: "personaje" | "item";
+}) {
+  const abrirPanel = usePanelFlotante((s) => s.abrir);
+  const btnBase = "flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]";
+  const btnStyle = {
+    background: "color-mix(in srgb, var(--primary) 7%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
+    color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+  };
+  const btnDisabledStyle = {
+    ...btnStyle,
+    opacity: 0.35,
+    cursor: "not-allowed",
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onVincular}
+        title={kind === "personaje" ? "Vincular personaje del canon" : "Vincular item del canon"}
+        className={btnBase}
+        style={btnStyle}
+      >
+        <Link2 size={12} />
+      </button>
+      <button
+        type="button"
+        disabled={!canonId}
+        onClick={() => canonId && abrirPanel(kind, canonId)}
+        title={canonId ? "Abrir en canon" : "Selecciona un registro para abrir en canon"}
+        className={btnBase}
+        style={canonId ? btnStyle : btnDisabledStyle}
+      >
+        <ExternalLink size={12} />
+      </button>
+    </div>
+  );
+}
+
 /** Casilla de grid genérica */
 function GridCard({
   nombre,
@@ -1901,6 +1960,12 @@ function ItemsSection() {
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
       {/* Toolbar */}
       <div className="shrink-0 flex items-center gap-2">
+        {/* Izquierda: Vincular + Abrir en canon */}
+        <ToolbarCanonBtns
+          onVincular={() => { loadCanonItems(); startNewItem(); }}
+          canonId={sel?.item_id ?? null}
+          kind="item"
+        />
         <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
           style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
