@@ -11,7 +11,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bot, Check, ChevronRight, FlaskConical, Globe2, Layers,
+  Bot, Check, ChevronRight, FlaskConical, Globe2,
   Loader2, MapPin, MessageCircle, Mountain, Network, Plus,
   Save, Search, Shield, Sword, Trash2, TreePine,
   Users, X, Gamepad2, Package, ScrollText, Leaf, Heart,
@@ -83,9 +83,8 @@ function PanelModal({
 // ─────────────────────────────────────────────────────────────────────────────
 
 type ActiveTab =
-  | "biomas" | "ecologia"
-  | "entidades"
-  | "misiones" | "factores" | "modificadores";
+  | "personajes" | "criaturas" | "biomas" | "items"
+  | "ecologia" | "misiones" | "factores" | "modificadores";
 
 type AmbSub = "factores" | "modificadores";
 type EcoSub = "bioma_eco" | "bioma_reinos" | "participantes" | "criatura_roles" | "relaciones" | "roles" | "tipos_h" | "tipos_p";
@@ -2117,57 +2116,17 @@ function AmbienteSection({ activeSub }: { activeSub: AmbSub }) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENTIDADES — Vista unificada (Items · Criaturas · Personajes) con toggle de
-// modo y selector de filtro/tag al lado del buscador.
-// ─────────────────────────────────────────────────────────────────────────────
-
-type EntidadesModo = "items" | "criaturas" | "personajes";
-
-const ENTIDADES_MODOS: { key: EntidadesModo; label: string; icon: React.ElementType }[] = [
-  { key: "items",      label: "Items",      icon: Sword  },
-  { key: "criaturas",  label: "Criaturas",  icon: Bot    },
-  { key: "personajes", label: "Personajes", icon: Users  },
-];
-
-function EntidadesSection() {
-  const [modo, setModo] = useState<EntidadesModo>("items");
-
-  return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <div className="shrink-0 flex items-center gap-1 px-4 pt-2 pb-1">
-        <div className="flex items-center gap-0.5 p-0.5 rounded-xl"
-          style={{ background: "color-mix(in srgb, var(--primary) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-          {ENTIDADES_MODOS.map(({ key, label, icon: Icon }) => (
-            <button key={key} type="button" onClick={() => setModo(key)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-              style={{
-                background: modo === key ? "var(--primary)" : "transparent",
-                color: modo === key ? "var(--btn-text,#fff)" : "color-mix(in srgb, var(--primary) 50%, transparent)",
-              }}>
-              <Icon size={12} strokeWidth={modo === key ? 2.5 : 2} />{label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 flex flex-col">
-        {modo === "items"      && <ItemsSection />}
-        {modo === "criaturas"  && <CriaturasSection />}
-        {modo === "personajes" && <PersonajesSection />}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Main — fila única de tabs plana
 // ─────────────────────────────────────────────────────────────────────────────
 
-type TabEntry = { key: ActiveTab; label: string; icon: React.ElementType; group: "mundo" | "entidades" | "game" };
+type TabEntry = { key: ActiveTab; label: string; icon: React.ElementType; group: "entidades" | "game" };
 
 const ALL_TABS: TabEntry[] = [
-  { key: "biomas",        label: "Biomas",     icon: Mountain,    group: "mundo"     },
-  { key: "ecologia",      label: "Ecología",   icon: TreePine,    group: "mundo"     },
-  { key: "entidades",     label: "Entidades",  icon: Layers,      group: "entidades" },
+  { key: "personajes",    label: "Personajes", icon: Users,       group: "entidades" },
+  { key: "criaturas",     label: "Criaturas",  icon: Bot,         group: "entidades" },
+  { key: "biomas",        label: "Biomas",     icon: Mountain,    group: "entidades" },
+  { key: "items",         label: "Items",      icon: Sword,       group: "entidades" },
+  { key: "ecologia",      label: "Ecología",   icon: TreePine,    group: "game"      },
   { key: "misiones",      label: "Misiones",   icon: ScrollText,  group: "game"      },
   { key: "factores",      label: "Factores",   icon: Thermometer, group: "game"      },
   { key: "modificadores", label: "Mods",       icon: Clock,       group: "game"      },
@@ -2175,7 +2134,7 @@ const ALL_TABS: TabEntry[] = [
 
 
 export default function GamePage() {
-  const [active, setActive] = useState<ActiveTab>("biomas");
+  const [active, setActive] = useState<ActiveTab>("personajes");
 
   const ambSubs: AmbSub[] = ["factores", "modificadores"];
 
@@ -2192,8 +2151,8 @@ export default function GamePage() {
           return (
             <React.Fragment key={tab.key}>
               {showDivider && (
-                <span className="shrink-0 mx-1 self-stretch"
-                  style={{ width: "1px", background: "color-mix(in srgb, var(--primary) 12%, transparent)", marginTop: "6px", marginBottom: "0px" }} />
+                <span className="shrink-0 mx-2 self-stretch"
+                  style={{ width: "2px", borderRadius: "1px", background: "color-mix(in srgb, var(--primary) 20%, transparent)", marginTop: "4px", marginBottom: "4px" }} />
               )}
               <button type="button" onClick={() => setActive(tab.key)}
                 className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all rounded-t-lg whitespace-nowrap"
@@ -2213,9 +2172,11 @@ export default function GamePage() {
 
       {/* ── Contenido ── */}
       <div className="flex-1 min-h-0 flex flex-col">
+        {active === "personajes"    && <PersonajesSection />}
+        {active === "criaturas"     && <CriaturasSection />}
         {active === "biomas"        && <BiomasSection />}
+        {active === "items"         && <ItemsSection />}
         {active === "ecologia"      && <EcologiaSection />}
-        {active === "entidades"     && <EntidadesSection />}
         {active === "misiones"      && <MisionesSection />}
         {ambSubs.includes(active as AmbSub) && <AmbienteSection activeSub={active as AmbSub} />}
       </div>
