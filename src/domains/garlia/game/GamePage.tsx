@@ -20,6 +20,7 @@ import {
 import { supabase } from "@/infra/supabase/supabase";
 import { PopoverFlotante } from "@/domains/garlia/_shared/PopoverFlotante";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+import { PanelFlotanteGlobal } from "@/domains/garlia/_shared/PanelFlotanteGlobal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PanelModal — wrapper con misma API que ModalFlotante pero usa PopoverFlotante
@@ -2653,6 +2654,7 @@ export default function GamePage() {
 
   return (
     <div className="flex flex-col h-full min-h-0" style={{ paddingLeft: "52px" }}>
+      <PanelFlotanteGlobal />
       {/* ── Fila única de tabs plana ── */}
       <div className="shrink-0 flex items-center gap-0.5 px-3 pt-2 pb-0 border-b overflow-x-auto"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 10%, transparent)" }}>
