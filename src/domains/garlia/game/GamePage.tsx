@@ -1806,23 +1806,6 @@ function ItemsSection() {
   });
   const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
 
-  // ── Masonry layout ────────────────────────────────────────────────────────
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const obs = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setContainerWidth(w);
-    });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  const GAP = 24; const MIN_COL = 260;
-  const numColumnas = containerWidth > 0 ? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL + GAP))) : 1;
-  const anchoCol = containerWidth > 0 ? Math.floor((containerWidth - GAP * (numColumnas - 1)) / numColumnas) : MIN_COL;
-
   // ── Agrupación por tipo ───────────────────────────────────────────────────
   const itemsFiltrados = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
   const tipos = useMemo(() => [...new Set(items.map((i) => i.tipo).filter(Boolean))].sort() as string[], [items]);
@@ -1830,29 +1813,11 @@ function ItemsSection() {
   const itemsSinTipo = itemsFiltrados.filter((i) => !i.tipo);
   const tiposConItems = tipos.filter((t) => itemsDeTipo(t).length > 0);
 
-  // Distribución masonry de tipos
-  const alturaTipoCard = (tipo: string) => {
-    const n = itemsDeTipo(tipo).length;
-    const CHIP_W = 148; // ancho aprox de cada chip
-    const CHIP_H = 32;  // altura aprox de cada chip
-    const CHIPS_POR_FILA = Math.max(1, Math.floor((anchoCol - 24) / (CHIP_W + 4)));
-    const filas = Math.max(1, Math.ceil(n / CHIPS_POR_FILA));
-    return 38 + filas * CHIP_H + (filas - 1) * 4 + 12;
-  };
-  const columnasTipos: string[][] = Array.from({ length: numColumnas }, () => []);
-  const alturas = new Array(numColumnas).fill(0);
-  for (const t of tiposConItems) {
-    let idxMin = 0;
-    for (let i = 1; i < numColumnas; i++) { if (alturas[i] < alturas[idxMin]) idxMin = i; }
-    columnasTipos[idxMin].push(t);
-    alturas[idxMin] += alturaTipoCard(t) + GAP;
-  }
-
   const renderTipoCard = (tipo: string) => {
     const miembros = itemsDeTipo(tipo);
     return (
-      <div key={tipo} className="w-full rounded-lg border border-primary/10 overflow-hidden"
-        style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+      <div key={tipo} className="rounded-lg border border-primary/10 overflow-hidden"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))", minWidth: 180, flex: "1 1 180px" }}>
         {/* Header colapsable */}
         <div className="px-3 py-2.5 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
           <span />
@@ -1911,13 +1876,9 @@ function ItemsSection() {
       ) : (
         <div className="flex flex-col gap-6">
 
-          {/* Masonry de tipos */}
-          <div ref={containerRef} className="flex items-start gap-6">
-            {columnasTipos.map((columna, colIdx) => (
-              <div key={colIdx} className="flex flex-col gap-6 min-w-0" style={{ width: anchoCol }}>
-                {columna.map(renderTipoCard)}
-              </div>
-            ))}
+          {/* Tipos en fila, se apilan con wrap */}
+          <div className="flex flex-wrap gap-3">
+            {tiposConItems.map(renderTipoCard)}
           </div>
 
           {/* Items sin tipo */}
