@@ -1132,12 +1132,6 @@ function PersonajesSection() {
     <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
       {/* Toolbar */}
       <div className="shrink-0 flex items-center gap-2">
-        {/* Izquierda: Vincular + Abrir en canon */}
-        <ToolbarCanonBtns
-          onVincular={startNew}
-          canonId={sel?.personaje_id ?? null}
-          kind="personaje"
-        />
         <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
           style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
           <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
