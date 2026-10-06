@@ -936,6 +936,7 @@ function PersonajesSection() {
   const [selDial,    setSelDial]      = useState<any>(null);
   const [dialJson,   setDialJson]     = useState<Record<string, unknown>>({});
   const [nombre,     setNombre]       = useState("");
+  const [personajeCanonId, setPersonajeCanonId] = useState(""); // FK → personajes.id
   const [criaturaId, setCriaturaId]   = useState("");
   const [reinoId,    setReinoId]      = useState("");   // reinos_game.id → columna reino_game_id
   const [activo,     setActivo]       = useState(true);
@@ -954,28 +955,26 @@ function PersonajesSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: p }, { data: c }, { data: rg }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: rg }, { data: cp }] = await Promise.all([
       supabase.from("personajes_game").select("id,nombre,criatura_id,activo,reino_game_id,personaje_id").order("nombre"),
       supabase.from("criaturas").select("id,nombre").order("nombre"),
       supabase.from("reinos_game").select("id,clave,orden,activo,reinos(id,nombre)").order("orden"),
+      supabase.from("personajes").select("id,nombre,reino").order("nombre"),
     ]);
     setPersonajes(p ?? []);
     setCriaturas(c ?? []);
     setReinos(rg ?? []);
+    // Canon — siempre fresco para que el dropdown refleje vinculaciones actuales
+    const canonData = cp ?? [];
+    const reinosUnicos = [...new Set(canonData.map((x: any) => x.reino).filter(Boolean))].sort() as string[];
+    setCanonPersonajes(canonData);
+    setCanonReinos(reinosUnicos.map((r) => ({ id: r, nombre: r })));
     setLoading(false);
   }, []);
 
   const loadCanon = useCallback(async () => {
-    if (canonPersonajes.length > 0) return; // ya cargado
-    setCanonLoading(true);
-    const { data: cp } = await supabase.from("personajes").select("id,nombre,reino").order("nombre");
-    const personajesData = cp ?? [];
-    // Derivar reinos únicos directamente del campo texto "reino"
-    const reinosUnicos = [...new Set(personajesData.map((p: any) => p.reino).filter(Boolean))].sort() as string[];
-    setCanonPersonajes(personajesData);
-    setCanonReinos(reinosUnicos.map((r) => ({ id: r, nombre: r })));
-    setCanonLoading(false);
-  }, [canonPersonajes.length]);
+    // Canon ya se carga en load(); este callback queda como stub para el toggle
+  }, []);
 
   const toggleCanon = () => {
     const next = !canonAbierto;
@@ -1001,17 +1000,18 @@ function PersonajesSection() {
 
   const pick = (p: any) => {
     setSel(p); setIsNew(false);
-    setNombre(p.nombre); setCriaturaId(p.criatura_id); setActivo(p.activo);
+    setNombre(p.nombre); setCriaturaId(p.criatura_id ?? ""); setActivo(p.activo);
     setReinoId(p.reino_game_id ?? "");
+    setPersonajeCanonId(p.personaje_id ?? "");
     loadDials(p.id);
   };
   const startNew = () => {
     setSel(null); setIsNew(true);
-    setNombre(""); setCriaturaId(criaturas[0]?.id ?? ""); setActivo(true); setReinoId("");
+    setNombre(""); setPersonajeCanonId(""); setCriaturaId(""); setActivo(true); setReinoId("");
     setDialogos([]); setSelDial(null);
   };
   const save = () => run(async () => {
-    const p = { nombre, criatura_id: criaturaId, activo, reino_game_id: reinoId || null };
+    const p = { nombre, criatura_id: criaturaId || null, activo, reino_game_id: reinoId || null, personaje_id: personajeCanonId || null };
     isNew
       ? await supabase.from("personajes_game").insert(p)
       : await supabase.from("personajes_game").update(p).eq("id", sel.id);
@@ -1227,17 +1227,17 @@ function PersonajesSection() {
             <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
           </button>
 
-          {/* ── Sección canónica ── */}
-          {canonAbierto && (
-            canonLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
-              </div>
-            ) : (
+          {/* ── Sección canónica (solo los no vinculados al game) ── */}
+          {canonAbierto && (() => {
+            const personajeIdsGame = new Set(personajes.map((pg: any) => pg.personaje_id).filter(Boolean));
+            const canonPendientes = canonPersonajes.filter((cp: any) => !personajeIdsGame.has(cp.id));
+            const reinosPendientes = canonReinos.filter((r) =>
+              canonPendientes.some((cp: any) => cp.reino === r.nombre)
+            );
+            return (
               <div className="flex flex-col gap-4">
-                {canonReinos.map((r) => {
-                  const miembros = canonPersonajes.filter((p) => p.reino === r.nombre);
-                  if (miembros.length === 0) return null;
+                {reinosPendientes.map((r) => {
+                  const miembros = canonPendientes.filter((p: any) => p.reino === r.nombre);
                   return (
                     <div key={r.id} className="w-full rounded-lg border border-primary/10 overflow-hidden"
                       style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
@@ -1259,9 +1259,9 @@ function PersonajesSection() {
                     </div>
                   );
                 })}
-                {/* Personajes canónicos sin reino */}
+                {/* Sin reino */}
                 {(() => {
-                  const sinReino = canonPersonajes.filter((p) => !p.reino);
+                  const sinReino = canonPendientes.filter((p: any) => !p.reino);
                   if (sinReino.length === 0) return null;
                   return (
                     <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
@@ -1279,22 +1279,48 @@ function PersonajesSection() {
                     </div>
                   );
                 })()}
-                {canonPersonajes.length === 0 && (
+                {canonPendientes.length === 0 && (
                   <p className="text-xs text-center py-4" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                    Sin personajes canónicos
+                    Todos los personajes canónicos ya están en el game ✓
                   </p>
                 )}
               </div>
-            )
-          )}
+            );
+          })()}
         </div>
       )}
 
       {/* Panel personaje */}
       <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); setSelDial(null); }}
         titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
-        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!nombre.trim() || !criaturaId} onClick={save} />}>
-        <label className="flex flex-col gap-1"><FL label="Nombre" /><Inp value={nombre} onChange={(e) => setNombre(e.target.value)} /></label>
+        accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!personajeCanonId} onClick={save} />}>
+        {/* Selector de personaje canónico — en nuevo solo muestra los no vinculados; en edición muestra todos */}
+        <label className="flex flex-col gap-1">
+          <FL label="Personaje canónico" />
+          <Sel
+            value={personajeCanonId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setPersonajeCanonId(id);
+              const canon = canonPersonajes.find((p: any) => p.id === id);
+              setNombre(canon?.nombre ?? "");
+            }}
+          >
+            <option value="">— Seleccionar —</option>
+            {canonPersonajes
+              .filter((cp: any) =>
+                // En nuevo: solo los que no tienen personaje_game todavía
+                // En edición: todos (incluido el actualmente vinculado)
+                isNew
+                  ? !personajes.some((pg: any) => pg.personaje_id === cp.id)
+                  : !personajes.some((pg: any) => pg.personaje_id === cp.id && pg.id !== sel?.id)
+              )
+              .map((cp: any) => (
+                <option key={cp.id} value={cp.id}>{cp.nombre}{cp.reino ? ` (${cp.reino})` : ""}</option>
+              ))
+            }
+          </Sel>
+        </label>
         <label className="flex flex-col gap-1"><FL label="Criatura canónica" />
           <Sel value={criaturaId} onChange={(e) => setCriaturaId(e.target.value)}>
             <option value="">—</option>
