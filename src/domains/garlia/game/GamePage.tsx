@@ -1294,7 +1294,7 @@ function PersonajesSection() {
       {/* Panel personaje */}
       <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); setSelDial(null); }}
         titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
-        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNew(true); }} canonId={personajeCanonId || null} kind="personaje" />}
+        accionesIzquierda={<ModalCanonBtns canonId={personajeCanonId || null} kind="personaje" />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!personajeCanonId} onClick={save} />}>
         {/* Selector de personaje canónico — en nuevo solo muestra los no vinculados; en edición muestra todos */}
         {/* Reino y Especie de solo lectura (vienen del personaje canónico) */}
@@ -1669,11 +1669,9 @@ function ToolbarCanonBtns({
 //     solo activo cuando hay canonId válido
 // ─────────────────────────────────────────────────────────────────────────────
 function ModalCanonBtns({
-  onVincular,
   canonId,
   kind,
 }: {
-  onVincular: () => void;
   canonId: string | null;
   kind: "personaje" | "item";
 }) {
@@ -1686,27 +1684,16 @@ function ModalCanonBtns({
   };
   const disabledStyle = { ...activeStyle, opacity: 0.3, cursor: "not-allowed" as const };
   return (
-    <>
-      <button
-        type="button"
-        onClick={onVincular}
-        title={kind === "personaje" ? "Vincular con personaje canónico" : "Vincular con item canónico"}
-        className={base}
-        style={activeStyle}
-      >
-        <Link2 size={13} />
-      </button>
-      <button
-        type="button"
-        disabled={!canonId}
-        onClick={() => canonId && abrirPanel(kind, canonId)}
-        title={canonId ? `Abrir ${kind} en canon` : "Sin vínculo canónico"}
-        className={base}
-        style={canonId ? activeStyle : disabledStyle}
-      >
-        <ExternalLink size={13} />
-      </button>
-    </>
+    <button
+      type="button"
+      disabled={!canonId}
+      onClick={() => canonId && abrirPanel(kind, canonId)}
+      title={canonId ? `Abrir ${kind} en canon` : "Sin vínculo canónico"}
+      className={base}
+      style={canonId ? activeStyle : disabledStyle}
+    >
+      <ExternalLink size={13} />
+    </button>
   );
 }
 
@@ -2159,7 +2146,7 @@ function ItemsSection() {
         onCerrar={() => { setSel(null); setIsNewItem(false); }}
         titulo={isNewItem ? "Nuevo item" : (sel ? iNombre(sel) : "")}
         icono={<Sword size={12} />}
-        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNewItem(true); }} canonId={itemCanonId || null} kind="item" />}
+        accionesIzquierda={<ModalCanonBtns canonId={itemCanonId || null} kind="item" />}
         accionesDerecha={
           <div className="flex items-center gap-2">
             {!isNewItem && (
