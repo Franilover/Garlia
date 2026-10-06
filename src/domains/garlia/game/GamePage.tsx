@@ -1684,36 +1684,122 @@ function ItemsSection() {
   });
   const iNombre = (i: any) => i?.items?.nombre ?? i?.item_id?.slice(0, 8) + "…";
 
-  const [filtroTipo, setFiltroTipo] = useState("");
-  const tiposOptions = useMemo(() => {
-    const set = new Set(items.map((i) => i.tipo).filter(Boolean));
-    return [...set].sort().map((t) => ({ value: t as string, label: t as string }));
-  }, [items]);
+  // ── Masonry layout ────────────────────────────────────────────────────────
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerWidth(w);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const GAP = 24; const MIN_COL = 260;
+  const numColumnas = containerWidth > 0 ? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL + GAP))) : 1;
+  const anchoCol = containerWidth > 0 ? Math.floor((containerWidth - GAP * (numColumnas - 1)) / numColumnas) : MIN_COL;
 
-  const filtered = items.filter((i) => {
-    const matchQ = !q || iNombre(i).toLowerCase().includes(q.toLowerCase());
-    const matchT = !filtroTipo || i.tipo === filtroTipo;
-    return matchQ && matchT;
-  });
+  // ── Agrupación por tipo ───────────────────────────────────────────────────
+  const itemsFiltrados = q ? items.filter((i) => iNombre(i).toLowerCase().includes(q.toLowerCase())) : items;
+  const tipos = useMemo(() => [...new Set(items.map((i) => i.tipo).filter(Boolean))].sort() as string[], [items]);
+  const itemsDeTipo = (tipo: string) => itemsFiltrados.filter((i) => i.tipo === tipo);
+  const itemsSinTipo = itemsFiltrados.filter((i) => !i.tipo);
+  const tiposConItems = tipos.filter((t) => itemsDeTipo(t).length > 0);
+
+  // Distribución masonry de tipos
+  const alturaTipoCard = (tipo: string) => {
+    const n = itemsDeTipo(tipo).length;
+    const ITEM_H = 28;
+    const ITEMS_POR_FILA = Math.max(1, Math.floor((anchoCol - 24) / 148));
+    const filas = Math.max(1, Math.ceil(n / ITEMS_POR_FILA));
+    return 44 + filas * ITEM_H + (filas - 1) * 8 + 12;
+  };
+  const columnasTipos: string[][] = Array.from({ length: numColumnas }, () => []);
+  const alturas = new Array(numColumnas).fill(0);
+  for (const t of tiposConItems) {
+    let idxMin = 0;
+    for (let i = 1; i < numColumnas; i++) { if (alturas[i] < alturas[idxMin]) idxMin = i; }
+    columnasTipos[idxMin].push(t);
+    alturas[idxMin] += alturaTipoCard(t) + GAP;
+  }
+
+  const renderTipoCard = (tipo: string) => {
+    const miembros = itemsDeTipo(tipo);
+    return (
+      <div key={tipo} className="w-full rounded-lg border border-primary/10 overflow-hidden"
+        style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+        <div className="px-3 py-3 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+          <span />
+          <span className="min-w-0 truncate text-[10px] font-bold uppercase tracking-[0.12em] text-center"
+            style={{ color: "color-mix(in srgb, var(--primary) 70%, transparent)" }}>
+            {tipo}
+          </span>
+          <span className="text-[10px] font-bold text-right" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+            {miembros.length}
+          </span>
+        </div>
+        <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+          {miembros.map((i: any) => (
+            <GridCard key={i.id} nombre={iNombre(i)} badge={`×${i.max_stack}`} icono={<Sword size={14} />} onClick={() => pick(i)} />
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
-      <GridToolbar q={q} onQ={setQ}
-        filterSlot={<FilterTag value={filtroTipo} onChange={setFiltroTipo} options={tiposOptions} placeholder="Tipo…" />} />
+    <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto gap-4">
+      {/* Toolbar */}
+      <div className="shrink-0 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl"
+          style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+          <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+          <input className="flex-1 bg-transparent text-xs outline-none" style={{ color: "var(--primary)" }}
+            placeholder="Buscar item…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-16"><Loader2 size={20} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} /></div>
       ) : (
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-          {filtered.map((i) => (
-            <GridCard
-              key={i.id}
-              nombre={iNombre(i)}
-              sub={i.tipo ?? ""}
-              badge={`×${i.max_stack}`}
-              icono={<Sword size={14} />}
-              onClick={() => pick(i)}
-            />
-          ))}
+        <div className="flex flex-col gap-6">
+
+          {/* Masonry de tipos */}
+          <div ref={containerRef} className="flex items-start gap-6">
+            {columnasTipos.map((columna, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-6 min-w-0" style={{ width: anchoCol }}>
+                {columna.map(renderTipoCard)}
+              </div>
+            ))}
+          </div>
+
+          {/* Items sin tipo */}
+          {itemsSinTipo.length > 0 && (
+            <div>
+              <div className="h-px mb-3 bg-primary/10" />
+              <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                <div className="px-3 py-3 flex items-center gap-2">
+                  <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-[0.12em]"
+                    style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>Sin tipo</span>
+                  <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    {itemsSinTipo.length}
+                  </span>
+                </div>
+                <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                  {itemsSinTipo.map((i: any) => (
+                    <GridCard key={i.id} nombre={iNombre(i)} badge={`×${i.max_stack}`} icono={<Sword size={14} />} onClick={() => pick(i)} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {items.length === 0 && (
+            <p className="text-center py-8 text-xs" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin items</p>
+          )}
         </div>
       )}
 
