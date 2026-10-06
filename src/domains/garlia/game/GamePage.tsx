@@ -1294,7 +1294,7 @@ function PersonajesSection() {
       {/* Panel personaje */}
       <PanelModal abierto={!!sel || isNew} onCerrar={() => { setSel(null); setIsNew(false); setSelDial(null); }}
         titulo={isNew ? "Nuevo personaje" : sel?.nombre} icono={<Users size={12} />}
-        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNew(true); }} canonId={sel?.personaje_id ?? null} kind="personaje" />}
+        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNew(true); }} canonId={personajeCanonId || null} kind="personaje" />}
         accionesDerecha={<SaveBtn saving={saving} saved={saved} disabled={!personajeCanonId} onClick={save} />}>
         {/* Selector de personaje canónico — en nuevo solo muestra los no vinculados; en edición muestra todos */}
         {/* Reino y Especie de solo lectura (vienen del personaje canónico) */}
@@ -2159,7 +2159,7 @@ function ItemsSection() {
         onCerrar={() => { setSel(null); setIsNewItem(false); }}
         titulo={isNewItem ? "Nuevo item" : (sel ? iNombre(sel) : "")}
         icono={<Sword size={12} />}
-        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNewItem(true); }} canonId={sel?.item_id ?? null} kind="item" />}
+        accionesIzquierda={<ModalCanonBtns onVincular={() => { setSel(null); setIsNewItem(true); }} canonId={itemCanonId || null} kind="item" />}
         accionesDerecha={
           <div className="flex items-center gap-2">
             {!isNewItem && (
