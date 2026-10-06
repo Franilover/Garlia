@@ -946,6 +946,11 @@ function PersonajesSection() {
   const [itemsCat,     setItemsCat]     = useState<any[]>([]);
   // Search
   const [q, setQ]                     = useState("");
+  // Canon
+  const [canonAbierto,      setCanonAbierto]      = useState(false);
+  const [canonPersonajes,   setCanonPersonajes]   = useState<any[]>([]);
+  const [canonReinos,       setCanonReinos]       = useState<any[]>([]);
+  const [canonLoading,      setCanonLoading]      = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -959,6 +964,24 @@ function PersonajesSection() {
     setReinos(rg ?? []);
     setLoading(false);
   }, []);
+
+  const loadCanon = useCallback(async () => {
+    if (canonPersonajes.length > 0) return; // ya cargado
+    setCanonLoading(true);
+    const [{ data: cp }, { data: cr }] = await Promise.all([
+      supabase.from("personajes").select("id,nombre,reino_id").order("nombre"),
+      supabase.from("reinos").select("id,nombre").order("nombre"),
+    ]);
+    setCanonPersonajes(cp ?? []);
+    setCanonReinos(cr ?? []);
+    setCanonLoading(false);
+  }, [canonPersonajes.length]);
+
+  const toggleCanon = () => {
+    const next = !canonAbierto;
+    setCanonAbierto(next);
+    if (next) loadCanon();
+  };
 
   const loadSocial = useCallback(async (pid: string) => {
     const [{ data: s }, { data: r }, { data: it }] = await Promise.all([
@@ -1190,6 +1213,79 @@ function PersonajesSection() {
             <p className="text-center py-8 text-xs" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
               Sin personajes
             </p>
+          )}
+
+          {/* ── Divisor Ocultos (canon) ── */}
+          <button type="button" onClick={toggleCanon}
+            className="flex items-center gap-3 w-full group mt-2">
+            <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-opacity opacity-30 group-hover:opacity-60 select-none"
+              style={{ color: "var(--primary)" }}>
+              <ChevronRight size={10} className={`transition-transform ${canonAbierto ? "rotate-90" : ""}`} />
+              Canon
+            </span>
+            <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          </button>
+
+          {/* ── Sección canónica ── */}
+          {canonAbierto && (
+            canonLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {canonReinos.map((r) => {
+                  const miembros = canonPersonajes.filter((p) => p.reino_id === r.id);
+                  if (miembros.length === 0) return null;
+                  return (
+                    <div key={r.id} className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                      style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                      <div className="px-3 py-3 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+                        <span />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-center"
+                          style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+                          {r.nombre}
+                        </span>
+                        <span className="text-[10px] font-bold text-right" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                          {miembros.length}
+                        </span>
+                      </div>
+                      <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                        {miembros.map((p: any) => (
+                          <GridCard key={p.id} nombre={p.nombre} icono={<Users size={14} />} onClick={() => {}} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Personajes canónicos sin reino */}
+                {(() => {
+                  const sinReino = canonPersonajes.filter((p) => !p.reino_id || !canonReinos.some((r) => r.id === p.reino_id));
+                  if (sinReino.length === 0) return null;
+                  return (
+                    <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                      style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                      <div className="px-3 py-3 flex items-center gap-2">
+                        <span className="flex-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin reino</span>
+                        <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{sinReino.length}</span>
+                      </div>
+                      <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                        {sinReino.map((p: any) => (
+                          <GridCard key={p.id} nombre={p.nombre} icono={<Users size={14} />} onClick={() => {}} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {canonPersonajes.length === 0 && (
+                  <p className="text-xs text-center py-4" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                    Sin personajes canónicos
+                  </p>
+                )}
+              </div>
+            )
           )}
         </div>
       )}
@@ -1615,6 +1711,24 @@ function ItemsSection() {
   const [sel, setSel] = useState<any>(null);
   const [q, setQ] = useState("");
   const { saving, saved, run } = useSave();
+  // Canon
+  const [canonAbierto,    setCanonAbierto]    = useState(false);
+  const [canonItems,      setCanonItems]      = useState<any[]>([]);
+  const [canonLoading,    setCanonLoading]    = useState(false);
+
+  const loadCanonItems = useCallback(async () => {
+    if (canonItems.length > 0) return;
+    setCanonLoading(true);
+    const { data } = await supabase.from("items").select("id,nombre,tipo").order("nombre");
+    setCanonItems(data ?? []);
+    setCanonLoading(false);
+  }, [canonItems.length]);
+
+  const toggleCanonItems = () => {
+    const next = !canonAbierto;
+    setCanonAbierto(next);
+    if (next) loadCanonItems();
+  };
   const [tipo, setTipo] = useState(""); const [maxStack, setMaxStack] = useState(1); const [props, setProps] = useState<Record<string, unknown>>({}); const [recetaId, setRecetaId] = useState("");
 
   // ── Props panel (anidado) ──
@@ -1799,6 +1913,71 @@ function ItemsSection() {
 
           {items.length === 0 && (
             <p className="text-center py-8 text-xs" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin items</p>
+          )}
+
+          {/* ── Divisor Canon ── */}
+          <button type="button" onClick={toggleCanonItems}
+            className="flex items-center gap-3 w-full group mt-2">
+            <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+            <span className="shrink-0 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-opacity opacity-30 group-hover:opacity-60 select-none"
+              style={{ color: "var(--primary)" }}>
+              <ChevronRight size={10} className={`transition-transform ${canonAbierto ? "rotate-90" : ""}`} />
+              Canon
+            </span>
+            <div className="flex-1 h-px" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)" }} />
+          </button>
+
+          {/* ── Items canónicos agrupados por tipo ── */}
+          {canonAbierto && (
+            canonLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={16} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }} />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {[...new Set(canonItems.map((i) => i.tipo).filter(Boolean))].sort().map((t) => {
+                  const miembros = canonItems.filter((i) => i.tipo === t);
+                  return (
+                    <div key={t as string} className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                      style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                      <div className="px-3 py-3 grid items-center" style={{ gridTemplateColumns: "1fr auto 1fr" }}>
+                        <span />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-center"
+                          style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>{t as string}</span>
+                        <span className="text-[10px] font-bold text-right" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{miembros.length}</span>
+                      </div>
+                      <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                        {miembros.map((i: any) => (
+                          <GridCard key={i.id} nombre={i.nombre} icono={<Sword size={14} />} onClick={() => {}} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {(() => {
+                  const sinTipo = canonItems.filter((i) => !i.tipo);
+                  if (sinTipo.length === 0) return null;
+                  return (
+                    <div className="w-full rounded-lg border border-primary/10 overflow-hidden"
+                      style={{ background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))" }}>
+                      <div className="px-3 py-3 flex items-center gap-2">
+                        <span className="flex-1 text-[10px] font-bold uppercase tracking-[0.12em]"
+                          style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>Sin tipo</span>
+                        <span className="text-[10px] font-bold" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>{sinTipo.length}</span>
+                      </div>
+                      <div className="px-3 pb-3 flex flex-wrap gap-1.5">
+                        {sinTipo.map((i: any) => (
+                          <GridCard key={i.id} nombre={i.nombre} icono={<Sword size={14} />} onClick={() => {}} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {canonItems.length === 0 && (
+                  <p className="text-xs text-center py-4" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>Sin items canónicos</p>
+                )}
+              </div>
+            )
           )}
         </div>
       )}
