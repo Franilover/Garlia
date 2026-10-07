@@ -338,6 +338,237 @@ function JsonEditor({ value, onChange }: { value: Record<string, unknown>; onCha
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DialogoEditor — editor visual para arrays de nodos de diálogo
+// Estructura: [{clave, lineas:[{texto,hablante}], acciones:[{tipo,texto}], requisito:{}}]
+// ─────────────────────────────────────────────────────────────────────────────
+interface DialogoLinea   { texto: string; hablante: string }
+interface DialogoAccion  { tipo: string;  texto: string }
+interface DialogoNodo    { clave: string; lineas?: DialogoLinea[]; acciones?: DialogoAccion[]; requisito?: Record<string,string> }
+
+function DialogoEditor({ value, onChange, hablantes = [] }: {
+  value: any;
+  onChange: (v: any) => void;
+  hablantes?: string[];
+}) {
+  const [rawMode, setRawMode] = useState(false);
+  const [rawText, setRawText] = useState(() => JSON.stringify(value, null, 2));
+  const [rawErr,  setRawErr]  = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+  const prev = useRef(JSON.stringify(value));
+
+  useEffect(() => {
+    const s = JSON.stringify(value);
+    if (s !== prev.current) { prev.current = s; setRawText(JSON.stringify(value, null, 2)); setRawErr(null); }
+  }, [value]);
+
+  const nodos: DialogoNodo[] = Array.isArray(value) ? value : [];
+
+  const update = (next: DialogoNodo[]) => onChange(next);
+
+  const setNodo = (i: number, patch: Partial<DialogoNodo>) =>
+    update(nodos.map((n, idx) => idx === i ? { ...n, ...patch } : n));
+
+  const addNodo = () => update([...nodos, { clave: `nodo_${nodos.length + 1}`, lineas: [{ texto: "", hablante: "" }] }]);
+  const delNodo = (i: number) => update(nodos.filter((_, idx) => idx !== i));
+
+  const setLinea = (ni: number, li: number, patch: Partial<DialogoLinea>) =>
+    setNodo(ni, { lineas: (nodos[ni].lineas ?? []).map((l, idx) => idx === li ? { ...l, ...patch } : l) });
+  const addLinea = (ni: number) =>
+    setNodo(ni, { lineas: [...(nodos[ni].lineas ?? []), { texto: "", hablante: nodos[ni].lineas?.[0]?.hablante ?? "" }] });
+  const delLinea = (ni: number, li: number) =>
+    setNodo(ni, { lineas: (nodos[ni].lineas ?? []).filter((_, idx) => idx !== li) });
+
+  const setAccion = (ni: number, ai: number, patch: Partial<DialogoAccion>) =>
+    setNodo(ni, { acciones: (nodos[ni].acciones ?? []).map((a, idx) => idx === ai ? { ...a, ...patch } : a) });
+  const addAccion = (ni: number) =>
+    setNodo(ni, { acciones: [...(nodos[ni].acciones ?? []), { tipo: "", texto: "" }] });
+  const delAccion = (ni: number, ai: number) =>
+    setNodo(ni, { acciones: (nodos[ni].acciones ?? []).filter((_, idx) => idx !== ai) });
+
+  const setRequisito = (ni: number, key: string, val: string) =>
+    setNodo(ni, { requisito: { ...(nodos[ni].requisito ?? {}), [key]: val } });
+  const delRequisitoKey = (ni: number, key: string) => {
+    const r = { ...(nodos[ni].requisito ?? {}) }; delete r[key];
+    setNodo(ni, { requisito: Object.keys(r).length ? r : undefined });
+  };
+  const addRequisitoKey = (ni: number) => setRequisito(ni, "nueva_clave", "");
+
+  // Hablantes disponibles: los del prop + los que ya aparecen en el JSON
+  const allHablantes = useMemo(() => {
+    const fromJson = nodos.flatMap(n => (n.lineas ?? []).map(l => l.hablante)).filter(Boolean);
+    return [...new Set([...hablantes, ...fromJson])].sort();
+  }, [hablantes, nodos]);
+
+  const muted   = "color-mix(in srgb, var(--primary) 35%, transparent)";
+  const border  = "1px solid color-mix(in srgb, var(--primary) 12%, transparent)";
+  const bg      = "color-mix(in srgb, var(--primary) 4%, transparent)";
+  const inp: React.CSSProperties = { color: "var(--primary)", background: bg, border, borderRadius: "10px", outline: "none", fontSize: "12px", padding: "5px 10px", width: "100%" };
+  const sectionLabel: React.CSSProperties = { fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: muted, textTransform: "uppercase" as const };
+  const addBtn = (onClick: () => void, label: string) => (
+    <button type="button" onClick={onClick}
+      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
+      style={{ color: muted, border, background: bg }}>
+      <Plus size={10} />{label}
+    </button>
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs" style={{ color: muted }}>{nodos.length} {nodos.length === 1 ? "nodo" : "nodos"}</span>
+        <div className="flex items-center gap-1.5">
+          {!rawMode && addBtn(addNodo, "Nodo")}
+          <button type="button" onClick={() => { setRawMode(!rawMode); setRawText(JSON.stringify(value, null, 2)); setRawErr(null); }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors"
+            style={{ background: rawMode ? "color-mix(in srgb, var(--primary) 12%, transparent)" : bg, border, color: rawMode ? "var(--primary)" : muted }}>
+            <span className="font-mono">{"{}"}</span> {rawMode ? "Visual" : "Raw"}
+          </button>
+        </div>
+      </div>
+
+      {rawMode ? (
+        <div className="flex flex-col gap-1">
+          <textarea className="font-mono text-xs p-3 rounded-xl resize-none outline-none" spellCheck={false}
+            style={{ ...inp, minHeight: "200px", borderColor: rawErr ? "var(--destructive,#ef4444)" : undefined }}
+            value={rawText}
+            onChange={(e) => { setRawText(e.target.value); try { onChange(JSON.parse(e.target.value)); setRawErr(null); } catch { setRawErr("JSON inválido"); } }} />
+          {rawErr && <p className="text-xs" style={{ color: "var(--destructive,#ef4444)" }}>{rawErr}</p>}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {nodos.map((nodo, ni) => {
+            const isCollapsed = !!collapsed[ni];
+            return (
+              <div key={ni} className="flex flex-col gap-2 rounded-xl p-3"
+                style={{ border, background: "color-mix(in srgb, var(--primary) 2%, transparent)" }}>
+
+                {/* Nodo header: clave + colapsar + eliminar */}
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setCollapsed(c => ({ ...c, [ni]: !c[ni] }))}
+                    className="shrink-0 transition-transform" style={{ color: muted, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>
+                    <ChevronRight size={13} style={{ transform: isCollapsed ? "" : "rotate(90deg)" }} />
+                  </button>
+                  <input
+                    className="font-mono text-xs font-bold flex-1"
+                    style={{ ...inp, background: "transparent", border: "none", padding: "0" }}
+                    value={nodo.clave}
+                    onChange={(e) => setNodo(ni, { clave: e.target.value })}
+                    placeholder="clave_nodo"
+                  />
+                  <button type="button" onClick={() => delNodo(ni)}
+                    className="shrink-0 p-1 rounded-lg" style={{ color: muted, opacity: 0.6 }}>
+                    <X size={12} />
+                  </button>
+                </div>
+
+                {!isCollapsed && (
+                  <>
+                    {/* ── Líneas ── */}
+                    <div className="flex flex-col gap-1.5">
+                      <span style={sectionLabel}>Líneas</span>
+                      {(nodo.lineas ?? []).map((linea, li) => (
+                        <div key={li} className="flex flex-col gap-1 p-2 rounded-lg"
+                          style={{ background: bg, border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                          <div className="flex items-start gap-1.5">
+                            <textarea
+                              className="flex-1 text-xs resize-none outline-none"
+                              rows={2}
+                              style={{ ...inp, padding: "4px 8px" }}
+                              placeholder="Texto del diálogo…"
+                              value={linea.texto}
+                              onChange={(e) => setLinea(ni, li, { texto: e.target.value })}
+                            />
+                            <button type="button" onClick={() => delLinea(ni, li)}
+                              className="shrink-0 mt-1 p-1 rounded-lg" style={{ color: muted, opacity: 0.6 }}>
+                              <X size={11} />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs shrink-0" style={{ color: muted }}>Hablante</span>
+                            {allHablantes.length > 0 ? (
+                              <select
+                                value={linea.hablante}
+                                onChange={(e) => setLinea(ni, li, { hablante: e.target.value })}
+                                style={{ ...inp, padding: "3px 8px" }}>
+                                <option value="">— sin hablante —</option>
+                                {allHablantes.map(h => <option key={h} value={h}>{h}</option>)}
+                                {linea.hablante && !allHablantes.includes(linea.hablante) && (
+                                  <option value={linea.hablante}>{linea.hablante}</option>
+                                )}
+                              </select>
+                            ) : (
+                              <input className="flex-1 text-xs" style={inp} placeholder="Nombre…"
+                                value={linea.hablante} onChange={(e) => setLinea(ni, li, { hablante: e.target.value })} />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {addBtn(() => addLinea(ni), "Línea")}
+                    </div>
+
+                    {/* ── Acciones ── */}
+                    {((nodo.acciones ?? []).length > 0 || true) && (
+                      <div className="flex flex-col gap-1.5">
+                        <span style={sectionLabel}>Acciones</span>
+                        {(nodo.acciones ?? []).map((acc, ai) => (
+                          <div key={ai} className="flex items-center gap-1.5">
+                            <input className="text-xs font-mono" style={{ ...inp, width: "160px" }} placeholder="tipo_accion"
+                              value={acc.tipo} onChange={(e) => setAccion(ni, ai, { tipo: e.target.value })} />
+                            <input className="text-xs flex-1" style={inp} placeholder="Texto de la acción…"
+                              value={acc.texto} onChange={(e) => setAccion(ni, ai, { texto: e.target.value })} />
+                            <button type="button" onClick={() => delAccion(ni, ai)}
+                              className="shrink-0 p-1 rounded-lg" style={{ color: muted, opacity: 0.6 }}>
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ))}
+                        {addBtn(() => addAccion(ni), "Acción")}
+                      </div>
+                    )}
+
+                    {/* ── Requisito ── */}
+                    <div className="flex flex-col gap-1.5">
+                      <span style={sectionLabel}>Requisito</span>
+                      {Object.entries(nodo.requisito ?? {}).map(([rk, rv]) => (
+                        <div key={rk} className="flex items-center gap-1.5">
+                          <input className="font-mono text-xs shrink-0" style={{ ...inp, width: "130px", fontWeight: 600 }}
+                            defaultValue={rk} onBlur={(e) => {
+                              const newK = e.target.value.trim();
+                              if (newK && newK !== rk) {
+                                const r = { ...(nodo.requisito ?? {}) };
+                                const v = r[rk]; delete r[rk]; r[newK] = v;
+                                setNodo(ni, { requisito: r });
+                              }
+                            }} />
+                          <input className="text-xs flex-1" style={inp}
+                            value={rv} onChange={(e) => setRequisito(ni, rk, e.target.value)} />
+                          <button type="button" onClick={() => delRequisitoKey(ni, rk)}
+                            className="shrink-0 p-1 rounded-lg" style={{ color: muted, opacity: 0.6 }}>
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                      {addBtn(() => addRequisitoKey(ni), "Campo")}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {nodos.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-6" style={{ color: muted }}>
+              <MessageCircle size={20} style={{ opacity: 0.4 }} />
+              <p className="text-xs">Sin nodos de diálogo</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SideItem({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors group"
@@ -1123,7 +1354,7 @@ function PersonajesSection() {
   const { saving: savingD, saved: savedD, run: runD } = useSave();
   const { saving: savingSoc, saved: savedSoc, run: runSoc } = useSave();
   const [selDial,    setSelDial]      = useState<any>(null);
-  const [dialJson,   setDialJson]     = useState<Record<string, unknown>>({});
+  const [dialJson,   setDialJson]     = useState<any>([]);
   const [nombre,     setNombre]       = useState("");
   const [personajeCanonId, setPersonajeCanonId] = useState(""); // FK → personajes.id
   const [activo,     setActivo]       = useState(true);
@@ -1556,7 +1787,7 @@ function PersonajesSection() {
             {dialogos.length === 0
               ? <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>Sin diálogos</p>
               : dialogos.map((d) => (
-                <button key={d.id} type="button" onClick={() => { setSelDial(d); setDialJson(d.dialogo); }}
+                <button key={d.id} type="button" onClick={() => { setSelDial(d); const v = d.dialogo; setDialJson(Array.isArray(v) ? v : v ? [v] : []); }}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors"
                   style={{ background: selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "color-mix(in srgb, var(--primary) 4%, transparent)", border: `1px solid ${selDial?.id === d.id ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--primary) 8%, transparent)"}` }}>
                   <MessageCircle size={11} style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)", flexShrink: 0 }} />
@@ -1573,7 +1804,13 @@ function PersonajesSection() {
       <PanelModal abierto={!!selDial} onCerrar={() => setSelDial(null)}
         titulo={`Diálogo · ${selDial?.clave}`} icono={<MessageCircle size={12} />}
         accionesDerecha={<SaveBtn saving={savingD} saved={savedD} onClick={saveD} />}>
-        <div style={{ minHeight: "240px" }}><JsonEditor value={dialJson} onChange={setDialJson} /></div>
+        <div style={{ minHeight: "240px" }}>
+          <DialogoEditor
+            value={dialJson}
+            onChange={setDialJson}
+            hablantes={canonPersonajes.map((p: any) => p.nombre).filter(Boolean)}
+          />
+        </div>
       </PanelModal>
 
       {/* Panel Social anidado */}
