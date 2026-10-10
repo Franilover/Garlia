@@ -211,6 +211,15 @@ const DEXIE_TABLES = new Set([
   // en infra/supabase/db.ts. Cierra el techo del breadcrumb de Biología
   // (useCriaturasDeUnOrganismo.ts / useCriaturasDeOrganismos.ts).
   "criatura_organismos",
+  // ─── v53: Configuración IUM de Procesos — vistas de SOLO LECTURA que
+  // useProcesoConfiguracionIum.ts traía siempre en vivo desde Supabase sin
+  // ningún fallback local (comentado explícitamente en ese hook). Con esta
+  // entrada, el menú flotante de Proceso muestra la sección
+  // "Configuración IUM" al instante desde Dexie, igual que las vistas
+  // v_auditoria_* (v38) y v_frontend_* (v48-v50). No entran en
+  // OFFLINE_WRITABLE (son solo lectura, nunca se editan desde el frontend).
+  "v_proceso_configuracion_ium_actual_v1",
+  "v_proceso_configuracion_ium_flujo_v1",
 ]);
 
 const OFFLINE_WRITABLE = new Set([

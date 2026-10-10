@@ -24,10 +24,11 @@
  *
  * No consulta proceso_configuraciones_ium_v1 / *_componentes_v1 /
  * *_enlaces_v1 / *_oris_v1 directamente: esas vistas ya hacen ese join.
- * Ninguna de las dos está en DEXIE_TABLES (son vistas derivadas, no
- * catálogo editable) — useSupabaseData las trae siempre en vivo desde
- * Supabase, sin cache local, igual que v_oris_grafo_canonico en
- * useOrisGrafo.ts.
+ * Ambas están en DEXIE_TABLES desde v53 (infra/supabase/db.ts) — antes se
+ * traían siempre en vivo desde Supabase sin ningún fallback local. Ahora
+ * useSupabaseData las sirve cache-first desde Dexie (igual que el resto de
+ * vistas v_auditoria_* y v_frontend_*), así que la sección "Configuración
+ * IUM" del menú flotante de Proceso se muestra al instante sin conexión.
  */
 
 import { useMemo } from "react";

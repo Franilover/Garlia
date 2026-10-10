@@ -836,6 +836,24 @@ export interface FisicaConceptoLocal {
   [key: string]: any;
 }
 
+// ─── v53: Configuración IUM de Procesos ──────────────────────────────────────
+// Hasta ahora useProcesoConfiguracionIum.ts comentaba explícitamente que estas
+// dos vistas "no están en DEXIE_TABLES" y se traían siempre en vivo desde
+// Supabase. Con esto dejan de requerir conexión para mostrar la sección
+// "Configuración IUM" del menú flotante de Proceso — igual que el resto de
+// vistas v_auditoria_* (v38) y v_frontend_* (v48-v50).
+// Ambas son de solo lectura (nunca se editan desde el frontend).
+/** Fila de v_proceso_configuracion_ium_actual_v1 — configuración IUM vigente de un Proceso. */
+export interface ProcesoConfiguracionIumActualDexie {
+  id: string; // configuracion_id, mapeado como PK para el pipeline genérico
+  [key: string]: any;
+}
+/** Fila de v_proceso_configuracion_ium_flujo_v1 — enlace entre componentes IUM de una config. */
+export interface ProcesoConfiguracionIumFlujoDexie {
+  id: string; // uuid de la fila de enlace (union_id)
+  [key: string]: any;
+}
+
 // ─── Biología: Biomas, Clados, Ecosistemas, Cadenas, Perfiles atómicos ─────
 export interface BiomaLocal {
   id: string;
@@ -1117,6 +1135,15 @@ class AgendaFraniDB extends Dexie {
   // que el resto de FilaGenericaDexie.
   v_clado_editor_opciones_v1!: Table<FilaGenericaDexie, string>;
   v_clado_editor_reglas_v1!: Table<FilaGenericaDexie, string>;
+  // ─── v53: Configuración IUM de Procesos (vistas de solo lectura) ─────────
+  v_proceso_configuracion_ium_actual_v1!: Table<ProcesoConfiguracionIumActualDexie, string>;
+  v_proceso_configuracion_ium_flujo_v1!: Table<ProcesoConfiguracionIumFlujoDexie, string>;
+
+  // ─── v54: elemento_procesos — bug preexistente: estaba en DEXIE_TABLES /
+  // OFFLINE_WRITABLE de useSupabaseData.ts pero nunca tuvo declaración
+  // Table<> ni entrada en .stores() — TypeScript no lo detectaba en runtime.
+  elemento_procesos!: Table<FilaGenericaDexie, string>;
+
   // oris_procesos: tabla puente Oris↔Proceso — ver version(51).stores() más abajo.
   oris_procesos!: Table<FilaGenericaDexie, string>;
   // criatura_organismos: tabla puente Criatura↔Organismo, techo del
@@ -2246,6 +2273,38 @@ class AgendaFraniDB extends Dexie {
     // que hasta ahora resolvían en vivo contra Supabase sin cache local).
     this.version(52).stores({
       criatura_organismos: "id, criatura_id, organismo_id",
+    });
+
+    // ─── v53: cache offline de las vistas de Configuración IUM de Procesos.
+    // useProcesoConfiguracionIum.ts comentaba explícitamente que estas dos
+    // vistas NO están en DEXIE_TABLES y se traen siempre en vivo desde
+    // Supabase (sin fallback local). Con esto, el menú flotante de Proceso
+    // muestra la sección "Configuración IUM" al instante desde Dexie, igual
+    // que el resto de vistas v_auditoria_* (v38) y v_frontend_* (v48-v50).
+    //   - v_proceso_configuracion_ium_actual_v1: PK = configuracion_id
+    //     (1 fila por Proceso — la configuración vigente). Se indexa además
+    //     por proceso_id para que el filtro local sea O(log n) en vez de
+    //     iterar la tabla completa.
+    //   - v_proceso_configuracion_ium_flujo_v1: PK = id (uuid de cada enlace).
+    //     Indexada por configuracion_id para filtrar los enlaces de una
+    //     configuración puntual desde el hook (flujo de un Proceso).
+    // Ambas son de solo lectura (no entran en OFFLINE_WRITABLE).
+    this.version(53).stores({
+      v_proceso_configuracion_ium_actual_v1: "id, proceso_id",
+      v_proceso_configuracion_ium_flujo_v1: "id, configuracion_id",
+    });
+
+    // ─── v54: elemento_procesos — bug preexistente al mismo patrón que
+    // hechizos/dones (v7) y compuesto_estabilidad/etc. (v39/v42): la tabla
+    // estaba en DEXIE_TABLES y OFFLINE_WRITABLE de useSupabaseData.ts, y el
+    // hook (ProcesosPage: bloque "Elementos relacionados") usaba
+    // useSupabaseData con CONFIG_ELEMENTO_PROCESOS.tabla = "elemento_procesos",
+    // pero la tabla nunca se declaró en .stores() — Dexie la ignoraba en
+    // runtime aunque TypeScript no lo marcara. Sin esta entrada, el bloque
+    // "Elementos relacionados" del menú flotante de Proceso nunca leía desde
+    // cache local: cada apertura esperaba el round-trip completo a Supabase.
+    this.version(54).stores({
+      elemento_procesos: "id, elemento_id, proceso_id",
     });
   }
 }

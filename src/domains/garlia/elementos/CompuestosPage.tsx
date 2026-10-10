@@ -525,7 +525,19 @@ function ComposicionRealBloque({
     onRecargar();
   }
 
-  if (loading) return null;
+  // Skeleton en vez de `return null`: evita el parpadeo/layout-shift cuando
+  // Dexie ya tiene el cache pero useSupabaseData todavía emite loading=true
+  // hasta que termina de leer la tabla local. El bloque ocupa su espacio
+  // desde el primer frame — no desaparece y reaparece al abrir el panel.
+  if (loading) return (
+    <div className="flex flex-col gap-1.5 p-2 animate-pulse">
+      <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        Composición real
+      </span>
+      <div className="h-5 rounded bg-primary/8 w-3/4" />
+      <div className="h-5 rounded bg-primary/8 w-1/2" />
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-1.5 p-2">
@@ -847,7 +859,16 @@ function EnlacesCompuestoBloque({
     onRecargar();
   }
 
-  if (loading) return null;
+  // Skeleton en vez de `return null`: mismo motivo que ComposicionRealBloque.
+  if (loading) return (
+    <div className="flex flex-col gap-1.5 p-2 animate-pulse">
+      <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+        Enlaces
+      </span>
+      <div className="h-5 rounded bg-primary/8 w-2/3" />
+      <div className="h-5 rounded bg-primary/8 w-1/3" />
+    </div>
+  );
   // Antes: `if (loading || enlaces.length === 0) return null` — un error
   // real de fetch (ver useCompuestoEnlaces) caía en el mismo return null
   // que "este compuesto no tiene enlaces", indistinguible en pantalla.
