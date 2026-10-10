@@ -4,7 +4,6 @@ import {
   Play,
   Clock,
   CheckCircle2,
-  TriangleAlert,
   ArrowLeft,
   BookOpen,
   User,
@@ -115,100 +114,65 @@ function ModalTriggerWarning({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "color-mix(in srgb, var(--bg-main) 75%, transparent)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
+        background: "color-mix(in srgb, var(--bg-main) 80%, transparent)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
         padding: "24px",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: 380,
-          background: "var(--bg-main)",
-          border:
-            "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
-          borderRadius: 14,
-          boxShadow:
-            "0 24px 64px color-mix(in srgb, var(--primary) 18%, transparent)",
-          overflow: "hidden",
+          maxWidth: 360,
+          background: "var(--white-custom)",
+          border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          borderRadius: "var(--radius-card)",
+          boxShadow: "var(--shadow-card)",
+          padding: "28px 26px 24px",
+          display: "flex",
+          flexDirection: "column" as const,
+          gap: 20,
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: "20px 22px 16px",
-            borderBottom:
-              "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 8,
-            }}
-          >
-            <TriangleAlert
-              size={16}
-              style={{ color: "var(--primary)", flexShrink: 0 }}
-            />
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 900,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.2em",
-                color: "var(--primary)",
-              }}
-            >
-              Trigger Warnings
-            </span>
-          </div>
+        {/* Título y descripción */}
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
           <p
             style={{
-              fontSize: 12,
-              color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-              lineHeight: 1.55,
+              fontSize: 13,
+              fontWeight: 900,
+              color: "var(--primary)",
+              letterSpacing: "-0.01em",
               margin: 0,
             }}
           >
-            <strong style={{ color: "var(--primary)", fontStyle: "italic" }}>
-              {titulo}
-            </strong>{" "}
-            contiene contenido sensible. Asegúrate de estar en condiciones de
-            leerlo.
+            Trigger Warnings
+          </p>
+          <p
+            style={{
+              fontSize: 13,
+              color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+              lineHeight: 1.55,
+              margin: 0,
+              fontWeight: 400,
+            }}
+          >
+            <em>{titulo}</em> contiene contenido sensible. Asegúrate de estar en condiciones de leerlo.
           </p>
         </div>
 
-        {/* Chips de warnings */}
-        <div
-          style={{
-            padding: "16px 22px",
-            display: "flex",
-            flexWrap: "wrap" as const,
-            gap: 6,
-          }}
-        >
+        {/* Tags de warnings */}
+        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
           {warnings.map((tw) => (
             <span
               key={tw}
               style={{
-                fontSize: 9,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 900,
-                textTransform: "uppercase" as const,
-                letterSpacing: "0.1em",
-                padding: "4px 11px",
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "3px 10px",
                 borderRadius: 99,
-                border:
-                  "1px solid color-mix(in srgb, var(--primary) 30%, transparent)",
-                color: "var(--primary)",
-                background:
-                  "color-mix(in srgb, var(--primary) 8%, transparent)",
+                border: "var(--border-width) solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 5%, transparent)",
               }}
             >
               {tw}
@@ -217,45 +181,51 @@ function ModalTriggerWarning({
         </div>
 
         {/* Botones */}
-        <div
-          style={{
-            padding: "0 22px 22px",
-            display: "flex",
-            flexDirection: "column" as const,
-            gap: 8,
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column" as const, gap: 8 }}>
           <button
-            className="w-full py-3 rounded-[var(--radius-btn)] bg-primary font-black uppercase tracking-widest transition-opacity hover:opacity-85"
+            onClick={onAceptar}
             style={{
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
+              width: "100%",
+              padding: "11px 0",
+              borderRadius: "var(--radius-btn)",
+              background: "var(--primary)",
               color: "var(--btn-text, var(--bg-main))",
               border: "none",
               cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: "-0.01em",
+              transition: "opacity 0.15s ease",
             }}
-            onClick={onAceptar}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.85"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
           >
-            Soy consciente · Continuar
+            Continuar
           </button>
           <button
-            className="w-full py-2.5 rounded-[var(--radius-btn)] font-black uppercase tracking-widest transition-all hover:bg-primary/8"
-            style={{
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-              border:
-                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              background: "transparent",
-            }}
             onClick={onRechazar}
+            style={{
+              width: "100%",
+              padding: "10px 0",
+              borderRadius: "var(--radius-btn)",
+              background: "transparent",
+              color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+              border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              transition: "color 0.15s ease, border-color 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "var(--primary)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 25%, transparent)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.color = "color-mix(in srgb, var(--primary) 40%, transparent)";
+              (e.currentTarget as HTMLElement).style.borderColor = "color-mix(in srgb, var(--primary) 12%, transparent)";
+            }}
           >
-            <ArrowLeft size={10} />
             Volver a la biblioteca
           </button>
         </div>
