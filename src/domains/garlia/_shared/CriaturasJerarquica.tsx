@@ -1065,9 +1065,8 @@ export function CriaturasJerarquica({
         key={h.habitat_id}
         {...dropHabHandlers}
         className={`flex flex-col gap-0.5 rounded transition-colors ${
-          h.nivel > 0 ? "border-l border-primary/15 pl-2" : ""
-        } ${dropHabActivo ? "bg-accent/8 outline outline-1 outline-accent/40" : ""}`}
-        style={h.nivel > 0 ? { marginLeft: h.nivel * 8 } : undefined}
+          dropHabActivo ? "bg-accent/8 outline outline-1 outline-accent/40" : ""
+        }`}
       >
         <div className="flex items-center gap-1">
           <button
