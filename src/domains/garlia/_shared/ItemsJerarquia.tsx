@@ -35,8 +35,8 @@
  * en las otras vistas jerárquicas.
  */
 
-import { Box, Leaf as LeafIcon, Gem as GemIcon, Mountain, Plus, Sprout } from "lucide-react";
-import React, { useState } from "react";
+import { Box, Leaf as LeafIcon, Gem as GemIcon, Plus, Sprout } from "lucide-react";
+import React from "react";
 
 import { BuscadorInline } from "@/domains/garlia/_shared/BuscadorInline";
 import { EntityCard } from "@/domains/garlia/_shared/EntityCard";
@@ -323,7 +323,7 @@ export function ItemsJerarquia({
   agrupacionSelector,
 }: Props) {
   const abrirPanel = usePanelFlotante((s) => s.abrir);
-  const [porEcosistema, setPorEcosistema] = useState(false);
+
 
   const dragItem = useRightClickDrag<string>({
     label: (id) => items.find((i) => i.id === id)?.nombre ?? "",
@@ -420,7 +420,7 @@ export function ItemsJerarquia({
     return { bloques, sinCriatura };
   }, [criaturas, itemsFiltrados]);
 
-  const porCriatura = porEcosistema; // un solo toggle reagrupa Items + Flora/Minerales a la vez
+  const porCriatura = false; // toggle eliminado — Items siempre por categoría
 
   return (
     <div>
@@ -430,25 +430,6 @@ export function ItemsJerarquia({
             fila horizontal; en mobile queda separada, como antes. */}
         <div className="flex items-center gap-1.5 md:flex-1 md:flex-wrap">
           {agrupacionSelector}
-          {(ecosistemas || criaturas) && (
-            <button
-              type="button"
-              onClick={() => setPorEcosistema((v) => !v)}
-              title={
-                porEcosistema
-                  ? "Ver Items por categoría, Flora/Minerales sin agrupar"
-                  : "Ver Items por Criatura, Flora/Minerales por Ecosistema"
-              }
-              aria-pressed={porEcosistema}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-colors ${
-                porEcosistema
-                  ? "bg-accent/10 border-accent/20 text-accent/80"
-                  : "bg-primary/[0.04] border-primary/10 text-primary/40 hover:bg-primary/10"
-              }`}
-            >
-              {porEcosistema ? <Sprout size={12} /> : <Mountain size={12} />}
-            </button>
-          )}
           <BuscadorInline
             value={busqueda}
             onChange={onBusquedaChange}
@@ -560,106 +541,6 @@ export function ItemsJerarquia({
         />
       )}
       {dragItem.overlay}
-
-      {/* Flora y Minerales — por defecto bloques planos (sin agrupar,
-          mismo catálogo que ya se ve en la vista "por Criatura"); con el
-          toggle "ojo" activo se agrupan por Ecosistema en su lugar. */}
-      {porEcosistema && porEcosistemaData ? (
-        <div className="mt-2">
-          {(loadingEcosistemas || loadingFlora || loadingMinerales) &&
-          porEcosistemaData.bloques.length === 0 ? (
-            <div className="py-6 text-xs text-primary/30 text-center">Cargando…</div>
-          ) : porEcosistemaData.bloques.length === 0 &&
-            porEcosistemaData.floraSinEco.length === 0 &&
-            porEcosistemaData.mineralesSinEco.length === 0 ? (
-            <div className="py-6 text-xs text-primary/25 text-center">
-              Sin flora ni minerales todavía
-            </div>
-          ) : (
-            <div className="[column-fill:_balance]" style={{ columnWidth: 300, columnGap: 24 }}>
-              {porEcosistemaData.bloques.map(({ ecosistema, flora: floraEco, minerales: mineralesEco }) => (
-                <BloqueEcosistemaFloraMinerales
-                  key={ecosistema.id}
-                  ecosistema={ecosistema}
-                  flora={floraEco}
-                  minerales={mineralesEco}
-                  onOpenEcosistema={(id) => onOpenEcosistema?.(id)}
-                  onOpenFlora={(id) => abrirPanel("flora", id)}
-                  onOpenMineral={(id) => abrirPanel("mineral", id)}
-                />
-              ))}
-              {(porEcosistemaData.floraSinEco.length > 0 ||
-                porEcosistemaData.mineralesSinEco.length > 0) && (
-                <BloqueEcosistemaFloraMinerales
-                  ecosistema={{ id: "__sin_ecosistema__", nombre: "Sin ecosistema" }}
-                  flora={porEcosistemaData.floraSinEco}
-                  minerales={porEcosistemaData.mineralesSinEco}
-                  onOpenEcosistema={() => {}}
-                  onOpenFlora={(id) => abrirPanel("flora", id)}
-                  onOpenMineral={(id) => abrirPanel("mineral", id)}
-                />
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          {flora && flora.length > 0 && (
-            <div className="mb-6 w-full rounded-lg border border-primary/10 overflow-hidden">
-              <div className="px-3 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <span className="text-micro text-primary/25 tabular-nums">{flora.length}</span>
-                <h2 className="min-w-0 truncate text-micro font-black uppercase tracking-[0.2em] text-primary/70 text-center justify-self-center max-w-full">
-                  Flora
-                </h2>
-                <span />
-              </div>
-              <div className="px-3 pb-3">
-                <EntityCardGrid
-                  title="Flora"
-                  variant="grid"
-                  loading={loadingFlora}
-                  minCardWidth={52}
-                  hideHeader
-                  items={flora.map((f) => ({
-                    id: f.id,
-                    nombre: f.nombre,
-                    imageUrl: f.imagen_url || undefined,
-                  }))}
-                  onItemClick={(id) => abrirPanel("flora", id)}
-                  section="flora"
-                />
-              </div>
-            </div>
-          )}
-          {minerales && minerales.length > 0 && (
-            <div className="mb-6 w-full rounded-lg border border-primary/10 overflow-hidden">
-              <div className="px-3 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <span className="text-micro text-primary/25 tabular-nums">{minerales.length}</span>
-                <h2 className="min-w-0 truncate text-micro font-black uppercase tracking-[0.2em] text-primary/70 text-center justify-self-center max-w-full">
-                  Minerales
-                </h2>
-                <span />
-              </div>
-              <div className="px-3 pb-3">
-                <EntityCardGrid
-                  title="Minerales"
-                  variant="grid"
-                  loading={loadingMinerales}
-                  minCardWidth={52}
-                  hideHeader
-                  items={minerales.map((m) => ({
-                    id: m.id,
-                    nombre: m.nombre,
-                    imageUrl: m.imagen_url || undefined,
-                  }))}
-                  onItemClick={(id) => abrirPanel("mineral", id)}
-                  section="minerales"
-                />
-              </div>
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 }

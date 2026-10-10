@@ -18,7 +18,7 @@
  * muestra sin lógica extra acá.
  */
 
-import { Gem, Leaf, Mountain, Music, Plus, Sprout, StickyNote } from "lucide-react";
+import { Gem, Leaf, Music, Plus, StickyNote } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 import { PanelEditor } from "@/domains/garlia/canciones/editor/PanelEditor";
@@ -356,7 +356,6 @@ export function EntidadesPage({ section, selectedId }: Props) {
   // ocultan la grilla de personajes y solo muestran la estructura de
   // arriba (Reino/Ciudad o Ecosistema/Criatura), para una vista más limpia.
   const mostrarPersonajes = useEntidadesUi((s) => s.mostrarPersonajes);
-  const setMostrarPersonajes = useEntidadesUi((s) => s.setMostrarPersonajes);
 
   const grupoPersonajeSeleccionadoId = useEntidadesUi((s) => s.grupoPersonajeSeleccionadoId);
   const setGrupoPersonajeSeleccionadoId = useEntidadesUi((s) => s.setGrupoPersonajeSeleccionadoId);
@@ -959,32 +958,14 @@ export function EntidadesPage({ section, selectedId }: Props) {
   // agrupación alguna — junto con Flora y Minerales, también planos), y
   // los dropdowns de filtro por grupo debajo cambian según cuál esté
   // activa.
+  // Reinos → mostrarPersonajes fijo en true (Reino → Ciudad → Personajes)
+  // Biomas → mostrarPersonajes fijo en false (Bioma → Ecosistema → Hábitat → Criaturas)
+  const mostrarPersonajesEfectivo =
+    agrupacionPersonajes === "reino" ? true : agrupacionPersonajes === "criatura" ? false : mostrarPersonajes;
+
   const agrupacionSelector = (
     <div className="flex items-center gap-1.5">
       <AgrupacionPersonajesDropdown value={agrupacionPersonajes} onChange={setAgrupacionPersonajes} />
-      {agrupacionPersonajes !== "items" && (
-        <button
-          type="button"
-          onClick={() => setMostrarPersonajes((v) => !v)}
-          title={
-            agrupacionPersonajes === "criatura"
-              ? mostrarPersonajes
-                ? "Ver por ecosistema (criaturas, flora y minerales)"
-                : "Ver por especie (personajes agrupados por criatura)"
-              : mostrarPersonajes
-                ? "Ver por bioma y ecosistema (reinos)"
-                : "Ver por reino (ciudades y personajes)"
-          }
-          aria-pressed={mostrarPersonajes}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-colors ${
-            mostrarPersonajes
-              ? "bg-accent/10 border-accent/20 text-accent/80"
-              : "bg-primary/[0.04] border-primary/10 text-primary/40 hover:bg-primary/10"
-          }`}
-        >
-          {mostrarPersonajes ? <Mountain size={12} /> : <Sprout size={12} />}
-        </button>
-      )}
     </div>
   );
 
@@ -1027,7 +1008,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
           presencias={presenciasEco}
           flora={flora}
           minerales={minerales}
-          mostrarPersonajes={mostrarPersonajes}
+          mostrarPersonajes={mostrarPersonajesEfectivo}
           loading={
             loadingC ||
             loadingP ||
@@ -1128,7 +1109,7 @@ export function EntidadesPage({ section, selectedId }: Props) {
           ciudades={ciudades}
           personajes={personajes}
           biomas={biomasConReinoIds}
-          mostrarPersonajes={mostrarPersonajes}
+          mostrarPersonajes={mostrarPersonajesEfectivo}
           loading={loadingR || loadingCd || loadingP || loadingBiomas || loadingBiomaReinos}
           onOpen={(section, id) => openEntity(section, id)}
           gruposPersonajesPorSubtipo={gruposPersonajesPorSubtipo}

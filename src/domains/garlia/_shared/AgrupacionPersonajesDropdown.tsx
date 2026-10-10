@@ -20,8 +20,8 @@ import React, { useLayoutEffect, useRef, useState } from "react";
 export type AgrupacionPersonajes = "reino" | "criatura" | "items";
 
 const OPCIONES: { value: AgrupacionPersonajes; label: string; Icon: React.ElementType }[] = [
-  { value: "reino", label: "Por Reino", Icon: Map },
-  { value: "criatura", label: "Por Criatura", Icon: Bug },
+  { value: "reino", label: "Reinos", Icon: Map },
+  { value: "criatura", label: "Biomas", Icon: Bug },
   { value: "items", label: "Items", Icon: Package },
 ];
 
