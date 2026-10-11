@@ -149,6 +149,10 @@ export function SistemaSolarSection() {
         valoresPorEntidad[v.entidad_id][clave] = v.valor;
       }
 
+      // Debug: loguear claves únicas de magnitudes para verificar los nombres
+      const clavesUnicas = [...new Set(Object.values(magMap))];
+      console.log("[SistemaSolar] Claves magnitudes:", clavesUnicas);
+
       // Combinar
       const combinados: CuerpoConFisica[] = rawCuerpos.map((c: any) => {
         const vals = valoresPorEntidad[c.id] ?? {};
@@ -248,6 +252,12 @@ export function SistemaSolarSection() {
     setOffset({ x: 0, y: 0 });
   }
 
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+    setZoom((z) => Math.min(4, Math.max(0.5, z + delta)));
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -297,7 +307,7 @@ export function SistemaSolarSection() {
             <ZoomIn size={13} />
           </button>
           <button
-            onClick={() => setZoom((z) => Math.max(z - 0.25, 0.25))}
+            onClick={() => setZoom((z) => Math.max(z - 0.25, 0.5))}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
             title="Alejar"
           >
@@ -317,7 +327,7 @@ export function SistemaSolarSection() {
       </div>
 
       {/* ── SVG ── */}
-      <div className="flex-1 overflow-hidden relative" style={{ cursor: dragging ? "grabbing" : "grab" }}>
+      <div className="flex-1 overflow-hidden relative" style={{ cursor: dragging ? "grabbing" : "grab" }} onWheel={onWheel}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
