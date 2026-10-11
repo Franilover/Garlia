@@ -129,29 +129,38 @@ export function SistemaSolarSection() {
 
       if (cancelado) return;
 
-      // 3. Magnitudes para identificar distancia_au y radio_km
-      const { data: magnitudes } = await supabase
-        .from("magnitudes")
-        .select("id, clave, nombre");
+      // 3. Intentar cargar magnitudes desde varias tablas posibles
+      const tablasCandidatas = ["magnitudes", "magnitud", "magnitudes_v1", "fisica_magnitudes"];
+      const magMap: Record<string, string> = {};
+
+      for (const tabla of tablasCandidatas) {
+        const { data: mags, error: eMag } = await supabase
+          .from(tabla)
+          .select("id, clave, nombre");
+        if (!eMag && mags && mags.length > 0) {
+          for (const m of mags) {
+            magMap[m.id] = m.clave ?? m.nombre?.toLowerCase().replace(/\s+/g, "_") ?? "";
+          }
+          console.log(`[SistemaSolar] Tabla magnitudes encontrada: "${tabla}"`);
+          break;
+        }
+      }
 
       if (cancelado) return;
-
-      const magMap: Record<string, string> = {};
-      for (const m of magnitudes ?? []) {
-        magMap[m.id] = m.clave ?? m.nombre?.toLowerCase().replace(/\s+/g, "_") ?? "";
-      }
 
       // Indexar valores por entidad
       const valoresPorEntidad: Record<string, Record<string, number>> = {};
       for (const v of rawValores ?? []) {
         if (!valoresPorEntidad[v.entidad_id]) valoresPorEntidad[v.entidad_id] = {};
+        // Si magMap está vacío, usamos el UUID crudo como clave
         const clave = magMap[v.magnitud_id] ?? v.magnitud_id;
         valoresPorEntidad[v.entidad_id][clave] = v.valor;
       }
 
-      // Debug: loguear claves únicas de magnitudes para verificar los nombres
-      const clavesUnicas = [...new Set(Object.values(magMap))];
-      console.log("[SistemaSolar] Claves magnitudes:", clavesUnicas);
+      // Debug: loguear claves disponibles (sean nombres o UUIDs)
+      const primeraEntidad = Object.values(valoresPorEntidad)[0];
+      console.log("[SistemaSolar] Claves magnitudes (o UUIDs si tabla no encontrada):",
+        primeraEntidad ? Object.keys(primeraEntidad) : "sin datos");
 
       // Combinar
       const combinados: CuerpoConFisica[] = rawCuerpos.map((c: any) => {
