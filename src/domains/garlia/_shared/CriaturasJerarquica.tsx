@@ -1607,16 +1607,21 @@ export function CriaturasJerarquica({
                     <div className="flex flex-col gap-10">
                       {planetasConBiomas.map(({ planeta, grupos }) => (
                         <div key={planeta.id} className="flex flex-col gap-5">
-                          {/* ── Separador con nombre de planeta ── */}
+                          {/* ── Separador con nombre de planeta (clickeable) ── */}
                           <div className="flex items-center gap-3">
                             <div
                               className="h-px flex-1"
                               style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
                             />
-                            <span className="text-micro font-black uppercase tracking-[0.2em] px-2"
-                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                            <button
+                              type="button"
+                              onClick={() => abrirPanel("planeta", planeta.id)}
+                              className="text-micro font-black uppercase tracking-[0.2em] px-2 transition-colors hover:opacity-70"
+                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
+                              title={`Ver ${planeta.nombre}`}
+                            >
                               {planeta.nombre}
-                            </span>
+                            </button>
                             <div
                               className="h-px flex-1"
                               style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}

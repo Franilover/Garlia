@@ -24,7 +24,7 @@
  * click en el backdrop.
  */
 
-import { Bug, Check, Compass, Crown, Diamond, Gem, Layers, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
+import { Bug, Check, Compass, Crown, Diamond, Gem, Globe, Layers, Leaf, MapPin, Save, SlidersHorizontal, Trash2, Users, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -46,6 +46,7 @@ import { BiomaEditor } from "@/domains/garlia/biologia/BiomaEditor";
 import { EcosistemaEditor } from "@/domains/garlia/biologia/EcosistemaEditor";
 import { HabitatEditor } from "@/domains/garlia/biologia/HabitatEditor";
 import { useBiomas, useEcosistemas } from "@/domains/garlia/biologia/useBiologia";
+import { PlanetaEditor } from "@/domains/garlia/cosmologia/PlanetaEditor";
 import { MineralEditor } from "@/domains/garlia/minerales/MineralEditor";
 import { useMinerales } from "@/domains/garlia/minerales/useMinerales";
 import { type Mineral } from "@/domains/garlia/minerales/types";
@@ -98,6 +99,7 @@ export function PanelFlotanteGlobal() {
   const { minerales } = useMinerales();
   const { biomas } = useBiomas();
   const { ecosistemas } = useEcosistemas();
+  const { data: planetas } = useSupabaseData<{ id: string; nombre: string; tipo_cuerpo: string | null; descripcion: string | null; canon: boolean | null }>("cuerpos_celestes_v1");
 
   useEffect(() => {
     if (!entidad) return;
@@ -126,6 +128,7 @@ export function PanelFlotanteGlobal() {
   const biomaSel = entidad.kind === "bioma" ? biomas.find((x) => x.id === entidad.id) : null;
   const ecosistemaSel =
     entidad.kind === "ecosistema" ? ecosistemas.find((x) => x.id === entidad.id) : null;
+  const planetaSel = entidad.kind === "planeta" ? planetas.find((x) => x.id === entidad.id) : null;
   if (entidad.kind === "personaje" && !personaje) return null;
   if (entidad.kind === "criatura" && !criatura) return null;
   if (entidad.kind === "reino" && !reino) return null;
@@ -135,6 +138,7 @@ export function PanelFlotanteGlobal() {
   if (entidad.kind === "ciudad" && !ciudad) return null;
   if (entidad.kind === "bioma" && !biomaSel) return null;
   if (entidad.kind === "ecosistema" && !ecosistemaSel) return null;
+  if (entidad.kind === "planeta" && !planetaSel) return null;
   // "habitat": lo resuelve HabitatEditor por id (viene de una vista, no de
   // una tabla sincronizada), así que acá no hay guarda.
 
@@ -157,7 +161,9 @@ export function PanelFlotanteGlobal() {
                     ? Leaf
                     : entidad.kind === "habitat"
                       ? Layers
-                      : MapPin;
+                      : entidad.kind === "planeta"
+                        ? Globe
+                        : MapPin;
   const label =
     entidad.kind === "personaje"
       ? "Personaje"
@@ -177,7 +183,9 @@ export function PanelFlotanteGlobal() {
                     ? "Ecosistema"
                     : entidad.kind === "habitat"
                       ? "Hábitat"
-                      : "Ciudad";
+                      : entidad.kind === "planeta"
+                        ? "Planeta"
+                        : "Ciudad";
   const nombre =
     entidad.kind === "personaje"
       ? personaje!.nombre
@@ -197,7 +205,9 @@ export function PanelFlotanteGlobal() {
                     ? ecosistemaSel!.nombre
                     : entidad.kind === "habitat"
                       ? "" // HabitatEditor publica el nombre; sin fallback previo
-                      : ciudad!.nombre;
+                      : entidad.kind === "planeta"
+                        ? planetaSel!.nombre
+                        : ciudad!.nombre;
 
   return createPortal(
     <div
@@ -416,6 +426,12 @@ export function PanelFlotanteGlobal() {
             <HabitatEditor
               key={entidad.id}
               habitatId={entidad.id}
+              onHeaderControlsChange={setHeaderControls}
+            />
+          ) : entidad.kind === "planeta" ? (
+            <PlanetaEditor
+              key={planetaSel!.id}
+              planeta={planetaSel!}
               onHeaderControlsChange={setHeaderControls}
             />
           ) : (

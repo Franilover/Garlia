@@ -39,7 +39,8 @@ export type PanelFlotanteKind =
   // panel flotante global que el resto de las entidades.
   | "bioma"
   | "ecosistema"
-  | "habitat";
+  | "habitat"
+  | "planeta";
 
 interface PanelFlotanteState {
   entidad: { kind: PanelFlotanteKind; id: string } | null;
