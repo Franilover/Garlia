@@ -162,12 +162,12 @@ export function EntidadesPage({ section, selectedId }: Props) {
     [biomas, reinoIdsDe],
   );
   // Planetas (cuerpos_celestes_v1) — nivel por encima de Bioma en CriaturasJerarquica
-  const { data: cuerposCelestes, loading: loadingCuerposCelestes } = useSupabaseData<{ id: string; nombre: string; tipo: string | null }>(
+  const { data: cuerposCelestes, loading: loadingCuerposCelestes } = useSupabaseData<{ id: string; nombre: string; tipo_cuerpo: string | null }>(
     "cuerpos_celestes_v1",
-    { order: { campo: "distancia_au" } },
+    { order: { campo: "nombre" } },
   );
   const planetas = useMemo(
-    () => cuerposCelestes.filter((c) => c.tipo === "planeta"),
+    () => cuerposCelestes.filter((c) => c.tipo_cuerpo === "planeta"),
     [cuerposCelestes],
   );
   const { biomaIdsDe: biomaIdsDePlaneta, loading: loadingCCBiomas } = useCuerposCelestesBiomas();
