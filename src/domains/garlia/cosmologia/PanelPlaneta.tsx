@@ -81,14 +81,17 @@ export function PanelPlaneta({
   const enPanelFlotante = !!onHeaderControlsChange;
 
   // Publica controles a la barra superior del panel flotante global
-  usePublishHeaderControls(onHeaderControlsChange, {
-    nombre,
-    placeholderNombre: "Nombre del planeta",
-    onChangeNombre: setNombre,
-    onBlurNombre: guardar,
-    status,
-    onGuardar: guardar,
-  });
+  usePublishHeaderControls(
+    {
+      nombre,
+      placeholderNombre: "Nombre del planeta",
+      onChangeNombre: setNombre,
+      onBlurNombre: guardar,
+      status,
+      onGuardar: guardar,
+    },
+    onHeaderControlsChange,
+  );
 
   const biomasDelPlaneta = biomas.filter((b) => biomaIds.includes(b.id));
   const allBiomasEntidad = biomasDelPlaneta.map((b) => ({
