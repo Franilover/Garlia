@@ -8,7 +8,7 @@
  * Sigue el mismo patrón que PanelBioma / PanelEcosistema.
  */
 
-import { Globe, Compass, ArrowLeft, X } from "lucide-react";
+import { Globe, Compass, ArrowLeft, Eye, Wind, Layers, Leaf, Crown, Zap } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -29,6 +29,15 @@ type Planeta = {
   canon: boolean | null;
 };
 
+type InventarioPlaneta = {
+  visual: boolean;
+  atm: number;
+  geo: number;
+  biomas: number;
+  reinos: number;
+  procesos: number;
+};
+
 export function PanelPlaneta({
   planeta,
   onSave,
@@ -47,6 +56,7 @@ export function PanelPlaneta({
   // Biomas del planeta (vía cuerpo_celeste_biomas_v1)
   const { biomas } = useBiomas();
   const [biomaIds, setBiomaIds] = useState<string[]>([]);
+  const [inventario, setInventario] = useState<InventarioPlaneta | null>(null);
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
   useEffect(() => {
@@ -63,6 +73,40 @@ export function PanelPlaneta({
         .select("bioma_id")
         .eq("cuerpo_celeste_id", planeta.id);
       if (!cancelado) setBiomaIds((data ?? []).map((r: any) => r.bioma_id));
+    })();
+    return () => { cancelado = true; };
+  }, [planeta.id]);
+
+  // Carga inventario de datos del planeta
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const id = planeta.id;
+      const [
+        { data: visual },
+        { data: atm },
+        { data: geo },
+        { data: biomas },
+        { data: reinos },
+        { data: procesos },
+      ] = await Promise.all([
+        supabase.from("cuerpo_celeste_visual_v1").select("id").eq("cuerpo_celeste_id", id).limit(1),
+        supabase.from("cuerpo_celeste_composicion_atm_v1").select("id").eq("cuerpo_celeste_id", id),
+        supabase.from("cuerpo_celeste_composicion_geo_v1").select("id").eq("cuerpo_celeste_id", id),
+        supabase.from("cuerpo_celeste_biomas_v1").select("id").eq("cuerpo_celeste_id", id),
+        supabase.from("reino_planeta_v1").select("id").eq("cuerpo_celeste_id", id),
+        supabase.from("cuerpo_celeste_procesos_v1").select("id").eq("cuerpo_celeste_id", id),
+      ]);
+      if (!cancelado) {
+        setInventario({
+          visual: (visual?.length ?? 0) > 0,
+          atm: atm?.length ?? 0,
+          geo: geo?.length ?? 0,
+          biomas: biomas?.length ?? 0,
+          reinos: reinos?.length ?? 0,
+          procesos: procesos?.length ?? 0,
+        });
+      }
     })();
     return () => { cancelado = true; };
   }, [planeta.id]);
@@ -150,6 +194,55 @@ export function PanelPlaneta({
           onBlur={guardar}
         />
       </div>
+
+      {/* Inventario de datos */}
+      {inventario && (
+        <div className="flex flex-col gap-2">
+          <p className="text-micro font-black uppercase tracking-[0.12em] text-primary/35">
+            Inventario
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { icon: Eye,    label: "Visual",    val: inventario.visual ? "sí" : "—",         ok: inventario.visual },
+              { icon: Wind,   label: "Atmósfera", val: inventario.atm > 0 ? `${inventario.atm} elem.` : "—",   ok: inventario.atm > 0 },
+              { icon: Layers, label: "Geología",  val: inventario.geo > 0 ? `${inventario.geo} capas` : "—",   ok: inventario.geo > 0 },
+              { icon: Leaf,   label: "Biomas",    val: inventario.biomas > 0 ? `${inventario.biomas}` : "—",   ok: inventario.biomas > 0 },
+              { icon: Crown,  label: "Reinos",    val: inventario.reinos > 0 ? `${inventario.reinos}` : "—",   ok: inventario.reinos > 0 },
+              { icon: Zap,    label: "Procesos",  val: inventario.procesos > 0 ? `${inventario.procesos}` : "—", ok: inventario.procesos > 0 },
+            ].map(({ icon: Icon, label, val, ok }) => (
+              <div
+                key={label}
+                className="flex flex-col gap-1 rounded-xl px-2.5 py-2"
+                style={{
+                  background: ok
+                    ? "color-mix(in srgb, var(--primary) 5%, transparent)"
+                    : "color-mix(in srgb, var(--primary) 2%, transparent)",
+                  border: `1px solid color-mix(in srgb, var(--primary) ${ok ? "10" : "6"}%, transparent)`,
+                }}
+              >
+                <div className="flex items-center gap-1">
+                  <Icon
+                    size={10}
+                    style={{ opacity: ok ? 0.6 : 0.2 }}
+                  />
+                  <span
+                    className="text-micro font-black uppercase tracking-[0.1em]"
+                    style={{ opacity: ok ? 0.4 : 0.2 }}
+                  >
+                    {label}
+                  </span>
+                </div>
+                <span
+                  className="text-xs font-black"
+                  style={{ opacity: ok ? 0.75 : 0.2 }}
+                >
+                  {val}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Biomas */}
       <div className="flex flex-col gap-1.5">
