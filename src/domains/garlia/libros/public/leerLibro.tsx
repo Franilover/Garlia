@@ -14,10 +14,9 @@ import {
   CapituloScrollBlock,
   ToastPortal,
 } from "@/domains/garlia/libros/public/CapituloScrollBlock";
-import { Vignette, AjustesLectura } from "@/domains/garlia/libros/public/LectorUI";
+import { Vignette } from "@/domains/garlia/libros/public/LectorUI";
 import { PanelLateral } from "@/domains/garlia/libros/public/PanelLateral";
 import { useCargadorContenido } from "@/domains/garlia/libros/public/useCargadorContenido";
-import { useLectorAjustes } from "@/domains/garlia/libros/public/useLectorAjustes";
 import {
   useLectorStore,
   capActualDe,
@@ -88,7 +87,7 @@ export default function Lector({
   }, []);
 
   const router = useRouter();
-  const { fontScale, texturaPapel } = useLectorAjustes();
+
 
   // ── Estado de navegación/datos: leído del store, no de useState local ──────
   // Selectores granulares — cada uno solo re-renderiza el componente cuando
@@ -648,7 +647,7 @@ export default function Lector({
         >
           <List size={13} /> Índice
         </button>
-        <AjustesLectura compact />
+
       </div>
 
       {/* ── Drawer lateral en móvil ── */}
@@ -710,14 +709,13 @@ export default function Lector({
 
       {/* ── Columna derecha: texto scrolleable ── */}
       <div
-        className={`bg-bg-main text-primary-dark${texturaPapel ? " lector-textura-papel" : ""}`}
+        className="bg-bg-main text-primary-dark"
         id="lector-scroll-container"
         style={{
           flex: 1,
           height: "100vh",
           overflowY: "auto",
           position: "relative",
-          ["--lector-font-scale" as any]: fontScale,
         }}
       >
         <Vignette />
@@ -734,9 +732,7 @@ export default function Lector({
             <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/25 italic truncate max-w-sm">
               {activeCapTitle}
             </span>
-            <div className="pointer-events-auto">
-              <AjustesLectura />
-            </div>
+
           </div>
         )}
 
