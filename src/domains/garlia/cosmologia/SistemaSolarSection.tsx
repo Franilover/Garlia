@@ -321,6 +321,38 @@ export function SistemaSolarSection() {
     }));
   }
 
+  // Radio de órbita lunar visual (fijo, en px SVG, relativo al planeta padre)
+  function radioOrbLuna(padreR: number): number {
+    return padreR + 10 + MOON_R * 2;
+  }
+
+  // Posición 3D de una luna, orbitando alrededor de su planeta padre
+  function posSatelite3D(
+    luna: CuerpoConFisica,
+    lunaIdx: number,             // índice entre lunas del mismo padre
+    totalLunasPadre: number,
+    padrePosicion: { x: number; y: number; z: number },
+    padreR: number,
+  ): { x: number; y: number; z: number } {
+    // Las lunas giran mucho más rápido que los planetas (periodo ~días)
+    const periodo = luna.periodo_orbital_dias ?? (3 + lunaIdx * 5);
+    const anguloBase = ((luna.angulo_inicio_grados ?? 0) * Math.PI) / 180;
+    const angulo = anguloBase + (tiempo / periodo) * 2 * Math.PI;
+
+    // Inclinación propia de la luna (o ligera inclinación por defecto)
+    const inclinacion = ((luna.inclinacion_grados ?? 15 + lunaIdx * 10) * Math.PI) / 180;
+
+    const r = radioOrbLuna(padreR) + lunaIdx * (MOON_R * 2.5);
+    const xOrb = r * Math.cos(angulo);
+    const yOrb = r * Math.sin(angulo);
+
+    return {
+      x: padrePosicion.x + xOrb,
+      y: padrePosicion.y + yOrb * Math.cos(inclinacion),
+      z: padrePosicion.z + yOrb * Math.sin(inclinacion),
+    };
+  }
+
   function pos3D(p: CuerpoConFisica): { x: number; y: number; z: number } {
     if (p.distancia_au == null) return { x: CENTER_X, y: CENTER_Y, z: 0 };
     const logD = distanciasLog[p.id] ?? 0;
@@ -570,13 +602,45 @@ export function SistemaSolarSection() {
     const sx = CENTER_X;
     const sy = CENTER_Y;
 
+    // Calcular posiciones de planetas
     const planetasConPos = soloPlanetas
       .filter((p) => p.distancia_au != null)
       .map((p) => ({ p, pos: pos3D(p) }))
       .sort((a, b) => a.pos.z - b.pos.z);
 
+    // Precalcular posiciones de lunas para cada planeta
+    const lunasPorPadre: Record<string, CuerpoConFisica[]> = {};
+    for (const s of satelites) {
+      if (!s.cuerpo_principal_id) continue;
+      if (!lunasPorPadre[s.cuerpo_principal_id]) lunasPorPadre[s.cuerpo_principal_id] = [];
+      lunasPorPadre[s.cuerpo_principal_id].push(s);
+    }
+
+    // Construir lista de lunas con posición 3D
+    const lunasConPos = planetasConPos.flatMap(({ p, pos }) => {
+      const lunas = lunasPorPadre[p.id] ?? [];
+      const padreR = escalarRadio(p.radio_km, p.tipo_cuerpo, allRadios);
+      return lunas.map((luna, idx) => ({
+        luna,
+        pos: posSatelite3D(luna, idx, lunas.length, pos, padreR),
+        padrePosicion: pos,
+        padreR,
+      }));
+    });
+
+    // Mezclar planetas y lunas y ordenar por z (painter's algorithm)
+    type EntidadConZ =
+      | { tipo: "planeta"; p: CuerpoConFisica; pos: { x: number; y: number; z: number } }
+      | { tipo: "luna"; luna: CuerpoConFisica; pos: { x: number; y: number; z: number }; padrePosicion: { x: number; y: number; z: number }; padreR: number };
+
+    const entidades: EntidadConZ[] = [
+      ...planetasConPos.map((e) => ({ tipo: "planeta" as const, ...e })),
+      ...lunasConPos.map((e) => ({ tipo: "luna" as const, ...e })),
+    ].sort((a, b) => a.pos.z - b.pos.z);
+
     return (
       <g transform={transform}>
+        {/* Plano del disco */}
         <ellipse
           cx={sx} cy={sy}
           rx={(SVG_W / 2 - 60) * 0.98}
@@ -586,13 +650,14 @@ export function SistemaSolarSection() {
           strokeWidth={1}
         />
 
+        {/* Órbitas de planetas */}
         {soloPlanetas.map((p) => {
           if (!p.distancia_au) return null;
           const logD = distanciasLog[p.id] ?? 0;
           const r = (logD / maxDistLog) * (SVG_W / 2 - 70);
           const inc = (p.inclinacion_grados * Math.PI) / 180;
           const ry = r * Math.cos(inc) * 0.25;
-          const isHov = hoveredId === p.id;
+          const isHov = hoveredId === p.id || (lunasPorPadre[p.id] ?? []).some((l) => hoveredId === l.id);
           return (
             <ellipse key={`orbit3d-${p.id}`}
               cx={sx} cy={sy} rx={r} ry={Math.max(ry, 4)}
@@ -607,6 +672,27 @@ export function SistemaSolarSection() {
           );
         })}
 
+        {/* Órbitas lunares (pequeñas elipses alrededor del planeta) */}
+        {lunasConPos.map(({ luna, padrePosicion, padreR }, idx) => {
+          const lunas = lunasPorPadre[luna.cuerpo_principal_id!] ?? [];
+          const lunaIdx = lunas.indexOf(luna);
+          const r = radioOrbLuna(padreR) + lunaIdx * (MOON_R * 2.5);
+          const isHov = hoveredId === luna.id;
+          return (
+            <ellipse
+              key={`orbit-luna-${luna.id}`}
+              cx={padrePosicion.x} cy={padrePosicion.y}
+              rx={r} ry={Math.max(r * 0.3, 3)}
+              fill="none"
+              stroke={isHov
+                ? "color-mix(in srgb, var(--primary) 18%, transparent)"
+                : "color-mix(in srgb, var(--primary) 5%, transparent)"}
+              strokeWidth={isHov ? 0.8 : 0.5}
+              strokeDasharray="2 4"
+            />
+          );
+        })}
+
         {/* En binario, renderizar ambas estrellas */}
         {esBinario
           ? estrellas.map((e, i) => {
@@ -616,9 +702,43 @@ export function SistemaSolarSection() {
           : estrellas.map((e) => renderEstrella(e, sx, sy))
         }
 
-        {planetasConPos.map(({ p, pos }) => {
+        {/* Planetas y lunas mezclados por z */}
+        {entidades.map((ent) => {
+          if (ent.tipo === "planeta") {
+            const depthScale = 0.85 + 0.15 * ((ent.pos.z + SVG_W / 2) / SVG_W);
+            return renderPlaneta(ent.p, ent.pos.x, ent.pos.y, depthScale);
+          }
+          // Luna
+          const { luna, pos } = ent;
+          const isHov = hoveredId === luna.id;
           const depthScale = 0.85 + 0.15 * ((pos.z + SVG_W / 2) / SVG_W);
-          return renderPlaneta(p, pos.x, pos.y, depthScale);
+          const r = MOON_R * depthScale;
+          return (
+            <g key={luna.id} data-cuerpo="true" style={{ cursor: "pointer" }}
+              onMouseEnter={() => setHoveredId(luna.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              onClick={() => abrirPanel("planeta", luna.id)}
+            >
+              {isHov && <circle cx={pos.x} cy={pos.y} r={r * 3} fill={`${colorDeCuerpo(luna)}18`} />}
+              <circle
+                cx={pos.x} cy={pos.y}
+                r={isHov ? r * 1.4 : r}
+                fill={colorDeCuerpo(luna)}
+                opacity={isHov ? 1 : 0.7 * depthScale}
+                style={{ transition: "r 0.15s" }}
+              />
+              {isHov && (
+                <text
+                  x={pos.x} y={pos.y - r - 5}
+                  textAnchor="middle" fontSize={8}
+                  fill="color-mix(in srgb, var(--primary) 65%, transparent)"
+                  fontWeight="800" fontFamily="inherit"
+                >
+                  {luna.nombre}
+                </text>
+              )}
+            </g>
+          );
         })}
       </g>
     );
