@@ -700,5 +700,51 @@ export function useCadenasAlimenticias() {
   return { cadenas, setCadenas: setData, loading, creating: false, crear, actualizar, eliminar };
 }
 
+// ─── Cuerpos celestes ↔ Biomas (cuerpo_celeste_biomas_v1) ──────────────────
+// Devuelve la lista de { cuerpo_celeste_id, bioma_id } para que
+// CriaturasJerarquica pueda agrupar biomas bajo su planeta de origen.
+// Fetch directo (sin caché offline por ahora) igual que useBiomaReinos.
+
+export type CuerpoCelesteBioma = {
+  cuerpo_celeste_id: string;
+  bioma_id: string;
+};
+
+export function useCuerposCelestesBiomas() {
+  const [filas, setFilas] = useState<CuerpoCelesteBioma[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("cuerpo_celeste_biomas_v1")
+        .select("cuerpo_celeste_id, bioma_id");
+      if (cancelado) return;
+      if (error) console.error("[useCuerposCelestesBiomas] error:", error);
+      setFilas((data as CuerpoCelesteBioma[]) ?? []);
+      setLoading(false);
+    })();
+    return () => { cancelado = true; };
+  }, []);
+
+  /** IDs de bioma que pertenecen a un planeta dado. */
+  const biomaIdsDe = useCallback(
+    (cuerpoId: string) =>
+      filas.filter((f) => f.cuerpo_celeste_id === cuerpoId).map((f) => f.bioma_id),
+    [filas],
+  );
+
+  /** ID del planeta al que pertenece un bioma (null si no está asignado). */
+  const planetaDeBioma = useCallback(
+    (biomaId: string) =>
+      filas.find((f) => f.bioma_id === biomaId)?.cuerpo_celeste_id ?? null,
+    [filas],
+  );
+
+  return { cuerposCelestesBiomas: filas, loading, biomaIdsDe, planetaDeBioma };
+}
+
 // Nota: el hook usePerfilesAtomicosCriatura (tabla "perfiles_atomicos_criatura")
 // se quitó — esa tabla nunca existió en Supabase, el bloque solo tiraba 404.

@@ -45,6 +45,7 @@ import {
   useEcosistemaFlora,
   useBiomas,
   useBiomaReinos,
+  useCuerposCelestesBiomas,
 } from "@/domains/garlia/biologia/useBiologia";
 import { FloraEditor } from "@/domains/garlia/flora/FloraEditor";
 import { useFlora } from "@/domains/garlia/flora/useFlora";
@@ -160,6 +161,17 @@ export function EntidadesPage({ section, selectedId }: Props) {
     () => biomas.map((b) => ({ ...b, reino_ids: reinoIdsDe(b.id) })),
     [biomas, reinoIdsDe],
   );
+  // Planetas (cuerpos_celestes_v1) — nivel por encima de Bioma en CriaturasJerarquica
+  const { data: cuerposCelestes, loading: loadingCuerposCelestes } = useSupabaseData<{ id: string; nombre: string; tipo: string | null }>(
+    "cuerpos_celestes_v1",
+    { order: { campo: "distancia_au" } },
+  );
+  const planetas = useMemo(
+    () => cuerposCelestes.filter((c) => c.tipo === "planeta"),
+    [cuerposCelestes],
+  );
+  const { biomaIdsDe: biomaIdsDePlaneta, loading: loadingCCBiomas } = useCuerposCelestesBiomas();
+
   const { flora, loading: loadingFlora, creating: creatingFlora, crear: crearFlora } = useFlora();
   const { minerales, loading: loadingMinerales, creating: creatingMinerales, crear: crearMineral } = useMinerales();
 
@@ -1004,6 +1016,8 @@ export function EntidadesPage({ section, selectedId }: Props) {
           ecosistemas={ecosistemasConFloraIds}
           criaturaIdsDeEcosistema={criaturaIdsDeEcosistema}
           biomas={biomasConReinoIds}
+          planetas={planetas}
+          biomaIdsDePlaneta={biomaIdsDePlaneta}
           habitats={habitatsEco}
           presencias={presenciasEco}
           flora={flora}

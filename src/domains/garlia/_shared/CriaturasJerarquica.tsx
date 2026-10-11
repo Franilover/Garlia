@@ -107,6 +107,11 @@ interface EntidadMin {
   imagen_url?: string | null;
 }
 
+interface Planeta {
+  id: string;
+  nombre: string;
+}
+
 interface Props {
   criaturas: Criatura[];
   personajes: Personaje[];
@@ -133,6 +138,13 @@ interface Props {
    *  → Criatura → Personajes), opcional idem. Solo se usa en modo "ojo
    *  apagado"; en modo "ojo prendido" no aplica (vista plana por especie). */
   biomas?: Bioma[];
+  /** Planetas — nivel jerárquico por encima de Bioma (Planeta → Bioma →
+   *  Ecosistema → ...), opcional. Si se pasa junto con `biomaIdsDePlaneta`,
+   *  los biomas se agrupan bajo su planeta de origen. */
+  planetas?: Planeta[];
+  /** Resuelve los ids de bioma que pertenecen a un planeta dado —
+   *  proveniente de `cuerpo_celeste_biomas_v1`. */
+  biomaIdsDePlaneta?: (planetaId: string) => string[];
   /** Catálogo mínimo de Flora (id/nombre/imagen) — para resolver los
    *  flora_ids de cada ecosistema y mostrarlos como chips dentro de su
    *  tarjeta, al mismo nivel que las criaturas. */
@@ -514,6 +526,8 @@ export function CriaturasJerarquica({
   ecosistemas = [],
   criaturaIdsDeEcosistema = () => [],
   biomas = [],
+  planetas = [],
+  biomaIdsDePlaneta,
   habitats = [],
   presencias = [],
   flora = [],
@@ -1435,58 +1449,48 @@ export function CriaturasJerarquica({
               de columnas para todos los casos, solo cambia el subconjunto
               de `columna` de entrada. Extraído para poder repetirlo una vez
               por Bioma sin duplicar el JSX de cada card de ecosistema. */}
+          {/* ── Nivel Planeta → Bioma → Ecosistema ── */}
           {biomas.length > 0
-            ? // Agrupado por Bioma: un bloque por cada bioma que tenga AL
-              // MENOS un ecosistema (con o sin contenido) — antes solo se
-              // listaban los biomas cuyos ecosistemas tenían criaturas, así
-              // que un bioma sin ecosistemas con criaturas (aunque tuviera
-              // ecosistemas vacíos, o incluso ningún ecosistema) desaparecía
-              // por completo de la vista. Ahora:
-              //  - Un bioma con ecosistemas (con o sin contenido) muestra su
-              //    masonry de cards + los ecosistemas vacíos como chips.
-              //  - Un bioma sin ningún ecosistema se muestra igual, como
-              //    chip de bioma sin contenido debajo.
-              // + "Sin bioma" al final para ecosistemas huérfanos.
-              <div
-                className={
-                  usaModeloHabitats
-                    ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 items-start"
-                    : "flex flex-col gap-8"
-                }
-              >
-              {[
-                ...biomas.map((bioma) => ({
-                  key: bioma.id,
-                  label: bioma.nombre,
-                  esBioma: true,
-                  todosEcosistemas: ecosistemasOrdenados.filter((e) => e.bioma_id === bioma.id),
-                  columnas: distribuirEnColumnas(
-                    ecosistemasConCriaturas.filter((e) => e.bioma_id === bioma.id),
-                  ),
-                  vacios: ecosistemasVacios.filter((e) => e.bioma_id === bioma.id),
-                })),
-                {
-                  key: "__sin_bioma__",
-                  label: "Sin bioma",
-                  esBioma: false,
-                  todosEcosistemas: ecosistemasOrdenados.filter(
-                    (e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id),
-                  ),
-                  columnas: distribuirEnColumnas(
-                    ecosistemasConCriaturas.filter(
+            ? (() => {
+                // Construimos los grupos de biomas (igual que antes)
+                type GrupoBioma = {
+                  key: string;
+                  label: string;
+                  esBioma: boolean;
+                  todosEcosistemas: typeof ecosistemasOrdenados;
+                  columnas: ReturnType<typeof distribuirEnColumnas>;
+                  vacios: typeof ecosistemasVacios;
+                };
+                const gruposBioma: GrupoBioma[] = [
+                  ...biomas.map((bioma) => ({
+                    key: bioma.id,
+                    label: bioma.nombre,
+                    esBioma: true,
+                    todosEcosistemas: ecosistemasOrdenados.filter((e) => e.bioma_id === bioma.id),
+                    columnas: distribuirEnColumnas(
+                      ecosistemasConCriaturas.filter((e) => e.bioma_id === bioma.id),
+                    ),
+                    vacios: ecosistemasVacios.filter((e) => e.bioma_id === bioma.id),
+                  })),
+                  {
+                    key: "__sin_bioma__",
+                    label: "Sin bioma",
+                    esBioma: false,
+                    todosEcosistemas: ecosistemasOrdenados.filter(
                       (e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id),
                     ),
-                  ),
-                  vacios: ecosistemasVacios.filter(
-                    (e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id),
-                  ),
-                },
-              ]
-                // Se descarta un grupo solo si ni siquiera tiene ecosistemas
-                // (ni con contenido ni vacíos) — un bioma sin ecosistemas
-                // todavía debe verse como chip de bioma vacío, no desaparecer.
-                .filter((grupo) => grupo.esBioma || grupo.todosEcosistemas.length > 0)
-                .map((grupo) => {
+                    columnas: distribuirEnColumnas(
+                      ecosistemasConCriaturas.filter(
+                        (e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id),
+                      ),
+                    ),
+                    vacios: ecosistemasVacios.filter(
+                      (e) => !e.bioma_id || !biomas.some((b) => b.id === e.bioma_id),
+                    ),
+                  },
+                ].filter((grupo) => grupo.esBioma || grupo.todosEcosistemas.length > 0);
+
+                const renderGrupoBioma = (grupo: GrupoBioma) => {
                   const esSinBioma = grupo.key === "__sin_bioma__";
                   const zoneIdBioma = `bioma:${grupo.key}`;
                   const dropActiveBioma =
@@ -1497,93 +1501,184 @@ export function CriaturasJerarquica({
                       )
                     : {};
                   return (
-                  <div key={grupo.key} className="flex flex-col gap-3">
-                    <div
-                      {...dropHandlersBioma}
-                      className={`${
-                        usaModeloHabitats ? "self-center" : "self-start"
-                      } rounded-md transition-colors ${
-                        dropActiveBioma ? "ring-2 ring-accent/60 bg-accent/5" : ""
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          grupo.key !== "__sin_bioma__" && abrirPanel("bioma", grupo.key)
-                        }
-                        disabled={grupo.key === "__sin_bioma__"}
-                        title={grupo.label}
-                        className="flex items-center gap-1.5 px-1 text-micro font-black uppercase tracking-[0.15em] text-primary/50 hover:text-accent transition-colors disabled:hover:text-primary/50 disabled:cursor-default"
+                    <div key={grupo.key} className="flex flex-col gap-3">
+                      <div
+                        {...dropHandlersBioma}
+                        className={`${
+                          usaModeloHabitats ? "self-center" : "self-start"
+                        } rounded-md transition-colors ${
+                          dropActiveBioma ? "ring-2 ring-accent/60 bg-accent/5" : ""
+                        }`}
                       >
-                        {grupo.label}
-                      </button>
-                    </div>
-                    {grupo.todosEcosistemas.length === 0 ? (
-                      <div className="text-micro text-primary/25 px-1">Sin ecosistemas</div>
-                    ) : (
-                      <>
-                        {usaModeloHabitats &&
-                          grupo.columnas.some((c) => c.length > 0) && (
-                            <div className="columns-1 sm:columns-2 gap-3 [&>*]:mb-3">
-                              {grupo.columnas
-                                .flat()
-                                .map((eco) => renderTarjetaEcosistema(eco))}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            grupo.key !== "__sin_bioma__" && abrirPanel("bioma", grupo.key)
+                          }
+                          disabled={grupo.key === "__sin_bioma__"}
+                          title={grupo.label}
+                          className="flex items-center gap-1.5 px-1 text-micro font-black uppercase tracking-[0.15em] text-primary/50 hover:text-accent transition-colors disabled:hover:text-primary/50 disabled:cursor-default"
+                        >
+                          {grupo.label}
+                        </button>
+                      </div>
+                      {grupo.todosEcosistemas.length === 0 ? (
+                        <div className="text-micro text-primary/25 px-1">Sin ecosistemas</div>
+                      ) : (
+                        <>
+                          {usaModeloHabitats &&
+                            grupo.columnas.some((c) => c.length > 0) && (
+                              <div className="columns-1 sm:columns-2 gap-3 [&>*]:mb-3">
+                                {grupo.columnas.flat().map((eco) => renderTarjetaEcosistema(eco))}
+                              </div>
+                            )}
+                          {!usaModeloHabitats && grupo.columnas.some((c) => c.length > 0) && (
+                            <div className="flex items-start gap-6">
+                              {grupo.columnas.map((columna, colIdx) => (
+                                <div
+                                  key={colIdx}
+                                  className="flex flex-col gap-6 min-w-0"
+                                  style={{ width: anchoColumnaMasonry }}
+                                >
+                                  {columna.map((eco) => renderTarjetaEcosistema(eco))}
+                                </div>
+                              ))}
                             </div>
                           )}
-                        {!usaModeloHabitats && grupo.columnas.some((c) => c.length > 0) && (
-                          <div className="flex items-start gap-6">
-                            {grupo.columnas.map((columna, colIdx) => (
-                              <div
-                                key={colIdx}
-                                className="flex flex-col gap-6 min-w-0"
-                                style={{ width: anchoColumnaMasonry }}
-                              >
-                                {columna.map((eco) => renderTarjetaEcosistema(eco))}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {grupo.vacios.length > 0 && (
-                          <div
-                            className="grid gap-2"
-                            style={{
-                              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-                            }}
-                          >
-                            {grupo.vacios.map((eco) => {
-                              const { dropHandlers, dropActive } = ecoDrop(eco);
-                              return (
-                                <div
-                                  key={eco.id}
-                                  {...dropHandlers}
-                                  className={`rounded-full transition-colors ${
-                                    dropActive ? "ring-2 ring-accent/60 bg-accent/5" : ""
-                                  }`}
-                                >
-                                  <NodoTitulo
-                                    fill
-                                    label={eco.nombre}
-                                    dragProps={
-                                      onAsignarEcosistemaABioma
-                                        ? dragEcosistema.dragHandlers(eco.id)
-                                        : undefined
-                                    }
-                                    onClick={() => abrirPanel("ecosistema", eco.id)}
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                          {grupo.vacios.length > 0 && (
+                            <div
+                              className="grid gap-2"
+                              style={{
+                                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+                              }}
+                            >
+                              {grupo.vacios.map((eco) => {
+                                const { dropHandlers, dropActive } = ecoDrop(eco);
+                                return (
+                                  <div
+                                    key={eco.id}
+                                    {...dropHandlers}
+                                    className={`rounded-full transition-colors ${
+                                      dropActive ? "ring-2 ring-accent/60 bg-accent/5" : ""
+                                    }`}
+                                  >
+                                    <NodoTitulo
+                                      fill
+                                      label={eco.nombre}
+                                      dragProps={
+                                        onAsignarEcosistemaABioma
+                                          ? dragEcosistema.dragHandlers(eco.id)
+                                          : undefined
+                                      }
+                                      onClick={() => abrirPanel("ecosistema", eco.id)}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   );
-                })}
-              </div>
-            : // Sin biomas cargados: comportamiento anterior, un único
-              // masonry plano de todos los ecosistemas con contenido, más
-              // los vacíos como chips.
+                };
+
+                // Con planetas: Planeta → Bioma → Ecosistema
+                if (planetas.length > 0 && biomaIdsDePlaneta) {
+                  const biomasAsignadosIds = new Set(
+                    planetas.flatMap((p) => biomaIdsDePlaneta(p.id)),
+                  );
+                  const planetasConBiomas = planetas
+                    .map((planeta) => {
+                      const biomaIds = new Set(biomaIdsDePlaneta(planeta.id));
+                      return {
+                        planeta,
+                        grupos: gruposBioma.filter(
+                          (g) => g.key !== "__sin_bioma__" && biomaIds.has(g.key),
+                        ),
+                      };
+                    })
+                    .filter((p) => p.grupos.length > 0);
+                  const gruposSinPlaneta = gruposBioma.filter(
+                    (g) => g.key === "__sin_bioma__" || !biomasAsignadosIds.has(g.key),
+                  );
+
+                  return (
+                    <div className="flex flex-col gap-10">
+                      {planetasConBiomas.map(({ planeta, grupos }) => (
+                        <div key={planeta.id} className="flex flex-col gap-5">
+                          {/* ── Separador con nombre de planeta ── */}
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-px flex-1"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                            />
+                            <span className="text-micro font-black uppercase tracking-[0.2em] px-2"
+                              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}>
+                              {planeta.nombre}
+                            </span>
+                            <div
+                              className="h-px flex-1"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                            />
+                          </div>
+                          {/* ── Biomas del planeta ── */}
+                          <div
+                            className={
+                              usaModeloHabitats
+                                ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 items-start"
+                                : "flex flex-col gap-8"
+                            }
+                          >
+                            {grupos.map((g) => renderGrupoBioma(g))}
+                          </div>
+                        </div>
+                      ))}
+                      {gruposSinPlaneta.length > 0 && (
+                        <div className="flex flex-col gap-5">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-px flex-1"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                            />
+                            <span className="text-micro font-black uppercase tracking-[0.2em] px-2"
+                              style={{ color: "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
+                              Sin planeta
+                            </span>
+                            <div
+                              className="h-px flex-1"
+                              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+                            />
+                          </div>
+                          <div
+                            className={
+                              usaModeloHabitats
+                                ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 items-start"
+                                : "flex flex-col gap-8"
+                            }
+                          >
+                            {gruposSinPlaneta.map((g) => renderGrupoBioma(g))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Sin planetas: comportamiento anterior
+                return (
+                  <div
+                    className={
+                      usaModeloHabitats
+                        ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 items-start"
+                        : "flex flex-col gap-8"
+                    }
+                  >
+                    {gruposBioma.map((g) => renderGrupoBioma(g))}
+                  </div>
+                );
+              })()
+            : // Sin biomas cargados: masonry plano de todos los ecosistemas
               <>
                 {hayEcosistemasConCriaturas && (
                   <div className="flex items-start gap-6">
