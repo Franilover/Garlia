@@ -19,7 +19,7 @@ import React, {
   useEffect, useMemo, useRef, useState, useCallback,
 } from "react";
 import {
-  Loader2, ZoomIn, ZoomOut, RotateCcw, Globe, Orbit, ChevronDown,
+  Loader2, ZoomIn, ZoomOut, RotateCcw, Globe, ChevronDown,
 } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -108,8 +108,6 @@ function escalarRadio(
 
 // ── Componente ─────────────────────────────────────────────────────────────
 
-type Modo = "2d" | "3d";
-
 export function SistemaSolarSection() {
   const [sistemas, setSistemas] = useState<SistemaSolar[]>([]);
   const [sistemaId, setSistemaId] = useState<string | null>(null);
@@ -121,7 +119,7 @@ export function SistemaSolarSection() {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [modo, setModo] = useState<Modo>("2d");
+
   const [tiempo, setTiempo] = useState(0);
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -244,10 +242,6 @@ export function SistemaSolarSection() {
 
   // ── Animación 3D ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (modo !== "3d") {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      return;
-    }
     let last = performance.now();
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
@@ -257,7 +251,7 @@ export function SistemaSolarSection() {
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [modo]);
+  }, []);
 
   // ── Derivados ─────────────────────────────────────────────────────────
   const planetas = useMemo(
@@ -353,11 +347,16 @@ export function SistemaSolarSection() {
     };
   }
 
+  // Ángulo de vista global que aplana todas las órbitas para dar perspectiva.
+  // Se suma a la inclinación propia del planeta. 75° = muy plano, 60° = equilibrio visual.
+  const VIEW_TILT = (72 * Math.PI) / 180;
+
   function pos3D(p: CuerpoConFisica): { x: number; y: number; z: number } {
     if (p.distancia_au == null) return { x: CENTER_X, y: CENTER_Y, z: 0 };
     const logD = distanciasLog[p.id] ?? 0;
     const r = (logD / maxDistLog) * (SVG_W / 2 - 70);
-    const inc = (p.inclinacion_grados * Math.PI) / 180;
+    // Inclinación total = perspectiva de vista + inclinación orbital propia del planeta
+    const inc = VIEW_TILT + (p.inclinacion_grados * Math.PI) / 180;
     const periodo = p.periodo_orbital_dias ?? 365.25 * Math.pow(p.distancia_au, 1.5);
     const angulo =
       ((p.angulo_inicio_grados * Math.PI) / 180) +
@@ -640,11 +639,11 @@ export function SistemaSolarSection() {
 
     return (
       <g transform={transform}>
-        {/* Plano del disco */}
+        {/* Plano del disco — mismo aplanamiento que las órbitas */}
         <ellipse
           cx={sx} cy={sy}
           rx={(SVG_W / 2 - 60) * 0.98}
-          ry={(SVG_W / 2 - 60) * 0.98 * 0.18}
+          ry={(SVG_W / 2 - 60) * 0.98 * Math.cos(VIEW_TILT)}
           fill="none"
           stroke="color-mix(in srgb, var(--primary) 4%, transparent)"
           strokeWidth={1}
@@ -655,8 +654,10 @@ export function SistemaSolarSection() {
           if (!p.distancia_au) return null;
           const logD = distanciasLog[p.id] ?? 0;
           const r = (logD / maxDistLog) * (SVG_W / 2 - 70);
-          const inc = (p.inclinacion_grados * Math.PI) / 180;
-          const ry = r * Math.cos(inc) * 0.25;
+          // Mismo inc que pos3D: VIEW_TILT + inclinación propia
+          const inc = VIEW_TILT + (p.inclinacion_grados * Math.PI) / 180;
+          // ry = r * cos(inc) coincide exactamente con la trayectoria de pos3D
+          const ry = r * Math.cos(inc);
           const isHov = hoveredId === p.id || (lunasPorPadre[p.id] ?? []).some((l) => hoveredId === l.id);
           return (
             <ellipse key={`orbit3d-${p.id}`}
@@ -856,36 +857,7 @@ export function SistemaSolarSection() {
 
         {/* Derecha: modo + zoom */}
         <div className="flex items-center gap-2">
-          <div
-            className="flex items-center gap-0.5 p-0.5 rounded-lg"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-              border: "var(--border-width, 1px) solid color-mix(in srgb, var(--primary) 10%, transparent)",
-            }}
-          >
-            <button
-              onClick={() => setModo("2d")}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all"
-              style={{
-                background: modo === "2d" ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
-                color: modo === "2d" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            >
-              <Globe size={11} /> 2D
-            </button>
-            <button
-              onClick={() => { setModo("3d"); resetView(); }}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-micro font-black uppercase tracking-widest transition-all"
-              style={{
-                background: modo === "3d" ? "color-mix(in srgb, var(--primary) 14%, transparent)" : "transparent",
-                color: modo === "3d" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
-              }}
-            >
-              <Orbit size={11} /> 3D
-            </button>
-          </div>
 
-          <div className="w-px h-4 bg-primary/10" />
 
           <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors" title="Acercar">
@@ -957,7 +929,7 @@ export function SistemaSolarSection() {
               />
             ))}
 
-            {modo === "2d" ? render2D() : render3D()}
+            {render3D()}
           </svg>
         )}
 
@@ -981,7 +953,7 @@ export function SistemaSolarSection() {
 
         {!hoveredId && !loading && planetas.length > 0 && (
           <p className="absolute top-3 right-4 text-micro text-primary/12 pointer-events-none">
-            {modo === "3d" ? "Órbitas animadas · " : ""}Arrastrá · scroll zoom · click para detalles
+            Órbitas animadas · Arrastrá · scroll zoom · click para detalles
           </p>
         )}
       </div>
