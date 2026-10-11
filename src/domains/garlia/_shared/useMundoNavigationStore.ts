@@ -44,7 +44,8 @@ export type SectionKey =
   | "mapa"
   | "linea-tiempo"
   | "aventura"
-  | "auditoria";
+  | "auditoria"
+  | "sistema-solar";
 
 /** Una pestaña de entidad abierta: sección + id puntual. */
 export interface MundoTab {

@@ -29,6 +29,7 @@ import {
   Upload,
   Wand2,
   Gamepad2,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -882,6 +883,14 @@ const Navbar = () => {
       icon: Compass,
       active: isGarliaeditor && mundoSection === "aventura",
       onSelect: () => mundoSelectSection("aventura"),
+    },
+    { key: "div-4", divider: true },
+    {
+      key: "sistema-solar",
+      label: "Sistema Solar",
+      icon: Globe,
+      active: isGarliaeditor && mundoSection === "sistema-solar",
+      onSelect: () => mundoSelectSection("sistema-solar"),
     },
   ];
 

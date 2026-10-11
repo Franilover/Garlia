@@ -80,6 +80,11 @@ const AuditoriaSection = lazy(() =>
     default: m.AuditoriaSection,
   })),
 );
+const SistemaSolarSection = lazy(() =>
+  import("@/domains/garlia/cosmologia/SistemaSolarSection").then((m) => ({
+    default: m.SistemaSolarSection,
+  })),
+);
 
 function SectionFallback() {
   return (
@@ -144,6 +149,8 @@ function ActiveSection() {
       return <LineaTiempoSection />;
     case "aventura":
       return <AventuraSection />;
+    case "sistema-solar":
+      return <SistemaSolarSection />;
     default: {
       // Chequeo de exhaustividad: si TypeScript se queja acá de que
       // `section` no es `never`, significa que se agregó un SectionKey
