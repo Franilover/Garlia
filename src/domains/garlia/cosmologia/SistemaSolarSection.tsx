@@ -3,31 +3,38 @@
 /**
  * SistemaSolarSection
  * ───────────────────────────────────────────────────────────────────────────
- * Dos modos de visualización del sistema solar de Garlia:
+ * Dropdown para seleccionar sistema solar → carga cuerpos del sistema elegido.
  *
- *  MODO 2D — fila horizontal legible, escala logarítmica para separar planetas
- *             internos. Pan + zoom via <g transform>. Click abre panel.
+ *  MODO 2D — fila horizontal legible, escala logarítmica.
+ *  MODO 3D SIMULADO — órbitas elípticas animadas.
  *
- *  MODO 3D SIMULADO — órbitas elípticas inclinadas alrededor de la estrella,
- *             animadas en el tiempo. Cada planeta gira según su periodo orbital.
- *             La inclinación y ángulo de inicio vienen de cuerpo_celeste_visual_v1.
- *
- * Config visual (escala, inclinación, ángulo) → tabla cuerpo_celeste_visual_v1
- * Física (semieje_mayor_orbital en metros, radio_km, temperatura) → valores_fisicos
- * Magnitudes → magnitudes_fisicas
+ * Tablas:
+ *   sistemas_solares_v1             → lista de sistemas
+ *   cuerpos_celestes_v1             → filtrado por sistema_solar_id
+ *   cuerpo_celeste_visual_v1        → escala/inclinación/ángulo
+ *   valores_fisicos + magnitudes_fisicas → física
  */
 
 import React, {
   useEffect, useMemo, useRef, useState, useCallback,
 } from "react";
 import {
-  Loader2, ZoomIn, ZoomOut, RotateCcw, Globe, Orbit,
+  Loader2, ZoomIn, ZoomOut, RotateCcw, Globe, Orbit, ChevronDown,
 } from "lucide-react";
 
 import { supabase } from "@/infra/supabase/supabase";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
+
+type SistemaSolar = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  tipo: string;
+  canon: boolean;
+  orden: number;
+};
 
 type CuerpoCeleste = {
   id: string;
@@ -50,7 +57,6 @@ type CuerpoConFisica = CuerpoCeleste & {
   radio_km: number | null;
   temperatura_k: number | null;
   periodo_orbital_dias: number | null;
-  // visual
   escala_visual: number;
   inclinacion_grados: number;
   angulo_inicio_grados: number;
@@ -61,7 +67,11 @@ type CuerpoConFisica = CuerpoCeleste & {
 function colorDeCuerpo(c: CuerpoConFisica): string {
   const tipo = c.tipo_cuerpo ?? "";
   const nombre = c.nombre.toLowerCase();
-  if (tipo === "estrella") return "#FFD580";
+  if (tipo === "estrella") {
+    // Distinguir estrellas en sistemas binarios por nombre
+    if (nombre.includes("minor") || nombre.includes("menor") || nombre.includes("b")) return "#FF9055";
+    return "#FFD580";
+  }
   if (nombre === "vérun" || nombre === "verun") return "#E8856A";
   if (nombre === "arath") return "#D4A96A";
   if (nombre === "garlia") return "#6AAED4";
@@ -101,30 +111,65 @@ function escalarRadio(
 type Modo = "2d" | "3d";
 
 export function SistemaSolarSection() {
+  const [sistemas, setSistemas] = useState<SistemaSolar[]>([]);
+  const [sistemaId, setSistemaId] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cuerpos, setCuerpos] = useState<CuerpoConFisica[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSistemas, setLoadingSistemas] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [modo, setModo] = useState<Modo>("2d");
-  const [tiempo, setTiempo] = useState(0); // días simulados para modo 3D
+  const [tiempo, setTiempo] = useState(0);
   const dragStart = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const rafRef = useRef<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
-  // ── Carga ──────────────────────────────────────────────────────────────
-
+  // ── Cerrar dropdown al click fuera ────────────────────────────────────
   useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ── Carga sistemas solares ─────────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      setLoadingSistemas(true);
+      const { data } = await supabase
+        .from("sistemas_solares_v1")
+        .select("id, nombre, descripcion, tipo, canon, orden")
+        .order("orden");
+      if (data && data.length > 0) {
+        setSistemas(data as SistemaSolar[]);
+        setSistemaId(data[0].id); // seleccionar el primero por defecto
+      }
+      setLoadingSistemas(false);
+    })();
+  }, []);
+
+  // ── Carga cuerpos del sistema seleccionado ─────────────────────────────
+  useEffect(() => {
+    if (!sistemaId) return;
     let cancelado = false;
     (async () => {
       setLoading(true);
+      setCuerpos([]);
 
       const { data: rawCuerpos, error: e1 } = await supabase
         .from("cuerpos_celestes_v1")
-        .select("id, nombre, tipo_cuerpo, cuerpo_principal_id, descripcion, canon");
+        .select("id, nombre, tipo_cuerpo, cuerpo_principal_id, descripcion, canon")
+        .eq("sistema_solar_id", sistemaId);
+
       if (e1 || !rawCuerpos || cancelado) { setLoading(false); return; }
 
       const ids = rawCuerpos.map((c: any) => c.id);
@@ -146,19 +191,16 @@ export function SistemaSolarSection() {
 
       if (cancelado) return;
 
-      // magMap: id → clave
       const magMap: Record<string, string> = {};
       for (const m of magnitudes ?? []) {
         magMap[m.id] = m.clave ?? m.nombre?.toLowerCase().replace(/\s+/g, "_") ?? "";
       }
 
-      // visualMap: id → config
       const visualMap: Record<string, VisualConfig> = {};
       for (const v of rawVisual ?? []) {
         visualMap[v.cuerpo_celeste_id] = v as VisualConfig;
       }
 
-      // valoresPorEntidad
       const AU_M = 149_597_870_700;
       const valoresPorEntidad: Record<string, Record<string, number>> = {};
       for (const v of rawValores ?? []) {
@@ -178,7 +220,7 @@ export function SistemaSolarSection() {
           (vals["longitud"] != null ? vals["longitud"] / 1000 : null) ?? null;
         const temperatura_k = vals["temperatura"] ?? vals["temperatura_superficie_k"] ?? null;
         const periodo_orbital_dias = vals["periodo_orbital"] != null
-          ? vals["periodo_orbital"] / 86400  // si está en segundos
+          ? vals["periodo_orbital"] / 86400
           : null;
 
         return {
@@ -194,13 +236,13 @@ export function SistemaSolarSection() {
       });
 
       setCuerpos(combinados);
+      resetView();
       setLoading(false);
     })();
     return () => { cancelado = true; };
-  }, []);
+  }, [sistemaId]);
 
   // ── Animación 3D ──────────────────────────────────────────────────────
-
   useEffect(() => {
     if (modo !== "3d") {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -208,9 +250,8 @@ export function SistemaSolarSection() {
     }
     let last = performance.now();
     const tick = (now: number) => {
-      const dt = (now - last) / 1000; // segundos reales
+      const dt = (now - last) / 1000;
       last = now;
-      // 1 segundo real = 2 días simulados (velocidad cómoda para ver orbitar)
       setTiempo((t) => t + dt * 2);
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -219,7 +260,6 @@ export function SistemaSolarSection() {
   }, [modo]);
 
   // ── Derivados ─────────────────────────────────────────────────────────
-
   const planetas = useMemo(
     () => cuerpos
       .filter((c) => c.tipo_cuerpo === "planeta" || c.tipo_cuerpo === "estrella")
@@ -230,25 +270,20 @@ export function SistemaSolarSection() {
     () => cuerpos.filter((c) => c.tipo_cuerpo === "satelite"),
     [cuerpos],
   );
-  const cinturones = useMemo(
-    () => cuerpos.filter((c) => c.tipo_cuerpo === "otro"),
-    [cuerpos],
-  );
   const allRadios = useMemo(
     () => planetas.filter((c) => c.tipo_cuerpo === "planeta")
       .map((c) => c.radio_km ?? 0).filter(Boolean),
     [planetas],
   );
-  const estrella = useMemo(() => planetas.find((c) => c.tipo_cuerpo === "estrella"), [planetas]);
+  const estrellas = useMemo(() => planetas.filter((c) => c.tipo_cuerpo === "estrella"), [planetas]);
   const soloPlanetas = useMemo(() => planetas.filter((c) => c.tipo_cuerpo === "planeta"), [planetas]);
+  const sistemaActual = useMemo(() => sistemas.find((s) => s.id === sistemaId), [sistemas, sistemaId]);
+  const esBinario = estrellas.length > 1;
 
-  // Distancias visuales en 2D: escala logarítmica aplicada a la distancia AU * escala_visual
-  // Normalizado al espacio disponible
   const distanciasLog = useMemo(() => {
     const map: Record<string, number> = {};
     for (const p of soloPlanetas) {
       if (p.distancia_au == null) continue;
-      // log(1 + AU * escala_visual) — garantiza que 0 AU → 0
       map[p.id] = Math.log1p(p.distancia_au * p.escala_visual);
     }
     return map;
@@ -259,53 +294,52 @@ export function SistemaSolarSection() {
     [distanciasLog],
   );
 
-  // Dimensiones SVG fijas
   const SVG_W = 1200;
   const SVG_H = 480;
   const CENTER_X = SVG_W / 2;
   const CENTER_Y = SVG_H / 2;
 
-  // ── Posiciones 2D ─────────────────────────────────────────────────────
+  // ── Posiciones ────────────────────────────────────────────────────────
 
   function xPlaneta2D(p: CuerpoConFisica): number {
     const logD = distanciasLog[p.id] ?? 0;
     return CENTER_X + (logD / maxDistLog) * (SVG_W / 2 - 70);
   }
 
-  function xEstrella2D(): number {
-    return CENTER_X - (SVG_W / 2 - 70) * 0.04;
+  // Para binario: las estrellas se colocan simétricamente en el centro
+  function posEstrellas2D(): Array<{ estrella: CuerpoConFisica; x: number; y: number }> {
+    if (estrellas.length === 0) return [];
+    if (estrellas.length === 1) {
+      return [{ estrella: estrellas[0], x: CENTER_X - (SVG_W / 2 - 70) * 0.04, y: CENTER_Y }];
+    }
+    // Binario: dos estrellas separadas horizontalmente
+    const sep = STAR_R * 3.5;
+    return estrellas.map((e, i) => ({
+      estrella: e,
+      x: CENTER_X - sep + i * sep * 2,
+      y: CENTER_Y + (i === 0 ? -8 : 8),
+    }));
   }
-
-  // ── Posiciones 3D simulado ─────────────────────────────────────────────
 
   function pos3D(p: CuerpoConFisica): { x: number; y: number; z: number } {
     if (p.distancia_au == null) return { x: CENTER_X, y: CENTER_Y, z: 0 };
-    // radio orbital visual (log) — igual que 2D para consistencia
     const logD = distanciasLog[p.id] ?? 0;
     const r = (logD / maxDistLog) * (SVG_W / 2 - 70);
-
     const inc = (p.inclinacion_grados * Math.PI) / 180;
-    // velocidad angular: si hay periodo_orbital_dias usarlo, sino proporcional a sqrt(1/AU³) (Kepler)
-    const periodo = p.periodo_orbital_dias
-      ?? 365.25 * Math.pow(p.distancia_au, 1.5);
+    const periodo = p.periodo_orbital_dias ?? 365.25 * Math.pow(p.distancia_au, 1.5);
     const angulo =
       ((p.angulo_inicio_grados * Math.PI) / 180) +
       (tiempo / periodo) * 2 * Math.PI;
-
-    // Posición en el plano orbital
     const xOrb = r * Math.cos(angulo);
     const yOrb = r * Math.sin(angulo);
-
-    // Proyección con inclinación (rotación en X)
-    const x3 = CENTER_X + xOrb;
-    const y3 = CENTER_Y + yOrb * Math.cos(inc);
-    const z3 = yOrb * Math.sin(inc); // usado para tamaño/opacidad
-
-    return { x: x3, y: y3, z: z3 };
+    return {
+      x: CENTER_X + xOrb,
+      y: CENTER_Y + yOrb * Math.cos(inc),
+      z: yOrb * Math.sin(inc),
+    };
   }
 
   // ── Interacción ────────────────────────────────────────────────────────
-
   const hovered = hoveredId ? cuerpos.find((c) => c.id === hoveredId) : null;
 
   function onMouseDown(e: React.MouseEvent) {
@@ -321,39 +355,29 @@ export function SistemaSolarSection() {
     });
   }
   function onMouseUp() { setDragging(false); dragStart.current = null; }
-
   function onWheel(e: React.WheelEvent) {
     e.preventDefault();
     setZoom((z) => Math.min(4, Math.max(0.5, z + (e.deltaY > 0 ? -0.1 : 0.1))));
   }
-
   function resetView() { setZoom(1); setOffset({ x: 0, y: 0 }); }
 
   const transform = `translate(${CENTER_X + offset.x}, ${CENTER_Y + offset.y}) scale(${zoom}) translate(${-CENTER_X}, ${-CENTER_Y})`;
 
   // ── Render guards ──────────────────────────────────────────────────────
-
-  if (loading) {
+  if (loadingSistemas) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="animate-spin text-primary/30" size={24} />
       </div>
     );
   }
-  if (planetas.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-primary/30 text-sm">
-        No hay cuerpos celestes en Supabase aún.
-      </div>
-    );
-  }
 
-  // ── SVG helpers compartidos ────────────────────────────────────────────
+  // ── SVG helpers ────────────────────────────────────────────────────────
 
-  function renderEstrella(sx: number, sy: number) {
-    if (!estrella) return null;
+  function renderEstrella(estrella: CuerpoConFisica, sx: number, sy: number) {
     const r = STAR_R;
     const isHov = hoveredId === estrella.id;
+    const color = colorDeCuerpo(estrella);
     return (
       <g
         key={estrella.id}
@@ -363,12 +387,12 @@ export function SistemaSolarSection() {
         onMouseLeave={() => setHoveredId(null)}
         onClick={() => abrirPanel("planeta", estrella.id)}
       >
-        <circle cx={sx} cy={sy} r={r * 2.4} fill="#FFD58008" />
-        <circle cx={sx} cy={sy} r={r * 1.6} fill="#FFD58014" />
+        <circle cx={sx} cy={sy} r={r * 2.4} fill={`${color}08`} />
+        <circle cx={sx} cy={sy} r={r * 1.6} fill={`${color}14`} />
         <circle
           cx={sx} cy={sy}
           r={isHov ? r * 1.12 : r}
-          fill={colorDeCuerpo(estrella)}
+          fill={color}
           filter="url(#glow-star)"
           style={{ transition: "r 0.2s" }}
         />
@@ -384,11 +408,7 @@ export function SistemaSolarSection() {
     );
   }
 
-  function renderPlaneta(
-    planeta: CuerpoConFisica,
-    px: number, py: number,
-    extraScale = 1,
-  ) {
+  function renderPlaneta(planeta: CuerpoConFisica, px: number, py: number, extraScale = 1) {
     const r = escalarRadio(planeta.radio_km, planeta.tipo_cuerpo, allRadios) * extraScale;
     const isHov = hoveredId === planeta.id;
     const color = colorDeCuerpo(planeta);
@@ -401,9 +421,7 @@ export function SistemaSolarSection() {
         onMouseLeave={() => setHoveredId(null)}
         onClick={() => abrirPanel("planeta", planeta.id)}
       >
-        {isHov && (
-          <circle cx={px} cy={py} r={r * 2.8} fill={`${color}12`} />
-        )}
+        {isHov && <circle cx={px} cy={py} r={r * 2.8} fill={`${color}12`} />}
         <circle
           cx={px} cy={py}
           r={isHov ? r * 1.12 : r}
@@ -415,11 +433,9 @@ export function SistemaSolarSection() {
           x={px} y={py + r + (isHov ? 16 : 13)}
           textAnchor="middle"
           fontSize={isHov ? 10 : 9}
-          fill={
-            isHov
-              ? "color-mix(in srgb, var(--primary) 72%, transparent)"
-              : "color-mix(in srgb, var(--primary) 38%, transparent)"
-          }
+          fill={isHov
+            ? "color-mix(in srgb, var(--primary) 72%, transparent)"
+            : "color-mix(in srgb, var(--primary) 38%, transparent)"}
           fontWeight="900" fontFamily="inherit" letterSpacing="0.04em"
           style={{ transition: "font-size 0.15s, fill 0.15s" }}
         >
@@ -442,60 +458,60 @@ export function SistemaSolarSection() {
   // ── MODO 2D ────────────────────────────────────────────────────────────
 
   function render2D() {
-    const sx = xEstrella2D();
+    const posEstr = posEstrellas2D();
+    const refX = posEstr.length > 0 ? posEstr[0].x : CENTER_X;
 
     return (
       <g transform={transform}>
         {/* Línea eclíptica */}
         <line
-          x1={sx - 20} y1={CENTER_Y}
+          x1={refX - 20} y1={CENTER_Y}
           x2={xPlaneta2D(soloPlanetas[soloPlanetas.length - 1] ?? soloPlanetas[0]) + 70}
           y2={CENTER_Y}
           stroke="color-mix(in srgb, var(--primary) 5%, transparent)"
           strokeWidth={1} strokeDasharray="4 8"
         />
 
-        {/* Ticks de AU debajo */}
+        {/* Línea entre estrellas binarias */}
+        {esBinario && posEstr.length === 2 && (
+          <line
+            x1={posEstr[0].x} y1={posEstr[0].y}
+            x2={posEstr[1].x} y2={posEstr[1].y}
+            stroke="color-mix(in srgb, #FFD580 12%, transparent)"
+            strokeWidth={1} strokeDasharray="3 5"
+          />
+        )}
+
+        {/* Ticks de AU */}
         {[0.5, 1, 2, 5, 10, 20].map((au) => {
           const logD = Math.log1p(au);
           if (logD > maxDistLog) return null;
           const x = CENTER_X + (logD / maxDistLog) * (SVG_W / 2 - 70);
           return (
             <g key={au}>
-              <line
-                x1={x} y1={CENTER_Y + 2}
-                x2={x} y2={CENTER_Y + 8}
-                stroke="color-mix(in srgb, var(--primary) 14%, transparent)"
-                strokeWidth={1}
-              />
-              <text
-                x={x} y={CENTER_Y + 18}
-                textAnchor="middle" fontSize={7}
+              <line x1={x} y1={CENTER_Y + 2} x2={x} y2={CENTER_Y + 8}
+                stroke="color-mix(in srgb, var(--primary) 14%, transparent)" strokeWidth={1} />
+              <text x={x} y={CENTER_Y + 18} textAnchor="middle" fontSize={7}
                 fill="color-mix(in srgb, var(--primary) 20%, transparent)"
-                fontFamily="var(--font-mono, monospace)"
-              >
+                fontFamily="var(--font-mono, monospace)">
                 {au} AU
               </text>
             </g>
           );
         })}
 
-        {/* Órbitas (líneas verticales delgadas hacia la eclíptica) */}
-        {soloPlanetas.map((p) => {
+        {/* Ticks de órbita hacia planetas */}
+        {soloPlanetas.map((p, i) => {
           const px = xPlaneta2D(p);
           const r = escalarRadio(p.radio_km, p.tipo_cuerpo, allRadios);
-          const orbitInc = (soloPlanetas.indexOf(p) % 3 - 1) * 10;
+          const orbitInc = (i % 3 - 1) * 10;
           const py = CENTER_Y + orbitInc;
           return (
-            <line
-              key={`tick-${p.id}`}
-              x1={px} y1={CENTER_Y}
-              x2={px} y2={py + r + 2}
-              stroke={
-                hoveredId === p.id
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 8%, transparent)"
-              }
+            <line key={`tick-${p.id}`}
+              x1={px} y1={CENTER_Y} x2={px} y2={py + r + 2}
+              stroke={hoveredId === p.id
+                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                : "color-mix(in srgb, var(--primary) 8%, transparent)"}
               strokeWidth={hoveredId === p.id ? 1.2 : 0.7}
               strokeDasharray="3 4"
               style={{ transition: "stroke 0.2s" }}
@@ -503,8 +519,8 @@ export function SistemaSolarSection() {
           );
         })}
 
-        {/* Estrella */}
-        {renderEstrella(sx, CENTER_Y)}
+        {/* Estrellas */}
+        {posEstr.map(({ estrella, x, y }) => renderEstrella(estrella, x, y))}
 
         {/* Planetas */}
         {soloPlanetas.map((p, i) => {
@@ -526,26 +542,18 @@ export function SistemaSolarSection() {
           const ly = py + Math.sin(angle) * orbitR * 0.5;
           const isHov = hoveredId === s.id;
           return (
-            <g
-              key={s.id} data-cuerpo="true"
-              style={{ cursor: "pointer" }}
+            <g key={s.id} data-cuerpo="true" style={{ cursor: "pointer" }}
               onMouseEnter={() => setHoveredId(s.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={() => abrirPanel("planeta", s.id)}
             >
-              <circle
-                cx={lx} cy={ly}
-                r={isHov ? MOON_R + 1.5 : MOON_R}
+              <circle cx={lx} cy={ly} r={isHov ? MOON_R + 1.5 : MOON_R}
                 fill={colorDeCuerpo(s)} opacity={isHov ? 1 : 0.65}
-                style={{ transition: "r 0.15s" }}
-              />
+                style={{ transition: "r 0.15s" }} />
               {isHov && (
-                <text
-                  x={lx} y={ly - MOON_R - 4}
-                  textAnchor="middle" fontSize={7}
+                <text x={lx} y={ly - MOON_R - 4} textAnchor="middle" fontSize={7}
                   fill="color-mix(in srgb, var(--primary) 60%, transparent)"
-                  fontWeight="700" fontFamily="inherit"
-                >
+                  fontWeight="700" fontFamily="inherit">
                   {s.nombre}
                 </text>
               )}
@@ -562,15 +570,13 @@ export function SistemaSolarSection() {
     const sx = CENTER_X;
     const sy = CENTER_Y;
 
-    // Ordenar planetas por z para pintar los más lejanos primero (painter's algorithm)
     const planetasConPos = soloPlanetas
       .filter((p) => p.distancia_au != null)
       .map((p) => ({ p, pos: pos3D(p) }))
-      .sort((a, b) => a.pos.z - b.pos.z); // z negativo = "detrás"
+      .sort((a, b) => a.pos.z - b.pos.z);
 
     return (
       <g transform={transform}>
-        {/* Plano del disco del sistema solar (elipse grande de fondo) */}
         <ellipse
           cx={sx} cy={sy}
           rx={(SVG_W / 2 - 60) * 0.98}
@@ -580,26 +586,20 @@ export function SistemaSolarSection() {
           strokeWidth={1}
         />
 
-        {/* Órbitas elípticas inclinadas */}
         {soloPlanetas.map((p) => {
           if (!p.distancia_au) return null;
           const logD = distanciasLog[p.id] ?? 0;
           const r = (logD / maxDistLog) * (SVG_W / 2 - 70);
           const inc = (p.inclinacion_grados * Math.PI) / 180;
-          // Proyección de la elipse con inclinación
           const ry = r * Math.cos(inc) * 0.25;
           const isHov = hoveredId === p.id;
           return (
-            <ellipse
-              key={`orbit3d-${p.id}`}
-              cx={sx} cy={sy}
-              rx={r} ry={Math.max(ry, 4)}
+            <ellipse key={`orbit3d-${p.id}`}
+              cx={sx} cy={sy} rx={r} ry={Math.max(ry, 4)}
               fill="none"
-              stroke={
-                isHov
-                  ? "color-mix(in srgb, var(--primary) 22%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 8%, transparent)"
-              }
+              stroke={isHov
+                ? "color-mix(in srgb, var(--primary) 22%, transparent)"
+                : "color-mix(in srgb, var(--primary) 8%, transparent)"}
               strokeWidth={isHov ? 1.2 : 0.7}
               strokeDasharray={isHov ? "none" : "4 6"}
               style={{ transition: "stroke 0.2s" }}
@@ -607,12 +607,16 @@ export function SistemaSolarSection() {
           );
         })}
 
-        {/* Estrella */}
-        {renderEstrella(sx, sy)}
+        {/* En binario, renderizar ambas estrellas */}
+        {esBinario
+          ? estrellas.map((e, i) => {
+              const offX = i === 0 ? -STAR_R * 2 : STAR_R * 2;
+              return renderEstrella(e, sx + offX, sy);
+            })
+          : estrellas.map((e) => renderEstrella(e, sx, sy))
+        }
 
-        {/* Planetas ordenados por z */}
         {planetasConPos.map(({ p, pos }) => {
-          // Escala sutil por profundidad: planetas detrás ligeramente más pequeños
           const depthScale = 0.85 + 0.15 * ((pos.z + SVG_W / 2) / SVG_W);
           return renderPlaneta(p, pos.x, pos.y, depthScale);
         })}
@@ -630,25 +634,113 @@ export function SistemaSolarSection() {
         className="shrink-0 flex items-center justify-between px-6 py-3 border-b"
         style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
-        <div className="flex items-center gap-2">
+        {/* Izquierda: dropdown de sistema */}
+        <div className="flex items-center gap-3">
           <Globe size={13} className="text-primary/40" />
-          <p className="text-micro font-black uppercase tracking-[0.18em] text-primary/40">
-            Sistema Solar
-          </p>
-          <span className="text-micro text-primary/20 ml-2">
-            {soloPlanetas.length} planeta{soloPlanetas.length !== 1 ? "s" : ""}
-            {satelites.length > 0 && ` · ${satelites.length} satélite${satelites.length !== 1 ? "s" : ""}`}
+
+          {/* Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setDropdownOpen((v) => !v)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all"
+              style={{
+                background: dropdownOpen
+                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
+                  : "color-mix(in srgb, var(--primary) 5%, transparent)",
+                border: "var(--border-width, 1px) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <span className="text-micro font-black uppercase tracking-[0.18em] text-primary/70">
+                {sistemaActual?.nombre ?? "Sistema Solar"}
+              </span>
+              {sistemaActual && !sistemaActual.canon && (
+                <span
+                  className="text-micro font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                  style={{
+                    background: "color-mix(in srgb, #F59E0B 15%, transparent)",
+                    color: "#F59E0B",
+                    fontSize: "7px",
+                  }}
+                >
+                  TEST
+                </span>
+              )}
+              <ChevronDown
+                size={11}
+                className="text-primary/40 transition-transform"
+                style={{ transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              />
+            </button>
+
+            {/* Panel dropdown */}
+            {dropdownOpen && (
+              <div
+                className="absolute left-0 top-full mt-1.5 min-w-[220px] rounded-xl overflow-hidden z-50"
+                style={{
+                  background: "var(--bg-main)",
+                  border: "var(--border-width, 1px) solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  boxShadow: "var(--shadow-card, 0 4px 24px rgba(0,0,0,0.18))",
+                }}
+              >
+                {sistemas.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSistemaId(s.id); setDropdownOpen(false); }}
+                    className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-primary/5"
+                    style={{
+                      background: s.id === sistemaId
+                        ? "color-mix(in srgb, var(--primary) 8%, transparent)"
+                        : "transparent",
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-primary/75">
+                          {s.nombre}
+                        </span>
+                        {!s.canon && (
+                          <span
+                            className="text-micro font-black uppercase px-1 py-0.5 rounded"
+                            style={{
+                              background: "color-mix(in srgb, #F59E0B 15%, transparent)",
+                              color: "#F59E0B",
+                              fontSize: "7px",
+                            }}
+                          >
+                            TEST
+                          </span>
+                        )}
+                      </div>
+                      {s.descripcion && (
+                        <p className="text-micro text-primary/35 mt-0.5 leading-relaxed line-clamp-2">
+                          {s.descripcion}
+                        </p>
+                      )}
+                    </div>
+                    {s.id === sistemaId && (
+                      <div
+                        className="w-1.5 h-1.5 rounded-full mt-1 shrink-0"
+                        style={{ background: "var(--primary)" }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <span className="text-micro text-primary/20">
+            {loading ? "..." : `${soloPlanetas.length} planeta${soloPlanetas.length !== 1 ? "s" : ""}${satelites.length > 0 ? ` · ${satelites.length} satélite${satelites.length !== 1 ? "s" : ""}` : ""}${esBinario ? " · binario" : ""}`}
           </span>
         </div>
 
+        {/* Derecha: modo + zoom */}
         <div className="flex items-center gap-2">
-
-          {/* Selector de modo */}
           <div
             className="flex items-center gap-0.5 p-0.5 rounded-lg"
             style={{
               background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-              border: "var(--border-width) solid color-mix(in srgb, var(--primary) 10%, transparent)",
+              border: "var(--border-width, 1px) solid color-mix(in srgb, var(--primary) 10%, transparent)",
             }}
           >
             <button
@@ -659,8 +751,7 @@ export function SistemaSolarSection() {
                 color: modo === "2d" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
             >
-              <Globe size={11} />
-              2D
+              <Globe size={11} /> 2D
             </button>
             <button
               onClick={() => { setModo("3d"); resetView(); }}
@@ -670,33 +761,22 @@ export function SistemaSolarSection() {
                 color: modo === "3d" ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)",
               }}
             >
-              <Orbit size={11} />
-              3D
+              <Orbit size={11} /> 3D
             </button>
           </div>
 
           <div className="w-px h-4 bg-primary/10" />
 
-          {/* Zoom */}
-          <button
-            onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
-            title="Acercar"
-          >
+          <button onClick={() => setZoom((z) => Math.min(4, z + 0.25))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors" title="Acercar">
             <ZoomIn size={13} />
           </button>
-          <button
-            onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
-            title="Alejar"
-          >
+          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors" title="Alejar">
             <ZoomOut size={13} />
           </button>
-          <button
-            onClick={resetView}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
-            title="Resetear vista"
-          >
+          <button onClick={resetView}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors" title="Resetear vista">
             <RotateCcw size={12} />
           </button>
           <span className="text-micro text-primary/20 w-8 text-center">
@@ -711,49 +791,56 @@ export function SistemaSolarSection() {
         style={{ cursor: dragging ? "grabbing" : "grab" }}
         onWheel={onWheel}
       >
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          className="w-full h-full select-none"
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-        >
-          <defs>
-            <filter id="glow-star" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="8" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-            <filter id="glow-planet" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-            <radialGradient id="space-bg" cx="50%" cy="50%" r="70%">
-              <stop offset="0%" stopColor="color-mix(in srgb, var(--primary) 4%, var(--bg-main))" />
-              <stop offset="100%" stopColor="var(--bg-main)" />
-            </radialGradient>
-          </defs>
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="animate-spin text-primary/30" size={24} />
+          </div>
+        ) : planetas.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center text-primary/30 text-sm">
+            No hay cuerpos celestes en este sistema.
+          </div>
+        ) : (
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+            className="w-full h-full select-none"
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseUp}
+          >
+            <defs>
+              <filter id="glow-star" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="8" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <filter id="glow-planet" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <radialGradient id="space-bg" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stopColor="color-mix(in srgb, var(--primary) 4%, var(--bg-main))" />
+                <stop offset="100%" stopColor="var(--bg-main)" />
+              </radialGradient>
+            </defs>
 
-          {/* Fondo fijo */}
-          <rect x={0} y={0} width={SVG_W} height={SVG_H} fill="url(#space-bg)" />
+            <rect x={0} y={0} width={SVG_W} height={SVG_H} fill="url(#space-bg)" />
 
-          {/* Estrellas decorativas fijas */}
-          {[
-            [120,80],[340,40],[580,120],[760,60],[920,100],[1080,45],
-            [200,380],[450,420],[700,390],[950,440],[1100,380],
-            [60,200],[280,260],[510,180],[730,300],[1000,220],
-          ].map(([sx,sy],i) => (
-            <circle key={i} cx={sx} cy={sy}
-              r={i % 2 === 0 ? 1 : 0.6}
-              fill="color-mix(in srgb, var(--primary) 18%, transparent)"
-            />
-          ))}
+            {[
+              [120,80],[340,40],[580,120],[760,60],[920,100],[1080,45],
+              [200,380],[450,420],[700,390],[950,440],[1100,380],
+              [60,200],[280,260],[510,180],[730,300],[1000,220],
+            ].map(([sx,sy],i) => (
+              <circle key={i} cx={sx} cy={sy}
+                r={i % 2 === 0 ? 1 : 0.6}
+                fill="color-mix(in srgb, var(--primary) 18%, transparent)"
+              />
+            ))}
 
-          {modo === "2d" ? render2D() : render3D()}
-        </svg>
+            {modo === "2d" ? render2D() : render3D()}
+          </svg>
+        )}
 
-        {/* Tooltip */}
         {hovered && hovered.descripcion && (
           <div
             className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none px-4 py-2.5 rounded-xl max-w-sm text-center"
@@ -772,8 +859,7 @@ export function SistemaSolarSection() {
           </div>
         )}
 
-        {/* Hint */}
-        {!hoveredId && (
+        {!hoveredId && !loading && planetas.length > 0 && (
           <p className="absolute top-3 right-4 text-micro text-primary/12 pointer-events-none">
             {modo === "3d" ? "Órbitas animadas · " : ""}Arrastrá · scroll zoom · click para detalles
           </p>
