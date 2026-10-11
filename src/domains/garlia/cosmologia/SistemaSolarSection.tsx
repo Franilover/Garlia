@@ -119,58 +119,49 @@ export function SistemaSolarSection() {
 
       if (e1 || !rawCuerpos || cancelado) { setLoading(false); return; }
 
-      // 2. Valores físicos (distancia_au, radio, temperatura)
+      // 2. Valores físicos
       const ids = rawCuerpos.map((c: any) => c.id);
       const { data: rawValores } = await supabase
-        .from("valores_fisicos_v1")
+        .from("valores_fisicos")
         .select("entidad_tipo, entidad_id, magnitud_id, valor, unidad_id")
         .eq("entidad_tipo", "cuerpo_celeste")
         .in("entidad_id", ids);
 
       if (cancelado) return;
 
-      // 3. Intentar cargar magnitudes desde varias tablas posibles
-      const tablasCandidatas = ["magnitudes", "magnitud", "magnitudes_v1", "fisica_magnitudes"];
-      const magMap: Record<string, string> = {};
-
-      for (const tabla of tablasCandidatas) {
-        const { data: mags, error: eMag } = await supabase
-          .from(tabla)
-          .select("id, clave, nombre");
-        if (!eMag && mags && mags.length > 0) {
-          for (const m of mags) {
-            magMap[m.id] = m.clave ?? m.nombre?.toLowerCase().replace(/\s+/g, "_") ?? "";
-          }
-          console.log(`[SistemaSolar] Tabla magnitudes encontrada: "${tabla}"`);
-          break;
-        }
-      }
+      // 3. Magnitudes
+      const { data: magnitudes } = await supabase
+        .from("magnitudes_fisicas")
+        .select("id, clave, nombre");
 
       if (cancelado) return;
+
+      const magMap: Record<string, string> = {};
+      for (const m of magnitudes ?? []) {
+        magMap[m.id] = m.clave ?? m.nombre?.toLowerCase().replace(/\s+/g, "_") ?? "";
+      }
 
       // Indexar valores por entidad
       const valoresPorEntidad: Record<string, Record<string, number>> = {};
       for (const v of rawValores ?? []) {
         if (!valoresPorEntidad[v.entidad_id]) valoresPorEntidad[v.entidad_id] = {};
-        // Si magMap está vacío, usamos el UUID crudo como clave
         const clave = magMap[v.magnitud_id] ?? v.magnitud_id;
-        valoresPorEntidad[v.entidad_id][clave] = v.valor;
+        valoresPorEntidad[v.entidad_id][clave] = Number(v.valor);
       }
-
-      // Debug: loguear claves disponibles (sean nombres o UUIDs)
-      const primeraEntidad = Object.values(valoresPorEntidad)[0];
-      console.log("[SistemaSolar] Claves magnitudes (o UUIDs si tabla no encontrada):",
-        primeraEntidad ? Object.keys(primeraEntidad) : "sin datos");
 
       // Combinar
       const combinados: CuerpoConFisica[] = rawCuerpos.map((c: any) => {
         const vals = valoresPorEntidad[c.id] ?? {};
+        // semieje_mayor_orbital está en metros → convertir a AU (1 AU = 149_597_870_700 m)
+        const AU_M = 149597870700;
         const distancia =
-          vals["distancia_au"] ?? vals["distancia"] ?? vals["semieje_mayor_au"] ?? null;
+          vals["distancia_au"] ??
+          (vals["semieje_mayor_orbital"] != null ? vals["semieje_mayor_orbital"] / AU_M : null) ??
+          null;
         const radio =
-          vals["radio_km"] ?? vals["radio"] ?? vals["radio_ecuatorial_km"] ?? null;
-        const temp =
-          vals["temperatura_superficie_k"] ?? vals["temperatura_k"] ?? vals["temperatura"] ?? null;
+          vals["radio_km"] ?? vals["radio"] ?? vals["radio_ecuatorial_km"] ??
+          (vals["longitud"] != null ? vals["longitud"] / 1000 : null) ?? null;
+        const temp = vals["temperatura"] ?? vals["temperatura_superficie_k"] ?? vals["temperatura_k"] ?? null;
 
         return {
           ...c,
