@@ -52,6 +52,8 @@ const SECTION_TABLE: Record<SectionKey, string | null> = {
   // lectura, sin openEntity("auditoria", id) en ningún lado) — mismo caso
   // que mapa/aventura.
   auditoria: null,
+  // "sistema-solar" es una vista de solo lectura, no abre pestañas puntuales.
+  "sistema-solar": null,
 };
 
 /**
