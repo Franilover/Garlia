@@ -8,11 +8,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import type {
+  EntidadPreview,
   PizarronArista,
   PizarronLienzo,
   PizarronNodo,
   TipoEntidadPizarron,
 } from "./types";
+import { TIPO_ENTIDAD_CONFIG } from "./types";
 
 // ── Lienzos ───────────────────────────────────────────────────────────────
 
@@ -202,12 +204,42 @@ export interface EntidadResultado {
 export async function buscarEntidades(
   tabla: string,
   query: string,
+  campoNombre: string = "nombre",
 ): Promise<EntidadResultado[]> {
   if (!tabla || tabla === "") return [];
   const { data } = await supabase
     .from(tabla as any)
-    .select("id, nombre")
-    .ilike("nombre", `%${query}%`)
+    .select(`id, ${campoNombre}`)
+    .ilike(campoNombre, `%${query}%`)
     .limit(12);
-  return (data ?? []).map((r: any) => ({ id: r.id, nombre: r.nombre, tabla }));
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    nombre: r[campoNombre] ?? r.nombre ?? "(sin nombre)",
+    tabla,
+  }));
+}
+
+// ── Preview de entidad individual ─────────────────────────────────────────
+/** Carga los datos de preview de una entidad por su tipo e id. */
+export async function fetchPreviewEntidad(
+  tipo: TipoEntidadPizarron,
+  entidadId: string,
+): Promise<EntidadPreview | null> {
+  const cfg = TIPO_ENTIDAD_CONFIG[tipo];
+  if (!cfg.tabla || !cfg.previewSelect) return null;
+  const { data, error } = await supabase
+    .from(cfg.tabla as any)
+    .select(cfg.previewSelect)
+    .eq("id", entidadId)
+    .single();
+  if (error || !data) return null;
+  const row = data as Record<string, unknown>;
+  const nombre = String(row[cfg.campoNombre] ?? row.titulo ?? row.nombre ?? "(sin nombre)");
+  const imagenUrl = (row.imagen_url ?? row.img_url ?? row.portada_url ?? null) as string | null;
+  return {
+    id: entidadId,
+    nombre,
+    chips: cfg.previewChips(row).slice(0, 3), // máx 3 chips
+    imagenUrl,
+  };
 }

@@ -20,17 +20,18 @@ import {
   Activity, Heart, TreePine, Globe, Gem, Flower2, Settings2,
   Sun, Circle, Leaf, Mountain, Zap, LayoutGrid, Dot, Boxes,
   Workflow, Wind, Wand2, Hexagon, BookOpen, Book, Music,
-  CalendarDays, History,
+  CalendarDays, History, Network,
 } from "lucide-react";
 import React, {
   useCallback, useEffect, useRef, useState,
 } from "react";
 import type { LucideProps } from "lucide-react";
-import { buscarEntidades, useLienzoCanvas, useLienzos } from "./usePizarron";
+import { buscarEntidades, fetchPreviewEntidad, useLienzoCanvas, useLienzos } from "./usePizarron";
 import {
   TIPO_ENTIDAD_CONFIG, SECCIONES_SELECTOR,
-  type PizarronNodo, type TipoEntidadPizarron,
+  type EntidadPreview, type PizarronNodo, type TipoEntidadPizarron,
 } from "./types";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 // ── Mapa de íconos Lucide ─────────────────────────────────────────────────
 const LUCIDE_MAP: Record<string, React.FC<LucideProps>> = {
@@ -39,7 +40,7 @@ const LUCIDE_MAP: Record<string, React.FC<LucideProps>> = {
   Activity, Heart, TreePine, Globe, Gem, Flower2, Settings2,
   Sun, Circle, Leaf, Mountain, Zap, LayoutGrid, Dot, Boxes,
   Workflow, Wind, Wand2, Hexagon, BookOpen, Book, Music,
-  CalendarDays, History,
+  CalendarDays, History, Network,
 };
 
 function EntidadIcon({ name, size = 14, style }: { name: string; size?: number; style?: React.CSSProperties }) {
@@ -59,26 +60,68 @@ function calcularPuntosBorde(origen: PizarronNodo, destino: PizarronNodo) {
 }
 
 // ── Componente de Nodo ────────────────────────────────────────────────────
-interface NodoProps {
-  nodo: PizarronNodo;
-  selected: boolean;
-  connecting: boolean;
-  isConnectSource: boolean;
-  onSelect: (id: string, e: React.MouseEvent) => void;
-  onDragStart: (id: string, e: React.MouseEvent) => void;
-  onConnectClick: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (nodo: PizarronNodo) => void;
-}
 
-function NodoCanvas({
-  nodo, selected, connecting, isConnectSource,
+/** Nodo base para texto libre — sin preview fetch */
+function NodoTexto({
+  nodo, selected, isConnectSource, connecting,
   onSelect, onDragStart, onConnectClick, onDelete, onEdit,
 }: NodoProps) {
-  const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron]
-    ?? TIPO_ENTIDAD_CONFIG.texto;
+  const accent = TIPO_ENTIDAD_CONFIG.texto.accentVar;
+  return (
+    <g
+      style={{ cursor: connecting ? "crosshair" : "grab" }}
+      transform={`translate(${nodo.x},${nodo.y})`}
+      onMouseDown={(e) => {
+        if (connecting) { onConnectClick(nodo.id); return; }
+        onDragStart(nodo.id, e);
+        onSelect(nodo.id, e);
+      }}
+    >
+      <rect rx={8} width={nodo.width} height={nodo.height} fill="rgba(0,0,0,0.10)" transform="translate(2,3)" />
+      <rect
+        rx={8} width={nodo.width} height={nodo.height}
+        fill="color-mix(in srgb, var(--bg-main) 96%, transparent)"
+        stroke={selected || isConnectSource ? accent : `color-mix(in srgb, var(--primary) 12%, transparent)`}
+        strokeWidth={selected || isConnectSource ? 1.5 : 1}
+        strokeDasharray={isConnectSource ? "5 3" : undefined}
+      />
+      <foreignObject x={10} y={8} width={nodo.width - 20} height={nodo.height - 16}>
+        <div style={{ fontSize: 12, color: "var(--primary)", lineHeight: 1.4, opacity: 0.65,
+          overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 4,
+          wordBreak: "break-word" }}>
+          {nodo.label ?? "Texto..."}
+        </div>
+      </foreignObject>
+      {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} />}
+    </g>
+  );
+}
+
+/** Card rica para entidades con datos de preview */
+function NodoEntidad({
+  nodo, selected, isConnectSource, connecting,
+  onSelect, onDragStart, onConnectClick, onDelete, onEdit,
+}: NodoProps) {
+  const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron] ?? TIPO_ENTIDAD_CONFIG.texto;
   const accent = cfg.accentVar;
-  const isText = nodo.tipo_entidad === "texto";
+  const abrirPanel = usePanelFlotante((s) => s.abrir);
+
+  // Preview data
+  const [preview, setPreview] = useState<EntidadPreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  useEffect(() => {
+    if (!nodo.entidad_id) return;
+    setLoadingPreview(true);
+    fetchPreviewEntidad(nodo.tipo_entidad as TipoEntidadPizarron, nodo.entidad_id)
+      .then((p) => { setPreview(p); setLoadingPreview(false); });
+  }, [nodo.entidad_id, nodo.tipo_entidad]);
+
+  const nombre = preview?.nombre ?? nodo.label ?? cfg.label;
+  const chips = preview?.chips ?? [];
+  const imgUrl = preview?.imagenUrl;
+  // Altura adaptativa: base + chips
+  const cardH = Math.max(nodo.height, 70 + chips.length * 16);
 
   return (
     <g
@@ -91,121 +134,133 @@ function NodoCanvas({
       }}
     >
       {/* Sombra */}
-      <rect
-        rx={8}
-        width={nodo.width}
-        height={nodo.height}
-        fill="rgba(0,0,0,0.12)"
-        transform="translate(2,3)"
-      />
+      <rect rx={10} width={nodo.width} height={cardH} fill="rgba(0,0,0,0.12)" transform="translate(2,3)" />
       {/* Fondo */}
       <rect
-        rx={8}
-        width={nodo.width}
-        height={nodo.height}
-        fill={isText
-          ? "color-mix(in srgb, var(--bg-main) 96%, transparent)"
-          : `color-mix(in srgb, ${accent} 12%, var(--bg-main))`}
-        stroke={selected || isConnectSource
-          ? accent
-          : `color-mix(in srgb, ${accent} 40%, transparent)`}
+        rx={10} width={nodo.width} height={cardH}
+        fill={`color-mix(in srgb, ${accent} 8%, var(--bg-main))`}
+        stroke={selected || isConnectSource ? accent : `color-mix(in srgb, ${accent} 30%, transparent)`}
         strokeWidth={selected || isConnectSource ? 2 : 1}
         strokeDasharray={isConnectSource ? "5 3" : undefined}
       />
-      {/* Franja lateral de acento */}
-      {!isText && (
-        <rect
-          x={0} y={0} width={3} height={nodo.height}
-          rx={8}
-          fill={accent}
-          opacity={0.7}
-        />
-      )}
-      {/* Label */}
-      <foreignObject
-        x={isText ? 10 : 18}
-        y={8}
-        width={isText ? nodo.width - 20 : nodo.width - 32}
-        height={nodo.height - 16}
-      >
-        <div
-          style={{
-            fontSize: isText ? "12px" : "11px",
-            fontWeight: isText ? 400 : 600,
-            color: "var(--primary)",
-            lineHeight: 1.35,
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical",
-            WebkitLineClamp: isText ? 4 : 2,
-            wordBreak: "break-word",
-            opacity: isText ? 0.7 : 1,
-          }}
-        >
-          {nodo.label ?? cfg.label}
-        </div>
-      </foreignObject>
-      {/* Tipo chip */}
-      {!isText && (
-        <text
-          x={nodo.width - 6}
-          y={nodo.height - 5}
-          fontSize={8}
-          textAnchor="end"
-          fill={accent}
-          opacity={0.55}
-          fontWeight="600"
-          style={{ letterSpacing: 0.5 }}
-        >
-          {cfg.label.toUpperCase()}
-        </text>
-      )}
-      {/* Botones flotantes (solo si seleccionado) */}
-      {selected && !connecting && (
+      {/* Franja acento izq */}
+      <rect x={0} y={0} width={3} height={cardH} rx={10}
+        fill={accent} opacity={0.75} />
+      {/* Imagen si existe */}
+      {imgUrl && (
         <>
-          {/* Editar */}
-          <g
-            style={{ cursor: "pointer" }}
-            transform={`translate(${nodo.width - 52},${-13})`}
-            onClick={(e) => { e.stopPropagation(); onEdit(nodo); }}
-          >
-            <circle r={9} fill="var(--bg-main)" stroke={accent} strokeWidth={1} />
-            <foreignObject x={-6} y={-6} width={12} height={12}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%" }}>
-                <Edit2 size={8} style={{ color: accent }} />
-              </div>
-            </foreignObject>
-          </g>
-          {/* Conectar */}
-          <g
-            style={{ cursor: "pointer" }}
-            transform={`translate(${nodo.width - 28},${-13})`}
-            onClick={(e) => { e.stopPropagation(); onConnectClick(nodo.id); }}
-          >
-            <circle r={9} fill="var(--bg-main)" stroke={accent} strokeWidth={1} />
-            <foreignObject x={-6} y={-6} width={12} height={12}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%" }}>
-                <LinkIcon size={8} style={{ color: accent }} />
-              </div>
-            </foreignObject>
-          </g>
-          {/* Eliminar */}
-          <g
-            style={{ cursor: "pointer" }}
-            transform={`translate(${nodo.width - 4},${-13})`}
-            onClick={(e) => { e.stopPropagation(); onDelete(nodo.id); }}
-          >
-            <circle r={9} fill="var(--bg-main)" stroke="color-mix(in srgb, var(--primary) 30%, transparent)" strokeWidth={1} />
-            <foreignObject x={-6} y={-6} width={12} height={12}>
-              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%" }}>
-                <X size={8} style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }} />
-              </div>
-            </foreignObject>
-          </g>
+          <clipPath id={`clip-img-${nodo.id}`}>
+            <rect x={nodo.width - 44} y={8} width={36} height={36} rx={6} />
+          </clipPath>
+          <image
+            href={imgUrl}
+            x={nodo.width - 44} y={8} width={36} height={36}
+            clipPath={`url(#clip-img-${nodo.id})`}
+            preserveAspectRatio="xMidYMid slice"
+          />
         </>
       )}
+
+      {/* Contenido principal via foreignObject */}
+      <foreignObject x={12} y={0} width={nodo.width - (imgUrl ? 58 : 20)} height={cardH}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, padding: "8px 0" }}>
+          {/* Tipo label */}
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
+            color: accent, opacity: 0.8, lineHeight: 1 }}>
+            {cfg.label}
+          </div>
+          {/* Nombre — clickable si hay panelKind */}
+          <div
+            style={{
+              fontSize: 12, fontWeight: 700, color: "var(--primary)", lineHeight: 1.3,
+              overflow: "hidden", display: "-webkit-box", WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 2, wordBreak: "break-word",
+              cursor: cfg.panelKind && nodo.entidad_id ? "pointer" : "default",
+              textDecoration: cfg.panelKind && nodo.entidad_id ? "underline" : "none",
+              textDecorationColor: `color-mix(in srgb, ${accent} 50%, transparent)`,
+              textDecorationStyle: "dotted",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (cfg.panelKind && nodo.entidad_id) {
+                abrirPanel(cfg.panelKind, nodo.entidad_id);
+              }
+            }}
+          >
+            {loadingPreview ? "…" : nombre}
+          </div>
+          {/* Chips */}
+          {chips.map((c) => (
+            <div key={c.label} style={{ display: "flex", gap: 3, alignItems: "baseline" }}>
+              <span style={{ fontSize: 8, fontWeight: 600, color: accent, opacity: 0.65,
+                textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>
+                {c.label}
+              </span>
+              <span style={{ fontSize: 9, color: "var(--primary)", opacity: 0.55,
+                overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                {c.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </foreignObject>
+
+      {/* Ícono tipo (esquina inf derecha) */}
+      <foreignObject x={nodo.width - 18} y={cardH - 16} width={14} height={14}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
+          <EntidadIcon name={cfg.icon} size={11} style={{ color: accent }} />
+        </div>
+      </foreignObject>
+
+      {/* Botones de acción (seleccionado) */}
+      {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} cardH={cardH} />}
     </g>
   );
+}
+
+/** Botones flotantes reutilizables */
+function NodoBotones({ nodo, accent, onEdit, onConnectClick, onDelete, cardH = 0 }: {
+  nodo: PizarronNodo; accent: string; cardH?: number;
+  onEdit: (n: PizarronNodo) => void;
+  onConnectClick: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const btns = [
+    { title: "Editar", icon: <Edit2 size={8} />, dx: -52, color: accent, onClick: (e: React.MouseEvent) => { e.stopPropagation(); onEdit(nodo); } },
+    { title: "Conectar", icon: <LinkIcon size={8} />, dx: -28, color: accent, onClick: (e: React.MouseEvent) => { e.stopPropagation(); onConnectClick(nodo.id); } },
+    { title: "Eliminar", icon: <X size={8} />, dx: -4, color: "color-mix(in srgb, var(--primary) 50%, transparent)", onClick: (e: React.MouseEvent) => { e.stopPropagation(); onDelete(nodo.id); } },
+  ];
+  return (
+    <>
+      {btns.map((b) => (
+        <g key={b.title} style={{ cursor: "pointer" }} transform={`translate(${nodo.width + b.dx},${-13})`} onClick={b.onClick}>
+          <circle r={9} fill="var(--bg-main)" stroke={b.color} strokeWidth={1} />
+          <foreignObject x={-6} y={-6} width={12} height={12}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%", color: b.color }}>
+              {b.icon}
+            </div>
+          </foreignObject>
+        </g>
+      ))}
+    </>
+  );
+}
+
+interface NodoProps {
+  nodo: PizarronNodo;
+  selected: boolean;
+  connecting: boolean;
+  isConnectSource: boolean;
+  onSelect: (id: string, e: React.MouseEvent) => void;
+  onDragStart: (id: string, e: React.MouseEvent) => void;
+  onConnectClick: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEdit: (nodo: PizarronNodo) => void;
+}
+
+function NodoCanvas(props: NodoProps) {
+  if (props.nodo.tipo_entidad === "texto") return <NodoTexto {...props} />;
+  return <NodoEntidad {...props} />;
 }
 
 // ── Panel lateral: buscar y añadir entidades ──────────────────────────────
@@ -230,7 +285,7 @@ function PanelEntidades({
     if (searchRef.current) clearTimeout(searchRef.current);
     setBuscando(true);
     searchRef.current = setTimeout(async () => {
-      const res = await buscarEntidades(cfg.tabla, query);
+      const res = await buscarEntidades(cfg.tabla, query, cfg.campoNombre);
       setResultados(res);
       setBuscando(false);
     }, 300);
