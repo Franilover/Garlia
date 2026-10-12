@@ -63,32 +63,35 @@ export interface NodoRuntime extends PizarronNodo {
   selected?: boolean;
 }
 
-// Config de cada tipo de entidad para búsqueda y color
+// Config de cada tipo de entidad para búsqueda
+// icon: nombre del componente Lucide (se resuelve en PizarronSection)
+// cssVar: CSS custom property que debe existir en el tema, ej: --color-personaje
+//         Si el tema no la define, se puede usar un fallback con color-mix sobre --primary
 export interface TipoEntidadConfig {
   tabla: string;
   label: string;
-  emoji: string;
-  color: string;
+  icon: string; // nombre de ícono Lucide
+  accentVar: string; // CSS variable de acento del tema, e.g. "var(--color-personaje)"
 }
 
 export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig> = {
-  texto:      { tabla: "",           label: "Texto libre",  emoji: "📝", color: "#6b7280" },
-  personaje:  { tabla: "personajes", label: "Personaje",    emoji: "👤", color: "#8b5cf6" },
-  criatura:   { tabla: "criaturas",  label: "Criatura",     emoji: "🐉", color: "#f59e0b" },
-  reino:      { tabla: "reinos",     label: "Reino",        emoji: "🏰", color: "#3b82f6" },
-  ciudad:     { tabla: "ciudades",   label: "Ciudad",       emoji: "🌆", color: "#06b6d4" },
-  item:       { tabla: "items",      label: "Ítem",         emoji: "⚔️", color: "#ef4444" },
-  compuesto:  { tabla: "compuestos", label: "Compuesto",    emoji: "🧪", color: "#10b981" },
-  elemento:   { tabla: "elementos",  label: "Elemento",     emoji: "⚗️", color: "#84cc16" },
-  runa:       { tabla: "runas",      label: "Runa",         emoji: "🔮", color: "#ec4899" },
-  material:   { tabla: "materiales", label: "Material",     emoji: "🪨", color: "#78716c" },
-  organismo:  { tabla: "organismos", label: "Organismo",    emoji: "🧬", color: "#14b8a6" },
-  celula:     { tabla: "celulas",    label: "Célula",       emoji: "🔬", color: "#a78bfa" },
-  tejido:     { tabla: "tejidos",    label: "Tejido",       emoji: "🫀", color: "#fb7185" },
-  organo:     { tabla: "organos",    label: "Órgano",       emoji: "🫁", color: "#f97316" },
-  ecosistema: { tabla: "ecosistemas",label: "Ecosistema",   emoji: "🌿", color: "#22c55e" },
-  bioma:      { tabla: "biomas",     label: "Bioma",        emoji: "🌍", color: "#16a34a" },
-  mineral:    { tabla: "minerales",  label: "Mineral",      emoji: "💎", color: "#60a5fa" },
-  flora:      { tabla: "organismos", label: "Flora",        emoji: "🌸", color: "#f472b6" },
-  proceso:    { tabla: "procesos",   label: "Proceso",      emoji: "⚙️", color: "#94a3b8" },
+  texto:      { tabla: "",            label: "Texto libre", icon: "FileText",   accentVar: "color-mix(in srgb, var(--primary) 35%, transparent)" },
+  personaje:  { tabla: "personajes",  label: "Personaje",   icon: "User",        accentVar: "var(--accent, color-mix(in srgb, var(--primary) 70%, #8b5cf6))" },
+  criatura:   { tabla: "criaturas",   label: "Criatura",    icon: "Footprints",  accentVar: "color-mix(in srgb, var(--primary) 60%, #f59e0b)" },
+  reino:      { tabla: "reinos",      label: "Reino",       icon: "Crown",       accentVar: "color-mix(in srgb, var(--primary) 60%, #3b82f6)" },
+  ciudad:     { tabla: "ciudades",    label: "Ciudad",      icon: "Building2",   accentVar: "color-mix(in srgb, var(--primary) 60%, #06b6d4)" },
+  item:       { tabla: "items",       label: "Ítem",        icon: "Sword",       accentVar: "color-mix(in srgb, var(--primary) 60%, #ef4444)" },
+  compuesto:  { tabla: "compuestos",  label: "Compuesto",   icon: "FlaskConical",accentVar: "color-mix(in srgb, var(--primary) 60%, #10b981)" },
+  elemento:   { tabla: "elementos",   label: "Elemento",    icon: "Atom",        accentVar: "color-mix(in srgb, var(--primary) 60%, #84cc16)" },
+  runa:       { tabla: "runas",       label: "Runa",        icon: "Sparkles",    accentVar: "color-mix(in srgb, var(--primary) 60%, #ec4899)" },
+  material:   { tabla: "materiales",  label: "Material",    icon: "Layers",      accentVar: "color-mix(in srgb, var(--primary) 60%, #78716c)" },
+  organismo:  { tabla: "organismos",  label: "Organismo",   icon: "Dna",         accentVar: "color-mix(in srgb, var(--primary) 60%, #14b8a6)" },
+  celula:     { tabla: "celulas",     label: "Célula",      icon: "Microscope",  accentVar: "color-mix(in srgb, var(--primary) 60%, #a78bfa)" },
+  tejido:     { tabla: "tejidos",     label: "Tejido",      icon: "Activity",    accentVar: "color-mix(in srgb, var(--primary) 60%, #fb7185)" },
+  organo:     { tabla: "organos",     label: "Órgano",      icon: "Heart",       accentVar: "color-mix(in srgb, var(--primary) 60%, #f97316)" },
+  ecosistema: { tabla: "ecosistemas", label: "Ecosistema",  icon: "TreePine",    accentVar: "color-mix(in srgb, var(--primary) 60%, #22c55e)" },
+  bioma:      { tabla: "biomas",      label: "Bioma",       icon: "Globe",       accentVar: "color-mix(in srgb, var(--primary) 60%, #16a34a)" },
+  mineral:    { tabla: "minerales",   label: "Mineral",     icon: "Gem",         accentVar: "color-mix(in srgb, var(--primary) 60%, #60a5fa)" },
+  flora:      { tabla: "organismos",  label: "Flora",       icon: "Flower2",     accentVar: "color-mix(in srgb, var(--primary) 60%, #f472b6)" },
+  proceso:    { tabla: "procesos",    label: "Proceso",     icon: "Settings2",   accentVar: "color-mix(in srgb, var(--primary) 60%, #94a3b8)" },
 };
