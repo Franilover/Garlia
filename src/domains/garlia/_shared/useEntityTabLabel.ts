@@ -54,6 +54,8 @@ const SECTION_TABLE: Record<SectionKey, string | null> = {
   auditoria: null,
   // "sistema-solar" es una vista de solo lectura, no abre pestañas puntuales.
   "sistema-solar": null,
+  // "pizarron" es el canvas creativo, no abre pestañas de entidad puntual.
+  pizarron: null,
 };
 
 /**
