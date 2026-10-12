@@ -104,7 +104,7 @@ function GrupoNivel({
       <TituloCategoria titulo={titulo} total={items.length} jerarquica />
       <div
         className="grid gap-0 border-t border-l border-primary/10"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
       >
         {items.map((conjuro) => (
           <ConjuroCasilla
