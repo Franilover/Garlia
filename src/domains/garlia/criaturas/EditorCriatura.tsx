@@ -23,6 +23,7 @@ import {
   Boxes,
   Bug,
   Globe,
+  Home,
   Image as ImageIcon,
   Layers,
   MapPin,
@@ -31,6 +32,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   Star,
+  Trees,
   UserCircle2,
   Users,
   Wand2,
@@ -69,6 +71,8 @@ import { useCriaturaOrganos } from "@/domains/garlia/criaturas/useCriaturaOrgano
 import { useCriaturaOrganismos } from "@/domains/garlia/criaturas/useCriaturaOrganismos";
 import { useComposicionDeOrganismos } from "@/domains/garlia/elementos/useComposicionDeOrganismos";
 import { BreadcrumbJerarquia } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+import { useCriaturaJerarquiaEcologica } from "@/domains/garlia/criaturas/useCriaturaJerarquiaEcologica";
 import { usePersonajesDeCriatura } from "@/domains/garlia/criaturas/usePersonajesDeCriatura";
 import { GrupoCompuestoPanelFlotante } from "@/domains/garlia/elementos/GruposCompuestosPage";
 import { PanelEditorOrganismo } from "@/domains/garlia/biologia/CatalogoSistemasBiologia";
@@ -159,6 +163,10 @@ export function EditorCriatura({
     [organismosCriatura.items],
   );
   const composicionCriatura = useComposicionDeOrganismos(organismoIdsCriatura);
+  // Jerarquía ecológica ascendente: Hábitat ▸ Ecosistema ▸ Bioma ▸ Planeta
+  const jerarquiaEcologica = useCriaturaJerarquiaEcologica(form.id);
+  const abrirPanel = usePanelFlotante((s) => s.abrir);
+
   // Panel flotante editable de Organismo (mismo PanelEditorOrganismo que
   // usa Biología) abierto al clickear una fila en PanelOrganismosCriatura.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
@@ -494,6 +502,38 @@ export function EditorCriatura({
                 onNavegar: saltarAOrganismo,
               },
               { label: "Criatura", icono: <PawPrint size={10} />, activo: true },
+              {
+                label: "Hábitat",
+                icono: <Home size={10} />,
+                activo: false,
+                items: jerarquiaEcologica.habitats,
+                loading: jerarquiaEcologica.loading,
+                onNavegar: (id) => abrirPanel("habitat", id),
+              },
+              {
+                label: "Ecosistema",
+                icono: <Trees size={10} />,
+                activo: false,
+                items: jerarquiaEcologica.ecosistemas,
+                loading: jerarquiaEcologica.loading,
+                onNavegar: (id) => abrirPanel("ecosistema", id),
+              },
+              {
+                label: "Bioma",
+                icono: <Layers size={10} />,
+                activo: false,
+                items: jerarquiaEcologica.biomas,
+                loading: jerarquiaEcologica.loading,
+                onNavegar: (id) => abrirPanel("bioma", id),
+              },
+              {
+                label: "Planeta",
+                icono: <Globe size={10} />,
+                activo: false,
+                items: jerarquiaEcologica.planetas,
+                loading: jerarquiaEcologica.loading,
+                onNavegar: (id) => abrirPanel("planeta", id),
+              },
             ]}
           />
         </div>
