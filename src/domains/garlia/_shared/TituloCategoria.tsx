@@ -29,6 +29,7 @@ export function TituloCategoria({
   title,
   activo = false,
   extra,
+  jerarquica = false,
 }: {
   titulo: string;
   /** Cantidad de entradas de la categoría; se muestra junto al título. */
@@ -41,6 +42,13 @@ export function TituloCategoria({
   activo?: boolean;
   /** Contenido extra a la derecha del texto (chip de orden, ícono…). */
   extra?: React.ReactNode;
+  /**
+   * Modo jerárquico (subcategoría subordinada a otra):
+   * — sin líneas horizontales laterales
+   * — texto alineado a la izquierda
+   * — tipografía más pequeña / tenue para indicar jerarquía visual
+   */
+  jerarquica?: boolean;
 }) {
   const color = activo
     ? "text-accent"
@@ -57,6 +65,29 @@ export function TituloCategoria({
       {extra}
     </>
   );
+
+  if (jerarquica) {
+    return (
+      <div className="mb-1 flex items-center gap-1.5 px-1 pt-2">
+        {onClick ? (
+          <button
+            type="button"
+            onClick={onClick}
+            title={title}
+            className={`flex min-w-0 items-center gap-1.5 text-micro font-bold uppercase tracking-[0.15em] transition-colors cursor-pointer opacity-70 ${color}`}
+          >
+            {contenido}
+          </button>
+        ) : (
+          <span
+            className={`flex min-w-0 items-center gap-1.5 text-micro font-bold uppercase tracking-[0.15em] opacity-70 ${color}`}
+          >
+            {contenido}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-1.5 flex items-center gap-2 px-1">
