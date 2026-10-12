@@ -30,6 +30,7 @@ import {
   Wand2,
   Gamepad2,
   Globe,
+  PenSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -546,34 +547,14 @@ const Navbar = () => {
   const { user, isAdmin } = useAuth() as { user: any; isAdmin: boolean };
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [mobileOpenMenu, setMobileOpenMenu] = useState<string | null>(null);
-  // Submenú admin del sidebar desktop (reemplaza a Personal/Garlia mientras
-  // está abierto). Es puramente de UI, no depende de la ruta: se abre al
-  // click en "Arte" (antes navegaba directo a /myself/garlia) y se cierra
-  // con "Volver al navbar normal" — sin tocar la URL en ningún caso. Si el
-  // usuario sale de /myself/garlia por otro medio (ej. navbar mobile), se
-  // cierra solo para no quedar en un estado inconsistente.
   const [adminSubmenuOpen, setAdminSubmenuOpen] = useState(false);
-  // Submenú de Escritorio (sidebar desktop), mismo patrón que adminSubmenuOpen
-  // para "Arte": reemplaza Personal/Garlia mientras está abierto, es puramente
-  // de UI (no depende de la ruta) y cambia de sección sin navegar.
   const [escritorioSubmenuOpen, setEscritorioSubmenuOpen] = useState(false);
 
-  // ── Ocultar la navbar mobile cuando el teclado táctil está abierto ──
-  // Sin esto, la navbar (fixed bottom-0, z-[1000]) queda flotando por
-  // encima de CUALQUIER composer de la app (chat, comentarios, etc.) en
-  // cuanto el teclado empuja el viewport visual: como es fixed, sigue
-  // "pegada abajo de la pantalla" en vez de abajo del contenido, tapando
-  // el input justo donde el usuario está escribiendo. Comparamos el alto
-  // del viewport VISUAL (que sí encoge cuando aparece el teclado) contra
-  // el alto del viewport de LAYOUT (que no encoge) — una diferencia
-  // notoria entre ambos es la señal más confiable de "hay un teclado
-  // táctil abierto ahora mismo", sin depender de qué input specific tiene
-  // el foco en cada pantalla de la app.
   const [tecladoAbierto, setTecladoAbierto] = useState(false);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const UMBRAL_PX = 120; // margen para no confundir con la propia UI del navegador (barra de direcciones, etc.)
+    const UMBRAL_PX = 120;
     const detectar = () => {
       const diferencia = window.innerHeight - vv.height;
       setTecladoAbierto(diferencia > UMBRAL_PX);
@@ -583,12 +564,6 @@ const Navbar = () => {
     return () => vv.removeEventListener("resize", detectar);
   }, []);
 
-  // Dentro de una conversación (detalle de chat) la navbar se oculta
-  // siempre en mobile, no solo cuando el teclado está abierto: esa
-  // pantalla ya tiene su propio composer fijo abajo, y la navbar
-  // (fixed bottom-0, z-[1000]) queda por encima chocando visualmente con
-  // él incluso con el teclado cerrado — WhatsApp/Telegram tampoco
-  // muestran una tab bar propia mientras estás adentro de un chat.
   const dentroDeUnChat = currentPath?.startsWith("/personal/mensajes/detalle") ?? false;
   const ocultarNavbarMobile = tecladoAbierto || dentroDeUnChat;
 
@@ -597,11 +572,6 @@ const Navbar = () => {
   const isDark = dark === "dark";
   const { setOpen: openPalette } = useCommandPalette();
 
-  // ── Botón de panel lateral (mobile) ───────────────────────────────────────
-  // Antes cada editor con aside propio (personajes, criaturas, reinos...)
-  // dibujaba su propio botón "sm:hidden" en su header para abrir el drawer.
-  // Ahora ese botón vive una sola vez, acá, y solo aparece si hay un editor
-  // registrado con panel lateral montado (ver useRegisterMobileAside).
   const asideAvailable = useMobileAsidePanel((s) => s.available);
   const asideOpen = useMobileAsidePanel((s) => s.open);
   const toggleAside = useMobileAsidePanel((s) => s.toggle);
@@ -636,21 +606,12 @@ const Navbar = () => {
     (s) => s.selectSection,
   );
 
-  // ── Botón de volver del editor de mundo ──────────────────────────────────
-  // Vive en la navbar (no flotando sobre el contenido) porque el editor de
-  // mundo (/myself/garlia) no tiene su propio header superior. Contextual:
-  //   - sin sección activa → no se muestra (ya estás en el menú de 12).
-  //   - con sección activa, sin entidad seleccionada → vuelve al menú.
-  //   - con entidad seleccionada (lista oculta) → vuelve a la lista.
   const mundoSection = useMundoNavigation((s) => s.section);
   const mundoSelectedId = useMundoNavigation((s) => s.selectedId);
   const mundoGoToMenu = useMundoNavigation((s) => s.goToMenu);
   const mundoClearSelection = useMundoNavigation((s) => s.clearSelection);
   const mundoSelectSection = useMundoNavigation((s) => s.selectSection);
   const showMundoBack = isGarliaeditor && mundoSection !== null;
-  // Ahora solo se usa para volver de una entidad seleccionada a la lista —
-  // volver de una sección al menú de 12 lo cubre "Volver al navbar normal"
-  // (ver render del botón más abajo, que además filtra por mundoSelectedId).
   const mundoBackAction = mundoClearSelection;
   const mundoBackLabel = "Volver a la lista";
 
@@ -677,24 +638,8 @@ const Navbar = () => {
       : []),
   ];
 
-  // Aventura y Runas solo se muestran con sesión iniciada. En desktop van
-  // como dos ítems normales y seguidos en el sidebar (Runas debajo de
-  // Aventura, sin flyout). En mobile, Aventura se agrupa con Runas bajo un
-  // solo botón con panel flotante (subLinks) — ver mobileGarliaLinks más
-  // abajo, que reusa esta misma definición y solo cambia cómo se agrupan.
   const isRunas = currentPath?.startsWith("/garlia/runas") ?? false;
   const isAventura = currentPath?.startsWith("/garlia/aventura") ?? false;
-
-  // ── Universo (antes "Biblioteca"; usuarios con cuenta) ────────────────────
-  // Sección pública de sólo lectura con varias sub-secciones como tabs:
-  // Descubrimientos, Teorías, Libros (de conocimiento), Mapa y Cuenta.
-  // "Mapa" y "Cuenta" antes eran ítems propios del navbar — ahora viven
-  // como tabs dentro de /garlia/universo, así que ya no tienen entrada
-  // separada acá. NO muestra nada del panel admin (/myself/*) — cada
-  // página de universo consulta sólo data marcada como pública. Requiere
-  // sesión iniciada; los admins también la ven para poder revisarla (si
-  // en algún momento se quiere ocultar para ellos, cambiar `user` por
-  // `user && !isAdmin` acá abajo).
   const isUniverso = currentPath?.startsWith("/garlia/universo") ?? false;
 
   const universoLink: NavLinkDef[] = user
@@ -718,8 +663,6 @@ const Navbar = () => {
     ...universoLink,
   ];
 
-  // Versión mobile: mismos links que garliaLinks (Aventura y Runas ocultos
-  // acá también — ver arriba).
   const mobileGarliaLinks: NavLinkDef[] = [
     {
       href: "/garlia/libros",
@@ -730,10 +673,6 @@ const Navbar = () => {
     ...universoLink,
   ];
 
-  // aventuraSubLinks queda sin uso ahora que "Aventura" no aparece en
-  // garliaLinks/mobileGarliaLinks (ítem con subLinks solo se activaba
-  // para href === "/garlia/aventura") — se mantiene la definición por si
-  // se vuelve a mostrar más adelante, pero no se referencia en el render.
   const aventuraSubLinks: NavLinkDef[] = [
     {
       href: "/garlia/aventura",
@@ -775,23 +714,8 @@ const Navbar = () => {
     },
   ];
 
-
-
   // ── Submenú admin (desktop) ──────────────────────────────────────────────
-  // Reemplaza a <MundoTabs /> (que vivía arriba del editor): toda la
-  // navegación entre secciones de /myself/garlia pasa a vivir acá.
-  // "Criaturas" ya NO es una sección propia del submenú: la vista de
-  // Personajes ahora tiene un dropdown para agrupar por Reino, por
-  // Criatura o por Items (ver EntidadesPage/AgrupacionPersonajesDropdown),
-  // así que "criaturas" solo sigue existiendo como SectionKey transitoria
-  // cuando se abre el editor puntual de una criatura desde ese dropdown —
-  // por eso sigue contando como "Entidades" acá (no tiene entrada de menú
-  // propia). "Items" tampoco tiene entrada propia por el mismo motivo:
-  // pasó a ser la 3ra opción de ese mismo dropdown en vez de una sección
-  // propia de la navbar.
-  // "Organización" (Grupos/Notas) ya NO vive acá — se sacó del submenú y
-  // ahora es un botón propio en el Home del editor de mundo (ver
-  // MundoHomeContent), en vez de una sección más de navegación global.
+
   const ENTIDADES_SECTIONS = new Set<SectionKey>([
     "personajes",
     "criaturas",
@@ -800,13 +724,6 @@ const Navbar = () => {
     "ciudades",
   ]);
 
-  // "Magia" agrupa Runas + Tabla (elementos) — antes vivía dentro de
-  // "Entidades", pero al tener su propio editor (FormularioMagico) tiene
-  // más sentido como sección propia. "elementos" faltaba acá (bug
-  // preexistente): el botón del navbar no se marcaba activo al entrar a
-  // "Tabla", aunque la sección sí funcionara. "Física" NO es un SectionKey
-  // de ruta — vive como 4ta pill del toggle interno de RunasPage (ver
-  // SeccionMagia en RunasPage.tsx), así que no corresponde acá.
   const MAGIA_SECTIONS = new Set<SectionKey>(["runas", "elementos"]);
 
   type AdminSubmenuItem = {
@@ -892,12 +809,18 @@ const Navbar = () => {
       active: isGarliaeditor && mundoSection === "sistema-solar",
       onSelect: () => mundoSelectSection("sistema-solar"),
     },
+    { key: "div-5", divider: true },
+    {
+      key: "pizarron",
+      label: "Pizarrón",
+      icon: PenSquare,
+      active: isGarliaeditor && mundoSection === "pizarron",
+      onSelect: () => mundoSelectSection("pizarron"),
+    },
   ];
 
   // ── Submenú Escritorio (desktop) ─────────────────────────────────────────
-  // Mismo patrón que adminSubmenuItems: click en "Escritorio" abre el
-  // submenú acá en vez de navegar; cada item cambia la sección activa vía
-  // useEscritorioNavigation, sin tocar la URL.
+
   type EscritorioSubmenuItem = {
     key: string;
     label: string;
@@ -951,15 +874,9 @@ const Navbar = () => {
     },
   ];
 
-  // ── Atajos globales "g + g/d + letra" (estilo Gmail/Linear) ──────────────
-  // Funcionan desde CUALQUIER página (no solo dentro de /myself/*): si no
-  // estamos en la ruta correspondiente, primero navegamos y de paso dejamos
-  // seteada la sección en el store — así al llegar ya se ve la sección
-  // correcta en vez de la última que quedó guardada. Si ya estamos en la
-  // ruta, solo cambia de sección sin recargar nada.
-  // "gg_" = Garlia (/myself/garlia), "gd_" = Desktop/Escritorio (/myself/escritorio).
+  // ── Atajos globales ──────────────────────────────────────────────────────
+
   useGotoHotkeys({
-    // ── Garlia ──────────────────────────────────────────────────────────
     ggh: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
       mundoGoToMenu();
@@ -974,7 +891,7 @@ const Navbar = () => {
     },
     gge: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
-      mundoSelectSection("personajes"); // Entidades
+      mundoSelectSection("personajes");
     },
     ggm: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
@@ -982,13 +899,12 @@ const Navbar = () => {
     },
     ggc: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
-      mundoSelectSection("letras"); // Canciones
+      mundoSelectSection("letras");
     },
     ggt: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
       mundoSelectSection("linea-tiempo");
     },
-    // ── Escritorio ──────────────────────────────────────────────────────
     gdh: () => {
       if (!isEscritorio) router.push("/myself/escritorio");
       selectEscritorioSection("inicio");
@@ -1268,12 +1184,6 @@ const Navbar = () => {
       </aside>
 
       {/* ── MOBILE NAVBAR ────────────────────────────────────────── */}
-      {/* translate-y (no display:none) para poder animar la salida; el
-          teclado abierto la empuja fuera de la pantalla en vez de dejarla
-          flotando encima de lo que el usuario está escribiendo.
-          pointer-events-none mientras está oculta evita que un dedo que
-          roza esa franja (ahora ocupada por el teclado o el composer)
-          dispare sin querer un botón invisible de la navbar. */}
       <div
         className={`md:hidden fixed bottom-0 left-0 w-full z-[1000] transition-transform duration-200 ${
           ocultarNavbarMobile ? "translate-y-full pointer-events-none" : "translate-y-0"
@@ -1329,11 +1239,6 @@ const Navbar = () => {
         >
           {/* Theme toggle */}
           <div className="flex items-center gap-1 z-[101]">
-            {/* Botón de "volver" del editor de Mundo: ahora solo se muestra
-                para volver de una entidad seleccionada a la lista (flecha).
-                Volver de una sección al menú de 12 secciones (antes la X)
-                ya lo cubre "Volver al navbar normal" del bloque de arriba,
-                así que mostrar los dos al mismo tiempo era redundante. */}
             {showMundoBack && mundoSelectedId && (
               <button
                 type="button"
@@ -1385,10 +1290,6 @@ const Navbar = () => {
             }}
           >
             {isAdmin && adminSubmenuOpen ? (
-              // Mismo patrón que el sidebar desktop: mientras el editor de
-              // Garlia/Mundo está activo, la fila reemplaza sus botones
-              // normales por "volver" + las secciones del editor, en vez de
-              // abrir un flotante encima.
               <>
                 <MobileFlatButton
                   active={false}
@@ -1418,7 +1319,6 @@ const Navbar = () => {
                 )}
               </>
             ) : isAdmin && escritorioSubmenuOpen ? (
-              // Mismo patrón para Escritorio.
               <>
                 <MobileFlatButton
                   active={false}
@@ -1525,9 +1425,6 @@ const Navbar = () => {
                       icon={icon}
                       isOpen={mobileOpenMenu === href}
                       label={label}
-                      // "Aventura" agrupa Runas debajo en un panel flotante
-                      // (mismo patrón que cualquier otro ítem con subLinks);
-                      // el resto navega directo como siempre.
                       subLinks={
                         href === "/garlia/aventura" ? aventuraSubLinks : undefined
                       }
@@ -1540,7 +1437,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Search + panel lateral del editor activo (si expone uno) */}
+          {/* Search + panel lateral */}
           <div className="flex items-center gap-1 z-[101]">
             {asideAvailable && (
               <button

@@ -45,11 +45,6 @@ import { PanelFlotanteGlobal } from "@/domains/garlia/_shared/PanelFlotanteGloba
 import { EnsayoGosScreen } from "@/domains/plataforma/puentes/EnsayoGosScreen";
 
 // ─── Code-splitting por página combinada ──────────────────────────────────
-// Personajes/Criaturas/Items/Reinos/Ciudades/Runas/Grupos/
-// Notas/Letras viven TODOS en EntidadesPage (una sola grilla grande de
-// tarjetas). Runas y Letras se muestran como páginas
-// independientes (sin la sub-barra de Reinos/Criaturas/Organización, que es
-// exclusiva de la sección "Entidades").
 const EntidadesPage = lazy(() =>
   import("./EntidadesPage").then((m) => ({ default: m.EntidadesPage })),
 );
@@ -85,6 +80,11 @@ const SistemaSolarSection = lazy(() =>
     default: m.SistemaSolarSection,
   })),
 );
+const PizarronSection = lazy(() =>
+  import("@/domains/garlia/pizarron/PizarronSection").then((m) => ({
+    default: m.PizarronSection,
+  })),
+);
 
 function SectionFallback() {
   return (
@@ -117,18 +117,10 @@ function ActiveSection() {
     case "letras":
       return <EntidadesPage section={section} selectedId={selectedId} />;
     case "elementos":
-      // Tabla Química/Alquímica: fuera de EntidadesPage porque trae su
-      // propio hook de datos (useElementos) — igual que Mapa/Aventura,
-      // no comparte el mega-grid de Entidades/Geografía/Organización.
       return <ElementosSection selectedId={selectedId} />;
     case "auditoria":
-      // Dashboard de auditoría "Estado del Mundo" (Fase 1 completa):
-      // orquestador con tabs internas Estado/Auditoría/Alertas — ver
-      // AuditoriaSection.tsx.
       return <AuditoriaSection />;
     case "notas-gos":
-      // Reusa el mismo editor de ensayos que EnsayosShell (/myself/escritorio),
-      // pero ahora como pestaña más dentro de Mundo — igual que runas/personajes.
       return selectedId ? (
         <EnsayoGosScreen
           key={selectedId}
@@ -137,11 +129,6 @@ function ActiveSection() {
         />
       ) : null;
     case "capitulos":
-      // selectedId puntual = pestaña de "documento completo" de un libro
-      // (abierta con openEntity("capitulos", libroId) desde el botón junto
-      // al nombre del libro en la sidebar). Pantalla completa, sin el
-      // sidebar de libros/capítulos ni nada del editor alrededor — ver
-      // LibroDocumentoSection. Sin selectedId, vista normal del editor.
       return selectedId ? <LibroDocumentoSection /> : <CapitulosSection />;
     case "mapa":
       return <MapaSection />;
@@ -151,12 +138,9 @@ function ActiveSection() {
       return <AventuraSection />;
     case "sistema-solar":
       return <SistemaSolarSection />;
+    case "pizarron":
+      return <PizarronSection />;
     default: {
-      // Chequeo de exhaustividad: si TypeScript se queja acá de que
-      // `section` no es `never`, significa que se agregó un SectionKey
-      // nuevo sin sumar su case arriba — mismo bug que causó que "biomas"
-      // abriera la pestaña pero renderizara en blanco (caía silenciosamente
-      // acá, sin error de build).
       const _exhaustive: never = section;
       void _exhaustive;
       return null;
@@ -169,9 +153,6 @@ function EditorMundoInner() {
   useExternalCommandBridge(createEntity);
   const handleWikilinkNavigate = useWikilinkNavigate();
 
-  // Estado de red se resuelve dentro de cada useSupabaseData por sección;
-  // acá solo mostramos el banner si el navegador reporta offline, sin
-  // duplicar la lógica de detección.
   const [isOffline, setIsOffline] = React.useState(
     typeof navigator !== "undefined" ? !navigator.onLine : false,
   );
