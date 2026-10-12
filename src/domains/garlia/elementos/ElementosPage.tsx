@@ -26,6 +26,7 @@ import { BreadcrumbJerarquia, type NivelBreadcrumb } from "../biologia/Breadcrum
 import EstructurasPage from "./EstructurasPage";
 import ProcesosPage from "./ProcesosPage";
 import FenomenosPage from "./FenomenosPage";
+import ConjurosPage from "./ConjurosPage";
 
 import { ReaccionesPage } from "./ReaccionesPage";
 import { ElementoEditor } from "./ElementoEditor";
@@ -44,6 +45,7 @@ import { useFormasGeometricas } from "./useGeometriaCatalogo";
 import { ListaFormas } from "../fisica/GeometriasPage";
 import { useProcesos } from "./useProcesos";
 import { useFenomenos } from "./useFenomenos";
+import { useConjuros } from "./useConjuros";
 import { FilaAsimetrica } from "../_shared/FilaAsimetrica";
 import { CabeceraSeccionConMenu } from "../_shared/CabeceraSeccionConMenu";
 import { BloqueTabsSeccion } from "../_shared/BloqueTabsSeccion";
@@ -1039,6 +1041,7 @@ export function ElementosPage({
 
   const { items: procesosParaConteo } = useProcesos();
   const { items: fenomenosParaConteo } = useFenomenos();
+  const { items: conjurosParaConteo, crearConjuro, renombrarConjuro: renombrarConjuroFn, eliminarConjuro: eliminarConjuroFn } = useConjuros();
 
   // ── Reacciones: catálogo de recetas reutilizables de consume/produce,
   // apilado debajo de Grupos de Compuestos ────────────────────────────────
@@ -1456,6 +1459,17 @@ export function ElementosPage({
             // esos handlers, mismo criterio que un bloque de FilaAsimetrica
             // sin items/onAñadir.
             contenido: <FenomenosPage />,
+          },
+          {
+            key: "conjuros",
+            titulo: "Conjuros",
+            total: conjurosParaConteo.length,
+            onAñadir: async () => {
+              await crearConjuro("Nuevo conjuro");
+            },
+            onRenombrar: renombrarConjuroFn,
+            onEliminar: eliminarConjuroFn,
+            contenido: <ConjurosPage />,
           },
         ]}
       />

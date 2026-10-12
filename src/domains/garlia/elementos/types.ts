@@ -1804,3 +1804,49 @@ export interface ResultadoBalanceProceso {
    *  que un resultado "balanceado" con huérfanos puede ser engañoso. */
   huerfanos: { tipo: "elemento" | "compuesto"; id: string }[];
 }
+
+// ─── Conjuros ──────────────────────────────────────────────────────────────
+
+export interface Conjuro {
+  id: string;
+  nombre: string;
+  simbolo: string | null;
+  tipo: string | null;
+  nivel: number | null;
+  descripcion: string | null;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConjuroElemento {
+  id: string;
+  conjuro_id: string;
+  elemento_id: string;
+  cantidad: number | null;
+  rol: string | null;
+  created_at: string;
+}
+
+export interface ConjuroFenomeno {
+  id: string;
+  conjuro_id: string;
+  fenomeno_id: string;
+  rol: string | null;
+  created_at: string;
+}
+
+export const CONFIG_CONJUROS = {
+  tabla: "conjuros",
+  select: "id, nombre, simbolo, tipo, nivel, descripcion, notas, created_at, updated_at",
+};
+
+export const CONFIG_CONJURO_ELEMENTOS = {
+  tabla: "conjuro_elementos",
+  select: "id, conjuro_id, elemento_id, cantidad, rol, created_at",
+};
+
+export const CONFIG_CONJURO_FENOMENOS = {
+  tabla: "conjuro_fenomenos",
+  select: "id, conjuro_id, fenomeno_id, rol, created_at",
+};
