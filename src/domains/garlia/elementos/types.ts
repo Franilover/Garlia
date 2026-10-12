@@ -1805,48 +1805,30 @@ export interface ResultadoBalanceProceso {
   huerfanos: { tipo: "elemento" | "compuesto"; id: string }[];
 }
 
-// ─── Conjuros ──────────────────────────────────────────────────────────────
+// ─── Conjuraciones ─────────────────────────────────────────────────────────
 
 export interface Conjuro {
   id: string;
   nombre: string;
-  simbolo: string | null;
-  tipo: string | null;
-  nivel: number | null;
-  descripcion: string | null;
-  notas: string | null;
+  descripcion_narrativa: string | null;
+  oris_id: string | null;
+  proceso_id: string | null;
+  nivel_dominio: string | null;
+  instruccion_eterium: string | null;
+  instruccion_ium: string | null;
+  requisitos_biologicos: string | null;
+  efectos_observables: string | null;
+  demanda_eterium_id: string | null;
+  imagen_url: string | null;
+  publicado: boolean;
+  costo_eterium_calculado: Record<string, unknown> | null;
+  formula_costo: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface ConjuroElemento {
-  id: string;
-  conjuro_id: string;
-  elemento_id: string;
-  cantidad: number | null;
-  rol: string | null;
-  created_at: string;
-}
-
-export interface ConjuroFenomeno {
-  id: string;
-  conjuro_id: string;
-  fenomeno_id: string;
-  rol: string | null;
-  created_at: string;
-}
-
 export const CONFIG_CONJUROS = {
-  tabla: "conjuros",
-  select: "id, nombre, simbolo, tipo, nivel, descripcion, notas, created_at, updated_at",
-};
-
-export const CONFIG_CONJURO_ELEMENTOS = {
-  tabla: "conjuro_elementos",
-  select: "id, conjuro_id, elemento_id, cantidad, rol, created_at",
-};
-
-export const CONFIG_CONJURO_FENOMENOS = {
-  tabla: "conjuro_fenomenos",
-  select: "id, conjuro_id, fenomeno_id, rol, created_at",
+  tabla: "conjuraciones",
+  select:
+    "id, nombre, descripcion_narrativa, oris_id, proceso_id, nivel_dominio, instruccion_eterium, instruccion_ium, requisitos_biologicos, efectos_observables, imagen_url, publicado, costo_eterium_calculado, formula_costo, created_at, updated_at",
 };

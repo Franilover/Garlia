@@ -9,14 +9,10 @@ import { TituloCategoria } from "../_shared/TituloCategoria";
 import { type SaveStatus } from "@/ui/saveStatus";
 import { useConfirm } from "@/ui/ConfirmModal";
 
-import { useElementos } from "./useElementos";
-import { useFenomenos } from "./useFenomenos";
 import { useConjuros } from "./useConjuros";
-import { useConjuroElementos } from "./useConjuroElementos";
-import { useConjuroFenomenos } from "./useConjuroFenomenos";
 import type { Conjuro } from "./types";
 
-// ─── Helpers de layout (mismo patrón que FenomenosPage) ──────────────────
+// ─── Helpers de layout ───────────────────────────────────────────────────
 
 function useResponsiveColumnCount(
   ref: React.RefObject<HTMLElement | null>,
@@ -24,7 +20,6 @@ function useResponsiveColumnCount(
   gap: number,
 ): number {
   const [columnas, setColumnas] = useState(3);
-
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -39,7 +34,6 @@ function useResponsiveColumnCount(
     observer.observe(el);
     return () => observer.disconnect();
   }, [ref, minColWidth, gap]);
-
   return columnas;
 }
 
@@ -62,7 +56,7 @@ function distribuirEnColumnas<T>(
   return columnas;
 }
 
-// ─── Casilla de grid tipo tabla periódica ────────────────────────────────
+// ─── Casilla ────────────────────────────────────────────────────────────
 
 function ConjuroCasilla({
   conjuro,
@@ -84,19 +78,16 @@ function ConjuroCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      {conjuro.simbolo && (
+      {conjuro.nivel_dominio && (
         <span className="text-micro font-black text-primary/30 tabular-nums leading-none">
-          {conjuro.simbolo}
+          {conjuro.nivel_dominio}
         </span>
-      )}
-      {conjuro.nivel != null && (
-        <span className="text-micro text-primary/25 leading-none">Nv {conjuro.nivel}</span>
       )}
       <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
         {conjuro.nombre || "(sin nombre)"}
       </span>
-      {conjuro.tipo && (
-        <span className="text-micro text-primary/35 leading-none">{conjuro.tipo}</span>
+      {!conjuro.publicado && (
+        <span className="text-micro text-primary/25 leading-none">borrador</span>
       )}
     </button>
   );
@@ -133,131 +124,51 @@ function ChipGrupoConjuros({
   );
 }
 
-// ─── Panel de detalle ─────────────────────────────────────────────────────
+// ─── Panel de detalle ────────────────────────────────────────────────────
 
 function ConjuroDetail({ conjuro }: { conjuro: Conjuro }) {
-  const { items: relElementos, loading: loadingElem } = useConjuroElementos(conjuro.id);
-  const { items: elementos } = useElementos();
-  const { items: relFenomenos, loading: loadingFen } = useConjuroFenomenos(conjuro.id);
-  const { items: fenomenos } = useFenomenos();
+  const campos: { label: string; valor: string | null | undefined }[] = [
+    { label: "Nivel de dominio", valor: conjuro.nivel_dominio },
+    { label: "Descripción narrativa", valor: conjuro.descripcion_narrativa },
+    { label: "Instrucción Éterium", valor: conjuro.instruccion_eterium },
+    { label: "Instrucción IUM", valor: conjuro.instruccion_ium },
+    { label: "Requisitos biológicos", valor: conjuro.requisitos_biologicos },
+    { label: "Efectos observables", valor: conjuro.efectos_observables },
+    { label: "Fórmula de costo", valor: conjuro.formula_costo },
+  ];
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Header de meta */}
       <div className="flex items-center gap-2 flex-wrap">
-        {conjuro.simbolo && (
+        {conjuro.nivel_dominio && (
           <span className="rounded px-1.5 py-0.5 bg-primary/5 text-micro font-bold text-primary/40">
-            {conjuro.simbolo}
+            {conjuro.nivel_dominio}
           </span>
         )}
-        {conjuro.tipo && (
-          <span className="rounded px-1.5 py-0.5 bg-primary/5 text-micro font-bold text-primary/40">
-            {conjuro.tipo}
-          </span>
-        )}
-        {conjuro.nivel != null && (
-          <span className="rounded px-1.5 py-0.5 bg-primary/5 text-micro font-bold text-primary/40">
-            Nivel {conjuro.nivel}
+        {!conjuro.publicado && (
+          <span className="rounded px-1.5 py-0.5 bg-yellow-500/10 text-micro font-bold text-yellow-500/60">
+            Borrador
           </span>
         )}
       </div>
 
-      {conjuro.descripcion && (
-        <div className="flex flex-col gap-1">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Descripción
-          </span>
-          <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/60">
-            {conjuro.descripcion}
-          </p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-        {/* Elementos */}
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Elementos
-          </span>
-          <p className="text-micro text-primary/35 -mt-1">Componentes elementales del conjuro</p>
-          {loadingElem ? (
-            <div className="flex items-center gap-1.5 py-2 text-micro text-primary/40">
-              <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
-            </div>
-          ) : relElementos.length === 0 ? (
-            <p className="py-1 text-micro text-primary/30">Sin elementos asociados.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {relElementos.map((rel) => {
-                const elem = elementos.find((e) => e.id === rel.elemento_id);
-                return (
-                  <div key={rel.id} className="px-2 py-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-micro font-bold text-primary/70 truncate">
-                        {elem?.nombre ?? rel.elemento_id.slice(0, 8)}
-                      </span>
-                      {rel.cantidad != null && (
-                        <span className="text-micro text-primary/45 shrink-0">× {rel.cantidad}</span>
-                      )}
-                    </div>
-                    {rel.rol && <div className="mt-0.5 text-micro text-primary/35">{rel.rol}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Fenómenos */}
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Fenómenos
-          </span>
-          <p className="text-micro text-primary/35 -mt-1">Fenómenos que activa este conjuro</p>
-          {loadingFen ? (
-            <div className="flex items-center gap-1.5 py-2 text-micro text-primary/40">
-              <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
-            </div>
-          ) : relFenomenos.length === 0 ? (
-            <p className="py-1 text-micro text-primary/30">Sin fenómenos asociados.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {relFenomenos.map((rel) => {
-                const fen = fenomenos.find((f) => f.id === rel.fenomeno_id);
-                return (
-                  <div
-                    key={rel.id}
-                    className="flex items-center justify-between gap-2 px-2 py-1"
-                  >
-                    <span className="text-micro font-bold text-primary/70 truncate">
-                      {fen?.nombre ?? rel.fenomeno_id.slice(0, 8)}
-                    </span>
-                    {rel.rol && (
-                      <span className="text-micro text-primary/45 shrink-0">{rel.rol}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {conjuro.notas && (
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-            Notas
-          </span>
-          <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/50">
-            {conjuro.notas}
-          </p>
-        </div>
+      {campos.map(({ label, valor }) =>
+        valor ? (
+          <div key={label} className="flex flex-col gap-1">
+            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+              {label}
+            </span>
+            <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/60">
+              {valor}
+            </p>
+          </div>
+        ) : null,
       )}
     </div>
   );
 }
 
-// ─── Panel flotante ───────────────────────────────────────────────────────
+// ─── Panel flotante ──────────────────────────────────────────────────────
 
 export function ConjuroPanelFlotante({
   conjuro,
@@ -334,7 +245,7 @@ export function ConjuroPanelFlotante({
           {onRename ? (
             <input
               className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-              placeholder="Nombre del conjuro"
+              placeholder="Nombre de la conjuración"
               value={nombreLocal}
               onChange={(e) => setNombreLocal(e.target.value)}
               onBlur={guardarNombre}
@@ -386,33 +297,33 @@ export function ConjuroPanelFlotante({
   );
 }
 
-// ─── Page principal ───────────────────────────────────────────────────────
+// ─── Page principal ──────────────────────────────────────────────────────
 
 export default function ConjurosPage() {
   const { items, loading, renombrarConjuro, eliminarConjuro } = useConjuros();
   const { confirm, ConfirmModal } = useConfirm();
   const [selected, setSelected] = useState<Conjuro | null>(null);
 
-  // Agrupar por tipo si lo tienen, o un único grupo "Conjuros"
+  // Agrupar por nivel_dominio si existe
   const grupos = useMemo(() => {
-    const conTipo = items.filter((c) => c.tipo);
-    const sinTipo = items.filter((c) => !c.tipo);
-    const tiposUnicos = [...new Set(conTipo.map((c) => c.tipo as string))].sort();
+    const conNivel = items.filter((c) => c.nivel_dominio);
+    const sinNivel = items.filter((c) => !c.nivel_dominio);
+    const nivelesUnicos = [...new Set(conNivel.map((c) => c.nivel_dominio as string))].sort();
     const resultado: { id: string; nombre: string; items: Conjuro[] }[] = [];
-    for (const tipo of tiposUnicos) {
-      resultado.push({ id: tipo, nombre: tipo, items: conTipo.filter((c) => c.tipo === tipo) });
+    for (const nivel of nivelesUnicos) {
+      resultado.push({ id: nivel, nombre: nivel, items: conNivel.filter((c) => c.nivel_dominio === nivel) });
     }
-    if (sinTipo.length > 0) {
-      resultado.push({ id: "__sin_tipo__", nombre: "Conjuros", items: sinTipo });
+    if (sinNivel.length > 0) {
+      resultado.push({ id: "__sin_nivel__", nombre: "Conjuraciones", items: sinNivel });
     }
     if (resultado.length === 0 && items.length > 0) {
-      resultado.push({ id: "__todos__", nombre: "Conjuros", items });
+      resultado.push({ id: "__todos__", nombre: "Conjuraciones", items });
     }
     return resultado;
   }, [items]);
 
-  const mampContainerRef = useRef<HTMLDivElement>(null);
-  const numColumnas = useResponsiveColumnCount(mampContainerRef, 260, 16);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const numColumnas = useResponsiveColumnCount(containerRef, 260, 16);
   const columnasDeGrupos = useMemo(
     () => distribuirEnColumnas(grupos, numColumnas, (g) => g.items.length),
     [grupos, numColumnas],
@@ -424,10 +335,10 @@ export default function ConjurosPage() {
         <p className="py-5 text-center text-micro text-primary/35">Cargando…</p>
       ) : items.length === 0 ? (
         <p className="py-5 text-center text-micro text-primary/35">
-          No hay conjuros todavía. Añadí el primero desde el menú.
+          No hay conjuraciones todavía. Añadí la primera desde el menú.
         </p>
       ) : (
-        <div ref={mampContainerRef} className="flex w-full items-start gap-4">
+        <div ref={containerRef} className="flex w-full items-start gap-4">
           {columnasDeGrupos.map((columna, colIdx) => (
             <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
               {columna.map((grupo) => (
@@ -453,7 +364,7 @@ export default function ConjurosPage() {
           onRename={(nuevoNombre) => renombrarConjuro(selected.id, nuevoNombre)}
           onDelete={async () => {
             const ok = await confirm({
-              title: "Eliminar conjuro",
+              title: "Eliminar conjuración",
               message: `¿Eliminar "${selected.nombre}"? Esta acción no se puede deshacer.`,
             });
             if (!ok) return;

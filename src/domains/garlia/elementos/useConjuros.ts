@@ -3,9 +3,7 @@
 /**
  * useConjuros.ts
  * ───────────────
- * Catálogo de Conjuros (tabla "conjuros"). Mismo patrón que useFenomenos.ts:
- * lectura reactiva con useSupabaseData + renombrar/eliminar para el panel
- * flotante.
+ * Catálogo de Conjuraciones (tabla "conjuraciones"). Mismo patrón que useFenomenos.ts.
  */
 
 import { useSupabaseData } from "@/infra/sync/useSupabaseData";
