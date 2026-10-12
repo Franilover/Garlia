@@ -12,12 +12,15 @@
  *  - Todo persiste en Supabase
  */
 import {
-  Check, ChevronDown, Edit2, Link as LinkIcon, Loader2, Plus,
+  Check, ChevronDown, ChevronRight, Edit2, Link as LinkIcon, Loader2, Plus,
   Search, Trash2, Type, X, ZoomIn, ZoomOut, RotateCcw,
   // Íconos de entidades
-  FileText, User, Footprints, Crown, Building2, Sword,
+  FileText, User, Footprints, Crown, Building2, Package,
   FlaskConical, Atom, Sparkles, Layers, Dna, Microscope,
   Activity, Heart, TreePine, Globe, Gem, Flower2, Settings2,
+  Sun, Circle, Leaf, Mountain, Zap, LayoutGrid, Dot, Boxes,
+  Workflow, Wind, Wand2, Hexagon, BookOpen, Book, Music,
+  CalendarDays, History,
 } from "lucide-react";
 import React, {
   useCallback, useEffect, useRef, useState,
@@ -25,14 +28,18 @@ import React, {
 import type { LucideProps } from "lucide-react";
 import { buscarEntidades, useLienzoCanvas, useLienzos } from "./usePizarron";
 import {
-  TIPO_ENTIDAD_CONFIG, type PizarronNodo, type TipoEntidadPizarron,
+  TIPO_ENTIDAD_CONFIG, SECCIONES_SELECTOR,
+  type PizarronNodo, type TipoEntidadPizarron,
 } from "./types";
 
 // ── Mapa de íconos Lucide ─────────────────────────────────────────────────
 const LUCIDE_MAP: Record<string, React.FC<LucideProps>> = {
-  FileText, User, Footprints, Crown, Building2, Sword,
+  FileText, User, Footprints, Crown, Building2, Package,
   FlaskConical, Atom, Sparkles, Layers, Dna, Microscope,
   Activity, Heart, TreePine, Globe, Gem, Flower2, Settings2,
+  Sun, Circle, Leaf, Mountain, Zap, LayoutGrid, Dot, Boxes,
+  Workflow, Wind, Wand2, Hexagon, BookOpen, Book, Music,
+  CalendarDays, History,
 };
 
 function EntidadIcon({ name, size = 14, style }: { name: string; size?: number; style?: React.CSSProperties }) {
@@ -202,12 +209,6 @@ function NodoCanvas({
 }
 
 // ── Panel lateral: buscar y añadir entidades ──────────────────────────────
-const TIPOS_ORDEN: TipoEntidadPizarron[] = [
-  "texto", "personaje", "criatura", "reino", "ciudad", "item",
-  "compuesto", "elemento", "runa", "material", "organismo",
-  "celula", "tejido", "organo", "ecosistema", "bioma", "mineral", "flora", "proceso",
-];
-
 function PanelEntidades({
   onAgregar,
 }: {
@@ -217,6 +218,8 @@ function PanelEntidades({
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<{ id: string; nombre: string }[]>([]);
   const [buscando, setBuscando] = useState(false);
+  // Secciones colapsadas: por defecto todas abiertas
+  const [seccionesColapsadas, setSeccionesColapsadas] = useState<Record<string, boolean>>({});
   const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cfg = TIPO_ENTIDAD_CONFIG[tipoActivo];
@@ -233,75 +236,119 @@ function PanelEntidades({
     }, 300);
   }, [query, tipoActivo, cfg.tabla]);
 
+  const toggleSeccion = (label: string) => {
+    setSeccionesColapsadas((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const seleccionar = (t: TipoEntidadPizarron) => {
+    setTipoActivo(t);
+    setQuery("");
+    setResultados([]);
+  };
+
   return (
     <div
       className="flex flex-col h-full overflow-hidden"
       style={{
-        width: 220,
+        width: 230,
         borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
       }}
     >
-      {/* Selector de tipo */}
+      {/* Selector de tipo — scrollable */}
       <div
-        className="p-2 flex flex-col gap-0.5"
+        className="flex-1 overflow-y-auto"
         style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
       >
-        <p
-          className="text-micro font-semibold px-1 mb-1"
-          style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 35%, transparent)", letterSpacing: "0.06em" }}
-        >
-          Tipo de entidad
-        </p>
-        <div className="flex flex-col gap-0.5">
-          {TIPOS_ORDEN.map((t) => {
-            const c = TIPO_ENTIDAD_CONFIG[t];
-            const active = tipoActivo === t;
-            return (
+        {SECCIONES_SELECTOR.map((seccion) => {
+          const colapsada = !!seccionesColapsadas[seccion.label];
+          return (
+            <div key={seccion.label}>
+              {/* Cabecera de sección */}
               <button
-                key={t}
                 type="button"
-                onClick={() => { setTipoActivo(t); setQuery(""); setResultados([]); }}
-                className="flex items-center gap-2 px-2 py-1 text-left w-full transition-all"
+                onClick={() => toggleSeccion(seccion.label)}
+                className="flex items-center gap-1.5 w-full px-3 py-2 transition-all"
                 style={{
-                  borderRadius: "var(--radius-btn)",
-                  background: active
-                    ? `color-mix(in srgb, ${c.accentVar} 15%, var(--bg-main))`
-                    : "transparent",
-                  border: active
-                    ? `1px solid color-mix(in srgb, ${c.accentVar} 35%, transparent)`
-                    : "1px solid transparent",
+                  background: "transparent",
+                  border: "none",
                   cursor: "pointer",
                 }}
               >
-                <EntidadIcon
-                  name={c.icon}
-                  size={13}
-                  style={{
-                    color: active
-                      ? c.accentVar
-                      : "color-mix(in srgb, var(--primary) 35%, transparent)",
-                    flexShrink: 0,
-                  }}
-                />
+                {colapsada
+                  ? <ChevronRight size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                  : <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                }
                 <span
                   style={{
-                    fontSize: 12,
-                    color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
-                    fontWeight: active ? 600 : 400,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                    letterSpacing: "0.07em",
+                    textTransform: "uppercase",
                   }}
                 >
-                  {c.label}
+                  {seccion.label}
                 </span>
               </button>
-            );
-          })}
-        </div>
+
+              {/* Items de la sección */}
+              {!colapsada && (
+                <div className="flex flex-col pb-1">
+                  {seccion.tipos.map((t) => {
+                    const c = TIPO_ENTIDAD_CONFIG[t];
+                    const active = tipoActivo === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => seleccionar(t)}
+                        className="flex items-center gap-2 pl-6 pr-3 py-1 text-left w-full transition-all"
+                        style={{
+                          borderRadius: 0,
+                          background: active
+                            ? `color-mix(in srgb, ${c.accentVar} 12%, var(--bg-main))`
+                            : "transparent",
+                          borderLeft: active
+                            ? `2px solid ${c.accentVar}`
+                            : "2px solid transparent",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <EntidadIcon
+                          name={c.icon}
+                          size={12}
+                          style={{
+                            color: active
+                              ? c.accentVar
+                              : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: active
+                              ? "var(--primary)"
+                              : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                            fontWeight: active ? 600 : 400,
+                          }}
+                        >
+                          {c.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {/* Texto libre */}
+      {/* Zona inferior: texto libre o búsqueda */}
       {tipoActivo === "texto" ? (
-        <div className="p-3 flex flex-col gap-2">
-          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+        <div className="p-3 flex flex-col gap-2 shrink-0">
+          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
             Añade un bloque de texto libre al lienzo.
           </p>
           <button
@@ -319,9 +366,9 @@ function PanelEntidades({
           </button>
         </div>
       ) : (
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Búsqueda */}
-          <div className="p-2">
+        <div className="flex flex-col shrink-0" style={{ maxHeight: 200 }}>
+          {/* Buscador */}
+          <div className="p-2 shrink-0">
             <div
               className="flex items-center gap-2 px-2 py-1.5"
               style={{
@@ -351,15 +398,15 @@ function PanelEntidades({
           </div>
 
           {/* Resultados */}
-          <div className="flex-1 overflow-y-auto px-2 pb-2 flex flex-col gap-0.5">
-            {resultados.length === 0 && query.trim() && !buscando && (
-              <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                Sin resultados
+          <div className="overflow-y-auto px-2 pb-2 flex flex-col gap-0.5">
+            {!query.trim() && (
+              <p className="text-xs py-3 text-center" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                Escribe para buscar
               </p>
             )}
-            {!query.trim() && (
-              <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
-                Escribe para buscar
+            {resultados.length === 0 && query.trim() && !buscando && (
+              <p className="text-xs py-3 text-center" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                Sin resultados
               </p>
             )}
             {resultados.map((r) => (
