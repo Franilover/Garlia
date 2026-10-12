@@ -47,7 +47,7 @@ export function useConjuros() {
       console.error("[useConjuros] error creando:", error);
       return null;
     }
-    setData((prev) => [...prev, row as Conjuro]);
+    setData((prev) => [...prev, row as unknown as Conjuro]);
     return row.id;
   }
 
