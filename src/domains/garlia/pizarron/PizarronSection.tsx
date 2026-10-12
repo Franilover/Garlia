@@ -357,7 +357,7 @@ function PanelEntidades({
                 Sin resultados
               </p>
             )}
-            {!query.trim() && tipoActivo !== "texto" && (
+            {!query.trim() && (
               <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
                 Escribe para buscar
               </p>
