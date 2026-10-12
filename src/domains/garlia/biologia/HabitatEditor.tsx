@@ -31,6 +31,8 @@ import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore
 
 import { HabitatPopoverContent } from "./HabitatPopoverContent";
 import { useMapaEcologico, type HabitatEcologico } from "./useMapaEcologico";
+import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
+import { useHabitatJerarquia } from "./useHabitatJerarquia";
 
 /** Texto corto bajo el nombre: "Tipo · dentro de X · Bioma › Ecosistema". */
 function subtituloDe(h: HabitatEcologico): string {
@@ -53,6 +55,8 @@ export function HabitatEditor({
   const invalidarMapaEcologico = usePanelFlotante((s) => s.invalidarMapaEcologico);
   const { habitats, refrescar } = useMapaEcologico();
 
+  const jerarquia = useHabitatJerarquia(habitatId);
+
   const habitat = habitats.find((h) => h.habitat_id === habitatId) ?? null;
 
   // Hooks siempre incondicionales: si el hábitat aún no cargó, se publica
@@ -73,6 +77,42 @@ export function HabitatEditor({
 
   return (
     <div className="p-4 flex-1 min-h-0 flex flex-col">
+      {/* ── Breadcrumb jerarquía completa ──────────────────────────────────── */}
+      <div className="mb-3">
+        <BreadcrumbJerarquia
+          niveles={[
+            {
+              label: "Planeta",
+              activo: false,
+              items: jerarquia.planetas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("planeta", id),
+            },
+            {
+              label: "Bioma",
+              activo: false,
+              items: jerarquia.biomas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("bioma", id),
+            },
+            {
+              label: "Ecosistema",
+              activo: false,
+              items: jerarquia.ecosistemas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("ecosistema", id),
+            },
+            { label: "Hábitat", activo: true },
+            {
+              label: "Criatura",
+              activo: false,
+              items: jerarquia.criaturas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("criatura", id),
+            },
+          ]}
+        />
+      </div>
       <HabitatPopoverContent
         habitat={habitat}
         onClose={cerrarPanel}

@@ -35,6 +35,9 @@ import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
 import { useBiomas } from "./useBiologia";
 import { useMapaEcologico } from "./useMapaEcologico";
 import {
+import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
+import { useEcosistemaJerarquia } from "./useEcosistemaJerarquia";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
   ROL_TROFICO_LABEL,
   ROLES_TROFICOS,
   type CadenaAlimenticia,
@@ -304,6 +307,10 @@ export function PanelEcosistema({
     setDescripcion(ecosistema.descripcion ?? "");
   }, [ecosistema.id]);
 
+
+  const abrirPanel = usePanelFlotante((s) => s.abrir);
+  const jerarquia  = useEcosistemaJerarquia(ecosistema.id, ecosistema.bioma_id);
+
   const guardar = () => {
     setStatus("saving");
     try {
@@ -520,6 +527,44 @@ export function PanelEcosistema({
   return (
     <div className={layoutDosColumnas ? "flex flex-1 h-full min-h-0" : undefined}>
       {usaAsideGlobal && <RegistroAsideMovil />}
+
+      {/* ── Breadcrumb jerarquía completa ──────────────────────────────────── */}
+      <div className="px-4 pt-3 pb-0">
+        <BreadcrumbJerarquia
+          niveles={[
+            {
+              label: "Planeta",
+              activo: false,
+              items: jerarquia.planetas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("planeta", id),
+            },
+            {
+              label: "Bioma",
+              activo: false,
+              items: jerarquia.biomas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("bioma", id),
+            },
+            { label: "Ecosistema", activo: true },
+            {
+              label: "Hábitat",
+              activo: false,
+              items: jerarquia.habitats,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("habitat", id),
+            },
+            {
+              label: "Criatura",
+              activo: false,
+              items: jerarquia.criaturas,
+              loading: jerarquia.loading,
+              onNavegar: (id) => abrirPanel("criatura", id),
+            },
+          ]}
+        />
+      </div>
+
       <div
         className={
           layoutDosColumnas
