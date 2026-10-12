@@ -35,9 +35,6 @@ import { SelectorCriaturasMulti } from "./SelectorCriaturasMulti";
 import { useBiomas } from "./useBiologia";
 import { useMapaEcologico } from "./useMapaEcologico";
 import {
-import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
-import { useEcosistemaJerarquia } from "./useEcosistemaJerarquia";
-import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
   ROL_TROFICO_LABEL,
   ROLES_TROFICOS,
   type CadenaAlimenticia,
@@ -45,6 +42,9 @@ import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore
   type EslabonTrofico,
   type RolTrofico,
 } from "./types";
+import { BreadcrumbJerarquia } from "./BreadcrumbJerarquia";
+import { useEcosistemaJerarquia } from "./useEcosistemaJerarquia";
+import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
 
 // ─── Editor de un eslabón trófico ───────────────────────────────────────────
 
