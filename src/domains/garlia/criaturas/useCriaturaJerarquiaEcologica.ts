@@ -3,16 +3,15 @@
 /**
  * useCriaturaJerarquiaEcologica.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Resuelve los niveles ecológicos ASCENDENTES de una criatura para extender
- * el breadcrumb de EditorCriatura hacia la derecha:
+ * Resuelve los niveles ecológicos ascendentes de una criatura:
  *
- *   … ▸ Criatura (activo) ▸ Hábitat ▸ Ecosistema ▸ Bioma ▸ Planeta
+ *   Criatura (activo) ▸ Hábitat ▸ Ecosistema ▸ Bioma ▸ Planeta
  *
- * Cadena de joins:
- *   ecosistema_participantes (criatura_id) ──► ecosistema_id, habitat_id
- *   v_mapa_ecologico_v1      (ecosistema_id IN ...) ──► bioma, planeta
+ * Estrategia en 2 queries sin depender de FK constraints en PostgREST:
  *
- * Todo en un Promise.all de dos queries; la vista ya tiene el árbol completo.
+ *   1. ecosistema_participantes  →  sólo ids (ecosistema_id, habitat_id)
+ *   2. v_mapa_ecologico_v1 WHERE ecosistema_id IN (...)
+ *      → nombres de hábitat, ecosistema, bioma y planeta en una sola pasada
  */
 
 import { useEffect, useState } from "react";
@@ -45,57 +44,61 @@ export function useCriaturaJerarquiaEcologica(criaturaId: string): JerarquiaEcol
     setLoading(true);
 
     (async () => {
-      // ── Paso 1: hábitats y ecosistemas directos de la criatura ─────────
+      // ── Paso 1: ids directos, sin joins ────────────────────────────────
       const { data: participantes } = await supabase
         .from("ecosistema_participantes")
-        .select("ecosistema_id, habitat_id, habitats(nombre), ecosistemas(nombre)")
+        .select("ecosistema_id, habitat_id")
         .eq("criatura_id", criaturaId)
         .eq("activo", true);
 
       if (cancelado) return;
 
-      const rows = participantes ?? [];
+      const ecoIds = [...new Set(
+        (participantes ?? [])
+          .map((r: any) => r.ecosistema_id)
+          .filter(Boolean)
+      )];
 
-      const habitats = dedup(
-        rows
-          .filter((r: any) => r.habitat_id && r.habitats?.nombre)
-          .map((r: any) => ({ id: r.habitat_id, nombre: r.habitats.nombre }))
-      );
-      const ecosistemas = dedup(
-        rows
-          .filter((r: any) => r.ecosistema_id && r.ecosistemas?.nombre)
-          .map((r: any) => ({ id: r.ecosistema_id, nombre: r.ecosistemas.nombre }))
-      );
-
-      // ── Paso 2: biomas y planetas desde la vista ecológica ─────────────
-      const ecoIds = ecosistemas.map((e) => e.id);
-      let biomas:   ItemJerarquia[] = [];
-      let planetas: ItemJerarquia[] = [];
-
-      if (ecoIds.length > 0) {
-        const { data: mapa } = await supabase
-          .from("v_mapa_ecologico_v1")
-          .select("bioma_id, bioma, cuerpo_celeste_id, cuerpo_celeste")
-          .in("ecosistema_id", ecoIds);
-
-        if (!cancelado) {
-          biomas = dedup(
-            (mapa ?? [])
-              .filter((r: any) => r.bioma_id && r.bioma)
-              .map((r: any) => ({ id: r.bioma_id, nombre: r.bioma }))
-          );
-          planetas = dedup(
-            (mapa ?? [])
-              .filter((r: any) => r.cuerpo_celeste_id && r.cuerpo_celeste)
-              .map((r: any) => ({ id: r.cuerpo_celeste_id, nombre: r.cuerpo_celeste }))
-          );
-        }
-      }
-
-      if (!cancelado) {
-        setEstado({ habitats, ecosistemas, biomas, planetas });
+      // Sin ecosistemas, nada que mostrar
+      if (ecoIds.length === 0) {
+        setEstado({ habitats: [], ecosistemas: [], biomas: [], planetas: [] });
         setLoading(false);
+        return;
       }
+
+      // ── Paso 2: todos los nombres via la vista ecológica ───────────────
+      const { data: mapa } = await supabase
+        .from("v_mapa_ecologico_v1")
+        .select("habitat_id, habitat, ecosistema_id, ecosistema, bioma_id, bioma, cuerpo_celeste_id, cuerpo_celeste")
+        .in("ecosistema_id", ecoIds);
+
+      if (cancelado) return;
+
+      const rows = mapa ?? [];
+
+      setEstado({
+        habitats: dedup(
+          rows
+            .filter((r: any) => r.habitat_id && r.habitat)
+            .map((r: any) => ({ id: r.habitat_id, nombre: r.habitat }))
+        ),
+        ecosistemas: dedup(
+          rows
+            .filter((r: any) => r.ecosistema_id && r.ecosistema)
+            .map((r: any) => ({ id: r.ecosistema_id, nombre: r.ecosistema }))
+        ),
+        biomas: dedup(
+          rows
+            .filter((r: any) => r.bioma_id && r.bioma)
+            .map((r: any) => ({ id: r.bioma_id, nombre: r.bioma }))
+        ),
+        planetas: dedup(
+          rows
+            .filter((r: any) => r.cuerpo_celeste_id && r.cuerpo_celeste)
+            .map((r: any) => ({ id: r.cuerpo_celeste_id, nombre: r.cuerpo_celeste }))
+        ),
+      });
+      setLoading(false);
     })();
 
     return () => { cancelado = true; };
