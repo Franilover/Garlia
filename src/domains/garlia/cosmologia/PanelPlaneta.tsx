@@ -4,12 +4,16 @@
  * PanelPlaneta.tsx
  * ───────────────────────────────────────────────────────────────────────────
  * Panel de detalle de un cuerpo celeste (planeta, satélite, etc.).
- * Muestra descripción + inventario detallado: atmósfera, geología,
- * biomas, reinos y procesos vinculados. Los biomas y reinos son
- * clickeables y abren su propio panel flotante.
+ * Muestra:
+ *  - BreadcrumbJerarquia  Planeta ▸ Bioma ▸ Ecosistema ▸ Hábitat ▸ Criatura
+ *  - Descripción editable
+ *  - Inventario detallado: visual · atmósfera · geología · biomas · reinos · procesos
  */
 
-import { Globe, Compass, ArrowLeft, Wind, Layers, Leaf, Crown, Zap, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Globe, Wind, Layers, Leaf, Crown, Zap, Eye,
+  ChevronDown, ChevronUp, Bug, Home, Trees,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
@@ -19,8 +23,9 @@ import {
   usePublishHeaderControls,
   type OnHeaderControlsChange,
 } from "@/domains/garlia/_shared/useEditorHeaderControls";
-import { useBiomas } from "@/domains/garlia/biologia/useBiologia";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
+import { BreadcrumbJerarquia, type NivelBreadcrumb } from "@/domains/garlia/biologia/BreadcrumbJerarquia";
+import { usePlanetaJerarquiaEcologica } from "./usePlanetaJerarquiaEcologica";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +80,7 @@ type InventarioPlaneta = {
   procesos: ProcesoPlaneta[];
 };
 
-// ── Helpers visuales ───────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 const CAPA_LABEL: Record<string, string> = {
   superficie: "Superficie",
@@ -83,7 +88,6 @@ const CAPA_LABEL: Record<string, string> = {
   nucleo: "Núcleo",
   subsuelo: "Subsuelo",
 };
-
 const CAPA_ORDER = ["superficie", "subsuelo", "manto", "nucleo"];
 
 const RELACION_LABEL: Record<string, string> = {
@@ -95,17 +99,16 @@ const RELACION_LABEL: Record<string, string> = {
 };
 
 const VINCULO_COLOR: Record<string, string> = {
-  validado: "color-mix(in srgb, #22c55e 70%, transparent)",
-  revision: "color-mix(in srgb, #f59e0b 70%, transparent)",
-  provisional: "color-mix(in srgb, #6366f1 70%, transparent)",
+  validado:    "#22c55e",
+  revision:    "#f59e0b",
+  provisional: "#6366f1",
 };
 
 function pct(n: number | null) {
-  if (n == null) return "";
-  return `${Math.round(n)}%`;
+  return n != null ? `${Math.round(n)}%` : "";
 }
 
-// ── Sub-sección reutilizable ───────────────────────────────────────────────
+// ── SubSeccion colapsable ──────────────────────────────────────────────────
 
 function SubSeccion({
   icon: Icon,
@@ -144,7 +147,11 @@ function SubSeccion({
           <>
             <span
               className="text-micro font-black px-1.5 py-0.5 rounded-full"
-              style={{ background: "color-mix(in srgb, var(--primary) 8%, transparent)", color: "var(--primary)", opacity: 0.5 }}
+              style={{
+                background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                color: "var(--primary)",
+                opacity: 0.5,
+              }}
             >
               {count}
             </span>
@@ -168,7 +175,7 @@ function SubSeccion({
   );
 }
 
-// ── Chip clickeable ────────────────────────────────────────────────────────
+// ── Chip ───────────────────────────────────────────────────────────────────
 
 function Chip({
   label,
@@ -190,37 +197,47 @@ function Chip({
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-left transition-all"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-left w-full transition-all"
       style={{
         background: "color-mix(in srgb, var(--primary) 5%, transparent)",
         border: "1px solid color-mix(in srgb, var(--primary) 9%, transparent)",
         cursor: onClick ? "pointer" : "default",
       }}
       onMouseEnter={(e) => {
-        if (onClick) (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 10%, transparent)";
+        if (onClick)
+          (e.currentTarget as HTMLElement).style.background =
+            "color-mix(in srgb, var(--primary) 10%, transparent)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = "color-mix(in srgb, var(--primary) 5%, transparent)";
+        (e.currentTarget as HTMLElement).style.background =
+          "color-mix(in srgb, var(--primary) 5%, transparent)";
       }}
     >
       <div className="flex-1 min-w-0">
         <span
           className="text-xs font-bold text-primary/70 truncate block leading-tight"
-          style={mono ? { fontFamily: "var(--font-mono, monospace)", fontSize: "11px" } : {}}
+          style={
+            mono ? { fontFamily: "var(--font-mono, monospace)", fontSize: "11px" } : {}
+          }
         >
           {label}
         </span>
         {sublabel && (
-          <span className="text-micro text-primary/35 truncate block mt-0.5 leading-tight">{sublabel}</span>
+          <span className="text-micro text-primary/35 truncate block mt-0.5 leading-tight">
+            {sublabel}
+          </span>
         )}
       </div>
       {badge && (
         <span
           className="text-micro font-black shrink-0 px-1.5 py-0.5 rounded-full"
           style={{
-            background: badgeColor ?? "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "var(--primary)",
-            opacity: 0.7,
+            background:
+              badgeColor
+                ? `color-mix(in srgb, ${badgeColor} 18%, transparent)`
+                : "color-mix(in srgb, var(--primary) 8%, transparent)",
+            color: badgeColor ?? "var(--primary)",
+            opacity: 0.85,
           }}
         >
           {badge}
@@ -247,19 +264,22 @@ export function PanelPlaneta({
   const [descripcion, setDescripcion] = useState(planeta.descripcion ?? "");
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [inventario, setInventario] = useState<InventarioPlaneta | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [cargandoInv, setCargandoInv] = useState(true);
 
   const abrirPanel = usePanelFlotante((s) => s.abrir);
+
+  // Jerarquía ecológica para el breadcrumb
+  const jerarquia = usePlanetaJerarquiaEcologica(planeta.id);
 
   useEffect(() => {
     setNombre(planeta.nombre);
     setDescripcion(planeta.descripcion ?? "");
   }, [planeta.id]);
 
-  // Carga todo el inventario en paralelo
+  // Carga inventario completo en paralelo
   useEffect(() => {
     let cancelado = false;
-    setCargando(true);
+    setCargandoInv(true);
 
     (async () => {
       const id = planeta.id;
@@ -272,7 +292,11 @@ export function PanelPlaneta({
         { data: rawReinos },
         { data: rawProcesos },
       ] = await Promise.all([
-        supabase.from("cuerpo_celeste_visual_v1").select("id").eq("cuerpo_celeste_id", id).limit(1),
+        supabase
+          .from("cuerpo_celeste_visual_v1")
+          .select("id")
+          .eq("cuerpo_celeste_id", id)
+          .limit(1),
 
         supabase
           .from("cuerpo_celeste_composicion_atm_v1")
@@ -343,7 +367,7 @@ export function PanelPlaneta({
         })),
       });
 
-      setCargando(false);
+      setCargandoInv(false);
     })();
 
     return () => { cancelado = true; };
@@ -383,8 +407,54 @@ export function PanelPlaneta({
       }, {})
     : {};
 
-  const contenido = (
+  // ── Breadcrumb ────────────────────────────────────────────────────────────
+  const nivelesBreadcrumb: NivelBreadcrumb[] = [
+    {
+      label: "Planeta",
+      icono: <Globe size={9} />,
+      activo: true,
+    },
+    {
+      label: "Bioma",
+      icono: <Leaf size={9} />,
+      activo: false,
+      items: jerarquia.biomas,
+      loading: jerarquia.loading,
+      onNavegar: (id) => abrirPanel("bioma", id),
+    },
+    {
+      label: "Ecosistema",
+      icono: <Trees size={9} />,
+      activo: false,
+      items: jerarquia.ecosistemas,
+      loading: jerarquia.loading,
+      onNavegar: (id) => abrirPanel("ecosistema", id),
+    },
+    {
+      label: "Hábitat",
+      icono: <Home size={9} />,
+      activo: false,
+      items: jerarquia.habitats,
+      loading: jerarquia.loading,
+      onNavegar: (id) => abrirPanel("habitat", id),
+    },
+    {
+      label: "Criatura",
+      icono: <Bug size={9} />,
+      activo: false,
+      items: jerarquia.criaturas,
+      loading: jerarquia.loading,
+      onNavegar: (id) => abrirPanel("criatura", id),
+    },
+  ];
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
     <div className="flex flex-col gap-4 p-4">
+
+      {/* Breadcrumb jerarquía ecológica */}
+      <BreadcrumbJerarquia niveles={nivelesBreadcrumb} />
 
       {/* Cabecera propia (fuera del panel flotante) */}
       {!enPanelFlotante && (
@@ -394,7 +464,7 @@ export function PanelPlaneta({
             onClick={onVolver}
             className="p-1.5 rounded-lg text-primary/40 hover:text-primary hover:bg-primary/8 transition-colors"
           >
-            <ArrowLeft size={15} />
+            ←
           </button>
           <Globe size={14} className="text-primary/40 shrink-0" />
           <input
@@ -435,7 +505,7 @@ export function PanelPlaneta({
       </div>
 
       {/* ── Inventario ── */}
-      {cargando ? (
+      {cargandoInv ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
             <div
@@ -464,7 +534,7 @@ export function PanelPlaneta({
                   badge={
                     el.simbolo && el.fraccion_molar != null
                       ? `${el.simbolo} · ${Math.round(el.fraccion_molar * 100)}%`
-                      : el.simbolo ?? undefined
+                      : (el.simbolo ?? undefined)
                   }
                   mono
                 />
@@ -518,7 +588,11 @@ export function PanelPlaneta({
                   key={r.reino_id}
                   label={r.nombre}
                   sublabel={r.es_nativo ? "nativo" : undefined}
-                  badge={r.tipo_relacion ? RELACION_LABEL[r.tipo_relacion] ?? r.tipo_relacion : undefined}
+                  badge={
+                    r.tipo_relacion
+                      ? (RELACION_LABEL[r.tipo_relacion] ?? r.tipo_relacion)
+                      : undefined
+                  }
                   onClick={() => abrirPanel("reino", r.reino_id)}
                 />
               ))}
@@ -535,9 +609,7 @@ export function PanelPlaneta({
                   sublabel={p.relacion_clave ?? undefined}
                   badge={p.estado_vinculo ?? undefined}
                   badgeColor={
-                    p.estado_vinculo
-                      ? `color-mix(in srgb, ${VINCULO_COLOR[p.estado_vinculo] ?? "var(--primary)"} 15%, transparent)`
-                      : undefined
+                    p.estado_vinculo ? (VINCULO_COLOR[p.estado_vinculo] ?? undefined) : undefined
                   }
                 />
               ))}
@@ -563,6 +635,4 @@ export function PanelPlaneta({
       </div>
     </div>
   );
-
-  return contenido;
 }
