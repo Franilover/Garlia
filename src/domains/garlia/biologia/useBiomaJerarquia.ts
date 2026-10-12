@@ -2,15 +2,10 @@
 
 /**
  * useBiomaJerarquia.ts
- * ───────────────────────────────────────────────────────────────────────────
- * Resuelve la jerarquía completa para el breadcrumb de PanelBioma:
+ * Resuelve: ← Planeta ← Bioma (activo) → Ecosistema → Hábitat → Criatura
  *
- *   ← Planeta ← Bioma (activo) → Ecosistema → Hábitat → Criatura
- *
- * Estrategia:
- *   1. cuerpo_celeste_biomas_v1  WHERE bioma_id → planeta(s)
- *   2. v_habitats_ecosistemas_v1 WHERE bioma_id → ecosistemas + hábitats
- *   3. ecosistema_participantes  WHERE ecosistema_id IN (...) + activo → criaturas con nombre
+ * cuerpo_celeste_biomas_v1 solo tiene cuerpo_celeste_id + bioma_id (sin FK join).
+ * Se hace en 2 pasos: ids → nombres desde cuerpos_celestes_v1.
  */
 
 import { useEffect, useState } from "react";
@@ -44,16 +39,16 @@ export function useBiomaJerarquia(biomaId: string): BiomaJerarquia {
 
     (async () => {
       const [
-        { data: rawPlanetas },
+        { data: rawPlanetaIds },
         { data: rawHabitats },
       ] = await Promise.all([
-        // Planetas que contienen este bioma
+        // Solo IDs — la vista no tiene FK a cuerpos_celestes
         supabase
           .from("cuerpo_celeste_biomas_v1")
-          .select("cuerpo_celeste_id, cuerpos_celestes(nombre)")
+          .select("cuerpo_celeste_id")
           .eq("bioma_id", biomaId),
 
-        // Hábitats → también nos da ecosistemas (la vista los tiene en una fila)
+        // Hábitats + ecosistemas en una sola query
         supabase
           .from("v_habitats_ecosistemas_v1")
           .select("habitat_id, habitat, ecosistema_id, ecosistema")
@@ -62,11 +57,27 @@ export function useBiomaJerarquia(biomaId: string): BiomaJerarquia {
 
       if (cancelado) return;
 
-      const planetas = dedup(
-        (rawPlanetas ?? [])
-          .filter((r: any) => r.cuerpo_celeste_id && r.cuerpos_celestes?.nombre)
-          .map((r: any) => ({ id: r.cuerpo_celeste_id, nombre: r.cuerpos_celestes.nombre }))
-      );
+      // Nombres de planetas desde cuerpos_celestes_v1
+      const planetaIds = (rawPlanetaIds ?? [])
+        .map((r: any) => r.cuerpo_celeste_id)
+        .filter(Boolean);
+
+      let planetas: ItemJerarquia[] = [];
+      if (planetaIds.length > 0) {
+        const { data: rawPlanetas } = await supabase
+          .from("cuerpos_celestes_v1")
+          .select("id, nombre")
+          .in("id", planetaIds);
+        if (!cancelado) {
+          planetas = dedup(
+            (rawPlanetas ?? [])
+              .filter((r: any) => r.id && r.nombre)
+              .map((r: any) => ({ id: r.id, nombre: r.nombre }))
+          );
+        }
+      }
+
+      if (cancelado) return;
 
       const rows = rawHabitats ?? [];
 

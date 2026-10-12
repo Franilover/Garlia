@@ -2,15 +2,7 @@
 
 /**
  * useEcosistemaJerarquia.ts
- * ───────────────────────────────────────────────────────────────────────────
- * Resuelve la jerarquía completa para el breadcrumb de PanelEcosistema:
- *
- *   ← Planeta ← Bioma ← Ecosistema (activo) → Hábitat → Criatura
- *
- * Estrategia:
- *   1. ecosistemas WHERE id → bioma_id → luego planeta via cuerpo_celeste_biomas_v1
- *   2. v_habitats_ecosistemas_v1 WHERE ecosistema_id → hábitats
- *   3. ecosistema_participantes WHERE ecosistema_id → criaturas
+ * Resuelve: ← Planeta ← Bioma ← Ecosistema (activo) → Hábitat → Criatura
  */
 
 import { useEffect, useState } from "react";
@@ -33,7 +25,6 @@ function dedup(items: ItemJerarquia[]): ItemJerarquia[] {
 
 export function useEcosistemaJerarquia(
   ecosistemaId: string,
-  /** bioma_id ya conocido del ecosistema (evita una query extra) */
   biomaId?: string | null,
 ): EcosistemaJerarquia {
   const [estado, setEstado] = useState<Omit<EcosistemaJerarquia, "loading">>({
@@ -47,11 +38,20 @@ export function useEcosistemaJerarquia(
     setLoading(true);
 
     (async () => {
-      // Resolvemos bioma si no lo tenemos
+      // Paso 1: resolver bioma_id si no lo tenemos, y nombre del bioma
       let resolvedBiomaId = biomaId ?? null;
       let biomas: ItemJerarquia[] = [];
 
-      if (!resolvedBiomaId) {
+      if (resolvedBiomaId) {
+        const { data: bData } = await supabase
+          .from("biomas")
+          .select("nombre")
+          .eq("id", resolvedBiomaId)
+          .single();
+        if (!cancelado && bData) {
+          biomas = [{ id: resolvedBiomaId, nombre: bData.nombre }];
+        }
+      } else {
         const { data: eco } = await supabase
           .from("ecosistemas")
           .select("bioma_id, biomas(nombre)")
@@ -61,39 +61,28 @@ export function useEcosistemaJerarquia(
           resolvedBiomaId = eco.bioma_id;
           biomas = [{ id: eco.bioma_id, nombre: (eco as any).biomas?.nombre ?? "Bioma" }];
         }
-      } else {
-        const { data: bData } = await supabase
-          .from("biomas")
-          .select("nombre")
-          .eq("id", resolvedBiomaId)
-          .single();
-        if (!cancelado && bData) {
-          biomas = [{ id: resolvedBiomaId, nombre: bData.nombre }];
-        }
       }
 
       if (cancelado) return;
 
+      // Paso 2: IDs de planetas via bioma + hábitats + criaturas en paralelo
       const [
-        { data: rawPlanetas },
+        { data: rawPlanetaIds },
         { data: rawHabitats },
         { data: participantes },
       ] = await Promise.all([
-        // Planetas vía el bioma
         resolvedBiomaId
           ? supabase
               .from("cuerpo_celeste_biomas_v1")
-              .select("cuerpo_celeste_id, cuerpos_celestes(nombre)")
+              .select("cuerpo_celeste_id")
               .eq("bioma_id", resolvedBiomaId)
           : Promise.resolve({ data: [] }),
 
-        // Hábitats de este ecosistema
         supabase
           .from("v_habitats_ecosistemas_v1")
           .select("habitat_id, habitat")
           .eq("ecosistema_id", ecosistemaId),
 
-        // Criaturas
         supabase
           .from("ecosistema_participantes")
           .select("criatura_id, criaturas(nombre)")
@@ -104,11 +93,27 @@ export function useEcosistemaJerarquia(
 
       if (cancelado) return;
 
-      const planetas = dedup(
-        (rawPlanetas ?? [])
-          .filter((r: any) => r.cuerpo_celeste_id && r.cuerpos_celestes?.nombre)
-          .map((r: any) => ({ id: r.cuerpo_celeste_id, nombre: r.cuerpos_celestes.nombre }))
-      );
+      // Paso 3: nombres de planetas
+      const planetaIds = (rawPlanetaIds ?? [])
+        .map((r: any) => r.cuerpo_celeste_id)
+        .filter(Boolean);
+
+      let planetas: ItemJerarquia[] = [];
+      if (planetaIds.length > 0) {
+        const { data: rawPlanetas } = await supabase
+          .from("cuerpos_celestes_v1")
+          .select("id, nombre")
+          .in("id", planetaIds);
+        if (!cancelado) {
+          planetas = dedup(
+            (rawPlanetas ?? [])
+              .filter((r: any) => r.id && r.nombre)
+              .map((r: any) => ({ id: r.id, nombre: r.nombre }))
+          );
+        }
+      }
+
+      if (cancelado) return;
 
       const habitats = dedup(
         (rawHabitats ?? [])

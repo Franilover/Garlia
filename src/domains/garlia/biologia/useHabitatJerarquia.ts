@@ -2,13 +2,7 @@
 
 /**
  * useHabitatJerarquia.ts
- * ───────────────────────────────────────────────────────────────────────────
- * Resuelve la jerarquía completa para el breadcrumb de HabitatEditor:
- *
- *   ← Planeta ← Bioma ← Ecosistema ← Hábitat (activo) → Criatura
- *
- * Usa v_habitats_ecosistemas_v1 (que ya tiene bioma_id, ecosistema_id en
- * la fila del hábitat) más una query de planetas y otra de criaturas.
+ * Resuelve: ← Planeta ← Bioma ← Ecosistema ← Hábitat (activo) → Criatura
  */
 
 import { useEffect, useState } from "react";
@@ -41,7 +35,7 @@ export function useHabitatJerarquia(habitatId: string): HabitatJerarquia {
     setLoading(true);
 
     (async () => {
-      // 1. Contexto del hábitat (bioma_id + ecosistema_id están en la vista)
+      // Paso 1: contexto del hábitat (bioma_id + ecosistema_id desde la vista)
       const { data: hRow } = await supabase
         .from("v_habitats_ecosistemas_v1")
         .select("ecosistema_id, ecosistema, bioma_id, bioma")
@@ -54,23 +48,23 @@ export function useHabitatJerarquia(habitatId: string): HabitatJerarquia {
       const ecosistemaId = hRow?.ecosistema_id ?? null;
       const biomaId      = hRow?.bioma_id ?? null;
 
-      const biomas: ItemJerarquia[] = hRow?.bioma_id
-        ? [{ id: hRow.bioma_id, nombre: hRow.bioma ?? "Bioma" }]
+      const biomas: ItemJerarquia[] = biomaId
+        ? [{ id: biomaId, nombre: hRow?.bioma ?? "Bioma" }]
         : [];
 
-      const ecosistemas: ItemJerarquia[] = hRow?.ecosistema_id
-        ? [{ id: hRow.ecosistema_id, nombre: hRow.ecosistema ?? "Ecosistema" }]
+      const ecosistemas: ItemJerarquia[] = ecosistemaId
+        ? [{ id: ecosistemaId, nombre: hRow?.ecosistema ?? "Ecosistema" }]
         : [];
 
-      // 2. Planetas (via bioma) + Criaturas (via ecosistema_participantes) en paralelo
+      // Paso 2: IDs de planetas + criaturas en paralelo
       const [
-        { data: rawPlanetas },
+        { data: rawPlanetaIds },
         { data: participantes },
       ] = await Promise.all([
         biomaId
           ? supabase
               .from("cuerpo_celeste_biomas_v1")
-              .select("cuerpo_celeste_id, cuerpos_celestes(nombre)")
+              .select("cuerpo_celeste_id")
               .eq("bioma_id", biomaId)
           : Promise.resolve({ data: [] }),
 
@@ -86,11 +80,27 @@ export function useHabitatJerarquia(habitatId: string): HabitatJerarquia {
 
       if (cancelado) return;
 
-      const planetas = dedup(
-        (rawPlanetas ?? [])
-          .filter((r: any) => r.cuerpo_celeste_id && r.cuerpos_celestes?.nombre)
-          .map((r: any) => ({ id: r.cuerpo_celeste_id, nombre: r.cuerpos_celestes.nombre }))
-      );
+      // Paso 3: nombres de planetas
+      const planetaIds = (rawPlanetaIds ?? [])
+        .map((r: any) => r.cuerpo_celeste_id)
+        .filter(Boolean);
+
+      let planetas: ItemJerarquia[] = [];
+      if (planetaIds.length > 0) {
+        const { data: rawPlanetas } = await supabase
+          .from("cuerpos_celestes_v1")
+          .select("id, nombre")
+          .in("id", planetaIds);
+        if (!cancelado) {
+          planetas = dedup(
+            (rawPlanetas ?? [])
+              .filter((r: any) => r.id && r.nombre)
+              .map((r: any) => ({ id: r.id, nombre: r.nombre }))
+          );
+        }
+      }
+
+      if (cancelado) return;
 
       const criaturas = dedup(
         (participantes ?? [])
