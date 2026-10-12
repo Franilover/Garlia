@@ -151,45 +151,147 @@ function BloqueOris({
   );
 }
 
-// ─── Panel de detalle ────────────────────────────────────────────────────
+// ─── Pill de meta ────────────────────────────────────────────────────────
 
-function ConjuroDetail({ conjuro }: { conjuro: Conjuro }) {
-  const campos: { label: string; valor: string | null | undefined }[] = [
-    { label: "Nivel de dominio", valor: conjuro.nivel_dominio },
-    { label: "Descripción narrativa", valor: conjuro.descripcion_narrativa },
-    { label: "Instrucción Éterium", valor: conjuro.instruccion_eterium },
-    { label: "Instrucción IUM", valor: conjuro.instruccion_ium },
-    { label: "Requisitos biológicos", valor: conjuro.requisitos_biologicos },
-    { label: "Efectos observables", valor: conjuro.efectos_observables },
-    { label: "Fórmula de costo", valor: conjuro.formula_costo },
-  ];
-
+function MetaPill({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "draft" | "formula";
+}) {
+  const styles = {
+    default: "bg-primary/8 text-primary/50 border-primary/10",
+    draft: "bg-yellow-500/10 text-yellow-500/70 border-yellow-500/20",
+    formula: "bg-primary/5 text-primary/40 border-primary/8 font-mono",
+  };
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 flex-wrap">
-        {conjuro.nivel_dominio && (
-          <span className="rounded px-1.5 py-0.5 bg-primary/5 text-micro font-bold text-primary/40">
-            {conjuro.nivel_dominio}
+    <span
+      className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-micro font-bold border ${styles[variant]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ─── Bloque de sección del detalle ───────────────────────────────────────
+
+function SeccionDetalle({
+  icono,
+  titulo,
+  children,
+  accent,
+}: {
+  icono?: React.ReactNode;
+  titulo: string;
+  children: React.ReactNode;
+  accent?: string;
+}) {
+  return (
+    <div
+      className="flex flex-col gap-1.5 rounded-xl p-3"
+      style={{
+        background: accent
+          ? `color-mix(in srgb, ${accent} 5%, var(--bg-main))`
+          : "color-mix(in srgb, var(--primary) 3%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+      }}
+    >
+      <div className="flex items-center gap-1.5">
+        {icono && (
+          <span className="shrink-0 text-primary/30" style={{ fontSize: 10 }}>
+            {icono}
           </span>
         )}
+        <span className="text-micro font-black uppercase tracking-[0.18em] text-primary/30">
+          {titulo}
+        </span>
+      </div>
+      <div className="text-micro leading-relaxed text-primary/65 whitespace-pre-wrap">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Panel de detalle (layout horizontal en 2 columnas) ──────────────────
+
+function ConjuroDetail({ conjuro }: { conjuro: Conjuro }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* ── Fila meta: nivel + estado ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {conjuro.nivel_dominio && (
+          <MetaPill>⬡ {conjuro.nivel_dominio}</MetaPill>
+        )}
         {!conjuro.publicado && (
-          <span className="rounded px-1.5 py-0.5 bg-yellow-500/10 text-micro font-bold text-yellow-500/60">
-            Borrador
-          </span>
+          <MetaPill variant="draft">◌ Borrador</MetaPill>
         )}
       </div>
 
-      {campos.map(({ label, valor }) =>
-        valor ? (
-          <div key={label} className="flex flex-col gap-1">
-            <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
-              {label}
-            </span>
-            <p className="whitespace-pre-wrap text-micro leading-relaxed text-primary/60">
-              {valor}
-            </p>
-          </div>
-        ) : null,
+      {/* ── Descripción narrativa — ancho completo, destacada ── */}
+      {conjuro.descripcion_narrativa && (
+        <div
+          className="rounded-xl px-4 py-3"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+            borderLeft: "3px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+          }}
+        >
+          <p className="text-sm leading-relaxed text-primary/75 italic">
+            {conjuro.descripcion_narrativa}
+          </p>
+        </div>
+      )}
+
+      {/* ── Grid 2 columnas: Éterium + IUM ── */}
+      {(conjuro.instruccion_eterium || conjuro.instruccion_ium) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {conjuro.instruccion_eterium && (
+            <SeccionDetalle icono="◈" titulo="Instrucción Éterium">
+              {conjuro.instruccion_eterium}
+            </SeccionDetalle>
+          )}
+          {conjuro.instruccion_ium && (
+            <SeccionDetalle icono="⬟" titulo="Instrucción IUM">
+              {conjuro.instruccion_ium}
+            </SeccionDetalle>
+          )}
+        </div>
+      )}
+
+      {/* ── Grid 2 columnas: Requisitos + Efectos ── */}
+      {(conjuro.requisitos_biologicos || conjuro.efectos_observables) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {conjuro.requisitos_biologicos && (
+            <SeccionDetalle icono="◉" titulo="Requisitos biológicos">
+              {conjuro.requisitos_biologicos}
+            </SeccionDetalle>
+          )}
+          {conjuro.efectos_observables && (
+            <SeccionDetalle icono="◎" titulo="Efectos observables">
+              {conjuro.efectos_observables}
+            </SeccionDetalle>
+          )}
+        </div>
+      )}
+
+      {/* ── Fórmula de costo — ancho completo, estilo técnico ── */}
+      {conjuro.formula_costo && (
+        <div
+          className="rounded-xl px-4 py-3 flex flex-col gap-1"
+          style={{
+            background: "color-mix(in srgb, var(--primary) 5%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+          }}
+        >
+          <span className="text-micro font-black uppercase tracking-[0.18em] text-primary/30">
+            ◆ Fórmula de costo
+          </span>
+          <p className="font-mono text-micro leading-relaxed text-primary/60 whitespace-pre-wrap">
+            {conjuro.formula_costo}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -261,28 +363,54 @@ export function ConjuroPanelFlotante({
         }}
         onMouseDown={(event) => event.stopPropagation()}
       >
+        {/* ── Header bar ── */}
         <div
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 border-b"
+          className="shrink-0 flex items-center gap-2 px-3 py-2 border-b"
           style={{
             borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
             background: "color-mix(in srgb, var(--primary) 3%, transparent)",
           }}
         >
-          <Sparkles size={14} className="text-primary/40 shrink-0" />
-          {onRename ? (
-            <input
-              className="flex-1 min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
-              placeholder="Nombre de la conjuración"
-              value={nombreLocal}
-              onChange={(e) => setNombreLocal(e.target.value)}
-              onBlur={guardarNombre}
-            />
-          ) : (
-            <span className="flex-1 min-w-0 truncate text-sm font-black text-primary">
-              {conjuro.nombre}
-            </span>
-          )}
+          <Sparkles size={13} className="text-primary/35 shrink-0" />
 
+          {/* Nombre editable o estático */}
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            {onRename ? (
+              <input
+                className="min-w-0 bg-transparent text-sm font-black text-primary outline-none placeholder:text-primary/25"
+                style={{ width: "clamp(120px, 40%, 320px)" }}
+                placeholder="Nombre de la conjuración"
+                value={nombreLocal}
+                onChange={(e) => setNombreLocal(e.target.value)}
+                onBlur={guardarNombre}
+              />
+            ) : (
+              <span className="truncate text-sm font-black text-primary">
+                {conjuro.nombre}
+              </span>
+            )}
+
+            {/* Badges de nivel y estado en el header */}
+            {conjuro.nivel_dominio && (
+              <span
+                className="hidden sm:inline-flex items-center shrink-0 rounded px-1.5 py-0.5 text-micro font-bold border"
+                style={{
+                  background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                  borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+                  color: "color-mix(in srgb, var(--primary) 50%, transparent)",
+                }}
+              >
+                {conjuro.nivel_dominio}
+              </span>
+            )}
+            {!conjuro.publicado && (
+              <span className="hidden sm:inline-flex items-center shrink-0 rounded px-1.5 py-0.5 text-micro font-bold border border-yellow-500/20 bg-yellow-500/10 text-yellow-500/70">
+                Borrador
+              </span>
+            )}
+          </div>
+
+          {/* Acciones */}
           <div className="shrink-0 flex items-center gap-1.5">
             <SaveIndicator status={status} />
             {onDelete && (
@@ -315,7 +443,9 @@ export function ConjuroPanelFlotante({
             <X size={16} />
           </button>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto p-2.5">
+
+        {/* ── Cuerpo scrollable ── */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
           <ConjuroDetail conjuro={conjuro} />
         </div>
       </div>
