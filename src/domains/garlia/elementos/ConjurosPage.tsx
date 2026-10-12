@@ -8,6 +8,7 @@ import { SaveIndicator } from "@/domains/garlia/_shared/UIComponents";
 import { TituloCategoria } from "../_shared/TituloCategoria";
 import { type SaveStatus } from "@/ui/saveStatus";
 import { useConfirm } from "@/ui/ConfirmModal";
+import { useOris } from "@/domains/garlia/fisica/useFisica";
 
 import { useConjuros } from "./useConjuros";
 import type { Conjuro } from "./types";
@@ -56,7 +57,7 @@ function distribuirEnColumnas<T>(
   return columnas;
 }
 
-// ─── Casilla ────────────────────────────────────────────────────────────
+// ─── Casilla (solo nombre, igual que ProcesoCasilla) ────────────────────
 
 function ConjuroCasilla({
   conjuro,
@@ -78,22 +79,16 @@ function ConjuroCasilla({
           : "border-primary/10 hover:bg-primary/5"
       }`}
     >
-      {conjuro.nivel_dominio && (
-        <span className="text-micro font-black text-primary/30 tabular-nums leading-none">
-          {conjuro.nivel_dominio}
-        </span>
-      )}
-      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-2">
+      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
         {conjuro.nombre || "(sin nombre)"}
       </span>
-      {!conjuro.publicado && (
-        <span className="text-micro text-primary/25 leading-none">borrador</span>
-      )}
     </button>
   );
 }
 
-function ChipGrupoConjuros({
+// ─── Grupo: Nivel de dominio → Conjuros ─────────────────────────────────
+
+function GrupoNivel({
   titulo,
   items,
   seleccionadoId,
@@ -117,6 +112,38 @@ function ChipGrupoConjuros({
             conjuro={conjuro}
             seleccionado={conjuro.id === seleccionadoId}
             onClick={() => onSeleccionar(conjuro.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Bloque Oris → (Niveles → Conjuros) ─────────────────────────────────
+
+function BloqueOris({
+  nombreOris,
+  niveles,
+  seleccionadoId,
+  onSeleccionar,
+}: {
+  nombreOris: string;
+  niveles: { nivel: string; items: Conjuro[] }[];
+  seleccionadoId: string | null;
+  onSeleccionar: (id: string) => void;
+}) {
+  const total = niveles.reduce((sum, n) => sum + n.items.length, 0);
+  return (
+    <div className="flex flex-col mb-4">
+      <TituloCategoria titulo={nombreOris} total={total} />
+      <div className="flex flex-col pl-0">
+        {niveles.map(({ nivel, items }) => (
+          <GrupoNivel
+            key={nivel}
+            titulo={nivel}
+            items={items}
+            seleccionadoId={seleccionadoId}
+            onSeleccionar={onSeleccionar}
           />
         ))}
       </div>
@@ -301,32 +328,65 @@ export function ConjuroPanelFlotante({
 
 export default function ConjurosPage() {
   const { items, loading, renombrarConjuro, eliminarConjuro } = useConjuros();
+  const { items: orisList } = useOris();
   const { confirm, ConfirmModal } = useConfirm();
   const [selected, setSelected] = useState<Conjuro | null>(null);
 
-  // Agrupar por nivel_dominio si existe
-  const grupos = useMemo(() => {
-    const conNivel = items.filter((c) => c.nivel_dominio);
-    const sinNivel = items.filter((c) => !c.nivel_dominio);
-    const nivelesUnicos = [...new Set(conNivel.map((c) => c.nivel_dominio as string))].sort();
-    const resultado: { id: string; nombre: string; items: Conjuro[] }[] = [];
-    for (const nivel of nivelesUnicos) {
-      resultado.push({ id: nivel, nombre: nivel, items: conNivel.filter((c) => c.nivel_dominio === nivel) });
+  // Agrupar: Oris → Nivel de Dominio → Conjuros
+  const bloques = useMemo(() => {
+    // Mapa orisId → nombre
+    const orisNombre = new Map(orisList.map((o) => [o.id, o.nombre]));
+
+    // Agrupar por oris_id
+    const porOris = new Map<string, Conjuro[]>();
+    for (const c of items) {
+      const key = c.oris_id ?? "__sin_oris__";
+      if (!porOris.has(key)) porOris.set(key, []);
+      porOris.get(key)!.push(c);
     }
-    if (sinNivel.length > 0) {
-      resultado.push({ id: "__sin_nivel__", nombre: "Conjuraciones", items: sinNivel });
-    }
-    if (resultado.length === 0 && items.length > 0) {
-      resultado.push({ id: "__todos__", nombre: "Conjuraciones", items });
-    }
-    return resultado;
-  }, [items]);
+
+    // Ordenar: Oris con nombre conocido primero (por su nombre), sin oris al final
+    const claves = [...porOris.keys()].sort((a, b) => {
+      if (a === "__sin_oris__") return 1;
+      if (b === "__sin_oris__") return -1;
+      return (orisNombre.get(a) ?? a).localeCompare(orisNombre.get(b) ?? b);
+    });
+
+    return claves.map((orisId) => {
+      const conjuros = porOris.get(orisId)!;
+      const nombreOris =
+        orisId === "__sin_oris__"
+          ? "Sin Oris"
+          : (orisNombre.get(orisId) ?? orisId.slice(0, 8));
+
+      // Agrupar por nivel_dominio dentro de este Oris
+      const porNivel = new Map<string, Conjuro[]>();
+      for (const c of conjuros) {
+        const nivel = c.nivel_dominio ?? "__sin_nivel__";
+        if (!porNivel.has(nivel)) porNivel.set(nivel, []);
+        porNivel.get(nivel)!.push(c);
+      }
+
+      const nivelesOrdenados = [...porNivel.keys()].sort((a, b) => {
+        if (a === "__sin_nivel__") return 1;
+        if (b === "__sin_nivel__") return -1;
+        return a.localeCompare(b);
+      });
+
+      const niveles = nivelesOrdenados.map((nivel) => ({
+        nivel: nivel === "__sin_nivel__" ? "Sin nivel" : nivel,
+        items: porNivel.get(nivel)!,
+      }));
+
+      return { orisId, nombreOris, niveles };
+    });
+  }, [items, orisList]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const numColumnas = useResponsiveColumnCount(containerRef, 260, 16);
   const columnasDeGrupos = useMemo(
-    () => distribuirEnColumnas(grupos, numColumnas, (g) => g.items.length),
-    [grupos, numColumnas],
+    () => distribuirEnColumnas(bloques, numColumnas, (b) => b.niveles.reduce((s, n) => s + n.items.length, 0)),
+    [bloques, numColumnas],
   );
 
   return (
@@ -341,17 +401,16 @@ export default function ConjurosPage() {
         <div ref={containerRef} className="flex w-full items-start gap-4">
           {columnasDeGrupos.map((columna, colIdx) => (
             <div key={colIdx} className="flex min-w-0 flex-1 flex-col">
-              {columna.map((grupo) => (
-                <div key={grupo.id} className="mb-4">
-                  <ChipGrupoConjuros
-                    titulo={grupo.nombre}
-                    items={grupo.items}
-                    seleccionadoId={selected?.id ?? null}
-                    onSeleccionar={(id) => {
-                      setSelected(items.find((c) => c.id === id) ?? null);
-                    }}
-                  />
-                </div>
+              {columna.map((bloque) => (
+                <BloqueOris
+                  key={bloque.orisId}
+                  nombreOris={bloque.nombreOris}
+                  niveles={bloque.niveles}
+                  seleccionadoId={selected?.id ?? null}
+                  onSeleccionar={(id) => {
+                    setSelected(items.find((c) => c.id === id) ?? null);
+                  }}
+                />
               ))}
             </div>
           ))}
