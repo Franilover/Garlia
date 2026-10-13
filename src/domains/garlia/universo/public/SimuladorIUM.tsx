@@ -365,6 +365,44 @@ function useEteriumJugador(perfilId: string | null) {
   return { eterium, recargar: cargar };
 }
 
+// ─── Hook: rango de IUMs reales por topología (desde v_item_editor_configuraciones_v1) ─
+
+interface TopoRange {
+  minIumes: number; // mínimo de IUMs en cualquier config de esa topología
+  maxIumes: number; // máximo de IUMs → hasta aquí puede expandirse con "+"
+}
+
+function useTopoConfigRange() {
+  const [rangos, setRangos] = useState<Map<string, TopoRange>>(new Map());
+
+  useEffect(() => {
+    let vivo = true;
+    supabase
+      .from("v_item_editor_configuraciones_v1")
+      .select("topologia_id, ium_count")
+      .not("topologia_id", "is", null)
+      .then(({ data }) => {
+        if (!vivo || !data) return;
+        const map = new Map<string, { min: number; max: number }>();
+        for (const row of data) {
+          const tid = row.topologia_id as string;
+          const n   = Number(row.ium_count ?? 0);
+          if (!n) continue;
+          const prev = map.get(tid) ?? { min: n, max: n };
+          map.set(tid, { min: Math.min(prev.min, n), max: Math.max(prev.max, n) });
+        }
+        const result = new Map<string, TopoRange>();
+        for (const [tid, { min, max }] of map) {
+          result.set(tid, { minIumes: min, maxIumes: max });
+        }
+        setRangos(result);
+      });
+    return () => { vivo = false; };
+  }, []);
+
+  return rangos;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const ARROW_COLOR = "color-mix(in srgb, var(--primary) 55%, transparent)";
@@ -459,14 +497,29 @@ const TOPO_LAYOUTS: Record<string, SlotLayout> = {
 };
 
 // Slots mínimos que se muestran al seleccionar cada topología.
-// El resto permanece oculto hasta que el usuario pulse "+" al final de la cadena.
+// Se basan en el MÍNIMO REAL de IUMs que usa cualquier proceso registrado en Supabase
+// (v_item_editor_configuraciones_v1 → ium_count). Si no hay configs, se muestra el
+// mínimo lógico de 2 slots para que el usuario descubra la estructura por sí mismo.
+//
+// Fuente (consultada contra Supabase ftdxthnizdosaaavjhah):
+//   Convergencia nuclear     → min=3  (configs: 4)
+//   Cadena dinámica          → min=3  (configs: 1, usa a/nucleo/b)
+//   Estructural              → min=4  (configs: 3)
+//   Ramificación             → min=5  (configs: 1 — topología completa)
+//   Ciclo con salida         → sin configs → mínimo lógico 2
+//   Convergencia c/ resoluc. → sin configs → mínimo lógico 2
+//   Retroalimentación        → sin configs → mínimo lógico 2
 const TOPO_SLOTS_INICIALES: Record<string, string[]> = {
-  "Convergencia nuclear":        ["a", "nucleo"],
-  "Convergencia con resolución": ["a", "nucleo"],
-  "Estructural":                 ["a", "nucleo"],
-  "Ramificación":                ["a", "nucleo"],
+  // 3 IUMs mínimos — se muestran los primeros 3 slots en el layout canónico
+  "Convergencia nuclear":        ["a", "b", "nucleo"],
+  "Cadena dinámica":             ["a", "nucleo", "b"],
+  // 4 IUMs mínimos
+  "Estructural":                 ["a", "b", "nucleo", "c"],
+  // 5 IUMs mínimos — topología completa desde el inicio
+  "Ramificación":                ["a", "nucleo", "b", "c", "d"],
+  // Sin configs en Supabase → mínimo lógico (2 slots para exploración)
   "Ciclo con salida":            ["a", "nucleo"],
-  "Cadena dinámica":             ["a", "nucleo"],
+  "Convergencia con resolución": ["a", "nucleo"],
   "Retroalimentación":           ["a", "nucleo"],
 };
 
@@ -1001,6 +1054,9 @@ export default function SimuladorIUM() {
   const { conocimiento, recargar: recargarConocimiento } = useConocimientoIums(perfilId);
   const { eterium, recargar: recargarEterium } = useEteriumJugador(perfilId);
 
+  // Rango de IUMs por topología (mínimo y máximo de configs reales en Supabase)
+  const topoRangos = useTopoConfigRange();
+
   // Modal de revelación
   const [revelaciones, setRevelaciones] = useState<{ nombre: string; salida?: string }[]>([]);
 
@@ -1146,7 +1202,10 @@ export default function SimuladorIUM() {
         setComponentes((prev) => [...prev, newComp]);
         cablearSlot(newComp, componentes);
       } else {
-        // No hay slots visibles libres: expandir el siguiente frontier y colocar ahí
+        // No hay slots visibles libres: expandir el siguiente frontier si no superamos el máximo real
+        const rango = topoRangos.get(topoSeleccionada.id);
+        const maxPermitido = rango ? rango.maxIumes : Object.keys(layout).length;
+        if (visibles.size >= maxPermitido) return; // no expandir más allá del máximo con configs
         const frontier = getFrontierSlots(topoSeleccionada, visibles, layout);
         if (!frontier.length) return; // topología llena
         const { key, x, y } = frontier[0];
@@ -1164,7 +1223,7 @@ export default function SimuladorIUM() {
         posicion: posLibre, x, y,
       }]);
     }
-  }, [componentes, posicionesUsadas, topoSeleccionada, slotsVisibles, cablearSlot]);
+  }, [componentes, posicionesUsadas, topoSeleccionada, slotsVisibles, cablearSlot, topoRangos]);
 
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
@@ -1982,9 +2041,14 @@ export default function SimuladorIUM() {
                 });
               })()}
 
-              {/* Botones "+" en frontier slots — pequeños y apagados */}
+              {/* Botones "+" en frontier slots — solo si hay configs que usen más IUMs que los visibles */}
               {topoSeleccionada && slotsVisibles && (() => {
                 const layout = getSlotsActivos(topoSeleccionada);
+                // Si hay datos en Supabase, solo mostrar "+" hasta el máximo real de configs.
+                // Si no hay datos (topología sin configs), siempre permitir explorar.
+                const rango = topoRangos.get(topoSeleccionada.id);
+                const maxPermitido = rango ? rango.maxIumes : Object.keys(layout).length;
+                if (slotsVisibles.size >= maxPermitido) return null; // ya llegamos al máximo útil
                 const frontier = getFrontierSlots(topoSeleccionada, slotsVisibles, layout);
                 return frontier.map(({ key, x, y }) => (
                   <g
@@ -2120,6 +2184,7 @@ export default function SimuladorIUM() {
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {topologias.map((t) => {
                 const activa = topoSeleccionada?.id === t.id;
+                const rango  = topoRangos.get(t.id);
                 return (
                   <button
                     key={t.id}
@@ -2143,9 +2208,23 @@ export default function SimuladorIUM() {
                       if (!activa) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
                     }}
                   >
-                    <span style={{ fontSize: 9, fontWeight: activa ? 800 : 400, color: activa ? "var(--primary)" : "var(--foreground)" }}>
-                      {t.nombre}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 9, fontWeight: activa ? 800 : 400, color: activa ? "var(--primary)" : "var(--foreground)" }}>
+                        {t.nombre}
+                      </span>
+                      {rango ? (
+                        <span style={{
+                          fontSize: 7.5, fontWeight: 600, flexShrink: 0,
+                          color: activa
+                            ? "color-mix(in srgb, var(--primary) 70%, transparent)"
+                            : "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        }}>
+                          {rango.minIumes === rango.maxIumes
+                            ? `${rango.minIumes} IUMs`
+                            : `${rango.minIumes}–${rango.maxIumes} IUMs`}
+                        </span>
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}
