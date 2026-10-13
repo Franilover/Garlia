@@ -19,6 +19,7 @@
 
 import {
   AlertTriangle,
+  BookOpen,
   ChevronDown,
   ChevronRight,
   FlaskConical,
@@ -401,6 +402,94 @@ function useTopoConfigRange() {
   }, []);
 
   return rangos;
+}
+
+// ─── Hook: rol del jugador (admin / user) ─────────────────────────────────────
+
+function useRolJugador(perfilId: string | null) {
+  const [esAdmin, setEsAdmin] = useState(false);
+  useEffect(() => {
+    if (!perfilId) return;
+    supabase
+      .from("perfiles")
+      .select("rol")
+      .eq("id", perfilId)
+      .maybeSingle()
+      .then(({ data }) => { if (data?.rol === "admin") setEsAdmin(true); });
+  }, [perfilId]);
+  return esAdmin;
+}
+
+// ─── Tipos para modo Admin ─────────────────────────────────────────────────────
+
+interface ConfigAdmin {
+  configuracion_id: string;
+  proceso_id: string;
+  proceso: string;
+  configuracion: string;
+  topologia_id: string | null;
+  topologia: string | null;
+  n_iums: number;
+  estado: string;
+  descripcion: string | null;
+}
+
+interface ConfigAdminDetalle {
+  componentes: { comp_id: string; ium_id: string; posicion: string; orden: number }[];
+  enlaces: { origen_posicion: string; destino_posicion: string; tipo_union: string; orden: number }[];
+}
+
+// ─── Hook: configuraciones para admin ─────────────────────────────────────────
+
+function useConfiguracionesAdmin(esAdmin: boolean) {
+  const [configs, setConfigs] = useState<ConfigAdmin[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!esAdmin) return;
+    setLoading(true);
+    supabase
+      .from("v_proceso_configuracion_ium_actual_v1")
+      .select("configuracion_id, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
+      .order("proceso")
+      .then(({ data }) => {
+        setConfigs((data ?? []) as ConfigAdmin[]);
+        setLoading(false);
+      });
+  }, [esAdmin]);
+
+  return { configs, loading };
+}
+
+// ─── Helper: cargar detalle de una config (componentes + enlaces) ──────────────
+
+async function cargarDetalleConfig(configId: string): Promise<ConfigAdminDetalle> {
+  const [{ data: comps }, { data: enls }] = await Promise.all([
+    supabase
+      .from("proceso_configuracion_ium_componentes_v1")
+      .select("id, ium_id, posicion, orden")
+      .eq("configuracion_id", configId)
+      .order("orden"),
+    supabase
+      .from("proceso_configuracion_ium_enlaces_v1")
+      .select("origen_componente_id, destino_componente_id, tipo_union, orden")
+      .eq("configuracion_id", configId)
+      .order("orden"),
+  ]);
+
+  const compMap = new Map((comps ?? []).map((c: { id: string; ium_id: string; posicion: string; orden: number }) => [c.id, c]));
+
+  const enlaces = (enls ?? []).flatMap((e: { origen_componente_id: string; destino_componente_id: string; tipo_union: string; orden: number }) => {
+    const or  = compMap.get(e.origen_componente_id);
+    const dst = compMap.get(e.destino_componente_id);
+    if (!or || !dst) return [];
+    return [{ origen_posicion: or.posicion, destino_posicion: dst.posicion, tipo_union: e.tipo_union, orden: e.orden }];
+  });
+
+  return {
+    componentes: (comps ?? []).map((c: { id: string; ium_id: string; posicion: string; orden: number }) => ({ comp_id: c.id, ium_id: c.ium_id, posicion: c.posicion, orden: c.orden })),
+    enlaces,
+  };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1057,6 +1146,12 @@ export default function SimuladorIUM() {
   // Rango de IUMs por topología (mínimo y máximo de configs reales en Supabase)
   const topoRangos = useTopoConfigRange();
 
+  // Modo admin
+  const esAdmin = useRolJugador(perfilId);
+  const { configs: configsAdmin, loading: loadingConfigs } = useConfiguracionesAdmin(esAdmin);
+  const [adminPanelAbierto, setAdminPanelAbierto] = useState(false);
+  const [adminCargando, setAdminCargando] = useState<string | null>(null); // config_id en carga
+
   // Modal de revelación
   const [revelaciones, setRevelaciones] = useState<{ nombre: string; salida?: string }[]>([]);
 
@@ -1410,6 +1505,7 @@ export default function SimuladorIUM() {
     if ((e.target as Element).closest("[data-ium-node]")) return;
     setSlotDropdown(null); setBusquedaSlot("");
     setDescubrimientosAbierto(false);
+    setAdminPanelAbierto(false);
   }, []);
 
   // ── Cancelar enlace con Escape ────────────────────────────────────────────
@@ -1504,6 +1600,78 @@ export default function SimuladorIUM() {
       setAvisoTopo(null);
     }
   }, [componentes]);
+
+  // ── Aplicar config de admin (carga IUMs + topología + enlaces desde Supabase) ──
+
+  const aplicarConfigAdmin = useCallback(async (cfg: ConfigAdmin) => {
+    setAdminCargando(cfg.configuracion_id);
+    try {
+      const detalle = await cargarDetalleConfig(cfg.configuracion_id);
+
+      // 1. Aplicar topología si la config tiene una
+      const topo = cfg.topologia_id
+        ? topologias.find((t) => t.id === cfg.topologia_id) ?? null
+        : null;
+
+      const canonToUI = (p: string) => (p === "nucleo" || p === "N") ? "N" : p.toUpperCase();
+
+      // 2. Construir componentes con coordenadas del layout
+      const layout = topo ? getSlotsActivos(topo) : null;
+      const getPos = (posicion: string): { x: number; y: number } => {
+        if (layout) {
+          const key = posicion.toLowerCase() === "n" ? "nucleo" : posicion.toLowerCase();
+          const slot = layout[key];
+          if (slot) return slot;
+        }
+        // fallback: auto layout si no hay topo o no encontró el slot
+        return autoPos(detalle.componentes.findIndex((c) => c.posicion === posicion));
+      };
+
+      const nuevosComps: ComponenteLab[] = detalle.componentes.map((c) => {
+        const { x, y } = getPos(c.posicion);
+        return {
+          uid: genUID(),
+          ium_id: c.ium_id,
+          ium_nombre: iumMap.get(c.ium_id)?.nombre ?? c.ium_id,
+          posicion: canonToUI(c.posicion),
+          x,
+          y,
+        };
+      });
+
+      // 3. Construir enlaces usando las posiciones
+      const posToUid = new Map(nuevosComps.map((c) => [c.posicion, c.uid]));
+      const nuevosEnlaces: EnlaceLab[] = detalle.enlaces.map((e) => ({
+        uid: genUID(),
+        origen_uid:  posToUid.get(canonToUI(e.origen_posicion))  ?? "",
+        destino_uid: posToUid.get(canonToUI(e.destino_posicion)) ?? "",
+        tipo_union:  e.tipo_union,
+      })).filter((e) => e.origen_uid && e.destino_uid);
+
+      // 4. Slots visibles: todos los que usa la config
+      const slotsUsados = new Set(
+        detalle.componentes.map((c) => c.posicion.toLowerCase() === "n" ? "nucleo" : c.posicion.toLowerCase())
+      );
+
+      setComponentes(nuevosComps);
+      setEnlaces(nuevosEnlaces);
+      setResultado(null);
+      setErrorSim(null);
+      setAvisoTopo(null);
+
+      if (topo) {
+        setTopoSeleccionada(topo);
+        setSlotsVisibles(slotsUsados);
+      } else {
+        setTopoSeleccionada(null);
+        setSlotsVisibles(null);
+      }
+
+      setAdminPanelAbierto(false);
+    } finally {
+      setAdminCargando(null);
+    }
+  }, [topologias, iumMap]);
 
   const limpiar = useCallback(() => {
     setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null); setTopoSeleccionada(null); setDragSlotPreview(null); setSlotsVisibles(null);
@@ -1859,6 +2027,125 @@ export default function SimuladorIUM() {
                   </div>
                 )}
               </div>
+
+              {/* Botón Admin — solo visible para admins */}
+              {esAdmin && (
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setAdminPanelAbierto((v) => !v)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "6px 12px", borderRadius: 999,
+                      background: adminPanelAbierto
+                        ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+                        : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                      color: "var(--primary)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+                      cursor: "pointer",
+                      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                    }}
+                    title="Modo admin: cargar configuración canónica"
+                  >
+                    <BookOpen size={10} />
+                    Configs
+                  </button>
+
+                  {adminPanelAbierto && (
+                    <div
+                      style={{
+                        position: "absolute", top: "calc(100% + 6px)", right: 0,
+                        width: 280, maxHeight: 380, overflowY: "auto",
+                        background: "var(--bg-main, #0a0a0a)",
+                        border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                        borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                        zIndex: 20,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Header */}
+                      <div style={{ padding: "8px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                          Configuraciones canónicas
+                        </p>
+                        <button onClick={() => setAdminPanelAbierto(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+                          <X size={10} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                        </button>
+                      </div>
+
+                      {loadingConfigs ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: 16 }}>
+                          <Loader2 size={14} style={{ animation: "spin 1s linear infinite", color: "color-mix(in srgb, var(--primary) 40%, transparent)" }} />
+                        </div>
+                      ) : configsAdmin.length === 0 ? (
+                        <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 30%, transparent)", textAlign: "center", padding: "14px 12px", margin: 0, fontStyle: "italic" }}>
+                          No hay configuraciones disponibles.
+                        </p>
+                      ) : (() => {
+                        // Agrupar por proceso
+                        const porProceso = new Map<string, ConfigAdmin[]>();
+                        for (const cfg of configsAdmin) {
+                          const arr = porProceso.get(cfg.proceso) ?? [];
+                          arr.push(cfg);
+                          porProceso.set(cfg.proceso, arr);
+                        }
+                        return [...porProceso.entries()].map(([proceso, cfgs]) => (
+                          <div key={proceso}>
+                            {/* Cabecera de proceso */}
+                            <div style={{ padding: "6px 10px 3px", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                              <p style={{ margin: 0, fontSize: 8, fontWeight: 800, color: "var(--primary)", letterSpacing: "0.06em" }}>
+                                {proceso}
+                              </p>
+                            </div>
+                            {/* Configs de ese proceso */}
+                            {cfgs.map((cfg) => {
+                              const cargando = adminCargando === cfg.configuracion_id;
+                              return (
+                                <button
+                                  key={cfg.configuracion_id}
+                                  onClick={() => aplicarConfigAdmin(cfg)}
+                                  disabled={!!adminCargando}
+                                  style={{
+                                    width: "100%", textAlign: "left", border: "none",
+                                    background: "none", cursor: adminCargando ? "wait" : "pointer",
+                                    padding: "5px 10px 5px 16px",
+                                    borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                                    display: "flex", alignItems: "flex-start", gap: 6,
+                                    opacity: adminCargando && !cargando ? 0.5 : 1,
+                                  }}
+                                  onMouseEnter={(e) => { if (!adminCargando) (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                                >
+                                  {cargando
+                                    ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite", flexShrink: 0, marginTop: 2, color: "var(--primary)" }} />
+                                    : <Play size={8} style={{ flexShrink: 0, marginTop: 2, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+                                  }
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      {cfg.topologia ?? "Sin topología"} · {cfg.n_iums} IUMs
+                                    </p>
+                                    {cfg.descripcion && (
+                                      <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 38%, transparent)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                        {cfg.descripcion}
+                                      </p>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ));
+                      })()}
+
+                      {/* Footer */}
+                      <div style={{ padding: "6px 10px", textAlign: "center", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+                        <p style={{ margin: 0, fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 22%, transparent)", fontStyle: "italic" }}>
+                          Solo visible para admins · aplica y luego pulsa Probar
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Botón Probar */}
               <button
