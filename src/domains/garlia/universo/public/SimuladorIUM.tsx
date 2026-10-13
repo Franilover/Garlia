@@ -682,7 +682,7 @@ function ConnectionLine({
   const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
 
   const strokeColor = resonancia
-    ? "var(--success,#22c55e)"
+    ? "var(--accent,var(--primary))"
     : ARROW_COLOR;
 
   return (
@@ -700,7 +700,7 @@ function ConnectionLine({
         style={{
           stroke: strokeColor,
           pointerEvents: "none",
-          filter: resonancia ? "drop-shadow(0 0 4px var(--success,#22c55e))" : undefined,
+          filter: resonancia ? "drop-shadow(0 0 4px var(--accent,var(--primary)))" : undefined,
           transition: "stroke 0.4s, stroke-width 0.4s",
         }}
       />
@@ -793,7 +793,7 @@ function IumNodeSVG({
           fill="none"
           strokeWidth={2.5}
           style={{
-            stroke: reaccion === "exito" ? "var(--success,#22c55e)" : "var(--warning,#f59e0b)",
+            stroke: reaccion === "exito" ? "var(--accent,var(--primary))" : "var(--warning,#f59e0b)",
             animation: "destello 1.4s ease-in-out infinite",
             pointerEvents: "none",
           }}
@@ -918,7 +918,12 @@ function IumNodeSVG({
 
 // ─── Badge de Eterium ─────────────────────────────────────────────────────────
 
-function EteriumBadge({ saldo, saldoMaximo, ultimoCosto }: { saldo: number; saldoMaximo: number; ultimoCosto: number | null }) {
+function EteriumBadge({
+  saldo, saldoMaximo, ultimoCosto, esAdmin, onReinicio,
+}: {
+  saldo: number; saldoMaximo: number; ultimoCosto: number | null;
+  esAdmin?: boolean; onReinicio?: () => void;
+}) {
   const pct = Math.max(0, Math.min(1, saldo / (saldoMaximo || 100)));
   const color = pct > 0.5 ? "var(--primary)" : pct > 0.2 ? "var(--warning,#f59e0b)" : "var(--error,#ef4444)";
 
@@ -938,6 +943,24 @@ function EteriumBadge({ saldo, saldoMaximo, ultimoCosto }: { saldo: number; sald
         <span style={{ fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 35%, transparent)", fontWeight: 400 }}>
           Eterium
         </span>
+        {esAdmin && onReinicio && (
+          <button
+            onClick={onReinicio}
+            title="Admin: reiniciar Eterium"
+            style={{
+              marginLeft: 3, padding: "1px 5px", borderRadius: 4,
+              border: "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+              cursor: "pointer", fontSize: 7, fontWeight: 700,
+              color: "color-mix(in srgb, var(--primary) 60%, transparent)",
+              lineHeight: 1.4,
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 18%, transparent)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+          >
+            ↺
+          </button>
+        )}
       </div>
       {/* Barra */}
       <div style={{ width: 90, height: 3, borderRadius: 99, background: "color-mix(in srgb, var(--primary) 12%, transparent)", overflow: "hidden" }}>
@@ -1052,7 +1075,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
   const hayResonanciaInfo = tipo === "nada" && totales > 0 && coincidentes > 0;
 
   const color =
-    tipo === "exito" ? "var(--success,#22c55e)"
+    tipo === "exito" ? "var(--accent,var(--primary))"
     : tipo === "inestable" ? "var(--warning,#f59e0b)"
     : tipo === "invalida" ? "var(--error,#ef4444)"
     : "var(--primary)";
@@ -1903,6 +1926,12 @@ export default function SimuladorIUM() {
               saldo={eterium.saldo}
               saldoMaximo={eterium.saldo_maximo}
               ultimoCosto={ultimoCosto}
+              esAdmin={esAdmin}
+              onReinicio={async () => {
+                if (!perfilId) return;
+                await supabase.rpc("admin_reiniciar_eterium" as never, { p_perfil_id: perfilId } as never);
+                await recargarEterium();
+              }}
             />
 
             {/* Grupo de botones flotantes: Descubrimientos + Probar */}
@@ -1969,7 +1998,7 @@ export default function SimuladorIUM() {
                     ) : (
                       [...procesosDescubiertos].map((nombre) => (
                         <div key={nombre} style={{ padding: "6px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", display: "flex", alignItems: "center", gap: 6 }}>
-                          <Zap size={8} style={{ color: "color-mix(in srgb, var(--success,#22c55e) 80%, transparent)", flexShrink: 0 }} />
+                          <Zap size={8} style={{ color: "color-mix(in srgb, var(--accent,var(--primary)) 80%, transparent)", flexShrink: 0 }} />
                           <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--foreground) 85%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {nombre}
                           </p>
