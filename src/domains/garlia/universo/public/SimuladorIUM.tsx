@@ -1756,7 +1756,6 @@ export default function SimuladorIUM() {
                     fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
                   }}
                 >
-                  <Sparkles size={10} />
                   Descubrimientos
                   {/* Badge con total de revelados */}
                   {(() => {
@@ -1788,50 +1787,8 @@ export default function SimuladorIUM() {
                     }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* ── IUMs revelados ── */}
+                    {/* ── Procesos identificados (arriba) ── */}
                     <div style={{ padding: "8px 10px 4px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
-                      <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-                        IUMs revelados
-                      </p>
-                    </div>
-
-                    {(() => {
-                      const revelados = iums.filter((i) => conocimiento.get(i.id)?.funcion_revelada);
-                      if (!revelados.length) {
-                        return (
-                          <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "10px 12px", margin: 0, fontStyle: "italic" }}>
-                            Ninguno todavía. Prueba combinaciones.
-                          </p>
-                        );
-                      }
-                      return revelados.map((ium) => {
-                        const conocido = conocimiento.get(ium.id)!;
-                        const salidaPpal = salidas.find((s) => s.ium_id === ium.id && s.es_principal);
-                        return (
-                          <div key={ium.id} style={{ padding: "6px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", display: "flex", alignItems: "flex-start", gap: 6 }}>
-                            <Sparkles size={8} style={{ color: "var(--primary)", flexShrink: 0, marginTop: 2 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: "var(--primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {ium.nombre}
-                              </p>
-                              {salidaPpal && (
-                                <p style={{ margin: "1px 0 0", fontSize: 8, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.4 }}>
-                                  {salidaPpal.nombre}
-                                </p>
-                              )}
-                              {conocido.veces_en_reaccion_exitosa > 0 && (
-                                <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
-                                  {conocido.veces_en_reaccion_exitosa}× en reacciones
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-
-                    {/* ── Procesos descubiertos ── */}
-                    <div style={{ padding: "8px 10px 4px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                       <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
                         Procesos identificados
                       </p>
@@ -1851,6 +1808,47 @@ export default function SimuladorIUM() {
                         </div>
                       ))
                     )}
+
+                    {/* ── IUMs revelados (abajo) ── */}
+                    <div style={{ padding: "8px 10px 4px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                      <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                        IUMs revelados
+                      </p>
+                    </div>
+
+                    {(() => {
+                      const revelados = iums.filter((i) => conocimiento.get(i.id)?.funcion_revelada);
+                      if (!revelados.length) {
+                        return (
+                          <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "10px 12px", margin: 0, fontStyle: "italic" }}>
+                            Ninguno todavía. Prueba combinaciones.
+                          </p>
+                        );
+                      }
+                      return revelados.map((ium) => {
+                        const conocido = conocimiento.get(ium.id)!;
+                        const salidaPpal = salidas.find((s) => s.ium_id === ium.id && s.es_principal);
+                        return (
+                          <div key={ium.id} style={{ padding: "6px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: "var(--primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {ium.nombre}
+                              </p>
+                              {salidaPpal && (
+                                <p style={{ margin: "1px 0 0", fontSize: 8, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.4 }}>
+                                  {salidaPpal.nombre}
+                                </p>
+                              )}
+                              {conocido.veces_en_reaccion_exitosa > 0 && (
+                                <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                                  {conocido.veces_en_reaccion_exitosa}× en reacciones
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
 
                     {/* Footer */}
                     <div style={{ padding: "6px 10px", textAlign: "center" }}>
