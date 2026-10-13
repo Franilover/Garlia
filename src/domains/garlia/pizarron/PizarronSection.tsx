@@ -342,13 +342,40 @@ function NodoEntidad({
   // Campos opcionales activos y toggle de imagen (guardados en datos_extra)
   const datosExtra = (nodo.datos_extra ?? {}) as CamposActivosNodo;
   const camposActivos = datosExtra.camposActivos ?? [];
-  const valoresCampos = datosExtra.valoresCampos ?? {};
   const mostrarImagen = datosExtra.mostrarImagen ?? false;
+
+  // Valores fetcheados dinámicamente (igual que en el modal flotante)
+  const [valoresFetched, setValoresFetched] = useState<Record<string, string[]>>(
+    datosExtra.valoresCampos ?? {},
+  );
+
+  useEffect(() => {
+    if (!nodo.entidad_id || !cfg.tabla || !cfg.camposOpcionales) return;
+    const camposRelacion = cfg.camposOpcionales.filter(
+      (c) => c.tipo === "relacion" && camposActivos.includes(c.id),
+    );
+    if (camposRelacion.length === 0) return;
+    // Fetch en paralelo de todos los campos de relación activos
+    Promise.all(
+      camposRelacion.map(async (campo) => {
+        const vals = await fetchValorCampoOpcional(campo, nodo.entidad_id!, cfg.tabla);
+        return [campo.id, vals] as [string, string[]];
+      }),
+    ).then((resultados) => {
+      setValoresFetched((prev) => {
+        const next = { ...prev };
+        for (const [id, vals] of resultados) next[id] = vals;
+        return next;
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodo.entidad_id, nodo.tipo_entidad, camposActivos.join(",")]);
+
   const chipsExtra: { label: string; value: string }[] = [];
   if (cfg.camposOpcionales) {
     for (const campo of cfg.camposOpcionales) {
       if (!camposActivos.includes(campo.id)) continue;
-      const vals = valoresCampos[campo.id] ?? [];
+      const vals = valoresFetched[campo.id] ?? [];
       if (vals.length > 0) {
         chipsExtra.push({ label: campo.label, value: vals.slice(0, 3).join(", ") });
       }
