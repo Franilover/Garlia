@@ -458,6 +458,18 @@ const TOPO_LAYOUTS: Record<string, SlotLayout> = {
   "Retroalimentación":          LAYOUT_5_FEED,
 };
 
+// Slots mínimos que se muestran al seleccionar cada topología.
+// El resto permanece oculto hasta que el usuario pulse "+" al final de la cadena.
+const TOPO_SLOTS_INICIALES: Record<string, string[]> = {
+  "Convergencia nuclear":        ["a", "nucleo"],
+  "Convergencia con resolución": ["a", "nucleo"],
+  "Estructural":                 ["a", "nucleo"],
+  "Ramificación":                ["a", "nucleo"],
+  "Ciclo con salida":            ["a", "nucleo"],
+  "Cadena dinámica":             ["a", "nucleo"],
+  "Retroalimentación":           ["a", "nucleo"],
+};
+
 // Normaliza nombre de posición canónica → clave del layout
 const canonKey = (p: string) => p.toLowerCase().trim();
 
@@ -480,6 +492,32 @@ function slotMasCercano(
     }
   }
   return best;
+}
+
+// Devuelve los slots NO visibles que están directamente conectados (vía uniones)
+// a al menos un slot visible. Son las posiciones donde va el botón "+".
+function getFrontierSlots(
+  topo: TopologiaOris,
+  slotsVisibles: Set<string>,
+  layout: SlotLayout,
+): Array<{ key: string; x: number; y: number }> {
+  const visto = new Set<string>();
+  const frontier: Array<{ key: string; x: number; y: number }> = [];
+  for (const u of topo.uniones) {
+    const orKey  = canonKey(u.origen_posicion);
+    const dstKey = canonKey(u.destino_posicion);
+    // Origen visible → destino aún oculto
+    if (slotsVisibles.has(orKey) && !slotsVisibles.has(dstKey) && !visto.has(dstKey) && layout[dstKey]) {
+      frontier.push({ key: dstKey, ...layout[dstKey] });
+      visto.add(dstKey);
+    }
+    // Destino visible → origen aún oculto (topologías convergentes)
+    if (slotsVisibles.has(dstKey) && !slotsVisibles.has(orKey) && !visto.has(orKey) && layout[orKey]) {
+      frontier.push({ key: orKey, ...layout[orKey] });
+      visto.add(orKey);
+    }
+  }
+  return frontier;
 }
 
 // ─── Conexión SVG ─────────────────────────────────────────────────────────────
@@ -803,14 +841,15 @@ function ModalDescubrimiento({
           textAlign: "center",
         }}
       >
+        <Sparkles size={28} style={{ color: "var(--primary)", animation: "latido 1.6s ease-in-out infinite" }} />
         <div>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 4px", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-            Nuevo descubrimiento
+            ¡Primera revelación!
           </p>
           <p style={{ fontSize: 16, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
             {iums.length === 1
-              ? `Comienzas a entender ${iums[0].nombre}`
-              : `Has desbloqueado ${iums.length} nuevos IUMS`}
+              ? `Comprendes cómo funciona ${iums[0].nombre}`
+              : `Comprendes ${iums.length} nuevas piezas`}
           </p>
         </div>
 
@@ -832,7 +871,7 @@ function ModalDescubrimiento({
         </div>
 
         <p style={{ fontSize: 9, margin: 0, lineHeight: 1.6, color: "color-mix(in srgb, var(--foreground) 55%, transparent)", maxWidth: 260 }}>
-          Ahora puedes ver la composición de estos IUMS en el catalogo. 
+          Ahora puedes ver qué hace esta pieza en el catálogo. Sigue experimentando para descubrir más.
         </p>
 
         <button
@@ -885,7 +924,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
       {tipo === "exito" && (
         <>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--foreground))` }}>
-            Lograste crear
+            ¡Algo ocurre!
           </p>
           <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.proceso_principal}</p>
           {!!oris.length && (
@@ -965,6 +1004,10 @@ export default function SimuladorIUM() {
   // Modal de revelación
   const [revelaciones, setRevelaciones] = useState<{ nombre: string; salida?: string }[]>([]);
 
+  // Panel de descubrimientos
+  const [descubrimientosAbierto, setDescubrimientosAbierto] = useState(false);
+  const [procesosDescubiertos, setProcesosDescubiertos] = useState<Set<string>>(new Set());
+
   // Drag de nodo
   const dragging = useRef<{
     uid: string;
@@ -983,6 +1026,8 @@ export default function SimuladorIUM() {
 
   // Topología seleccionada
   const [topoSeleccionada, setTopoSeleccionada] = useState<TopologiaOris | null>(null);
+  // Slots visibles en el canvas (null = todos visibles, solo aplica en modo topología)
+  const [slotsVisibles, setSlotsVisibles] = useState<Set<string> | null>(null);
 
   // Modal tipo unión al soltar
   const [modalTipo, setModalTipo] = useState<{
@@ -1085,17 +1130,31 @@ export default function SimuladorIUM() {
 
   const agregarIum = useCallback((ium: IumCatalogo) => {
     if (topoSeleccionada) {
-      const slots = getSlotsActivos(topoSeleccionada);
+      const layout = getSlotsActivos(topoSeleccionada);
       const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
-      const slotsLibres = Object.keys(slots).filter(
-        (k) => !componentes.some((c) => c.posicion === toUI(k)),
+
+      // Solo slots VISIBLES y libres
+      const visibles = slotsVisibles ?? new Set(Object.keys(layout));
+      const slotsLibres = Object.keys(layout).filter(
+        (k) => visibles.has(k) && !componentes.some((c) => c.posicion === toUI(k)),
       );
-      if (!slotsLibres.length) return;
-      const key = slotsLibres[0];
-      const { x, y } = slots[key];
-      const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: toUI(key), x, y };
-      setComponentes((prev) => [...prev, newComp]);
-      cablearSlot(newComp, componentes);
+
+      if (slotsLibres.length) {
+        const key = slotsLibres[0];
+        const { x, y } = layout[key];
+        const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: toUI(key), x, y };
+        setComponentes((prev) => [...prev, newComp]);
+        cablearSlot(newComp, componentes);
+      } else {
+        // No hay slots visibles libres: expandir el siguiente frontier y colocar ahí
+        const frontier = getFrontierSlots(topoSeleccionada, visibles, layout);
+        if (!frontier.length) return; // topología llena
+        const { key, x, y } = frontier[0];
+        setSlotsVisibles((prev) => new Set([...(prev ?? Object.keys(layout)), key]));
+        const newComp: ComponenteLab = { uid: genUID(), ium_id: ium.id, ium_nombre: ium.nombre, posicion: toUI(key), x, y };
+        setComponentes((prev) => [...prev, newComp]);
+        cablearSlot(newComp, componentes);
+      }
     } else {
       const idx = componentes.length;
       const { x, y } = autoPos(idx);
@@ -1105,7 +1164,7 @@ export default function SimuladorIUM() {
         posicion: posLibre, x, y,
       }]);
     }
-  }, [componentes, posicionesUsadas, topoSeleccionada, cablearSlot]);
+  }, [componentes, posicionesUsadas, topoSeleccionada, slotsVisibles, cablearSlot]);
 
   // ── Auto-fit viewBox ──────────────────────────────────────────────────────
 
@@ -1141,14 +1200,17 @@ export default function SimuladorIUM() {
       setViewBox({ x: cx - finalW / 2, y: cy - finalH / 2, w: finalW, h: finalH });
     };
 
-    // En modo topología: fitear siempre a TODOS los slots de la topología,
-    // independientemente de cuántos IUMs estén colocados.
-    // Así la cámara no se bugea al añadir el primer (o cualquier) IUM:
-    // en lugar de hacer zoom sobre el nodo recién añadido, mantiene
-    // el encuadre sobre la topología completa.
+    // En modo topología: fitear siempre a los slots VISIBLES.
+    // Cuando el usuario expande slots con "+", la cámara se reencuadra
+    // sobre los visibles; si hay slotsVisibles null (todos) usa todos.
     if (topoSeleccionada) {
-      const slots = Object.values(getSlotsActivos(topoSeleccionada));
-      if (slots.length) { fitPoints(slots); return; }
+      const allSlots = getSlotsActivos(topoSeleccionada);
+      const slotsFit = slotsVisibles
+        ? Object.entries(allSlots)
+            .filter(([k]) => slotsVisibles.has(k))
+            .map(([, pos]) => pos)
+        : Object.values(allSlots);
+      if (slotsFit.length) { fitPoints(slotsFit); return; }
     }
 
     if (!componentes.length) {
@@ -1156,9 +1218,9 @@ export default function SimuladorIUM() {
       return;
     }
     fitPoints(componentes.map((c) => ({ x: c.x, y: c.y })));
-  }, [componentes, topoSeleccionada]);
+  }, [componentes, topoSeleccionada, slotsVisibles]);
 
-  useEffect(() => { fitAll(); }, [componentes.length, topoSeleccionada]);
+  useEffect(() => { fitAll(); }, [componentes.length, topoSeleccionada, slotsVisibles]);
   useEffect(() => {
     const fn = () => fitAll();
     window.addEventListener("resize", fn);
@@ -1218,8 +1280,11 @@ export default function SimuladorIUM() {
       const uid = drag.uid;
 
       if (topoSeleccionada) {
-        const slots = getSlotsActivos(topoSeleccionada);
-        const snap = slotMasCercano(nx, ny, slots, SLOT_SNAP_RADIUS * 1.8);
+        const allSlots = getSlotsActivos(topoSeleccionada);
+        const slotsSnap = slotsVisibles
+          ? Object.fromEntries(Object.entries(allSlots).filter(([k]) => slotsVisibles.has(k)))
+          : allSlots;
+        const snap = slotMasCercano(nx, ny, slotsSnap, SLOT_SNAP_RADIUS * 1.8);
         setDragSlotPreview(snap);
         setComponentes((prev) =>
           prev.map((c) => c.uid === uid ? { ...c, x: nx, y: ny } : c),
@@ -1243,12 +1308,15 @@ export default function SimuladorIUM() {
     dragging.current = null;
 
     if (drag && drag.moved && topoSeleccionada) {
-      const slots = getSlotsActivos(topoSeleccionada);
+      const allSlots = getSlotsActivos(topoSeleccionada);
+      const slotsSnap = slotsVisibles
+        ? Object.fromEntries(Object.entries(allSlots).filter(([k]) => slotsVisibles.has(k)))
+        : allSlots;
       const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
       setComponentes((prev) => {
         const nodo = prev.find((c) => c.uid === drag.uid);
         if (!nodo) return prev;
-        const snap = slotMasCercano(nodo.x, nodo.y, slots, SLOT_SNAP_RADIUS * 2.5);
+        const snap = slotMasCercano(nodo.x, nodo.y, slotsSnap, SLOT_SNAP_RADIUS * 2.5);
         if (!snap) {
           return prev.map((c) => c.uid === drag.uid
             ? { ...c, x: drag.startNodeX, y: drag.startNodeY }
@@ -1282,6 +1350,7 @@ export default function SimuladorIUM() {
     if (e.button !== 0) return;
     if ((e.target as Element).closest("[data-ium-node]")) return;
     setSlotDropdown(null); setBusquedaSlot("");
+    setDescubrimientosAbierto(false);
   }, []);
 
   // ── Cancelar enlace con Escape ────────────────────────────────────────────
@@ -1359,6 +1428,13 @@ export default function SimuladorIUM() {
     setComponentes(nuevosComps);
     setEnlaces(nuevosEnlaces);
 
+    // Inicializar slots visibles: mínimos de la topología ∪ slots ya ocupados
+    const iniciales = new Set(
+      TOPO_SLOTS_INICIALES[topo.nombre] ?? slotsOrden.slice(0, 2),
+    );
+    nuevosComps.slice(0, nSlots).forEach((_, i) => iniciales.add(slotsOrden[i]));
+    setSlotsVisibles(iniciales);
+
     if (nNodos < nSlots) {
       const f = nSlots - nNodos;
       setAvisoTopo(`Faltan ${f} IUM${f !== 1 ? "s" : ""} para completar esta forma. Agrégalos desde la lista.`);
@@ -1371,7 +1447,7 @@ export default function SimuladorIUM() {
   }, [componentes]);
 
   const limpiar = useCallback(() => {
-    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null); setTopoSeleccionada(null); setDragSlotPreview(null);
+    setComponentes([]); setEnlaces([]); setResultado(null); setErrorSim(null); setAvisoTopo(null); setTopoSeleccionada(null); setDragSlotPreview(null); setSlotsVisibles(null);
   }, []);
 
   // ── Simular ────────────────────────────────────────────────────────────────
@@ -1449,6 +1525,11 @@ export default function SimuladorIUM() {
             };
           });
           setRevelaciones(reveladosInfo);
+        }
+
+        // Acumular proceso descubierto en sesión
+        if (res.proceso_principal) {
+          setProcesosDescubiertos((prev) => new Set([...prev, res.proceso_principal as string]));
         }
 
         // Recargar estado de Eterium y conocimiento
@@ -1597,26 +1678,151 @@ export default function SimuladorIUM() {
               ultimoCosto={ultimoCosto}
             />
 
-            {/* Botón Probar flotante */}
-            <button
-              onClick={simular}
-              disabled={!componentes.length || simulando}
-              style={{
-                position: "absolute", top: 12, right: 12, zIndex: 10,
-                display: "flex", alignItems: "center", gap: 5,
-                padding: "6px 14px", borderRadius: 999,
-                background: "var(--primary)",
-                color: "var(--btn-text)",
-                border: "none",
-                cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
-                opacity: componentes.length && !simulando ? 1 : 0.35,
-                fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-              }}
-            >
-              {simulando
-                ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
-                : <><Play size={10} /> Probar</>}
-            </button>
+            {/* Grupo de botones flotantes: Descubrimientos + Probar */}
+            <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", alignItems: "center", gap: 6 }}>
+
+              {/* Botón Descubrimientos */}
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setDescubrimientosAbierto((v) => !v)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px", borderRadius: 999,
+                    background: descubrimientosAbierto
+                      ? "color-mix(in srgb, var(--primary) 14%, transparent)"
+                      : "color-mix(in srgb, var(--primary) 7%, transparent)",
+                    color: "var(--primary)",
+                    border: "1px solid color-mix(in srgb, var(--primary) 25%, transparent)",
+                    cursor: "pointer",
+                    fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                  }}
+                >
+                  <Sparkles size={10} />
+                  Descubrimientos
+                  {/* Badge con total de revelados */}
+                  {(() => {
+                    const nIums = [...conocimiento.values()].filter((c) => c.funcion_revelada).length;
+                    const nProc = procesosDescubiertos.size;
+                    const total = nIums + nProc;
+                    return total > 0 ? (
+                      <span style={{
+                        background: "var(--primary)", color: "var(--btn-text)",
+                        borderRadius: 999, fontSize: 7, fontWeight: 800,
+                        padding: "1px 5px", lineHeight: 1.5,
+                      }}>
+                        {total}
+                      </span>
+                    ) : null;
+                  })()}
+                </button>
+
+                {/* Panel desplegable */}
+                {descubrimientosAbierto && (
+                  <div
+                    style={{
+                      position: "absolute", top: "calc(100% + 6px)", right: 0,
+                      width: 240, maxHeight: 340, overflowY: "auto",
+                      background: "var(--bg-main, #0a0a0a)",
+                      border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)",
+                      borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+                      zIndex: 20,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* ── IUMs revelados ── */}
+                    <div style={{ padding: "8px 10px 4px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                      <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                        IUMs revelados
+                      </p>
+                    </div>
+
+                    {(() => {
+                      const revelados = iums.filter((i) => conocimiento.get(i.id)?.funcion_revelada);
+                      if (!revelados.length) {
+                        return (
+                          <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "10px 12px", margin: 0, fontStyle: "italic" }}>
+                            Ninguno todavía. Prueba combinaciones.
+                          </p>
+                        );
+                      }
+                      return revelados.map((ium) => {
+                        const conocido = conocimiento.get(ium.id)!;
+                        const salidaPpal = salidas.find((s) => s.ium_id === ium.id && s.es_principal);
+                        return (
+                          <div key={ium.id} style={{ padding: "6px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                            <Sparkles size={8} style={{ color: "var(--primary)", flexShrink: 0, marginTop: 2 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: "var(--primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {ium.nombre}
+                              </p>
+                              {salidaPpal && (
+                                <p style={{ margin: "1px 0 0", fontSize: 8, color: "color-mix(in srgb, var(--primary) 55%, transparent)", lineHeight: 1.4 }}>
+                                  {salidaPpal.nombre}
+                                </p>
+                              )}
+                              {conocido.veces_en_reaccion_exitosa > 0 && (
+                                <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                                  {conocido.veces_en_reaccion_exitosa}× en reacciones
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+
+                    {/* ── Procesos descubiertos ── */}
+                    <div style={{ padding: "8px 10px 4px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                      <p style={{ margin: 0, fontSize: 7.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                        Procesos identificados
+                      </p>
+                    </div>
+
+                    {procesosDescubiertos.size === 0 ? (
+                      <p style={{ fontSize: 9, color: "color-mix(in srgb, var(--primary) 28%, transparent)", textAlign: "center", padding: "10px 12px", margin: 0, fontStyle: "italic" }}>
+                        Aún no has completado ningún proceso.
+                      </p>
+                    ) : (
+                      [...procesosDescubiertos].map((nombre) => (
+                        <div key={nombre} style={{ padding: "6px 10px", borderBottom: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", display: "flex", alignItems: "center", gap: 6 }}>
+                          <Zap size={8} style={{ color: "color-mix(in srgb, var(--success,#22c55e) 80%, transparent)", flexShrink: 0 }} />
+                          <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "color-mix(in srgb, var(--foreground) 85%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {nombre}
+                          </p>
+                        </div>
+                      ))
+                    )}
+
+                    {/* Footer */}
+                    <div style={{ padding: "6px 10px", textAlign: "center" }}>
+                      <p style={{ margin: 0, fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 22%, transparent)", fontStyle: "italic" }}>
+                        Los procesos se acumulan en cada sesión
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Botón Probar */}
+              <button
+                onClick={simular}
+                disabled={!componentes.length || simulando}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 14px", borderRadius: 999,
+                  background: "var(--primary)",
+                  color: "var(--btn-text)",
+                  border: "none",
+                  cursor: componentes.length && !simulando ? "pointer" : "not-allowed",
+                  opacity: componentes.length && !simulando ? 1 : 0.35,
+                  fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+                }}
+              >
+                {simulando
+                  ? <><Loader2 size={10} style={{ animation: "spin 1s linear infinite" }} /> Reaccionando…</>
+                  : <><Play size={10} /> Probar</>}
+              </button>
+            </div>
             <svg
               ref={svgRef}
               style={{ flex: 1, display: "block", cursor: linkingFrom ? "crosshair" : "default", userSelect: "none" }}
@@ -1635,11 +1841,19 @@ export default function SimuladorIUM() {
                 </marker>
               </defs>
 
-              {/* Uniones fantasma de la topología */}
+              {/* Uniones fantasma de la topología (solo entre slots visibles) */}
               {topoSeleccionada && (() => {
                 const slots = getSlotsActivos(topoSeleccionada);
                 const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
-                return topoSeleccionada.uniones.map((u, i) => {
+                return topoSeleccionada.uniones
+                  .filter((u) => {
+                    if (!slotsVisibles) return true;
+                    return (
+                      slotsVisibles.has(canonKey(u.origen_posicion)) &&
+                      slotsVisibles.has(canonKey(u.destino_posicion))
+                    );
+                  })
+                  .map((u, i) => {
                   const orPos  = slots[u.origen_posicion];
                   const dstPos = slots[u.destino_posicion];
                   if (!orPos || !dstPos) return null;
@@ -1695,9 +1909,12 @@ export default function SimuladorIUM() {
                 );
               })()}
 
-              {/* Grid de slots de topología */}
+              {/* Grid de slots de topología (solo los visibles) */}
               {topoSeleccionada && (() => {
-                const slots = Object.entries(getSlotsActivos(topoSeleccionada));
+                const allSlots = getSlotsActivos(topoSeleccionada);
+                const slots = Object.entries(allSlots).filter(
+                  ([k]) => !slotsVisibles || slotsVisibles.has(k),
+                );
                 const toUI = (k: string) => k === "nucleo" ? "N" : k.toUpperCase();
                 return slots.map(([key, pos]) => {
                   const posUI = toUI(key);
@@ -1765,6 +1982,72 @@ export default function SimuladorIUM() {
                 });
               })()}
 
+              {/* Botones "+" en frontier slots — pequeños y apagados */}
+              {topoSeleccionada && slotsVisibles && (() => {
+                const layout = getSlotsActivos(topoSeleccionada);
+                const frontier = getFrontierSlots(topoSeleccionada, slotsVisibles, layout);
+                return frontier.map(({ key, x, y }) => (
+                  <g
+                    key={`frontier-${key}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSlotsVisibles((prev) => new Set([...(prev ?? Object.keys(layout)), key]));
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {/* Línea guía tenue hacia el frontier */}
+                    {topoSeleccionada.uniones
+                      .filter((u) => {
+                        const orKey  = canonKey(u.origen_posicion);
+                        const dstKey = canonKey(u.destino_posicion);
+                        return (orKey === key && slotsVisibles.has(dstKey)) ||
+                               (dstKey === key && slotsVisibles.has(orKey));
+                      })
+                      .map((u, i) => {
+                        const orKey  = canonKey(u.origen_posicion);
+                        const isOr   = orKey === key;
+                        const peerKey = isOr ? canonKey(u.destino_posicion) : orKey;
+                        const peerPos = layout[peerKey];
+                        if (!peerPos) return null;
+                        return (
+                          <line
+                            key={i}
+                            x1={peerPos.x} y1={peerPos.y}
+                            x2={x} y2={y}
+                            strokeWidth={1}
+                            strokeDasharray="3 5"
+                            style={{ stroke: "color-mix(in srgb, var(--primary) 12%, transparent)", pointerEvents: "none" }}
+                          />
+                        );
+                      })
+                    }
+                    {/* Círculo pequeño del botón */}
+                    <circle
+                      cx={x} cy={y}
+                      r={22}
+                      fill="color-mix(in srgb, var(--primary) 3%, transparent)"
+                      stroke="color-mix(in srgb, var(--primary) 13%, transparent)"
+                      strokeWidth={1}
+                      strokeDasharray="3 4"
+                    />
+                    <text
+                      x={x} y={y + 1}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 300,
+                        fill: "color-mix(in srgb, var(--primary) 20%, transparent)",
+                        pointerEvents: "none",
+                        userSelect: "none",
+                      }}
+                    >
+                      +
+                    </text>
+                  </g>
+                ));
+              })()}
+
               {/* Nodos */}
               {componentes.map((comp) => (
                 <g key={comp.uid} data-ium-node="true">
@@ -1816,7 +2099,7 @@ export default function SimuladorIUM() {
           {/* Selector de topología */}
           <div>
             <button
-              onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); }}
+              onClick={() => { setTopoSeleccionada(null); setEnlaces([]); setAvisoTopo(null); setSlotsVisibles(null); }}
               style={{
                 width: "100%", textAlign: "left", border: "1px solid",
                 borderColor: !topoSeleccionada
