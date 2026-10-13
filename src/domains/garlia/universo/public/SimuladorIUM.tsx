@@ -1142,11 +1142,17 @@ export default function SimuladorIUM() {
       setViewBox({ x: cx - finalW / 2, y: cy - finalH / 2, w: finalW, h: finalH });
     };
 
+    // En modo topología: fitear siempre a TODOS los slots de la topología,
+    // independientemente de cuántos IUMs estén colocados.
+    // Así la cámara no se bugea al añadir el primer (o cualquier) IUM:
+    // en lugar de hacer zoom sobre el nodo recién añadido, mantiene
+    // el encuadre sobre la topología completa.
+    if (topoSeleccionada) {
+      const slots = Object.values(getSlotsActivos(topoSeleccionada));
+      if (slots.length) { fitPoints(slots); return; }
+    }
+
     if (!componentes.length) {
-      if (topoSeleccionada) {
-        const slots = Object.values(getSlotsActivos(topoSeleccionada));
-        if (slots.length) { fitPoints(slots); return; }
-      }
       setViewBox({ x: 0, y: 0, w: 800, h: 600 });
       return;
     }
