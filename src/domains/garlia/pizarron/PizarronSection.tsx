@@ -10,6 +10,11 @@
  *  - Conectar nodos con aristas etiquetadas
  *  - Editar etiquetas y colores
  *  - Todo persiste en Supabase
+ *
+ * INTERACCIÓN BARRA LATERAL:
+ *  - Click en un tipo → abre panel flotante buscador centrado
+ *  - Drag desde un tipo → suelta sobre el canvas → abre panel flotante en
+ *    la posición donde se soltó
  */
 import {
   Check, ChevronDown, ChevronRight, Edit2, Link as LinkIcon, Loader2, Plus,
@@ -59,6 +64,219 @@ function calcularPuntosBorde(origen: PizarronNodo, destino: PizarronNodo) {
   return { x1: o.x, y1: o.y, x2: d.x, y2: d.y };
 }
 
+// ── Panel flotante buscador (aparece al seleccionar tipo o soltar en canvas) ──
+interface PanelBuscadorFlotanteProps {
+  tipo: TipoEntidadPizarron;
+  /** Posición en pantalla donde anclar el panel. null = centrado */
+  posicion: { x: number; y: number } | null;
+  onSeleccionar: (entidadId: string | null, nombre: string) => void;
+  onCerrar: () => void;
+}
+
+function PanelBuscadorFlotante({ tipo, posicion, onSeleccionar, onCerrar }: PanelBuscadorFlotanteProps) {
+  const cfg = TIPO_ENTIDAD_CONFIG[tipo];
+  const [query, setQuery] = useState("");
+  const [resultados, setResultados] = useState<{ id: string; nombre: string }[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-focus al montar
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  // Búsqueda con debounce
+  useEffect(() => {
+    if (tipo === "texto") { setResultados([]); return; }
+    if (!query.trim()) { setResultados([]); return; }
+    if (searchRef.current) clearTimeout(searchRef.current);
+    setBuscando(true);
+    searchRef.current = setTimeout(async () => {
+      const res = await buscarEntidades(cfg.tabla, query, cfg.campoNombre);
+      setResultados(res);
+      setBuscando(false);
+    }, 250);
+    return () => { if (searchRef.current) clearTimeout(searchRef.current); };
+  }, [query, tipo, cfg.tabla, cfg.campoNombre]);
+
+  // Cerrar con Escape
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onCerrar(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onCerrar]);
+
+  // Calcular posición del panel
+  const panelW = 280;
+  const panelMaxH = 360;
+  let style: React.CSSProperties = {
+    position: "fixed",
+    zIndex: 3000,
+    width: panelW,
+    maxHeight: panelMaxH,
+  };
+
+  if (posicion) {
+    // Anclar cerca del punto de suelta, ajustando para que no se salga
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = posicion.x - panelW / 2;
+    let top = posicion.y + 8;
+    if (left + panelW > vw - 12) left = vw - panelW - 12;
+    if (left < 12) left = 12;
+    if (top + panelMaxH > vh - 12) top = posicion.y - panelMaxH - 8;
+    style = { ...style, left, top };
+  } else {
+    // Centrado
+    style = { ...style, left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+  }
+
+  const esTexto = tipo === "texto";
+
+  return (
+    <>
+      {/* Overlay para cerrar */}
+      <div
+        className="fixed inset-0 z-[2999]"
+        onClick={onCerrar}
+      />
+
+      <div
+        style={{
+          ...style,
+          background: "var(--bg-main)",
+          borderRadius: "var(--radius-card)",
+          border: `1px solid color-mix(in srgb, ${cfg.accentVar} 30%, transparent)`,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.14)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 shrink-0"
+          style={{
+            borderBottom: `1px solid color-mix(in srgb, ${cfg.accentVar} 18%, transparent)`,
+            background: `color-mix(in srgb, ${cfg.accentVar} 6%, var(--bg-main))`,
+          }}
+        >
+          <EntidadIcon name={cfg.icon} size={13} style={{ color: cfg.accentVar, flexShrink: 0 }} />
+          <span className="text-xs font-semibold flex-1" style={{ color: "var(--primary)" }}>
+            {esTexto ? "Texto libre" : `Buscar ${cfg.label}`}
+          </span>
+          <button type="button" onClick={onCerrar}>
+            <X size={12} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+          </button>
+        </div>
+
+        {esTexto ? (
+          /* Texto libre — sin buscador */
+          <div className="flex flex-col gap-2 p-3">
+            <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
+              Añade un bloque de texto libre al lienzo.
+            </p>
+            <button
+              type="button"
+              onClick={() => onSeleccionar(null, "Texto...")}
+              className="flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold transition-all"
+              style={{
+                borderRadius: "var(--radius-btn)",
+                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                color: "var(--primary)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+              }}
+            >
+              <Type size={12} /> Añadir texto
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Input búsqueda */}
+            <div className="p-2.5 shrink-0">
+              <div
+                className="flex items-center gap-2 px-2.5 py-1.5"
+                style={{
+                  borderRadius: "var(--radius-btn)",
+                  background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                  border: `1px solid color-mix(in srgb, ${cfg.accentVar} 20%, transparent)`,
+                }}
+              >
+                {buscando
+                  ? <Loader2 size={12} className="animate-spin" style={{ color: cfg.accentVar, flexShrink: 0 }} />
+                  : <Search size={12} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }} />
+                }
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder={`Buscar ${cfg.label.toLowerCase()}…`}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="flex-1 bg-transparent text-xs outline-none"
+                  style={{ color: "var(--primary)", minWidth: 0 }}
+                />
+                {query && (
+                  <button type="button" onClick={() => { setQuery(""); setResultados([]); }}>
+                    <X size={10} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Lista de resultados */}
+            <div className="overflow-y-auto flex flex-col gap-0.5 px-2 pb-2" style={{ maxHeight: 260 }}>
+              {!query.trim() && (
+                <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
+                  Escribe para buscar…
+                </p>
+              )}
+              {resultados.length === 0 && query.trim() && !buscando && (
+                <p className="text-xs py-4 text-center" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
+                  Sin resultados para «{query}»
+                </p>
+              )}
+              {resultados.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => onSeleccionar(r.id, r.nombre)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 text-left w-full transition-all"
+                  style={{
+                    borderRadius: "var(--radius-btn)",
+                    background: "transparent",
+                    border: "1px solid transparent",
+                    fontSize: 12,
+                    color: "var(--primary)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${cfg.accentVar} 10%, var(--bg-main))`;
+                    (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${cfg.accentVar} 28%, transparent)`;
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                    (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+                  }}
+                >
+                  <EntidadIcon
+                    name={cfg.icon}
+                    size={11}
+                    style={{ color: `color-mix(in srgb, ${cfg.accentVar} 70%, transparent)`, flexShrink: 0 }}
+                  />
+                  <span className="flex-1 truncate">{r.nombre}</span>
+                  <Plus size={10} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ── Componente de Nodo ────────────────────────────────────────────────────
 
 /** Nodo base para texto libre — sin preview fetch */
@@ -106,7 +324,6 @@ function NodoEntidad({
   const accent = cfg.accentVar;
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
-  // Preview data
   const [preview, setPreview] = useState<EntidadPreview | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
 
@@ -120,7 +337,6 @@ function NodoEntidad({
   const nombre = preview?.nombre ?? nodo.label ?? cfg.label;
   const chips = preview?.chips ?? [];
   const imgUrl = preview?.imagenUrl;
-  // Altura adaptativa: base + chips
   const cardH = Math.max(nodo.height, 70 + chips.length * 16);
 
   return (
@@ -133,9 +349,7 @@ function NodoEntidad({
         onSelect(nodo.id, e);
       }}
     >
-      {/* Sombra */}
       <rect rx={10} width={nodo.width} height={cardH} fill="rgba(0,0,0,0.12)" transform="translate(2,3)" />
-      {/* Fondo */}
       <rect
         rx={10} width={nodo.width} height={cardH}
         fill={`color-mix(in srgb, ${accent} 8%, var(--bg-main))`}
@@ -143,10 +357,7 @@ function NodoEntidad({
         strokeWidth={selected || isConnectSource ? 2 : 1}
         strokeDasharray={isConnectSource ? "5 3" : undefined}
       />
-      {/* Franja acento izq */}
-      <rect x={0} y={0} width={3} height={cardH} rx={10}
-        fill={accent} opacity={0.75} />
-      {/* Imagen si existe */}
+      <rect x={0} y={0} width={3} height={cardH} rx={10} fill={accent} opacity={0.75} />
       {imgUrl && (
         <>
           <clipPath id={`clip-img-${nodo.id}`}>
@@ -160,16 +371,12 @@ function NodoEntidad({
           />
         </>
       )}
-
-      {/* Contenido principal via foreignObject */}
       <foreignObject x={12} y={0} width={nodo.width - (imgUrl ? 58 : 20)} height={cardH}>
         <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, padding: "8px 0" }}>
-          {/* Tipo label */}
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
             color: accent, opacity: 0.8, lineHeight: 1 }}>
             {cfg.label}
           </div>
-          {/* Nombre — clickable si hay panelKind */}
           <div
             style={{
               fontSize: 12, fontWeight: 700, color: "var(--primary)", lineHeight: 1.3,
@@ -189,7 +396,6 @@ function NodoEntidad({
           >
             {loadingPreview ? "…" : nombre}
           </div>
-          {/* Chips */}
           {chips.map((c) => (
             <div key={c.label} style={{ display: "flex", gap: 3, alignItems: "baseline" }}>
               <span style={{ fontSize: 8, fontWeight: 600, color: accent, opacity: 0.65,
@@ -204,15 +410,11 @@ function NodoEntidad({
           ))}
         </div>
       </foreignObject>
-
-      {/* Ícono tipo (esquina inf derecha) */}
       <foreignObject x={nodo.width - 18} y={cardH - 16} width={14} height={14}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
           <EntidadIcon name={cfg.icon} size={11} style={{ color: accent }} />
         </div>
       </foreignObject>
-
-      {/* Botones de acción (seleccionado) */}
       {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} cardH={cardH} />}
     </g>
   );
@@ -263,252 +465,133 @@ function NodoCanvas(props: NodoProps) {
   return <NodoEntidad {...props} />;
 }
 
-// ── Panel lateral: buscar y añadir entidades ──────────────────────────────
-function PanelEntidades({
-  onAgregar,
+// ── Barra lateral: solo lista de tipos ───────────────────────────────────
+function BarraLateralTipos({
+  tipoActivo,
+  onSeleccionar,
+  onDragStart,
 }: {
-  onAgregar: (tipo: TipoEntidadPizarron, entidadId: string | null, label: string) => void;
+  tipoActivo: TipoEntidadPizarron;
+  onSeleccionar: (t: TipoEntidadPizarron) => void;
+  /** Callback cuando el usuario empieza a arrastrar un tipo */
+  onDragStart: (t: TipoEntidadPizarron) => void;
 }) {
-  const [tipoActivo, setTipoActivo] = useState<TipoEntidadPizarron>("personaje");
-  const [query, setQuery] = useState("");
-  const [resultados, setResultados] = useState<{ id: string; nombre: string }[]>([]);
-  const [buscando, setBuscando] = useState(false);
-  // Secciones colapsadas: por defecto todas abiertas
   const [seccionesColapsadas, setSeccionesColapsadas] = useState<Record<string, boolean>>({});
-  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cfg = TIPO_ENTIDAD_CONFIG[tipoActivo];
-
-  useEffect(() => {
-    if (tipoActivo === "texto") { setResultados([]); return; }
-    if (!query.trim()) { setResultados([]); return; }
-    if (searchRef.current) clearTimeout(searchRef.current);
-    setBuscando(true);
-    searchRef.current = setTimeout(async () => {
-      const res = await buscarEntidades(cfg.tabla, query, cfg.campoNombre);
-      setResultados(res);
-      setBuscando(false);
-    }, 300);
-  }, [query, tipoActivo, cfg.tabla]);
 
   const toggleSeccion = (label: string) => {
     setSeccionesColapsadas((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const seleccionar = (t: TipoEntidadPizarron) => {
-    setTipoActivo(t);
-    setQuery("");
-    setResultados([]);
-  };
-
   return (
     <div
-      className="flex flex-col h-full overflow-hidden"
+      className="flex flex-col h-full overflow-y-auto"
       style={{
-        width: 230,
+        width: 210,
         borderRight: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)",
+        flexShrink: 0,
       }}
     >
-      {/* Selector de tipo — scrollable */}
-      <div
-        className="flex-1 overflow-y-auto"
-        style={{ borderBottom: "var(--border-width) solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
-      >
-        {SECCIONES_SELECTOR.map((seccion) => {
-          const colapsada = !!seccionesColapsadas[seccion.label];
-          return (
-            <div key={seccion.label}>
-              {/* Cabecera de sección */}
-              <button
-                type="button"
-                onClick={() => toggleSeccion(seccion.label)}
-                className="flex items-center gap-1.5 w-full px-3 py-2 transition-all"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {colapsada
-                  ? <ChevronRight size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-                  : <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
-                }
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: "color-mix(in srgb, var(--primary) 40%, transparent)",
-                    letterSpacing: "0.07em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {seccion.label}
-                </span>
-              </button>
-
-              {/* Items de la sección */}
-              {!colapsada && (
-                <div className="flex flex-col pb-1">
-                  {seccion.tipos.map((t) => {
-                    const c = TIPO_ENTIDAD_CONFIG[t];
-                    const active = tipoActivo === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => seleccionar(t)}
-                        className="flex items-center gap-2 pl-6 pr-3 py-1 text-left w-full transition-all"
-                        style={{
-                          borderRadius: 0,
-                          background: active
-                            ? `color-mix(in srgb, ${c.accentVar} 12%, var(--bg-main))`
-                            : "transparent",
-                          borderLeft: active
-                            ? `2px solid ${c.accentVar}`
-                            : "2px solid transparent",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <EntidadIcon
-                          name={c.icon}
-                          size={12}
-                          style={{
-                            color: active
-                              ? c.accentVar
-                              : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontSize: 12,
-                            color: active
-                              ? "var(--primary)"
-                              : "color-mix(in srgb, var(--primary) 55%, transparent)",
-                            fontWeight: active ? 600 : 400,
-                          }}
-                        >
-                          {c.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Zona inferior: texto libre o búsqueda */}
-      {tipoActivo === "texto" ? (
-        <div className="p-3 flex flex-col gap-2 shrink-0">
-          <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}>
-            Añade un bloque de texto libre al lienzo.
-          </p>
-          <button
-            type="button"
-            onClick={() => onAgregar("texto", null, "Texto...")}
-            className="flex items-center gap-2 px-3 py-2 transition-all text-xs font-semibold"
-            style={{
-              borderRadius: "var(--radius-btn)",
-              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-              color: "var(--primary)",
-              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            }}
-          >
-            <Type size={12} /> Añadir texto
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col shrink-0" style={{ maxHeight: 200 }}>
-          {/* Buscador */}
-          <div className="p-2 shrink-0">
-            <div
-              className="flex items-center gap-2 px-2 py-1.5"
-              style={{
-                borderRadius: "var(--radius-btn)",
-                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}
+      {SECCIONES_SELECTOR.map((seccion) => {
+        const colapsada = !!seccionesColapsadas[seccion.label];
+        return (
+          <div key={seccion.label}>
+            {/* Cabecera de sección */}
+            <button
+              type="button"
+              onClick={() => toggleSeccion(seccion.label)}
+              className="flex items-center gap-1.5 w-full px-3 py-2 transition-all"
+              style={{ background: "transparent", border: "none", cursor: "pointer" }}
             >
-              {buscando
-                ? <Loader2 size={11} className="animate-spin" style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                : <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
+              {colapsada
+                ? <ChevronRight size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
+                : <ChevronDown size={10} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
               }
-              <input
-                type="text"
-                placeholder={`Buscar ${cfg.label.toLowerCase()}…`}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 bg-transparent text-xs outline-none"
-                style={{ color: "var(--primary)", minWidth: 0 }}
-              />
-              {query && (
-                <button type="button" onClick={() => { setQuery(""); setResultados([]); }}>
-                  <X size={10} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
-                </button>
-              )}
-            </div>
-          </div>
+              <span style={{
+                fontSize: 10, fontWeight: 600,
+                color: "color-mix(in srgb, var(--primary) 40%, transparent)",
+                letterSpacing: "0.07em", textTransform: "uppercase",
+              }}>
+                {seccion.label}
+              </span>
+            </button>
 
-          {/* Resultados */}
-          <div className="overflow-y-auto px-2 pb-2 flex flex-col gap-0.5">
-            {!query.trim() && (
-              <p className="text-xs py-3 text-center" style={{ color: "color-mix(in srgb, var(--primary) 22%, transparent)" }}>
-                Escribe para buscar
-              </p>
+            {/* Items */}
+            {!colapsada && (
+              <div className="flex flex-col pb-1">
+                {seccion.tipos.map((t) => {
+                  const c = TIPO_ENTIDAD_CONFIG[t];
+                  const active = tipoActivo === t;
+                  return (
+                    <div
+                      key={t}
+                      // El div es draggable para poder soltar en el canvas
+                      draggable
+                      onDragStart={(e) => {
+                        // Imagen fantasma transparente
+                        const ghost = document.createElement("div");
+                        ghost.style.cssText = `
+                          position:fixed; top:-999px; left:-999px;
+                          background:var(--bg-main);
+                          border:1px solid ${c.accentVar};
+                          border-radius:6px; padding:4px 8px;
+                          font-size:11px; font-weight:600;
+                          color:var(--primary);
+                          pointer-events:none;
+                          white-space:nowrap;
+                        `;
+                        ghost.textContent = c.label;
+                        document.body.appendChild(ghost);
+                        e.dataTransfer.setDragImage(ghost, 0, 0);
+                        // Limpiar ghost después
+                        setTimeout(() => document.body.removeChild(ghost), 0);
+                        e.dataTransfer.effectAllowed = "copy";
+                        e.dataTransfer.setData("tipo_entidad", t);
+                        onDragStart(t);
+                      }}
+                      className="flex items-center gap-2 pl-6 pr-3 py-1.5 text-left w-full transition-all select-none"
+                      style={{
+                        borderRadius: 0,
+                        background: active
+                          ? `color-mix(in srgb, ${c.accentVar} 12%, var(--bg-main))`
+                          : "transparent",
+                        borderLeft: active
+                          ? `2px solid ${c.accentVar}`
+                          : "2px solid transparent",
+                        cursor: "grab",
+                      }}
+                      onClick={() => onSeleccionar(t)}
+                    >
+                      <EntidadIcon
+                        name={c.icon}
+                        size={12}
+                        style={{
+                          color: active ? c.accentVar : "color-mix(in srgb, var(--primary) 30%, transparent)",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{
+                        fontSize: 12,
+                        color: active ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                        fontWeight: active ? 600 : 400,
+                        flex: 1,
+                      }}>
+                        {c.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-            {resultados.length === 0 && query.trim() && !buscando && (
-              <p className="text-xs py-3 text-center" style={{ color: "color-mix(in srgb, var(--primary) 28%, transparent)" }}>
-                Sin resultados
-              </p>
-            )}
-            {resultados.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => onAgregar(tipoActivo, r.id, r.nombre)}
-                className="flex items-center gap-2 px-2 py-1.5 text-left transition-all w-full"
-                style={{
-                  borderRadius: "var(--radius-btn)",
-                  background: "transparent",
-                  border: "1px solid transparent",
-                  fontSize: 12,
-                  color: "var(--primary)",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  const accent = TIPO_ENTIDAD_CONFIG[tipoActivo].accentVar;
-                  (e.currentTarget as HTMLElement).style.background = `color-mix(in srgb, ${accent} 10%, var(--bg-main))`;
-                  (e.currentTarget as HTMLElement).style.borderColor = `color-mix(in srgb, ${accent} 25%, transparent)`;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                  (e.currentTarget as HTMLElement).style.borderColor = "transparent";
-                }}
-              >
-                <EntidadIcon
-                  name={TIPO_ENTIDAD_CONFIG[tipoActivo].icon}
-                  size={11}
-                  style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)", flexShrink: 0 }}
-                />
-                <span className="flex-1 truncate">{r.nombre}</span>
-                <Plus size={10} style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)", flexShrink: 0 }} />
-              </button>
-            ))}
           </div>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }
 
 // ── Modal editar nodo ─────────────────────────────────────────────────────
 function ModalEditarNodo({
-  nodo,
-  onSave,
-  onClose,
+  nodo, onSave, onClose,
 }: {
   nodo: PizarronNodo;
   onSave: (id: string, label: string, color: string) => void;
@@ -518,18 +601,17 @@ function ModalEditarNodo({
   const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron] ?? TIPO_ENTIDAD_CONFIG.texto;
   const [color, setColor] = useState(nodo.color ?? "var(--primary)");
 
-  // Colores como CSS vars del tema para ser dinámicos
   const COLORES_PRESET = [
-    { label: "Acento",    value: "var(--accent, #8b5cf6)" },
-    { label: "Primario",  value: "var(--primary)" },
-    { label: "Violeta",   value: "color-mix(in srgb, var(--primary) 50%, #8b5cf6)" },
-    { label: "Azul",      value: "color-mix(in srgb, var(--primary) 50%, #3b82f6)" },
-    { label: "Cyan",      value: "color-mix(in srgb, var(--primary) 50%, #06b6d4)" },
-    { label: "Verde",     value: "color-mix(in srgb, var(--primary) 50%, #10b981)" },
-    { label: "Lima",      value: "color-mix(in srgb, var(--primary) 50%, #84cc16)" },
-    { label: "Naranja",   value: "color-mix(in srgb, var(--primary) 50%, #f59e0b)" },
-    { label: "Rojo",      value: "color-mix(in srgb, var(--primary) 50%, #ef4444)" },
-    { label: "Rosa",      value: "color-mix(in srgb, var(--primary) 50%, #ec4899)" },
+    { label: "Acento",   value: "var(--accent, #8b5cf6)" },
+    { label: "Primario", value: "var(--primary)" },
+    { label: "Violeta",  value: "color-mix(in srgb, var(--primary) 50%, #8b5cf6)" },
+    { label: "Azul",     value: "color-mix(in srgb, var(--primary) 50%, #3b82f6)" },
+    { label: "Cyan",     value: "color-mix(in srgb, var(--primary) 50%, #06b6d4)" },
+    { label: "Verde",    value: "color-mix(in srgb, var(--primary) 50%, #10b981)" },
+    { label: "Lima",     value: "color-mix(in srgb, var(--primary) 50%, #84cc16)" },
+    { label: "Naranja",  value: "color-mix(in srgb, var(--primary) 50%, #f59e0b)" },
+    { label: "Rojo",     value: "color-mix(in srgb, var(--primary) 50%, #ef4444)" },
+    { label: "Rosa",     value: "color-mix(in srgb, var(--primary) 50%, #ec4899)" },
   ];
 
   return (
@@ -545,8 +627,7 @@ function ModalEditarNodo({
           borderRadius: "var(--radius-card)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           boxShadow: "var(--shadow-card)",
-          minWidth: 280,
-          maxWidth: 340,
+          minWidth: 280, maxWidth: 340,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -593,9 +674,7 @@ function ModalEditarNodo({
                 onClick={() => setColor(c.value)}
                 className="transition-all"
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
+                  width: 20, height: 20, borderRadius: "50%",
                   background: c.value,
                   border: color === c.value
                     ? "2.5px solid var(--primary)"
@@ -629,14 +708,9 @@ function ModalEditarNodo({
 const TIPOS_ARISTA = ["relacion", "proceso", "contiene", "depende", "influye", "opuesto", "transforma"];
 
 function ModalEditarArista({
-  label: initLabel,
-  tipo: initTipo,
-  onSave,
-  onDelete,
-  onClose,
+  label: initLabel, tipo: initTipo, onSave, onDelete, onClose,
 }: {
-  label: string;
-  tipo: string;
+  label: string; tipo: string;
   onSave: (label: string, tipo: string) => void;
   onDelete: () => void;
   onClose: () => void;
@@ -657,8 +731,7 @@ function ModalEditarArista({
           borderRadius: "var(--radius-card)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           boxShadow: "var(--shadow-card)",
-          minWidth: 260,
-          maxWidth: 320,
+          minWidth: 260, maxWidth: 320,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -681,29 +754,20 @@ function ModalEditarArista({
           style={{
             background: "color-mix(in srgb, var(--primary) 4%, transparent)",
             border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            borderRadius: "var(--radius-btn)",
-            color: "var(--primary)",
+            borderRadius: "var(--radius-btn)", color: "var(--primary)",
           }}
         />
 
         <div className="flex flex-wrap gap-1">
           {TIPOS_ARISTA.map((t) => (
             <button
-              key={t}
-              type="button"
-              onClick={() => setTipo(t)}
+              key={t} type="button" onClick={() => setTipo(t)}
               className="px-2.5 py-1 text-xs transition-all"
               style={{
                 borderRadius: "var(--radius-btn)",
-                background: tipo === t
-                  ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                  : "transparent",
-                color: tipo === t
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-                border: tipo === t
-                  ? "1px solid color-mix(in srgb, var(--primary) 20%, transparent)"
-                  : "1px solid transparent",
+                background: tipo === t ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
+                color: tipo === t ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)",
+                border: tipo === t ? "1px solid color-mix(in srgb, var(--primary) 20%, transparent)" : "1px solid transparent",
                 fontWeight: tipo === t ? 600 : 400,
               }}
             >
@@ -746,6 +810,16 @@ function ModalEditarArista({
 }
 
 // ── Canvas SVG ─────────────────────────────────────────────────────────────
+interface BuscadorDrop {
+  tipo: TipoEntidadPizarron;
+  /** Posición MUNDO donde se soltó (para colocar el nodo) */
+  mundoX: number;
+  mundoY: number;
+  /** Posición en pantalla para anclar el panel flotante */
+  pantallaX: number;
+  pantallaY: number;
+}
+
 function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
   const {
     nodos, aristas, loading,
@@ -754,6 +828,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
   } = useLienzoCanvas(lienzoId);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectSource, setConnectSource] = useState<string | null>(null);
@@ -766,20 +841,98 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
   const panStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
   const [lineTemp, setLineTemp] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
 
-  const handleAgregar = useCallback(async (
-    tipo: TipoEntidadPizarron, entidadId: string | null, label: string,
+  // Estado del buscador flotante (tanto para click como para drop)
+  const [buscadorDrop, setBuscadorDrop] = useState<BuscadorDrop | null>(null);
+
+  // Tipo activo para la barra lateral (solo para resaltar selección)
+  const [tipoActivo, setTipoActivo] = useState<TipoEntidadPizarron>("personaje");
+  // Tipo siendo arrastrado desde la barra lateral
+  const tipoDragRef = useRef<TipoEntidadPizarron | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const svgToWorld = useCallback((cx: number, cy: number) => ({
+    x: (cx - pan.x) / zoom,
+    y: (cy - pan.y) / zoom,
+  }), [pan, zoom]);
+
+  const handleAgregarDesdePanel = useCallback(async (
+    tipo: TipoEntidadPizarron,
+    entidadId: string | null,
+    label: string,
+    mundoX?: number,
+    mundoY?: number,
   ) => {
     const cfg = TIPO_ENTIDAD_CONFIG[tipo];
+    const x = mundoX ?? (100 + Math.random() * 300 - pan.x / zoom);
+    const y = mundoY ?? (100 + Math.random() * 200 - pan.y / zoom);
     await agregarNodo({
       tipo_entidad: tipo,
       entidad_id: entidadId,
       label,
       color: cfg.accentVar,
       icono: cfg.icon,
-      x: 100 + Math.random() * 300 - pan.x / zoom,
-      y: 100 + Math.random() * 200 - pan.y / zoom,
+      x,
+      y,
     });
+    setBuscadorDrop(null);
   }, [agregarNodo, pan, zoom]);
+
+  // Click en un tipo de la barra lateral → abrir buscador centrado
+  const handleSeleccionarTipo = useCallback((t: TipoEntidadPizarron) => {
+    setTipoActivo(t);
+    // Posición centrada (null) → el panel se centra en pantalla
+    const rect = canvasRef.current?.getBoundingClientRect();
+    const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    const mundo = svgToWorld(cx - (rect?.left ?? 0), cy - (rect?.top ?? 0));
+    setBuscadorDrop({
+      tipo: t,
+      mundoX: mundo.x,
+      mundoY: mundo.y,
+      pantallaX: cx,
+      pantallaY: cy,
+    });
+  }, [svgToWorld]);
+
+  // Handlers drag&drop desde barra lateral al canvas
+  const handleCanvasDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
+  }, []);
+
+  const handleCanvasDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleCanvasDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const tipo = (e.dataTransfer.getData("tipo_entidad") || tipoDragRef.current) as TipoEntidadPizarron | null;
+    if (!tipo) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const mundo = svgToWorld(cx, cy);
+
+    // Si es texto, añadir directamente sin buscador
+    if (tipo === "texto") {
+      handleAgregarDesdePanel("texto", null, "Texto...", mundo.x, mundo.y);
+      return;
+    }
+
+    // Abrir panel buscador en la posición de suelta
+    setTipoActivo(tipo);
+    setBuscadorDrop({
+      tipo,
+      mundoX: mundo.x,
+      mundoY: mundo.y,
+      pantallaX: e.clientX,
+      pantallaY: e.clientY,
+    });
+  }, [svgToWorld, handleAgregarDesdePanel]);
 
   const handleDragStart = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -787,11 +940,6 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
     if (!nodo) return;
     setDragging({ id, ox: e.clientX / zoom - nodo.x, oy: e.clientY / zoom - nodo.y });
   }, [nodos, zoom]);
-
-  const svgToWorld = (cx: number, cy: number) => ({
-    x: (cx - pan.x) / zoom,
-    y: (cy - pan.y) / zoom,
-  });
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -811,7 +959,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
         setLineTemp({ x1: o.x, y1: o.y, x2: w.x, y2: w.y });
       }
     }
-  }, [dragging, isPanning, connecting, connectSource, nodos, moverNodo, zoom, pan]);
+  }, [dragging, isPanning, connecting, connectSource, nodos, moverNodo, zoom, svgToWorld]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -854,7 +1002,10 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setConnecting(false); setConnectSource(null); setLineTemp(null); }
+      if (e.key === "Escape") {
+        setConnecting(false); setConnectSource(null); setLineTemp(null);
+        setBuscadorDrop(null);
+      }
     };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
@@ -870,9 +1021,38 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
 
   return (
     <div className="relative flex-1 flex overflow-hidden">
-      <PanelEntidades onAgregar={handleAgregar} />
+      {/* Barra lateral — solo lista */}
+      <BarraLateralTipos
+        tipoActivo={tipoActivo}
+        onSeleccionar={handleSeleccionarTipo}
+        onDragStart={(t) => { tipoDragRef.current = t; }}
+      />
 
-      <div className="relative flex-1 overflow-hidden" style={{ background: "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))" }}>
+      {/* Área del canvas con drop zone */}
+      <div
+        ref={canvasRef}
+        className="relative flex-1 overflow-hidden"
+        style={{
+          background: isDragOver
+            ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
+            : "color-mix(in srgb, var(--primary) 1.5%, var(--bg-main))",
+          transition: "background 0.15s",
+        }}
+        onDragOver={handleCanvasDragOver}
+        onDragLeave={handleCanvasDragLeave}
+        onDrop={handleCanvasDrop}
+      >
+        {/* Indicador visual drag-over */}
+        {isDragOver && (
+          <div
+            className="absolute inset-2 pointer-events-none rounded-lg"
+            style={{
+              border: "2px dashed color-mix(in srgb, var(--primary) 20%, transparent)",
+              zIndex: 5,
+            }}
+          />
+        )}
+
         {/* Controles de zoom */}
         <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
           {[
@@ -881,10 +1061,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
             { title: "Restablecer vista", icon: <RotateCcw size={12} />, action: () => { setZoom(1); setPan({ x: 0, y: 0 }); } },
           ].map(({ title, icon, action }) => (
             <button
-              key={title}
-              type="button"
-              title={title}
-              onClick={action}
+              key={title} type="button" title={title} onClick={action}
               className="flex items-center justify-center transition-all"
               style={{
                 width: 28, height: 28,
@@ -908,9 +1085,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
               borderRadius: "var(--radius-btn)",
               background: "color-mix(in srgb, var(--bg-main) 92%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 15%, transparent)",
-              color: "var(--primary)",
-              fontSize: 11,
-              fontWeight: 500,
+              color: "var(--primary)", fontSize: 11, fontWeight: 500,
               backdropFilter: "blur(8px)",
             }}
           >
@@ -957,31 +1132,19 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
               const my = (y1 + y2) / 2;
               return (
                 <g key={a.id}>
-                  <line
-                    x1={x1} y1={y1} x2={x2} y2={y2}
-                    stroke="transparent" strokeWidth={14}
+                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={14}
                     style={{ cursor: "pointer" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingArista({ id: a.id, label: a.label ?? "", tipo: a.tipo ?? "relacion" });
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setEditingArista({ id: a.id, label: a.label ?? "", tipo: a.tipo ?? "relacion" }); }}
                   />
-                  <line
-                    x1={x1} y1={y1} x2={x2} y2={y2}
+                  <line x1={x1} y1={y1} x2={x2} y2={y2}
                     stroke="color-mix(in srgb, var(--primary) 20%, transparent)"
-                    strokeWidth={1.5}
-                    markerEnd="url(#arrow)"
+                    strokeWidth={1.5} markerEnd="url(#arrow)"
                     style={{ pointerEvents: "none" }}
                   />
                   {(a.label || (a.tipo && a.tipo !== "relacion")) && (
-                    <text
-                      x={mx} y={my - 5}
-                      textAnchor="middle"
-                      fontSize={8}
+                    <text x={mx} y={my - 5} textAnchor="middle" fontSize={8}
                       fill="color-mix(in srgb, var(--primary) 45%, transparent)"
-                      fontWeight="500"
-                      style={{ pointerEvents: "none" }}
-                    >
+                      fontWeight="500" style={{ pointerEvents: "none" }}>
                       {a.label || a.tipo}
                     </text>
                   )}
@@ -991,12 +1154,9 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
 
             {/* Línea temporal */}
             {lineTemp && (
-              <line
-                x1={lineTemp.x1} y1={lineTemp.y1}
-                x2={lineTemp.x2} y2={lineTemp.y2}
+              <line x1={lineTemp.x1} y1={lineTemp.y1} x2={lineTemp.x2} y2={lineTemp.y2}
                 stroke="color-mix(in srgb, var(--primary) 40%, transparent)"
-                strokeWidth={1.5}
-                strokeDasharray="5 3"
+                strokeWidth={1.5} strokeDasharray="5 3"
                 style={{ pointerEvents: "none" }}
               />
             )}
@@ -1004,8 +1164,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
             {/* Nodos */}
             {nodos.map((nodo) => (
               <NodoCanvas
-                key={nodo.id}
-                nodo={nodo}
+                key={nodo.id} nodo={nodo}
                 selected={selectedId === nodo.id}
                 connecting={connecting}
                 isConnectSource={connectSource === nodo.id}
@@ -1020,7 +1179,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
         </svg>
 
         {/* Canvas vacío */}
-        {nodos.length === 0 && (
+        {nodos.length === 0 && !isDragOver && (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none"
             style={{ color: "color-mix(in srgb, var(--primary) 18%, transparent)" }}
@@ -1028,11 +1187,29 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
             <Settings2 size={28} strokeWidth={1} />
             <p className="text-sm font-medium">Lienzo vacío</p>
             <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-              Selecciona un tipo y busca entidades en el panel
+              Haz clic en un tipo o arrástralo aquí
             </p>
           </div>
         )}
       </div>
+
+      {/* Panel flotante buscador */}
+      {buscadorDrop && (
+        <PanelBuscadorFlotante
+          tipo={buscadorDrop.tipo}
+          posicion={{ x: buscadorDrop.pantallaX, y: buscadorDrop.pantallaY }}
+          onSeleccionar={(entidadId, nombre) => {
+            handleAgregarDesdePanel(
+              buscadorDrop.tipo,
+              entidadId,
+              nombre,
+              buscadorDrop.mundoX,
+              buscadorDrop.mundoY,
+            );
+          }}
+          onCerrar={() => setBuscadorDrop(null)}
+        />
+      )}
 
       {/* Modales */}
       {editingNodo && (
@@ -1103,8 +1280,7 @@ export function PizarronSection() {
               borderRadius: "var(--radius-btn)",
               background: "color-mix(in srgb, var(--primary) 4%, transparent)",
               border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
-              maxWidth: 200,
+              color: "var(--primary)", maxWidth: 200,
             }}
           >
             <span className="truncate">{lienzoActual?.nombre ?? "Sin lienzo"}</span>
@@ -1133,17 +1309,11 @@ export function PizarronSection() {
                   <div
                     key={l.id}
                     className="flex items-center gap-1 px-2 py-1.5 group"
-                    style={{
-                      background: lienzoActivo === l.id
-                        ? "color-mix(in srgb, var(--primary) 5%, transparent)"
-                        : "transparent",
-                    }}
+                    style={{ background: lienzoActivo === l.id ? "color-mix(in srgb, var(--primary) 5%, transparent)" : "transparent" }}
                   >
                     {renombrando === l.id ? (
                       <input
-                        autoFocus
-                        type="text"
-                        value={nombreTemp}
+                        autoFocus type="text" value={nombreTemp}
                         onChange={(e) => setNombreTemp(e.target.value)}
                         onBlur={() => { renombrarLienzo(l.id, nombreTemp); setRenombrando(null); }}
                         onKeyDown={(e) => {
@@ -1166,35 +1336,24 @@ export function PizarronSection() {
                         {l.nombre}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      title="Renombrar"
+                    <button type="button" title="Renombrar"
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => { setRenombrando(l.id); setNombreTemp(l.nombre); }}
-                    >
+                      onClick={() => { setRenombrando(l.id); setNombreTemp(l.nombre); }}>
                       <Edit2 size={10} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
                     </button>
-                    <button
-                      type="button"
-                      title="Eliminar"
+                    <button type="button" title="Eliminar"
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => {
                         if (lienzoActivo === l.id) setLienzoActivo(lienzos.find((x) => x.id !== l.id)?.id ?? null);
                         eliminarLienzo(l.id);
-                      }}
-                    >
+                      }}>
                       <X size={10} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
                     </button>
                   </div>
                 ))}
-                <div style={{
-                  height: "1px",
-                  background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-                  margin: "4px 8px",
-                }} />
+                <div style={{ height: "1px", background: "color-mix(in srgb, var(--primary) 6%, transparent)", margin: "4px 8px" }} />
                 <button
-                  type="button"
-                  onClick={handleCrear}
+                  type="button" onClick={handleCrear}
                   className="flex items-center gap-2 px-3 py-1.5 text-xs transition-all"
                   style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
                 >
@@ -1207,9 +1366,7 @@ export function PizarronSection() {
 
         {/* Botón nuevo lienzo */}
         <button
-          type="button"
-          title="Nuevo lienzo"
-          onClick={handleCrear}
+          type="button" title="Nuevo lienzo" onClick={handleCrear}
           className="flex items-center justify-center ml-auto transition-all"
           style={{
             width: 26, height: 26,
@@ -1236,8 +1393,7 @@ export function PizarronSection() {
           <Settings2 size={32} strokeWidth={1} />
           <p className="text-sm font-medium">Sin lienzos</p>
           <button
-            type="button"
-            onClick={handleCrear}
+            type="button" onClick={handleCrear}
             className="flex items-center gap-2 px-4 py-2 text-xs font-medium transition-all"
             style={{
               borderRadius: "var(--radius-btn)",
