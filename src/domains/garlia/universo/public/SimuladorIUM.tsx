@@ -885,7 +885,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
       {tipo === "exito" && (
         <>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--foreground))` }}>
-            ¡Algo ocurre!
+            Lograste crear
           </p>
           <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.proceso_principal}</p>
           {!!oris.length && (
