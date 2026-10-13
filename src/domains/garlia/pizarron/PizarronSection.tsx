@@ -31,9 +31,10 @@ import React, {
   useCallback, useEffect, useRef, useState,
 } from "react";
 import type { LucideProps } from "lucide-react";
-import { buscarEntidades, fetchPreviewEntidad, useLienzoCanvas, useLienzos } from "./usePizarron";
+import { buscarEntidades, fetchPreviewEntidad, fetchValorCampoOpcional, useLienzoCanvas, useLienzos } from "./usePizarron";
 import {
   TIPO_ENTIDAD_CONFIG, SECCIONES_SELECTOR,
+  type CampoOpcional, type CamposActivosNodo,
   type EntidadPreview, type PizarronNodo, type TipoEntidadPizarron,
 } from "./types";
 import { usePanelFlotante } from "@/domains/garlia/_shared/usePanelFlotanteStore";
@@ -337,7 +338,24 @@ function NodoEntidad({
   const nombre = preview?.nombre ?? nodo.label ?? cfg.label;
   const chips = preview?.chips ?? [];
   const imgUrl = preview?.imagenUrl;
-  const cardH = Math.max(nodo.height, 70 + chips.length * 16);
+
+  // Chips de campos opcionales activos (guardados en datos_extra)
+  const datosExtra = (nodo.datos_extra ?? {}) as CamposActivosNodo;
+  const camposActivos = datosExtra.camposActivos ?? [];
+  const valoresCampos = datosExtra.valoresCampos ?? {};
+  const chipsExtra: { label: string; value: string }[] = [];
+  if (cfg.camposOpcionales) {
+    for (const campo of cfg.camposOpcionales) {
+      if (!camposActivos.includes(campo.id)) continue;
+      const vals = valoresCampos[campo.id] ?? [];
+      if (vals.length > 0) {
+        chipsExtra.push({ label: campo.label, value: vals.slice(0, 3).join(", ") });
+      }
+    }
+  }
+
+  const todosChips = [...chips, ...chipsExtra];
+  const cardH = Math.max(nodo.height, 70 + todosChips.length * 16);
 
   return (
     <g
@@ -396,7 +414,7 @@ function NodoEntidad({
           >
             {loadingPreview ? "…" : nombre}
           </div>
-          {chips.map((c) => (
+          {todosChips.map((c) => (
             <div key={c.label} style={{ display: "flex", gap: 3, alignItems: "baseline" }}>
               <span style={{ fontSize: 8, fontWeight: 600, color: accent, opacity: 0.65,
                 textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>
@@ -594,12 +612,37 @@ function ModalEditarNodo({
   nodo, onSave, onClose,
 }: {
   nodo: PizarronNodo;
-  onSave: (id: string, label: string, color: string) => void;
+  onSave: (id: string, label: string, color: string, datosExtra: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
   const [label, setLabel] = useState(nodo.label ?? "");
   const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron] ?? TIPO_ENTIDAD_CONFIG.texto;
   const [color, setColor] = useState(nodo.color ?? "var(--primary)");
+
+  // Campos opcionales
+  const datosExtraInit = (nodo.datos_extra ?? {}) as CamposActivosNodo;
+  const [camposActivos, setCamposActivos] = useState<string[]>(datosExtraInit.camposActivos ?? []);
+  const [valoresCampos, setValoresCampos] = useState<Record<string, string[]>>(datosExtraInit.valoresCampos ?? {});
+  const [cargandoCampo, setCargandoCampo] = useState<string | null>(null);
+
+  const camposOpcionales = cfg.camposOpcionales ?? [];
+
+  const toggleCampo = async (campo: CampoOpcional) => {
+    const activo = camposActivos.includes(campo.id);
+    if (activo) {
+      // Desactivar
+      setCamposActivos((prev) => prev.filter((c) => c !== campo.id));
+    } else {
+      // Activar y cargar valores si hay entidad_id
+      setCamposActivos((prev) => [...prev, campo.id]);
+      if (nodo.entidad_id && cfg.tabla && !valoresCampos[campo.id]) {
+        setCargandoCampo(campo.id);
+        const vals = await fetchValorCampoOpcional(campo, nodo.entidad_id, cfg.tabla);
+        setValoresCampos((prev) => ({ ...prev, [campo.id]: vals }));
+        setCargandoCampo(null);
+      }
+    }
+  };
 
   const COLORES_PRESET = [
     { label: "Acento",   value: "var(--accent, #8b5cf6)" },
@@ -614,6 +657,12 @@ function ModalEditarNodo({
     { label: "Rosa",     value: "color-mix(in srgb, var(--primary) 50%, #ec4899)" },
   ];
 
+  const handleGuardar = () => {
+    const datosExtra: CamposActivosNodo = { camposActivos, valoresCampos };
+    onSave(nodo.id, label, color, datosExtra as unknown as Record<string, unknown>);
+    onClose();
+  };
+
   return (
     <div
       className="fixed inset-0 z-[2000] flex items-center justify-center"
@@ -621,84 +670,198 @@ function ModalEditarNodo({
       onClick={onClose}
     >
       <div
-        className="flex flex-col gap-4 p-5"
+        className="flex flex-col"
         style={{
           background: "var(--bg-main)",
           borderRadius: "var(--radius-card)",
           border: "var(--border-width) solid color-mix(in srgb, var(--primary) 12%, transparent)",
           boxShadow: "var(--shadow-card)",
-          minWidth: 280, maxWidth: 340,
+          width: 340,
+          maxHeight: "85vh",
+          overflow: "hidden",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <EntidadIcon name={cfg.icon} size={14} style={{ color: cfg.accentVar }} />
-            <span className="text-xs font-semibold" style={{ color: "var(--primary)" }}>
-              Editar {cfg.label}
-            </span>
-          </div>
+        {/* Header */}
+        <div
+          className="flex items-center gap-2 px-4 py-3 shrink-0"
+          style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+        >
+          <EntidadIcon name={cfg.icon} size={14} style={{ color: cfg.accentVar }} />
+          <span className="text-xs font-semibold flex-1" style={{ color: "var(--primary)" }}>
+            Editar {cfg.label}
+          </span>
           <button type="button" onClick={onClose}>
             <X size={13} style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }} />
           </button>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-            Etiqueta
-          </label>
-          <textarea
-            rows={3}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            className="w-full px-3 py-2 text-sm outline-none resize-none"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 4%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              borderRadius: "var(--radius-btn)",
-              color: "var(--primary)",
-            }}
-          />
-        </div>
+        {/* Cuerpo scrollable */}
+        <div className="flex flex-col gap-4 p-4 overflow-y-auto flex-1">
 
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-medium" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
-            Color de acento
-          </label>
-          <div className="flex flex-wrap gap-1.5">
-            {COLORES_PRESET.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                title={c.label}
-                onClick={() => setColor(c.value)}
-                className="transition-all"
-                style={{
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: c.value,
-                  border: color === c.value
-                    ? "2.5px solid var(--primary)"
-                    : "2px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  cursor: "pointer",
-                }}
-              />
-            ))}
+          {/* Etiqueta */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+              Etiqueta
+            </label>
+            <textarea
+              rows={2}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="w-full px-3 py-2 text-xs outline-none resize-none"
+              style={{
+                background: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                borderRadius: "var(--radius-btn)",
+                color: "var(--primary)",
+              }}
+            />
           </div>
+
+          {/* Color */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+              Color de acento
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {COLORES_PRESET.map((c) => (
+                <button
+                  key={c.value} type="button" title={c.label}
+                  onClick={() => setColor(c.value)}
+                  className="transition-all"
+                  style={{
+                    width: 20, height: 20, borderRadius: "50%",
+                    background: c.value,
+                    border: color === c.value
+                      ? "2.5px solid var(--primary)"
+                      : "2px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Campos opcionales */}
+          {camposOpcionales.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium flex-1" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                  Información visible en el nodo
+                </label>
+                <span className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}>
+                  {camposActivos.length}/{camposOpcionales.length}
+                </span>
+              </div>
+
+              <div
+                className="flex flex-col rounded-lg overflow-hidden"
+                style={{ border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
+              >
+                {camposOpcionales.map((campo, i) => {
+                  const activo = camposActivos.includes(campo.id);
+                  const cargando = cargandoCampo === campo.id;
+                  const valores = valoresCampos[campo.id] ?? [];
+                  const esRelacion = campo.tipo === "relacion";
+
+                  return (
+                    <button
+                      key={campo.id}
+                      type="button"
+                      onClick={() => toggleCampo(campo)}
+                      className="flex items-start gap-3 px-3 py-2.5 w-full text-left transition-all"
+                      style={{
+                        background: activo
+                          ? `color-mix(in srgb, ${cfg.accentVar} 7%, var(--bg-main))`
+                          : "transparent",
+                        borderTop: i > 0 ? "1px solid color-mix(in srgb, var(--primary) 6%, transparent)" : "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {/* Checkbox visual */}
+                      <div
+                        className="shrink-0 flex items-center justify-center mt-0.5"
+                        style={{
+                          width: 14, height: 14,
+                          borderRadius: 3,
+                          background: activo ? cfg.accentVar : "transparent",
+                          border: activo
+                            ? `1.5px solid ${cfg.accentVar}`
+                            : "1.5px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {activo && <Check size={9} style={{ color: "white" }} strokeWidth={3} />}
+                      </div>
+
+                      {/* Info del campo */}
+                      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium" style={{
+                            color: activo ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                          }}>
+                            {campo.label}
+                          </span>
+                          {esRelacion && (
+                            <span className="text-xs px-1 rounded" style={{
+                              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                              color: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                              fontSize: 9,
+                            }}>
+                              relación
+                            </span>
+                          )}
+                        </div>
+                        {/* Preview de valores si está activo */}
+                        {activo && (
+                          <div style={{ fontSize: 10, color: `color-mix(in srgb, ${cfg.accentVar} 80%, var(--primary))` }}>
+                            {cargando
+                              ? <span style={{ opacity: 0.5 }}>cargando…</span>
+                              : valores.length > 0
+                                ? valores.slice(0, 4).join(" · ")
+                                : <span style={{ opacity: 0.4 }}>sin datos</span>
+                            }
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => { onSave(nodo.id, label, color); onClose(); }}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold transition-all"
-          style={{
-            borderRadius: "var(--radius-btn)",
-            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            color: "var(--primary)",
-            border: "1px solid color-mix(in srgb, var(--primary) 14%, transparent)",
-          }}
+        {/* Footer fijo */}
+        <div
+          className="flex gap-2 p-3 shrink-0"
+          style={{ borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
         >
-          <Check size={12} /> Guardar
-        </button>
+          <button
+            type="button" onClick={onClose}
+            className="flex-1 flex items-center justify-center px-3 py-2 text-xs transition-all"
+            style={{
+              borderRadius: "var(--radius-btn)",
+              background: "transparent",
+              color: "color-mix(in srgb, var(--primary) 45%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button" onClick={handleGuardar}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold transition-all"
+            style={{
+              borderRadius: "var(--radius-btn)",
+              background: `color-mix(in srgb, ${cfg.accentVar} 12%, var(--bg-main))`,
+              color: "var(--primary)",
+              border: `1px solid color-mix(in srgb, ${cfg.accentVar} 30%, transparent)`,
+            }}
+          >
+            <Check size={12} /> Guardar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -823,7 +986,7 @@ interface BuscadorDrop {
 function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
   const {
     nodos, aristas, loading,
-    agregarNodo, moverNodo, editarNodoLabel, editarNodoColor, eliminarNodo,
+    agregarNodo, moverNodo, editarNodoLabel, editarNodoColor, editarNodoDatosExtra, eliminarNodo,
     agregarArista, editarArista, eliminarArista,
   } = useLienzoCanvas(lienzoId);
 
@@ -1215,9 +1378,10 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
       {editingNodo && (
         <ModalEditarNodo
           nodo={editingNodo}
-          onSave={async (id, label, color) => {
+          onSave={async (id, label, color, datosExtra) => {
             await editarNodoLabel(id, label);
             await editarNodoColor(id, color);
+            await editarNodoDatosExtra(id, datosExtra);
           }}
           onClose={() => setEditingNodo(null)}
         />

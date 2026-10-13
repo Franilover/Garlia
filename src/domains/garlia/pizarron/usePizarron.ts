@@ -143,6 +143,11 @@ export function useLienzoCanvas(lienzoId: string | null) {
     await supabase.from("pizarron_nodos").update({ color }).eq("id", id);
   }, []);
 
+  const editarNodoDatosExtra = useCallback(async (id: string, datos_extra: Record<string, unknown>) => {
+    setNodos((prev) => prev.map((n) => n.id === id ? { ...n, datos_extra } : n));
+    await supabase.from("pizarron_nodos").update({ datos_extra }).eq("id", id);
+  }, []);
+
   const eliminarNodo = useCallback(async (id: string) => {
     setNodos((prev) => prev.filter((n) => n.id !== id));
     setAristas((prev) => prev.filter((a) => a.origen_id !== id && a.destino_id !== id));
@@ -188,7 +193,7 @@ export function useLienzoCanvas(lienzoId: string | null) {
 
   return {
     nodos, aristas, loading,
-    agregarNodo, moverNodo, redimensionarNodo, editarNodoLabel, editarNodoColor, eliminarNodo,
+    agregarNodo, moverNodo, redimensionarNodo, editarNodoLabel, editarNodoColor, editarNodoDatosExtra, eliminarNodo,
     agregarArista, editarArista, eliminarArista,
   };
 }
@@ -217,6 +222,71 @@ export async function buscarEntidades(
     nombre: r[campoNombre] ?? r.nombre ?? "(sin nombre)",
     tabla,
   }));
+}
+
+// ── Campos opcionales: cargar valores para un campo activado ──────────────
+
+import type { CampoOpcional } from "./types";
+
+/**
+ * Dado un nodo (tipo + entidad_id) y un campo opcional,
+ * retorna los valores a mostrar como array de strings.
+ */
+export async function fetchValorCampoOpcional(
+  campo: CampoOpcional,
+  entidadId: string,
+  tabla: string,
+): Promise<string[]> {
+  try {
+    if (campo.tipo === "columna" && campo.columna) {
+      // Leer directamente de la tabla principal
+      const { data, error } = await supabase
+        .from(tabla as any)
+        .select(campo.columna)
+        .eq("id", entidadId)
+        .single();
+      if (error || !data) return [];
+      const row = data as unknown as Record<string, unknown>;
+      const val = row[campo.columna];
+      if (val === null || val === undefined || val === "") return [];
+      return [String(val)];
+    }
+
+    if (campo.tipo === "relacion") {
+      // Con tabla puente
+      if (campo.tablaPuente && campo.fkPuente && campo.tablaRelacion && campo.fkColumna && campo.campoNombreRelacion) {
+        // 1. Obtener ids desde la tabla puente
+        const { data: puenteData } = await supabase
+          .from(campo.tablaPuente as any)
+          .select(campo.fkColumna)
+          .eq(campo.fkPuente, entidadId)
+          .limit(8);
+        if (!puenteData || puenteData.length === 0) return [];
+        const ids = (puenteData as any[]).map((r) => r[campo.fkColumna!]).filter(Boolean);
+        if (ids.length === 0) return [];
+        // 2. Obtener nombres de la tabla relacionada
+        const { data: relData } = await supabase
+          .from(campo.tablaRelacion as any)
+          .select(`id, ${campo.campoNombreRelacion}`)
+          .in("id", ids)
+          .limit(8);
+        return (relData ?? []).map((r: any) => String(r[campo.campoNombreRelacion!] ?? ""));
+      }
+
+      // Sin tabla puente: FK directa en la tabla relacionada
+      if (campo.tablaRelacion && campo.fkColumna && campo.campoNombreRelacion) {
+        const { data: relData } = await supabase
+          .from(campo.tablaRelacion as any)
+          .select(`id, ${campo.campoNombreRelacion}`)
+          .eq(campo.fkColumna, entidadId)
+          .limit(8);
+        return (relData ?? []).map((r: any) => String(r[campo.campoNombreRelacion!] ?? ""));
+      }
+    }
+  } catch {
+    // silencioso
+  }
+  return [];
 }
 
 // ── Preview de entidad individual ─────────────────────────────────────────
