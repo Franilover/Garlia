@@ -803,15 +803,14 @@ function ModalDescubrimiento({
           textAlign: "center",
         }}
       >
-        <Sparkles size={28} style={{ color: "var(--primary)", animation: "latido 1.6s ease-in-out infinite" }} />
         <div>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 4px", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-            ¡Primera revelación!
+            Nuevo descubrimiento
           </p>
           <p style={{ fontSize: 16, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
             {iums.length === 1
-              ? `Comprendes cómo funciona ${iums[0].nombre}`
-              : `Comprendes ${iums.length} nuevas piezas`}
+              ? `Comienzas a entender ${iums[0].nombre}`
+              : `Has desbloqueado ${iums.length} nuevos IUMS`}
           </p>
         </div>
 
@@ -833,7 +832,7 @@ function ModalDescubrimiento({
         </div>
 
         <p style={{ fontSize: 9, margin: 0, lineHeight: 1.6, color: "color-mix(in srgb, var(--foreground) 55%, transparent)", maxWidth: 260 }}>
-          Ahora puedes ver qué hace esta pieza en el catálogo. Sigue experimentando para descubrir más.
+          Ahora puedes ver la composición de estos IUMS en el catalogo. 
         </p>
 
         <button
