@@ -305,7 +305,8 @@ export async function fetchPreviewEntidad(
   if (error || !data) return null;
   const row = data as unknown as Record<string, unknown>;
   const nombre = String(row[cfg.campoNombre] ?? row.titulo ?? row.nombre ?? "(sin nombre)");
-  const imagenUrl = (row.imagen_url ?? row.img_url ?? row.portada_url ?? null) as string | null;
+  const campoImg = cfg.campoImagen ?? null;
+  const imagenUrl = (campoImg ? (row[campoImg] ?? null) : (row.imagen_url ?? row.img_url ?? row.portada_url ?? null)) as string | null;
   return {
     id: entidadId,
     nombre,

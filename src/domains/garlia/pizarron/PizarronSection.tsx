@@ -339,10 +339,11 @@ function NodoEntidad({
   const chips = preview?.chips ?? [];
   const imgUrl = preview?.imagenUrl;
 
-  // Chips de campos opcionales activos (guardados en datos_extra)
+  // Campos opcionales activos y toggle de imagen (guardados en datos_extra)
   const datosExtra = (nodo.datos_extra ?? {}) as CamposActivosNodo;
   const camposActivos = datosExtra.camposActivos ?? [];
   const valoresCampos = datosExtra.valoresCampos ?? {};
+  const mostrarImagen = datosExtra.mostrarImagen ?? false;
   const chipsExtra: { label: string; value: string }[] = [];
   if (cfg.camposOpcionales) {
     for (const campo of cfg.camposOpcionales) {
@@ -355,7 +356,16 @@ function NodoEntidad({
   }
 
   const todosChips = [...chips, ...chipsExtra];
-  const cardH = Math.max(nodo.height, 70 + todosChips.length * 16);
+
+  // Layout: imagen grande en cabecera cuando mostrarImagen=true y hay url
+  const tieneImagen = !!(mostrarImagen && imgUrl);
+  const IMG_H = 110; // altura de la imagen en modo expandido
+  const IMG_RADIUS = 10;
+  const textStartY = tieneImagen ? IMG_H : 0;
+  const cardH = Math.max(
+    nodo.height,
+    textStartY + 70 + todosChips.length * 16,
+  );
 
   return (
     <g
@@ -367,29 +377,77 @@ function NodoEntidad({
         onSelect(nodo.id, e);
       }}
     >
-      <rect rx={10} width={nodo.width} height={cardH} fill="rgba(0,0,0,0.12)" transform="translate(2,3)" />
+      {/* Sombra */}
+      <rect rx={IMG_RADIUS} width={nodo.width} height={cardH} fill="rgba(0,0,0,0.12)" transform="translate(2,3)" />
+      {/* Fondo */}
       <rect
-        rx={10} width={nodo.width} height={cardH}
+        rx={IMG_RADIUS} width={nodo.width} height={cardH}
         fill={`color-mix(in srgb, ${accent} 8%, var(--bg-main))`}
         stroke={selected || isConnectSource ? accent : `color-mix(in srgb, ${accent} 30%, transparent)`}
         strokeWidth={selected || isConnectSource ? 2 : 1}
         strokeDasharray={isConnectSource ? "5 3" : undefined}
       />
-      <rect x={0} y={0} width={3} height={cardH} rx={10} fill={accent} opacity={0.75} />
-      {imgUrl && (
+
+      {/* ── Imagen grande (modo expandido) ── */}
+      {tieneImagen && (
         <>
-          <clipPath id={`clip-img-${nodo.id}`}>
+          <clipPath id={`clip-banner-${nodo.id}`}>
+            {/* Clip que redondea solo las esquinas superiores */}
+            <rect x={0} y={0} width={nodo.width} height={IMG_H} rx={IMG_RADIUS} />
+          </clipPath>
+          <image
+            href={imgUrl}
+            x={0} y={0}
+            width={nodo.width} height={IMG_H}
+            clipPath={`url(#clip-banner-${nodo.id})`}
+            preserveAspectRatio="xMidYMid slice"
+          />
+          {/* Gradiente overlay para legibilidad del texto encima */}
+          <defs>
+            <linearGradient id={`grad-img-${nodo.id}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="60%" stopColor="transparent" stopOpacity="0" />
+              <stop offset="100%" stopColor="var(--bg-main)" stopOpacity="0.85" />
+            </linearGradient>
+          </defs>
+          <rect x={0} y={0} width={nodo.width} height={IMG_H}
+            fill={`url(#grad-img-${nodo.id})`}
+            clipPath={`url(#clip-banner-${nodo.id})`}
+          />
+          {/* Separador sutil entre imagen y contenido */}
+          <line x1={0} y1={IMG_H} x2={nodo.width} y2={IMG_H}
+            stroke={`color-mix(in srgb, ${accent} 25%, transparent)`}
+            strokeWidth={1}
+          />
+        </>
+      )}
+
+      {/* ── Thumbnail pequeño (modo compacto, solo si hay imagen y NO está expandida) ── */}
+      {!tieneImagen && imgUrl && (
+        <>
+          <clipPath id={`clip-thumb-${nodo.id}`}>
             <rect x={nodo.width - 44} y={8} width={36} height={36} rx={6} />
           </clipPath>
           <image
             href={imgUrl}
             x={nodo.width - 44} y={8} width={36} height={36}
-            clipPath={`url(#clip-img-${nodo.id})`}
+            clipPath={`url(#clip-thumb-${nodo.id})`}
             preserveAspectRatio="xMidYMid slice"
           />
         </>
       )}
-      <foreignObject x={12} y={0} width={nodo.width - (imgUrl ? 58 : 20)} height={cardH}>
+
+      {/* Franja acento izquierda (solo en modo texto, sin imagen grande) */}
+      {!tieneImagen && (
+        <rect x={0} y={0} width={3} height={cardH} rx={IMG_RADIUS} fill={accent} opacity={0.75} />
+      )}
+
+      {/* Contenido de texto */}
+      <foreignObject
+        x={tieneImagen ? 10 : 12}
+        y={textStartY}
+        width={nodo.width - (tieneImagen ? 20 : (!tieneImagen && imgUrl ? 58 : 20))}
+        height={cardH - textStartY}
+      >
         <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, padding: "8px 0" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase",
             color: accent, opacity: 0.8, lineHeight: 1 }}>
@@ -428,11 +486,14 @@ function NodoEntidad({
           ))}
         </div>
       </foreignObject>
+
+      {/* Ícono tipo (esquina inf derecha) */}
       <foreignObject x={nodo.width - 18} y={cardH - 16} width={14} height={14}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.3 }}>
           <EntidadIcon name={cfg.icon} size={11} style={{ color: accent }} />
         </div>
       </foreignObject>
+
       {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} cardH={cardH} />}
     </g>
   );
@@ -619,13 +680,22 @@ function ModalEditarNodo({
   const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron] ?? TIPO_ENTIDAD_CONFIG.texto;
   const [color, setColor] = useState(nodo.color ?? "var(--primary)");
 
-  // Campos opcionales
+  // Campos opcionales e imagen
   const datosExtraInit = (nodo.datos_extra ?? {}) as CamposActivosNodo;
   const [camposActivos, setCamposActivos] = useState<string[]>(datosExtraInit.camposActivos ?? []);
   const [valoresCampos, setValoresCampos] = useState<Record<string, string[]>>(datosExtraInit.valoresCampos ?? {});
   const [cargandoCampo, setCargandoCampo] = useState<string | null>(null);
+  const [mostrarImagen, setMostrarImagen] = useState<boolean>(datosExtraInit.mostrarImagen ?? false);
+  // URL de imagen del preview (para el toggle)
+  const [imgPreviewUrl, setImgPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!nodo.entidad_id || !cfg.campoImagen) return;
+    fetchPreviewEntidad(nodo.tipo_entidad as TipoEntidadPizarron, nodo.entidad_id)
+      .then((p) => setImgPreviewUrl(p?.imagenUrl ?? null));
+  }, [nodo.entidad_id, nodo.tipo_entidad, cfg.campoImagen]);
 
   const camposOpcionales = cfg.camposOpcionales ?? [];
+  const tieneImagen = !!(cfg.campoImagen && nodo.entidad_id);
 
   const toggleCampo = async (campo: CampoOpcional) => {
     const activo = camposActivos.includes(campo.id);
@@ -658,7 +728,7 @@ function ModalEditarNodo({
   ];
 
   const handleGuardar = () => {
-    const datosExtra: CamposActivosNodo = { camposActivos, valoresCampos };
+    const datosExtra: CamposActivosNodo = { camposActivos, valoresCampos, mostrarImagen };
     onSave(nodo.id, label, color, datosExtra as unknown as Record<string, unknown>);
     onClose();
   };
@@ -741,6 +811,80 @@ function ModalEditarNodo({
               ))}
             </div>
           </div>
+
+          {/* Toggle imagen */}
+          {tieneImagen && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium" style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}>
+                Imagen
+              </label>
+              <button
+                type="button"
+                onClick={() => setMostrarImagen((v) => !v)}
+                className="flex items-center gap-3 px-3 py-2.5 w-full text-left transition-all rounded-lg"
+                style={{
+                  background: mostrarImagen
+                    ? `color-mix(in srgb, ${cfg.accentVar} 7%, var(--bg-main))`
+                    : "transparent",
+                  border: `1px solid ${mostrarImagen
+                    ? `color-mix(in srgb, ${cfg.accentVar} 28%, transparent)`
+                    : "color-mix(in srgb, var(--primary) 8%, transparent)"}`,
+                }}
+              >
+                {/* Checkbox */}
+                <div
+                  className="shrink-0 flex items-center justify-center"
+                  style={{
+                    width: 14, height: 14, borderRadius: 3,
+                    background: mostrarImagen ? cfg.accentVar : "transparent",
+                    border: mostrarImagen
+                      ? `1.5px solid ${cfg.accentVar}`
+                      : "1.5px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {mostrarImagen && <Check size={9} style={{ color: "white" }} strokeWidth={3} />}
+                </div>
+
+                {/* Preview + label */}
+                <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                  {imgPreviewUrl ? (
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 6, overflow: "hidden",
+                      flexShrink: 0,
+                      border: `1px solid color-mix(in srgb, ${cfg.accentVar} 25%, transparent)`,
+                    }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgPreviewUrl}
+                        alt=""
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 6, flexShrink: 0,
+                      background: `color-mix(in srgb, ${cfg.accentVar} 10%, var(--bg-main))`,
+                      border: `1px dashed color-mix(in srgb, ${cfg.accentVar} 25%, transparent)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <EntidadIcon name={cfg.icon} size={14} style={{ color: cfg.accentVar, opacity: 0.4 }} />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-medium" style={{
+                      color: mostrarImagen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 55%, transparent)",
+                    }}>
+                      Mostrar imagen en el nodo
+                    </span>
+                    <span style={{ fontSize: 10, color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+                      {mostrarImagen ? "Se muestra como banner en la parte superior" : "Se oculta / thumbnail pequeño"}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Campos opcionales */}
           {camposOpcionales.length > 0 && (

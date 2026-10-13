@@ -76,6 +76,8 @@ export interface TipoEntidadConfig {
   label: string;
   icon: string;
   accentVar: string;
+  /** Columna de imagen en la tabla principal (null = no tiene imagen) */
+  campoImagen?: string | null;
   /** Campos opcionales que el usuario puede activar para mostrar en el nodo */
   camposOpcionales?: CampoOpcional[];
 }
@@ -111,6 +113,7 @@ export interface CampoOpcional {
 export interface CamposActivosNodo {
   camposActivos?: string[]; // array de CampoOpcional.id
   valoresCampos?: Record<string, string[]>; // id -> valores cargados
+  mostrarImagen?: boolean; // si el nodo muestra la imagen grande
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────
@@ -200,6 +203,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: "criatura",
     label: "Criatura", icon: "Footprints",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #f59e0b)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "descripcion", label: "Descripción", tipo: "columna", columna: "descripcion" },
@@ -215,6 +219,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: null,
     label: "Organismo", icon: "Dna",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #14b8a6)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "descripcion", label: "Descripción", tipo: "columna", columna: "descripcion" },
@@ -227,6 +232,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: "flora",
     label: "Flora", icon: "Flower2",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #f472b6)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "descripcion", label: "Descripción", tipo: "columna", columna: "descripcion" },
@@ -391,6 +397,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: "item",
     label: "Objeto", icon: "Package",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #ef4444)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "descripcion", label: "Descripción", tipo: "columna", columna: "descripcion" },
@@ -446,6 +453,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: null,
     label: "Conjuro", icon: "Wand2",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #c084fc)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "descripcion", label: "Descripción", tipo: "columna", columna: "descripcion" },
@@ -483,6 +491,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: "personaje",
     label: "Personaje", icon: "User",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #8b5cf6)",
+    campoImagen: "img_url",
 
     camposOpcionales: [
       { id: "especie", label: "Especie", tipo: "columna", columna: "especie" },
@@ -502,6 +511,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: "ciudad",
     label: "Ciudad", icon: "Building2",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #06b6d4)",
+    campoImagen: "imagen_url",
 
     camposOpcionales: [
       { id: "tipo", label: "Tipo", tipo: "columna", columna: "tipo" },
@@ -546,6 +556,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: null,
     label: "Libro", icon: "Book",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #92400e)",
+    campoImagen: "portada_url",
 
     camposOpcionales: [
       { id: "estado", label: "Estado", tipo: "columna", columna: "estado" },
@@ -560,6 +571,7 @@ export const TIPO_ENTIDAD_CONFIG: Record<TipoEntidadPizarron, TipoEntidadConfig>
     panelKind: null,
     label: "Canción", icon: "Music",
     accentVar: "color-mix(in srgb, var(--primary) 50%, #db2777)",
+    campoImagen: "portada_url",
 
     camposOpcionales: [
       { id: "cantante", label: "Cantante", tipo: "columna", columna: "cantante" },
