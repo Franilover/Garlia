@@ -12,6 +12,14 @@ import { useOris } from "@/domains/garlia/fisica/useFisica";
 
 import { useConjuros } from "./useConjuros";
 import type { Conjuro } from "./types";
+import { useConjuracionConfiguracionIum } from "./useConjuracionConfiguracionIum";
+import type { ConjuracionConfigIumFlujo } from "./useConjuracionConfiguracionIum";
+import { iumAFilaIum, particulasDeIum } from "@/domains/garlia/fisica/types";
+import { useIumsConParticulas } from "@/domains/garlia/fisica/useIumsConParticulas";
+import { useGeometriaIums } from "@/domains/garlia/fisica/useGeometriaIums";
+import { IumPanelFlotante } from "@/domains/garlia/fisica/FisicaPage";
+import { IumGlifo } from "@/domains/garlia/fisica/ParticulaVisual";
+import { Cpu } from "lucide-react";
 
 // ─── Helpers de layout ───────────────────────────────────────────────────
 
@@ -293,6 +301,337 @@ function ConjuroDetail({ conjuro }: { conjuro: Conjuro }) {
           </p>
         </div>
       )}
+
+      {/* ── Configuración IUM — topología del hechizo ── */}
+      <ConjuracionIumBloque conjuracionId={conjuro.id} />
+    </div>
+  );
+}
+
+// ─── Gráfico de IUMs (idéntico a ConfiguracionIumGrafo de ProcesosPage) ──
+
+function ConjuracionIumGrafo({
+  flujo,
+  onClickNodo,
+}: {
+  flujo: ConjuracionConfigIumFlujo[];
+  onClickNodo?: (iumId: string) => void;
+}) {
+  const { items: iums } = useIumsConParticulas();
+  const iumPorId = useMemo(
+    () => Object.fromEntries(iums.map((i) => [i.id, iumAFilaIum(i)])),
+    [iums],
+  );
+  const { geometriaDe } = useGeometriaIums();
+  const particulasDe = (iumId: string) => {
+    const fila = iumPorId[iumId];
+    return fila ? particulasDeIum(fila) : [];
+  };
+
+  const { columnas, aristas } = useMemo(() => {
+    const nombrePorId = new Map<string, string>();
+    const rolPorId = new Map<string, string>();
+    const salidas = new Map<string, Set<string>>();
+    const entradas = new Map<string, Set<string>>();
+
+    for (const f of flujo) {
+      nombrePorId.set(f.ium_origen_id, f.ium_origen);
+      nombrePorId.set(f.ium_destino_id, f.ium_destino);
+      if (f.participacion_origen) rolPorId.set(f.ium_origen_id, f.participacion_origen);
+      if (f.participacion_destino) rolPorId.set(f.ium_destino_id, f.participacion_destino);
+      if (!salidas.has(f.ium_origen_id)) salidas.set(f.ium_origen_id, new Set());
+      salidas.get(f.ium_origen_id)!.add(f.ium_destino_id);
+      if (!entradas.has(f.ium_destino_id)) entradas.set(f.ium_destino_id, new Set());
+      entradas.get(f.ium_destino_id)!.add(f.ium_origen_id);
+    }
+
+    const ids = Array.from(nombrePorId.keys());
+    const nivelPorId = new Map<string, number>();
+    const fuentes = ids.filter((id) => !entradas.has(id) || entradas.get(id)!.size === 0);
+    const cola = (fuentes.length > 0 ? fuentes : ids).map((id) => ({ id, nivel: 0 }));
+    for (const { id } of cola) nivelPorId.set(id, 0);
+
+    let cursor = 0;
+    while (cursor < cola.length) {
+      const { id, nivel } = cola[cursor++];
+      for (const destinoId of salidas.get(id) ?? []) {
+        const nivelActual = nivelPorId.get(destinoId);
+        const nivelPropuesto = nivel + 1;
+        if (nivelActual === undefined || nivelPropuesto > nivelActual) {
+          nivelPorId.set(destinoId, nivelPropuesto);
+          cola.push({ id: destinoId, nivel: nivelPropuesto });
+        }
+      }
+    }
+    for (const id of ids) if (!nivelPorId.has(id)) nivelPorId.set(id, 0);
+
+    const porColumna = new Map<number, string[]>();
+    for (const id of ids) {
+      const nivel = nivelPorId.get(id)!;
+      if (!porColumna.has(nivel)) porColumna.set(nivel, []);
+      porColumna.get(nivel)!.push(id);
+    }
+    const columnasOrdenadas = Array.from(porColumna.keys()).sort((a, b) => a - b);
+
+    const ANCHO_COL = 130;
+    const ALTO_FILA = 90;
+    const PAD_X = 40;
+    const PAD_Y = 15;
+
+    const pos = new Map<string, { x: number; y: number }>();
+    columnasOrdenadas.forEach((nivel, colIdx) => {
+      const idsDeColumna = porColumna.get(nivel)!;
+      idsDeColumna.forEach((id, filaIdx) => {
+        pos.set(id, { x: PAD_X + colIdx * ANCHO_COL, y: PAD_Y + filaIdx * ALTO_FILA });
+      });
+    });
+
+    const columnas = columnasOrdenadas.map((nivel) =>
+      (porColumna.get(nivel) ?? []).map((id) => ({
+        id,
+        nombre: nombrePorId.get(id) ?? id.slice(0, 8),
+        rol: rolPorId.get(id) ?? null,
+        pos: pos.get(id)!,
+      })),
+    );
+
+    const aristas = flujo.map((f, idx) => ({
+      key: `${f.ium_origen_id}-${f.ium_destino_id}-${idx}`,
+      desde: pos.get(f.ium_origen_id)!,
+      hasta: pos.get(f.ium_destino_id)!,
+      tipo: f.tipo_union,
+      idOrigen: f.ium_origen_id,
+      idDestino: f.ium_destino_id,
+    }));
+
+    return { columnas, aristas };
+  }, [flujo]);
+
+  const R_NODO = 22;
+  const CENTRO_X = R_NODO + 4;
+  const CENTRO_Y = R_NODO + 4;
+  const ALTO_LEYENDA = 20;
+  const anchoTotal = columnas.length * 130 + 40;
+  const altoTotal = Math.max(...columnas.map((c) => c.length), 1) * 90 + 30 + ALTO_LEYENDA;
+
+  const TRAZO_UNION = "color-mix(in srgb, var(--primary) 70%, transparent)";
+  const TRAZO_RECIPROCA = "var(--primary)";
+  const TEXTOS_TIPO: Record<string, string> = {
+    dirigida: "dirigida",
+    reciproca: "recíproca",
+    acoplamiento: "acoplamiento",
+  };
+  const tiposUsados = useMemo(
+    () => Array.from(new Set(aristas.map((a) => a.tipo).filter((t): t is string => !!t))),
+    [aristas],
+  );
+
+  return (
+    <svg
+      viewBox={`0 0 ${anchoTotal} ${altoTotal}`}
+      className="w-full h-auto"
+      style={{ minHeight: Math.min(altoTotal, 220) }}
+    >
+      <defs>
+        <marker id="flecha-conj-ium" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_UNION }} />
+        </marker>
+        <marker id="flecha-conj-ium-rec" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ stroke: TRAZO_RECIPROCA }} />
+        </marker>
+      </defs>
+      {onClickNodo && (
+        <style>{`
+          .conj-nodo-clicable circle { transition: opacity 120ms ease; }
+          .conj-nodo-clicable:hover circle { opacity: 0.7; }
+        `}</style>
+      )}
+
+      {aristas.map((a) => {
+        const esRec = a.tipo === "reciproca";
+        const esAcop = a.tipo === "acoplamiento";
+        const x1 = a.desde.x + CENTRO_X + R_NODO;
+        const y1 = a.desde.y + CENTRO_Y;
+        const x2 = a.hasta.x + CENTRO_X - R_NODO;
+        const y2 = a.hasta.y + CENTRO_Y;
+        const mismaColumna = a.desde.x === a.hasta.x;
+        const path = mismaColumna
+          ? `M ${a.desde.x + CENTRO_X} ${a.desde.y + CENTRO_Y + R_NODO} C ${a.desde.x + CENTRO_X + 36} ${y1 + 20}, ${a.hasta.x + CENTRO_X + 36} ${y2 - 20}, ${a.hasta.x + CENTRO_X} ${a.hasta.y + CENTRO_Y - R_NODO}`
+          : `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
+        return (
+          <path
+            key={a.key}
+            d={path}
+            fill="none"
+            strokeWidth={esRec ? 2 : 1.6}
+            strokeLinecap="round"
+            strokeDasharray={esAcop ? "4 4" : undefined}
+            style={{ stroke: esRec ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            markerEnd={esAcop ? undefined : `url(#${esRec ? "flecha-conj-ium-rec" : "flecha-conj-ium"})`}
+            markerStart={esRec ? `url(#flecha-conj-ium-rec)` : undefined}
+          />
+        );
+      })}
+
+      {columnas.map((columna) =>
+        columna.map((nodo) => {
+          const cx = nodo.pos.x + CENTRO_X;
+          const cy = nodo.pos.y + CENTRO_Y;
+          const clicable = !!onClickNodo;
+          return (
+            <g
+              key={nodo.id}
+              onClick={clicable ? () => onClickNodo!(nodo.id) : undefined}
+              style={clicable ? { cursor: "pointer" } : undefined}
+              className={clicable ? "conj-nodo-clicable" : undefined}
+            >
+              <title>{`${nodo.nombre}${nodo.rol ? ` — ${nodo.rol.replace(/_/g, " ")}` : ""}`}</title>
+              <circle
+                cx={cx}
+                cy={cy}
+                r={R_NODO + 2}
+                strokeWidth={0.8}
+                style={{
+                  fill: "var(--bg-main)",
+                  stroke: "color-mix(in srgb, var(--primary) 30%, transparent)",
+                }}
+              />
+              <IumGlifo
+                cx={cx}
+                cy={cy}
+                r={R_NODO * 0.78}
+                particulas={particulasDe(nodo.id)}
+                geometria={geometriaDe(nodo.id).geometria}
+              />
+              <text
+                x={cx}
+                y={cy + R_NODO + 12}
+                textAnchor="middle"
+                fontSize={9.5}
+                fontWeight={700}
+                paintOrder="stroke"
+                strokeWidth={3}
+                strokeLinejoin="round"
+                style={{ fill: "var(--primary)", stroke: "var(--bg-main)" }}
+              >
+                {nodo.nombre}
+              </text>
+              {nodo.rol && (
+                <text
+                  x={cx}
+                  y={cy + R_NODO + 22}
+                  textAnchor="middle"
+                  fontSize={7.5}
+                  paintOrder="stroke"
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                  style={{ fill: "color-mix(in srgb, var(--primary) 60%, transparent)", stroke: "var(--bg-main)" }}
+                >
+                  {nodo.rol.replace(/_/g, " ")}
+                </text>
+              )}
+            </g>
+          );
+        }),
+      )}
+
+      {tiposUsados.length > 1 &&
+        tiposUsados.map((tipo, i) => (
+          <g key={tipo} transform={`translate(${8 + i * 90}, ${altoTotal - ALTO_LEYENDA / 2})`}>
+            <line
+              x1={0} y1={0} x2={16} y2={0}
+              strokeWidth={tipo === "reciproca" ? 2 : 1.5}
+              strokeLinecap="round"
+              strokeDasharray={tipo === "acoplamiento" ? "3 3" : undefined}
+              style={{ stroke: tipo === "reciproca" ? TRAZO_RECIPROCA : TRAZO_UNION }}
+            />
+            <text x={21} y={2.5} fontSize={7.5} style={{ fill: "color-mix(in srgb, var(--primary) 55%, transparent)" }}>
+              {TEXTOS_TIPO[tipo] ?? tipo}
+            </text>
+          </g>
+        ))}
+    </svg>
+  );
+}
+
+// ─── Bloque IUM de conjuración (análogo a ConfiguracionIumBloque de Procesos) ─
+
+function ConjuracionIumBloque({ conjuracionId }: { conjuracionId: string }) {
+  const { configuracion, flujo, loading } = useConjuracionConfiguracionIum(conjuracionId);
+  const [iumAbiertoId, setIumAbiertoId] = useState<string | null>(null);
+  const { items: iumsCatalogo, setItems: setIumsCatalogo } = useIumsConParticulas();
+  const { geometriaDe } = useGeometriaIums();
+  const iumAbierto = iumsCatalogo.find((i) => i.id === iumAbiertoId) ?? null;
+
+  if (loading) return null;
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-0 p-2.5 rounded-lg border border-primary/10">
+      <div className="flex items-center gap-1.5">
+        <Cpu size={13} className="text-primary/40 shrink-0" />
+        <span className="text-micro font-black uppercase tracking-[0.2em] text-primary/30">
+          Configuración IUM · Topología
+        </span>
+      </div>
+
+      {!configuracion ? (
+        <p className="py-1 text-micro text-primary/30">Sin configuración IUM</p>
+      ) : (
+        <div className="flex flex-col gap-2 mt-1">
+          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+            <span className="text-micro font-bold text-primary/70">
+              {configuracion.config_nombre ?? "Configuración sin nombre"}
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`px-1.5 py-0.5 rounded text-xs font-bold border capitalize ${
+                  configuracion.config_estado === "canonica"
+                    ? "text-emerald-500/70 border-emerald-500/20 bg-emerald-500/5"
+                    : configuracion.config_estado === "propuesta"
+                      ? "text-amber-500/70 border-amber-500/20 bg-amber-500/5"
+                      : "text-primary/50 border-primary/15 bg-primary/5"
+                }`}
+              >
+                {configuracion.config_estado === "propuesta"
+                  ? "Configuración en revisión"
+                  : configuracion.config_estado.replace(/_/g, " ")}
+              </span>
+              <span className="text-xs text-primary/35">v{configuracion.config_version}</span>
+            </div>
+          </div>
+
+          {flujo.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold text-primary/45">Topología</span>
+              <div className="rounded-md border border-primary/10 bg-primary/[0.02] p-2 overflow-x-auto">
+                <ConjuracionIumGrafo flujo={flujo} onClickNodo={(iumId) => setIumAbiertoId(iumId)} />
+              </div>
+            </div>
+          )}
+
+          {configuracion.fundamento && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-primary/45">Fundamento</span>
+              <p className="text-micro text-primary/55 leading-relaxed whitespace-pre-wrap">
+                {configuracion.fundamento}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {iumAbierto ? (
+        <IumPanelFlotante
+          ium={iumAbierto}
+          geometriaDe={geometriaDe}
+          onCerrar={() => setIumAbiertoId(null)}
+          onActualizar={(id, cambios) => {
+            setIumsCatalogo((cur) =>
+              cur.map((item) => (item.id === id ? { ...item, ...cambios } : item)),
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }
