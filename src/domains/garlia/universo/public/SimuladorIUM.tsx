@@ -431,6 +431,9 @@ interface ConfigAdmin {
   proceso?: string;
   conjuracion_id?: string;
   conjuracion?: string;
+  oris_id?: string;
+  oris?: string;
+  nivel_dominio?: string | null;
   configuracion: string;
   topologia_id: string | null;
   topologia: string | null;
@@ -455,7 +458,7 @@ function useConfiguracionesAdmin(esAdmin: boolean) {
     setLoading(true);
     supabase
       .from("v_simulador_configs_admin_v1")
-      .select("configuracion_id, conjuracion_id, conjuracion, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
+      .select("configuracion_id, conjuracion_id, conjuracion, oris_id, oris, nivel_dominio, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
       .order("conjuracion")
       .then(({ data }) => {
         setConfigs((data ?? []) as ConfigAdmin[]);
@@ -2128,58 +2131,75 @@ export default function SimuladorIUM() {
                           No hay configuraciones disponibles.
                         </p>
                       ) : (() => {
-                        // Agrupar por conjuración
-                        const porProceso = new Map<string, ConfigAdmin[]>();
+                        // Agrupar por Oris → nivel_dominio → conjuración
+                        type NivelMap = Map<string, ConfigAdmin[]>;
+                        type OrisMap = Map<string, NivelMap>;
+                        const porOris: OrisMap = new Map();
                         for (const cfg of configsAdmin) {
-                          const key = cfg.conjuracion ?? cfg.proceso ?? "Sin nombre";
-                          const arr = porProceso.get(key) ?? [];
-                          arr.push(cfg);
-                          porProceso.set(key, arr);
+                          const orisKey = cfg.oris ?? "Sin Oris";
+                          const nivelKey = cfg.nivel_dominio ?? "Sin nivel";
+                          if (!porOris.has(orisKey)) porOris.set(orisKey, new Map());
+                          const nivelMap = porOris.get(orisKey)!;
+                          if (!nivelMap.has(nivelKey)) nivelMap.set(nivelKey, []);
+                          nivelMap.get(nivelKey)!.push(cfg);
                         }
-                        return [...porProceso.entries()].map(([proceso, cfgs]) => (
-                          <div key={proceso}>
-                            {/* Cabecera de conjuración */}
-                            <div style={{ padding: "6px 10px 3px", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
-                              <p style={{ margin: 0, fontSize: 8, fontWeight: 800, color: "var(--primary)", letterSpacing: "0.06em" }}>
-                                {proceso}
+                        return [...porOris.entries()].map(([orisKey, nivelMap]) => (
+                          <div key={orisKey}>
+                            {/* Cabecera Oris */}
+                            <div style={{ padding: "7px 10px 4px", borderTop: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)", background: "color-mix(in srgb, var(--primary) 7%, transparent)", position: "sticky", top: 0, zIndex: 1 }}>
+                              <p style={{ margin: 0, fontSize: 9, fontWeight: 900, color: "var(--primary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                                {orisKey}
                               </p>
                             </div>
+                            {[...nivelMap.entries()].map(([nivelKey, cfgs]) => (
+                              <div key={nivelKey}>
+                                {/* Sub-cabecera nivel dominio */}
+                                <div style={{ padding: "4px 10px 3px 14px", borderTop: "1px solid color-mix(in srgb, var(--primary) 6%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
+                                  <p style={{ margin: 0, fontSize: 7.5, fontWeight: 700, color: "color-mix(in srgb, var(--primary) 60%, transparent)", letterSpacing: "0.06em", textTransform: "capitalize" }}>
+                                    {nivelKey}
+                                  </p>
+                                </div>
                             {/* Configs de ese proceso */}
-                            {cfgs.map((cfg) => {
-                              const cargando = adminCargando === cfg.configuracion_id;
-                              return (
-                                <button
-                                  key={cfg.configuracion_id}
-                                  onClick={() => aplicarConfigAdmin(cfg)}
-                                  disabled={!!adminCargando}
-                                  style={{
-                                    width: "100%", textAlign: "left", border: "none",
-                                    background: "none", cursor: adminCargando ? "wait" : "pointer",
-                                    padding: "5px 10px 5px 16px",
-                                    borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
-                                    display: "flex", alignItems: "flex-start", gap: 6,
-                                    opacity: adminCargando && !cargando ? 0.5 : 1,
-                                  }}
-                                  onMouseEnter={(e) => { if (!adminCargando) (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
-                                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
-                                >
-                                  {cargando
-                                    ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite", flexShrink: 0, marginTop: 2, color: "var(--primary)" }} />
-                                    : <Play size={8} style={{ flexShrink: 0, marginTop: 2, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
-                                  }
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                      {cfg.topologia ?? "Sin topología"} · {cfg.n_iums} IUMs
-                                    </p>
-                                    {cfg.descripcion && (
-                                      <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 38%, transparent)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                                        {cfg.descripcion}
-                                      </p>
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                {cfgs.map((cfg) => {
+                                  const cargando = adminCargando === cfg.configuracion_id;
+                                  return (
+                                    <button
+                                      key={cfg.configuracion_id}
+                                      onClick={() => aplicarConfigAdmin(cfg)}
+                                      disabled={!!adminCargando}
+                                      style={{
+                                        width: "100%", textAlign: "left", border: "none",
+                                        background: "none", cursor: adminCargando ? "wait" : "pointer",
+                                        padding: "5px 10px 5px 20px",
+                                        borderBottom: "1px solid color-mix(in srgb, var(--primary) 5%, transparent)",
+                                        display: "flex", alignItems: "flex-start", gap: 6,
+                                        opacity: adminCargando && !cargando ? 0.5 : 1,
+                                      }}
+                                      onMouseEnter={(e) => { if (!adminCargando) (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 6%, transparent)"; }}
+                                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; }}
+                                    >
+                                      {cargando
+                                        ? <Loader2 size={8} style={{ animation: "spin 1s linear infinite", flexShrink: 0, marginTop: 2, color: "var(--primary)" }} />
+                                        : <Play size={8} style={{ flexShrink: 0, marginTop: 2, color: "color-mix(in srgb, var(--primary) 45%, transparent)" }} />
+                                      }
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "var(--foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {cfg.conjuracion ?? cfg.proceso ?? "Sin nombre"}
+                                        </p>
+                                        <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 45%, transparent)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {cfg.topologia ?? "Sin topología"} · {cfg.n_iums} IUMs
+                                        </p>
+                                        {cfg.descripcion && (
+                                          <p style={{ margin: "1px 0 0", fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 30%, transparent)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                                            {cfg.descripcion}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ))}
                           </div>
                         ));
                       })()}
