@@ -30,7 +30,7 @@ import {
   Plus,
   RotateCcw,
   Search,
-  Sparkles,
+
   Trash2,
   X,
   Zap,
@@ -1026,7 +1026,6 @@ function ModalDescubrimiento({
           textAlign: "center",
         }}
       >
-        <Sparkles size={28} style={{ color: "var(--primary)", animation: "latido 1.6s ease-in-out infinite" }} />
         <div>
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 4px", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
             ¡Primera revelación!
@@ -1054,10 +1053,6 @@ function ModalDescubrimiento({
             </div>
           ))}
         </div>
-
-        <p style={{ fontSize: 9, margin: 0, lineHeight: 1.6, color: "color-mix(in srgb, var(--foreground) 55%, transparent)", maxWidth: 260 }}>
-          Ahora puedes ver qué hace esta pieza en el catálogo. Sigue experimentando para descubrir más.
-        </p>
 
         <button
           onClick={onCerrar}
