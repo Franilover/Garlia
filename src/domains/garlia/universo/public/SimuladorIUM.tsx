@@ -114,6 +114,8 @@ interface OrisCandidato {
 interface ProcesoCandidato {
   proceso_id?: string;
   proceso?: string;
+  conjuracion_id?: string;
+  conjuracion?: string;
   regla_clave?: string;
   estado_fundamento?: string;
   patrones_obligatorios?: number;
@@ -136,6 +138,7 @@ interface ResultadoSimulador {
   procesos_candidatos?: ProcesoCandidato[];
   cantidad_procesos_candidatos?: number;
   proceso_principal?: string | null;
+  conjuracion_principal?: string | null;
   desempate?: "patrones" | "contexto" | null;
   ambiguo?: boolean;
   [key: string]: unknown;
@@ -424,8 +427,10 @@ function useRolJugador(perfilId: string | null) {
 
 interface ConfigAdmin {
   configuracion_id: string;
-  proceso_id: string;
-  proceso: string;
+  proceso_id?: string;
+  proceso?: string;
+  conjuracion_id?: string;
+  conjuracion?: string;
   configuracion: string;
   topologia_id: string | null;
   topologia: string | null;
@@ -449,9 +454,9 @@ function useConfiguracionesAdmin(esAdmin: boolean) {
     if (!esAdmin) return;
     setLoading(true);
     supabase
-      .from("v_proceso_configuracion_ium_actual_v1")
-      .select("configuracion_id, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
-      .order("proceso")
+      .from("v_conjuracion_config_ium_activa_v1")
+      .select("configuracion_id, conjuracion_id, conjuracion, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
+      .order("conjuracion")
       .then(({ data }) => {
         setConfigs((data ?? []) as ConfigAdmin[]);
         setLoading(false);
@@ -1064,7 +1069,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
 
   let tipo: "exito" | "inestable" | "nada" | "invalida" = "nada";
   if (invalida) tipo = "invalida";
-  else if (resultado.proceso_principal) tipo = "exito";
+  else if (resultado.proceso_principal || resultado.conjuracion_principal) tipo = "exito";
   else if (resultado.ambiguo || candidatos.length > 0) tipo = "inestable";
 
   const oris = Array.from(new Set((principal?.oris ?? []).map((o) => o.oris ?? o.oris_id).filter(Boolean))) as string[];
@@ -1091,7 +1096,7 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
           <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--foreground))` }}>
             ¡Algo ocurre!
           </p>
-          <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.proceso_principal}</p>
+          <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.conjuracion_principal ?? resultado.proceso_principal}</p>
           {!!oris.length && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 2 }}>
               {oris.map((o) => (
@@ -1233,7 +1238,7 @@ export default function SimuladorIUM() {
   // ── Clasificar resultado para el costo de Eterium ────────────────────────
   const clasificarResultado = useCallback((res: ResultadoSimulador): string => {
     if (!res || res.estado !== "simulado") return "sin_resonancia";
-    if (res.proceso_principal) return "proceso_exitoso";
+    if (res.proceso_principal || res.conjuracion_principal) return "proceso_exitoso";
     const candidatos = res.procesos_candidatos ?? [];
     if (res.ambiguo || candidatos.length > 0) {
       const alguno = candidatos[0];
@@ -1755,6 +1760,7 @@ export default function SimuladorIUM() {
           p_configuracion:         payload as never,
           p_resultado_tipo:        tipoResultado,
           p_proceso_id:            null,
+          p_conjuracion_id:        principal?.conjuracion_id ?? null,
           p_patrones_coincidentes: principal?.patrones_coincidentes ?? 0,
           p_patrones_totales:      principal?.patrones_totales ?? 0,
         } as never);
@@ -1777,9 +1783,10 @@ export default function SimuladorIUM() {
           setRevelaciones(reveladosInfo);
         }
 
-        // Acumular proceso descubierto en sesión
-        if (res.proceso_principal) {
-          setProcesosDescubiertos((prev) => new Set([...prev, res.proceso_principal as string]));
+        // Acumular conjuración/proceso descubierto en sesión
+        const nombreDescubierto = res.conjuracion_principal ?? res.proceso_principal;
+        if (nombreDescubierto) {
+          setProcesosDescubiertos((prev) => new Set([...prev, nombreDescubierto as string]));
         }
 
         // Recargar estado de Eterium y conocimiento
@@ -1801,7 +1808,7 @@ export default function SimuladorIUM() {
   // ── Determinar resonancia por enlace (para resaltarlos en el canvas) ───────
 
   const enlacesConResonancia = useMemo(() => {
-    if (!resultado || resultado.estado !== "simulado" || !resultado.proceso_principal) return new Set<string>();
+    if (!resultado || resultado.estado !== "simulado" || (!resultado.proceso_principal && !resultado.conjuracion_principal)) return new Set<string>();
     // Si hay proceso exitoso, todos los enlaces "brillan" — por ahora resaltamos todos
     return new Set(enlaces.map((e) => e.uid));
   }, [resultado, enlaces]);
@@ -2110,16 +2117,17 @@ export default function SimuladorIUM() {
                           No hay configuraciones disponibles.
                         </p>
                       ) : (() => {
-                        // Agrupar por proceso
+                        // Agrupar por conjuración
                         const porProceso = new Map<string, ConfigAdmin[]>();
                         for (const cfg of configsAdmin) {
-                          const arr = porProceso.get(cfg.proceso) ?? [];
+                          const key = cfg.conjuracion ?? cfg.proceso ?? "Sin nombre";
+                          const arr = porProceso.get(key) ?? [];
                           arr.push(cfg);
-                          porProceso.set(cfg.proceso, arr);
+                          porProceso.set(key, arr);
                         }
                         return [...porProceso.entries()].map(([proceso, cfgs]) => (
                           <div key={proceso}>
-                            {/* Cabecera de proceso */}
+                            {/* Cabecera de conjuración */}
                             <div style={{ padding: "6px 10px 3px", borderTop: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)", background: "color-mix(in srgb, var(--primary) 3%, transparent)" }}>
                               <p style={{ margin: 0, fontSize: 8, fontWeight: 800, color: "var(--primary)", letterSpacing: "0.06em" }}>
                                 {proceso}
@@ -2438,7 +2446,7 @@ export default function SimuladorIUM() {
                     funcionRevelada={conocimiento.get(comp.ium_id)?.funcion_revelada ?? false}
                     reaccion={
                       !resultado || resultado.estado !== "simulado" ? null
-                      : resultado.proceso_principal ? "exito"
+                      : (resultado.proceso_principal || resultado.conjuracion_principal) ? "exito"
                       : (resultado.ambiguo || (resultado.procesos_candidatos?.length ?? 0) > 0) ? "inestable"
                       : null
                     }
