@@ -1138,6 +1138,9 @@ class AgendaFraniDB extends Dexie {
   // ─── v53: Configuración IUM de Procesos (vistas de solo lectura) ─────────
   v_proceso_configuracion_ium_actual_v1!: Table<ProcesoConfiguracionIumActualDexie, string>;
   v_proceso_configuracion_ium_flujo_v1!: Table<ProcesoConfiguracionIumFlujoDexie, string>;
+  // ─── v55: Configuración IUM de Conjuraciones (espejo de v53 para magia) ──
+  v_conjuracion_config_ium_activa_v1!: Table<FilaGenericaDexie, string>;
+  v_conjuracion_config_ium_flujo_v1!: Table<FilaGenericaDexie, string>;
 
   // ─── v54: elemento_procesos — bug preexistente: estaba en DEXIE_TABLES /
   // OFFLINE_WRITABLE de useSupabaseData.ts pero nunca tuvo declaración
@@ -2305,6 +2308,20 @@ class AgendaFraniDB extends Dexie {
     // cache local: cada apertura esperaba el round-trip completo a Supabase.
     this.version(54).stores({
       elemento_procesos: "id, elemento_id, proceso_id",
+    });
+
+    // ─── v55: cache offline de las vistas de Configuración IUM de
+    // Conjuraciones — espejo exacto de v53 (Procesos) pero para magia.
+    //   - v_conjuracion_config_ium_activa_v1: PK = configuracion_id
+    //     (config vigente de una Conjuración). Indexada por conjuracion_id
+    //     para que el filtro local sea O(log n).
+    //   - v_conjuracion_config_ium_flujo_v1: PK = id (uuid de cada enlace).
+    //     Indexada por configuracion_id para filtrar los enlaces de una
+    //     configuración puntual (grafo IUM de ConjurosPage).
+    // Ambas son de solo lectura (no entran en OFFLINE_WRITABLE).
+    this.version(55).stores({
+      v_conjuracion_config_ium_activa_v1: "id, conjuracion_id",
+      v_conjuracion_config_ium_flujo_v1: "id, configuracion_id",
     });
   }
 }
