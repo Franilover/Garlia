@@ -142,33 +142,67 @@ function distribuirEnColumnas<T>(
   return columnas;
 }
 
-/** Agrupa los Procesos por su campo "tipo" (equivalente a "categoria" en
- *  Material/Estructura) — sin enum fijo documentado, se agrupa por el valor
- *  tal cual viene de Supabase, en el orden en que aparece, con un bloque
- *  final para los procesos sin tipo asignado. Mismo criterio que
- *  gruposPorCategoria en MaterialesPage.tsx. */
+/**
+ * Agrupa los Procesos por `dominio_fisico` (rama física del fenómeno: térmico,
+ * mecánico, lumínico…). Si no tiene dominio_fisico asignado, cae en un grupo
+ * secundario por `naturaleza_canonica` (mecanismo/biológico/variante/resultado).
+ *
+ * IMPORTANTE — separación semántica (migración 2026-10-13):
+ *   • `procesos` son fenómenos físicos del mundo. Se agrupan por dominio_fisico.
+ *   • `conjuraciones` son hechizos que activan procesos vía Oris. Se agrupan
+ *     POR ORIS en su propia página — nunca acá.
+ *   • El campo `tipo` está obsoleto; no usar para agrupar. Ver documentacion_sistema.
+ */
 function agruparPorTipo(items: Proceso[]): { id: string; nombre: string; items: Proceso[] }[] {
   const orden: string[] = [];
   const mapa = new Map<string, Proceso[]>();
-  const sinTipo: Proceso[] = [];
+  const sinDominio: Proceso[] = [];
 
   for (const p of items) {
-    const tipo = p.tipo;
-    if (!tipo) {
-      sinTipo.push(p);
+    // Usar dominio_fisico; si no tiene, agrupar por naturaleza_canonica como fallback
+    const clave = p.dominio_fisico ?? null;
+    if (!clave) {
+      sinDominio.push(p);
       continue;
     }
-    if (!mapa.has(tipo)) {
-      mapa.set(tipo, []);
-      orden.push(tipo);
+    if (!mapa.has(clave)) {
+      mapa.set(clave, []);
+      orden.push(clave);
     }
-    mapa.get(tipo)!.push(p);
+    mapa.get(clave)!.push(p);
   }
 
-  const grupos = orden.map((tipo) => ({ id: tipo, nombre: tipo, items: mapa.get(tipo)! }));
-  if (sinTipo.length > 0) {
-    grupos.push({ id: "__sin-tipo__", nombre: "Sin tipo", items: sinTipo });
+  const grupos = orden.map((clave) => ({
+    id: clave,
+    nombre: clave.charAt(0).toUpperCase() + clave.slice(1),
+    items: mapa.get(clave)!,
+  }));
+
+  // Los sin dominio_fisico se subdividen por naturaleza_canonica
+  if (sinDominio.length > 0) {
+    const porNaturaleza = new Map<string, Proceso[]>();
+    const ordenNaturaleza: string[] = [];
+    const sinNada: Proceso[] = [];
+
+    for (const p of sinDominio) {
+      const nat = p.naturaleza_canonica ?? null;
+      if (!nat) { sinNada.push(p); continue; }
+      if (!porNaturaleza.has(nat)) { porNaturaleza.set(nat, []); ordenNaturaleza.push(nat); }
+      porNaturaleza.get(nat)!.push(p);
+    }
+
+    for (const nat of ordenNaturaleza) {
+      grupos.push({
+        id: `__nat__${nat}`,
+        nombre: nat.charAt(0).toUpperCase() + nat.slice(1),
+        items: porNaturaleza.get(nat)!,
+      });
+    }
+    if (sinNada.length > 0) {
+      grupos.push({ id: "__sin-clasificar__", nombre: "Sin clasificar", items: sinNada });
+    }
   }
+
   return grupos;
 }
 
@@ -1505,7 +1539,8 @@ function ProcesoEditor({
     onGuardar: () =>
       persist({
         nombre: local.nombre,
-        tipo: local.tipo,
+        dominio_fisico: local.dominio_fisico,
+        naturaleza_canonica: local.naturaleza_canonica,
         descripcion: local.descripcion,
         condiciones: local.condiciones,
         notas: local.notas,
@@ -1520,11 +1555,12 @@ function ProcesoEditor({
     extra: (
       <>
         <input
-          value={local.tipo ?? ""}
-          onChange={(e) => setLocal((p) => ({ ...p, tipo: e.target.value || null }))}
-          onBlur={() => persist({ tipo: local.tipo })}
-          placeholder="Tipo"
-          className="shrink-0 w-24 bg-primary/5 rounded-md px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
+          value={local.dominio_fisico ?? ""}
+          onChange={(e) => setLocal((p) => ({ ...p, dominio_fisico: e.target.value || null }))}
+          onBlur={() => persist({ dominio_fisico: local.dominio_fisico })}
+          placeholder="Dominio físico"
+          title="Rama física del fenómeno (ej. térmico, mecánico, lumínico). No es el Oris que lo conjura."
+          className="shrink-0 w-28 bg-primary/5 rounded-md px-1.5 py-0.5 text-micro font-bold text-primary outline-none border border-primary/10 focus:border-primary/30 placeholder:text-primary/25"
         />
         <select
           value={local.estado_fundamento ?? "definida"}

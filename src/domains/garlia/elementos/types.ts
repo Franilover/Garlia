@@ -1461,15 +1461,32 @@ export interface ReaccionComponenteRow {
 export interface Proceso {
   id: string;
   nombre: string;
+  /**
+   * @deprecated No usar para clasificar ni agrupar. Era un campo libre sin
+   * control que acumuló valores mezclados ("proceso", "biologico", etc.).
+   * Migración 2026-10-13: limpiado (placeholder "proceso" → NULL).
+   * Usar `dominio_fisico` para la rama física del fenómeno.
+   */
   tipo: string | null;
+  /**
+   * Rama física del fenómeno natural (ej. "térmico", "mecánico", "lumínico",
+   * "eléctrico", "biológico", "químico", "acústico", "gravitatorio").
+   * Describe DE QUÉ tipo de fenómeno es el proceso — no con qué Oris se
+   * conjura (eso va en conjuraciones.oris_id) ni su rol lógico (eso es
+   * naturaleza_canonica). Puede ser NULL si aún no está clasificado.
+   */
+  dominio_fisico: string | null;
+  /**
+   * Rol lógico del proceso en el worldbuilding:
+   * "mecanismo" | "biologico" | "variante" | "resultado"
+   */
+  naturaleza_canonica: string | null;
   descripcion: string | null;
   condiciones: string | null;
   notas: string | null;
   created_at: string;
   updated_at: string;
-  /** Columnas reales de "procesos" que faltaban en tipo/select (2026-08-27,
-   *  ver auditoría de columnas faltantes) — describen la receta
-   *  entrada→transformación→salida del proceso en lenguaje natural. */
+  /** Describen la receta entrada→transformación→salida en lenguaje natural. */
   regla_clave: string | null;
   entrada: string | null;
   transformacion: string | null;
@@ -1555,11 +1572,13 @@ export const CONFIG_ELEMENTO_PROCESOS = {
 
 export const CONFIG_PROCESOS = {
   tabla: "procesos",
-  // 2026-08-27: agregadas las columnas reales que faltaban (regla_clave,
-  // entrada, transformacion, salida, conservacion, estado_fundamento) —
-  // ver auditoría de columnas faltantes en elementos/compuestos/materiales.
+  // 2026-08-27: columnas de receta (regla_clave, entrada, transformacion…).
+  // 2026-10-13: agregados dominio_fisico y naturaleza_canonica tras migración
+  //   de separación procesos↔conjuraciones. El campo tipo se conserva en el
+  //   select por compatibilidad pero está obsoleto — usar dominio_fisico.
   select:
-    "id, nombre, tipo, descripcion, condiciones, notas, created_at, updated_at, " +
+    "id, nombre, tipo, dominio_fisico, naturaleza_canonica, " +
+    "descripcion, condiciones, notas, created_at, updated_at, " +
     "regla_clave, entrada, transformacion, salida, conservacion, estado_fundamento",
 };
 
