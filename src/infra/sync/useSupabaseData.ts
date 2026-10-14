@@ -220,6 +220,10 @@ const DEXIE_TABLES = new Set([
   // OFFLINE_WRITABLE (son solo lectura, nunca se editan desde el frontend).
   "v_proceso_configuracion_ium_actual_v1",
   "v_proceso_configuracion_ium_flujo_v1",
+  // ─── v55: Configuración IUM de Conjuraciones (espejo de v53 para magia).
+  // Solo lectura, no entran en OFFLINE_WRITABLE.
+  "v_conjuracion_config_ium_activa_v1",
+  "v_conjuracion_config_ium_flujo_v1",
 ]);
 
 const OFFLINE_WRITABLE = new Set([
