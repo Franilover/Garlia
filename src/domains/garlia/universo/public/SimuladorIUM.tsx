@@ -454,8 +454,8 @@ function useConfiguracionesAdmin(esAdmin: boolean) {
     if (!esAdmin) return;
     setLoading(true);
     supabase
-      .from("v_conjuracion_config_ium_activa_v1")
-      .select("configuracion_id, conjuracion_id, conjuracion, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
+      .from("v_simulador_configs_admin_v1")
+      .select("configuracion_id, conjuracion_id, conjuracion, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
       .order("conjuracion")
       .then(({ data }) => {
         setConfigs((data ?? []) as ConfigAdmin[]);
