@@ -28,6 +28,7 @@ import {
   Loader2,
   Play,
   Plus,
+  RotateCcw,
   Search,
   Sparkles,
   Trash2,
@@ -2068,12 +2069,35 @@ export default function SimuladorIUM() {
                       });
                     })()}
 
-                    {/* Footer */}
-                    <div style={{ padding: "6px 10px", textAlign: "center" }}>
-                      <p style={{ margin: 0, fontSize: 7.5, color: "color-mix(in srgb, var(--primary) 22%, transparent)", fontStyle: "italic" }}>
-                        Los procesos se acumulan en cada sesión
-                      </p>
-                    </div>
+                    {/* Footer: reiniciar descubrimientos (solo admins) */}
+                    {isAdmin && (
+                      <div style={{ padding: "8px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
+                        <button
+                          onClick={() => {
+                            setProcesosDescubiertos(new Set());
+                            setConocimiento((prev) => {
+                              const next = new Map(prev);
+                              for (const [id, val] of next) next.set(id, { ...val, funcion_revelada: false, veces_en_reaccion_exitosa: 0 });
+                              return next;
+                            });
+                            setDescubrimientosAbierto(false);
+                          }}
+                          style={{
+                            width: "100%", padding: "5px 10px", borderRadius: 6, border: "none",
+                            background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                            color: "color-mix(in srgb, var(--primary) 70%, transparent)",
+                            fontSize: 8.5, fontWeight: 700, letterSpacing: "0.06em",
+                            textTransform: "uppercase", cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 14%, transparent)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "color-mix(in srgb, var(--primary) 8%, transparent)"; }}
+                        >
+                          <RotateCcw size={8} />
+                          Reiniciar descubrimientos
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
