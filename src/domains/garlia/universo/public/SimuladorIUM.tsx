@@ -669,6 +669,9 @@ function getFrontierSlots(
 
 // ─── Conexión SVG ─────────────────────────────────────────────────────────────
 
+// Radio de recorte: el trazo arranca/termina en el borde del visual, no en el centro
+const EDGE_OFFSET = 40; // px SVG ≈ VIS_R + un pequeño margen
+
 function ConnectionLine({
   x1, y1, x2, y2, tipo, label, onRemove, resonancia,
 }: {
@@ -676,15 +679,23 @@ function ConnectionLine({
   tipo: string; label?: string; onRemove?: () => void;
   resonancia?: boolean;
 }) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  const perp = Math.min(50, len * 0.25);
+  // Recortar ambos extremos para que la línea no entre en los círculos
+  const ox = (dx / len) * EDGE_OFFSET;
+  const oy = (dy / len) * EDGE_OFFSET;
+  const sx = x1 + ox;
+  const sy = y1 + oy;
+  const ex = x2 - ox;
+  const ey = y2 - oy;
+  const mx = (sx + ex) / 2;
+  const my = (sy + ey) / 2;
+  const segLen = Math.sqrt((ex - sx) ** 2 + (ey - sy) ** 2) || 1;
+  const perp = Math.min(40, segLen * 0.22);
   const cpx = mx - (dy / len) * perp;
   const cpy = my + (dx / len) * perp;
-  const d = `M ${x1} ${y1} Q ${cpx} ${cpy} ${x2} ${y2}`;
+  const d = `M ${sx} ${sy} Q ${cpx} ${cpy} ${ex} ${ey}`;
 
   const strokeColor = resonancia
     ? "var(--accent,var(--primary))"
@@ -2217,8 +2228,8 @@ export default function SimuladorIUM() {
               }}
             >
               <defs>
-                <marker id={ARROW_ID} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-                  <path d="M0,0.5 L0,5.5 L6.5,3 z" style={{ fill: ARROW_COLOR }} />
+                <marker id={ARROW_ID} markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto">
+                  <path d="M0,0.5 L0,5.5 L6,3 z" style={{ fill: ARROW_COLOR }} />
                 </marker>
               </defs>
 
