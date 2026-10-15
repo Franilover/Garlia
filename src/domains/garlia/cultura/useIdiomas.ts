@@ -240,7 +240,7 @@ export function useFonemas(idiomaId: string | null) {
 
   // ── CRUD fonemas ─────────────────────────────────────────────────────
   const crearFonema = useCallback(async (
-    campos: Omit<FonemaIdioma, "id" | "idioma_id" | "created_at" | "updated_at">
+    campos: Omit<FonemaIdioma, "id" | "idioma_id" | "estado" | "es_fonema_distintivo" | "created_at" | "updated_at">
   ): Promise<FonemaIdioma | null> => {
     if (!idiomaId) return null;
     const { data, error: err } = await supabase
