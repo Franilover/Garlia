@@ -2065,7 +2065,7 @@ export default function SimuladorIUM() {
                     })()}
 
                     {/* Footer: reiniciar descubrimientos (solo admins) */}
-                    {isAdmin && (
+                    {esAdmin && (
                       <div style={{ padding: "8px 10px", borderTop: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)" }}>
                         <button
                           onClick={() => {
