@@ -691,8 +691,8 @@ export function useFamilias() {
 
   useEffect(() => {
     supabase.from("familias_linguisticas").select("id, nombre, estado").order("nombre")
-      .then(({ data }: { data: FamiliaLinguistica[] | null; error: unknown }) => {
-        setFamilias(data ?? []);
+      .then(({ data }) => {
+        setFamilias((data as FamiliaLinguistica[] | null) ?? []);
         setLoading(false);
       });
   }, []);
@@ -723,8 +723,8 @@ export function useSistemasEscrituraGlobal() {
 
   useEffect(() => {
     supabase.from("sistemas_escritura").select("*").order("nombre")
-      .then(({ data }: { data: SistemaEscritura[] | null; error: unknown }) => {
-        setSistemas(data ?? []);
+      .then(({ data }) => {
+        setSistemas((data as SistemaEscritura[] | null) ?? []);
         setLoading(false);
       });
   }, []);
