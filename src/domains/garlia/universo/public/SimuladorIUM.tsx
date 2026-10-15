@@ -347,7 +347,7 @@ function useConocimientoIums(perfilId: string | null) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  return { conocimiento, recargar: cargar };
+  return { conocimiento, setConocimiento, recargar: cargar };
 }
 
 // ─── Hook: saldo de Eterium del jugador ────────────────────────────────────
@@ -1178,7 +1178,7 @@ export default function SimuladorIUM() {
   }, []);
 
   // Sistema de descubrimiento
-  const { conocimiento, recargar: recargarConocimiento } = useConocimientoIums(perfilId);
+  const { conocimiento, setConocimiento, recargar: recargarConocimiento } = useConocimientoIums(perfilId);
   const { eterium, recargar: recargarEterium } = useEteriumJugador(perfilId);
 
   // Rango de IUMs por topología (mínimo y máximo de configs reales en Supabase)
