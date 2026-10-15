@@ -31,6 +31,7 @@ import {
   Gamepad2,
   Globe,
   PenSquare,
+  Languages,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -817,6 +818,14 @@ const Navbar = () => {
       active: isGarliaeditor && mundoSection === "pizarron",
       onSelect: () => mundoSelectSection("pizarron"),
     },
+    { key: "div-6", divider: true },
+    {
+      key: "culturas",
+      label: "Idiomas",
+      icon: Languages,
+      active: isGarliaeditor && mundoSection === "culturas",
+      onSelect: () => mundoSelectSection("culturas"),
+    },
   ];
 
   // ── Submenú Escritorio (desktop) ─────────────────────────────────────────
@@ -900,6 +909,10 @@ const Navbar = () => {
     ggc: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");
       mundoSelectSection("letras");
+    },
+    ggid: () => {
+      if (!isGarliaeditor) router.push("/myself/garlia");
+      mundoSelectSection("culturas");
     },
     ggt: () => {
       if (!isGarliaeditor) router.push("/myself/garlia");

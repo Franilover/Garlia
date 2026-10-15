@@ -145,6 +145,8 @@ function ActiveSection() {
       return <SistemaSolarSection />;
     case "pizarron":
       return <PizarronSection />;
+    case "culturas":
+      return <IdiomasSection />;
     default: {
       const _exhaustive: never = section;
       void _exhaustive;
