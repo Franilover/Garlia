@@ -180,7 +180,7 @@ export function IdiomasSection() {
         {/* Lista */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {loadingLista && <div style={{ padding: 16, textAlign: "center" }}><Loader2 size={16} style={{ color: "#6b7280", animation: "spin 1s linear infinite" }} /></div>}
-          {!loadingLista && idiomasFiltrados.map((idioma) => (
+          {!loadingLista && idiomasFiltrados.map((idioma: Idioma) => (
             <button
               key={idioma.id}
               onClick={() => { setSelectedId(idioma.id); setTab("info"); }}
@@ -266,7 +266,7 @@ function DetalleIdioma({
   }
   if (!det.idioma) return null;
 
-  const idioma = det.idioma;
+  const idioma: Idioma = det.idioma;
 
   return (
     <>
@@ -405,7 +405,7 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
 
   const agregar = async () => {
     if (!nuevo.simbolo.trim() || !nuevo.ipa.trim()) return;
-    await hook.crearFonema({ ...nuevo, es_fonema_distintivo: true, estado: "borrador" });
+    await hook.crearFonema({ ...nuevo });
     setNuevo({ simbolo: "", ipa: "", clase: "consonante" });
   };
 
@@ -536,7 +536,7 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
 
       {/* Lista lexemas */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {filtrados.map((lex) => (
+        {filtrados.map((lex: Lexema) => (
           <div
             key={lex.id}
             style={{ background: "#161616", borderRadius: 8, border: expandido === lex.id ? "1px solid #374151" : "1px solid #1f1f1f" }}
