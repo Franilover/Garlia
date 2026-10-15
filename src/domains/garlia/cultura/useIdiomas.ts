@@ -245,7 +245,7 @@ export function useFonemas(idiomaId: string | null) {
     if (!idiomaId) return null;
     const { data, error: err } = await supabase
       .from("fonemas_idioma")
-      .insert({ idioma_id: idiomaId, estado: "borrador", es_fonema_distintivo: true, ...campos })
+      .insert({ estado: "borrador", es_fonema_distintivo: true, ...campos, idioma_id: idiomaId })
       .select().single();
     if (err) { setError({ message: err.message }); return null; }
     if (data) { setFonemas((prev) => [...prev, data as FonemaIdioma]); return data as FonemaIdioma; }
