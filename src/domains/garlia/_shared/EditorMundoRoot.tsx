@@ -86,8 +86,8 @@ const PizarronSection = lazy(() =>
   })),
 );
 const IdiomasSection = lazy(() =>
-  import("@/domains/garlia/culturas/IdiomasSection").then((m) => ({
-    default: m.default,
+  import("@/domains/garlia/cultura/IdiomasSection").then((m) => ({
+    default: m.IdiomasSection,
   })),
 );
 
