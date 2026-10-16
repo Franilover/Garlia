@@ -337,9 +337,9 @@ function DetalleIdioma({
       </div>
 
       {/* ── Contenido ── */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-w-0 w-0">
         {tab === "general"    && (
-          <div className="p-5 w-full">
+          <div className="p-5">
             <TabGeneral
               idioma={idioma}
               onGuardar={det.guardar}
@@ -358,7 +358,7 @@ function DetalleIdioma({
           <TabEstructura fonemas={fonemas} morfemas={morfemas} perfil={perfil} />
         )}
         {tab === "lexico"     && (
-          <div className="p-5 w-full">
+          <div className="p-5">
             <TabLexico lexemas={lexemas} />
           </div>
         )}
