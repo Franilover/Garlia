@@ -667,7 +667,7 @@ function BloquesFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFon
     <div className="pr-4">
       {/* Prosodia */}
       {hook.prosodia && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-xs text-primary/60">
+        <div className="mb-3 px-3 py-2 rounded-lg border border-primary/10 text-xs text-primary/60">
           <span className="font-bold text-primary/80">Prosodia: </span>
           {hook.prosodia.sistema_prosodico}
           {hook.prosodia.tono_distintivo && " · tono"}
@@ -702,7 +702,7 @@ function BloquesFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFon
                 onClick={() => setExpandido(expandido === f.id ? null : f.id)}
                 className={`
                   flex flex-col px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors
-                  ${expandido === f.id ? "border-primary/30 bg-primary/8" : "border-primary/10 bg-primary/4 hover:bg-primary/8"}
+                  ${expandido === f.id ? "border-primary/30" : "border-primary/10 hover:border-primary/25"}
                 `}
               >
                 <div className="flex items-center gap-1.5">
@@ -775,7 +775,7 @@ function BloquesMorfologia({ morfemas: hook }: { morfemas: ReturnType<typeof use
           <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
           <div className="flex flex-wrap gap-1.5">
             {g.items.map((m) => (
-              <div key={m.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/4">
+              <div key={m.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/25 transition-colors">
                 <span className="font-mono text-sm font-semibold text-primary">{m.forma}</span>
                 {m.significado && <span className="text-[11px] text-primary/40">{m.significado}</span>}
                 <button onClick={() => hook.eliminarMorfema(m.id)} className={BTN_ICON_CLS}><X size={10} /></button>
@@ -918,11 +918,11 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
         {grupos.map(({ cat, items }) => (
           <div key={cat}>
             <TituloCategoria titulo={CAT_GRAM_LABELS[cat]} total={items.length} />
-            <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1">
               {items.map((lex: Lexema) => (
                 <div
                   key={lex.id}
-                  className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/20 bg-primary/5" : "border-primary/8 bg-primary/3"}`}
+                  className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/30" : "border-primary/10 hover:border-primary/25"}`}
                 >
                   {/* Cabecera */}
                   <div
@@ -1013,7 +1013,7 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
 /** Fila compacta para listas de contexto (escritura, variedades, familias, relaciones, períodos) */
 function FilaContexto({ children, onEliminar }: { children: React.ReactNode; onEliminar: () => void }) {
   return (
-    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-primary/8 bg-primary/3">
+    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-primary/10 hover:border-primary/25 transition-colors">
       <div className="flex items-center flex-wrap gap-1 min-w-0">{children}</div>
       <button onClick={onEliminar} className={`${BTN_ICON_CLS} shrink-0 ml-2`}><X size={11} /></button>
     </div>
