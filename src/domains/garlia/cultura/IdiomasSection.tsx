@@ -337,26 +337,30 @@ function DetalleIdioma({
       </div>
 
       {/* ── Contenido ── */}
-      <div className="flex-1 overflow-y-auto p-5">
+      <div className="flex-1 overflow-y-auto">
         {tab === "general"    && (
-          <TabGeneral
-            idioma={idioma}
-            onGuardar={det.guardar}
-            saving={det.saving}
-            escritura={escritura}
-            sistemasDisp={sistemasDisp}
-            variedades={variedades}
-            det={det}
-            idiomaId={idiomaId}
-            familiasDisp={familiasDisp}
-            periodos={periodos}
-          />
+          <div className="p-5 w-full">
+            <TabGeneral
+              idioma={idioma}
+              onGuardar={det.guardar}
+              saving={det.saving}
+              escritura={escritura}
+              sistemasDisp={sistemasDisp}
+              variedades={variedades}
+              det={det}
+              idiomaId={idiomaId}
+              familiasDisp={familiasDisp}
+              periodos={periodos}
+            />
+          </div>
         )}
         {tab === "estructura" && (
           <TabEstructura fonemas={fonemas} morfemas={morfemas} perfil={perfil} />
         )}
         {tab === "lexico"     && (
-          <TabLexico lexemas={lexemas} />
+          <div className="p-5 w-full">
+            <TabLexico lexemas={lexemas} />
+          </div>
         )}
       </div>
     </>
@@ -421,169 +425,184 @@ function TabGeneral({
   };
 
   return (
-    <div className="w-full space-y-0">
+    <div className="w-full flex gap-6 items-start">
 
-      {/* ── Info básica ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <Field label="Nombre">
-          <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
-        </Field>
-        <Field label="Endónimo">
-          <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} className={INPUT_CLS} />
-        </Field>
-        <Field label="Estado">
-          <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} className={INPUT_CLS}>
-            {Object.entries(ESTADO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </Field>
-        <Field label="Fuente canon">
-          <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Descripción">
-            <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
+      {/* ── Columna izquierda: Info básica ── */}
+      <div className="flex-1 min-w-0 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Nombre">
+            <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
           </Field>
-        </div>
-        <div className="sm:col-span-2">
-          <Field label="Notas de documentación">
-            <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={2} className={`${INPUT_CLS} resize-y`} />
+          <Field label="Endónimo">
+            <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} className={INPUT_CLS} />
           </Field>
+          <Field label="Estado">
+            <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} className={INPUT_CLS}>
+              {Object.entries(ESTADO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </Field>
+          <Field label="Fuente canon">
+            <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
+          </Field>
+          <div className="col-span-2">
+            <Field label="Descripción">
+              <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
+            </Field>
+          </div>
+          <div className="col-span-2">
+            <Field label="Notas de documentación">
+              <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={2} className={`${INPUT_CLS} resize-y`} />
+            </Field>
+          </div>
+          <div className="col-span-2">
+            <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
+              <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
+              Marcar como protolengua
+            </label>
+          </div>
         </div>
-        <div className="sm:col-span-2">
-          <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
-            <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
-            Marcar como protolengua
-          </label>
-        </div>
-      </div>
 
-      {dirty && (
-        <div className="mb-6">
+        {dirty && (
           <button onClick={guardar} disabled={saving} className={BTN_PRIMARY_CLS}>
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
             Guardar cambios
           </button>
-        </div>
-      )}
-
-      {/* ── Escritura ── */}
-      <TituloCategoria titulo="Escritura" total={escritura.vinculaciones.length} />
-      <div className="mb-6 space-y-1.5">
-        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
-          <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)}
-            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70">
-            <option value="">— Vincular sistema —</option>
-            {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
-          </select>
-          <button onClick={vincularEscritura} disabled={!nuevaSistemaId}
-            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors disabled:opacity-30 border-l border-primary/15">
-            <Plus size={12} /> Vincular
-          </button>
-        </div>
-        {escritura.vinculaciones.map((v) => (
-          <FilaContexto key={v.id} onEliminar={() => escritura.desvincular(v.id)}>
-            <span className="text-sm font-semibold text-primary">{v.sistema?.nombre}</span>
-            <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
-          </FilaContexto>
-        ))}
-        {escritura.vinculaciones.length === 0 && !escritura.loading && <EstadoVacio text="Sin sistemas de escritura vinculados." />}
-      </div>
-
-      {/* ── Variedades ── */}
-      <TituloCategoria titulo="Variedades" total={variedades.variedades.length} />
-      <div className="mb-6 space-y-1.5">
-        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
-          <input
-            placeholder="Nueva variedad…"
-            value={nuevaVariedad.nombre}
-            onChange={(e) => setNuevaVariedad((p) => ({ ...p, nombre: e.target.value }))}
-            onKeyDown={(e) => e.key === "Enter" && agregarVariedad()}
-            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
-          />
-          <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))}
-            className="shrink-0 w-32 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
-            {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <button onClick={agregarVariedad}
-            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
-            <Plus size={12} /> Agregar
-          </button>
-        </div>
-        {variedades.variedades.map((v) => (
-          <FilaContexto key={v.id} onEliminar={() => variedades.eliminar(v.id)}>
-            <span className="text-sm font-semibold text-primary">{v.nombre}</span>
-            <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
-          </FilaContexto>
-        ))}
-        {variedades.variedades.length === 0 && !variedades.loading && <EstadoVacio text="Sin variedades registradas." />}
-      </div>
-
-      {/* ── Familias ── */}
-      <TituloCategoria titulo="Familias lingüísticas" total={det.familias.length} />
-      <div className="mb-6 space-y-1.5">
-        {det.familias.map((f) => (
-          <FilaContexto key={f.id} onEliminar={() => det.desvincularFamilia(f.id)}>
-            <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
-            <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
-          </FilaContexto>
-        ))}
-        {det.familias.length === 0 && <EstadoVacio text="Sin familia lingüística asignada." />}
-        {familiasDisp.length > 0 && (
-          <select
-            defaultValue=""
-            onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.currentTarget.value = ""; }}
-            className={`${INPUT_CLS} mt-2`}
-          >
-            <option value="">+ Vincular familia…</option>
-            {familiasDisp.filter((f) => !det.familias.some((df) => df.familia_id === f.id))
-              .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-          </select>
         )}
-      </div>
 
-      {/* ── Relaciones ── */}
-      <TituloCategoria titulo="Relaciones" total={det.relaciones.length} />
-      <div className="mb-6 space-y-1.5">
-        {det.relaciones.map((r) => {
-          const esOrigen = r.idioma_origen_id === idiomaId;
-          const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
-          return (
-            <FilaContexto key={r.id} onEliminar={() => det.eliminarRelacion(r.id)}>
-              <span className="font-mono text-[11px] text-primary/30 mr-1">{esOrigen ? "→" : "←"}</span>
-              <span className="text-sm font-semibold text-primary">{otro?.nombre}</span>
-              <span className="text-[11px] text-primary px-1.5 py-0.5 rounded bg-primary/10 ml-2">{r.tipo}</span>
-              {r.descripcion && <span className="text-[11px] text-primary/35 ml-1">{r.descripcion}</span>}
-            </FilaContexto>
-          );
-        })}
-        {det.relaciones.length === 0 && <EstadoVacio text="Sin relaciones con otros idiomas." />}
-      </div>
-
-      {/* ── Períodos ── */}
-      <TituloCategoria titulo="Períodos" total={periodos.periodos.length} />
-      <div className="mb-2 space-y-1.5">
-        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
-          <input
-            placeholder="Nombre del período…"
-            value={nuevoPeriodo}
-            onChange={(e) => setNuevoPeriodo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && agregarPeriodo()}
-            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
-          />
-          <button onClick={agregarPeriodo}
-            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
-            <Plus size={12} /> Agregar
-          </button>
+        {/* ── Relaciones ── */}
+        <div>
+          <TituloCategoria titulo="Relaciones" total={det.relaciones.length} />
+          <div className="mt-2 space-y-1.5">
+            {det.relaciones.map((r) => {
+              const esOrigen = r.idioma_origen_id === idiomaId;
+              const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
+              return (
+                <FilaContexto key={r.id} onEliminar={() => det.eliminarRelacion(r.id)}>
+                  <span className="font-mono text-[11px] text-primary/30 mr-1">{esOrigen ? "→" : "←"}</span>
+                  <span className="text-sm font-semibold text-primary">{otro?.nombre}</span>
+                  <span className="text-[11px] text-primary px-1.5 py-0.5 rounded bg-primary/10 ml-2">{r.tipo}</span>
+                  {r.descripcion && <span className="text-[11px] text-primary/35 ml-1">{r.descripcion}</span>}
+                </FilaContexto>
+              );
+            })}
+            {det.relaciones.length === 0 && <EstadoVacio text="Sin relaciones con otros idiomas." />}
+          </div>
         </div>
-        {periodos.periodos.map((p) => (
-          <FilaContexto key={p.id} onEliminar={() => periodos.eliminarPeriodo(p.id)}>
-            <span className="text-sm font-semibold text-primary">{p.nombre}</span>
-            <span className="text-xs text-primary/35 ml-2">
-              {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
-            </span>
-          </FilaContexto>
-        ))}
-        {periodos.periodos.length === 0 && !periodos.loading && <EstadoVacio text="Sin períodos definidos." />}
+      </div>
+
+      {/* ── Columna derecha: contexto ── */}
+      <div className="w-80 shrink-0 space-y-5">
+
+        {/* Escritura */}
+        <div>
+          <TituloCategoria titulo="Escritura" total={escritura.vinculaciones.length} />
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-stretch rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
+              <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)}
+                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70">
+                <option value="">— Vincular sistema —</option>
+                {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
+              </select>
+              <button onClick={vincularEscritura} disabled={!nuevaSistemaId}
+                className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors disabled:opacity-30 border-l border-primary/15">
+                <Plus size={12} /> Vincular
+              </button>
+            </div>
+            {escritura.vinculaciones.map((v) => (
+              <FilaContexto key={v.id} onEliminar={() => escritura.desvincular(v.id)}>
+                <span className="text-sm font-semibold text-primary">{v.sistema?.nombre}</span>
+                <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
+              </FilaContexto>
+            ))}
+            {escritura.vinculaciones.length === 0 && !escritura.loading && <EstadoVacio text="Sin sistemas de escritura vinculados." />}
+          </div>
+        </div>
+
+        {/* Variedades */}
+        <div>
+          <TituloCategoria titulo="Variedades" total={variedades.variedades.length} />
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-stretch rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
+              <input
+                placeholder="Nueva variedad…"
+                value={nuevaVariedad.nombre}
+                onChange={(e) => setNuevaVariedad((p) => ({ ...p, nombre: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && agregarVariedad()}
+                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
+              />
+              <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))}
+                className="shrink-0 w-28 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
+                {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+              <button onClick={agregarVariedad}
+                className="shrink-0 w-8 flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+                <Plus size={12} />
+              </button>
+            </div>
+            {variedades.variedades.map((v) => (
+              <FilaContexto key={v.id} onEliminar={() => variedades.eliminar(v.id)}>
+                <span className="text-sm font-semibold text-primary">{v.nombre}</span>
+                <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
+              </FilaContexto>
+            ))}
+            {variedades.variedades.length === 0 && !variedades.loading && <EstadoVacio text="Sin variedades registradas." />}
+          </div>
+        </div>
+
+        {/* Familias */}
+        <div>
+          <TituloCategoria titulo="Familias lingüísticas" total={det.familias.length} />
+          <div className="mt-2 space-y-1.5">
+            {det.familias.map((f) => (
+              <FilaContexto key={f.id} onEliminar={() => det.desvincularFamilia(f.id)}>
+                <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
+                <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
+              </FilaContexto>
+            ))}
+            {det.familias.length === 0 && <EstadoVacio text="Sin familia lingüística asignada." />}
+            {familiasDisp.length > 0 && (
+              <select
+                defaultValue=""
+                onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.currentTarget.value = ""; }}
+                className={`${INPUT_CLS} mt-1`}
+              >
+                <option value="">+ Vincular familia…</option>
+                {familiasDisp.filter((f) => !det.familias.some((df) => df.familia_id === f.id))
+                  .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+              </select>
+            )}
+          </div>
+        </div>
+
+        {/* Períodos */}
+        <div>
+          <TituloCategoria titulo="Períodos" total={periodos.periodos.length} />
+          <div className="mt-2 space-y-1.5">
+            <div className="flex items-stretch rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
+              <input
+                placeholder="Nombre del período…"
+                value={nuevoPeriodo}
+                onChange={(e) => setNuevoPeriodo(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && agregarPeriodo()}
+                className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
+              />
+              <button onClick={agregarPeriodo}
+                className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+                <Plus size={12} /> Agregar
+              </button>
+            </div>
+            {periodos.periodos.map((p) => (
+              <FilaContexto key={p.id} onEliminar={() => periodos.eliminarPeriodo(p.id)}>
+                <span className="text-sm font-semibold text-primary">{p.nombre}</span>
+                <span className="text-xs text-primary/35 ml-2">
+                  {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
+                </span>
+              </FilaContexto>
+            ))}
+            {periodos.periodos.length === 0 && !periodos.loading && <EstadoVacio text="Sin períodos definidos." />}
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -889,8 +908,8 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
         </div>
       )}
 
-      {/* Lista de lexemas */}
-      <div className="flex flex-col gap-1">
+      {/* Lista de lexemas — 2 columnas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
         {filtrados.map((lex: Lexema) => (
           <div
             key={lex.id}
