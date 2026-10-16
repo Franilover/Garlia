@@ -337,7 +337,7 @@ function DetalleIdioma({
       </div>
 
       {/* ── Contenido ── */}
-      <div className="flex-1 overflow-y-auto min-w-0 w-0">
+      <div className="flex-1 overflow-y-auto min-w-0">
         {tab === "general"    && (
           <div className="p-5">
             <TabGeneral
