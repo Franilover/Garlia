@@ -112,26 +112,24 @@ export function IdiomasSection() {
       <aside className="w-64 shrink-0 border-r border-primary/10 flex flex-col">
 
         <div className="border-b border-primary/10">
-          {/* Buscador */}
-          <div className="p-2 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
+          {/* Buscador + botón nuevo en la misma fila */}
+          <div className="p-2 flex items-center gap-1.5">
+            <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg min-w-0">
               <Search size={12} className="text-primary/30 shrink-0" />
               <input
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar idioma…"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-primary/25"
               />
             </div>
-          </div>
-          {/* Botón nuevo */}
-          <div className="px-2 pb-2">
             <button
               type="button"
               onClick={() => setCreando(true)}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/8 hover:bg-primary/15 transition-colors text-xs font-semibold text-primary/70 hover:text-primary"
+              title="Nuevo idioma"
+              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg bg-primary/8 hover:bg-primary/20 transition-colors text-primary/60 hover:text-primary"
             >
-              <Plus size={13} /> Nuevo idioma
+              <Plus size={14} />
             </button>
           </div>
         </div>
@@ -438,12 +436,14 @@ function TabGeneral({
       {/* ── Escritura ── */}
       <TituloCategoria titulo="Escritura" total={escritura.vinculaciones.length} />
       <div className="mb-6 space-y-1.5">
-        <div className="flex gap-2 mb-3 flex-wrap">
-          <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)} className={`${INPUT_CLS} flex-1`}>
+        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
+          <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70">
             <option value="">— Vincular sistema —</option>
             {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
           </select>
-          <button onClick={vincularEscritura} disabled={!nuevaSistemaId} className={BTN_PRIMARY_CLS}>
+          <button onClick={vincularEscritura} disabled={!nuevaSistemaId}
+            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors disabled:opacity-30 border-l border-primary/15">
             <Plus size={12} /> Vincular
           </button>
         </div>
@@ -459,18 +459,22 @@ function TabGeneral({
       {/* ── Variedades ── */}
       <TituloCategoria titulo="Variedades" total={variedades.variedades.length} />
       <div className="mb-6 space-y-1.5">
-        <div className="flex gap-2 mb-3 flex-wrap">
+        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
           <input
             placeholder="Nueva variedad…"
             value={nuevaVariedad.nombre}
             onChange={(e) => setNuevaVariedad((p) => ({ ...p, nombre: e.target.value }))}
             onKeyDown={(e) => e.key === "Enter" && agregarVariedad()}
-            className={`${INPUT_CLS} flex-1 min-w-32`}
+            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
           />
-          <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))} className={`${INPUT_CLS} w-36`}>
+          <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))}
+            className="shrink-0 w-32 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
             {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <button onClick={agregarVariedad} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
+          <button onClick={agregarVariedad}
+            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+            <Plus size={12} /> Agregar
+          </button>
         </div>
         {variedades.variedades.map((v) => (
           <FilaContexto key={v.id} onEliminar={() => variedades.eliminar(v.id)}>
@@ -525,15 +529,18 @@ function TabGeneral({
       {/* ── Períodos ── */}
       <TituloCategoria titulo="Períodos" total={periodos.periodos.length} />
       <div className="mb-2 space-y-1.5">
-        <div className="flex gap-2 mb-3">
+        <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
           <input
             placeholder="Nombre del período…"
             value={nuevoPeriodo}
             onChange={(e) => setNuevoPeriodo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && agregarPeriodo()}
-            className={`${INPUT_CLS} flex-1`}
+            className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
           />
-          <button onClick={agregarPeriodo} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
+          <button onClick={agregarPeriodo}
+            className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+            <Plus size={12} /> Agregar
+          </button>
         </div>
         {periodos.periodos.map((p) => (
           <FilaContexto key={p.id} onEliminar={() => periodos.eliminarPeriodo(p.id)}>
@@ -617,13 +624,19 @@ function BloquesFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFon
       )}
 
       {/* Form agregar */}
-      <div className="flex gap-1.5 mb-4 flex-wrap">
-        <input placeholder="Símbolo" value={nuevo.simbolo} onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))} className={`${INPUT_CLS} w-24`} />
-        <input placeholder="IPA" value={nuevo.ipa} onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))} className={`${INPUT_CLS} w-24`} />
-        <select value={nuevo.clase} onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))} className={`${INPUT_CLS} flex-1 min-w-24`}>
+      <div className="flex items-stretch mb-4 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
+        <input placeholder="Símbolo" value={nuevo.simbolo} onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))}
+          className="w-20 shrink-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25" />
+        <input placeholder="IPA" value={nuevo.ipa} onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))}
+          className="w-20 shrink-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25 border-l border-primary/15" />
+        <select value={nuevo.clase} onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))}
+          className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
           {CLASES_FONEMA.map((c) => <option key={c} value={c}>{CLASE_FONEMA_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /></button>
+        <button onClick={agregar}
+          className="shrink-0 w-9 flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+          <Plus size={13} />
+        </button>
       </div>
 
       {/* Grillas por grupo */}
@@ -687,18 +700,22 @@ function BloquesMorfologia({ morfemas: hook }: { morfemas: ReturnType<typeof use
 
   return (
     <div className="px-2">
-      <div className="flex gap-1.5 mb-4 flex-wrap">
+      <div className="flex items-stretch mb-4 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
         <input
           placeholder="Forma (ej: -ak)"
           value={nueva.forma}
           onChange={(e) => setNueva((p) => ({ ...p, forma: e.target.value }))}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className={`${INPUT_CLS} flex-1 min-w-28`}
+          className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
         />
-        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))} className={`${INPUT_CLS} w-32`}>
+        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))}
+          className="shrink-0 w-28 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
           {Object.entries(TIPOS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /></button>
+        <button onClick={agregar}
+          className="shrink-0 w-9 flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+          <Plus size={13} />
+        </button>
       </div>
 
       {grupos.map((g) => (
@@ -800,18 +817,22 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
   return (
     <div>
       {/* Barra de acción */}
-      <div className="flex gap-2 mb-3 flex-wrap">
+      <div className="flex items-stretch mb-3 rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
         <input
           placeholder="Nuevo lema…"
           value={nuevoLema}
           onChange={(e) => setNuevoLema(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className={`${INPUT_CLS} flex-1 min-w-36`}
+          className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
         />
-        <select value={nuevaCat} onChange={(e) => setNuevaCat(e.target.value as CategoriaGramatical)} className={`${INPUT_CLS} w-40`}>
+        <select value={nuevaCat} onChange={(e) => setNuevaCat(e.target.value as CategoriaGramatical)}
+          className="shrink-0 w-36 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
           {CATS_GRAM.map((c) => <option key={c} value={c}>{CAT_GRAM_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
+        <button onClick={agregar}
+          className="shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
       {/* Buscador — aparece cuando hay suficientes entradas */}
@@ -825,7 +846,12 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
           />
           {busqueda && (
-            <button onClick={() => setBusqueda("")} className={BTN_ICON_CLS}><X size={11} /></button>
+            <button
+              onClick={() => setBusqueda("")}
+              className="shrink-0 flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary/70 transition-colors"
+            >
+              <X size={10} />
+            </button>
           )}
         </div>
       )}
