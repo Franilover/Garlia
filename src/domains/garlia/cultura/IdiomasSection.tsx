@@ -1,9 +1,10 @@
 "use client";
 /**
- * IdiomasSection — Editor de Mundo · Idiomas  v4
+ * IdiomasSection — Editor de Mundo · Idiomas  v5
  * ──────────────────────────────────────────────
- * Layout: lista izquierda fija + panel de detalle derecho con tabs.
- * Usa el schema real de Supabase (proyecto Franiloverart).
+ * Rediseño: colores dinámicos via Tailwind (text-primary, bg-input-bg,
+ * border-primary/15, etc.) en lugar de hex hardcodeados. Misma estética
+ * minimalista y funcional del resto del proyecto.
  *
  * Tabs del detalle:
  *   info        → nombre, endónimo, descripción, tipo, estado, fuente
@@ -17,9 +18,9 @@
  *   periodos    → períodos lingüísticos
  */
 import {
-  AlignLeft, ArrowLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
+  AlignLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
   FileText, Globe, Languages, List, Loader2, Mic, Plus,
-  Search, Trash2, X, Link2, AlertTriangle,
+  Search, Trash2, X, Link2,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -32,14 +33,24 @@ import type {
   PerfilGramatical, VariedadLinguistica, IdiomaEscritura,
   EstadoCanon, CategoriaGramatical, ClaseFonema, TipoVariedad,
 } from "./types";
+import {
+  INPUT_CLS, LABEL_CLS,
+  BTN_PRIMARY_CLS, BTN_GHOST_CLS, BTN_DANGER_CLS, BTN_ICON_CLS,
+  SECTION_TITLE_CLS,
+} from "@/domains/garlia/_shared/types";
 
 // ── Constantes de label ───────────────────────────────────────────────────
 
 const ESTADO_LABELS: Record<EstadoCanon, string> = {
   borrador: "Borrador", canon: "Cánon", revision: "En revisión", descartado: "Descartado",
 };
-const ESTADO_COLORS: Record<EstadoCanon, string> = {
-  borrador: "#9ca3af", canon: "#4ade80", revision: "#f59e0b", descartado: "#f87171",
+
+// Clases Tailwind semánticas por estado (sin hex hardcodeado)
+const ESTADO_CLS: Record<EstadoCanon, { dot: string; badge: string }> = {
+  borrador:   { dot: "bg-primary/30",     badge: "text-primary/50 bg-primary/8 border-primary/15" },
+  canon:      { dot: "bg-emerald-400",    badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
+  revision:   { dot: "bg-amber-400",      badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
+  descartado: { dot: "bg-red-400/70",     badge: "text-red-400/70 bg-red-400/8 border-red-400/15" },
 };
 
 const CAT_GRAM_LABELS: Record<CategoriaGramatical, string> = {
@@ -60,33 +71,24 @@ const TIPO_VARIEDAD_LABELS: Record<TipoVariedad, string> = {
   historica: "Histórica", otro: "Otro",
 };
 
-const PUNTOS_ARTICULACION = [
-  "bilabial", "labiodental", "dental", "alveolar", "postalveolar",
-  "retrofleja", "palatal", "velar", "uvular", "faríngea", "glotal", "otro",
-];
-const MODOS_ARTICULACION = [
-  "oclusiva", "fricativa", "africada", "nasal", "lateral",
-  "vibrante", "aproximante", "eyectiva", "implosiva", "otro",
-];
-
 type TabId = "info" | "fonologia" | "lexico" | "morfologia" | "gramatica" | "escritura" | "variedades" | "relaciones" | "periodos";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "info",       label: "Info",       icon: <FileText size={14} /> },
-  { id: "fonologia",  label: "Fonología",  icon: <Mic size={14} /> },
-  { id: "lexico",     label: "Léxico",     icon: <Book size={14} /> },
-  { id: "morfologia", label: "Morfología", icon: <AlignLeft size={14} /> },
-  { id: "gramatica",  label: "Gramática",  icon: <List size={14} /> },
-  { id: "escritura",  label: "Escritura",  icon: <BookOpen size={14} /> },
-  { id: "variedades", label: "Variedades", icon: <Globe size={14} /> },
-  { id: "relaciones", label: "Relaciones", icon: <Link2 size={14} /> },
-  { id: "periodos",   label: "Períodos",   icon: <AlignLeft size={14} /> },
+  { id: "info",       label: "Info",       icon: <FileText size={13} /> },
+  { id: "fonologia",  label: "Fonología",  icon: <Mic size={13} /> },
+  { id: "lexico",     label: "Léxico",     icon: <Book size={13} /> },
+  { id: "morfologia", label: "Morfología", icon: <AlignLeft size={13} /> },
+  { id: "gramatica",  label: "Gramática",  icon: <List size={13} /> },
+  { id: "escritura",  label: "Escritura",  icon: <BookOpen size={13} /> },
+  { id: "variedades", label: "Variedades", icon: <Globe size={13} /> },
+  { id: "relaciones", label: "Relaciones", icon: <Link2 size={13} /> },
+  { id: "periodos",   label: "Períodos",   icon: <AlignLeft size={13} /> },
 ];
 
 // ── Componente principal ──────────────────────────────────────────────────
 
 export function IdiomasSection() {
-  const { idiomas, loading: loadingLista, error: errorLista, cargar: recargarLista, crear: crearIdioma, eliminar: eliminarIdioma } = useIdiomas();
+  const { idiomas, loading: loadingLista, crear: crearIdioma, eliminar: eliminarIdioma } = useIdiomas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<TabId>("info");
   const [busqueda, setBusqueda] = useState("");
@@ -107,70 +109,60 @@ export function IdiomasSection() {
     const nombre = nuevoNombre.trim();
     if (!nombre) return;
     const nuevo = await crearIdioma(nombre);
-    if (nuevo) {
-      setSelectedId(nuevo.id);
-      setTab("info");
-    }
+    if (nuevo) { setSelectedId(nuevo.id); setTab("info"); }
     setCreando(false);
     setNuevoNombre("");
   };
 
   return (
-    <div style={{ display: "flex", height: "100%", gap: 0 }}>
+    <div className="flex h-full">
       {/* ── Lista lateral ──────────────────────────────────────────── */}
-      <aside style={{
-        width: 260, flexShrink: 0, borderRight: "1px solid #2a2a2a",
-        display: "flex", flexDirection: "column", background: "#111",
-      }}>
-        {/* Header */}
-        <div style={{ padding: "12px 14px 8px", borderBottom: "1px solid #2a2a2a" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#e5e7eb", display: "flex", alignItems: "center", gap: 6 }}>
-              <Languages size={15} style={{ color: "#60a5fa" }} /> Idiomas
-            </span>
-            <button
-              onClick={() => setCreando(true)}
-              style={{ background: "none", border: "none", color: "#60a5fa", cursor: "pointer", padding: 2 }}
-              title="Nuevo idioma"
-            >
-              <Plus size={16} />
-            </button>
+      <aside className="w-64 shrink-0 border-r border-primary/10 flex flex-col">
+
+        {/* Header buscador */}
+        <div className="border-b border-primary/10">
+          <div className="p-2 flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
+              <Search size={12} className="text-primary/30 shrink-0" />
+              <input
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar idioma…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
+              />
+            </div>
           </div>
-          <div style={{ position: "relative" }}>
-            <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#6b7280" }} />
-            <input
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar..."
-              style={{
-                width: "100%", padding: "5px 8px 5px 26px", background: "#1a1a1a",
-                border: "1px solid #2a2a2a", borderRadius: 6, color: "#e5e7eb",
-                fontSize: 12, boxSizing: "border-box",
-              }}
-            />
+          <div className="px-2 pb-2">
+            <button
+              type="button"
+              onClick={() => setCreando(true)}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-primary/8 hover:bg-primary/15 transition-colors text-xs font-semibold text-primary/70 hover:text-primary"
+            >
+              <Plus size={13} /> Nuevo idioma
+            </button>
           </div>
         </div>
 
         {/* Formulario crear */}
         {creando && (
-          <div style={{ padding: "8px 12px", borderBottom: "1px solid #2a2a2a", background: "#161616" }}>
+          <div className="px-2 py-2 border-b border-primary/10 bg-primary/4">
             <input
               ref={inputRef}
               value={nuevoNombre}
               onChange={(e) => setNuevoNombre(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleCrear(); if (e.key === "Escape") { setCreando(false); setNuevoNombre(""); } }}
-              placeholder="Nombre del idioma..."
-              style={{
-                width: "100%", padding: "6px 8px", background: "#1f1f1f",
-                border: "1px solid #60a5fa", borderRadius: 6, color: "#e5e7eb",
-                fontSize: 12, boxSizing: "border-box", marginBottom: 6,
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCrear();
+                if (e.key === "Escape") { setCreando(false); setNuevoNombre(""); }
               }}
+              placeholder="Nombre del idioma…"
+              className={`${INPUT_CLS} mb-2`}
             />
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={handleCrear} style={{ flex: 1, padding: "5px 8px", background: "#2563eb", border: "none", borderRadius: 5, color: "#fff", fontSize: 12, cursor: "pointer" }}>
-                Crear
-              </button>
-              <button onClick={() => { setCreando(false); setNuevoNombre(""); }} style={{ flex: 1, padding: "5px 8px", background: "#374151", border: "none", borderRadius: 5, color: "#9ca3af", fontSize: 12, cursor: "pointer" }}>
+            <div className="flex gap-1.5">
+              <button onClick={handleCrear} className={`${BTN_PRIMARY_CLS} flex-1`}>Crear</button>
+              <button
+                onClick={() => { setCreando(false); setNuevoNombre(""); }}
+                className={`${BTN_GHOST_CLS} flex-1`}
+              >
                 Cancelar
               </button>
             </div>
@@ -178,41 +170,49 @@ export function IdiomasSection() {
         )}
 
         {/* Lista */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          {loadingLista && <div style={{ padding: 16, textAlign: "center" }}><Loader2 size={16} style={{ color: "#6b7280", animation: "spin 1s linear infinite" }} /></div>}
-          {!loadingLista && idiomasFiltrados.map((idioma: Idioma) => (
-            <button
-              key={idioma.id}
-              onClick={() => { setSelectedId(idioma.id); setTab("info"); }}
-              style={{
-                width: "100%", padding: "9px 14px", background: selectedId === idioma.id ? "#1d2433" : "transparent",
-                border: "none", borderLeft: selectedId === idioma.id ? "2px solid #60a5fa" : "2px solid transparent",
-                color: selectedId === idioma.id ? "#e5e7eb" : "#9ca3af",
-                textAlign: "left", cursor: "pointer", fontSize: 13,
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-              }}
-            >
-              <span>
-                <span style={{ fontWeight: selectedId === idioma.id ? 600 : 400 }}>{idioma.nombre}</span>
-                {idioma.endonimo && <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 5 }}>({idioma.endonimo})</span>}
-              </span>
-              <span style={{
-                width: 7, height: 7, borderRadius: "50%",
-                background: ESTADO_COLORS[idioma.estado ?? "borrador"],
-                flexShrink: 0,
-              }} />
-            </button>
-          ))}
-          {!loadingLista && idiomasFiltrados.length === 0 && (
-            <div style={{ padding: "24px 16px", textAlign: "center", color: "#6b7280", fontSize: 12 }}>
-              {busqueda ? "Sin resultados" : "No hay idiomas todavía"}
+        <div className="flex-1 overflow-y-auto">
+          {loadingLista && (
+            <div className="flex justify-center py-6">
+              <Loader2 size={15} className="text-primary/30 animate-spin" />
             </div>
+          )}
+          {!loadingLista && idiomasFiltrados.map((idioma: Idioma) => {
+            const activo = selectedId === idioma.id;
+            const estado = idioma.estado ?? "borrador";
+            return (
+              <button
+                key={idioma.id}
+                type="button"
+                onClick={() => { setSelectedId(idioma.id); setTab("info"); }}
+                className={`
+                  w-full px-3 py-2.5 text-left flex items-center justify-between gap-2
+                  border-l-2 transition-colors
+                  ${activo
+                    ? "border-primary bg-primary/8 text-primary font-semibold"
+                    : "border-transparent text-primary/60 hover:text-primary hover:bg-primary/5 font-medium"
+                  }
+                `}
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm truncate">{idioma.nombre}</span>
+                  {idioma.endonimo && (
+                    <span className="block text-[11px] text-primary/35 truncate italic">{idioma.endonimo}</span>
+                  )}
+                </span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${ESTADO_CLS[estado].dot}`} />
+              </button>
+            );
+          })}
+          {!loadingLista && idiomasFiltrados.length === 0 && (
+            <p className="px-4 py-6 text-center text-xs text-primary/30 italic">
+              {busqueda ? "Sin resultados" : "No hay idiomas todavía"}
+            </p>
           )}
         </div>
       </aside>
 
       {/* ── Panel de detalle ──────────────────────────────────────── */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "#0f0f0f" }}>
+      <main className="flex-1 flex flex-col overflow-hidden">
         {selectedId ? (
           <DetalleIdioma
             idiomaId={selectedId}
@@ -224,10 +224,10 @@ export function IdiomasSection() {
             }}
           />
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#374151" }}>
-            <div style={{ textAlign: "center" }}>
-              <Languages size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
-              <p style={{ fontSize: 13 }}>Seleccioná un idioma o creá uno nuevo</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center text-primary/20">
+              <Languages size={36} className="mx-auto mb-3 opacity-40" />
+              <p className="text-xs">Seleccioná un idioma o creá uno nuevo</p>
             </div>
           </div>
         )}
@@ -259,34 +259,32 @@ function DetalleIdioma({
 
   if (det.loading) {
     return (
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Loader2 size={20} style={{ color: "#60a5fa", animation: "spin 1s linear infinite" }} />
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 size={18} className="text-primary/40 animate-spin" />
       </div>
     );
   }
   if (!det.idioma) return null;
 
   const idioma: Idioma = det.idioma;
+  const estado = idioma.estado ?? "borrador";
 
   return (
     <>
       {/* Header del detalle */}
-      <div style={{ padding: "14px 20px 0", borderBottom: "1px solid #1f1f1f" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#f3f4f6" }}>{idioma.nombre}</h2>
-            {idioma.endonimo && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b7280", fontStyle: "italic" }}>{idioma.endonimo}</p>}
-            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-              <span style={{
-                padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 500,
-                background: ESTADO_COLORS[idioma.estado ?? "borrador"] + "22",
-                color: ESTADO_COLORS[idioma.estado ?? "borrador"],
-                border: `1px solid ${ESTADO_COLORS[idioma.estado ?? "borrador"]}44`,
-              }}>
-                {ESTADO_LABELS[idioma.estado ?? "borrador"]}
+      <div className="px-5 pt-4 pb-0 border-b border-primary/10">
+        <div className="flex items-start justify-between mb-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-black text-primary truncate">{idioma.nombre}</h2>
+            {idioma.endonimo && (
+              <p className="mt-0.5 text-xs text-primary/40 italic">{idioma.endonimo}</p>
+            )}
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${ESTADO_CLS[estado].badge}`}>
+                {ESTADO_LABELS[estado]}
               </span>
               {idioma.es_protolengua && (
-                <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 11, background: "#7c3aed22", color: "#a78bfa", border: "1px solid #7c3aed44" }}>
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border text-violet-400 bg-violet-400/10 border-violet-400/20">
                   Protolengua
                 </span>
               )}
@@ -294,26 +292,28 @@ function DetalleIdioma({
           </div>
           <button
             onClick={onEliminar}
-            style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", padding: 4 }}
+            className={BTN_ICON_CLS}
             title="Eliminar idioma"
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
+        <div className="flex gap-0 overflow-x-auto -mb-px">
           {TABS.map((t) => (
             <button
               key={t.id}
+              type="button"
               onClick={() => onTabChange(t.id)}
-              style={{
-                padding: "7px 13px", background: "none", border: "none",
-                borderBottom: tab === t.id ? "2px solid #60a5fa" : "2px solid transparent",
-                color: tab === t.id ? "#60a5fa" : "#6b7280",
-                fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
-                display: "flex", alignItems: "center", gap: 5,
-              }}
+              className={`
+                flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold whitespace-nowrap
+                border-b-2 transition-colors
+                ${tab === t.id
+                  ? "border-primary text-primary"
+                  : "border-transparent text-primary/40 hover:text-primary/70"
+                }
+              `}
             >
               {t.icon} {t.label}
             </button>
@@ -322,23 +322,18 @@ function DetalleIdioma({
       </div>
 
       {/* Contenido por tab */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-        {tab === "info" && <TabInfo idioma={idioma} onGuardar={det.guardar} saving={det.saving} />}
-        {tab === "fonologia" && <TabFonologia fonemas={fonemas} />}
-        {tab === "lexico" && <TabLexico lexemas={lexemas} />}
+      <div className="flex-1 overflow-y-auto p-5">
+        {tab === "info"       && <TabInfo idioma={idioma} onGuardar={det.guardar} saving={det.saving} />}
+        {tab === "fonologia"  && <TabFonologia fonemas={fonemas} />}
+        {tab === "lexico"     && <TabLexico lexemas={lexemas} />}
         {tab === "morfologia" && <TabMorfologia morfemas={morfemas} idiomaId={idiomaId} />}
-        {tab === "gramatica" && <TabGramatica perfil={perfil} />}
-        {tab === "escritura" && <TabEscritura escritura={escritura} sistemasDisp={sistemasDisp} crearSistema={crearSistema} />}
+        {tab === "gramatica"  && <TabGramatica perfil={perfil} />}
+        {tab === "escritura"  && <TabEscritura escritura={escritura} sistemasDisp={sistemasDisp} crearSistema={crearSistema} />}
         {tab === "variedades" && <TabVariedades variedades={variedades} />}
         {tab === "relaciones" && (
-          <TabRelaciones
-            det={det}
-            idiomaId={idiomaId}
-            familiasDisp={familiasDisp}
-            todosLosIdiomas={[]}
-          />
+          <TabRelaciones det={det} idiomaId={idiomaId} familiasDisp={familiasDisp} todosLosIdiomas={[]} />
         )}
-        {tab === "periodos" && <TabPeriodos periodos={periodos} />}
+        {tab === "periodos"   && <TabPeriodos periodos={periodos} />}
       </div>
     </>
   );
@@ -353,43 +348,42 @@ function TabInfo({ idioma, onGuardar, saving }: {
 }) {
   const [local, setLocal] = useState<Partial<Idioma>>({});
   const merged = { ...idioma, ...local };
-
   const set = (k: keyof Idioma, v: unknown) => setLocal((p) => ({ ...p, [k]: v }));
   const guardar = () => { onGuardar(local); setLocal({}); };
   const dirty = Object.keys(local).length > 0;
 
   return (
-    <div style={{ maxWidth: 600 }}>
+    <div className="max-w-lg space-y-4">
       <Field label="Nombre">
-        <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} style={inputStyle} />
+        <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
       </Field>
       <Field label="Endónimo (nombre en el propio idioma)">
-        <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} style={inputStyle} />
+        <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} className={INPUT_CLS} />
       </Field>
       <Field label="Descripción">
-        <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={4} style={{ ...inputStyle, resize: "vertical" }} />
+        <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={4} className={`${INPUT_CLS} resize-y`} />
       </Field>
       <Field label="Estado">
-        <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} style={inputStyle}>
+        <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} className={INPUT_CLS}>
           {Object.entries(ESTADO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </Field>
       <Field label="¿Es protolengua?">
-        <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af", fontSize: 13 }}>
-          <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} />
+        <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
+          <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
           Marcar como protolengua
         </label>
       </Field>
       <Field label="Fuente canon">
-        <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} style={inputStyle} />
+        <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
       </Field>
       <Field label="Notas de documentación">
-        <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} />
+        <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
       </Field>
 
       {dirty && (
-        <button onClick={guardar} disabled={saving} style={btnPrimary}>
-          {saving ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Check size={13} />}
+        <button onClick={guardar} disabled={saving} className={BTN_PRIMARY_CLS}>
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
           Guardar cambios
         </button>
       )}
@@ -411,18 +405,18 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
 
   const grupos: { label: string; items: typeof hook.fonemas }[] = [
     { label: "Consonantes", items: hook.consonantes },
-    { label: "Vocales", items: hook.vocales },
-    { label: "Otros", items: hook.otros },
+    { label: "Vocales",     items: hook.vocales },
+    { label: "Otros",       items: hook.otros },
   ];
 
   return (
     <div>
-      <SectionHeader title="Inventario fonémico" count={hook.fonemas.length} />
+      <SeccionHeader title="Inventario fonémico" count={hook.fonemas.length} />
 
       {/* Prosodia */}
       {hook.prosodia && (
-        <div style={{ padding: "10px 14px", background: "#161616", borderRadius: 8, marginBottom: 16, fontSize: 12, color: "#9ca3af" }}>
-          <span style={{ color: "#e5e7eb", fontWeight: 500 }}>Prosodia:</span>{" "}
+        <div className="mb-4 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10 text-xs text-primary/60">
+          <span className="font-bold text-primary/80">Prosodia: </span>
           {hook.prosodia.sistema_prosodico}
           {hook.prosodia.tono_distintivo && " · tono distintivo"}
           {hook.prosodia.duracion_distintiva && " · duración distintiva"}
@@ -430,47 +424,65 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
       )}
 
       {/* Agregar fonema */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <input placeholder="Símbolo práctico (ej: kh)" value={nuevo.simbolo} onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))} style={{ ...inputStyle, width: 130 }} />
-        <input placeholder="IPA (ej: x)" value={nuevo.ipa} onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))} style={{ ...inputStyle, width: 130 }} />
-        <select value={nuevo.clase} onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))} style={{ ...inputStyle, width: 140 }}>
+      <div className="flex gap-2 mb-5 flex-wrap">
+        <input
+          placeholder="Símbolo (ej: kh)"
+          value={nuevo.simbolo}
+          onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))}
+          className={`${INPUT_CLS} w-32`}
+        />
+        <input
+          placeholder="IPA (ej: x)"
+          value={nuevo.ipa}
+          onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))}
+          className={`${INPUT_CLS} w-32`}
+        />
+        <select
+          value={nuevo.clase}
+          onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))}
+          className={`${INPUT_CLS} w-36`}
+        >
           {CLASES_FONEMA.map((c) => <option key={c} value={c}>{CLASE_FONEMA_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} style={btnPrimary}><Plus size={13} /> Agregar</button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
-      {/* Tabla por grupo */}
+      {/* Grupos de fonemas */}
       {grupos.map((g) => g.items.length > 0 && (
-        <div key={g.label} style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>{g.label} ({g.items.length})</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 6 }}>
+        <div key={g.label} className="mb-5">
+          <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
             {g.items.map((f) => (
               <div
                 key={f.id}
-                style={{
-                  padding: "8px 10px", background: "#161616", borderRadius: 7,
-                  border: expandido === f.id ? "1px solid #60a5fa44" : "1px solid #2a2a2a",
-                  cursor: "pointer",
-                }}
                 onClick={() => setExpandido(expandido === f.id ? null : f.id)}
+                className={`
+                  px-3 py-2 rounded-lg border cursor-pointer transition-colors
+                  ${expandido === f.id
+                    ? "border-primary/30 bg-primary/8"
+                    : "border-primary/10 bg-primary/4 hover:bg-primary/8"
+                  }
+                `}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#e5e7eb", fontFamily: "monospace" }}>{f.simbolo}</span>
-                    <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 6, fontFamily: "monospace" }}>[{f.ipa}]</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="font-mono text-sm font-bold text-primary">{f.simbolo}</span>
+                    <span className="font-mono text-xs text-primary/40">[{f.ipa}]</span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); hook.eliminarFonema(f.id); }}
-                    style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", padding: 2 }}
+                    className={BTN_ICON_CLS}
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={11} />
                   </button>
                 </div>
                 {expandido === f.id && (
-                  <div style={{ marginTop: 8, fontSize: 12, color: "#9ca3af" }}>
-                    {f.punto_articulacion && <p style={{ margin: "2px 0" }}>Punto: {f.punto_articulacion}</p>}
-                    {f.modo_articulacion && <p style={{ margin: "2px 0" }}>Modo: {f.modo_articulacion}</p>}
-                    {f.notas && <p style={{ margin: "4px 0", color: "#6b7280", fontStyle: "italic" }}>{f.notas}</p>}
+                  <div className="mt-2 space-y-0.5 text-[11px] text-primary/50">
+                    {f.punto_articulacion && <p>Punto: {f.punto_articulacion}</p>}
+                    {f.modo_articulacion  && <p>Modo: {f.modo_articulacion}</p>}
+                    {f.notas             && <p className="italic">{f.notas}</p>}
                   </div>
                 )}
               </div>
@@ -480,7 +492,7 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
       ))}
 
       {hook.fonemas.length === 0 && !hook.loading && (
-        <EmptyState text="No hay fonemas registrados. Agregá consonantes y vocales arriba." />
+        <EstadoVacio text="No hay fonemas registrados. Agregá consonantes y vocales arriba." />
       )}
     </div>
   );
@@ -509,104 +521,110 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
 
   return (
     <div>
-      <SectionHeader title="Diccionario / Léxico" count={hook.lexemas.length} />
+      <SeccionHeader title="Diccionario / Léxico" count={hook.lexemas.length} />
 
       {/* Nuevo lexema */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+      <div className="flex gap-2 mb-3 flex-wrap">
         <input
-          placeholder="Nuevo lema..."
+          placeholder="Nuevo lema…"
           value={nuevoLema}
           onChange={(e) => setNuevoLema(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          style={{ ...inputStyle, flex: 1, minWidth: 150 }}
+          className={`${INPUT_CLS} flex-1 min-w-36`}
         />
-        <select value={nuevaCat} onChange={(e) => setNuevaCat(e.target.value as CategoriaGramatical)} style={{ ...inputStyle, width: 160 }}>
+        <select value={nuevaCat} onChange={(e) => setNuevaCat(e.target.value as CategoriaGramatical)} className={`${INPUT_CLS} w-40`}>
           {CATS_GRAM.map((c) => <option key={c} value={c}>{CAT_GRAM_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} style={btnPrimary}><Plus size={13} /> Agregar</button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
       {/* Buscador */}
       {hook.lexemas.length > 10 && (
-        <div style={{ position: "relative", marginBottom: 12 }}>
-          <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: "#6b7280" }} />
-          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Filtrar léxico..." style={{ ...inputStyle, paddingLeft: 26 }} />
+        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg mb-3">
+          <Search size={12} className="text-primary/30 shrink-0" />
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Filtrar léxico…"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
+          />
         </div>
       )}
 
       {/* Lista lexemas */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className="flex flex-col gap-1">
         {filtrados.map((lex: Lexema) => (
           <div
             key={lex.id}
-            style={{ background: "#161616", borderRadius: 8, border: expandido === lex.id ? "1px solid #374151" : "1px solid #1f1f1f" }}
+            className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/20 bg-primary/5" : "border-primary/8 bg-primary/3"}`}
           >
-            {/* Cabecera lexema */}
             <div
-              style={{ padding: "10px 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+              className="px-3.5 py-2.5 cursor-pointer flex items-center justify-between"
               onClick={() => setExpandido(expandido === lex.id ? null : lex.id)}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#e5e7eb", fontFamily: "serif" }}>{lex.lema}</span>
-                {lex.transcripcion_ipa && <span style={{ fontSize: 12, color: "#6b7280", fontFamily: "monospace" }}>[{lex.transcripcion_ipa}]</span>}
-                <span style={{ fontSize: 11, color: "#4b5563", padding: "1px 6px", background: "#1f1f1f", borderRadius: 4 }}>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-serif text-sm font-bold text-primary truncate">{lex.lema}</span>
+                {lex.transcripcion_ipa && (
+                  <span className="font-mono text-[11px] text-primary/35 shrink-0">[{lex.transcripcion_ipa}]</span>
+                )}
+                <span className="text-[10px] text-primary/40 px-1.5 py-0.5 bg-primary/8 rounded shrink-0">
                   {CAT_GRAM_LABELS[lex.categoria_gramatical]}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div className="flex items-center gap-2 shrink-0">
                 {lex.sentidos && lex.sentidos.length > 0 && (
-                  <span style={{ fontSize: 11, color: "#6b7280" }}>{lex.sentidos.length} sentido{lex.sentidos.length !== 1 ? "s" : ""}</span>
+                  <span className="text-[11px] text-primary/30">{lex.sentidos.length} acep.</span>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); hook.eliminar(lex.id); }}
-                  style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", padding: 2 }}
+                  className={BTN_ICON_CLS}
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={11} />
                 </button>
-                {expandido === lex.id ? <ChevronUp size={14} style={{ color: "#6b7280" }} /> : <ChevronDown size={14} style={{ color: "#6b7280" }} />}
+                {expandido === lex.id
+                  ? <ChevronUp size={13} className="text-primary/30" />
+                  : <ChevronDown size={13} className="text-primary/30" />
+                }
               </div>
             </div>
 
-            {/* Detalle lexema expandido */}
             {expandido === lex.id && (
-              <div style={{ padding: "0 14px 14px", borderTop: "1px solid #1f1f1f" }}>
-                {/* Definición breve */}
-                <div style={{ marginTop: 10 }}>
-                  <label style={labelStyle}>Definición breve</label>
+              <div className="px-3.5 pb-3.5 border-t border-primary/8 pt-3 space-y-3">
+                <div>
+                  <label className={LABEL_CLS}>Definición breve</label>
                   <input
                     defaultValue={lex.definicion_breve ?? ""}
                     onBlur={(e) => { if (e.target.value !== (lex.definicion_breve ?? "")) hook.guardar(lex.id, { definicion_breve: e.target.value }); }}
-                    style={inputStyle}
-                    placeholder="Glosa rápida..."
+                    className={INPUT_CLS}
+                    placeholder="Glosa rápida…"
                   />
                 </div>
-
-                {/* Sentidos */}
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: 12, color: "#6b7280", fontWeight: 600, marginBottom: 6 }}>ACEPCIONES</p>
-                  {(lex.sentidos ?? []).map((s, i) => (
-                    <div key={s.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, color: "#4b5563", paddingTop: 4, minWidth: 16 }}>{i + 1}.</span>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          defaultValue={s.definicion}
-                          onBlur={(e) => { if (e.target.value !== s.definicion) hook.guardarSentido(lex.id, s.id, { definicion: e.target.value }); }}
-                          style={{ ...inputStyle, marginBottom: 4 }}
-                          placeholder="Definición..."
-                        />
-                        {s.uso_ejemplo && (
-                          <p style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic", margin: 0 }}>"{s.uso_ejemplo}"</p>
-                        )}
+                {(lex.sentidos ?? []).length > 0 && (
+                  <div>
+                    <p className={`${LABEL_CLS} mb-2`}>Acepciones</p>
+                    {(lex.sentidos ?? []).map((s, i) => (
+                      <div key={s.id} className="flex gap-2 items-start mb-2">
+                        <span className="text-[11px] text-primary/30 pt-2 min-w-4 tabular-nums">{i + 1}.</span>
+                        <div className="flex-1 space-y-1">
+                          <input
+                            defaultValue={s.definicion}
+                            onBlur={(e) => { if (e.target.value !== s.definicion) hook.guardarSentido(lex.id, s.id, { definicion: e.target.value }); }}
+                            className={INPUT_CLS}
+                            placeholder="Definición…"
+                          />
+                          {s.uso_ejemplo && (
+                            <p className="text-[11px] text-primary/35 italic px-1">"{s.uso_ejemplo}"</p>
+                          )}
+                        </div>
+                        <button onClick={() => hook.eliminarSentido(lex.id, s.id)} className={BTN_ICON_CLS}>
+                          <X size={11} />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => hook.eliminarSentido(lex.id, s.id)}
-                        style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", paddingTop: 4 }}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -614,7 +632,7 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
       </div>
 
       {hook.lexemas.length === 0 && !hook.loading && (
-        <EmptyState text="No hay lexemas registrados. Escribí el primer lema arriba." />
+        <EstadoVacio text="No hay lexemas registrados. Escribí el primer lema arriba." />
       )}
     </div>
   );
@@ -637,41 +655,42 @@ function TabMorfologia({ morfemas: hook, idiomaId }: { morfemas: ReturnType<type
   };
 
   const grupos = Object.keys(TIPOS_LABEL).map((tipo) => ({
-    tipo,
-    label: TIPOS_LABEL[tipo],
+    tipo, label: TIPOS_LABEL[tipo],
     items: hook.morfemas.filter((m) => m.tipo === tipo),
   })).filter((g) => g.items.length > 0);
 
   return (
     <div>
-      <SectionHeader title="Morfemas" count={hook.morfemas.length} />
+      <SeccionHeader title="Morfemas" count={hook.morfemas.length} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="flex gap-2 mb-5">
         <input
-          placeholder="Forma del morfema (ej: -ak)"
+          placeholder="Forma (ej: -ak)"
           value={nueva.forma}
           onChange={(e) => setNueva((p) => ({ ...p, forma: e.target.value }))}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          style={{ ...inputStyle, flex: 1 }}
+          className={`${INPUT_CLS} flex-1`}
         />
-        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))} style={{ ...inputStyle, width: 140 }}>
+        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))} className={`${INPUT_CLS} w-36`}>
           {Object.entries(TIPOS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button onClick={agregar} style={btnPrimary}><Plus size={13} /> Agregar</button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
       {grupos.map((g) => (
-        <div key={g.tipo} style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{g.label} ({g.items.length})</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div key={g.tipo} className="mb-5">
+          <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
+          <div className="flex flex-wrap gap-1.5">
             {g.items.map((m) => (
               <div
                 key={m.id}
-                style={{ padding: "6px 10px", background: "#1a1a1a", borderRadius: 6, border: "1px solid #2a2a2a", display: "flex", alignItems: "center", gap: 8 }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/5"
               >
-                <span style={{ fontFamily: "monospace", fontSize: 14, color: "#e5e7eb" }}>{m.forma}</span>
-                {m.significado && <span style={{ fontSize: 11, color: "#6b7280" }}>{m.significado}</span>}
-                <button onClick={() => hook.eliminarMorfema(m.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer", padding: 0 }}>
+                <span className="font-mono text-sm font-semibold text-primary">{m.forma}</span>
+                {m.significado && <span className="text-[11px] text-primary/40">{m.significado}</span>}
+                <button onClick={() => hook.eliminarMorfema(m.id)} className={BTN_ICON_CLS}>
                   <X size={11} />
                 </button>
               </div>
@@ -681,7 +700,7 @@ function TabMorfologia({ morfemas: hook, idiomaId }: { morfemas: ReturnType<type
       ))}
 
       {hook.morfemas.length === 0 && !hook.loading && (
-        <EmptyState text="No hay morfemas registrados." />
+        <EstadoVacio text="No hay morfemas registrados." />
       )}
     </div>
   );
@@ -693,44 +712,48 @@ function TabGramatica({ perfil: hook }: { perfil: ReturnType<typeof usePerfilGra
   const [local, setLocal] = useState<Partial<PerfilGramatical>>({});
   const p = hook.perfil;
   const merged = { ...p, ...local };
-
   const set = (k: keyof PerfilGramatical, v: unknown) => setLocal((prev) => ({ ...prev, [k]: v }));
   const guardar = () => { hook.guardar(local); setLocal({}); };
   const dirty = Object.keys(local).length > 0;
 
   return (
-    <div style={{ maxWidth: 600 }}>
-      <SectionHeader title="Perfil tipológico" />
-      {!p && <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Todavía no hay perfil gramatical. Completá algún campo para crearlo.</p>}
+    <div className="max-w-lg space-y-4">
+      <SeccionHeader title="Perfil tipológico" />
+      {!p && (
+        <p className="text-xs text-primary/40 italic mb-4">
+          Todavía no hay perfil gramatical. Completá algún campo para crearlo.
+        </p>
+      )}
 
       <Field label="Orden básico (ej: SOV, SVO)">
-        <input value={merged.orden_basico ?? ""} onChange={(e) => set("orden_basico", e.target.value)} style={inputStyle} placeholder="SOV, SVO, VSO…" />
+        <input value={merged.orden_basico ?? ""} onChange={(e) => set("orden_basico", e.target.value)} className={INPUT_CLS} placeholder="SOV, SVO, VSO…" />
       </Field>
       <Field label="Adjetivo · Sustantivo">
-        <input value={merged.orden_adjetivo_sustantivo ?? ""} onChange={(e) => set("orden_adjetivo_sustantivo", e.target.value)} style={inputStyle} placeholder="Adj-N o N-Adj" />
+        <input value={merged.orden_adjetivo_sustantivo ?? ""} onChange={(e) => set("orden_adjetivo_sustantivo", e.target.value)} className={INPUT_CLS} placeholder="Adj-N o N-Adj" />
       </Field>
       <Field label="Tipo de adposición">
-        <input value={merged.tipo_adposicion ?? ""} onChange={(e) => set("tipo_adposicion", e.target.value)} style={inputStyle} placeholder="preposición, posposición, ambigua" />
+        <input value={merged.tipo_adposicion ?? ""} onChange={(e) => set("tipo_adposicion", e.target.value)} className={INPUT_CLS} placeholder="preposición, posposición, ambigua" />
       </Field>
       <Field label="Estrategia de negación">
-        <input value={merged.estrategia_negacion ?? ""} onChange={(e) => set("estrategia_negacion", e.target.value)} style={inputStyle} placeholder="partícula, afijo, doble negación…" />
+        <input value={merged.estrategia_negacion ?? ""} onChange={(e) => set("estrategia_negacion", e.target.value)} className={INPUT_CLS} placeholder="partícula, afijo, doble negación…" />
       </Field>
       <Field label="Alineamiento (ej: nominativo-acusativo)">
-        <input value={merged.alineamiento ?? ""} onChange={(e) => set("alineamiento", e.target.value)} style={inputStyle} />
+        <input value={merged.alineamiento ?? ""} onChange={(e) => set("alineamiento", e.target.value)} className={INPUT_CLS} />
       </Field>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      <div className="grid grid-cols-2 gap-3">
         {([
-          ["genero_gramatical", "Género gramatical"],
-          ["numero_gramatical", "Número gramatical"],
-          ["caso_gramatical", "Caso gramatical"],
-          ["concordancia", "Concordancia"],
+          ["genero_gramatical",  "Género gramatical"],
+          ["numero_gramatical",  "Número gramatical"],
+          ["caso_gramatical",    "Caso gramatical"],
+          ["concordancia",       "Concordancia"],
         ] as [keyof PerfilGramatical, string][]).map(([k, label]) => (
-          <label key={k} style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af", fontSize: 13 }}>
+          <label key={k} className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
             <input
               type="checkbox"
               checked={(merged[k] as boolean | undefined) ?? false}
               onChange={(e) => set(k, e.target.checked)}
+              className="accent-primary"
             />
             {label}
           </label>
@@ -738,11 +761,13 @@ function TabGramatica({ perfil: hook }: { perfil: ReturnType<typeof usePerfilGra
       </div>
 
       <Field label="Notas">
-        <textarea value={merged.notas ?? ""} onChange={(e) => set("notas", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} />
+        <textarea value={merged.notas ?? ""} onChange={(e) => set("notas", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
       </Field>
 
       {dirty && (
-        <button onClick={guardar} style={btnPrimary}><Check size={13} /> Guardar perfil</button>
+        <button onClick={guardar} className={BTN_PRIMARY_CLS}>
+          <Check size={12} /> Guardar perfil
+        </button>
       )}
     </div>
   );
@@ -771,31 +796,35 @@ function TabEscritura({
 
   return (
     <div>
-      <SectionHeader title="Sistemas de escritura" count={escritura.vinculaciones.length} />
+      <SeccionHeader title="Sistemas de escritura" count={escritura.vinculaciones.length} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)} className={`${INPUT_CLS} flex-1`}>
           <option value="">— Seleccionar sistema —</option>
           {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
         </select>
-        <button onClick={vincular} disabled={!nuevaSistemaId} style={btnPrimary}><Plus size={13} /> Vincular</button>
+        <button onClick={vincular} disabled={!nuevaSistemaId} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Vincular
+        </button>
       </div>
 
-      {escritura.vinculaciones.map((v) => (
-        <div key={v.id} style={{ padding: "10px 14px", background: "#161616", borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 14 }}>{v.sistema?.nombre}</span>
-            <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
-            <span style={{ fontSize: 11, color: "#4b5563", marginLeft: 8 }}>{v.funcion}</span>
+      <div className="space-y-1.5">
+        {escritura.vinculaciones.map((v) => (
+          <div key={v.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+            <div>
+              <span className="text-sm font-semibold text-primary">{v.sistema?.nombre}</span>
+              <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
+              <span className="text-[11px] text-primary/30 ml-2">{v.funcion}</span>
+            </div>
+            <button onClick={() => escritura.desvincular(v.id)} className={BTN_ICON_CLS}>
+              <Trash2 size={12} />
+            </button>
           </div>
-          <button onClick={() => escritura.desvincular(v.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer" }}>
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {escritura.vinculaciones.length === 0 && !escritura.loading && (
-        <EmptyState text="No hay sistemas de escritura vinculados." />
+        <EstadoVacio text="No hay sistemas de escritura vinculados." />
       )}
     </div>
   );
@@ -815,37 +844,41 @@ function TabVariedades({ variedades: hook }: { variedades: ReturnType<typeof use
 
   return (
     <div>
-      <SectionHeader title="Variedades lingüísticas" count={hook.variedades.length} />
+      <SeccionHeader title="Variedades lingüísticas" count={hook.variedades.length} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="flex gap-2 mb-4 flex-wrap">
         <input
-          placeholder="Nombre de la variedad..."
+          placeholder="Nombre de la variedad…"
           value={nueva.nombre}
           onChange={(e) => setNueva((p) => ({ ...p, nombre: e.target.value }))}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          style={{ ...inputStyle, flex: 1 }}
+          className={`${INPUT_CLS} flex-1 min-w-36`}
         />
-        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))} style={{ ...inputStyle, width: 150 }}>
+        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))} className={`${INPUT_CLS} w-40`}>
           {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button onClick={agregar} style={btnPrimary}><Plus size={13} /> Agregar</button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
-      {hook.variedades.map((v) => (
-        <div key={v.id} style={{ padding: "10px 14px", background: "#161616", borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 14 }}>{v.nombre}</span>
-            <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
-            {v.descripcion && <p style={{ margin: "2px 0 0", fontSize: 12, color: "#6b7280" }}>{v.descripcion}</p>}
+      <div className="space-y-1.5">
+        {hook.variedades.map((v) => (
+          <div key={v.id} className="flex items-start justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+            <div>
+              <span className="text-sm font-semibold text-primary">{v.nombre}</span>
+              <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
+              {v.descripcion && <p className="mt-0.5 text-xs text-primary/40">{v.descripcion}</p>}
+            </div>
+            <button onClick={() => hook.eliminar(v.id)} className={BTN_ICON_CLS}>
+              <Trash2 size={12} />
+            </button>
           </div>
-          <button onClick={() => hook.eliminar(v.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer" }}>
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {hook.variedades.length === 0 && !hook.loading && (
-        <EmptyState text="No hay variedades registradas." />
+        <EstadoVacio text="No hay variedades registradas." />
       )}
     </div>
   );
@@ -861,74 +894,67 @@ function TabRelaciones({
   familiasDisp: ReturnType<typeof useFamilias>["familias"];
   todosLosIdiomas: Idioma[];
 }) {
-  const TIPOS_REL: Array<{ value: string; label: string }> = [
-    { value: "descendencia", label: "Descendencia" },
-    { value: "prestamo", label: "Préstamo" },
-    { value: "influencia", label: "Influencia" },
-    { value: "pidgin", label: "Pidgin" },
-    { value: "creole", label: "Créole" },
-    { value: "otro", label: "Otro" },
-  ];
-
   return (
-    <div>
+    <div className="space-y-6">
       {/* Familias */}
-      <SectionHeader title="Familias lingüísticas" count={det.familias.length} />
-      <div style={{ marginBottom: 20 }}>
-        {det.familias.length > 0 ? det.familias.map((f) => (
-          <div key={f.id} style={{ padding: "8px 12px", background: "#161616", borderRadius: 8, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 13 }}>{f.familia?.nombre}</span>
-              <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>{f.tipo_clasificacion}</span>
+      <div>
+        <SeccionHeader title="Familias lingüísticas" count={det.familias.length} />
+        <div className="space-y-1.5 mb-3">
+          {det.familias.length > 0 ? det.familias.map((f) => (
+            <div key={f.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+              <div>
+                <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
+                <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
+              </div>
+              <button onClick={() => det.desvincularFamilia(f.id)} className={BTN_ICON_CLS}>
+                <X size={12} />
+              </button>
             </div>
-            <button onClick={() => det.desvincularFamilia(f.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer" }}>
-              <X size={12} />
-            </button>
-          </div>
-        )) : (
-          <EmptyState text="Sin familia lingüística asignada." />
-        )}
+          )) : (
+            <EstadoVacio text="Sin familia lingüística asignada." />
+          )}
+        </div>
 
         {familiasDisp.length > 0 && (
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <select
-              defaultValue=""
-              onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.target.value = ""; }}
-              style={{ ...inputStyle, flex: 1 }}
-            >
-              <option value="">+ Vincular familia...</option>
-              {familiasDisp
-                .filter((f) => !det.familias.some((df) => df.familia_id === f.id))
-                .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)
-              }
-            </select>
-          </div>
+          <select
+            defaultValue=""
+            onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.currentTarget.value = ""; }}
+            className={INPUT_CLS}
+          >
+            <option value="">+ Vincular familia…</option>
+            {familiasDisp
+              .filter((f) => !det.familias.some((df) => df.familia_id === f.id))
+              .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)
+            }
+          </select>
         )}
       </div>
 
       {/* Relaciones entre idiomas */}
-      <SectionHeader title="Relaciones con otros idiomas" count={det.relaciones.length} />
-      {det.relaciones.length > 0 ? det.relaciones.map((r) => {
-        const esOrigen = r.idioma_origen_id === idiomaId;
-        const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
-        return (
-          <div key={r.id} style={{ padding: "8px 12px", background: "#161616", borderRadius: 8, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <span style={{ fontSize: 11, color: "#6b7280", marginRight: 6 }}>
-                {esOrigen ? "→" : "←"}
-              </span>
-              <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 13 }}>{otro?.nombre}</span>
-              <span style={{ fontSize: 11, color: "#60a5fa", marginLeft: 8 }}>{r.tipo}</span>
-              {r.descripcion && <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 6 }}>{r.descripcion}</span>}
-            </div>
-            <button onClick={() => det.eliminarRelacion(r.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer" }}>
-              <X size={12} />
-            </button>
-          </div>
-        );
-      }) : (
-        <EmptyState text="Sin relaciones con otros idiomas registradas." />
-      )}
+      <div>
+        <SeccionHeader title="Relaciones con otros idiomas" count={det.relaciones.length} />
+        <div className="space-y-1.5">
+          {det.relaciones.length > 0 ? det.relaciones.map((r) => {
+            const esOrigen = r.idioma_origen_id === idiomaId;
+            const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
+            return (
+              <div key={r.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-primary/30 font-mono">{esOrigen ? "→" : "←"}</span>
+                  <span className="text-sm font-semibold text-primary">{otro?.nombre}</span>
+                  <span className="text-[11px] text-primary px-1.5 py-0.5 rounded bg-primary/10">{r.tipo}</span>
+                  {r.descripcion && <span className="text-[11px] text-primary/35">{r.descripcion}</span>}
+                </div>
+                <button onClick={() => det.eliminarRelacion(r.id)} className={BTN_ICON_CLS}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          }) : (
+            <EstadoVacio text="Sin relaciones con otros idiomas registradas." />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -947,51 +973,54 @@ function TabPeriodos({ periodos: hook }: { periodos: ReturnType<typeof usePeriod
 
   return (
     <div>
-      <SectionHeader title="Períodos lingüísticos" count={hook.periodos.length} />
+      <SeccionHeader title="Períodos lingüísticos" count={hook.periodos.length} />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <div className="flex gap-2 mb-4">
         <input
           placeholder="Nombre del período (ej: Antiguo, Medio…)"
           value={nuevo}
           onChange={(e) => setNuevo(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          style={{ ...inputStyle, flex: 1 }}
+          className={`${INPUT_CLS} flex-1`}
         />
-        <button onClick={agregar} style={btnPrimary}><Plus size={13} /> Agregar</button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
+          <Plus size={12} /> Agregar
+        </button>
       </div>
 
-      {hook.periodos.map((p) => (
-        <div key={p.id} style={{ padding: "10px 14px", background: "#161616", borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 14 }}>{p.nombre}</span>
-            <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>
-              {p.inicio_estimado !== null && p.inicio_estimado !== undefined ? `${p.inicio_estimado}` : "?"}
-              {" — "}
-              {p.fin_estimado !== null && p.fin_estimado !== undefined ? `${p.fin_estimado}` : "?"}
-              {" " + p.unidad_temporal}
-            </span>
+      <div className="space-y-1.5">
+        {hook.periodos.map((p) => (
+          <div key={p.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+            <div>
+              <span className="text-sm font-semibold text-primary">{p.nombre}</span>
+              <span className="text-xs text-primary/35 ml-2">
+                {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
+              </span>
+            </div>
+            <button onClick={() => hook.eliminarPeriodo(p.id)} className={BTN_ICON_CLS}>
+              <Trash2 size={12} />
+            </button>
           </div>
-          <button onClick={() => hook.eliminarPeriodo(p.id)} style={{ background: "none", border: "none", color: "#4b5563", cursor: "pointer" }}>
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {hook.periodos.length === 0 && !hook.loading && (
-        <EmptyState text="No hay períodos lingüísticos definidos." />
+        <EstadoVacio text="No hay períodos lingüísticos definidos." />
       )}
 
       {/* Cambios lingüísticos */}
       {hook.cambios.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <SectionHeader title="Cambios lingüísticos" count={hook.cambios.length} />
-          {hook.cambios.map((c) => (
-            <div key={c.id} style={{ padding: "8px 12px", background: "#161616", borderRadius: 8, marginBottom: 6 }}>
-              <span style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 13 }}>{c.nombre}</span>
-              <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 8 }}>{c.dominio}</span>
-              {c.descripcion && <p style={{ margin: "4px 0 0", fontSize: 12, color: "#6b7280" }}>{c.descripcion}</p>}
-            </div>
-          ))}
+        <div className="mt-6">
+          <SeccionHeader title="Cambios lingüísticos" count={hook.cambios.length} />
+          <div className="space-y-1.5">
+            {hook.cambios.map((c) => (
+              <div key={c.id} className="px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
+                <span className="text-sm font-semibold text-primary">{c.nombre}</span>
+                <span className="text-[11px] text-primary/35 ml-2">{c.dominio}</span>
+                {c.descripcion && <p className="mt-1 text-xs text-primary/45">{c.descripcion}</p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -1002,50 +1031,29 @@ function TabPeriodos({ periodos: hook }: { periodos: ReturnType<typeof usePeriod
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={labelStyle}>{label}</label>
+    <div className="space-y-1.5">
+      <label className={LABEL_CLS}>{label}</label>
       {children}
     </div>
   );
 }
 
-function SectionHeader({ title, count }: { title: string; count?: number }) {
+function SeccionHeader({ title, count }: { title: string; count?: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
-      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#e5e7eb" }}>{title}</h3>
+    <div className="flex items-baseline gap-2 mb-3">
+      <h3 className={SECTION_TITLE_CLS}>{title}</h3>
       {count !== undefined && count > 0 && (
-        <span style={{ fontSize: 11, color: "#6b7280" }}>({count})</span>
+        <span className="text-[11px] text-primary/35 tabular-nums font-bold">({count})</span>
       )}
     </div>
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EstadoVacio({ text }: { text: string }) {
   return (
-    <div style={{ padding: "20px 0", textAlign: "center", color: "#4b5563", fontSize: 12 }}>
-      {text}
-    </div>
+    <p className="py-5 text-center text-xs text-primary/25 italic">{text}</p>
   );
 }
-
-// ── Estilos compartidos ───────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "7px 10px", background: "#1a1a1a",
-  border: "1px solid #2a2a2a", borderRadius: 6, color: "#e5e7eb",
-  fontSize: 13, boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block", fontSize: 11, color: "#6b7280",
-  fontWeight: 600, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5,
-};
-
-const btnPrimary: React.CSSProperties = {
-  padding: "7px 14px", background: "#2563eb", border: "none", borderRadius: 6,
-  color: "#fff", fontSize: 12, cursor: "pointer", display: "flex",
-  alignItems: "center", gap: 5, whiteSpace: "nowrap",
-};
 
 // Re-export type para evitar error de import unused
 type Morfema = import("./types").Morfema;
