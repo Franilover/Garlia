@@ -930,12 +930,12 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
                     onClick={() => setExpandido(expandido === lex.id ? null : lex.id)}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-serif text-sm font-bold text-primary truncate">{lex.lema}</span>
+                      <span className="font-serif text-sm font-bold text-primary shrink-0">{lex.lema}</span>
                       {lex.transcripcion_ipa && (
                         <span className="font-mono text-[11px] text-primary/35 shrink-0">[{lex.transcripcion_ipa}]</span>
                       )}
                       {lex.definicion_breve && (
-                        <span className="text-xs text-primary/35 truncate hidden sm:block">{lex.definicion_breve}</span>
+                        <span className="text-xs text-primary/35 truncate min-w-0 hidden sm:block">{lex.definicion_breve}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
