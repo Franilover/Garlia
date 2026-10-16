@@ -866,6 +866,11 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
     (l.definicion_breve ?? "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
+  // Agrupar por categoría (orden canónico de CATS_GRAM)
+  const grupos = CATS_GRAM
+    .map((cat) => ({ cat, items: filtrados.filter((l) => l.categoria_gramatical === cat) }))
+    .filter((g) => g.items.length > 0);
+
   return (
     <div>
       {/* Barra de acción */}
@@ -889,7 +894,7 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
 
       {/* Buscador — aparece cuando hay suficientes entradas */}
       {hook.lexemas.length > 10 && (
-        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg mb-3">
+        <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg mb-4">
           <Search size={12} className="text-primary/30 shrink-0" />
           <input
             value={busqueda}
@@ -908,81 +913,85 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
         </div>
       )}
 
-      {/* Lista de lexemas — 2 columnas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
-        {filtrados.map((lex: Lexema) => (
-          <div
-            key={lex.id}
-            className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/20 bg-primary/5" : "border-primary/8 bg-primary/3"}`}
-          >
-            {/* Cabecera */}
-            <div
-              className="px-3.5 py-2.5 cursor-pointer flex items-center justify-between"
-              onClick={() => setExpandido(expandido === lex.id ? null : lex.id)}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-serif text-sm font-bold text-primary truncate">{lex.lema}</span>
-                {lex.transcripcion_ipa && (
-                  <span className="font-mono text-[11px] text-primary/35 shrink-0">[{lex.transcripcion_ipa}]</span>
-                )}
-                <span className="text-[10px] text-primary/40 px-1.5 py-0.5 bg-primary/8 rounded shrink-0">
-                  {CAT_GRAM_LABELS[lex.categoria_gramatical]}
-                </span>
-                {lex.definicion_breve && (
-                  <span className="text-xs text-primary/35 truncate hidden sm:block">{lex.definicion_breve}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {lex.sentidos && lex.sentidos.length > 0 && (
-                  <span className="text-[11px] text-primary/30">{lex.sentidos.length} acep.</span>
-                )}
-                <button onClick={(e) => { e.stopPropagation(); hook.eliminar(lex.id); }} className={BTN_ICON_CLS}>
-                  <Trash2 size={11} />
-                </button>
-                {expandido === lex.id
-                  ? <ChevronUp size={13} className="text-primary/30" />
-                  : <ChevronDown size={13} className="text-primary/30" />}
-              </div>
-            </div>
-
-            {/* Detalle expandido */}
-            {expandido === lex.id && (
-              <div className="px-3.5 pb-3.5 border-t border-primary/8 pt-3 space-y-3">
-                <div>
-                  <label className={LABEL_CLS}>Definición breve</label>
-                  <input
-                    defaultValue={lex.definicion_breve ?? ""}
-                    onBlur={(e) => { if (e.target.value !== (lex.definicion_breve ?? "")) hook.guardar(lex.id, { definicion_breve: e.target.value }); }}
-                    className={INPUT_CLS}
-                    placeholder="Glosa rápida…"
-                  />
-                </div>
-                {(lex.sentidos ?? []).length > 0 && (
-                  <div>
-                    <p className={`${LABEL_CLS} mb-2`}>Acepciones</p>
-                    {(lex.sentidos ?? []).map((s, i) => (
-                      <div key={s.id} className="flex gap-2 items-start mb-2">
-                        <span className="text-[11px] text-primary/30 pt-2 min-w-4 tabular-nums">{i + 1}.</span>
-                        <div className="flex-1 space-y-1">
-                          <input
-                            defaultValue={s.definicion}
-                            onBlur={(e) => { if (e.target.value !== s.definicion) hook.guardarSentido(lex.id, s.id, { definicion: e.target.value }); }}
-                            className={INPUT_CLS}
-                            placeholder="Definición…"
-                          />
-                          {s.uso_ejemplo && (
-                            <p className="text-[11px] text-primary/35 italic px-1">"{s.uso_ejemplo}"</p>
-                          )}
-                        </div>
-                        <button onClick={() => hook.eliminarSentido(lex.id, s.id)} className={BTN_ICON_CLS}>
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ))}
+      {/* Grupos por categoría */}
+      <div className="space-y-6">
+        {grupos.map(({ cat, items }) => (
+          <div key={cat}>
+            <TituloCategoria titulo={CAT_GRAM_LABELS[cat]} total={items.length} />
+            <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
+              {items.map((lex: Lexema) => (
+                <div
+                  key={lex.id}
+                  className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/20 bg-primary/5" : "border-primary/8 bg-primary/3"}`}
+                >
+                  {/* Cabecera */}
+                  <div
+                    className="px-3.5 py-2.5 cursor-pointer flex items-center justify-between"
+                    onClick={() => setExpandido(expandido === lex.id ? null : lex.id)}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-serif text-sm font-bold text-primary truncate">{lex.lema}</span>
+                      {lex.transcripcion_ipa && (
+                        <span className="font-mono text-[11px] text-primary/35 shrink-0">[{lex.transcripcion_ipa}]</span>
+                      )}
+                      {lex.definicion_breve && (
+                        <span className="text-xs text-primary/35 truncate hidden sm:block">{lex.definicion_breve}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {lex.sentidos && lex.sentidos.length > 0 && (
+                        <span className="text-[11px] text-primary/30">{lex.sentidos.length} acep.</span>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); hook.eliminar(lex.id); }} className={BTN_ICON_CLS}>
+                        <Trash2 size={11} />
+                      </button>
+                      {expandido === lex.id
+                        ? <ChevronUp size={13} className="text-primary/30" />
+                        : <ChevronDown size={13} className="text-primary/30" />}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* Detalle expandido */}
+                  {expandido === lex.id && (
+                    <div className="px-3.5 pb-3.5 border-t border-primary/8 pt-3 space-y-3">
+                      <div>
+                        <label className={LABEL_CLS}>Definición breve</label>
+                        <input
+                          defaultValue={lex.definicion_breve ?? ""}
+                          onBlur={(e) => { if (e.target.value !== (lex.definicion_breve ?? "")) hook.guardar(lex.id, { definicion_breve: e.target.value }); }}
+                          className={INPUT_CLS}
+                          placeholder="Glosa rápida…"
+                        />
+                      </div>
+                      {(lex.sentidos ?? []).length > 0 && (
+                        <div>
+                          <p className={`${LABEL_CLS} mb-2`}>Acepciones</p>
+                          {(lex.sentidos ?? []).map((s, i) => (
+                            <div key={s.id} className="flex gap-2 items-start mb-2">
+                              <span className="text-[11px] text-primary/30 pt-2 min-w-4 tabular-nums">{i + 1}.</span>
+                              <div className="flex-1 space-y-1">
+                                <input
+                                  defaultValue={s.definicion}
+                                  onBlur={(e) => { if (e.target.value !== s.definicion) hook.guardarSentido(lex.id, s.id, { definicion: e.target.value }); }}
+                                  className={INPUT_CLS}
+                                  placeholder="Definición…"
+                                />
+                                {s.uso_ejemplo && (
+                                  <p className="text-[11px] text-primary/35 italic px-1">"{s.uso_ejemplo}"</p>
+                                )}
+                              </div>
+                              <button onClick={() => hook.eliminarSentido(lex.id, s.id)} className={BTN_ICON_CLS}>
+                                <X size={11} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
