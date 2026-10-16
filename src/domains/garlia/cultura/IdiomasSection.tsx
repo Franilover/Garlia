@@ -2,55 +2,52 @@
 /**
  * IdiomasSection — Editor de Mundo · Idiomas  v5
  * ──────────────────────────────────────────────
- * Rediseño: colores dinámicos via Tailwind (text-primary, bg-input-bg,
- * border-primary/15, etc.) en lugar de hex hardcodeados. Misma estética
- * minimalista y funcional del resto del proyecto.
+ * 3 tabs en lugar de 9:
  *
- * Tabs del detalle:
- *   info        → nombre, endónimo, descripción, tipo, estado, fuente
- *   fonologia   → inventario fonémico + patrón silábico + prosodia
- *   lexico      → lexemas con sentidos y formas léxicas
- *   morfologia  → morfemas
- *   gramatica   → perfil gramatical
- *   escritura   → sistemas de escritura vinculados
- *   variedades  → variedades lingüísticas
- *   relaciones  → relaciones con otros idiomas + familias
- *   periodos    → períodos lingüísticos
+ *   General   → Info + Escritura + Variedades + Familias + Relaciones + Períodos
+ *               (todo lo que describe QUÉ es el idioma y su contexto)
+ *
+ *   Estructura → Fonología | Morfología | Gramática como FilaAsimetrica
+ *               (todo lo que describe CÓMO funciona el idioma)
+ *
+ *   Léxico     → Diccionario con buscador propio
+ *               (separado por volumen y flujo de trabajo distinto)
  */
 import {
   AlignLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
   FileText, Globe, Languages, List, Loader2, Mic, Plus,
-  Search, Trash2, X, Link2,
+  Search, Trash2, X, Link2, Layers,
 } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+import { FilaAsimetrica }    from "@/domains/garlia/_shared/FilaAsimetrica";
+import { TituloCategoria }   from "@/domains/garlia/_shared/TituloCategoria";
+import {
+  INPUT_CLS, LABEL_CLS,
+  BTN_PRIMARY_CLS, BTN_GHOST_CLS, BTN_ICON_CLS,
+  SECTION_TITLE_CLS,
+} from "@/domains/garlia/_shared/types";
+
 import {
   useIdiomas, useIdiomaDetalle, useFonemas, useLexemas,
   useMorfemas, useVariedades, useSistemasEscritura, usePerfilGramatical,
   usePeriodos, useFamilias, useSistemasEscrituraGlobal,
 } from "./useIdiomas";
 import type {
-  Idioma, FonemaIdioma, Lexema, SentidoLexico,
-  PerfilGramatical, VariedadLinguistica, IdiomaEscritura,
+  Idioma, Lexema, PerfilGramatical,
   EstadoCanon, CategoriaGramatical, ClaseFonema, TipoVariedad,
 } from "./types";
-import {
-  INPUT_CLS, LABEL_CLS,
-  BTN_PRIMARY_CLS, BTN_GHOST_CLS, BTN_DANGER_CLS, BTN_ICON_CLS,
-  SECTION_TITLE_CLS,
-} from "@/domains/garlia/_shared/types";
 
-// ── Constantes de label ───────────────────────────────────────────────────
+// ── Tokens visuales de estado ─────────────────────────────────────────────
 
 const ESTADO_LABELS: Record<EstadoCanon, string> = {
   borrador: "Borrador", canon: "Cánon", revision: "En revisión", descartado: "Descartado",
 };
-
-// Clases Tailwind semánticas por estado (sin hex hardcodeado)
 const ESTADO_CLS: Record<EstadoCanon, { dot: string; badge: string }> = {
-  borrador:   { dot: "bg-primary/30",     badge: "text-primary/50 bg-primary/8 border-primary/15" },
-  canon:      { dot: "bg-emerald-400",    badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
-  revision:   { dot: "bg-amber-400",      badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
-  descartado: { dot: "bg-red-400/70",     badge: "text-red-400/70 bg-red-400/8 border-red-400/15" },
+  borrador:   { dot: "bg-primary/30",  badge: "text-primary/50 bg-primary/8 border-primary/15" },
+  canon:      { dot: "bg-emerald-400", badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
+  revision:   { dot: "bg-amber-400",   badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
+  descartado: { dot: "bg-red-400/70",  badge: "text-red-400/70 bg-red-400/8 border-red-400/15" },
 };
 
 const CAT_GRAM_LABELS: Record<CategoriaGramatical, string> = {
@@ -71,18 +68,14 @@ const TIPO_VARIEDAD_LABELS: Record<TipoVariedad, string> = {
   historica: "Histórica", otro: "Otro",
 };
 
-type TabId = "info" | "fonologia" | "lexico" | "morfologia" | "gramatica" | "escritura" | "variedades" | "relaciones" | "periodos";
+// ── Tabs (3) ──────────────────────────────────────────────────────────────
+
+type TabId = "general" | "estructura" | "lexico";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "info",       label: "Info",       icon: <FileText size={13} /> },
-  { id: "fonologia",  label: "Fonología",  icon: <Mic size={13} /> },
-  { id: "lexico",     label: "Léxico",     icon: <Book size={13} /> },
-  { id: "morfologia", label: "Morfología", icon: <AlignLeft size={13} /> },
-  { id: "gramatica",  label: "Gramática",  icon: <List size={13} /> },
-  { id: "escritura",  label: "Escritura",  icon: <BookOpen size={13} /> },
-  { id: "variedades", label: "Variedades", icon: <Globe size={13} /> },
-  { id: "relaciones", label: "Relaciones", icon: <Link2 size={13} /> },
-  { id: "periodos",   label: "Períodos",   icon: <AlignLeft size={13} /> },
+  { id: "general",    label: "General",    icon: <FileText size={13} /> },
+  { id: "estructura", label: "Estructura", icon: <Layers   size={13} /> },
+  { id: "lexico",     label: "Léxico",     icon: <Book     size={13} /> },
 ];
 
 // ── Componente principal ──────────────────────────────────────────────────
@@ -90,7 +83,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 export function IdiomasSection() {
   const { idiomas, loading: loadingLista, crear: crearIdioma, eliminar: eliminarIdioma } = useIdiomas();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<TabId>("info");
+  const [tab, setTab] = useState<TabId>("general");
   const [busqueda, setBusqueda] = useState("");
   const [creando, setCreando] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -101,26 +94,25 @@ export function IdiomasSection() {
     (i.endonimo ?? "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  useEffect(() => {
-    if (creando) inputRef.current?.focus();
-  }, [creando]);
+  useEffect(() => { if (creando) inputRef.current?.focus(); }, [creando]);
 
   const handleCrear = async () => {
     const nombre = nuevoNombre.trim();
     if (!nombre) return;
     const nuevo = await crearIdioma(nombre);
-    if (nuevo) { setSelectedId(nuevo.id); setTab("info"); }
+    if (nuevo) { setSelectedId(nuevo.id); setTab("general"); }
     setCreando(false);
     setNuevoNombre("");
   };
 
   return (
     <div className="flex h-full">
+
       {/* ── Lista lateral ──────────────────────────────────────────── */}
       <aside className="w-64 shrink-0 border-r border-primary/10 flex flex-col">
 
-        {/* Header buscador */}
         <div className="border-b border-primary/10">
+          {/* Buscador */}
           <div className="p-2 flex items-center gap-2">
             <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg">
               <Search size={12} className="text-primary/30 shrink-0" />
@@ -132,6 +124,7 @@ export function IdiomasSection() {
               />
             </div>
           </div>
+          {/* Botón nuevo */}
           <div className="px-2 pb-2">
             <button
               type="button"
@@ -159,10 +152,7 @@ export function IdiomasSection() {
             />
             <div className="flex gap-1.5">
               <button onClick={handleCrear} className={`${BTN_PRIMARY_CLS} flex-1`}>Crear</button>
-              <button
-                onClick={() => { setCreando(false); setNuevoNombre(""); }}
-                className={`${BTN_GHOST_CLS} flex-1`}
-              >
+              <button onClick={() => { setCreando(false); setNuevoNombre(""); }} className={`${BTN_GHOST_CLS} flex-1`}>
                 Cancelar
               </button>
             </div>
@@ -183,14 +173,13 @@ export function IdiomasSection() {
               <button
                 key={idioma.id}
                 type="button"
-                onClick={() => { setSelectedId(idioma.id); setTab("info"); }}
+                onClick={() => { setSelectedId(idioma.id); setTab("general"); }}
                 className={`
                   w-full px-3 py-2.5 text-left flex items-center justify-between gap-2
                   border-l-2 transition-colors
                   ${activo
                     ? "border-primary bg-primary/8 text-primary font-semibold"
-                    : "border-transparent text-primary/60 hover:text-primary hover:bg-primary/5 font-medium"
-                  }
+                    : "border-transparent text-primary/60 hover:text-primary hover:bg-primary/5 font-medium"}
                 `}
               >
                 <span className="flex-1 min-w-0">
@@ -246,14 +235,14 @@ function DetalleIdioma({
   onTabChange: (t: TabId) => void;
   onEliminar: () => void;
 }) {
-  const det = useIdiomaDetalle(idiomaId);
-  const fonemas = useFonemas(idiomaId);
-  const lexemas = useLexemas(idiomaId);
-  const morfemas = useMorfemas(idiomaId);
+  const det       = useIdiomaDetalle(idiomaId);
+  const fonemas   = useFonemas(idiomaId);
+  const lexemas   = useLexemas(idiomaId);
+  const morfemas  = useMorfemas(idiomaId);
   const variedades = useVariedades(idiomaId);
-  const escritura = useSistemasEscritura(idiomaId);
-  const perfil = usePerfilGramatical(idiomaId);
-  const periodos = usePeriodos(idiomaId);
+  const escritura  = useSistemasEscritura(idiomaId);
+  const perfil     = usePerfilGramatical(idiomaId);
+  const periodos   = usePeriodos(idiomaId);
   const { familias: familiasDisp } = useFamilias();
   const { sistemas: sistemasDisp, crear: crearSistema } = useSistemasEscrituraGlobal();
 
@@ -271,7 +260,7 @@ function DetalleIdioma({
 
   return (
     <>
-      {/* Header del detalle */}
+      {/* ── Header ── */}
       <div className="px-5 pt-4 pb-0 border-b border-primary/10">
         <div className="flex items-start justify-between mb-3">
           <div className="min-w-0">
@@ -290,29 +279,24 @@ function DetalleIdioma({
               )}
             </div>
           </div>
-          <button
-            onClick={onEliminar}
-            className={BTN_ICON_CLS}
-            title="Eliminar idioma"
-          >
+          <button onClick={onEliminar} className={BTN_ICON_CLS} title="Eliminar idioma">
             <Trash2 size={14} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0 overflow-x-auto -mb-px">
+        <div className="flex -mb-px">
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => onTabChange(t.id)}
               className={`
-                flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold whitespace-nowrap
+                flex items-center gap-1.5 px-4 py-2 text-[11px] font-bold
                 border-b-2 transition-colors
                 ${tab === t.id
                   ? "border-primary text-primary"
-                  : "border-transparent text-primary/40 hover:text-primary/70"
-                }
+                  : "border-transparent text-primary/40 hover:text-primary/70"}
               `}
             >
               {t.icon} {t.label}
@@ -321,30 +305,54 @@ function DetalleIdioma({
         </div>
       </div>
 
-      {/* Contenido por tab */}
+      {/* ── Contenido ── */}
       <div className="flex-1 overflow-y-auto p-5">
-        {tab === "info"       && <TabInfo idioma={idioma} onGuardar={det.guardar} saving={det.saving} />}
-        {tab === "fonologia"  && <TabFonologia fonemas={fonemas} />}
-        {tab === "lexico"     && <TabLexico lexemas={lexemas} />}
-        {tab === "morfologia" && <TabMorfologia morfemas={morfemas} idiomaId={idiomaId} />}
-        {tab === "gramatica"  && <TabGramatica perfil={perfil} />}
-        {tab === "escritura"  && <TabEscritura escritura={escritura} sistemasDisp={sistemasDisp} crearSistema={crearSistema} />}
-        {tab === "variedades" && <TabVariedades variedades={variedades} />}
-        {tab === "relaciones" && (
-          <TabRelaciones det={det} idiomaId={idiomaId} familiasDisp={familiasDisp} todosLosIdiomas={[]} />
+        {tab === "general"    && (
+          <TabGeneral
+            idioma={idioma}
+            onGuardar={det.guardar}
+            saving={det.saving}
+            escritura={escritura}
+            sistemasDisp={sistemasDisp}
+            variedades={variedades}
+            det={det}
+            idiomaId={idiomaId}
+            familiasDisp={familiasDisp}
+            periodos={periodos}
+          />
         )}
-        {tab === "periodos"   && <TabPeriodos periodos={periodos} />}
+        {tab === "estructura" && (
+          <TabEstructura fonemas={fonemas} morfemas={morfemas} perfil={perfil} />
+        )}
+        {tab === "lexico"     && (
+          <TabLexico lexemas={lexemas} />
+        )}
       </div>
     </>
   );
 }
 
-// ── Tab Info ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Tab General — Info + contexto
+// ═══════════════════════════════════════════════════════════════════════════
 
-function TabInfo({ idioma, onGuardar, saving }: {
+function TabGeneral({
+  idioma, onGuardar, saving,
+  escritura, sistemasDisp,
+  variedades,
+  det, idiomaId, familiasDisp,
+  periodos,
+}: {
   idioma: Idioma;
   onGuardar: (c: Partial<Idioma>) => void;
   saving: boolean;
+  escritura: ReturnType<typeof useSistemasEscritura>;
+  sistemasDisp: ReturnType<typeof useSistemasEscrituraGlobal>["sistemas"];
+  variedades: ReturnType<typeof useVariedades>;
+  det: ReturnType<typeof useIdiomaDetalle>;
+  idiomaId: string;
+  familiasDisp: ReturnType<typeof useFamilias>["familias"];
+  periodos: ReturnType<typeof usePeriodos>;
 }) {
   const [local, setLocal] = useState<Partial<Idioma>>({});
   const merged = { ...idioma, ...local };
@@ -352,48 +360,235 @@ function TabInfo({ idioma, onGuardar, saving }: {
   const guardar = () => { onGuardar(local); setLocal({}); };
   const dirty = Object.keys(local).length > 0;
 
+  // Escritura: estado de vincular
+  const [nuevaSistemaId, setNuevaSistemaId] = useState("");
+  const vincularEscritura = async () => {
+    if (!nuevaSistemaId) return;
+    await escritura.vincular(nuevaSistemaId);
+    setNuevaSistemaId("");
+  };
+  const sistemasNoVinculados = sistemasDisp.filter(
+    (s) => !escritura.vinculaciones.some((v) => v.sistema_escritura_id === s.id)
+  );
+
+  // Variedades: estado de agregar
+  const [nuevaVariedad, setNuevaVariedad] = useState({ nombre: "", tipo: "dialectal" as TipoVariedad });
+  const agregarVariedad = async () => {
+    const n = nuevaVariedad.nombre.trim();
+    if (!n) return;
+    await variedades.crear(n, nuevaVariedad.tipo);
+    setNuevaVariedad({ nombre: "", tipo: "dialectal" });
+  };
+
+  // Períodos: estado de agregar
+  const [nuevoPeriodo, setNuevoPeriodo] = useState("");
+  const agregarPeriodo = async () => {
+    const n = nuevoPeriodo.trim();
+    if (!n) return;
+    await periodos.crearPeriodo(n);
+    setNuevoPeriodo("");
+  };
+
   return (
-    <div className="max-w-lg space-y-4">
-      <Field label="Nombre">
-        <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
-      </Field>
-      <Field label="Endónimo (nombre en el propio idioma)">
-        <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} className={INPUT_CLS} />
-      </Field>
-      <Field label="Descripción">
-        <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={4} className={`${INPUT_CLS} resize-y`} />
-      </Field>
-      <Field label="Estado">
-        <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} className={INPUT_CLS}>
-          {Object.entries(ESTADO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </Field>
-      <Field label="¿Es protolengua?">
-        <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
-          <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
-          Marcar como protolengua
-        </label>
-      </Field>
-      <Field label="Fuente canon">
-        <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
-      </Field>
-      <Field label="Notas de documentación">
-        <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
-      </Field>
+    <div className="max-w-2xl space-y-0">
+
+      {/* ── Info básica ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <Field label="Nombre">
+          <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
+        </Field>
+        <Field label="Endónimo">
+          <input value={merged.endonimo ?? ""} onChange={(e) => set("endonimo", e.target.value)} className={INPUT_CLS} />
+        </Field>
+        <Field label="Estado">
+          <select value={merged.estado ?? "borrador"} onChange={(e) => set("estado", e.target.value)} className={INPUT_CLS}>
+            {Object.entries(ESTADO_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </Field>
+        <Field label="Fuente canon">
+          <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
+        </Field>
+        <div className="sm:col-span-2">
+          <Field label="Descripción">
+            <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
+          </Field>
+        </div>
+        <div className="sm:col-span-2">
+          <Field label="Notas de documentación">
+            <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={2} className={`${INPUT_CLS} resize-y`} />
+          </Field>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
+            <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
+            Marcar como protolengua
+          </label>
+        </div>
+      </div>
 
       {dirty && (
-        <button onClick={guardar} disabled={saving} className={BTN_PRIMARY_CLS}>
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-          Guardar cambios
-        </button>
+        <div className="mb-6">
+          <button onClick={guardar} disabled={saving} className={BTN_PRIMARY_CLS}>
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+            Guardar cambios
+          </button>
+        </div>
       )}
+
+      {/* ── Escritura ── */}
+      <TituloCategoria titulo="Escritura" total={escritura.vinculaciones.length} />
+      <div className="mb-6 space-y-1.5">
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)} className={`${INPUT_CLS} flex-1`}>
+            <option value="">— Vincular sistema —</option>
+            {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
+          </select>
+          <button onClick={vincularEscritura} disabled={!nuevaSistemaId} className={BTN_PRIMARY_CLS}>
+            <Plus size={12} /> Vincular
+          </button>
+        </div>
+        {escritura.vinculaciones.map((v) => (
+          <FilaContexto key={v.id} onEliminar={() => escritura.desvincular(v.id)}>
+            <span className="text-sm font-semibold text-primary">{v.sistema?.nombre}</span>
+            <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
+          </FilaContexto>
+        ))}
+        {escritura.vinculaciones.length === 0 && !escritura.loading && <EstadoVacio text="Sin sistemas de escritura vinculados." />}
+      </div>
+
+      {/* ── Variedades ── */}
+      <TituloCategoria titulo="Variedades" total={variedades.variedades.length} />
+      <div className="mb-6 space-y-1.5">
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <input
+            placeholder="Nueva variedad…"
+            value={nuevaVariedad.nombre}
+            onChange={(e) => setNuevaVariedad((p) => ({ ...p, nombre: e.target.value }))}
+            onKeyDown={(e) => e.key === "Enter" && agregarVariedad()}
+            className={`${INPUT_CLS} flex-1 min-w-32`}
+          />
+          <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))} className={`${INPUT_CLS} w-36`}>
+            {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <button onClick={agregarVariedad} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
+        </div>
+        {variedades.variedades.map((v) => (
+          <FilaContexto key={v.id} onEliminar={() => variedades.eliminar(v.id)}>
+            <span className="text-sm font-semibold text-primary">{v.nombre}</span>
+            <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
+          </FilaContexto>
+        ))}
+        {variedades.variedades.length === 0 && !variedades.loading && <EstadoVacio text="Sin variedades registradas." />}
+      </div>
+
+      {/* ── Familias ── */}
+      <TituloCategoria titulo="Familias lingüísticas" total={det.familias.length} />
+      <div className="mb-6 space-y-1.5">
+        {det.familias.map((f) => (
+          <FilaContexto key={f.id} onEliminar={() => det.desvincularFamilia(f.id)}>
+            <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
+            <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
+          </FilaContexto>
+        ))}
+        {det.familias.length === 0 && <EstadoVacio text="Sin familia lingüística asignada." />}
+        {familiasDisp.length > 0 && (
+          <select
+            defaultValue=""
+            onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.currentTarget.value = ""; }}
+            className={`${INPUT_CLS} mt-2`}
+          >
+            <option value="">+ Vincular familia…</option>
+            {familiasDisp.filter((f) => !det.familias.some((df) => df.familia_id === f.id))
+              .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+          </select>
+        )}
+      </div>
+
+      {/* ── Relaciones ── */}
+      <TituloCategoria titulo="Relaciones" total={det.relaciones.length} />
+      <div className="mb-6 space-y-1.5">
+        {det.relaciones.map((r) => {
+          const esOrigen = r.idioma_origen_id === idiomaId;
+          const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
+          return (
+            <FilaContexto key={r.id} onEliminar={() => det.eliminarRelacion(r.id)}>
+              <span className="font-mono text-[11px] text-primary/30 mr-1">{esOrigen ? "→" : "←"}</span>
+              <span className="text-sm font-semibold text-primary">{otro?.nombre}</span>
+              <span className="text-[11px] text-primary px-1.5 py-0.5 rounded bg-primary/10 ml-2">{r.tipo}</span>
+              {r.descripcion && <span className="text-[11px] text-primary/35 ml-1">{r.descripcion}</span>}
+            </FilaContexto>
+          );
+        })}
+        {det.relaciones.length === 0 && <EstadoVacio text="Sin relaciones con otros idiomas." />}
+      </div>
+
+      {/* ── Períodos ── */}
+      <TituloCategoria titulo="Períodos" total={periodos.periodos.length} />
+      <div className="mb-2 space-y-1.5">
+        <div className="flex gap-2 mb-3">
+          <input
+            placeholder="Nombre del período…"
+            value={nuevoPeriodo}
+            onChange={(e) => setNuevoPeriodo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && agregarPeriodo()}
+            className={`${INPUT_CLS} flex-1`}
+          />
+          <button onClick={agregarPeriodo} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
+        </div>
+        {periodos.periodos.map((p) => (
+          <FilaContexto key={p.id} onEliminar={() => periodos.eliminarPeriodo(p.id)}>
+            <span className="text-sm font-semibold text-primary">{p.nombre}</span>
+            <span className="text-xs text-primary/35 ml-2">
+              {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
+            </span>
+          </FilaContexto>
+        ))}
+        {periodos.periodos.length === 0 && !periodos.loading && <EstadoVacio text="Sin períodos definidos." />}
+      </div>
     </div>
   );
 }
 
-// ── Tab Fonología ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Tab Estructura — Fonología | Morfología | Gramática (FilaAsimetrica)
+// ═══════════════════════════════════════════════════════════════════════════
 
-function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas> }) {
+function TabEstructura({
+  fonemas, morfemas, perfil,
+}: {
+  fonemas: ReturnType<typeof useFonemas>;
+  morfemas: ReturnType<typeof useMorfemas>;
+  perfil: ReturnType<typeof usePerfilGramatical>;
+}) {
+  return (
+    <FilaAsimetrica
+      bloques={[
+        {
+          key: "fonologia",
+          titulo: "Fonología",
+          total: fonemas.fonemas.length,
+          contenido: <BloquesFonologia fonemas={fonemas} />,
+        },
+        {
+          key: "morfologia",
+          titulo: "Morfología",
+          total: morfemas.morfemas.length,
+          contenido: <BloquesMorfologia morfemas={morfemas} />,
+        },
+        {
+          key: "gramatica",
+          titulo: "Gramática",
+          total: 0,
+          contenido: <BloquesGramatica perfil={perfil} />,
+        },
+      ]}
+    />
+  );
+}
+
+// ── Fonología (bloque de FilaAsimetrica) ──────────────────────────────────
+
+function BloquesFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas> }) {
   const [nuevo, setNuevo] = useState({ simbolo: "", ipa: "", clase: "consonante" as ClaseFonema });
   const [expandido, setExpandido] = useState<string | null>(null);
 
@@ -410,76 +605,50 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
   ];
 
   return (
-    <div>
-      <SeccionHeader title="Inventario fonémico" count={hook.fonemas.length} />
-
+    <div className="pr-4">
       {/* Prosodia */}
       {hook.prosodia && (
-        <div className="mb-4 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10 text-xs text-primary/60">
+        <div className="mb-3 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-xs text-primary/60">
           <span className="font-bold text-primary/80">Prosodia: </span>
           {hook.prosodia.sistema_prosodico}
-          {hook.prosodia.tono_distintivo && " · tono distintivo"}
-          {hook.prosodia.duracion_distintiva && " · duración distintiva"}
+          {hook.prosodia.tono_distintivo && " · tono"}
+          {hook.prosodia.duracion_distintiva && " · duración"}
         </div>
       )}
 
-      {/* Agregar fonema */}
-      <div className="flex gap-2 mb-5 flex-wrap">
-        <input
-          placeholder="Símbolo (ej: kh)"
-          value={nuevo.simbolo}
-          onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))}
-          className={`${INPUT_CLS} w-32`}
-        />
-        <input
-          placeholder="IPA (ej: x)"
-          value={nuevo.ipa}
-          onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))}
-          className={`${INPUT_CLS} w-32`}
-        />
-        <select
-          value={nuevo.clase}
-          onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))}
-          className={`${INPUT_CLS} w-36`}
-        >
+      {/* Form agregar */}
+      <div className="flex gap-1.5 mb-4 flex-wrap">
+        <input placeholder="Símbolo" value={nuevo.simbolo} onChange={(e) => setNuevo((p) => ({ ...p, simbolo: e.target.value }))} className={`${INPUT_CLS} w-24`} />
+        <input placeholder="IPA" value={nuevo.ipa} onChange={(e) => setNuevo((p) => ({ ...p, ipa: e.target.value }))} className={`${INPUT_CLS} w-24`} />
+        <select value={nuevo.clase} onChange={(e) => setNuevo((p) => ({ ...p, clase: e.target.value as ClaseFonema }))} className={`${INPUT_CLS} flex-1 min-w-24`}>
           {CLASES_FONEMA.map((c) => <option key={c} value={c}>{CLASE_FONEMA_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Agregar
-        </button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /></button>
       </div>
 
-      {/* Grupos de fonemas */}
+      {/* Grillas por grupo */}
       {grupos.map((g) => g.items.length > 0 && (
-        <div key={g.label} className="mb-5">
+        <div key={g.label} className="mb-4">
           <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
-          <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))" }}>
+          <div className="flex flex-wrap gap-1.5">
             {g.items.map((f) => (
               <div
                 key={f.id}
                 onClick={() => setExpandido(expandido === f.id ? null : f.id)}
                 className={`
-                  px-3 py-2 rounded-lg border cursor-pointer transition-colors
-                  ${expandido === f.id
-                    ? "border-primary/30 bg-primary/8"
-                    : "border-primary/10 bg-primary/4 hover:bg-primary/8"
-                  }
+                  flex flex-col px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors
+                  ${expandido === f.id ? "border-primary/30 bg-primary/8" : "border-primary/10 bg-primary/4 hover:bg-primary/8"}
                 `}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-mono text-sm font-bold text-primary">{f.simbolo}</span>
-                    <span className="font-mono text-xs text-primary/40">[{f.ipa}]</span>
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); hook.eliminarFonema(f.id); }}
-                    className={BTN_ICON_CLS}
-                  >
-                    <Trash2 size={11} />
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-sm font-bold text-primary">{f.simbolo}</span>
+                  <span className="font-mono text-[11px] text-primary/35">[{f.ipa}]</span>
+                  <button onClick={(e) => { e.stopPropagation(); hook.eliminarFonema(f.id); }} className={BTN_ICON_CLS}>
+                    <X size={10} />
                   </button>
                 </div>
                 {expandido === f.id && (
-                  <div className="mt-2 space-y-0.5 text-[11px] text-primary/50">
+                  <div className="mt-1.5 space-y-0.5 text-[11px] text-primary/50">
                     {f.punto_articulacion && <p>Punto: {f.punto_articulacion}</p>}
                     {f.modo_articulacion  && <p>Modo: {f.modo_articulacion}</p>}
                     {f.notas             && <p className="italic">{f.notas}</p>}
@@ -491,14 +660,123 @@ function TabFonologia({ fonemas: hook }: { fonemas: ReturnType<typeof useFonemas
         </div>
       ))}
 
-      {hook.fonemas.length === 0 && !hook.loading && (
-        <EstadoVacio text="No hay fonemas registrados. Agregá consonantes y vocales arriba." />
+      {hook.fonemas.length === 0 && !hook.loading && <EstadoVacio text="Sin fonemas. Agregá símbolos arriba." />}
+    </div>
+  );
+}
+
+// ── Morfología (bloque de FilaAsimetrica) ─────────────────────────────────
+
+function BloquesMorfologia({ morfemas: hook }: { morfemas: ReturnType<typeof useMorfemas> }) {
+  const [nueva, setNueva] = useState({ forma: "", tipo: "raiz" as Morfema["tipo"] });
+
+  const TIPOS_LABEL: Record<string, string> = {
+    raiz: "Raíz", prefijo: "Prefijo", sufijo: "Sufijo", infijo: "Infijo",
+    circunfijo: "Circunfijo", clitico: "Clítico", otro: "Otro",
+  };
+
+  const agregar = async () => {
+    if (!nueva.forma.trim()) return;
+    await hook.crearMorfema(nueva.forma, nueva.tipo as any);
+    setNueva({ forma: "", tipo: "raiz" });
+  };
+
+  const grupos = Object.keys(TIPOS_LABEL)
+    .map((tipo) => ({ tipo, label: TIPOS_LABEL[tipo], items: hook.morfemas.filter((m) => m.tipo === tipo) }))
+    .filter((g) => g.items.length > 0);
+
+  return (
+    <div className="px-2">
+      <div className="flex gap-1.5 mb-4 flex-wrap">
+        <input
+          placeholder="Forma (ej: -ak)"
+          value={nueva.forma}
+          onChange={(e) => setNueva((p) => ({ ...p, forma: e.target.value }))}
+          onKeyDown={(e) => e.key === "Enter" && agregar()}
+          className={`${INPUT_CLS} flex-1 min-w-28`}
+        />
+        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))} className={`${INPUT_CLS} w-32`}>
+          {Object.entries(TIPOS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /></button>
+      </div>
+
+      {grupos.map((g) => (
+        <div key={g.tipo} className="mb-4">
+          <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
+          <div className="flex flex-wrap gap-1.5">
+            {g.items.map((m) => (
+              <div key={m.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/4">
+                <span className="font-mono text-sm font-semibold text-primary">{m.forma}</span>
+                {m.significado && <span className="text-[11px] text-primary/40">{m.significado}</span>}
+                <button onClick={() => hook.eliminarMorfema(m.id)} className={BTN_ICON_CLS}><X size={10} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {hook.morfemas.length === 0 && !hook.loading && <EstadoVacio text="Sin morfemas registrados." />}
+    </div>
+  );
+}
+
+// ── Gramática (bloque de FilaAsimetrica) ──────────────────────────────────
+
+function BloquesGramatica({ perfil: hook }: { perfil: ReturnType<typeof usePerfilGramatical> }) {
+  const [local, setLocal] = useState<Partial<PerfilGramatical>>({});
+  const p = hook.perfil;
+  const merged = { ...p, ...local };
+  const set = (k: keyof PerfilGramatical, v: unknown) => setLocal((prev) => ({ ...prev, [k]: v }));
+  const guardar = () => { hook.guardar(local); setLocal({}); };
+  const dirty = Object.keys(local).length > 0;
+
+  return (
+    <div className="pl-2 space-y-3">
+      {!p && <p className="text-xs text-primary/40 italic">Completá algún campo para crear el perfil.</p>}
+
+      {([
+        ["orden_basico",               "Orden básico",         "SOV, SVO…"],
+        ["orden_adjetivo_sustantivo",  "Adj · Sust",           "Adj-N o N-Adj"],
+        ["tipo_adposicion",            "Adposición",           "pre/pos/ambigua"],
+        ["estrategia_negacion",        "Negación",             "partícula, afijo…"],
+        ["alineamiento",               "Alineamiento",         "nom-ac, erg-abs…"],
+      ] as [keyof PerfilGramatical, string, string][]).map(([k, label, ph]) => (
+        <div key={k} className="space-y-1">
+          <label className={LABEL_CLS}>{label}</label>
+          <input value={(merged[k] as string) ?? ""} onChange={(e) => set(k, e.target.value)} placeholder={ph} className={INPUT_CLS} />
+        </div>
+      ))}
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2 pt-1">
+        {([
+          ["genero_gramatical", "Género"],
+          ["numero_gramatical", "Número"],
+          ["caso_gramatical",   "Caso"],
+          ["concordancia",      "Concordancia"],
+        ] as [keyof PerfilGramatical, string][]).map(([k, label]) => (
+          <label key={k} className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
+            <input type="checkbox" checked={(merged[k] as boolean | undefined) ?? false} onChange={(e) => set(k, e.target.checked)} className="accent-primary" />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      <div className="space-y-1">
+        <label className={LABEL_CLS}>Notas</label>
+        <textarea value={merged.notas ?? ""} onChange={(e) => set("notas", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
+      </div>
+
+      {dirty && (
+        <button onClick={guardar} className={BTN_PRIMARY_CLS}><Check size={12} /> Guardar</button>
       )}
     </div>
   );
 }
 
-// ── Tab Léxico ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Tab Léxico — Diccionario
+// ═══════════════════════════════════════════════════════════════════════════
 
 function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }) {
   const [nuevoLema, setNuevoLema] = useState("");
@@ -521,9 +799,7 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
 
   return (
     <div>
-      <SeccionHeader title="Diccionario / Léxico" count={hook.lexemas.length} />
-
-      {/* Nuevo lexema */}
+      {/* Barra de acción */}
       <div className="flex gap-2 mb-3 flex-wrap">
         <input
           placeholder="Nuevo lema…"
@@ -535,31 +811,33 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
         <select value={nuevaCat} onChange={(e) => setNuevaCat(e.target.value as CategoriaGramatical)} className={`${INPUT_CLS} w-40`}>
           {CATS_GRAM.map((c) => <option key={c} value={c}>{CAT_GRAM_LABELS[c]}</option>)}
         </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Agregar
-        </button>
+        <button onClick={agregar} className={BTN_PRIMARY_CLS}><Plus size={12} /> Agregar</button>
       </div>
 
-      {/* Buscador */}
+      {/* Buscador — aparece cuando hay suficientes entradas */}
       {hook.lexemas.length > 10 && (
         <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-input-bg mb-3">
           <Search size={12} className="text-primary/30 shrink-0" />
           <input
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Filtrar léxico…"
+            placeholder={`Filtrar ${hook.lexemas.length} entradas…`}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-primary/25"
           />
+          {busqueda && (
+            <button onClick={() => setBusqueda("")} className={BTN_ICON_CLS}><X size={11} /></button>
+          )}
         </div>
       )}
 
-      {/* Lista lexemas */}
+      {/* Lista de lexemas */}
       <div className="flex flex-col gap-1">
         {filtrados.map((lex: Lexema) => (
           <div
             key={lex.id}
             className={`rounded-lg border transition-colors ${expandido === lex.id ? "border-primary/20 bg-primary/5" : "border-primary/8 bg-primary/3"}`}
           >
+            {/* Cabecera */}
             <div
               className="px-3.5 py-2.5 cursor-pointer flex items-center justify-between"
               onClick={() => setExpandido(expandido === lex.id ? null : lex.id)}
@@ -572,24 +850,24 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
                 <span className="text-[10px] text-primary/40 px-1.5 py-0.5 bg-primary/8 rounded shrink-0">
                   {CAT_GRAM_LABELS[lex.categoria_gramatical]}
                 </span>
+                {lex.definicion_breve && (
+                  <span className="text-xs text-primary/35 truncate hidden sm:block">{lex.definicion_breve}</span>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {lex.sentidos && lex.sentidos.length > 0 && (
                   <span className="text-[11px] text-primary/30">{lex.sentidos.length} acep.</span>
                 )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); hook.eliminar(lex.id); }}
-                  className={BTN_ICON_CLS}
-                >
+                <button onClick={(e) => { e.stopPropagation(); hook.eliminar(lex.id); }} className={BTN_ICON_CLS}>
                   <Trash2 size={11} />
                 </button>
                 {expandido === lex.id
                   ? <ChevronUp size={13} className="text-primary/30" />
-                  : <ChevronDown size={13} className="text-primary/30" />
-                }
+                  : <ChevronDown size={13} className="text-primary/30" />}
               </div>
             </div>
 
+            {/* Detalle expandido */}
             {expandido === lex.id && (
               <div className="px-3.5 pb-3.5 border-t border-primary/8 pt-3 space-y-3">
                 <div>
@@ -632,402 +910,28 @@ function TabLexico({ lexemas: hook }: { lexemas: ReturnType<typeof useLexemas> }
       </div>
 
       {hook.lexemas.length === 0 && !hook.loading && (
-        <EstadoVacio text="No hay lexemas registrados. Escribí el primer lema arriba." />
+        <EstadoVacio text="El diccionario está vacío. Escribí el primer lema arriba." />
+      )}
+      {busqueda && filtrados.length === 0 && (
+        <EstadoVacio text={`Sin resultados para "${busqueda}".`} />
       )}
     </div>
   );
 }
 
-// ── Tab Morfología ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers compartidos
+// ═══════════════════════════════════════════════════════════════════════════
 
-function TabMorfologia({ morfemas: hook, idiomaId }: { morfemas: ReturnType<typeof useMorfemas>; idiomaId: string }) {
-  const [nueva, setNueva] = useState({ forma: "", tipo: "raiz" as Morfema["tipo"] });
-
-  const TIPOS_LABEL: Record<string, string> = {
-    raiz: "Raíz", prefijo: "Prefijo", sufijo: "Sufijo", infijo: "Infijo",
-    circunfijo: "Circunfijo", clitico: "Clítico", otro: "Otro",
-  };
-
-  const agregar = async () => {
-    if (!nueva.forma.trim()) return;
-    await hook.crearMorfema(nueva.forma, nueva.tipo as any);
-    setNueva({ forma: "", tipo: "raiz" });
-  };
-
-  const grupos = Object.keys(TIPOS_LABEL).map((tipo) => ({
-    tipo, label: TIPOS_LABEL[tipo],
-    items: hook.morfemas.filter((m) => m.tipo === tipo),
-  })).filter((g) => g.items.length > 0);
-
+/** Fila compacta para listas de contexto (escritura, variedades, familias, relaciones, períodos) */
+function FilaContexto({ children, onEliminar }: { children: React.ReactNode; onEliminar: () => void }) {
   return (
-    <div>
-      <SeccionHeader title="Morfemas" count={hook.morfemas.length} />
-
-      <div className="flex gap-2 mb-5">
-        <input
-          placeholder="Forma (ej: -ak)"
-          value={nueva.forma}
-          onChange={(e) => setNueva((p) => ({ ...p, forma: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className={`${INPUT_CLS} flex-1`}
-        />
-        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as any }))} className={`${INPUT_CLS} w-36`}>
-          {Object.entries(TIPOS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Agregar
-        </button>
-      </div>
-
-      {grupos.map((g) => (
-        <div key={g.tipo} className="mb-5">
-          <p className={`${LABEL_CLS} mb-2`}>{g.label} ({g.items.length})</p>
-          <div className="flex flex-wrap gap-1.5">
-            {g.items.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-primary/10 bg-primary/5"
-              >
-                <span className="font-mono text-sm font-semibold text-primary">{m.forma}</span>
-                {m.significado && <span className="text-[11px] text-primary/40">{m.significado}</span>}
-                <button onClick={() => hook.eliminarMorfema(m.id)} className={BTN_ICON_CLS}>
-                  <X size={11} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {hook.morfemas.length === 0 && !hook.loading && (
-        <EstadoVacio text="No hay morfemas registrados." />
-      )}
+    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-primary/8 bg-primary/3">
+      <div className="flex items-center flex-wrap gap-1 min-w-0">{children}</div>
+      <button onClick={onEliminar} className={`${BTN_ICON_CLS} shrink-0 ml-2`}><X size={11} /></button>
     </div>
   );
 }
-
-// ── Tab Gramática ─────────────────────────────────────────────────────────
-
-function TabGramatica({ perfil: hook }: { perfil: ReturnType<typeof usePerfilGramatical> }) {
-  const [local, setLocal] = useState<Partial<PerfilGramatical>>({});
-  const p = hook.perfil;
-  const merged = { ...p, ...local };
-  const set = (k: keyof PerfilGramatical, v: unknown) => setLocal((prev) => ({ ...prev, [k]: v }));
-  const guardar = () => { hook.guardar(local); setLocal({}); };
-  const dirty = Object.keys(local).length > 0;
-
-  return (
-    <div className="max-w-lg space-y-4">
-      <SeccionHeader title="Perfil tipológico" />
-      {!p && (
-        <p className="text-xs text-primary/40 italic mb-4">
-          Todavía no hay perfil gramatical. Completá algún campo para crearlo.
-        </p>
-      )}
-
-      <Field label="Orden básico (ej: SOV, SVO)">
-        <input value={merged.orden_basico ?? ""} onChange={(e) => set("orden_basico", e.target.value)} className={INPUT_CLS} placeholder="SOV, SVO, VSO…" />
-      </Field>
-      <Field label="Adjetivo · Sustantivo">
-        <input value={merged.orden_adjetivo_sustantivo ?? ""} onChange={(e) => set("orden_adjetivo_sustantivo", e.target.value)} className={INPUT_CLS} placeholder="Adj-N o N-Adj" />
-      </Field>
-      <Field label="Tipo de adposición">
-        <input value={merged.tipo_adposicion ?? ""} onChange={(e) => set("tipo_adposicion", e.target.value)} className={INPUT_CLS} placeholder="preposición, posposición, ambigua" />
-      </Field>
-      <Field label="Estrategia de negación">
-        <input value={merged.estrategia_negacion ?? ""} onChange={(e) => set("estrategia_negacion", e.target.value)} className={INPUT_CLS} placeholder="partícula, afijo, doble negación…" />
-      </Field>
-      <Field label="Alineamiento (ej: nominativo-acusativo)">
-        <input value={merged.alineamiento ?? ""} onChange={(e) => set("alineamiento", e.target.value)} className={INPUT_CLS} />
-      </Field>
-
-      <div className="grid grid-cols-2 gap-3">
-        {([
-          ["genero_gramatical",  "Género gramatical"],
-          ["numero_gramatical",  "Número gramatical"],
-          ["caso_gramatical",    "Caso gramatical"],
-          ["concordancia",       "Concordancia"],
-        ] as [keyof PerfilGramatical, string][]).map(([k, label]) => (
-          <label key={k} className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={(merged[k] as boolean | undefined) ?? false}
-              onChange={(e) => set(k, e.target.checked)}
-              className="accent-primary"
-            />
-            {label}
-          </label>
-        ))}
-      </div>
-
-      <Field label="Notas">
-        <textarea value={merged.notas ?? ""} onChange={(e) => set("notas", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
-      </Field>
-
-      {dirty && (
-        <button onClick={guardar} className={BTN_PRIMARY_CLS}>
-          <Check size={12} /> Guardar perfil
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ── Tab Escritura ─────────────────────────────────────────────────────────
-
-function TabEscritura({
-  escritura, sistemasDisp, crearSistema,
-}: {
-  escritura: ReturnType<typeof useSistemasEscritura>;
-  sistemasDisp: ReturnType<typeof useSistemasEscrituraGlobal>["sistemas"];
-  crearSistema: ReturnType<typeof useSistemasEscrituraGlobal>["crear"];
-}) {
-  const [nuevaSistemaId, setNuevaSistemaId] = useState("");
-
-  const vincular = async () => {
-    if (!nuevaSistemaId) return;
-    await escritura.vincular(nuevaSistemaId);
-    setNuevaSistemaId("");
-  };
-
-  const sistemasNoVinculados = sistemasDisp.filter(
-    (s) => !escritura.vinculaciones.some((v) => v.sistema_escritura_id === s.id)
-  );
-
-  return (
-    <div>
-      <SeccionHeader title="Sistemas de escritura" count={escritura.vinculaciones.length} />
-
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <select value={nuevaSistemaId} onChange={(e) => setNuevaSistemaId(e.target.value)} className={`${INPUT_CLS} flex-1`}>
-          <option value="">— Seleccionar sistema —</option>
-          {sistemasNoVinculados.map((s) => <option key={s.id} value={s.id}>{s.nombre} ({s.tipo})</option>)}
-        </select>
-        <button onClick={vincular} disabled={!nuevaSistemaId} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Vincular
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        {escritura.vinculaciones.map((v) => (
-          <div key={v.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-            <div>
-              <span className="text-sm font-semibold text-primary">{v.sistema?.nombre}</span>
-              <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
-              <span className="text-[11px] text-primary/30 ml-2">{v.funcion}</span>
-            </div>
-            <button onClick={() => escritura.desvincular(v.id)} className={BTN_ICON_CLS}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {escritura.vinculaciones.length === 0 && !escritura.loading && (
-        <EstadoVacio text="No hay sistemas de escritura vinculados." />
-      )}
-    </div>
-  );
-}
-
-// ── Tab Variedades ────────────────────────────────────────────────────────
-
-function TabVariedades({ variedades: hook }: { variedades: ReturnType<typeof useVariedades> }) {
-  const [nueva, setNueva] = useState({ nombre: "", tipo: "dialectal" as TipoVariedad });
-
-  const agregar = async () => {
-    const n = nueva.nombre.trim();
-    if (!n) return;
-    await hook.crear(n, nueva.tipo);
-    setNueva({ nombre: "", tipo: "dialectal" });
-  };
-
-  return (
-    <div>
-      <SeccionHeader title="Variedades lingüísticas" count={hook.variedades.length} />
-
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <input
-          placeholder="Nombre de la variedad…"
-          value={nueva.nombre}
-          onChange={(e) => setNueva((p) => ({ ...p, nombre: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className={`${INPUT_CLS} flex-1 min-w-36`}
-        />
-        <select value={nueva.tipo} onChange={(e) => setNueva((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))} className={`${INPUT_CLS} w-40`}>
-          {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Agregar
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        {hook.variedades.map((v) => (
-          <div key={v.id} className="flex items-start justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-            <div>
-              <span className="text-sm font-semibold text-primary">{v.nombre}</span>
-              <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
-              {v.descripcion && <p className="mt-0.5 text-xs text-primary/40">{v.descripcion}</p>}
-            </div>
-            <button onClick={() => hook.eliminar(v.id)} className={BTN_ICON_CLS}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {hook.variedades.length === 0 && !hook.loading && (
-        <EstadoVacio text="No hay variedades registradas." />
-      )}
-    </div>
-  );
-}
-
-// ── Tab Relaciones ────────────────────────────────────────────────────────
-
-function TabRelaciones({
-  det, idiomaId, familiasDisp, todosLosIdiomas,
-}: {
-  det: ReturnType<typeof useIdiomaDetalle>;
-  idiomaId: string;
-  familiasDisp: ReturnType<typeof useFamilias>["familias"];
-  todosLosIdiomas: Idioma[];
-}) {
-  return (
-    <div className="space-y-6">
-      {/* Familias */}
-      <div>
-        <SeccionHeader title="Familias lingüísticas" count={det.familias.length} />
-        <div className="space-y-1.5 mb-3">
-          {det.familias.length > 0 ? det.familias.map((f) => (
-            <div key={f.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-              <div>
-                <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
-                <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
-              </div>
-              <button onClick={() => det.desvincularFamilia(f.id)} className={BTN_ICON_CLS}>
-                <X size={12} />
-              </button>
-            </div>
-          )) : (
-            <EstadoVacio text="Sin familia lingüística asignada." />
-          )}
-        </div>
-
-        {familiasDisp.length > 0 && (
-          <select
-            defaultValue=""
-            onChange={(e) => { if (e.target.value) det.vincularFamilia(e.target.value); e.currentTarget.value = ""; }}
-            className={INPUT_CLS}
-          >
-            <option value="">+ Vincular familia…</option>
-            {familiasDisp
-              .filter((f) => !det.familias.some((df) => df.familia_id === f.id))
-              .map((f) => <option key={f.id} value={f.id}>{f.nombre}</option>)
-            }
-          </select>
-        )}
-      </div>
-
-      {/* Relaciones entre idiomas */}
-      <div>
-        <SeccionHeader title="Relaciones con otros idiomas" count={det.relaciones.length} />
-        <div className="space-y-1.5">
-          {det.relaciones.length > 0 ? det.relaciones.map((r) => {
-            const esOrigen = r.idioma_origen_id === idiomaId;
-            const otro = esOrigen ? r.idioma_destino : r.idioma_origen;
-            return (
-              <div key={r.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-primary/30 font-mono">{esOrigen ? "→" : "←"}</span>
-                  <span className="text-sm font-semibold text-primary">{otro?.nombre}</span>
-                  <span className="text-[11px] text-primary px-1.5 py-0.5 rounded bg-primary/10">{r.tipo}</span>
-                  {r.descripcion && <span className="text-[11px] text-primary/35">{r.descripcion}</span>}
-                </div>
-                <button onClick={() => det.eliminarRelacion(r.id)} className={BTN_ICON_CLS}>
-                  <X size={12} />
-                </button>
-              </div>
-            );
-          }) : (
-            <EstadoVacio text="Sin relaciones con otros idiomas registradas." />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Tab Períodos ──────────────────────────────────────────────────────────
-
-function TabPeriodos({ periodos: hook }: { periodos: ReturnType<typeof usePeriodos> }) {
-  const [nuevo, setNuevo] = useState("");
-
-  const agregar = async () => {
-    const n = nuevo.trim();
-    if (!n) return;
-    await hook.crearPeriodo(n);
-    setNuevo("");
-  };
-
-  return (
-    <div>
-      <SeccionHeader title="Períodos lingüísticos" count={hook.periodos.length} />
-
-      <div className="flex gap-2 mb-4">
-        <input
-          placeholder="Nombre del período (ej: Antiguo, Medio…)"
-          value={nuevo}
-          onChange={(e) => setNuevo(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className={`${INPUT_CLS} flex-1`}
-        />
-        <button onClick={agregar} className={BTN_PRIMARY_CLS}>
-          <Plus size={12} /> Agregar
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        {hook.periodos.map((p) => (
-          <div key={p.id} className="flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-            <div>
-              <span className="text-sm font-semibold text-primary">{p.nombre}</span>
-              <span className="text-xs text-primary/35 ml-2">
-                {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
-              </span>
-            </div>
-            <button onClick={() => hook.eliminarPeriodo(p.id)} className={BTN_ICON_CLS}>
-              <Trash2 size={12} />
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {hook.periodos.length === 0 && !hook.loading && (
-        <EstadoVacio text="No hay períodos lingüísticos definidos." />
-      )}
-
-      {/* Cambios lingüísticos */}
-      {hook.cambios.length > 0 && (
-        <div className="mt-6">
-          <SeccionHeader title="Cambios lingüísticos" count={hook.cambios.length} />
-          <div className="space-y-1.5">
-            {hook.cambios.map((c) => (
-              <div key={c.id} className="px-3.5 py-2.5 rounded-lg border border-primary/10 bg-primary/4">
-                <span className="text-sm font-semibold text-primary">{c.nombre}</span>
-                <span className="text-[11px] text-primary/35 ml-2">{c.dominio}</span>
-                {c.descripcion && <p className="mt-1 text-xs text-primary/45">{c.descripcion}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Helpers de UI ─────────────────────────────────────────────────────────
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -1038,21 +942,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SeccionHeader({ title, count }: { title: string; count?: number }) {
-  return (
-    <div className="flex items-baseline gap-2 mb-3">
-      <h3 className={SECTION_TITLE_CLS}>{title}</h3>
-      {count !== undefined && count > 0 && (
-        <span className="text-[11px] text-primary/35 tabular-nums font-bold">({count})</span>
-      )}
-    </div>
-  );
-}
-
 function EstadoVacio({ text }: { text: string }) {
-  return (
-    <p className="py-5 text-center text-xs text-primary/25 italic">{text}</p>
-  );
+  return <p className="py-4 text-center text-xs text-primary/25 italic">{text}</p>;
 }
 
 // Re-export type para evitar error de import unused
