@@ -16,7 +16,7 @@
 import {
   AlignLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
   FileText, Globe, Languages, List, Loader2, Mic, Plus,
-  Search, Trash2, X, Link2, Layers,
+  Search, Trash2, X, Link2, Layers, PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -87,6 +87,7 @@ export function IdiomasSection() {
   const [busqueda, setBusqueda] = useState("");
   const [creando, setCreando] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const idiomasFiltrados = idiomas.filter((i) =>
@@ -100,16 +101,20 @@ export function IdiomasSection() {
     const nombre = nuevoNombre.trim();
     if (!nombre) return;
     const nuevo = await crearIdioma(nombre);
-    if (nuevo) { setSelectedId(nuevo.id); setTab("general"); }
+    if (nuevo) { setSelectedId(nuevo.id); setTab("general"); setSidebarOpen(false); }
     setCreando(false);
     setNuevoNombre("");
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
 
       {/* ── Lista lateral ──────────────────────────────────────────── */}
-      <aside className="w-64 shrink-0 border-r border-primary/10 flex flex-col">
+      <aside className={`
+        shrink-0 border-r border-primary/10 flex flex-col
+        transition-all duration-200 ease-in-out overflow-hidden
+        ${sidebarOpen ? "w-64" : "w-0 border-r-0"}
+      `}>
 
         <div className="border-b border-primary/10">
           {/* Buscador + botón nuevo en la misma fila */}
@@ -171,7 +176,7 @@ export function IdiomasSection() {
               <button
                 key={idioma.id}
                 type="button"
-                onClick={() => { setSelectedId(idioma.id); setTab("general"); }}
+                onClick={() => { setSelectedId(idioma.id); setTab("general"); setSidebarOpen(false); }}
                 className={`
                   w-full px-3 py-2.5 text-left flex items-center justify-between gap-2
                   border-l-2 transition-colors
@@ -199,22 +204,38 @@ export function IdiomasSection() {
       </aside>
 
       {/* ── Panel de detalle ──────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         {selectedId ? (
           <DetalleIdioma
             idiomaId={selectedId}
             tab={tab}
             onTabChange={setTab}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen((v) => !v)}
             onEliminar={async () => {
               await eliminarIdioma(selectedId);
               setSelectedId(null);
+              setSidebarOpen(true);
             }}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-primary/20">
-              <Languages size={36} className="mx-auto mb-3 opacity-40" />
-              <p className="text-xs">Seleccioná un idioma o creá uno nuevo</p>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Toggle visible también en empty state */}
+            <div className="px-3 pt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((v) => !v)}
+                title={sidebarOpen ? "Ocultar lista" : "Mostrar lista"}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-primary/30 hover:text-primary/70 hover:bg-primary/8 transition-colors"
+              >
+                {sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
+              </button>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-primary/20">
+                <Languages size={36} className="mx-auto mb-3 opacity-40" />
+                <p className="text-xs">Seleccioná un idioma o creá uno nuevo</p>
+              </div>
             </div>
           </div>
         )}
@@ -226,12 +247,14 @@ export function IdiomasSection() {
 // ── Panel detalle ─────────────────────────────────────────────────────────
 
 function DetalleIdioma({
-  idiomaId, tab, onTabChange, onEliminar,
+  idiomaId, tab, onTabChange, onEliminar, sidebarOpen, onToggleSidebar,
 }: {
   idiomaId: string;
   tab: TabId;
   onTabChange: (t: TabId) => void;
   onEliminar: () => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }) {
   const det       = useIdiomaDetalle(idiomaId);
   const fonemas   = useFonemas(idiomaId);
@@ -259,8 +282,17 @@ function DetalleIdioma({
   return (
     <>
       {/* ── Header ── */}
-      <div className="px-5 pt-4 pb-0 border-b border-primary/10">
+      <div className="px-4 pt-4 pb-0 border-b border-primary/10">
         <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              title={sidebarOpen ? "Ocultar lista" : "Mostrar lista"}
+              className="mt-0.5 shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-primary/30 hover:text-primary/70 hover:bg-primary/8 transition-colors"
+            >
+              {sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
+            </button>
           <div className="min-w-0">
             <h2 className="text-base font-black text-primary truncate">{idioma.nombre}</h2>
             {idioma.endonimo && (
@@ -276,6 +308,7 @@ function DetalleIdioma({
                 </span>
               )}
             </div>
+          </div>
           </div>
           <button onClick={onEliminar} className={BTN_ICON_CLS} title="Eliminar idioma">
             <Trash2 size={14} />
@@ -388,7 +421,7 @@ function TabGeneral({
   };
 
   return (
-    <div className="max-w-2xl space-y-0">
+    <div className="w-full space-y-0">
 
       {/* ── Info básica ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
