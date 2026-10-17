@@ -41,10 +41,12 @@ export default function TraductorAorisPage() {
       });
       if (invokeError) {
         let message = invokeError.message || "No se pudo conectar con el motor.";
-        try {
-          const details = await invokeError.context?.json();
-          if (details?.error) message = details.error;
-        } catch { /* Supabase may return a non-JSON error body. */ }
+        if ("context" in invokeError && invokeError.context instanceof Response) {
+          try {
+            const details = await invokeError.context.clone().json();
+            if (details?.error) message = details.error;
+          } catch { /* Supabase may return a non-JSON error body. */ }
+        }
         throw new Error(message);
       }
       if (data?.error) throw new Error(data.error);
@@ -78,6 +80,9 @@ export default function TraductorAorisPage() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
           Escribe en español y consulta las equivalencias que existen en el léxico Aoris de Supabase.
           Las palabras sin correspondencia se marcarán para no inventar vocabulario.
+        </p>
+        <p className="mt-3 max-w-2xl rounded-lg border border-border bg-card px-3 py-2 text-xs leading-5 text-muted-foreground">
+          El modo experimental consulta borradores lingüísticos, por eso requiere una sesión iniciada y permisos de editor o administrador.
         </p>
       </header>
 
