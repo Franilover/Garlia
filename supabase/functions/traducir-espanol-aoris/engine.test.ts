@@ -10,6 +10,7 @@ const lexemes: Lexeme[] = [
   { id: "dak", lema: "dak", categoria_gramatical: "pronombre", definicion_breve: "tú, segunda persona singular", estado: "borrador" },
   { id: "zor", lema: "zor", categoria_gramatical: "pronombre", definicion_breve: "él/ella, tercera persona singular", estado: "borrador" },
   { id: "kran", lema: "kran", categoria_gramatical: "verbo", definicion_breve: "volar, desplazarse por el aire", estado: "borrador" },
+  { id: "grek", lema: "grek", categoria_gramatical: "adjetivo", definicion_breve: "grande, dominante", estado: "borrador" },
   { id: "tsan", lema: "tsan", categoria_gramatical: "verbo", definicion_breve: "ver, percibir con la vista", estado: "borrador" },
   { id: "zkor", lema: "zkor", categoria_gramatical: "sustantivo", definicion_breve: "cielo, espacio aéreo superior", estado: "borrador" },
   { id: "ngor", lema: "ngor", categoria_gramatical: "sustantivo", definicion_breve: "clan, linaje, grupo de pertenencia", estado: "borrador" },
@@ -21,6 +22,8 @@ const morphemes: Morpheme[] = [
   { forma: "aken", tipo: "sufijo", significado: "plural y objeto", estado: "borrador" },
   { forma: "en", tipo: "sufijo", significado: "objeto directo", estado: "borrador" },
   { forma: "us", tipo: "sufijo", significado: "pasado", estado: "borrador" },
+  { forma: "da", tipo: "sufijo", significado: "posesión", estado: "borrador" },
+  { forma: "ok", tipo: "sufijo", significado: "imperativo", estado: "borrador" },
 ];
 const rules: MorphRule[] = [
   { nombre: "Negación ska", tipo_operacion: "otro", categoria_objetivo: "particula", descripcion: "Partícula preverbal", estado: "borrador", orden_aplicacion: 1 },
@@ -29,6 +32,8 @@ const rules: MorphRule[] = [
   { nombre: "Marca de objeto -en", tipo_operacion: "sufijacion", categoria_objetivo: "sustantivo", descripcion: "Marca objeto", estado: "borrador", orden_aplicacion: 30 },
   { nombre: "Plural objeto -aken", tipo_operacion: "sufijacion", categoria_objetivo: "sustantivo", descripcion: "Plural objeto", estado: "borrador", orden_aplicacion: 30 },
   { nombre: "Interrogación ze", tipo_operacion: "otro", categoria_objetivo: "particula", descripcion: "Partícula final", estado: "borrador", orden_aplicacion: 99 },
+  { nombre: "Posesión -da", tipo_operacion: "sufijacion", categoria_objetivo: "sustantivo", descripcion: "Poseedor antes del poseído", estado: "borrador", orden_aplicacion: 15 },
+  { nombre: "Imperativo -ok", tipo_operacion: "sufijacion", categoria_objetivo: "verbo", descripcion: "Marca imperativo", estado: "borrador", orden_aplicacion: 20 },
 ];
 const grammar: GrammarProfile = { orden_basico: "SOV", orden_adjetivo_sustantivo: "adjetivo_antes", estrategia_negacion: "particula", estrategia_interrogacion: "particula", estado: "borrador" };
 const translate = (text: string) => translateText(text, lexemes, morphemes, [], rules, grammar, "borrador");
@@ -51,4 +56,14 @@ Deno.test("marks a Spanish past form with the configured Aoris past suffix", () 
 Deno.test("does not drop the accented third-person pronoun él", () => {
   const result = translate("Él vuela.");
   assertEquals(result.translated_text, "zor kran.");
+});
+
+Deno.test("moves adjectives before nouns when no verb is present", () => {
+  assertEquals(translate("cielo grande").translated_text, "grek zkor");
+});
+Deno.test("uses the stored possessive suffix for a Spanish possessive determiner", () => {
+  assertEquals(translate("mi clan").translated_text, "naxda ngor");
+});
+Deno.test("uses the stored imperative suffix in an exclamative command", () => {
+  assertEquals(translate("¡Vuela!").translated_text, "¡kranok!");
 });
