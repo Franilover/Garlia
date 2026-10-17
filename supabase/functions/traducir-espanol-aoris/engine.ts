@@ -46,8 +46,8 @@ function stemCandidates(word: string, category: string | null): { candidates: st
     }
     const presentPatterns: Array<[RegExp, string[]]> = [
       [/amos$/, ["ar"]], [/ais$/, ["ar"]], [/an$/, ["ar"]], [/as$/, ["ar"]], [/a$/, ["ar"]],
-      [/emos$/, ["er"]], [/eis$/, ["er"]], [/en$/, ["er", "ir"]], [/es$/, ["er", "ir"]], [/e$/, ["er", "ir"]],
-      [/imos$/, ["ir"]], [/is$/, ["ir"]], [/o$/, ["ar", "er", "ir"]],
+      [/emos$/, ["er"]], [/eis$/, ["er"]], [/en$/, ["er", "ir"]], [/es$/, ["er", "ir"]], [/e$/, ["ar", "er", "ir"]],
+      [/imos$/, ["ir"]], [/is$/, ["ir"]], [/i$/, ["er", "ir"]], [/o$/, ["ar", "er", "ir"]],
     ];
     for (const [pattern, endings] of presentPatterns) if (pattern.test(word) && word.length > 2) {
       const base = word.replace(pattern, ""); endings.forEach((ending) => add(base + ending));
@@ -62,11 +62,13 @@ function stemCandidates(word: string, category: string | null): { candidates: st
   return { candidates: [...new Set(candidates)], tense };
 }
 function findLexeme(word: string, lexemes: Lexeme[], senses: LexicalSense[], preferredCategory?: string) {
-  const candidates = stemCandidates(normalize(word), preferredCategory ?? null);
+  const normalized = normalize(word);
+  const candidates = stemCandidates(normalized, preferredCategory ?? null);
+  const explicitlyPast = /(?:é|aste|ó|aron|í|iste|ió|ieron|aba|aban|ía|ían)$/iu.test(word);
   const ordered = preferredCategory ? [...lexemes.filter((l) => l.categoria_gramatical === preferredCategory), ...lexemes.filter((l) => l.categoria_gramatical !== preferredCategory)] : lexemes;
   for (const candidate of candidates.candidates) {
     const found = ordered.find((lexeme) => glossesFor(lexeme, senses).some((gloss) => gloss === candidate || gloss.split(/\s+/u).includes(candidate)));
-    if (found) return { lexeme: found, tense: IRREGULAR_VERBS[normalize(word)]?.tense ?? candidates.tense };
+    if (found) return { lexeme: found, tense: IRREGULAR_VERBS[normalized]?.tense ?? (explicitlyPast ? "past" : candidates.tense) };
   }
   return null;
 }
@@ -105,7 +107,11 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
     const source = rawTokens[i];
     if (!/[\p{L}\p{M}\d]/u.test(source)) continue;
     const normalized = normalize(source);
-    if (ARTICLES.has(normalized)) { tokens.push({ source, normalized, target: "", category: null, state: null, kind: "ignored", index: i }); continue; }
+    const sourceHasAcuteAccent = source.normalize("NFD").includes("\u0301");
+    if (ARTICLES.has(normalized) && !(normalized === "el" && sourceHasAcuteAccent)) {
+      tokens.push({ source, normalized, target: "", category: null, state: null, kind: "ignored", index: i });
+      continue;
+    }
     if (normalized === "no" || (normalized === "nunca" && negativeLexeme)) {
       const target = normalized === "nunca" ? lexemes.find((l) => l.categoria_gramatical === "adverbio" && /nunca/u.test(normalize(l.definicion_breve ?? ""))) : negativeLexeme;
       if (target) {
