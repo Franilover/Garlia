@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/garlia/universo",  title: "Universo",     icon: <Sprout />,     pageKey: "universo",    delay: 0.25 },
   { href: "/garlia/libros",    title: "Libros",       icon: <BookText />,   pageKey: "libros",      delay: 0.3 },
   { href: "/garlia/canciones", title: "Canciones",    icon: <Music />,      pageKey: "canciones",   delay: 0.4 },
+  { href: "/garlia/traductor", title: "Traductor Aoris", icon: <Languages />, pageKey: "traductor", delay: 0.45 },
 ];
 
 export default function WikiMenuPage() {
