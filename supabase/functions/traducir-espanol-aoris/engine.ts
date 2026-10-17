@@ -37,6 +37,7 @@ function stemCandidates(word: string, category: string | null): { candidates: st
     const add = (s: string) => { if (s && !candidates.includes(s)) candidates.push(s); };
     if (word.endsWith("ando") && word.length > 4) add(word.slice(0, -4) + "ar");
     if (word.endsWith("iendo") && word.length > 5) { add(word.slice(0, -5) + "er"); add(word.slice(0, -5) + "ir"); }
+    if (word.endsWith("io") && word.length > 2) { add(word.slice(0, -2) + "er"); add(word.slice(0, -2) + "ir"); }
     const pastPatterns: Array<[RegExp, string[]]> = [
       [/aste$/, ["ar"]], [/iste$/, ["er", "ir"]], [/aron$/, ["ar"]], [/ieron$/, ["er", "ir"]],
       [/abamos$/, ["ar"]], [/iamos$/, ["er", "ir"]], [/asteis$/, ["ar"]], [/é$/, ["ar"]], [/ó$/, ["ar"]], [/í$/, ["er", "ir"]], [/ió$/, ["er", "ir"]],
@@ -179,6 +180,7 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
     output = `${output} ${questionLexeme.lema}`.trim();
     matches.push({ source: "?", target: questionLexeme.lema, category: "particula", state: questionLexeme.estado });
   }
+  if (question && invertedQuestion) output = `¿${output}`;
   const finalMatches = matches.map((match) => {
     const token = tokens.find((t) => t.source === match.source && t.matched);
     return token ? { ...match, target: token.target } : match;
