@@ -502,13 +502,16 @@ export function EditorCriatura({
 
           </div>{/* /área scrollable */}
 
-          {/* ── FILA 3: Entidades (altura fija, no crece) ─────────────────── */}
+          {/* ── FILA 3: Entidades — altura fija, scroll interno ───────────── */}
           <div
             className="hidden sm:flex shrink-0"
-            style={{ borderTop: `1px solid ${BORDER}`, height: 120, overflow: "hidden" }}
+            style={{ borderTop: `1px solid ${BORDER}`, height: 160 }}
           >
             {/* Personajes */}
-            <div className="flex-1 flex flex-col min-w-0 h-full" style={{ borderRight: `1px solid ${BORDER}` }}>
+            <div
+              className="flex-1 flex flex-col min-w-0"
+              style={{ borderRight: `1px solid ${BORDER}`, overflowY: "auto", scrollbarWidth: "none" }}
+            >
               <SeccionEntidad
                 allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
                 columns={8}
@@ -525,54 +528,23 @@ export function EditorCriatura({
               />
             </div>
 
-            {/* Territorio */}
-            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220, borderRight: `1px solid ${BORDER}` }}>
-              <SeccionEntidad
-                allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-                emptyLabel="Sin territorio"
-                fallbackIcon={<Globe size={14} strokeWidth={1} />}
-                fill={false}
-                icon={<Globe size={9} />}
-                label="Territorio"
-                loading={loadingReinos}
-                saving={savingReinos}
-                selectedIds={reinoRows.map((r) => r.reinoId)}
-                onEntityClick={(id) => onNavigateReino?.(id)}
-                onToggle={(id, add) => handleToggleReino(id, add)}
-              />
-            </div>
-
             {/* Ciudades */}
-            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220, borderRight: `1px solid ${BORDER}` }}>
+            <div
+              className="shrink-0 flex flex-col"
+              style={{ width: "max-content", minWidth: 140, maxWidth: 240, overflowY: "auto", scrollbarWidth: "none" }}
+            >
               <SeccionEntidad
                 allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
-                emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+                emptyLabel="Sin ciudades"
                 fallbackIcon={<MapPin size={14} strokeWidth={1} />}
                 fill={false}
                 icon={<MapPin size={9} />}
-                label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+                label="Ciudades"
                 loading={loadingCiudades}
                 saving={savingCiudades}
                 selectedIds={ciudadRows.map((r) => r.ciudadId)}
                 onEntityClick={(id) => onNavigateCiudad?.(id)}
                 onToggle={(id, add) => handleToggleCiudad(id, add)}
-              />
-            </div>
-
-            {/* Creaciones */}
-            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220 }}>
-              <SeccionEntidad
-                allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-                emptyLabel="Sin creaciones"
-                fallbackIcon={<Package size={14} strokeWidth={1} />}
-                fill={false}
-                icon={<Wrench size={9} />}
-                label="Creaciones"
-                loading={loadingCrafted}
-                saving={savingCrafted}
-                selectedIds={craftedItems.map((i) => i.itemId)}
-                onEntityClick={(id) => onSelectItem?.(id)}
-                onToggle={handleToggleCrafted}
               />
             </div>
           </div>
@@ -611,35 +583,14 @@ export function EditorCriatura({
               />
               <div style={{ borderTop: `1px solid ${BORDER}` }} />
               <SeccionEntidad
-                allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
-                emptyLabel="Sin territorio" fallbackIcon={<Globe size={14} strokeWidth={1} />}
-                fill={false} icon={<Globe size={9} />} label="Territorio"
-                loading={loadingReinos} saving={savingReinos}
-                selectedIds={reinoRows.map((r) => r.reinoId)}
-                onEntityClick={(id) => onNavigateReino?.(id)}
-                onToggle={(id, add) => handleToggleReino(id, add)}
-              />
-              <div style={{ borderTop: `1px solid ${BORDER}` }} />
-              <SeccionEntidad
                 allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
-                emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+                emptyLabel="Sin ciudades"
                 fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-                fill={false} icon={<MapPin size={9} />}
-                label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+                fill={false} icon={<MapPin size={9} />} label="Ciudades"
                 loading={loadingCiudades} saving={savingCiudades}
                 selectedIds={ciudadRows.map((r) => r.ciudadId)}
                 onEntityClick={(id) => onNavigateCiudad?.(id)}
                 onToggle={(id, add) => handleToggleCiudad(id, add)}
-              />
-              <div style={{ borderTop: `1px solid ${BORDER}` }} />
-              <SeccionEntidad
-                allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
-                emptyLabel="Sin creaciones" fallbackIcon={<Package size={14} strokeWidth={1} />}
-                fill={false} icon={<Wrench size={9} />} label="Creaciones"
-                loading={loadingCrafted} saving={savingCrafted}
-                selectedIds={craftedItems.map((i) => i.itemId)}
-                onEntityClick={(id) => onSelectItem?.(id)}
-                onToggle={handleToggleCrafted}
               />
             </div>
           </div>
