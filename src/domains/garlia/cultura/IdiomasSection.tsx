@@ -46,9 +46,9 @@ const ESTADO_LABELS: Record<EstadoCanon, string> = {
 };
 const ESTADO_CLS: Record<EstadoCanon, { dot: string; badge: string }> = {
   borrador:   { dot: "bg-primary/30",  badge: "text-primary/50 bg-primary/8 border-primary/15" },
-  canon:      { dot: "bg-emerald-400", badge: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
-  revision:   { dot: "bg-amber-400",   badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
-  descartado: { dot: "bg-red-400/70",  badge: "text-red-400/70 bg-red-400/8 border-red-400/15" },
+  canon:      { dot: "bg-accent",      badge: "text-accent bg-accent/10 border-accent/20" },
+  revision:   { dot: "bg-primary/60",  badge: "text-primary/60 bg-primary/8 border-primary/20" },
+  descartado: { dot: "bg-primary/25",  badge: "text-primary/30 bg-primary/4 border-primary/8" },
 };
 
 const CAT_GRAM_LABELS: Record<CategoriaGramatical, string> = {
@@ -306,7 +306,7 @@ function DetalleIdioma({
                 {ESTADO_LABELS[estado]}
               </span>
               {idioma.es_protolengua && (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border text-violet-400 bg-violet-400/10 border-violet-400/20">
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold border text-accent/80 bg-accent/8 border-accent/20">
                   Protolengua
                 </span>
               )}
@@ -629,18 +629,18 @@ const TIPO_ICON: Record<string, React.ReactNode> = {
   regla:            <FileText      size={13} className="text-primary/50 shrink-0" />,
 };
 const DOMINIO_CLS: Record<string, string> = {
-  pasivo:     "text-primary/50 bg-primary/6 border-primary/15",
-  activo:     "text-accent bg-accent/10 border-accent/25",
-  productivo: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
+  pasivo:     "text-primary/40 bg-primary/6 border-primary/12",
+  activo:     "text-accent/80 bg-accent/8 border-accent/20",
+  productivo: "text-accent bg-accent/15 border-accent/35",
 };
 const DOMINIO_LABEL: Record<string, string> = {
   pasivo: "Pasivo", activo: "Activo", productivo: "Productivo",
 };
 
-const CICLO_META: Record<number, { nombre: string; desc: string; badge: string }> = {
-  1: { nombre: "Kror Dknor",   desc: "Fundamentos",           badge: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
-  2: { nombre: "Kror Zkor",    desc: "Gramática y Escritura",  badge: "text-violet-400 bg-violet-400/10 border-violet-400/20" },
-  3: { nombre: "Kror Solzkor", desc: "Registro Ritual",        badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
+const CICLO_META: Record<number, { nombre: string; desc: string }> = {
+  1: { nombre: "Kror Dknor",   desc: "Fundamentos"          },
+  2: { nombre: "Kror Zkor",    desc: "Gramática y Escritura" },
+  3: { nombre: "Kror Solzkor", desc: "Registro Ritual"       },
 };
 
 const TITULO_ANIO: Record<number, { titulo: string; desc: string }> = {
@@ -725,7 +725,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
             return (
               <div key={c}>
                 <div className="px-3 mb-1.5">
-                  <span className={`text-[9px] font-black uppercase tracking-widest ${meta.badge.split(" ")[0]}`}>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-accent/70">
                     Ciclo {c}
                   </span>
                   <p className="text-[10px] text-primary/35 mt-0.5 leading-tight">{meta.nombre}</p>
@@ -748,7 +748,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                     >
                       <span className="flex items-center gap-1.5">
                         <span className="font-bold">Año {anio}</span>
-                        {hasTitulo && <Award size={9} className="text-amber-400 shrink-0" />}
+                        {hasTitulo && <Award size={9} className="text-accent shrink-0" />}
                       </span>
                       <span className="block text-[10px] opacity-60 truncate mt-0.5 font-normal">{nombre}</span>
                       <span className="block text-[10px] opacity-40 mt-0.5 font-normal">{els.length} elem.</span>
@@ -767,14 +767,14 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
         {/* Header del año */}
         <div>
           <div className="flex items-center gap-2 mb-2.5 flex-wrap">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${cicloMeta.badge}`}>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border text-accent bg-accent/8 border-accent/20">
               Ciclo {ciclo} · {cicloMeta.nombre}
             </span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border border-primary/10 text-primary/35`}>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold border border-primary/10 text-primary/35">
               {cicloMeta.desc}
             </span>
             {tituloBadge && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border text-amber-400 bg-amber-400/8 border-amber-400/20">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border text-accent bg-accent/8 border-accent/20">
                 <Award size={9} /> {tituloBadge.titulo}
                 <span className="opacity-60 font-normal">— {tituloBadge.desc}</span>
               </span>
