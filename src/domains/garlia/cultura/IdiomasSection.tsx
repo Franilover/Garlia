@@ -366,7 +366,7 @@ function DetalleIdioma({
         )}
         {tab === "traductor" && (
           <div className="p-5">
-            <TabTraductor nombreIdioma={idioma.nombre} />
+            <TabTraductor nombreIdioma={idioma.nombre} idiomaId={idiomaId} />
           </div>
         )}
       </div>
@@ -386,10 +386,249 @@ type EstadoTraduccion =
   | { tipo: "ok"; texto: string; noReconocidas: string[] }
   | { tipo: "error"; mensaje: string };
 
-function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
+// ── Tooltip flotante por palabra ──────────────────────────────────────────
+
+interface TooltipPos { x: number; y: number; above: boolean }
+
+interface DatosPalabraTooltip {
+  lema: string;
+  encontrado: true;
+  categoria: string;
+  ipa?: string;
+  definicion?: string;
+  sentidos: { definicion: string; ejemplo?: string }[];
+  registro?: string;
+  notas?: string;
+} | {
+  lema: string;
+  encontrado: false;
+}
+
+const CAT_GRAM_ES: Record<string, string> = {
+  sustantivo: "sust.", verbo: "v.", adjetivo: "adj.", adverbio: "adv.",
+  pronombre: "pron.", preposicion: "prep.", conjuncion: "conj.",
+  interjeccion: "interj.", articulo: "art.", numeral: "num.",
+  particula: "part.", clasificador: "clasif.", otro: "",
+};
+
+/** Normaliza una cadena para la búsqueda: minúsculas, sin puntuación adherida */
+function normalizarToken(t: string): string {
+  return t.toLowerCase().replace(/^[^a-záéíóúüñ]+|[^a-záéíóúüñ]+$/gi, "");
+}
+
+/** Tokeniza el texto traducido preservando posición de espacios/puntuación */
+function tokenizar(texto: string): { valor: string; esPalabra: boolean }[] {
+  // Divide por espacios y saltos; los separadores se conservan como tokens no-palabra
+  return texto.split(/(\s+)/).flatMap((parte) => {
+    if (/^\s+$/.test(parte)) return [{ valor: parte, esPalabra: false }];
+    // Dentro de cada parte, separar puntuación pegada (coma, punto, etc.)
+    return parte.split(/([.,;:!?¿¡"'()\[\]{}…\-–—])/).map((frag) => ({
+      valor: frag,
+      esPalabra: frag.length > 0 && !/^[.,;:!?¿¡"'()\[\]{}…\-–—]+$/.test(frag),
+    })).filter((f) => f.valor.length > 0);
+  });
+}
+
+function TooltipPalabra({
+  datos,
+  pos,
+  onClose,
+}: {
+  datos: DatosPalabraTooltip;
+  pos: TooltipPos;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Cierra al hacer clic fuera
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  // Posición: siempre dentro de viewport
+  const style: React.CSSProperties = {
+    position: "fixed",
+    left: pos.x,
+    zIndex: 50,
+    maxWidth: 260,
+    ...(pos.above ? { bottom: window.innerHeight - pos.y } : { top: pos.y }),
+  };
+
+  return (
+    <div
+      ref={ref}
+      style={style}
+      className="rounded-xl border border-primary/20 bg-[var(--color-surface,#1a1a1a)] shadow-xl shadow-black/30 overflow-hidden"
+    >
+      {datos.encontrado ? (
+        <>
+          {/* Cabecera */}
+          <div className="px-3 pt-2.5 pb-2 border-b border-primary/10">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="font-serif text-sm font-bold text-primary">{datos.lema}</span>
+              {datos.ipa && (
+                <span className="font-mono text-[11px] text-primary/35">[{datos.ipa}]</span>
+              )}
+              {datos.categoria && (
+                <span className="text-[10px] font-semibold text-accent/70 bg-accent/10 px-1.5 py-0.5 rounded-full">
+                  {datos.categoria}
+                </span>
+              )}
+            </div>
+            {datos.definicion && (
+              <p className="mt-1 text-[11px] text-primary/60 leading-snug">{datos.definicion}</p>
+            )}
+          </div>
+
+          {/* Sentidos */}
+          {datos.sentidos.length > 0 && (
+            <div className="px-3 py-2 space-y-1.5 max-h-40 overflow-y-auto">
+              {datos.sentidos.map((s, i) => (
+                <div key={i} className="text-[11px]">
+                  <span className="text-primary/30 font-mono mr-1">{i + 1}.</span>
+                  <span className="text-primary/70">{s.definicion}</span>
+                  {s.ejemplo && (
+                    <p className="mt-0.5 text-primary/35 italic pl-3">"{s.ejemplo}"</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pie: registro / notas */}
+          {(datos.registro || datos.notas) && (
+            <div className="px-3 py-1.5 border-t border-primary/8 flex flex-wrap gap-2">
+              {datos.registro && (
+                <span className="text-[10px] text-primary/30 italic">{datos.registro}</span>
+              )}
+              {datos.notas && (
+                <span className="text-[10px] text-primary/25">{datos.notas}</span>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="px-3 py-2.5">
+          <span className="text-sm font-bold text-primary/50 font-serif">{datos.lema}</span>
+          <p className="mt-1 text-[11px] text-primary/30 italic">Sin entrada en el léxico.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Texto traducido con palabras interactivas ─────────────────────────────
+
+function TextoTraducido({
+  texto,
+  lexemas,
+}: {
+  texto: string;
+  lexemas: Lexema[];
+}) {
+  const [tooltip, setTooltip] = useState<{ datos: DatosPalabraTooltip; pos: TooltipPos } | null>(null);
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  const tokens = React.useMemo(() => tokenizar(texto), [texto]);
+
+  const buscarLexema = (token: string): DatosPalabraTooltip => {
+    const norm = normalizarToken(token);
+    if (!norm) return { lema: token, encontrado: false };
+    const lex = lexemas.find(
+      (l) => l.lema.toLowerCase() === norm || normalizarToken(l.lema) === norm
+    );
+    if (!lex) return { lema: token, encontrado: false };
+    return {
+      lema: lex.lema,
+      encontrado: true,
+      categoria: CAT_GRAM_ES[lex.categoria_gramatical] ?? "",
+      ipa: lex.transcripcion_ipa,
+      definicion: lex.definicion_breve,
+      sentidos: (lex.sentidos ?? []).map((s) => ({
+        definicion: s.definicion,
+        ejemplo: s.uso_ejemplo,
+      })),
+      registro: lex.registro,
+      notas: lex.notas,
+    };
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLSpanElement>, token: string) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const above = spaceBelow < 180;
+    const x = Math.min(rect.left, window.innerWidth - 270);
+    const pos: TooltipPos = {
+      x,
+      y: above ? rect.top - 4 : rect.bottom + 6,
+      above,
+    };
+    setTooltip({ datos: buscarLexema(token), pos });
+  };
+
+  return (
+    <div ref={contenedorRef} className="relative">
+      <div className="px-3 py-3 rounded-lg border border-primary/15 bg-input-bg text-sm text-primary font-medium leading-relaxed">
+        {tokens.map((tok, i) => {
+          if (!tok.esPalabra) {
+            return <span key={i}>{tok.valor}</span>;
+          }
+          const norm = normalizarToken(tok.valor);
+          const enLexico = norm
+            ? lexemas.some((l) => l.lema.toLowerCase() === norm || normalizarToken(l.lema) === norm)
+            : false;
+          return (
+            <span
+              key={i}
+              onMouseEnter={(e) => handleMouseEnter(e, tok.valor)}
+              onMouseLeave={() => {
+                // Pequeño delay para que el puntero pueda entrar al tooltip
+                setTimeout(() => setTooltip((prev) =>
+                  prev?.datos.lema === normalizarToken(tok.valor) || !prev ? null : prev
+                ), 80);
+              }}
+              className={`
+                cursor-default rounded transition-colors
+                ${enLexico
+                  ? "underline decoration-dotted decoration-primary/30 underline-offset-2 hover:bg-primary/10 hover:text-primary"
+                  : "hover:bg-primary/6"}
+              `}
+            >
+              {tok.valor}
+            </span>
+          );
+        })}
+      </div>
+      {tooltip && (
+        <TooltipPalabra
+          datos={tooltip.datos}
+          pos={tooltip.pos}
+          onClose={() => setTooltip(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── TabTraductor ──────────────────────────────────────────────────────────
+
+function TabTraductor({
+  nombreIdioma,
+  idiomaId,
+}: {
+  nombreIdioma: string;
+  idiomaId: string;
+}) {
   const [entrada, setEntrada] = useState("");
   const [estado, setEstado] = useState<EstadoTraduccion>({ tipo: "idle" });
   const [copiado, setCopiado] = useState(false);
+
+  // Reutiliza el léxico ya cargado para el lookup de tooltips
+  const lexemasHook = useLexemas(idiomaId);
 
   const charsRestantes = LIMITE_CHARS - entrada.length;
   const superaLimite   = entrada.length > LIMITE_CHARS;
@@ -408,7 +647,6 @@ function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
       );
 
       if (error) {
-        // Supabase FunctionsHttpError expone el status via error.context?.status
         const status = (error as any)?.context?.status ?? 0;
         if (status === 401 || status === 403) {
           setEstado({ tipo: "error", mensaje: "No tenés permiso para usar el traductor. Necesitás el rol editor o admin." });
@@ -474,7 +712,6 @@ function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
               ${superaLimite ? "border-red-500/40 focus:border-red-500/60" : ""}
             `}
           />
-          {/* Contador de caracteres */}
           <span className={`
             absolute bottom-2 right-2.5 text-[10px] font-mono tabular-nums
             ${superaLimite ? "text-red-400" : charsRestantes < 200 ? "text-primary/50" : "text-primary/25"}
@@ -518,10 +755,10 @@ function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
           {/* Aviso experimental */}
           <div className="flex items-start gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/4 text-[11px] text-primary/45">
             <AlertTriangle size={11} className="shrink-0 mt-0.5 text-primary/30" />
-            <span>Traducción experimental. Puede contener errores o palabras sin equivalente en {nombreIdioma}.</span>
+            <span>Traducción experimental. Pasá el cursor sobre las palabras para ver su entrada léxica.</span>
           </div>
 
-          {/* Texto traducido */}
+          {/* Texto traducido interactivo */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className={LABEL_CLS}>Traducción</label>
@@ -541,9 +778,15 @@ function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
                 }
               </button>
             </div>
-            <div className="px-3 py-3 rounded-lg border border-primary/15 bg-input-bg text-sm text-primary font-medium leading-relaxed whitespace-pre-wrap break-words">
-              {estado.texto}
-            </div>
+            <TextoTraducido
+              texto={estado.texto}
+              lexemas={lexemasHook.lexemas}
+            />
+            {!lexemasHook.loading && lexemasHook.lexemas.length > 0 && (
+              <p className="text-[10px] text-primary/25 italic">
+                Las palabras subrayadas tienen entrada en el léxico.
+              </p>
+            )}
           </div>
 
           {/* Palabras no reconocidas */}
@@ -563,7 +806,7 @@ function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
                 ))}
               </div>
               <p className="text-[11px] text-primary/35 italic">
-                Estas palabras no tienen equivalente registrado en el léxico de {nombreIdioma} y se dejaron sin traducir.
+                Sin equivalente registrado en el léxico de {nombreIdioma}.
               </p>
             </div>
           )}
