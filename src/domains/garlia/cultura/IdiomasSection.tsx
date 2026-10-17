@@ -425,11 +425,11 @@ function TabGeneral({
   };
 
   return (
-    <div className="w-full flex flex-col xl:flex-row gap-6 items-start">
+    <div className="w-full flex flex-col gap-6">
 
-      {/* ── Columna izquierda: Info básica ── */}
-      <div className="flex-1 w-full min-w-0 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      {/* ── Info básica ── */}
+      <div className="w-full space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Field label="Nombre">
             <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
           </Field>
@@ -444,17 +444,17 @@ function TabGeneral({
           <Field label="Fuente canon">
             <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
           </Field>
-          <div className="col-span-2">
+          <div className="col-span-2 md:col-span-4">
             <Field label="Descripción">
               <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
             </Field>
           </div>
-          <div className="col-span-2">
+          <div className="col-span-2 md:col-span-4">
             <Field label="Notas de documentación">
               <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={2} className={`${INPUT_CLS} resize-y`} />
             </Field>
           </div>
-          <div className="col-span-2">
+          <div className="col-span-2 md:col-span-4">
             <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
               <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
               Marcar como protolengua
@@ -490,8 +490,8 @@ function TabGeneral({
         </div>
       </div>
 
-      {/* ── Columna derecha: contexto ── */}
-      <div className="w-full xl:w-80 xl:shrink-0 space-y-5">
+      {/* ── Contexto ── */}
+      <div className="w-full space-y-5">
 
         {/* Escritura */}
         <div>
