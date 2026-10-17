@@ -1,4 +1,8 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+function assertEquals(actual: unknown, expected: unknown) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  }
+}
 import { translateText, type Lexeme, type Morpheme, type MorphRule, type GrammarProfile } from "./engine.ts";
 
 const lexemes: Lexeme[] = [
@@ -39,3 +43,11 @@ Deno.test("keeps unresolved words visible instead of inventing lexemes", () => {
   assertEquals(result.unresolved_words, ["saludo"]);
 });
 Deno.test("flags draft output as experimental", () => assertEquals(translate("volar").warning.includes("borrador"), true));
+
+Deno.test("marks a Spanish past form with the configured Aoris past suffix", () => {
+  assertEquals(translate("El clan voló.").translated_text, "ngor kranus.");
+});
+Deno.test("does not drop the accented third-person pronoun él", () => {
+  const result = translate("Él vuela.");
+  assertEquals(result.translated_text, "zor kran.");
+});
