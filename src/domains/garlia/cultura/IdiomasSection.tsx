@@ -15,7 +15,7 @@
  */
 import {
   AlignLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
-  FileText, Globe, Languages, List, Loader2, Mic, Plus,
+  FileText, Globe, GraduationCap, Languages, List, Loader2, Mic, Plus,
   Search, Trash2, X, Link2, Layers, PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -31,8 +31,9 @@ import {
 import {
   useIdiomas, useIdiomaDetalle, useFonemas, useLexemas,
   useMorfemas, useVariedades, useSistemasEscritura, usePerfilGramatical,
-  usePeriodos, useFamilias, useSistemasEscrituraGlobal,
+  usePeriodos, useFamilias, useSistemasEscrituraGlobal, usePlanEstudios,
 } from "./useIdiomas";
+import type { PlanElemento } from "./useIdiomas";
 import type {
   Idioma, Lexema, PerfilGramatical,
   EstadoCanon, CategoriaGramatical, ClaseFonema, TipoVariedad,
@@ -70,12 +71,13 @@ const TIPO_VARIEDAD_LABELS: Record<TipoVariedad, string> = {
 
 // ── Tabs (3) ──────────────────────────────────────────────────────────────
 
-type TabId = "general" | "estructura" | "lexico";
+type TabId = "general" | "estructura" | "lexico" | "plan";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "general",    label: "General",    icon: <FileText size={13} /> },
-  { id: "estructura", label: "Estructura", icon: <Layers   size={13} /> },
-  { id: "lexico",     label: "Léxico",     icon: <Book     size={13} /> },
+  { id: "general",    label: "General",    icon: <FileText       size={13} /> },
+  { id: "estructura", label: "Estructura", icon: <Layers         size={13} /> },
+  { id: "lexico",     label: "Léxico",     icon: <Book           size={13} /> },
+  { id: "plan",       label: "Plan",       icon: <GraduationCap  size={13} /> },
 ];
 
 // ── Componente principal ──────────────────────────────────────────────────
@@ -264,6 +266,7 @@ function DetalleIdioma({
   const escritura  = useSistemasEscritura(idiomaId);
   const perfil     = usePerfilGramatical(idiomaId);
   const periodos   = usePeriodos(idiomaId);
+  const plan       = usePlanEstudios(idiomaId);
   const { familias: familiasDisp } = useFamilias();
   const { sistemas: sistemasDisp, crear: crearSistema } = useSistemasEscrituraGlobal();
 
@@ -360,6 +363,11 @@ function DetalleIdioma({
         {tab === "lexico"     && (
           <div className="p-5">
             <TabLexico lexemas={lexemas} />
+          </div>
+        )}
+        {tab === "plan" && (
+          <div className="p-5">
+            <TabPlan plan={plan} />
           </div>
         )}
       </div>
@@ -605,6 +613,185 @@ function TabGeneral({
           </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tab Plan — Plan de estudios / Manual de aprendizaje
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TIPO_ICON: Record<string, string> = {
+  fonema: "🔤", lexema: "📖", morfema: "🧩",
+  grafema: "✍️", rasgo_gramatical: "⚙️", regla: "📐",
+};
+const DOMINIO_CLS: Record<string, string> = {
+  pasivo:     "text-primary/50 bg-primary/6 border-primary/15",
+  activo:     "text-accent bg-accent/10 border-accent/25",
+  productivo: "text-emerald-400 bg-emerald-400/10 border-emerald-400/25",
+};
+const DOMINIO_LABEL: Record<string, string> = {
+  pasivo: "Pasivo", activo: "Activo", productivo: "Productivo",
+};
+
+function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
+  const [anioActivo, setAnioActivo] = useState<number | null>(null);
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+
+  // Seleccionar primer año automáticamente
+  React.useEffect(() => {
+    if (plan.anios.length > 0 && anioActivo === null) {
+      setAnioActivo(plan.anios[0]);
+    }
+  }, [plan.anios, anioActivo]);
+
+  if (plan.loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-primary/30">
+        <Loader2 size={20} className="animate-spin mr-2" />
+        <span className="text-sm">Cargando plan…</span>
+      </div>
+    );
+  }
+
+  if (plan.anios.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-primary/25">
+        <GraduationCap size={36} className="mb-3 opacity-40" />
+        <p className="text-xs">No hay plan de estudios definido para este idioma.</p>
+      </div>
+    );
+  }
+
+  const elementosAnio = anioActivo ? (plan.porAnio[anioActivo] ?? []) : [];
+  const nombreAnio = elementosAnio[0]?.nombre_anio ?? `Año ${anioActivo}`;
+  const objetivo = elementosAnio[0]?.objetivo;
+
+  // Tipos disponibles en este año
+  const tiposDisp = ["todos", ...Array.from(new Set(elementosAnio.map((e) => e.tipo)))];
+
+  const elementosFiltrados = filtroTipo === "todos"
+    ? elementosAnio
+    : elementosAnio.filter((e) => e.tipo === filtroTipo);
+
+  // Agrupar por bloque
+  const porBloque = elementosFiltrados.reduce<Record<number, PlanElemento[]>>((acc, el) => {
+    if (!acc[el.bloque]) acc[el.bloque] = [];
+    acc[el.bloque].push(el);
+    return acc;
+  }, {});
+  const bloques = Object.keys(porBloque).map(Number).sort((a, b) => a - b);
+
+  return (
+    <div className="flex gap-5 items-start">
+
+      {/* ── Sidebar de años ── */}
+      <div className="shrink-0 w-36 space-y-0.5">
+        <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/35 px-2 mb-2">Años</p>
+        {plan.anios.map((anio) => {
+          const els = plan.porAnio[anio];
+          const nombre = els[0]?.nombre_anio ?? `Año ${anio}`;
+          const activo = anio === anioActivo;
+          return (
+            <button
+              key={anio}
+              onClick={() => { setAnioActivo(anio); setFiltroTipo("todos"); }}
+              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+                activo
+                  ? "bg-primary/12 text-primary font-bold border border-primary/20"
+                  : "text-primary/50 hover:text-primary/80 hover:bg-primary/6"
+              }`}
+            >
+              <span className="block font-bold">Año {anio}</span>
+              <span className="block text-[10px] opacity-70 truncate mt-0.5">{nombre}</span>
+              <span className="block text-[10px] opacity-50 mt-0.5">{els.length} elementos</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Contenido del año ── */}
+      <div className="flex-1 min-w-0 space-y-4">
+
+        {/* Header del año */}
+        <div className="border-b border-primary/10 pb-3">
+          <h3 className="text-sm font-black text-primary">{nombreAnio}</h3>
+          {objetivo && <p className="text-xs text-primary/50 mt-1">{objetivo}</p>}
+
+          {/* Filtro por tipo */}
+          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+            {tiposDisp.map((tipo) => (
+              <button
+                key={tipo}
+                onClick={() => setFiltroTipo(tipo)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                  filtroTipo === tipo
+                    ? "bg-primary/15 border-primary/30 text-primary"
+                    : "border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/60"
+                }`}
+              >
+                {tipo === "todos" ? "Todos" : `${TIPO_ICON[tipo] ?? "•"} ${tipo}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bloques */}
+        {bloques.map((nBloque) => {
+          const elsBloque = porBloque[nBloque];
+          const { nombre_bloque, semanas_inicio, semanas_fin, metodologia } = elsBloque[0];
+          return (
+            <div key={nBloque} className="space-y-2">
+              {/* Título del bloque */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-accent/60">
+                  Bloque {nBloque}
+                </span>
+                <span className="text-xs text-primary/60 font-semibold">{nombre_bloque}</span>
+                <span className="text-[10px] text-primary/30 ml-1">
+                  sem. {semanas_inicio}–{semanas_fin}
+                </span>
+                {metodologia && (
+                  <span className="text-[10px] text-primary/30 italic ml-auto">{metodologia}</span>
+                )}
+              </div>
+
+              {/* Elementos del bloque en grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
+                {elsBloque.map((el) => (
+                  <div
+                    key={`${el.tipo}-${el.elemento_id}`}
+                    className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs ${
+                      el.es_nuevo
+                        ? "border-primary/20 bg-primary/5"
+                        : "border-primary/8 bg-transparent"
+                    }`}
+                  >
+                    <span className="text-base leading-none mt-0.5 shrink-0">{TIPO_ICON[el.tipo] ?? "•"}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-primary truncate">{el.forma ?? "—"}</span>
+                        {el.es_nuevo && (
+                          <span className="text-[9px] font-black uppercase tracking-wider text-accent/70 shrink-0">nuevo</span>
+                        )}
+                      </div>
+                      {el.ipa && (
+                        <span className="font-mono text-[10px] text-primary/35 block">[{el.ipa}]</span>
+                      )}
+                      {el.descripcion && (
+                        <span className="text-primary/40 text-[10px] block truncate mt-0.5">{el.descripcion}</span>
+                      )}
+                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide ${DOMINIO_CLS[el.nivel_dominio] ?? ""}`}>
+                        {DOMINIO_LABEL[el.nivel_dominio]}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

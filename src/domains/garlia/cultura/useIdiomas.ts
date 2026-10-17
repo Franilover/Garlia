@@ -748,3 +748,54 @@ export function useSistemasEscrituraGlobal() {
 
   return { sistemas, loading, crear };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// PLAN DE ESTUDIOS — v_plan_aoris (vista)
+// ─────────────────────────────────────────────────────────────────────────
+
+export type PlanElemento = {
+  anio: number;
+  nombre_anio: string;
+  objetivo: string | null;
+  bloque: number;
+  nombre_bloque: string;
+  semanas_inicio: number;
+  semanas_fin: number;
+  metodologia: string | null;
+  tipo: string;
+  elemento_id: string;
+  forma: string | null;
+  ipa: string | null;
+  descripcion: string | null;
+  nivel_dominio: "pasivo" | "activo" | "productivo";
+  es_nuevo: boolean;
+};
+
+export function usePlanEstudios(idiomaId: string | null) {
+  const [elementos, setElementos] = useState<PlanElemento[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!idiomaId) return;
+    setLoading(true);
+    supabase
+      .from("v_plan_aoris")
+      .select("*")
+      .order("anio", { ascending: true })
+      .then(({ data }) => {
+        setElementos((data as PlanElemento[] | null) ?? []);
+        setLoading(false);
+      });
+  }, [idiomaId]);
+
+  // Agrupa por año
+  const porAnio = elementos.reduce<Record<number, PlanElemento[]>>((acc, el) => {
+    if (!acc[el.anio]) acc[el.anio] = [];
+    acc[el.anio].push(el);
+    return acc;
+  }, {});
+
+  const anios = Object.keys(porAnio).map(Number).sort((a, b) => a - b);
+
+  return { elementos, porAnio, anios, loading };
+}
