@@ -7,13 +7,13 @@
  * bordes mínimos solo para separar secciones.
  *
  * Grid principal (desktop):
- *   ┌─────────────────┬──────────────────────────┐
- *   │  Imagen         │  Descripción (RichEditor) │
- *   ├────────┬────────┴──────────────────────────┤
- *   │  Org.  │  Órganos del org. │ Sistemas org.  │
- *   ├────────┴───────────────────────────────────┤
- *   │  Entidades (Personajes · Territorio · …)    │
- *   └─────────────────────────────────────────────┘
+ *   ┌──────────┬──────────────────┬───────────────┐
+ *   │ Org.     │ Órganos          │ Sistemas       │
+ *   ├──────────┴──────────────────┴───────────────┤
+ *   │ Ilustración  │ Descripción (RichEditor)      │
+ *   ├──────────────────────────────────────────────┤
+ *   │ Personajes · Territorio · Ciudades · Creac.  │ ← altura fija
+ *   └──────────────────────────────────────────────┘
  */
 
 import {
@@ -349,65 +349,12 @@ export function EditorCriatura({
         </div>
 
         {/* ── CUERPO PRINCIPAL: layout en bloques ──────────────────────────── */}
-        <div
-          className="flex-1 min-h-0 overflow-y-auto"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {/* ── FILA 1: Imagen + Descripción ─────────────────────────────── */}
-          <div
-            className="flex gap-0 border-b"
-            style={{ borderColor: BORDER }}
-          >
-            {/* Imagen — columna fija */}
-            <div
-              className="hidden sm:flex shrink-0 items-start p-3"
-              style={{ width: 140, borderRight: `1px solid ${BORDER}` }}
-            >
-              <SelectorImagen
-                aspect="square"
-                label=""
-                placeholder={<Bug className="opacity-20" size={20} />}
-                value={form.imagen_url ?? ""}
-                onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
-              />
-            </div>
+        {/* Las filas 1-2 scrollean; la fila de entidades queda fija abajo */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Área scrollable: filas 1 y 2 */}
+          <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
 
-            {/* Imagen mobile */}
-            <div className="sm:hidden shrink-0 relative p-3" style={{ borderRight: `1px solid ${BORDER}` }}>
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden">
-                {form.imagen_url ? (
-                  <Image alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Bug className="text-primary/15" size={28} />
-                  </div>
-                )}
-                <div className="absolute top-1 right-1 z-10">
-                  <PickerImagenCriaturaBtn
-                    value={form.imagen_url ?? ""}
-                    onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Descripción */}
-            <div className="flex-1 min-w-0 flex flex-col p-3 gap-1.5">
-              <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
-                Descripción
-              </span>
-              <RichEditor
-                minHeight="7rem"
-                placeholder="Aspecto físico general…"
-                value={form.descripcion ?? ""}
-                wikiEntities={entities}
-                onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                onWikilinkNavigate={onWikilink}
-              />
-            </div>
-          </div>
-
-          {/* ── FILA 2: Biología — 3 columnas ────────────────────────────── */}
+          {/* ── FILA 1: Biología — 3 columnas ────────────────────────────── */}
           <div
             className="grid border-b"
             style={{
@@ -510,12 +457,13 @@ export function EditorCriatura({
             </div>
           </div>
 
-          {/* ── FILA 3: Ilustración extra ─────────────────────────────────── */}
+          {/* ── FILA 2: Ilustración + Descripción ────────────────────────── */}
           <div
             className="flex border-b"
             style={{ borderColor: BORDER }}
           >
-            <div className="flex flex-col" style={{ borderRight: `1px solid ${BORDER}`, width: 140 }}>
+            {/* Ilustración — columna fija */}
+            <div className="hidden sm:flex flex-col shrink-0" style={{ width: 140, borderRight: `1px solid ${BORDER}` }}>
               <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
                 <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
                   Ilustración
@@ -531,17 +479,33 @@ export function EditorCriatura({
                 />
               </div>
             </div>
-            <div className="flex-1 min-w-0 flex items-center px-3">
-              <p className="text-micro text-primary/30 leading-relaxed">
-                Referencias visuales de la criatura — concept art, poses, variantes.
-              </p>
+
+            {/* Descripción */}
+            <div className="flex-1 min-w-0 flex flex-col">
+              <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                  Descripción
+                </span>
+              </div>
+              <div className="p-3">
+                <RichEditor
+                  minHeight="7rem"
+                  placeholder="Aspecto físico general…"
+                  value={form.descripcion ?? ""}
+                  wikiEntities={entities}
+                  onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
+                  onWikilinkNavigate={onWikilink}
+                />
+              </div>
             </div>
           </div>
 
-          {/* ── FILA 4: Entidades (barra horizontal) ──────────────────────── */}
+          </div>{/* /área scrollable */}
+
+          {/* ── FILA 3: Entidades (altura fija, no crece) ─────────────────── */}
           <div
-            className="hidden sm:flex"
-            style={{ borderColor: BORDER }}
+            className="hidden sm:flex shrink-0"
+            style={{ borderTop: `1px solid ${BORDER}`, height: 120, overflow: "hidden" }}
           >
             {/* Personajes */}
             <div className="flex-1 flex flex-col min-w-0 h-full" style={{ borderRight: `1px solid ${BORDER}` }}>
