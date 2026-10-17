@@ -97,6 +97,13 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
   const tokens: Token[] = []; const unresolved: string[] = []; const matches: Match[] = [];
   const question = /\?/u.test(rawClause);
   const invertedQuestion = rawClause.trim().startsWith("¿");
+  const exclamative = rawClause.trim().startsWith("¡");
+  const possessionRule = hasRule(rules, /posesion/);
+  const possessionSuffix = possessionRule ? getSuffix(morphemes, ["da"]) : null;
+  const possessivePerson: Record<string, string> = {
+    mi: "yo", mis: "yo", tu: "tu", tus: "tu", su: "el", sus: "el",
+    nuestro: "nosotros", nuestra: "nosotros", nuestros: "nosotros", nuestras: "nosotros",
+  };
   const negationRule = hasRule(rules, /negacion/);
   const questionRule = hasRule(rules, /interrogacion/);
   const negativeLexeme = negationRule ? lexemes.find((l) => l.categoria_gramatical === "particula" && /negacion/u.test(normalize(l.definicion_breve ?? ""))) : undefined;
@@ -112,6 +119,18 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
     if (ARTICLES.has(normalized) && !(normalized === "el" && sourceHasAcuteAccent)) {
       tokens.push({ source, normalized, target: "", category: null, state: null, kind: "ignored", index: i });
       continue;
+    }
+    if (possessionSuffix && possessivePerson[normalized] && !(normalized === "tu" && sourceHasAcuteAccent)) {
+      const pronoun = findLexeme(possessivePerson[normalized], lexemes, senses, "pronombre")?.lexeme;
+      if (pronoun) {
+        const token: Token = {
+          source, normalized, target: pronoun.lema + possessionSuffix, category: "posesivo",
+          state: pronoun.estado, kind: "word", matched: pronoun, index: i,
+        };
+        tokens.push(token);
+        matches.push({ source, target: token.target, category: token.category, state: token.state });
+        continue;
+      }
     }
     if (normalized === "no" || (normalized === "nunca" && negativeLexeme)) {
       const target = normalized === "nunca" ? lexemes.find((l) => l.categoria_gramatical === "adverbio" && /nunca/u.test(normalize(l.definicion_breve ?? ""))) : negativeLexeme;
@@ -139,6 +158,9 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
   const rendered: Token[] = []; const used = new Set<Token>();
   const nounPhrase = (head: Token, isObject: boolean) => {
     const phrase: Token[] = [];
+    const headIndex = content.indexOf(head);
+    const possessive = content.find((t) => t.category === "posesivo" && !used.has(t) && content.indexOf(t) < headIndex && headIndex - content.indexOf(t) <= 2);
+    if (possessive) { phrase.push(possessive); used.add(possessive); }
     if (adjectiveBefore) {
       const adjectives = content.filter((t) => categoryIs(t, "adjetivo") && !used.has(t) && Math.abs(content.indexOf(t) - content.indexOf(head)) <= 2)
         .sort((a, b) => content.indexOf(a) - content.indexOf(b));
@@ -170,8 +192,24 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
     rendered.push(verb);
   } else {
     for (const token of content) {
-      if (categoryIs(token, "sustantivo") && isSpanishPlural(token.source)) attachPlural(token, morphemes, rules);
-      rendered.push(token);
+      if (used.has(token)) continue;
+      if (categoryIs(token, "sustantivo") || categoryIs(token, "pronombre")) {
+        rendered.push(...nounPhrase(token, false));
+      } else {
+        const belongsToNoun = categoryIs(token, "adjetivo") && content.some((t) =>
+          (categoryIs(t, "sustantivo") || categoryIs(t, "pronombre")) && Math.abs(content.indexOf(t) - content.indexOf(token)) <= 2
+        );
+        if (!belongsToNoun) { rendered.push(token); used.add(token); }
+      }
+    }
+  }
+
+  if (exclamative && !question && verbIndex >= 0 && content[verbIndex]?.category === "verbo" &&
+      !content.slice(0, verbIndex).some((t) => categoryIs(t, "pronombre") || categoryIs(t, "sustantivo")) &&
+      hasRule(rules, /imperativo/)) {
+    const imperativeSuffix = getSuffix(morphemes, ["ok"]);
+    if (imperativeSuffix && !content[verbIndex].target.toLowerCase().endsWith(imperativeSuffix.toLowerCase())) {
+      content[verbIndex].target += imperativeSuffix;
     }
   }
 
@@ -181,6 +219,7 @@ function translateClause(rawClause: string, lexemes: Lexeme[], morphemes: Morphe
     matches.push({ source: "?", target: questionLexeme.lema, category: "particula", state: questionLexeme.estado });
   }
   if (question && invertedQuestion) output = `¿${output}`;
+  if (exclamative && !question) output = `¡${output}`;
   const finalMatches = matches.map((match) => {
     const token = tokens.find((t) => t.source === match.source && t.matched);
     return token ? { ...match, target: token.target } : match;
