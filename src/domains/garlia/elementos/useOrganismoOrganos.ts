@@ -22,11 +22,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 
 import {
-  CONFIG_ORGANISMO_ORGANOS,
   CONFIG_ORGANOS,
   type Organo,
   type OrganismoOrgano,
 } from "@/domains/garlia/elementos/types";
+
+// Select con join embebido — una sola query, sin race condition entre dos
+// fetches separados. Supabase resuelve el FK organismo_organos.organo_id →
+// organos.id directamente en el servidor.
+const SELECT_CON_JOIN = `id, organismo_id, organo_id, rol, cantidad, created_at, organo:organos(${CONFIG_ORGANOS.select})`;
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 /** Una fila resuelta: vínculo + Órgano ya cargado, lista para la UI. */
@@ -93,39 +97,33 @@ export function useOrganismoOrganos(organismoId: string | null) {
 
     if (!cacheEntry) setLoading(true);
 
-    const { data: vinculoData, error: vinculoError } = await supabase
-      .from(CONFIG_ORGANISMO_ORGANOS.tabla)
-      .select(CONFIG_ORGANISMO_ORGANOS.select)
+    // Una sola query con join embebido — elimina el race condition entre
+    // dos fetches separados que causaba que `items` quedara vacío cuando
+    // los vínculos llegaban pero los órganos todavía no (o fallaban).
+    const { data, error } = await supabase
+      .from("organismo_organos")
+      .select(SELECT_CON_JOIN)
       .eq("organismo_id", organismoId)
       .order("created_at", { ascending: true });
 
-    if (vinculoError || !vinculoData) {
-      console.error("[useOrganismoOrganos] error cargando vínculos:", vinculoError);
-      setLoading(false);
-      return;
-    }
-    const vinculosResueltos = vinculoData as unknown as OrganismoOrgano[];
-    setVinculosLocal(vinculosResueltos);
-
-    const organoIds = [...new Set(vinculosResueltos.map((v) => v.organo_id))];
-    if (organoIds.length === 0) {
-      setOrganosLocal({});
-      setOrganosEnStore(organismoId, vinculosResueltos, {});
+    if (error || !data) {
+      console.error("[useOrganismoOrganos] error cargando vínculos+órganos:", error);
       setLoading(false);
       return;
     }
 
-    const { data: organoData, error: organoError } = await supabase
-      .from(CONFIG_ORGANOS.tabla)
-      .select(CONFIG_ORGANOS.select)
-      .in("id", organoIds);
-    if (organoError) {
-      console.error("[useOrganismoOrganos] error cargando órganos:", organoError);
-    }
+    // El join trae `organo` como objeto anidado en cada fila.
     const organosPorId: Record<string, Organo> = {};
-    for (const o of (organoData ?? []) as unknown as Organo[]) organosPorId[o.id] = o;
+    const vinculosLimpios: OrganismoOrgano[] = [];
+    for (const row of data as any[]) {
+      const { organo, ...vinculo } = row;
+      vinculosLimpios.push(vinculo as OrganismoOrgano);
+      if (organo) organosPorId[vinculo.organo_id] = organo as Organo;
+    }
+
+    setVinculosLocal(vinculosLimpios);
     setOrganosLocal(organosPorId);
-    setOrganosEnStore(organismoId, vinculosResueltos, organosPorId);
+    setOrganosEnStore(organismoId, vinculosLimpios, organosPorId);
     setLoading(false);
   }, [organismoId, cacheEntry, setOrganosEnStore]);
 

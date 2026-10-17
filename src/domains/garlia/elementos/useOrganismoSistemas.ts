@@ -24,11 +24,13 @@ import { supabase } from "@/infra/supabase/supabase";
 import { db } from "@/infra/supabase/db";
 
 import {
-  CONFIG_ORGANISMO_SISTEMAS,
   CONFIG_SISTEMAS,
   type OrganismoSistema,
   type Sistema,
 } from "@/domains/garlia/elementos/types";
+
+// Select con join embebido — una sola query, sin race condition.
+const SELECT_CON_JOIN = `id, organismo_id, sistema_id, proporcion, created_at, sistema:sistemas(${CONFIG_SISTEMAS.select})`;
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
@@ -145,40 +147,32 @@ export function useOrganismoSistemas(organismoId: string | null) {
       }
     }
 
-    // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
-    const { data: vinculoData, error: vinculoError } = await supabase
-      .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
-      .select(CONFIG_ORGANISMO_SISTEMAS.select)
+    // ── Paso 2: revalidar contra Supabase con join embebido ───────────────
+    // Una sola query elimina el race condition entre dos fetches separados.
+    const { data, error: vinculoError } = await supabase
+      .from("organismo_sistemas")
+      .select(SELECT_CON_JOIN)
       .eq("organismo_id", organismoId)
       .order("created_at", { ascending: true });
 
-    if (vinculoError || !vinculoData) {
+    if (vinculoError || !data) {
       setLoading(false);
       return;
     }
-    const vinculosResueltos = vinculoData as unknown as OrganismoSistema[];
-    setVinculosLocal(vinculosResueltos);
-
-    const sistemaIds = vinculosResueltos.map((v) => v.sistema_id);
-    if (sistemaIds.length === 0) {
-      setSistemasLocal({});
-      setSistemasEnStore(organismoId, vinculosResueltos, {});
-      setLoading(false);
-      void guardarEnDexie(vinculosResueltos, []);
-      return;
-    }
-
-    const { data: sistemaData } = await supabase
-      .from(CONFIG_SISTEMAS.tabla)
-      .select(CONFIG_SISTEMAS.select)
-      .in("id", sistemaIds);
 
     const sistemasPorId: Record<string, Sistema> = {};
-    for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
+    const vinculosLimpios: OrganismoSistema[] = [];
+    for (const row of data as any[]) {
+      const { sistema, ...vinculo } = row;
+      vinculosLimpios.push(vinculo as OrganismoSistema);
+      if (sistema) sistemasPorId[vinculo.sistema_id] = sistema as Sistema;
+    }
+
     setSistemasLocal(sistemasPorId);
-    setSistemasEnStore(organismoId, vinculosResueltos, sistemasPorId);
+    setVinculosLocal(vinculosLimpios);
+    setSistemasEnStore(organismoId, vinculosLimpios, sistemasPorId);
     setLoading(false);
-    void guardarEnDexie(vinculosResueltos, Object.values(sistemasPorId));
+    void guardarEnDexie(vinculosLimpios, Object.values(sistemasPorId));
   }, [organismoId, cacheEntry, setSistemasEnStore]);
 
   useEffect(() => {
