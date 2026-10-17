@@ -67,3 +67,7 @@ Deno.test("uses the stored possessive suffix for a Spanish possessive determiner
 Deno.test("uses the stored imperative suffix in an exclamative command", () => {
   assertEquals(translate("¡Vuela!").translated_text, "¡kranok!");
 });
+
+Deno.test("recognizes a regular Spanish imperfect form through the lexicon", () => {
+  assertEquals(translate("El clan volaba.").translated_text, "ngor kranus.");
+});
