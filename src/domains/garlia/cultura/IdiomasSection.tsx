@@ -425,11 +425,13 @@ function TabGeneral({
   };
 
   return (
-    <div className="w-full flex flex-col gap-6">
+    <div className="grid grid-cols-[1fr_320px] gap-6 items-start">
 
-      {/* ── Info básica ── */}
-      <div className="w-full space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* ══ Columna izquierda: campos + relaciones ══ */}
+      <div className="space-y-4 min-w-0">
+
+        {/* Campos en 2 cols */}
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre">
             <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
           </Field>
@@ -444,17 +446,17 @@ function TabGeneral({
           <Field label="Fuente canon">
             <input value={merged.fuente_canon ?? ""} onChange={(e) => set("fuente_canon", e.target.value)} className={INPUT_CLS} />
           </Field>
-          <div className="col-span-2 md:col-span-4">
+          <div className="col-span-2">
             <Field label="Descripción">
               <textarea value={merged.descripcion ?? ""} onChange={(e) => set("descripcion", e.target.value)} rows={3} className={`${INPUT_CLS} resize-y`} />
             </Field>
           </div>
-          <div className="col-span-2 md:col-span-4">
+          <div className="col-span-2">
             <Field label="Notas de documentación">
               <textarea value={merged.notas_documentacion ?? ""} onChange={(e) => set("notas_documentacion", e.target.value)} rows={2} className={`${INPUT_CLS} resize-y`} />
             </Field>
           </div>
-          <div className="col-span-2 md:col-span-4">
+          <div className="col-span-2">
             <label className="flex items-center gap-2 text-xs text-primary/60 cursor-pointer">
               <input type="checkbox" checked={merged.es_protolengua ?? false} onChange={(e) => set("es_protolengua", e.target.checked)} className="accent-primary" />
               Marcar como protolengua
@@ -469,7 +471,7 @@ function TabGeneral({
           </button>
         )}
 
-        {/* ── Relaciones ── */}
+        {/* Relaciones */}
         <div>
           <TituloCategoria titulo="Relaciones" total={det.relaciones.length} />
           <div className="mt-2 space-y-1.5">
@@ -490,11 +492,11 @@ function TabGeneral({
         </div>
       </div>
 
-      {/* ── Contexto ── */}
-      <div className="w-full space-y-5">
+      {/* ══ Columna derecha: contexto en 2×2 ══ */}
+      <div className="grid grid-cols-2 gap-4 min-w-0">
 
         {/* Escritura */}
-        <div>
+        <div className="col-span-2">
           <TituloCategoria titulo="Escritura" total={escritura.vinculaciones.length} />
           <div className="mt-2 space-y-1.5">
             <div className="flex items-stretch rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
@@ -514,7 +516,7 @@ function TabGeneral({
                 <span className="text-xs text-primary/40 ml-2">{v.sistema?.tipo} · {v.sistema?.direccion?.replace(/_/g, " ")}</span>
               </FilaContexto>
             ))}
-            {escritura.vinculaciones.length === 0 && !escritura.loading && <EstadoVacio text="Sin sistemas de escritura vinculados." />}
+            {escritura.vinculaciones.length === 0 && !escritura.loading && <EstadoVacio text="Sin sistemas vinculados." />}
           </div>
         </div>
 
@@ -531,35 +533,35 @@ function TabGeneral({
                 className="flex-1 min-w-0 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-primary/25"
               />
               <select value={nuevaVariedad.tipo} onChange={(e) => setNuevaVariedad((p) => ({ ...p, tipo: e.target.value as TipoVariedad }))}
-                className="shrink-0 w-28 bg-transparent px-2 py-1.5 text-sm outline-none text-primary/70 border-l border-primary/15">
+                className="shrink-0 w-20 bg-transparent px-2 py-1.5 text-xs outline-none text-primary/70 border-l border-primary/15">
                 {Object.entries(TIPO_VARIEDAD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <button onClick={agregarVariedad}
-                className="shrink-0 w-8 flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
+                className="shrink-0 w-7 flex items-center justify-center bg-primary/10 hover:bg-primary/20 text-primary/70 hover:text-primary transition-colors border-l border-primary/15">
                 <Plus size={12} />
               </button>
             </div>
             {variedades.variedades.map((v) => (
               <FilaContexto key={v.id} onEliminar={() => variedades.eliminar(v.id)}>
-                <span className="text-sm font-semibold text-primary">{v.nombre}</span>
-                <span className="text-xs text-primary/40 ml-2">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
+                <span className="text-sm font-semibold text-primary truncate">{v.nombre}</span>
+                <span className="text-xs text-primary/40 ml-2 shrink-0">{TIPO_VARIEDAD_LABELS[v.tipo as TipoVariedad]}</span>
               </FilaContexto>
             ))}
-            {variedades.variedades.length === 0 && !variedades.loading && <EstadoVacio text="Sin variedades registradas." />}
+            {variedades.variedades.length === 0 && !variedades.loading && <EstadoVacio text="Sin variedades." />}
           </div>
         </div>
 
         {/* Familias */}
         <div>
-          <TituloCategoria titulo="Familias lingüísticas" total={det.familias.length} />
+          <TituloCategoria titulo="Familias" total={det.familias.length} />
           <div className="mt-2 space-y-1.5">
             {det.familias.map((f) => (
               <FilaContexto key={f.id} onEliminar={() => det.desvincularFamilia(f.id)}>
-                <span className="text-sm font-semibold text-primary">{f.familia?.nombre}</span>
-                <span className="text-[11px] text-primary/35 ml-2">{f.tipo_clasificacion}</span>
+                <span className="text-sm font-semibold text-primary truncate">{f.familia?.nombre}</span>
+                <span className="text-[11px] text-primary/35 ml-2 shrink-0">{f.tipo_clasificacion}</span>
               </FilaContexto>
             ))}
-            {det.familias.length === 0 && <EstadoVacio text="Sin familia lingüística asignada." />}
+            {det.familias.length === 0 && <EstadoVacio text="Sin familia asignada." />}
             {familiasDisp.length > 0 && (
               <select
                 defaultValue=""
@@ -575,7 +577,7 @@ function TabGeneral({
         </div>
 
         {/* Períodos */}
-        <div>
+        <div className="col-span-2">
           <TituloCategoria titulo="Períodos" total={periodos.periodos.length} />
           <div className="mt-2 space-y-1.5">
             <div className="flex items-stretch rounded-lg overflow-hidden border border-primary/15 bg-input-bg">
@@ -594,7 +596,7 @@ function TabGeneral({
             {periodos.periodos.map((p) => (
               <FilaContexto key={p.id} onEliminar={() => periodos.eliminarPeriodo(p.id)}>
                 <span className="text-sm font-semibold text-primary">{p.nombre}</span>
-                <span className="text-xs text-primary/35 ml-2">
+                <span className="text-xs text-primary/35 ml-2 shrink-0">
                   {p.inicio_estimado ?? "?"} — {p.fin_estimado ?? "?"} {p.unidad_temporal}
                 </span>
               </FilaContexto>
