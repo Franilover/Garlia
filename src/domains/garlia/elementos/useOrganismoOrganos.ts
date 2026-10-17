@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 
 import {
+  CONFIG_ORGANISMO_ORGANOS,
   CONFIG_ORGANOS,
   type Organo,
   type OrganismoOrgano,
