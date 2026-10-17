@@ -1,22 +1,15 @@
 "use client";
 /**
- * IdiomasSection — Editor de Mundo · Idiomas  v5
+ * IdiomasSection — Editor de Mundo · Idiomas  v6
  * ──────────────────────────────────────────────
- * 3 tabs en lugar de 9:
- *
- *   General   → Info + Escritura + Variedades + Familias + Relaciones + Períodos
- *               (todo lo que describe QUÉ es el idioma y su contexto)
- *
- *   Estructura → Fonología | Morfología | Gramática como FilaAsimetrica
- *               (todo lo que describe CÓMO funciona el idioma)
- *
- *   Léxico     → Diccionario con buscador propio
- *               (separado por volumen y flujo de trabajo distinto)
+ * v6: añade tab "Traductor" (Español → Aoris)
+ *     conectado a la Edge Function "traducir-espanol-aoris"
  */
 import {
   AlignLeft, Award, Book, BookOpen, Check, ChevronDown, ChevronUp,
   FileText, Globe, GraduationCap, Languages, List, Loader2, Mic, Plus,
   Search, Trash2, X, Link2, Layers, PanelLeftOpen, PanelLeftClose, Zap,
+  ArrowRightLeft, Copy, CheckCheck, AlertTriangle,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -27,6 +20,8 @@ import {
   BTN_PRIMARY_CLS, BTN_GHOST_CLS, BTN_ICON_CLS,
   SECTION_TITLE_CLS,
 } from "@/domains/garlia/_shared/types";
+
+import { supabase } from "@/infra/supabase/supabase";
 
 import {
   useIdiomas, useIdiomaDetalle, useFonemas, useLexemas,
@@ -69,15 +64,16 @@ const TIPO_VARIEDAD_LABELS: Record<TipoVariedad, string> = {
   historica: "Histórica", otro: "Otro",
 };
 
-// ── Tabs (3) ──────────────────────────────────────────────────────────────
+// ── Tabs (4) ──────────────────────────────────────────────────────────────
 
-type TabId = "general" | "estructura" | "lexico" | "plan";
+type TabId = "general" | "estructura" | "lexico" | "plan" | "traductor";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "general",    label: "General",    icon: <FileText       size={13} /> },
   { id: "estructura", label: "Estructura", icon: <Layers         size={13} /> },
   { id: "lexico",     label: "Léxico",     icon: <Book           size={13} /> },
   { id: "plan",       label: "Guía",       icon: <GraduationCap  size={13} /> },
+  { id: "traductor",  label: "Traductor",  icon: <ArrowRightLeft size={13} /> },
 ];
 
 // ── Componente principal ──────────────────────────────────────────────────
@@ -368,8 +364,212 @@ function DetalleIdioma({
         {tab === "plan" && (
           <TabPlan plan={plan} />
         )}
+        {tab === "traductor" && (
+          <div className="p-5">
+            <TabTraductor nombreIdioma={idioma.nombre} />
+          </div>
+        )}
       </div>
     </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tab Traductor — Español → Aoris
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LIMITE_CHARS = 2000;
+
+type EstadoTraduccion =
+  | { tipo: "idle" }
+  | { tipo: "cargando" }
+  | { tipo: "ok"; texto: string; noReconocidas: string[] }
+  | { tipo: "error"; mensaje: string };
+
+function TabTraductor({ nombreIdioma }: { nombreIdioma: string }) {
+  const [entrada, setEntrada] = useState("");
+  const [estado, setEstado] = useState<EstadoTraduccion>({ tipo: "idle" });
+  const [copiado, setCopiado] = useState(false);
+
+  const charsRestantes = LIMITE_CHARS - entrada.length;
+  const superaLimite   = entrada.length > LIMITE_CHARS;
+
+  const traducir = async () => {
+    const texto = entrada.trim();
+    if (!texto || superaLimite) return;
+
+    setEstado({ tipo: "cargando" });
+    setCopiado(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "traducir-espanol-aoris",
+        { body: { text: texto } },
+      );
+
+      if (error) {
+        // Supabase FunctionsHttpError expone el status via error.context?.status
+        const status = (error as any)?.context?.status ?? 0;
+        if (status === 401 || status === 403) {
+          setEstado({ tipo: "error", mensaje: "No tenés permiso para usar el traductor. Necesitás el rol editor o admin." });
+        } else if (status === 400) {
+          setEstado({ tipo: "error", mensaje: "Texto inválido o demasiado largo. Revisá que no supere los 2000 caracteres." });
+        } else {
+          setEstado({ tipo: "error", mensaje: `Error del servidor (${status || "sin conexión"}). Intentá de nuevo.` });
+        }
+        return;
+      }
+
+      if (!data?.translated_text) {
+        setEstado({ tipo: "error", mensaje: "La función no devolvió una traducción. Intentá de nuevo." });
+        return;
+      }
+
+      setEstado({
+        tipo: "ok",
+        texto: data.translated_text as string,
+        noReconocidas: (data.unrecognized_words as string[] | undefined) ?? [],
+      });
+    } catch {
+      setEstado({ tipo: "error", mensaje: "No se pudo conectar con el servidor. Verificá tu conexión." });
+    }
+  };
+
+  const copiar = async () => {
+    if (estado.tipo !== "ok") return;
+    await navigator.clipboard.writeText(estado.texto);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
+  const limpiar = () => {
+    setEntrada("");
+    setEstado({ tipo: "idle" });
+    setCopiado(false);
+  };
+
+  return (
+    <div className="max-w-2xl space-y-5">
+
+      {/* Header informativo */}
+      <div className="flex items-center gap-2">
+        <ArrowRightLeft size={14} className="text-primary/40 shrink-0" />
+        <span className="text-xs text-primary/50">
+          Español → <span className="font-semibold text-primary/70">{nombreIdioma}</span>
+          <span className="ml-2 text-primary/30">· traducción experimental</span>
+        </span>
+      </div>
+
+      {/* Área de entrada */}
+      <div className="space-y-1.5">
+        <label className={LABEL_CLS}>Texto en español</label>
+        <div className="relative">
+          <textarea
+            value={entrada}
+            onChange={(e) => setEntrada(e.target.value)}
+            placeholder="Escribí el texto que querés traducir…"
+            rows={5}
+            className={`
+              ${INPUT_CLS} resize-y
+              ${superaLimite ? "border-red-500/40 focus:border-red-500/60" : ""}
+            `}
+          />
+          {/* Contador de caracteres */}
+          <span className={`
+            absolute bottom-2 right-2.5 text-[10px] font-mono tabular-nums
+            ${superaLimite ? "text-red-400" : charsRestantes < 200 ? "text-primary/50" : "text-primary/25"}
+          `}>
+            {entrada.length}/{LIMITE_CHARS}
+          </span>
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={traducir}
+          disabled={!entrada.trim() || superaLimite || estado.tipo === "cargando"}
+          className={BTN_PRIMARY_CLS}
+        >
+          {estado.tipo === "cargando"
+            ? <><Loader2 size={12} className="animate-spin" /> Traduciendo…</>
+            : <><ArrowRightLeft size={12} /> Traducir</>
+          }
+        </button>
+        {(entrada || estado.tipo !== "idle") && (
+          <button onClick={limpiar} className={BTN_GHOST_CLS}>
+            <X size={12} /> Limpiar
+          </button>
+        )}
+      </div>
+
+      {/* Error */}
+      {estado.tipo === "error" && (
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-red-500/20 bg-red-500/5 text-xs text-red-400/80">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>{estado.mensaje}</span>
+        </div>
+      )}
+
+      {/* Resultado */}
+      {estado.tipo === "ok" && (
+        <div className="space-y-3">
+
+          {/* Aviso experimental */}
+          <div className="flex items-start gap-2 px-3 py-2 rounded-lg border border-primary/10 bg-primary/4 text-[11px] text-primary/45">
+            <AlertTriangle size={11} className="shrink-0 mt-0.5 text-primary/30" />
+            <span>Traducción experimental. Puede contener errores o palabras sin equivalente en {nombreIdioma}.</span>
+          </div>
+
+          {/* Texto traducido */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className={LABEL_CLS}>Traducción</label>
+              <button
+                onClick={copiar}
+                title="Copiar traducción"
+                className={`
+                  flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors
+                  ${copiado
+                    ? "text-accent bg-accent/10 border border-accent/20"
+                    : "text-primary/40 hover:text-primary/70 hover:bg-primary/8"}
+                `}
+              >
+                {copiado
+                  ? <><CheckCheck size={11} /> Copiado</>
+                  : <><Copy size={11} /> Copiar</>
+                }
+              </button>
+            </div>
+            <div className="px-3 py-3 rounded-lg border border-primary/15 bg-input-bg text-sm text-primary font-medium leading-relaxed whitespace-pre-wrap break-words">
+              {estado.texto}
+            </div>
+          </div>
+
+          {/* Palabras no reconocidas */}
+          {estado.noReconocidas.length > 0 && (
+            <div className="space-y-1.5">
+              <label className={LABEL_CLS}>
+                Palabras no reconocidas ({estado.noReconocidas.length})
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {estado.noReconocidas.map((palabra) => (
+                  <span
+                    key={palabra}
+                    className="px-2 py-0.5 rounded-full text-[11px] font-medium border border-primary/15 text-primary/50 bg-primary/4"
+                  >
+                    {palabra}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[11px] text-primary/35 italic">
+                Estas palabras no tienen equivalente registrado en el léxico de {nombreIdioma} y se dejaron sin traducir.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -665,7 +865,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
     return (
       <div className="flex items-center justify-center py-16 text-primary/30">
         <Loader2 size={20} className="animate-spin mr-2" />
-        <span className="text-sm">Cargando guía de estudio\u2026</span>
+        <span className="text-sm">Cargando guía de estudio…</span>
       </div>
     );
   }
@@ -716,7 +916,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
   return (
     <div className="flex min-h-full">
 
-      {/* \u2500\u2500 Sidebar ciclos / años \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      {/* ── Sidebar ciclos / años ────────────────────────────────── */}
       <aside className="shrink-0 w-44 border-r border-primary/8">
         <div className="sticky top-0 py-3 space-y-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {Object.entries(ciclosAgrupados).map(([cicloNumStr, aniosDelCiclo]) => {
@@ -761,7 +961,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
         </div>
       </aside>
 
-      {/* \u2500\u2500 Panel principal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      {/* ── Panel principal ────────────────────────────────────── */}
       <div className="flex-1 min-w-0 p-5 space-y-5">
 
         {/* Header del año */}
@@ -818,7 +1018,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                   : "border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/60"
               }`}
             >
-              {tipo === "todos" ? "Todos" : <>{TIPO_ICON[tipo] ?? <span>\u2022</span>}<span>{tipo}</span></>}
+              {tipo === "todos" ? "Todos" : <>{TIPO_ICON[tipo] ?? <span>•</span>}<span>{tipo}</span></>}
             </button>
           ))}
         </div>
@@ -838,7 +1038,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <span className="text-xs font-bold text-primary/80">{nombre_bloque}</span>
-                      <span className="text-[10px] font-mono text-primary/30">sem. {semanas_inicio}\u2013{semanas_fin}</span>
+                      <span className="text-[10px] font-mono text-primary/30">sem. {semanas_inicio}–{semanas_fin}</span>
                     </div>
                     {metodologia && (
                       <p className="mt-1.5 text-[11px] text-primary/45 italic leading-relaxed border-l-2 border-primary/15 pl-2.5">
@@ -860,11 +1060,11 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                       }`}
                     >
                       <span className="leading-none mt-0.5 shrink-0 flex items-center">
-                        {TIPO_ICON[el.tipo] ?? <span className="text-primary/30">\u2022</span>}
+                        {TIPO_ICON[el.tipo] ?? <span className="text-primary/30">•</span>}
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-primary truncate">{el.forma ?? "\u2014"}</span>
+                          <span className="font-bold text-primary truncate">{el.forma ?? "—"}</span>
                           {el.es_nuevo && (
                             <span className="text-[9px] font-black uppercase tracking-wider text-accent/70 shrink-0">nuevo</span>
                           )}
@@ -887,7 +1087,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
           })}
         </div>
 
-        {/* Evaluación — visible cuando la vista incluya el campo */}
+        {/* Evaluación */}
         {evaluacion && (
           <div className="border-t border-primary/8 pt-4">
             <div className="flex items-center gap-2 mb-2">
