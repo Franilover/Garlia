@@ -390,19 +390,21 @@ type EstadoTraduccion =
 
 interface TooltipPos { x: number; y: number; above: boolean }
 
-interface DatosPalabraTooltip {
-  lema: string;
-  encontrado: true;
-  categoria: string;
-  ipa?: string;
-  definicion?: string;
-  sentidos: { definicion: string; ejemplo?: string }[];
-  registro?: string;
-  notas?: string;
-} | {
-  lema: string;
-  encontrado: false;
-}
+type DatosPalabraTooltip =
+  | {
+      lema: string;
+      encontrado: true;
+      categoria: string;
+      ipa?: string;
+      definicion?: string;
+      sentidos: { definicion: string; ejemplo?: string }[];
+      registro?: string;
+      notas?: string;
+    }
+  | {
+      lema: string;
+      encontrado: false;
+    };
 
 const CAT_GRAM_ES: Record<string, string> = {
   sustantivo: "sust.", verbo: "v.", adjetivo: "adj.", adverbio: "adv.",
