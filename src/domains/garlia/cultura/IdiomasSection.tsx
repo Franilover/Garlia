@@ -14,9 +14,9 @@
  *               (separado por volumen y flujo de trabajo distinto)
  */
 import {
-  AlignLeft, Book, BookOpen, Check, ChevronDown, ChevronUp,
+  AlignLeft, Award, Book, BookOpen, Check, ChevronDown, ChevronUp,
   FileText, Globe, GraduationCap, Languages, List, Loader2, Mic, Plus,
-  Search, Trash2, X, Link2, Layers, PanelLeftOpen, PanelLeftClose,
+  Search, Trash2, X, Link2, Layers, PanelLeftOpen, PanelLeftClose, Zap,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -77,7 +77,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "general",    label: "General",    icon: <FileText       size={13} /> },
   { id: "estructura", label: "Estructura", icon: <Layers         size={13} /> },
   { id: "lexico",     label: "Léxico",     icon: <Book           size={13} /> },
-  { id: "plan",       label: "Plan",       icon: <GraduationCap  size={13} /> },
+  { id: "plan",       label: "Guía",       icon: <GraduationCap  size={13} /> },
 ];
 
 // ── Componente principal ──────────────────────────────────────────────────
@@ -366,9 +366,7 @@ function DetalleIdioma({
           </div>
         )}
         {tab === "plan" && (
-          <div className="p-5">
-            <TabPlan plan={plan} />
-          </div>
+          <TabPlan plan={plan} />
         )}
       </div>
     </>
@@ -639,11 +637,24 @@ const DOMINIO_LABEL: Record<string, string> = {
   pasivo: "Pasivo", activo: "Activo", productivo: "Productivo",
 };
 
+const CICLO_META: Record<number, { nombre: string; desc: string; badge: string }> = {
+  1: { nombre: "Kror Dknor",   desc: "Fundamentos",           badge: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
+  2: { nombre: "Kror Zkor",    desc: "Gramática y Escritura",  badge: "text-violet-400 bg-violet-400/10 border-violet-400/20" },
+  3: { nombre: "Kror Solzkor", desc: "Registro Ritual",        badge: "text-amber-400 bg-amber-400/10 border-amber-400/20" },
+};
+
+const TITULO_ANIO: Record<number, { titulo: string; desc: string }> = {
+  3: { titulo: "Kror Dknor",   desc: "Hablante cotidiano" },
+  6: { titulo: "Kror Zkor",    desc: "Escritor y gramático" },
+  9: { titulo: "Kror Solzkor", desc: "Maestro del canon" },
+};
+
+const getCiclo = (anio: number) => Math.ceil(anio / 3);
+
 function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
   const [anioActivo, setAnioActivo] = useState<number | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
 
-  // Seleccionar primer año automáticamente
   React.useEffect(() => {
     if (plan.anios.length > 0 && anioActivo === null) {
       setAnioActivo(plan.anios[0]);
@@ -654,7 +665,7 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
     return (
       <div className="flex items-center justify-center py-16 text-primary/30">
         <Loader2 size={20} className="animate-spin mr-2" />
-        <span className="text-sm">Cargando plan…</span>
+        <span className="text-sm">Cargando guía de estudio\u2026</span>
       </div>
     );
   }
@@ -663,23 +674,31 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-primary/25">
         <GraduationCap size={36} className="mb-3 opacity-40" />
-        <p className="text-xs">No hay plan de estudios definido para este idioma.</p>
+        <p className="text-xs">No hay guía de estudio definida para este idioma.</p>
       </div>
     );
   }
 
   const elementosAnio = anioActivo ? (plan.porAnio[anioActivo] ?? []) : [];
-  const nombreAnio = elementosAnio[0]?.nombre_anio ?? `Año ${anioActivo}`;
-  const objetivo = elementosAnio[0]?.objetivo;
+  const nombreAnio  = elementosAnio[0]?.nombre_anio ?? `Año ${anioActivo}`;
+  const objetivo    = elementosAnio[0]?.objetivo;
+  const evaluacion  = elementosAnio[0]?.evaluacion ?? null;
+  const ciclo       = anioActivo ? getCiclo(anioActivo) : 1;
+  const cicloMeta   = CICLO_META[ciclo] ?? CICLO_META[1];
+  const tituloBadge = anioActivo ? TITULO_ANIO[anioActivo] : null;
 
-  // Tipos disponibles en este año
+  const byTipo = elementosAnio.reduce<Record<string, number>>((acc, e) => {
+    acc[e.tipo] = (acc[e.tipo] ?? 0) + 1;
+    return acc;
+  }, {});
+  const totalNuevos = elementosAnio.filter((e) => e.es_nuevo).length;
+
   const tiposDisp = ["todos", ...Array.from(new Set(elementosAnio.map((e) => e.tipo)))];
 
   const elementosFiltrados = filtroTipo === "todos"
     ? elementosAnio
     : elementosAnio.filter((e) => e.tipo === filtroTipo);
 
-  // Agrupar por bloque
   const porBloque = elementosFiltrados.reduce<Record<number, PlanElemento[]>>((acc, el) => {
     if (!acc[el.bloque]) acc[el.bloque] = [];
     acc[el.bloque].push(el);
@@ -687,124 +706,202 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
   }, {});
   const bloques = Object.keys(porBloque).map(Number).sort((a, b) => a - b);
 
+  const ciclosAgrupados: Record<number, number[]> = {};
+  plan.anios.forEach((a) => {
+    const c = getCiclo(a);
+    if (!ciclosAgrupados[c]) ciclosAgrupados[c] = [];
+    ciclosAgrupados[c].push(a);
+  });
+
   return (
-    <div className="flex gap-5 items-start">
+    <div className="flex min-h-full">
 
-      {/* ── Sidebar de años ── */}
-      <div className="shrink-0 w-36 space-y-0.5">
-        <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/35 px-2 mb-2">Años</p>
-        {plan.anios.map((anio) => {
-          const els = plan.porAnio[anio];
-          const nombre = els[0]?.nombre_anio ?? `Año ${anio}`;
-          const activo = anio === anioActivo;
-          return (
-            <button
-              key={anio}
-              onClick={() => { setAnioActivo(anio); setFiltroTipo("todos"); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
-                activo
-                  ? "bg-primary/12 text-primary font-bold border border-primary/20"
-                  : "text-primary/50 hover:text-primary/80 hover:bg-primary/6"
-              }`}
-            >
-              <span className="block font-bold">Año {anio}</span>
-              <span className="block text-[10px] opacity-70 truncate mt-0.5">{nombre}</span>
-              <span className="block text-[10px] opacity-50 mt-0.5">{els.length} elementos</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* \u2500\u2500 Sidebar ciclos / años \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      <aside className="shrink-0 w-44 border-r border-primary/8">
+        <div className="sticky top-0 py-3 space-y-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
+          {Object.entries(ciclosAgrupados).map(([cicloNumStr, aniosDelCiclo]) => {
+            const c = Number(cicloNumStr);
+            const meta = CICLO_META[c];
+            return (
+              <div key={c}>
+                <div className="px-3 mb-1.5">
+                  <span className={`text-[9px] font-black uppercase tracking-widest ${meta.badge.split(" ")[0]}`}>
+                    Ciclo {c}
+                  </span>
+                  <p className="text-[10px] text-primary/35 mt-0.5 leading-tight">{meta.nombre}</p>
+                  <p className="text-[9px] text-primary/25 leading-tight">{meta.desc}</p>
+                </div>
+                {aniosDelCiclo.map((anio) => {
+                  const els      = plan.porAnio[anio] ?? [];
+                  const nombre   = els[0]?.nombre_anio ?? `Año ${anio}`;
+                  const activo   = anio === anioActivo;
+                  const hasTitulo = !!TITULO_ANIO[anio];
+                  return (
+                    <button
+                      key={anio}
+                      onClick={() => { setAnioActivo(anio); setFiltroTipo("todos"); }}
+                      className={`w-full text-left px-3 py-2 border-l-2 text-xs transition-colors ${
+                        activo
+                          ? "bg-primary/8 text-primary font-bold border-primary"
+                          : "text-primary/50 hover:text-primary/80 hover:bg-primary/4 border-transparent"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className="font-bold">Año {anio}</span>
+                        {hasTitulo && <Award size={9} className="text-amber-400 shrink-0" />}
+                      </span>
+                      <span className="block text-[10px] opacity-60 truncate mt-0.5 font-normal">{nombre}</span>
+                      <span className="block text-[10px] opacity-40 mt-0.5 font-normal">{els.length} elem.</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </aside>
 
-      {/* ── Contenido del año ── */}
-      <div className="flex-1 min-w-0 space-y-4">
+      {/* \u2500\u2500 Panel principal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+      <div className="flex-1 min-w-0 p-5 space-y-5">
 
         {/* Header del año */}
-        <div className="border-b border-primary/10 pb-3">
-          <h3 className="text-sm font-black text-primary">{nombreAnio}</h3>
-          {objetivo && <p className="text-xs text-primary/50 mt-1">{objetivo}</p>}
+        <div>
+          <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${cicloMeta.badge}`}>
+              Ciclo {ciclo} · {cicloMeta.nombre}
+            </span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border border-primary/10 text-primary/35`}>
+              {cicloMeta.desc}
+            </span>
+            {tituloBadge && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border text-amber-400 bg-amber-400/8 border-amber-400/20">
+                <Award size={9} /> {tituloBadge.titulo}
+                <span className="opacity-60 font-normal">— {tituloBadge.desc}</span>
+              </span>
+            )}
+          </div>
 
-          {/* Filtro por tipo */}
-          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-            {tiposDisp.map((tipo) => (
-              <button
-                key={tipo}
-                onClick={() => setFiltroTipo(tipo)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
-                  filtroTipo === tipo
-                    ? "bg-primary/15 border-primary/30 text-primary"
-                    : "border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/60"
-                }`}
-              >
-                {tipo === "todos"
-                ? "Todos"
-                : <span className="flex items-center gap-1">{TIPO_ICON[tipo] ?? <span>•</span>}{tipo}</span>
-              }
-              </button>
+          <h3 className="text-sm font-black text-primary">{nombreAnio}</h3>
+          {objetivo && (
+            <p className="text-xs text-primary/50 mt-1 leading-relaxed">{objetivo}</p>
+          )}
+
+          {/* Stats strip */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-primary/12 text-[10px] text-primary/50 font-semibold">
+              <BookOpen size={10} /> {elementosAnio.length} elementos
+            </span>
+            {totalNuevos > 0 && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/25 text-[10px] text-accent/70 font-semibold bg-accent/6">
+                <Zap size={10} /> {totalNuevos} nuevos
+              </span>
+            )}
+            {Object.entries(byTipo).map(([tipo, count]) => (
+              <span key={tipo} className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-primary/10 text-[10px] text-primary/35 font-medium">
+                {TIPO_ICON[tipo]}<span>{count} {tipo}</span>
+              </span>
             ))}
           </div>
         </div>
 
-        {/* Bloques */}
-        {bloques.map((nBloque) => {
-          const elsBloque = porBloque[nBloque];
-          const { nombre_bloque, semanas_inicio, semanas_fin, metodologia } = elsBloque[0];
-          return (
-            <div key={nBloque} className="space-y-2">
-              {/* Título del bloque */}
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-accent/60">
-                  Bloque {nBloque}
-                </span>
-                <span className="text-xs text-primary/60 font-semibold">{nombre_bloque}</span>
-                <span className="text-[10px] text-primary/30 ml-1">
-                  sem. {semanas_inicio}–{semanas_fin}
-                </span>
-                {metodologia && (
-                  <span className="text-[10px] text-primary/30 italic ml-auto">{metodologia}</span>
-                )}
-              </div>
+        <div className="border-t border-primary/8" />
 
-              {/* Elementos del bloque en grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
-                {elsBloque.map((el) => (
-                  <div
-                    key={`${el.tipo}-${el.elemento_id}`}
-                    className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs ${
-                      el.es_nuevo
-                        ? "border-primary/20 bg-primary/5"
-                        : "border-primary/8 bg-transparent"
-                    }`}
-                  >
-                    <span className="leading-none mt-0.5 shrink-0 flex items-center">
-                      {TIPO_ICON[el.tipo] ?? <span className="text-primary/30">•</span>}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-primary truncate">{el.forma ?? "—"}</span>
-                        {el.es_nuevo && (
-                          <span className="text-[9px] font-black uppercase tracking-wider text-accent/70 shrink-0">nuevo</span>
-                        )}
-                      </div>
-                      {el.ipa && (
-                        <span className="font-mono text-[10px] text-primary/35 block">[{el.ipa}]</span>
-                      )}
-                      {el.descripcion && (
-                        <span className="text-primary/40 text-[10px] block truncate mt-0.5">{el.descripcion}</span>
-                      )}
-                      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide ${DOMINIO_CLS[el.nivel_dominio] ?? ""}`}>
-                        {DOMINIO_LABEL[el.nivel_dominio]}
-                      </span>
-                    </div>
+        {/* Filtro por tipo */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {tiposDisp.map((tipo) => (
+            <button
+              key={tipo}
+              onClick={() => setFiltroTipo(tipo)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                filtroTipo === tipo
+                  ? "bg-primary/15 border-primary/30 text-primary"
+                  : "border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/60"
+              }`}
+            >
+              {tipo === "todos" ? "Todos" : <>{TIPO_ICON[tipo] ?? <span>\u2022</span>}<span>{tipo}</span></>}
+            </button>
+          ))}
+        </div>
+
+        {/* Bloques */}
+        <div className="space-y-6">
+          {bloques.map((nBloque) => {
+            const elsBloque = porBloque[nBloque];
+            const { nombre_bloque, semanas_inicio, semanas_fin, metodologia } = elsBloque[0];
+            return (
+              <div key={nBloque} className="space-y-3">
+                {/* Header bloque */}
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 mt-0.5 w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <span className="text-[10px] font-black text-accent/80">{nBloque}</span>
                   </div>
-                ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-primary/80">{nombre_bloque}</span>
+                      <span className="text-[10px] font-mono text-primary/30">sem. {semanas_inicio}\u2013{semanas_fin}</span>
+                    </div>
+                    {metodologia && (
+                      <p className="mt-1.5 text-[11px] text-primary/45 italic leading-relaxed border-l-2 border-primary/15 pl-2.5">
+                        {metodologia}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Grid de elementos */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 ml-9">
+                  {elsBloque.map((el) => (
+                    <div
+                      key={`${el.tipo}-${el.elemento_id}`}
+                      className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-xs transition-colors ${
+                        el.es_nuevo
+                          ? "border-accent/20 bg-accent/4"
+                          : "border-primary/8 bg-transparent hover:border-primary/18"
+                      }`}
+                    >
+                      <span className="leading-none mt-0.5 shrink-0 flex items-center">
+                        {TIPO_ICON[el.tipo] ?? <span className="text-primary/30">\u2022</span>}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold text-primary truncate">{el.forma ?? "\u2014"}</span>
+                          {el.es_nuevo && (
+                            <span className="text-[9px] font-black uppercase tracking-wider text-accent/70 shrink-0">nuevo</span>
+                          )}
+                        </div>
+                        {el.ipa && (
+                          <span className="font-mono text-[10px] text-primary/35 block">[{el.ipa}]</span>
+                        )}
+                        {el.descripcion && (
+                          <span className="text-primary/40 text-[10px] block truncate mt-0.5">{el.descripcion}</span>
+                        )}
+                        <span className={`inline-block mt-1 px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wide ${DOMINIO_CLS[el.nivel_dominio] ?? ""}`}>
+                          {DOMINIO_LABEL[el.nivel_dominio]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Evaluación — visible cuando la vista incluya el campo */}
+        {evaluacion && (
+          <div className="border-t border-primary/8 pt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <GraduationCap size={13} className="text-primary/40" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-primary/40">Evaluación</span>
             </div>
-          );
-        })}
+            <p className="text-xs text-primary/60 leading-relaxed">{evaluacion}</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Tab Estructura — Fonología | Morfología | Gramática (FilaAsimetrica)

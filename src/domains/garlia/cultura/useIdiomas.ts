@@ -755,15 +755,22 @@ export function useSistemasEscrituraGlobal() {
 
 export type PlanElemento = {
   anio: number;
+  ciclo: number;
   nombre_anio: string;
+  nombre_aoris: string | null;
   objetivo: string | null;
+  /** Criterios de evaluación del año (campo añadido a plan_estudios). */
+  evaluacion: string | null;
   bloque: number;
   nombre_bloque: string;
   semanas_inicio: number;
   semanas_fin: number;
   metodologia: string | null;
+  /** Actividad de evaluación específica del bloque/unidad. */
+  actividad_evaluacion: string | null;
   tipo: string;
   elemento_id: string;
+  nota_pedagogica: string | null;
   forma: string | null;
   ipa: string | null;
   descripcion: string | null;
