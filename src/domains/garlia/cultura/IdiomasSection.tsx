@@ -622,9 +622,13 @@ function TabGeneral({
 // Tab Plan — Plan de estudios / Manual de aprendizaje
 // ═══════════════════════════════════════════════════════════════════════════
 
-const TIPO_ICON: Record<string, string> = {
-  fonema: "🔤", lexema: "📖", morfema: "🧩",
-  grafema: "✍️", rasgo_gramatical: "⚙️", regla: "📐",
+const TIPO_ICON: Record<string, React.ReactNode> = {
+  fonema:           <Mic           size={13} className="text-primary/50 shrink-0" />,
+  lexema:           <BookOpen      size={13} className="text-primary/50 shrink-0" />,
+  morfema:          <Layers        size={13} className="text-primary/50 shrink-0" />,
+  grafema:          <AlignLeft     size={13} className="text-primary/50 shrink-0" />,
+  rasgo_gramatical: <List          size={13} className="text-primary/50 shrink-0" />,
+  regla:            <FileText      size={13} className="text-primary/50 shrink-0" />,
 };
 const DOMINIO_CLS: Record<string, string> = {
   pasivo:     "text-primary/50 bg-primary/6 border-primary/15",
@@ -731,7 +735,10 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                     : "border-primary/10 text-primary/40 hover:border-primary/20 hover:text-primary/60"
                 }`}
               >
-                {tipo === "todos" ? "Todos" : `${TIPO_ICON[tipo] ?? "•"} ${tipo}`}
+                {tipo === "todos"
+                ? "Todos"
+                : <span className="flex items-center gap-1">{TIPO_ICON[tipo] ?? <span>•</span>}{tipo}</span>
+              }
               </button>
             ))}
           </div>
@@ -768,7 +775,9 @@ function TabPlan({ plan }: { plan: ReturnType<typeof usePlanEstudios> }) {
                         : "border-primary/8 bg-transparent"
                     }`}
                   >
-                    <span className="text-base leading-none mt-0.5 shrink-0">{TIPO_ICON[el.tipo] ?? "•"}</span>
+                    <span className="leading-none mt-0.5 shrink-0 flex items-center">
+                      {TIPO_ICON[el.tipo] ?? <span className="text-primary/30">•</span>}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-bold text-primary truncate">{el.forma ?? "—"}</span>
