@@ -425,10 +425,10 @@ function TabGeneral({
   };
 
   return (
-    <div className="w-full flex gap-6 items-start">
+    <div className="w-full flex flex-col xl:flex-row gap-6 items-start">
 
       {/* ── Columna izquierda: Info básica ── */}
-      <div className="flex-1 min-w-0 space-y-4">
+      <div className="flex-1 w-full min-w-0 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Nombre">
             <input value={merged.nombre ?? ""} onChange={(e) => set("nombre", e.target.value)} className={INPUT_CLS} />
@@ -491,7 +491,7 @@ function TabGeneral({
       </div>
 
       {/* ── Columna derecha: contexto ── */}
-      <div className="w-80 shrink-0 space-y-5">
+      <div className="w-full xl:w-80 xl:shrink-0 space-y-5">
 
         {/* Escritura */}
         <div>
