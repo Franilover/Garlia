@@ -2,14 +2,14 @@
 
 ## Qué contiene
 - Edge Function `traducir-espanol-aoris`, con autenticación de sesión y autorización por `public.perfiles.rol` (`editor` o `admin`).
-- Motor determinista sin IA externa: búsqueda por glosas existentes, normalización de acentos, formas verbales españolas frecuentes, orden SOV, partículas de negación/interrogación y sufijos que existen en las tablas lingüísticas.
+- Motor determinista sin IA externa: búsqueda por glosas y sentidos léxicos existentes, normalización de acentos, formas verbales españolas frecuentes, orden SOV, adjetivos prenominales, posesión, negación/interrogación, imperativo y sufijos que existen en las tablas lingüísticas.
 - Respuesta compatible con la interfaz existente: `source_language`, `target_language`, `source_text`, `translated_text`, `recognized_tokens`, `total_content_tokens`, `unresolved_words`, `matches`, `language_state`, `warning`, `diagnostics`.
 - Solo lectura: no inserta ni actualiza idiomas, lexemas, morfemas ni reglas.
 
 ## Canon y límites
 Los registros lingüísticos de Aoris consultados actualmente están en `borrador`. El motor los utiliza de forma explícita experimental y devuelve una advertencia; no eleva estados ni inventa raíces. Los artículos españoles se omiten por ser determinantes que el perfil Aoris no marca; las palabras no reconocidas se devuelven entre corchetes y en `unresolved_words`.
 
-La gramática implementada es un primer analizador determinista, no un parser lingüístico completo. El motor reordena cláusulas sencillas SVO→SOV y aplica solo operaciones respaldadas por reglas/morfemas presentes. Frases coordinadas complejas, subordinación, ambigüedad léxica, concordancia verbal y traducción semántica contextual siguen siendo limitaciones deliberadas, en lugar de producir palabras inventadas.
+La gramática implementada es un primer analizador determinista, no un parser lingüístico completo. El motor reordena cláusulas sencillas SVO→SOV y aplica solo operaciones respaldadas por reglas/morfemas presentes. La flexión verbal española cubre un conjunto limitado de formas frecuentes; no equivale a un conjugador general. Frases coordinadas complejas, subordinación, ambigüedad léxica, concordancia verbal y traducción semántica contextual siguen siendo limitaciones deliberadas, en lugar de producir palabras inventadas.
 
 ## Contrato de petición
 ```json
