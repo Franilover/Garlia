@@ -38,6 +38,11 @@ function stemCandidates(word: string, category: string | null): { candidates: st
     if (word.endsWith("ando") && word.length > 4) add(word.slice(0, -4) + "ar");
     if (word.endsWith("iendo") && word.length > 5) { add(word.slice(0, -5) + "er"); add(word.slice(0, -5) + "ir"); }
     if (word.endsWith("io") && word.length > 2) { add(word.slice(0, -2) + "er"); add(word.slice(0, -2) + "ir"); }
+    if (/(?:aba|abas|aban)$/.test(word) && word.length > 3) add(word.replace(/(?:aba|abas|aban)$/, "") + "ar");
+    if (/(?:ia|ias|ian)$/.test(word) && word.length > 2) {
+      const base = word.replace(/(?:ia|ias|ian)$/, "");
+      add(base + "er"); add(base + "ir");
+    }
     const pastPatterns: Array<[RegExp, string[]]> = [
       [/aste$/, ["ar"]], [/iste$/, ["er", "ir"]], [/aron$/, ["ar"]], [/ieron$/, ["er", "ir"]],
       [/abamos$/, ["ar"]], [/iamos$/, ["er", "ir"]], [/asteis$/, ["ar"]], [/é$/, ["ar"]], [/ó$/, ["ar"]], [/í$/, ["er", "ir"]], [/ió$/, ["er", "ir"]],
