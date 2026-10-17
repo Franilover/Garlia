@@ -3,18 +3,17 @@
 /**
  * EditorCriatura.tsx
  * ───────────────────
- * View principal del editor de criaturas. Solo orquesta:
- * conecta hooks con componentes, no contiene lógica de dominio.
+ * Layout rediseñado: bloques horizontales, sin emojis, sin fondos,
+ * bordes mínimos solo para separar secciones.
  *
- * Componentes extraídos a components/criaturas/:
- *   PickerImagenCriaturaBtn  → botón mobile de imagen
- *
- * Hooks extraídos a components/criaturas/:
- *   usePersonajesDeCriatura  → personajes de la especie + toggle
- *   useCriaturaAsideCatalogs → catálogos globales del aside
- *
- * Ruta destino:
- *   src/features/editorGarlia/views/EditorCriatura.tsx
+ * Grid principal (desktop):
+ *   ┌─────────────────┬──────────────────────────┐
+ *   │  Imagen         │  Descripción (RichEditor) │
+ *   ├────────┬────────┴──────────────────────────┤
+ *   │  Org.  │  Órganos del org. │ Sistemas org.  │
+ *   ├────────┴───────────────────────────────────┤
+ *   │  Entidades (Personajes · Territorio · …)    │
+ *   └─────────────────────────────────────────────┘
  */
 
 import {
@@ -95,6 +94,10 @@ import { dexiePut, dexieDelete } from "@/lib/utils/dexieHelpers";
 import { type Criatura } from "@/domains/garlia/criaturas/types";
 import { type SaveStatus } from "@/ui/saveStatus";
 
+// ─── Tokens de borde mínimo ──────────────────────────────────────────────────
+const BORDER = "color-mix(in srgb, var(--primary) 8%, transparent)";
+const BORDER_STRONG = "color-mix(in srgb, var(--primary) 12%, transparent)";
+
 // ─── EditorCriatura ───────────────────────────────────────────────────────────
 export function EditorCriatura({
   item,
@@ -114,8 +117,6 @@ export function EditorCriatura({
   entities?: WikiEntity[];
   onSelectItem?: (itemId: string) => void;
   onSelectPersonaje?: (personajeId: string) => void;
-  /** Salto DIRECTO a OTRA Criatura desde el nivel "Criatura" del breadcrumb
-   *  de cualquier panel apilado (Célula/Tejido/Órgano/Sistema/Organismo). */
   onSelectCriatura?: (criaturaId: string) => void;
   onNavigateCiudad?: (id: string) => void;
   onNavigateReino?: (id: string) => void;
@@ -125,7 +126,6 @@ export function EditorCriatura({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { onWikilink } = useWikilink();
 
-  // ── Personajes de la especie ───────────────────────────────────────────────
   const {
     personajes: personajesDeEspecie,
     loading: loadingPersonajes,
@@ -133,63 +133,25 @@ export function EditorCriatura({
     toggle: togglePersonaje,
   } = usePersonajesDeCriatura(form.id, item.nombre);
 
-  // ── Órganos (composición macro, ensamblaje de compuestos) ────────────────
-  // Catálogo real "organos" — compartido con Órganos de Flora (tabla propia,
-  // separada de "formaciones" que usan Minerales/Items). Distinto del
-  // Perfil atómico (quitado del frontend, ver nota más abajo) — la fórmula
-  // del Órgano vive vía Tejidos/Células (ver useOrganoTejidos), no como
-  // columna inline.
-  // `elementosPerfil` sigue haciendo falta acá aunque el bloque de Perfil
-  // atómico ya no exista: lo usa CompuestoPanelFlotante para resolver los
-  // elementos de un Compuesto abierto desde Órganos/Tejidos/Células.
   const { items: elementosPerfil } = useElementos();
   const [editandoGrupoId, setEditandoGrupoId] = useState<string | null>(null);
   const { items: compuestosOrganos, setItems: setCompuestosOrganos } = useCompuestosConElementos();
   const { items: catalogoOrganos, setItems: setCatalogoOrganos } = useOrganos();
   const organosCriatura = useCriaturaOrganos(form.id, catalogoOrganos);
-  // ── Organismo (techo de la cadena: Célula→Tejido→Órgano→Sistema→
-  // Organismo, aplicado a esta Criatura) — tabla dedicada
-  // criatura_organismos, hueco de datos real hasta ahora (0 filas), ver
-  // useCriaturaOrganismos.ts. Catálogo de Organismo es independiente del
-  // de Órganos de arriba, así que trae su propio useOrganismos().
   const { items: catalogoOrganismos, setItems: setCatalogoOrganismos } = useOrganismos();
   const organismosCriatura = useCriaturaOrganismos(form.id);
-  // Unión de TODO lo alcanzable hacia abajo desde los Organismos de esta
-  // Criatura (Sistemas → Órganos → Tejidos → Células) — alimenta el
-  // breadcrumb de la sección Biología: salto DIRECTO Criatura → cualquier
-  // nivel, sin subir/bajar de a uno.
+
   const organismoIdsCriatura = useMemo(
     () => organismosCriatura.items.map((v) => v.organismo_id),
     [organismosCriatura.items],
   );
   const composicionCriatura = useComposicionDeOrganismos(organismoIdsCriatura);
-  // Jerarquía ecológica ascendente: Hábitat ▸ Ecosistema ▸ Bioma ▸ Planeta
   const jerarquiaEcologica = useCriaturaJerarquiaEcologica(form.id);
   const abrirPanel = usePanelFlotante((s) => s.abrir);
 
-  // Panel flotante editable de Organismo (mismo PanelEditorOrganismo que
-  // usa Biología) abierto al clickear una fila en PanelOrganismosCriatura.
   const [editandoOrganismoId, setEditandoOrganismoId] = useState<string | null>(null);
-  // Catálogo global de Sistemas — necesario para resolver por id el
-  // destino de un salto "reemplazar toda la pila" (ver saltarASistema
-  // abajo), igual que catalogoOrganismos/catalogoOrganos ya cumplen ese
-  // rol para sus propios niveles.
   const { items: catalogoSistemas } = useSistemas();
 
-  /**
-   * Saltos "reemplazar toda la pila" — desde el breadcrumb de la propia
-   * Criatura (Célula ⇄ … ⇄ Organismo ⇄ Criatura) o desde el breadcrumb
-   * interno de cualquier panel apilado (Célula/Tejido/Órgano/Sistema/
-   * Organismo), sobre un item DISTINTO al que trajo hasta ahí. En vez de
-   * apilar un panel más encima, cierran los paneles raíz y abren solo el
-   * destino elegido — mismo efecto que clickear ESE item desde cero.
-   * Pasados hacia abajo como onAbrir*Externo a SistemaPanelFlotante (y como
-   * onAbrirOrganismo/onAbrirSistema/etc. directos a PanelEditorOrganismo/
-   * PanelEditorCelula/PanelEditorTejido), que los reenvían a sus hijos sin
-   * manejarlos.
-   * Nota: las funciones corren en eventos (no en render), por eso pueden
-   * referirse a setters de estado declarados más abajo.
-   */
   function cerrarPilaBiologia() {
     setEditandoOrganismoId(null);
     setEditandoSistemaOrganismoId(null);
@@ -198,33 +160,12 @@ export function EditorCriatura({
     setEditandoTejidoId(null);
     setEditandoCelulaId(null);
   }
-  function saltarAOrganismo(id: string) {
-    cerrarPilaBiologia();
-    setEditandoOrganismoId(id);
-  }
-  function saltarASistema(id: string) {
-    cerrarPilaBiologia();
-    setEditandoSistemaOrganismoId(id);
-  }
-  function saltarAOrgano(id: string) {
-    cerrarPilaBiologia();
-    setEditandoGrupoId(id);
-  }
-  function saltarATejido(id: string) {
-    cerrarPilaBiologia();
-    setEditandoTejidoId(id);
-  }
-  function saltarACelula(id: string) {
-    cerrarPilaBiologia();
-    setEditandoCelulaId(id);
-  }
+  function saltarAOrganismo(id: string) { cerrarPilaBiologia(); setEditandoOrganismoId(id); }
+  function saltarASistema(id: string) { cerrarPilaBiologia(); setEditandoSistemaOrganismoId(id); }
+  function saltarAOrgano(id: string) { cerrarPilaBiologia(); setEditandoGrupoId(id); }
+  function saltarATejido(id: string) { cerrarPilaBiologia(); setEditandoTejidoId(id); }
+  function saltarACelula(id: string) { cerrarPilaBiologia(); setEditandoCelulaId(id); }
 
-
-  // ── Organismo "principal" resuelto para la fila 2 (Órganos del organismo |
-  // Sistemas del organismo), mostrada inline en el propio editor sin abrir
-  // el panel flotante. Prioriza es_principal; si no hay ninguno marcado,
-  // usa el primero de la lista de organismos vinculados. Si no hay ninguno
-  // vinculado, ambas columnas quedan vacías con su mensaje correspondiente.
   const organismoPrincipalVinculo = useMemo(() => {
     if (organismosCriatura.items.length === 0) return null;
     return (
@@ -236,30 +177,12 @@ export function EditorCriatura({
   const sistemasOrganismo = useOrganismoSistemas(organismoPrincipalId ?? "");
   const organosDirectosOrganismo = useOrganismoOrganos(organismoPrincipalId ?? "");
 
-  // Panel del Sistema abierto al clickear una fila en la columna "Sistemas
-  // del organismo" — mismo componente (SistemaPanelFlotante) que se usaba
-  // dentro del antiguo OrganismoPanelFlotante.
-  const [editandoSistemaOrganismoId, setEditandoSistemaOrganismoId] = useState<string | null>(
-    null,
-  );
-  // Panel del Órgano abierto al clickear una fila en "Órganos del organismo"
-  // (órganos directos del organismo, sin pasar por un Sistema).
-  const [editandoOrganoDirectoOrganismoId, setEditandoOrganoDirectoOrganismoId] = useState<
-    string | null
-  >(null);
-  // Panel de la Célula abierto al clickear "hecho de: [Célula]" en la fila
-  // de fórmula de un Tejido (Órgano→Tejido→Célula→Compuesto). Ver misma
-  // nota en MineralEditor.tsx/EditorItem.tsx (su espejo Grano).
+  const [editandoSistemaOrganismoId, setEditandoSistemaOrganismoId] = useState<string | null>(null);
+  const [editandoOrganoDirectoOrganismoId, setEditandoOrganoDirectoOrganismoId] = useState<string | null>(null);
   const [editandoCelulaId, setEditandoCelulaId] = useState<string | null>(null);
   const celulasCatalogo = useCelulas();
-  // Panel del Tejido abierto desde "Célula → Tejido" dentro de
-  // PanelEditorCelula (ver onAbrirTejido abajo) — mismo patrón que
-  // editandoCelulaId/editandoGrupoId.
   const [editandoTejidoId, setEditandoTejidoId] = useState<string | null>(null);
   const tejidosCatalogo = useTejidos();
-
-  // Click en un Compuesto (desde el panel de Órgano o desde el de Célula)
-  // abre acá su editor completo — mismo patrón que FloraEditor.tsx.
   const [editandoCompuestoId, setEditandoCompuestoId] = useState<string | null>(null);
 
   function onOrganoActualizadoLocal(id: string, updates: Partial<Organo>) {
@@ -271,18 +194,6 @@ export function EditorCriatura({
     await organosCriatura.actualizarOrgano(id, cambios);
   }
 
-  // Editor completo de Organismo (PanelEditorOrganismo, el mismo que usa
-  // Biología) — reemplaza al antiguo OrganismoPanelFlotante de
-  // solo-lectura de este archivo, que quedaba desactualizado frente al
-  // catálogo real y no permitía editar nombre/descripción/notas ni el
-  // vínculo con Sistemas (organismo_sistemas) desde acá.
-  // Nota: PanelEditorOrganismo no muestra "Órganos directos"
-  // (organismo_organos) — esa vista sigue disponible inline más abajo
-  // (fila 2 de Biología), pero solo para el Organismo PRINCIPAL de la
-  // Criatura. Si se abre acá un Organismo vinculado que no es el
-  // principal, sus Órganos directos (si tuviera) no se ven desde este
-  // panel — antes sí se veían (para cualquier Organismo) en el viejo
-  // OrganismoPanelFlotante.
   async function actualizarOrganismo(id: string, cambios: Partial<Organismo>) {
     setCatalogoOrganismos((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)));
     const { error } = await supabase.from("organismos").update(cambios).eq("id", id);
@@ -296,31 +207,14 @@ export function EditorCriatura({
     return { ok: true, error: null };
   }
 
-  // ── Catálogos del aside ────────────────────────────────────────────────────
   const { allPersonajes, allReinos, allCiudades } = useCriaturaAsideCatalogs();
 
-  // ── Relaciones del aside ───────────────────────────────────────────────────
-  const {
-    rows: reinoRows,
-    loading: loadingReinos,
-    add: addReinoSidebar,
-    remove: removeReinoSidebar,
-  } = useCriaturaReinos(form.id);
-
-  const {
-    rows: ciudadRows,
-    loading: loadingCiudades,
-    add: addCiudadSidebar,
-    remove: removeCiudadSidebar,
-  } = useCriaturaCiudades(form.id);
-
-  const {
-    items: craftedItems,
-    allItems: allCraftedItems,
-    loading: loadingCrafted,
-    add: addCraftedSidebar,
-    remove: removeCraftedSidebar,
-  } = useCraftedItems(form.id);
+  const { rows: reinoRows, loading: loadingReinos, add: addReinoSidebar, remove: removeReinoSidebar } =
+    useCriaturaReinos(form.id);
+  const { rows: ciudadRows, loading: loadingCiudades, add: addCiudadSidebar, remove: removeCiudadSidebar } =
+    useCriaturaCiudades(form.id);
+  const { items: craftedItems, allItems: allCraftedItems, loading: loadingCrafted, add: addCraftedSidebar, remove: removeCraftedSidebar } =
+    useCraftedItems(form.id);
 
   const [savingReinos, setSavingReinos] = useState(false);
   const [savingCiudades, setSavingCiudades] = useState(false);
@@ -329,7 +223,6 @@ export function EditorCriatura({
   const mobileAsideOpen = useMobileAsidePanel((s) => s.open);
   const closeMobileAside = useMobileAsidePanel((s) => s.close);
 
-  // ── Derivados ─────────────────────────────────────────────────────────────
   const reinosSeleccionadosIds = reinoRows.map((r) => r.reinoId);
   const ciudadesConReino = useMemo(
     () =>
@@ -342,23 +235,12 @@ export function EditorCriatura({
     [allCiudades, reinosSeleccionadosIds],
   );
 
-  // ── Sincronizar form cuando cambia el item externo ────────────────────────
-  // OJO: antes esto solo dependía de [item.id], así que si la lista de
-  // criaturas se hidrataba primero desde caché local (Dexie/offline) con
-  // datos parciales y LUEGO llegaba la versión completa de Supabase (mismo
-  // id, pero con `descripcion` ya poblada), este efecto nunca volvía a
-  // correr — el usuario veía el campo Descripción vacío aunque en la base
-  // sí había texto. Ahora también resincroniza si cambia el contenido de
-  // `item` (no solo el id), pero sin pisar lo que el usuario ya esté
-  // editando: si el status sigue en "idle" (no hay ediciones locales sin
-  // guardar todavía) se acepta la actualización externa.
   useEffect(() => {
     setForm((prev) => (prev.id === item.id && status !== "idle" ? prev : item));
     setStatus("idle");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, item.descripcion]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
   const field =
     (k: keyof Criatura) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -387,7 +269,6 @@ export function EditorCriatura({
     }
   };
 
-  // Confirmación inline en el header compartido — ver EditorHeaderBar.
   const del = async () => {
     await supabase.from("criaturas").delete().eq("id", form.id);
     void dexieDelete("criaturas", form.id);
@@ -446,587 +327,362 @@ export function EditorCriatura({
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
-      {/* ── CONTENIDO PRINCIPAL ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {!onHeaderControlsChange && <EditorHeaderBar controls={headerControls} />}
 
-        {/* Breadcrumb completo Célula ⇄ … ⇄ Organismo ⇄ Criatura, parado
-            en Criatura. Vive FUERA de las secciones Normal/Biología/Extra
-            para verse siempre: cada nivel abre un popover con TODO lo
-            alcanzable en ese nivel (unión de los Organismos de esta
-            Criatura) y salta directo, sin pasar nivel por nivel. */}
+        {/* Breadcrumb */}
         <div className="shrink-0 px-3 pt-2 relative z-30">
           <BreadcrumbJerarquia
             niveles={[
-              {
-                label: "Célula",
-                icono: <Beaker size={10} />,
-                activo: false,
-                items: composicionCriatura.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })),
-                loading: composicionCriatura.loading,
-                onNavegar: saltarACelula,
-              },
-              {
-                label: "Tejido",
-                icono: <Layers size={10} />,
-                activo: false,
-                items: composicionCriatura.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })),
-                loading: composicionCriatura.loading,
-                onNavegar: saltarATejido,
-              },
-              {
-                label: "Órgano",
-                icono: <Boxes size={10} />,
-                activo: false,
-                items: composicionCriatura.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })),
-                loading: composicionCriatura.loading,
-                onNavegar: saltarAOrgano,
-              },
-              {
-                label: "Sistema",
-                icono: <Layers size={10} />,
-                activo: false,
-                items: composicionCriatura.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })),
-                loading: composicionCriatura.loading,
-                onNavegar: saltarASistema,
-              },
-              {
-                label: "Organismo",
-                icono: <Boxes size={10} />,
-                activo: false,
-                items: organismosCriatura.items.map((v) => ({
-                  id: v.organismo_id,
-                  nombre: v.organismo.nombre,
-                })),
-                loading: organismosCriatura.loading,
-                onNavegar: saltarAOrganismo,
-              },
+              { label: "Célula", icono: <Beaker size={10} />, activo: false, items: composicionCriatura.celulaItems.map((c) => ({ id: c.id, nombre: c.nombre })), loading: composicionCriatura.loading, onNavegar: saltarACelula },
+              { label: "Tejido", icono: <Layers size={10} />, activo: false, items: composicionCriatura.tejidoItems.map((t) => ({ id: t.id, nombre: t.nombre })), loading: composicionCriatura.loading, onNavegar: saltarATejido },
+              { label: "Órgano", icono: <Boxes size={10} />, activo: false, items: composicionCriatura.organoItems.map((o) => ({ id: o.id, nombre: o.nombre })), loading: composicionCriatura.loading, onNavegar: saltarAOrgano },
+              { label: "Sistema", icono: <Layers size={10} />, activo: false, items: composicionCriatura.sistemaItems.map((s) => ({ id: s.id, nombre: s.nombre })), loading: composicionCriatura.loading, onNavegar: saltarASistema },
+              { label: "Organismo", icono: <Boxes size={10} />, activo: false, items: organismosCriatura.items.map((v) => ({ id: v.organismo_id, nombre: v.organismo.nombre })), loading: organismosCriatura.loading, onNavegar: saltarAOrganismo },
               { label: "Criatura", icono: <PawPrint size={10} />, activo: true },
-              {
-                label: "Hábitat",
-                icono: <Home size={10} />,
-                activo: false,
-                items: jerarquiaEcologica.habitats,
-                loading: jerarquiaEcologica.loading,
-                onNavegar: (id) => abrirPanel("habitat", id),
-              },
-              {
-                label: "Ecosistema",
-                icono: <Trees size={10} />,
-                activo: false,
-                items: jerarquiaEcologica.ecosistemas,
-                loading: jerarquiaEcologica.loading,
-                onNavegar: (id) => abrirPanel("ecosistema", id),
-              },
-              {
-                label: "Bioma",
-                icono: <Layers size={10} />,
-                activo: false,
-                items: jerarquiaEcologica.biomas,
-                loading: jerarquiaEcologica.loading,
-                onNavegar: (id) => abrirPanel("bioma", id),
-              },
-              {
-                label: "Planeta",
-                icono: <Globe size={10} />,
-                activo: false,
-                items: jerarquiaEcologica.planetas,
-                loading: jerarquiaEcologica.loading,
-                onNavegar: (id) => abrirPanel("planeta", id),
-              },
+              { label: "Hábitat", icono: <Home size={10} />, activo: false, items: jerarquiaEcologica.habitats, loading: jerarquiaEcologica.loading, onNavegar: (id) => abrirPanel("habitat", id) },
+              { label: "Ecosistema", icono: <Trees size={10} />, activo: false, items: jerarquiaEcologica.ecosistemas, loading: jerarquiaEcologica.loading, onNavegar: (id) => abrirPanel("ecosistema", id) },
+              { label: "Bioma", icono: <Layers size={10} />, activo: false, items: jerarquiaEcologica.biomas, loading: jerarquiaEcologica.loading, onNavegar: (id) => abrirPanel("bioma", id) },
+              { label: "Planeta", icono: <Globe size={10} />, activo: false, items: jerarquiaEcologica.planetas, loading: jerarquiaEcologica.loading, onNavegar: (id) => abrirPanel("planeta", id) },
             ]}
           />
         </div>
 
-        {/* ── Contenido superior ───────────────────────────────────────────── */}
+        {/* ── CUERPO PRINCIPAL: layout en bloques ──────────────────────────── */}
         <div
-          className="flex-1 min-h-0 p-3 flex flex-col gap-3 overflow-y-auto"
+          className="flex-1 min-h-0 overflow-y-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {/* Sección "Normal": Imagen + Descripción (Detalles). Siempre
-              visible — el layout ahora es un stack vertical de las 3
-              secciones (Normal / Biología / Extra), sin toggle. */}
-          <div className="flex gap-3 items-start">
-            <div className="flex gap-3 min-w-0 flex-1">
-              <div className="hidden sm:block shrink-0 w-36">
-                <SelectorImagen
-                  aspect="square"
-                  label=""
-                  placeholder={<Bug className="opacity-20" size={20} />}
-                  value={form.imagen_url ?? ""}
-                  onChange={(url) =>
-                    setForm((f) => ({ ...f, imagen_url: url }))
-                  }
-                />
-              </div>
-              <div className="sm:hidden shrink-0 relative w-24 h-24 rounded-xl overflow-hidden border border-primary/10 bg-primary/3">
+          {/* ── FILA 1: Imagen + Descripción ─────────────────────────────── */}
+          <div
+            className="flex gap-0 border-b"
+            style={{ borderColor: BORDER }}
+          >
+            {/* Imagen — columna fija */}
+            <div
+              className="hidden sm:flex shrink-0 items-start p-3"
+              style={{ width: 140, borderRight: `1px solid ${BORDER}` }}
+            >
+              <SelectorImagen
+                aspect="square"
+                label=""
+                placeholder={<Bug className="opacity-20" size={20} />}
+                value={form.imagen_url ?? ""}
+                onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+              />
+            </div>
+
+            {/* Imagen mobile */}
+            <div className="sm:hidden shrink-0 relative p-3" style={{ borderRight: `1px solid ${BORDER}` }}>
+              <div className="relative w-20 h-20 rounded-lg overflow-hidden">
                 {form.imagen_url ? (
-                  <Image
-                    alt={form.nombre}
-                    className="w-full h-full object-cover"
-                    src={form.imagen_url}
-                  />
+                  <Image alt={form.nombre} className="w-full h-full object-cover" src={form.imagen_url} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Bug className="text-primary/15" size={32} />
+                    <Bug className="text-primary/15" size={28} />
                   </div>
                 )}
-                <div className="absolute top-1.5 right-1.5 z-10">
+                <div className="absolute top-1 right-1 z-10">
                   <PickerImagenCriaturaBtn
-                    value={form.imagen_url ?? ""}
-                    onChange={(url) =>
-                      setForm((f) => ({ ...f, imagen_url: url }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0 flex flex-col gap-1">
-                <label className="text-micro font-black uppercase tracking-[0.25em] text-primary/30">
-                  Descripción
-                </label>
-                <RichEditor
-                  minHeight="8rem"
-                  placeholder="Aspecto físico general…"
-                  value={form.descripcion ?? ""}
-                  wikiEntities={entities}
-                  onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
-                  onWikilinkNavigate={onWikilink}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Bloque "Biología", siempre visible, apilado debajo de Normal.
-              Mismo criterio minimalista que ElementoEditor: un solo borde
-              fino, sin fondo tintado ni bordes anidados. */}
-          <div className="shrink-0 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden">
-            <div className="shrink-0 flex items-center px-3 py-2 border-b border-primary/10">
-              <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.25em] text-primary/45">
-                <Atom size={11} className="text-primary/50" />
-                Biología
-              </span>
-            </div>
-
-            <div className="p-3">
-              <div className="flex flex-col gap-4">
-                {/* Fila 1: Organismo — vínculo criatura→organismo (rol,
-                    cantidad, principal). El bloque "Rasgos evolutivos"
-                    (Perfil atómico, tabla perfiles_atomicos_criatura) se
-                    quitó por completo: esa tabla nunca existió en Supabase
-                    y el bloque solo tiraba 404 en loop. */}
-                <section className="flex flex-col gap-2">
-                  <PanelOrganismosCriatura
-                    items={organismosCriatura.items}
-                    loading={organismosCriatura.loading}
-                    catalogo={catalogoOrganismos}
-                    onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
-                    onActualizar={organismosCriatura.actualizarVinculo}
-                    onMarcarPrincipal={organismosCriatura.marcarPrincipal}
-                    onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
-                    onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
-                  />
-                </section>
-
-                <div
-                  className="border-t"
-                  style={{ borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)" }}
-                />
-
-                {/* Fila 2: Órganos del organismo | Sistemas del organismo —
-                    resueltas contra el Organismo principal (o el primero
-                    vinculado) de esta criatura, mostradas inline sin abrir
-                    el editor completo del Organismo. */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-0 items-start">
-                  <section className="flex flex-col gap-2 lg:pr-4">
-                    <header className="flex items-center gap-1.5">
-                      <Layers size={10} className="text-primary/35" />
-                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                        Órganos del organismo
-                      </h3>
-                    </header>
-                    {!organismoPrincipalId ? (
-                      <p className="text-micro text-primary/25 italic py-1">
-                        Vinculá un Organismo arriba para ver sus Órganos directos.
-                      </p>
-                    ) : organosDirectosOrganismo.loading ? (
-                      <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
-                    ) : organosDirectosOrganismo.items.length === 0 ? (
-                      <p className="text-micro text-primary/25 italic py-1">
-                        Sin Órganos directos todavía para{" "}
-                        {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"}.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                        {organosDirectosOrganismo.items.map((o) => (
-                          <button
-                            key={o.vinculo_id}
-                            type="button"
-                            onClick={() => setEditandoOrganoDirectoOrganismoId(o.organo_id)}
-                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
-                          >
-                            <Layers size={11} className="shrink-0 text-primary/30" />
-                            <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
-                              {o.organo.nombre || "Sin nombre"}
-                            </span>
-                            {o.rol && (
-                              <span className="shrink-0 text-micro text-primary/35">{o.rol}</span>
-                            )}
-                            <span className="shrink-0 text-micro text-primary/35">×{o.cantidad}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="flex flex-col gap-2 lg:pl-4 lg:border-l lg:border-primary/10">
-                    <header className="flex items-center gap-1.5">
-                      <Boxes size={10} className="text-primary/35" />
-                      <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                        Sistemas del organismo
-                      </h3>
-                    </header>
-                    {!organismoPrincipalId ? (
-                      <p className="text-micro text-primary/25 italic py-1">
-                        Vinculá un Organismo arriba para ver sus Sistemas.
-                      </p>
-                    ) : sistemasOrganismo.loading ? (
-                      <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
-                    ) : sistemasOrganismo.items.length === 0 ? (
-                      <p className="text-micro text-primary/25 italic py-1">
-                        Sin Sistemas vinculados a{" "}
-                        {organismoPrincipalVinculo?.organismo.nombre || "este Organismo"} todavía.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                        {sistemasOrganismo.items.map((s) => (
-                          <button
-                            key={s.vinculo_id}
-                            type="button"
-                            onClick={() => setEditandoSistemaOrganismoId(s.sistema_id)}
-                            className="flex items-center gap-1.5 text-left px-2 py-1.5 rounded-md hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
-                          >
-                            <Waypoints size={11} className="shrink-0 text-primary/30" />
-                            <span className="flex-1 min-w-0 truncate text-micro font-bold text-primary/80 hover:text-accent">
-                              {s.sistema.nombre || "Sin nombre"}
-                            </span>
-                            {s.proporcion && (
-                              <span className="shrink-0 text-micro text-primary/35">
-                                {s.proporcion}
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bloque "Extra", siempre visible, apilado debajo de Biología.
-              El Perfil DND se eliminó por completo (textarea de descripción
-              D&D + ficha de combate); solo queda Ilustraciones. */}
-          <div className="shrink-0 min-w-0 flex flex-col rounded-xl border border-primary/10 overflow-hidden">
-            <div className="shrink-0 flex items-center px-3 py-2 border-b border-primary/10">
-              <span className="flex items-center gap-1.5 text-micro font-black uppercase tracking-[0.25em] text-primary/45">
-                <Sparkles size={11} className="text-primary/50" />
-                Extra
-              </span>
-            </div>
-
-            <div className="p-3">
-              <section className="flex flex-col gap-2 max-w-[220px]">
-                <header className="flex items-center gap-1.5">
-                  <ImageIcon size={10} className="text-primary/35" />
-                  <h3 className="text-[7.5px] font-black uppercase tracking-[0.28em] text-primary/30">
-                    Ilustraciones
-                  </h3>
-                </header>
-                <p className="text-micro text-primary/35 leading-relaxed">
-                  Referencias visuales de la criatura (concept art, poses, variantes…).
-                </p>
-                <div className="w-full">
-                  <SelectorImagen
-                    aspect="square"
-                    label="Ilustración principal"
-                    placeholder={<ImageIcon className="opacity-20" size={20} />}
                     value={form.imagen_url ?? ""}
                     onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
                   />
                 </div>
-              </section>
+              </div>
+            </div>
+
+            {/* Descripción */}
+            <div className="flex-1 min-w-0 flex flex-col p-3 gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                Descripción
+              </span>
+              <RichEditor
+                minHeight="7rem"
+                placeholder="Aspecto físico general…"
+                value={form.descripcion ?? ""}
+                wikiEntities={entities}
+                onChange={(v) => setForm((f) => ({ ...f, descripcion: v }))}
+                onWikilinkNavigate={onWikilink}
+              />
+            </div>
+          </div>
+
+          {/* ── FILA 2: Biología — 3 columnas ────────────────────────────── */}
+          <div
+            className="grid border-b"
+            style={{
+              gridTemplateColumns: "minmax(160px,1fr) minmax(140px,1fr) minmax(140px,1fr)",
+              borderColor: BORDER,
+            }}
+          >
+            {/* Col A: Organismo */}
+            <div className="flex flex-col" style={{ borderRight: `1px solid ${BORDER}` }}>
+              <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                  Organismo
+                </span>
+              </div>
+              <div className="p-3">
+                <PanelOrganismosCriatura
+                  items={organismosCriatura.items}
+                  loading={organismosCriatura.loading}
+                  catalogo={catalogoOrganismos}
+                  onAgregar={(id) => void organismosCriatura.vincularExistente(id)}
+                  onActualizar={organismosCriatura.actualizarVinculo}
+                  onMarcarPrincipal={organismosCriatura.marcarPrincipal}
+                  onQuitar={(vinculoId) => void organismosCriatura.quitar(vinculoId)}
+                  onAbrirOrganismo={(organismoId) => setEditandoOrganismoId(organismoId)}
+                />
+              </div>
+            </div>
+
+            {/* Col B: Órganos del organismo */}
+            <div className="flex flex-col" style={{ borderRight: `1px solid ${BORDER}` }}>
+              <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                  Órganos
+                </span>
+              </div>
+              <div className="p-3">
+                {!organismoPrincipalId ? (
+                  <p className="text-micro text-primary/25 italic">Vinculá un organismo.</p>
+                ) : organosDirectosOrganismo.loading ? (
+                  <p className="text-micro text-primary/25 italic">Cargando…</p>
+                ) : organosDirectosOrganismo.items.length === 0 ? (
+                  <p className="text-micro text-primary/25 italic">Sin órganos directos.</p>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {organosDirectosOrganismo.items.map((o) => (
+                      <button
+                        key={o.vinculo_id}
+                        type="button"
+                        onClick={() => setEditandoOrganoDirectoOrganismoId(o.organo_id)}
+                        className="flex items-center gap-1.5 text-left px-1.5 py-1 rounded hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
+                      >
+                        <Layers size={10} className="shrink-0 text-primary/25" />
+                        <span className="flex-1 min-w-0 truncate text-micro font-medium text-primary/70 hover:text-accent">
+                          {o.organo.nombre || "Sin nombre"}
+                        </span>
+                        {o.rol && <span className="shrink-0 text-micro text-primary/30">{o.rol}</span>}
+                        <span className="shrink-0 text-micro text-primary/30">×{o.cantidad}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Col C: Sistemas del organismo */}
+            <div className="flex flex-col">
+              <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                  Sistemas
+                </span>
+              </div>
+              <div className="p-3">
+                {!organismoPrincipalId ? (
+                  <p className="text-micro text-primary/25 italic">Vinculá un organismo.</p>
+                ) : sistemasOrganismo.loading ? (
+                  <p className="text-micro text-primary/25 italic">Cargando…</p>
+                ) : sistemasOrganismo.items.length === 0 ? (
+                  <p className="text-micro text-primary/25 italic">Sin sistemas vinculados.</p>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {sistemasOrganismo.items.map((s) => (
+                      <button
+                        key={s.vinculo_id}
+                        type="button"
+                        onClick={() => setEditandoSistemaOrganismoId(s.sistema_id)}
+                        className="flex items-center gap-1.5 text-left px-1.5 py-1 rounded hover:bg-primary/5 transition-colors cursor-pointer min-w-0"
+                      >
+                        <Waypoints size={10} className="shrink-0 text-primary/25" />
+                        <span className="flex-1 min-w-0 truncate text-micro font-medium text-primary/70 hover:text-accent">
+                          {s.sistema.nombre || "Sin nombre"}
+                        </span>
+                        {s.proporcion && (
+                          <span className="shrink-0 text-micro text-primary/30">{s.proporcion}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── FILA 3: Ilustración extra ─────────────────────────────────── */}
+          <div
+            className="flex border-b"
+            style={{ borderColor: BORDER }}
+          >
+            <div className="flex flex-col" style={{ borderRight: `1px solid ${BORDER}`, width: 140 }}>
+              <div className="px-3 pt-2.5 pb-1.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-primary/30">
+                  Ilustración
+                </span>
+              </div>
+              <div className="p-3">
+                <SelectorImagen
+                  aspect="square"
+                  label=""
+                  placeholder={<ImageIcon className="opacity-20" size={18} />}
+                  value={form.imagen_url ?? ""}
+                  onChange={(url) => setForm((f) => ({ ...f, imagen_url: url }))}
+                />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0 flex items-center px-3">
+              <p className="text-micro text-primary/30 leading-relaxed">
+                Referencias visuales de la criatura — concept art, poses, variantes.
+              </p>
+            </div>
+          </div>
+
+          {/* ── FILA 4: Entidades (barra horizontal) ──────────────────────── */}
+          <div
+            className="hidden sm:flex"
+            style={{ borderColor: BORDER }}
+          >
+            {/* Personajes */}
+            <div className="flex-1 flex flex-col min-w-0 h-full" style={{ borderRight: `1px solid ${BORDER}` }}>
+              <SeccionEntidad
+                allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+                columns={8}
+                emptyLabel="Sin personajes"
+                fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+                fill={false}
+                icon={<Users size={9} />}
+                label="Personajes"
+                loading={loadingPersonajes}
+                saving={savingPersonajes}
+                selectedIds={personajesDeEspecie.map((p) => p.id)}
+                onEntityClick={(id) => onSelectPersonaje?.(id)}
+                onToggle={handleTogglePersonaje}
+              />
+            </div>
+
+            {/* Territorio */}
+            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220, borderRight: `1px solid ${BORDER}` }}>
+              <SeccionEntidad
+                allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
+                emptyLabel="Sin territorio"
+                fallbackIcon={<Globe size={14} strokeWidth={1} />}
+                fill={false}
+                icon={<Globe size={9} />}
+                label="Territorio"
+                loading={loadingReinos}
+                saving={savingReinos}
+                selectedIds={reinoRows.map((r) => r.reinoId)}
+                onEntityClick={(id) => onNavigateReino?.(id)}
+                onToggle={(id, add) => handleToggleReino(id, add)}
+              />
+            </div>
+
+            {/* Ciudades */}
+            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220, borderRight: `1px solid ${BORDER}` }}>
+              <SeccionEntidad
+                allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
+                emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+                fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+                fill={false}
+                icon={<MapPin size={9} />}
+                label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+                loading={loadingCiudades}
+                saving={savingCiudades}
+                selectedIds={ciudadRows.map((r) => r.ciudadId)}
+                onEntityClick={(id) => onNavigateCiudad?.(id)}
+                onToggle={(id, add) => handleToggleCiudad(id, add)}
+              />
+            </div>
+
+            {/* Creaciones */}
+            <div className="shrink-0 flex flex-col h-full" style={{ width: "max-content", minWidth: 110, maxWidth: 220 }}>
+              <SeccionEntidad
+                allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+                emptyLabel="Sin creaciones"
+                fallbackIcon={<Package size={14} strokeWidth={1} />}
+                fill={false}
+                icon={<Wrench size={9} />}
+                label="Creaciones"
+                loading={loadingCrafted}
+                saving={savingCrafted}
+                selectedIds={craftedItems.map((i) => i.itemId)}
+                onEntityClick={(id) => onSelectItem?.(id)}
+                onToggle={handleToggleCrafted}
+              />
             </div>
           </div>
         </div>
 
-        {/* ── BARRA DE ENTIDADES — fila horizontal inferior ───────────────── */}
-        <div
-          className="shrink-0 hidden sm:flex border-t overflow-y-auto"
-          style={{
-            maxHeight: "60vh",
-            borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 1.5%, transparent)",
-          }}
-        >
-          {/* Personajes */}
-          <div
-            className="flex-1 flex flex-col min-w-0 h-full border-r"
-            style={{
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
-            <SeccionEntidad
-              allEntities={allPersonajes.map((p) => ({
-                id: p.id,
-                nombre: p.nombre,
-                imagen_url: p.img_url,
-              }))}
-              columns={8}
-              emptyLabel="Sin personajes"
-              fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Users size={9} />}
-              label="Personajes"
-              loading={loadingPersonajes}
-              saving={savingPersonajes}
-              selectedIds={personajesDeEspecie.map((p) => p.id)}
-              onEntityClick={(id) => onSelectPersonaje?.(id)}
-              onToggle={handleTogglePersonaje}
+        {/* ── Mobile aside drawer ───────────────────────────────────────────── */}
+        {mobileAsideOpen && (
+          <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+            <div
+              className="absolute inset-0"
+              style={{ background: "color-mix(in srgb, var(--primary) 20%, transparent)" }}
+              onClick={closeMobileAside}
             />
-          </div>
+            <div
+              className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
+              style={{ width: 200, background: "var(--white-custom, var(--bg-main))", borderLeft: `1px solid ${BORDER_STRONG}`, scrollbarWidth: "none" }}
+            >
+              <div className="shrink-0 flex items-center justify-between px-3 py-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
+                  <SlidersHorizontal size={9} /> Entidades
+                </span>
+                <button className="p-1 rounded text-primary/30 hover:text-primary transition-all" onClick={closeMobileAside}>
+                  <X size={13} />
+                </button>
+              </div>
 
-          {/* Territorio */}
-          <div
-            className="shrink-0 flex flex-col h-full border-r"
-            style={{
-              width: "max-content",
-              minWidth: "110px",
-              maxWidth: "220px",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
-            <SeccionEntidad
-              allEntities={allReinos.map((r) => ({
-                id: r.id,
-                nombre: r.nombre,
-              }))}
-              emptyLabel="Sin territorio"
-              fallbackIcon={<Globe size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Globe size={9} />}
-              label="Territorio"
-              loading={loadingReinos}
-              saving={savingReinos}
-              selectedIds={reinoRows.map((r) => r.reinoId)}
-              onEntityClick={(id) => onNavigateReino?.(id)}
-              onToggle={(id, add) => handleToggleReino(id, add)}
-            />
+              <SeccionEntidad
+                allEntities={allPersonajes.map((p) => ({ id: p.id, nombre: p.nombre, imagen_url: p.img_url }))}
+                columns={2} emptyLabel="Sin personajes"
+                fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
+                fill={false} icon={<Users size={9} />} label="Personajes"
+                loading={loadingPersonajes} saving={savingPersonajes}
+                selectedIds={personajesDeEspecie.map((p) => p.id)}
+                onEntityClick={(id) => onSelectPersonaje?.(id)}
+                onToggle={handleTogglePersonaje}
+              />
+              <div style={{ borderTop: `1px solid ${BORDER}` }} />
+              <SeccionEntidad
+                allEntities={allReinos.map((r) => ({ id: r.id, nombre: r.nombre }))}
+                emptyLabel="Sin territorio" fallbackIcon={<Globe size={14} strokeWidth={1} />}
+                fill={false} icon={<Globe size={9} />} label="Territorio"
+                loading={loadingReinos} saving={savingReinos}
+                selectedIds={reinoRows.map((r) => r.reinoId)}
+                onEntityClick={(id) => onNavigateReino?.(id)}
+                onToggle={(id, add) => handleToggleReino(id, add)}
+              />
+              <div style={{ borderTop: `1px solid ${BORDER}` }} />
+              <SeccionEntidad
+                allEntities={ciudadesConReino.map((l) => ({ id: l.id, nombre: l.nombre }))}
+                emptyLabel={reinosSeleccionadosIds.length > 0 ? "Sin ciudades en estos reinos" : "Sin ciudades"}
+                fallbackIcon={<MapPin size={14} strokeWidth={1} />}
+                fill={false} icon={<MapPin size={9} />}
+                label={reinosSeleccionadosIds.length > 0 ? `Ciudades (${reinosSeleccionadosIds.length})` : "Ciudades"}
+                loading={loadingCiudades} saving={savingCiudades}
+                selectedIds={ciudadRows.map((r) => r.ciudadId)}
+                onEntityClick={(id) => onNavigateCiudad?.(id)}
+                onToggle={(id, add) => handleToggleCiudad(id, add)}
+              />
+              <div style={{ borderTop: `1px solid ${BORDER}` }} />
+              <SeccionEntidad
+                allEntities={allCraftedItems.map((i) => ({ id: i.id, nombre: i.nombre, imagen_url: i.imagen_url }))}
+                emptyLabel="Sin creaciones" fallbackIcon={<Package size={14} strokeWidth={1} />}
+                fill={false} icon={<Wrench size={9} />} label="Creaciones"
+                loading={loadingCrafted} saving={savingCrafted}
+                selectedIds={craftedItems.map((i) => i.itemId)}
+                onEntityClick={(id) => onSelectItem?.(id)}
+                onToggle={handleToggleCrafted}
+              />
+            </div>
           </div>
-
-          {/* Ciudades */}
-          <div
-            className="shrink-0 flex flex-col h-full border-r"
-            style={{
-              width: "max-content",
-              minWidth: "110px",
-              maxWidth: "220px",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
-            <SeccionEntidad
-              allEntities={ciudadesConReino.map((l) => ({
-                id: l.id,
-                nombre: l.nombre,
-              }))}
-              emptyLabel={
-                reinosSeleccionadosIds.length > 0
-                  ? "Sin ciudades en estos reinos"
-                  : "Sin ciudades"
-              }
-              fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<MapPin size={9} />}
-              label={
-                reinosSeleccionadosIds.length > 0
-                  ? `Ciudades (${reinosSeleccionadosIds.length})`
-                  : "Ciudades"
-              }
-              loading={loadingCiudades}
-              saving={savingCiudades}
-              selectedIds={ciudadRows.map((r) => r.ciudadId)}
-              onEntityClick={(id) => onNavigateCiudad?.(id)}
-              onToggle={(id, add) => handleToggleCiudad(id, add)}
-            />
-          </div>
-
-          {/* Creaciones */}
-          <div
-            className="shrink-0 flex flex-col h-full border-r"
-            style={{
-              width: "max-content",
-              minWidth: "110px",
-              maxWidth: "220px",
-              borderColor: "color-mix(in srgb, var(--primary) 7%, transparent)",
-            }}
-          >
-            <SeccionEntidad
-              allEntities={allCraftedItems.map((i) => ({
-                id: i.id,
-                nombre: i.nombre,
-                imagen_url: i.imagen_url,
-              }))}
-              emptyLabel="Sin creaciones"
-              fallbackIcon={<Package size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Wrench size={9} />}
-              label="Creaciones"
-              loading={loadingCrafted}
-              saving={savingCrafted}
-              selectedIds={craftedItems.map((i) => i.itemId)}
-              onEntityClick={(id) => onSelectItem?.(id)}
-              onToggle={handleToggleCrafted}
-            />
-          </div>
-
-        </div>
+        )}
       </div>
 
-      {/* ── BARRA DE ENTIDADES — mobile drawer ───────────────────────────────── */}
-      {mobileAsideOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 20%, transparent)",
-            }}
-            onClick={closeMobileAside}
-          />
-          <div
-            className="relative flex flex-col h-full overflow-y-auto shadow-2xl"
-            style={{
-              width: "200px",
-              background: "var(--white-custom, var(--bg-main))",
-              borderLeft:
-                "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              scrollbarWidth: "none",
-            }}
-          >
-            <div
-              className="shrink-0 flex items-center justify-between px-3 py-2 border-b"
-              style={{
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 10%, transparent)",
-              }}
-            >
-              <span className="text-micro font-black uppercase tracking-[0.2em] flex items-center gap-1.5 text-primary/40">
-                <SlidersHorizontal size={9} /> Entidades
-              </span>
-              <button
-                className="p-1 rounded-lg text-primary/30 hover:text-primary hover:bg-primary/8 transition-all"
-                onClick={closeMobileAside}
-              >
-                <X size={13} />
-              </button>
-            </div>
-
-            <SeccionEntidad
-              allEntities={allPersonajes.map((p) => ({
-                id: p.id,
-                nombre: p.nombre,
-                imagen_url: p.img_url,
-              }))}
-              columns={2}
-              emptyLabel="Sin personajes"
-              fallbackIcon={<UserCircle2 size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Users size={9} />}
-              label="Personajes"
-              loading={loadingPersonajes}
-              saving={savingPersonajes}
-              selectedIds={personajesDeEspecie.map((p) => p.id)}
-              onEntityClick={(id) => onSelectPersonaje?.(id)}
-              onToggle={handleTogglePersonaje}
-            />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
-            <SeccionEntidad
-              allEntities={allReinos.map((r) => ({
-                id: r.id,
-                nombre: r.nombre,
-              }))}
-              emptyLabel="Sin territorio"
-              fallbackIcon={<Globe size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Globe size={9} />}
-              label="Territorio"
-              loading={loadingReinos}
-              saving={savingReinos}
-              selectedIds={reinoRows.map((r) => r.reinoId)}
-              onEntityClick={(id) => onNavigateReino?.(id)}
-              onToggle={(id, add) => handleToggleReino(id, add)}
-            />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
-            <SeccionEntidad
-              allEntities={ciudadesConReino.map((l) => ({
-                id: l.id,
-                nombre: l.nombre,
-              }))}
-              emptyLabel={
-                reinosSeleccionadosIds.length > 0
-                  ? "Sin ciudades en estos reinos"
-                  : "Sin ciudades"
-              }
-              fallbackIcon={<MapPin size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<MapPin size={9} />}
-              label={
-                reinosSeleccionadosIds.length > 0
-                  ? `Ciudades (${reinosSeleccionadosIds.length})`
-                  : "Ciudades"
-              }
-              loading={loadingCiudades}
-              saving={savingCiudades}
-              selectedIds={ciudadRows.map((r) => r.ciudadId)}
-              onEntityClick={(id) => onNavigateCiudad?.(id)}
-              onToggle={(id, add) => handleToggleCiudad(id, add)}
-            />
-            <div
-              style={{
-                borderTop:
-                  "1px solid color-mix(in srgb, var(--primary) 7%, transparent)",
-              }}
-            />
-            <SeccionEntidad
-              allEntities={allCraftedItems.map((i) => ({
-                id: i.id,
-                nombre: i.nombre,
-                imagen_url: i.imagen_url,
-              }))}
-              emptyLabel="Sin creaciones"
-              fallbackIcon={<Package size={14} strokeWidth={1} />}
-              fill={false}
-              icon={<Wrench size={9} />}
-              label="Creaciones"
-              loading={loadingCrafted}
-              saving={savingCrafted}
-              selectedIds={craftedItems.map((i) => i.itemId)}
-              onEntityClick={(id) => onSelectItem?.(id)}
-              onToggle={handleToggleCrafted}
-            />
-          </div>
-        </div>
-      )}
-
+      {/* ── Paneles flotantes (sin cambios) ──────────────────────────────────── */}
       {editandoGrupoId && (
         <GrupoCompuestoPanelFlotante
           grupo={catalogoOrganos.find((g) => g.id === editandoGrupoId)!}
@@ -1043,10 +699,6 @@ export function EditorCriatura({
         />
       )}
 
-      {/* Click en una fila de Organismo (PanelOrganismosCriatura) — abre el
-          editor completo del Organismo (mismo PanelEditorOrganismo que usa
-          Biología): nombre/descripción/notas editables + Sistemas vinculados
-          (con proporción) + breadcrumb completo Célula⇄…⇄Organismo⇄Criatura. */}
       {editandoOrganismoId &&
         (() => {
           const organismoActivo = catalogoOrganismos.find((o) => o.id === editandoOrganismoId);
@@ -1071,18 +723,10 @@ export function EditorCriatura({
           );
         })()}
 
-      {/* Click en una fila de "Sistemas del organismo" (fila 2 inline de
-          Biología) — mismo SistemaPanelFlotante que se abre al navegar a un
-          Sistema desde el editor de Organismo. Resuelve primero contra los
-          Sistemas del organismo principal (caso original, fila inline); si
-          no aparece ahí, cae al catálogo global de Sistemas — cubre el caso
-          de un salto externo (saltarASistema) hacia un Sistema que no
-          pertenece a ese organismo principal. */}
       {editandoSistemaOrganismoId &&
         (() => {
           const sistemaActivo =
-            sistemasOrganismo.items.find((s) => s.sistema_id === editandoSistemaOrganismoId)
-              ?.sistema ??
+            sistemasOrganismo.items.find((s) => s.sistema_id === editandoSistemaOrganismoId)?.sistema ??
             catalogoSistemas.find((s) => s.id === editandoSistemaOrganismoId);
           if (!sistemaActivo) return null;
           return (
@@ -1092,22 +736,16 @@ export function EditorCriatura({
               onAbrirOrganoExterno={saltarAOrgano}
               onAbrirSistemaExterno={saltarASistema}
               onAbrirOrganismoExterno={saltarAOrganismo}
-          onAbrirCriaturaExterno={onSelectCriatura}
-          onAbrirCelulaExterno={saltarACelula}
-          onAbrirTejidoExterno={saltarATejido}
+              onAbrirCriaturaExterno={onSelectCriatura}
+              onAbrirCelulaExterno={saltarACelula}
+              onAbrirTejidoExterno={saltarATejido}
             />
           );
         })()}
 
-      {/* Click en una fila de "Órganos del organismo" (fila 2 inline de
-          Biología) — abre el editor completo del Órgano, mismo componente
-          (GrupoCompuestoPanelFlotante) que se abre desde "Órganos directos"
-          dentro del editor de Organismo. */}
       {editandoOrganoDirectoOrganismoId &&
         (() => {
-          const organoActivo = catalogoOrganos.find(
-            (o) => o.id === editandoOrganoDirectoOrganismoId,
-          );
+          const organoActivo = catalogoOrganos.find((o) => o.id === editandoOrganoDirectoOrganismoId);
           if (!organoActivo) return null;
           return (
             <GrupoCompuestoPanelFlotante
@@ -1115,23 +753,18 @@ export function EditorCriatura({
               compuestos={compuestosOrganos}
               onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}
               onActualizar={(id, cambios) =>
-                setCatalogoOrganos((prev) =>
-                  prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
-                )
+                setCatalogoOrganos((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)))
               }
               onAbrirOrganoExterno={saltarAOrgano}
               onAbrirSistemaExterno={saltarASistema}
               onAbrirOrganismoExterno={saltarAOrganismo}
-          onAbrirCriaturaExterno={onSelectCriatura}
-          onAbrirCelulaExterno={saltarACelula}
-          onAbrirTejidoExterno={saltarATejido}
+              onAbrirCriaturaExterno={onSelectCriatura}
+              onAbrirCelulaExterno={saltarACelula}
+              onAbrirTejidoExterno={saltarATejido}
             />
           );
         })()}
 
-      {/* Click en "hecho de: [Célula]" en la fila de fórmula de un Tejido —
-          la cadena real es Tejido→Célula→Compuesto, así que esto abre la
-          Célula (donde vive compuesto_id), no el Compuesto directo. */}
       {editandoCelulaId &&
         (() => {
           const celulaActiva = celulasCatalogo.items.find((c) => c.id === editandoCelulaId);
@@ -1153,8 +786,6 @@ export function EditorCriatura({
           );
         })()}
 
-      {/* Panel del Tejido abierto desde "Célula → Tejido" — se apila igual
-          que la Célula de arriba. */}
       {editandoTejidoId &&
         (() => {
           const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === editandoTejidoId);
@@ -1178,8 +809,6 @@ export function EditorCriatura({
           );
         })()}
 
-      {/* Click en un Compuesto (desde el panel de Órgano o de Célula) — el
-          editor completo del propio Compuesto, un nivel más adentro. */}
       {editandoCompuestoId &&
         (() => {
           const compuesto = compuestosOrganos.find((c) => c.id === editandoCompuestoId);
@@ -1191,9 +820,7 @@ export function EditorCriatura({
               todosLosCompuestos={compuestosOrganos}
               onCerrar={() => setEditandoCompuestoId(null)}
               onActualizar={(id, cambios) =>
-                setCompuestosOrganos((prev) =>
-                  prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)),
-                )
+                setCompuestosOrganos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
               }
             />
           );
@@ -1202,13 +829,7 @@ export function EditorCriatura({
   );
 }
 
-// ─── Selector de sección (dropdown) ─────────────────────────────────────────
-// ─── Panel Organismo: vincula/gestiona Organismo(s) de la criatura vía
-// criatura_organismos (rol, cantidad, es_principal) — mismo lenguaje
-// visual que SeccionGruposVinculados/ListaVinculos* de Biología, pero
-// propio acá porque el shape (es_principal + cantidad numérica) no calza
-// con esos componentes genéricos (pensados para rol/proporción de texto). ─
-
+// ─── PanelOrganismosCriatura ─────────────────────────────────────────────────
 function PanelOrganismosCriatura({
   items,
   loading,
@@ -1219,102 +840,66 @@ function PanelOrganismosCriatura({
   onQuitar,
   onAbrirOrganismo,
 }: {
-  items: {
-    vinculo_id: string;
-    organismo_id: string;
-    rol: string | null;
-    cantidad: number;
-    es_principal: boolean;
-    organismo: Organismo;
-  }[];
+  items: { vinculo_id: string; organismo_id: string; rol: string | null; cantidad: number; es_principal: boolean; organismo: Organismo }[];
   loading: boolean;
   catalogo: Organismo[];
   onAgregar: (organismoId: string) => void;
-  onActualizar: (
-    vinculoId: string,
-    cambios: Partial<{ rol: string | null; cantidad: number }>,
-  ) => void;
+  onActualizar: (vinculoId: string, cambios: Partial<{ rol: string | null; cantidad: number }>) => void;
   onMarcarPrincipal: (vinculoId: string, esPrincipal: boolean) => void;
   onQuitar: (vinculoId: string) => void;
-  /** Click en el nombre del Organismo — abre PanelEditorOrganismo (editable, con Sistemas). */
   onAbrirOrganismo?: (organismoId: string) => void;
 }) {
   const [buscando, setBuscando] = useState(false);
-
   const yaVinculadosIds = useMemo(() => new Set(items.map((v) => v.organismo_id)), [items]);
-  const disponibles = useMemo(
-    () => catalogo.filter((o) => !yaVinculadosIds.has(o.id)),
-    [catalogo, yaVinculadosIds],
-  );
+  const disponibles = useMemo(() => catalogo.filter((o) => !yaVinculadosIds.has(o.id)), [catalogo, yaVinculadosIds]);
 
   return (
-    <div className="flex flex-col gap-3 max-h-[70vh] overflow-y-auto pr-0.5">
-      <div>
-        <p className="text-micro font-black uppercase tracking-[0.2em] text-primary/40">
-          Organismo
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-2">
       {loading ? (
-        <p className="text-micro text-primary/25 italic py-1">Cargando…</p>
+        <p className="text-micro text-primary/25 italic">Cargando…</p>
       ) : items.length === 0 ? (
-        <p className="text-micro text-primary/25 italic py-1">Sin Organismo vinculado todavía.</p>
+        <p className="text-micro text-primary/25 italic">Sin organismo vinculado.</p>
       ) : (
         <div className="flex flex-col gap-1.5">
           {items.map((v) => (
-            <div
-              key={v.vinculo_id}
-              className="flex flex-col gap-1.5 bg-primary/5 rounded-md px-2.5 py-2 border border-primary/10"
-            >
-              <div className="flex items-center gap-1.5">
-                <Boxes size={11} className="text-primary/40 shrink-0" />
+            <div key={v.vinculo_id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => onAbrirOrganismo?.(v.organismo_id)}
-                  title="Ver Sistemas y Órganos"
                   disabled={!onAbrirOrganismo}
-                  className="flex-1 min-w-0 text-left truncate text-micro font-bold text-primary/80 hover:text-accent transition-colors disabled:cursor-default disabled:hover:text-primary/80 cursor-pointer"
+                  className="flex-1 min-w-0 text-left truncate text-micro font-medium text-primary/75 hover:text-accent transition-colors disabled:cursor-default cursor-pointer"
                 >
                   {v.organismo.nombre || "Sin nombre"}
                 </button>
                 <button
                   type="button"
                   onClick={() => onMarcarPrincipal(v.vinculo_id, !v.es_principal)}
-                  title={v.es_principal ? "Principal — click para desmarcar" : "Marcar como principal"}
-                  className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-micro font-black uppercase tracking-widest border transition-colors cursor-pointer ${
-                    v.es_principal
-                      ? "border-accent/40 text-accent bg-accent/10"
-                      : "border-primary/15 text-primary/35 hover:text-primary hover:border-primary/35"
-                  }`}
+                  title={v.es_principal ? "Principal" : "Marcar como principal"}
+                  className={`shrink-0 cursor-pointer transition-colors ${v.es_principal ? "text-accent" : "text-primary/25 hover:text-primary/50"}`}
                 >
-                  <Star size={9} />
-                  Principal
+                  <Star size={10} />
                 </button>
                 <button
                   type="button"
                   onClick={() => onQuitar(v.vinculo_id)}
-                  title="Quitar"
-                  className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-primary/40 hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                  className="shrink-0 text-primary/25 hover:text-red-500 transition-colors cursor-pointer"
                 >
-                  <X size={11} />
+                  <X size={10} />
                 </button>
               </div>
-
-              <div className="flex items-center gap-2 pl-[19px]">
+              <div className="flex items-center gap-2">
                 <input
                   value={v.rol ?? ""}
                   onChange={(e) => onActualizar(v.vinculo_id, { rol: e.target.value })}
-                  placeholder="Rol (ej. huésped, simbionte)…"
-                  className="flex-1 min-w-0 bg-transparent px-0 py-0.5 text-micro text-primary/60 outline-none placeholder:text-primary/25"
+                  placeholder="rol…"
+                  className="flex-1 min-w-0 bg-transparent py-0 text-micro text-primary/50 outline-none placeholder:text-primary/20"
                 />
                 <input
                   type="number"
                   value={v.cantidad}
-                  onChange={(e) =>
-                    onActualizar(v.vinculo_id, { cantidad: Number(e.target.value) || 0 })
-                  }
-                  className="w-16 shrink-0 bg-transparent px-0 py-0.5 text-micro text-primary/60 outline-none text-right"
-                  title="Cantidad"
+                  onChange={(e) => onActualizar(v.vinculo_id, { cantidad: Number(e.target.value) || 0 })}
+                  className="w-12 shrink-0 bg-transparent py-0 text-micro text-primary/50 outline-none text-right"
                 />
               </div>
             </div>
@@ -1323,31 +908,22 @@ function PanelOrganismosCriatura({
       )}
 
       {buscando ? (
-        <div className="flex flex-col gap-1 border border-primary/10 rounded-md p-2">
+        <div className="flex flex-col gap-0.5 border-t pt-2" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
           {disponibles.length === 0 ? (
-            <p className="text-micro text-primary/25 italic py-1">
-              No hay más Organismos disponibles en el catálogo.
-            </p>
+            <p className="text-micro text-primary/25 italic">No hay más disponibles.</p>
           ) : (
             disponibles.map((o) => (
               <button
                 key={o.id}
                 type="button"
-                onClick={() => {
-                  onAgregar(o.id);
-                  setBuscando(false);
-                }}
-                className="text-left text-micro text-primary/70 hover:text-accent px-1.5 py-1 rounded hover:bg-primary/5 transition-colors cursor-pointer"
+                onClick={() => { onAgregar(o.id); setBuscando(false); }}
+                className="text-left text-micro text-primary/65 hover:text-accent px-1.5 py-0.5 rounded hover:bg-primary/5 transition-colors cursor-pointer"
               >
                 {o.nombre}
               </button>
             ))
           )}
-          <button
-            type="button"
-            onClick={() => setBuscando(false)}
-            className="self-start text-micro text-primary/35 hover:text-primary/60 mt-1 cursor-pointer"
-          >
+          <button type="button" onClick={() => setBuscando(false)} className="self-start text-micro text-primary/30 hover:text-primary/60 mt-1 cursor-pointer">
             Cancelar
           </button>
         </div>
@@ -1355,9 +931,9 @@ function PanelOrganismosCriatura({
         <button
           type="button"
           onClick={() => setBuscando(true)}
-          className="flex items-center gap-1 self-start text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors cursor-pointer"
+          className="flex items-center gap-1 self-start text-[9px] font-black uppercase tracking-widest text-primary/35 hover:text-primary transition-colors cursor-pointer mt-1"
         >
-          <Wand2 size={10} /> Agregar organismo existente
+          <Wand2 size={9} /> Agregar
         </button>
       )}
     </div>
