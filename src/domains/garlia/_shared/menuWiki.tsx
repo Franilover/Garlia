@@ -1,5 +1,5 @@
 "use client";
-import { Compass, BookText, BookOpen, Music, Sprout, UserCircle2 } from "lucide-react";
+import { Compass, BookText, BookOpen, Music, Sprout, UserCircle2, Languages } from "lucide-react";
 
 import MenuBase from "@/layout/MenuBase";
 
