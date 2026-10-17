@@ -24,14 +24,15 @@ import { supabase } from "@/infra/supabase/supabase";
 import { db } from "@/infra/supabase/db";
 
 import {
+  CONFIG_ORGANISMO_SISTEMAS,
   CONFIG_SISTEMAS,
   type OrganismoSistema,
   type Sistema,
 } from "@/domains/garlia/elementos/types";
+import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // Select con join embebido — una sola query, sin race condition.
 const SELECT_CON_JOIN = `id, organismo_id, sistema_id, proporcion, created_at, sistema:sistemas(${CONFIG_SISTEMAS.select})`;
-import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
 async function leerVinculosDeDexie(organismoId: string): Promise<OrganismoSistema[]> {

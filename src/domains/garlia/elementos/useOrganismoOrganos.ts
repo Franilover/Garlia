@@ -27,12 +27,12 @@ import {
   type Organo,
   type OrganismoOrgano,
 } from "@/domains/garlia/elementos/types";
+import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // Select con join embebido — una sola query, sin race condition entre dos
 // fetches separados. Supabase resuelve el FK organismo_organos.organo_id →
 // organos.id directamente en el servidor.
 const SELECT_CON_JOIN = `id, organismo_id, organo_id, rol, cantidad, created_at, organo:organos(${CONFIG_ORGANOS.select})`;
-import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 /** Una fila resuelta: vínculo + Órgano ya cargado, lista para la UI. */
 export interface OrganoDeOrganismo {
