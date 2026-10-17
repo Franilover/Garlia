@@ -8,6 +8,7 @@ import { translateText, type Lexeme, type Morpheme, type MorphRule, type Grammar
 const lexemes: Lexeme[] = [
   { id: "nax", lema: "nax", categoria_gramatical: "pronombre", definicion_breve: "yo, primera persona singular", estado: "borrador" },
   { id: "dak", lema: "dak", categoria_gramatical: "pronombre", definicion_breve: "tú, segunda persona singular", estado: "borrador" },
+  { id: "zor", lema: "zor", categoria_gramatical: "pronombre", definicion_breve: "él/ella, tercera persona singular", estado: "borrador" },
   { id: "kran", lema: "kran", categoria_gramatical: "verbo", definicion_breve: "volar, desplazarse por el aire", estado: "borrador" },
   { id: "tsan", lema: "tsan", categoria_gramatical: "verbo", definicion_breve: "ver, percibir con la vista", estado: "borrador" },
   { id: "zkor", lema: "zkor", categoria_gramatical: "sustantivo", definicion_breve: "cielo, espacio aéreo superior", estado: "borrador" },
