@@ -17,9 +17,15 @@
  * useOrganismoBiologiaStore (Zustand) para que otra instancia del hook
  * pidiendo el mismo organismoId (ej. EditorCriatura + PanelEditorOrganismo
  * abiertos a la vez) adopte el resultado ya resuelto sin refetchear.
+ *
+ * Fix race condition (oct-2026): se usa una ref local `abortId` para
+ * descartar resultados de fetches que lleguen tarde (cuando organismoId
+ * cambió mientras el fetch estaba en vuelo). Esto reemplaza el join
+ * embebido que fallaba silenciosamente cuando Supabase no podía inferir
+ * la FK de forma automática.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import { db } from "@/infra/supabase/db";
 
@@ -30,9 +36,6 @@ import {
   type Sistema,
 } from "@/domains/garlia/elementos/types";
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
-
-// Select con join embebido — una sola query, sin race condition.
-const SELECT_CON_JOIN = `id, organismo_id, sistema_id, proporcion, created_at, sistema:sistemas(${CONFIG_SISTEMAS.select})`;
 
 // ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
 async function leerVinculosDeDexie(organismoId: string): Promise<OrganismoSistema[]> {
@@ -88,6 +91,9 @@ export function useOrganismoSistemas(organismoId: string | null) {
   const [sistemas, setSistemasLocal] = useState<Record<string, Sistema>>(cacheEntry?.sistemas ?? {});
   const [loading, setLoading] = useState(!cacheEntry);
 
+  // Ref para cancelar fetches en vuelo cuando organismoId cambia
+  const fetchIdRef = useRef(0);
+
   // Si otro componente ya resolvió este organismoId en el store, adoptamos
   // ese estado de inmediato en vez de esperar otro round-trip.
   useEffect(() => {
@@ -133,13 +139,19 @@ export function useOrganismoSistemas(organismoId: string | null) {
       return;
     }
 
+    // Token único para este fetch — si organismoId cambia antes de que
+    // llegue la respuesta, el fetch viejo descarta su resultado.
+    const myFetchId = ++fetchIdRef.current;
+
     // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
     if (!cacheEntry) {
       const vinculosLocales = await leerVinculosDeDexie(organismoId);
+      if (myFetchId !== fetchIdRef.current) return; // organismoId cambió
       if (vinculosLocales.length > 0) {
-        setVinculosLocal(vinculosLocales);
         const sistemaIdsLocales = vinculosLocales.map((v) => v.sistema_id);
         const sistemasLocales = await leerSistemasDeDexie(sistemaIdsLocales);
+        if (myFetchId !== fetchIdRef.current) return;
+        setVinculosLocal(vinculosLocales);
         setSistemasLocal(sistemasLocales);
         setSistemasEnStore(organismoId, vinculosLocales, sistemasLocales);
         setLoading(false);
@@ -148,32 +160,49 @@ export function useOrganismoSistemas(organismoId: string | null) {
       }
     }
 
-    // ── Paso 2: revalidar contra Supabase con join embebido ───────────────
-    // Una sola query elimina el race condition entre dos fetches separados.
-    const { data, error: vinculoError } = await supabase
-      .from("organismo_sistemas")
-      .select(SELECT_CON_JOIN)
+    // ── Paso 2: revalidar contra Supabase (dos queries, sin join) ─────────
+    const { data: vinculoData, error: vinculoError } = await supabase
+      .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
+      .select(CONFIG_ORGANISMO_SISTEMAS.select)
       .eq("organismo_id", organismoId)
       .order("created_at", { ascending: true });
 
-    if (vinculoError || !data) {
+    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (vinculoError || !vinculoData) {
       setLoading(false);
       return;
     }
+    const vinculosResueltos = vinculoData as unknown as OrganismoSistema[];
 
-    const sistemasPorId: Record<string, Sistema> = {};
-    const vinculosLimpios: OrganismoSistema[] = [];
-    for (const row of data as any[]) {
-      const { sistema, ...vinculo } = row;
-      vinculosLimpios.push(vinculo as OrganismoSistema);
-      if (sistema) sistemasPorId[vinculo.sistema_id] = sistema as Sistema;
+    const sistemaIds = [...new Set(vinculosResueltos.map((v) => v.sistema_id))];
+    if (sistemaIds.length === 0) {
+      setVinculosLocal(vinculosResueltos);
+      setSistemasLocal({});
+      setSistemasEnStore(organismoId, vinculosResueltos, {});
+      setLoading(false);
+      void guardarEnDexie(vinculosResueltos, []);
+      return;
     }
 
+    const { data: sistemaData, error: sistemaError } = await supabase
+      .from(CONFIG_SISTEMAS.tabla)
+      .select(CONFIG_SISTEMAS.select)
+      .in("id", sistemaIds);
+
+    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (sistemaError) {
+      console.error("[useOrganismoSistemas] error cargando sistemas:", sistemaError);
+    }
+
+    const sistemasPorId: Record<string, Sistema> = {};
+    for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
+
+    // Setear todo junto — vinculos Y sistemas en el mismo ciclo de render
+    setVinculosLocal(vinculosResueltos);
     setSistemasLocal(sistemasPorId);
-    setVinculosLocal(vinculosLimpios);
-    setSistemasEnStore(organismoId, vinculosLimpios, sistemasPorId);
+    setSistemasEnStore(organismoId, vinculosResueltos, sistemasPorId);
     setLoading(false);
-    void guardarEnDexie(vinculosLimpios, Object.values(sistemasPorId));
+    void guardarEnDexie(vinculosResueltos, Object.values(sistemasPorId));
   }, [organismoId, cacheEntry, setSistemasEnStore]);
 
   useEffect(() => {

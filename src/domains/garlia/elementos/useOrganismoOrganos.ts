@@ -10,15 +10,14 @@
  * con esta cantidad y este rol" sin necesidad de que el Órgano cuelgue de
  * ningún Sistema catalogado.
  *
- * A diferencia de useOrganismoSistemas.ts/useSistemaOrganos.ts (que sí usan
- * Dexie), `organismo_organos` no está declarada en el esquema Dexie
- * (AgendaFraniDB) — agregarla es un cambio de infra fuera de este dominio.
- * Este hook queda Supabase-only + Zustand (cache en memoria entre
- * componentes), sin caché offline en disco, hasta que se registre la tabla
- * en el esquema.
+ * Fix race condition (oct-2026): se usa una ref local `fetchIdRef` para
+ * descartar resultados de fetches que lleguen tarde (cuando organismoId
+ * cambió mientras el fetch estaba en vuelo). Esto reemplaza el join
+ * embebido que fallaba silenciosamente cuando Supabase no podía inferir
+ * la FK de forma automática (devolvía 200 con `organo: null`).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 
 import {
@@ -28,11 +27,6 @@ import {
   type OrganismoOrgano,
 } from "@/domains/garlia/elementos/types";
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
-
-// Select con join embebido — una sola query, sin race condition entre dos
-// fetches separados. Supabase resuelve el FK organismo_organos.organo_id →
-// organos.id directamente en el servidor.
-const SELECT_CON_JOIN = `id, organismo_id, organo_id, rol, cantidad, created_at, organo:organos(${CONFIG_ORGANOS.select})`;
 
 /** Una fila resuelta: vínculo + Órgano ya cargado, lista para la UI. */
 export interface OrganoDeOrganismo {
@@ -54,6 +48,9 @@ export function useOrganismoOrganos(organismoId: string | null) {
   const [vinculos, setVinculosLocal] = useState<OrganismoOrgano[]>(cacheEntry?.vinculos ?? []);
   const [organos, setOrganosLocal] = useState<Record<string, Organo>>(cacheEntry?.organos ?? {});
   const [loading, setLoading] = useState(!cacheEntry);
+
+  // Ref para cancelar fetches en vuelo cuando organismoId cambia
+  const fetchIdRef = useRef(0);
 
   // Si otro componente ya resolvió este organismoId en el store, adoptamos
   // ese estado de inmediato en vez de esperar otro round-trip.
@@ -96,35 +93,54 @@ export function useOrganismoOrganos(organismoId: string | null) {
       return;
     }
 
+    // Token único para este fetch — si organismoId cambia antes de que
+    // llegue la respuesta, el fetch viejo descarta su resultado.
+    const myFetchId = ++fetchIdRef.current;
+
     if (!cacheEntry) setLoading(true);
 
-    // Una sola query con join embebido — elimina el race condition entre
-    // dos fetches separados que causaba que `items` quedara vacío cuando
-    // los vínculos llegaban pero los órganos todavía no (o fallaban).
-    const { data, error } = await supabase
-      .from("organismo_organos")
-      .select(SELECT_CON_JOIN)
+    // ── Query 1: vínculos ─────────────────────────────────────────────────
+    const { data: vinculoData, error: vinculoError } = await supabase
+      .from(CONFIG_ORGANISMO_ORGANOS.tabla)
+      .select(CONFIG_ORGANISMO_ORGANOS.select)
       .eq("organismo_id", organismoId)
       .order("created_at", { ascending: true });
 
-    if (error || !data) {
-      console.error("[useOrganismoOrganos] error cargando vínculos+órganos:", error);
+    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (vinculoError || !vinculoData) {
+      console.error("[useOrganismoOrganos] error cargando vínculos:", vinculoError);
+      setLoading(false);
+      return;
+    }
+    const vinculosResueltos = vinculoData as unknown as OrganismoOrgano[];
+
+    const organoIds = [...new Set(vinculosResueltos.map((v) => v.organo_id))];
+    if (organoIds.length === 0) {
+      setVinculosLocal(vinculosResueltos);
+      setOrganosLocal({});
+      setOrganosEnStore(organismoId, vinculosResueltos, {});
       setLoading(false);
       return;
     }
 
-    // El join trae `organo` como objeto anidado en cada fila.
-    const organosPorId: Record<string, Organo> = {};
-    const vinculosLimpios: OrganismoOrgano[] = [];
-    for (const row of data as any[]) {
-      const { organo, ...vinculo } = row;
-      vinculosLimpios.push(vinculo as OrganismoOrgano);
-      if (organo) organosPorId[vinculo.organo_id] = organo as Organo;
+    // ── Query 2: órganos ─────────────────────────────────────────────────
+    const { data: organoData, error: organoError } = await supabase
+      .from(CONFIG_ORGANOS.tabla)
+      .select(CONFIG_ORGANOS.select)
+      .in("id", organoIds);
+
+    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (organoError) {
+      console.error("[useOrganismoOrganos] error cargando órganos:", organoError);
     }
 
-    setVinculosLocal(vinculosLimpios);
+    const organosPorId: Record<string, Organo> = {};
+    for (const o of (organoData ?? []) as unknown as Organo[]) organosPorId[o.id] = o;
+
+    // Setear todo junto — vinculos Y organos en el mismo ciclo
+    setVinculosLocal(vinculosResueltos);
     setOrganosLocal(organosPorId);
-    setOrganosEnStore(organismoId, vinculosLimpios, organosPorId);
+    setOrganosEnStore(organismoId, vinculosResueltos, organosPorId);
     setLoading(false);
   }, [organismoId, cacheEntry, setOrganosEnStore]);
 
@@ -211,4 +227,3 @@ export function useOrganismoOrganos(organismoId: string | null) {
 
   return { items, loading, vincularExistente, actualizarVinculo, quitar, load };
 }
-
