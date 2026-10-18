@@ -1044,21 +1044,16 @@ function ModalDescubrimiento({
         }}
       >
         <div>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 4px", color: "color-mix(in srgb, var(--primary) 60%, transparent)" }}>
-            ¡Primera revelación!
-          </p>
           <p style={{ fontSize: 16, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
-            {iums.length === 1
-              ? `Comprendes cómo funciona ${iums[0].nombre}`
-              : `Comprendes ${iums.length} nuevas piezas`}
+            Descubres:
           </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
           {iums.map((ium, i) => (
             <div key={i} style={{
-              background: "color-mix(in srgb, var(--primary) 6%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--primary) 16%, transparent)",
+              background: "transparent",
+              border: "1px solid color-mix(in srgb, var(--primary) 28%, transparent)",
               borderRadius: 10, padding: "8px 14px", textAlign: "left",
             }}>
               <p style={{ fontSize: 11, fontWeight: 700, margin: "0 0 2px" }}>{ium.nombre}</p>
