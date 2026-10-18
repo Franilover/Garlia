@@ -29,7 +29,14 @@ import { LayoutEtapa, CLASE_SVG_EN_CAJA, anchoEnCaja, type FilaTexto } from "./L
 
 // ─── Bloque 1: diagrama de la lógica (cristalización radial) ──────────────
 
-const TONOS = ["#8a5a34", "#c9a06a", "#4e3320", "#8a5a34", "#c9a06a", "#4e3320"];
+const TONOS = [
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+];
 
 /** Mini-átomo: núcleo + anillo medio (3 partículas) + anillo externo
  *  (3 partículas), girando en direcciones opuestas — mismo lenguaje visual
@@ -56,13 +63,13 @@ function MiniAtomo({
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: `explicacion-estructura-girar ${girar.externa} linear infinite reverse` }}>
         {[0, 1, 2].map((i) => {
           const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
-          return <circle key={`e${i}`} cx={cx + Math.cos(a) * radioExterno} cy={cy + Math.sin(a) * radioExterno} r={radio * 0.09} style={{ fill: TONOS[i], stroke: "#4e3320", strokeWidth: 0.6 }} />;
+          return <circle key={`e${i}`} cx={cx + Math.cos(a) * radioExterno} cy={cy + Math.sin(a) * radioExterno} r={radio * 0.09} style={{ fill: TONOS[i], stroke: "color-mix(in srgb, var(--primary) 70%, var(--bg-main))", strokeWidth: 0.6 }} />;
         })}
       </g>
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: `explicacion-estructura-girar ${girar.media} linear infinite` }}>
         {[0, 1, 2].map((i) => {
           const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + 0.5;
-          return <circle key={`m${i}`} cx={cx + Math.cos(a) * radioMedio} cy={cy + Math.sin(a) * radioMedio} r={radio * 0.09} style={{ fill: TONOS[(i + 1) % 3], stroke: "#4e3320", strokeWidth: 0.6 }} />;
+          return <circle key={`m${i}`} cx={cx + Math.cos(a) * radioMedio} cy={cy + Math.sin(a) * radioMedio} r={radio * 0.09} style={{ fill: TONOS[(i + 1) % 3], stroke: "color-mix(in srgb, var(--primary) 70%, var(--bg-main))", strokeWidth: 0.6 }} />;
         })}
       </g>
 
@@ -135,7 +142,7 @@ function DiagramaEstructura({ replayKey, onReplay }: { replayKey: number; onRepl
           style={{ opacity: conPatron ? 0.4 : 0, transition: "opacity 0.5s ease-out" }}
         />
       ))}
-      <MiniAtomo cx={cx} cy={cy} radio={20} tono="#8a5a34" girar={{ media: "18s", externa: "26s" }} />
+      <MiniAtomo cx={cx} cy={cy} radio={20} tono="color-mix(in srgb, var(--primary) 50%, var(--bg-main))" girar={{ media: "18s", externa: "26s" }} />
       {anillo.map((p, i) => (
         <g key={`n${i}`} style={{ opacity: conPatron ? 1 : 0, transition: `opacity 0.5s ease-out ${i * 0.08}s` }}>
           <MiniAtomo cx={p.x} cy={p.y} radio={13} tono={TONOS[i]} girar={{ media: `${16 + i * 2}s`, externa: `${24 + i * 2}s` }} />

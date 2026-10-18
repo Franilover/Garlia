@@ -33,7 +33,7 @@ export function BloqueColapsableAdmin({
       {!maestroVisible && (
         <p
           className="text-[10px] mt-1"
-          style={{ color: "color-mix(in srgb, #b45309 60%, transparent)" }}
+          style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}
         >
           Oculta al público · click para ver y gestionar excepciones
         </p>

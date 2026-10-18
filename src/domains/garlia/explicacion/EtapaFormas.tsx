@@ -33,7 +33,11 @@ const TEXTOS: Record<Paso, { titulo: string; detalle: string }> = {
   forma: { titulo: "Nace una Forma", detalle: "Iums acomodados según una topología concreta — la base lista para un Ori." },
 };
 
-const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+const TONOS = [
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+];
 
 function IumCuadrado({ x, y, tono }: { x: number; y: number; tono: string }) {
   return (

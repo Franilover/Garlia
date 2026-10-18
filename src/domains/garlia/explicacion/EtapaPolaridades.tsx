@@ -243,7 +243,7 @@ function GaleriaResultadoReal() {
                 className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-                  color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
+                  color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "var(--warning)",
                 }}
               >
                 {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}

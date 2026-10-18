@@ -37,7 +37,11 @@ const TEXTOS: Record<Paso, { titulo: string }> = {
   ori: { titulo: "Nace un Ori, una fuerza cósmica funcional." },
 };
 
-const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+const TONOS = [
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+];
 
 function IumNodo({ x, y, tono, confirmado }: { x: number; y: number; tono: string; confirmado: boolean }) {
   return (

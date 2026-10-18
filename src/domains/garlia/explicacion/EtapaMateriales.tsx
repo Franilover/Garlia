@@ -79,7 +79,11 @@ const CATEGORIAS: { id: string; color: string }[] = [
   { id: "sustancia_organica_amorfa", color: "#9a6fae" },
 ];
 
-const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+const TONOS = [
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+];
 
 /** Mini-átomo: núcleo + 2 capas orbitales con puntos fijos girando —
  *  mismo lenguaje visual que MiniElemento en EtapaCompuestos/Estructuras,
@@ -95,13 +99,13 @@ function MiniAtomoFusion({ cx, cy, radio, tono, girar }: { cx: number; cy: numbe
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: girar ? `explicacion-material-girar ${girar.externa} linear infinite` : undefined }}>
         {[0, 1, 2].map((i) => {
           const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
-          return <circle key={`ext${i}`} cx={cx + Math.cos(a) * radioOrbitaExterna} cy={cy + Math.sin(a) * radioOrbitaExterna} r={radio * 0.09} style={{ fill: TONOS[i], stroke: "#4e3320" }} strokeWidth={0.6} />;
+          return <circle key={`ext${i}`} cx={cx + Math.cos(a) * radioOrbitaExterna} cy={cy + Math.sin(a) * radioOrbitaExterna} r={radio * 0.09} style={{ fill: TONOS[i], stroke: "color-mix(in srgb, var(--primary) 70%, var(--bg-main))" }} strokeWidth={0.6} />;
         })}
       </g>
       <g style={{ transformOrigin: `${cx}px ${cy}px`, animation: girar ? `explicacion-material-girar ${girar.media} linear infinite reverse` : undefined }}>
         {[0, 1, 2].map((i) => {
           const a = (i / 3) * Math.PI * 2 - Math.PI / 2 + 0.5;
-          return <circle key={`med${i}`} cx={cx + Math.cos(a) * radioOrbitaMedia} cy={cy + Math.sin(a) * radioOrbitaMedia} r={radio * 0.09} style={{ fill: TONOS[(i + 1) % 3], stroke: "#4e3320" }} strokeWidth={0.6} />;
+          return <circle key={`med${i}`} cx={cx + Math.cos(a) * radioOrbitaMedia} cy={cy + Math.sin(a) * radioOrbitaMedia} r={radio * 0.09} style={{ fill: TONOS[(i + 1) % 3], stroke: "color-mix(in srgb, var(--primary) 70%, var(--bg-main))" }} strokeWidth={0.6} />;
         })}
       </g>
     </g>
@@ -123,7 +127,7 @@ function MiniCristalFusion({ cx, cy, r }: { cx: number; cy: number; r: number })
       {puntos.map((p, i) => (
         <line key={`l${i}`} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--primary)" strokeWidth={1} opacity={0.4} />
       ))}
-      <MiniAtomoFusion cx={cx} cy={cy} radio={r * 0.32} tono="#8a5a34" />
+      <MiniAtomoFusion cx={cx} cy={cy} radio={r * 0.32} tono="color-mix(in srgb, var(--primary) 50%, var(--bg-main))" />
       {puntos.map((p, i) => (
         <MiniAtomoFusion key={`n${i}`} cx={p[0]} cy={p[1]} radio={r * 0.2} tono={TONOS[i % TONOS.length]} />
       ))}
@@ -184,7 +188,7 @@ function DiagramaMaterial({ replayKey, onReplay }: { replayKey: number; onReplay
           transition: "transform 0.9s cubic-bezier(0.34, 1.1, 0.4, 1)",
         }}
       >
-        <MiniAtomoFusion cx={cx} cy={cy} radio={34} tono="#8a5a34" girar={{ media: "22s", externa: "16s" }} />
+        <MiniAtomoFusion cx={cx} cy={cy} radio={34} tono="color-mix(in srgb, var(--primary) 50%, var(--bg-main))" girar={{ media: "22s", externa: "16s" }} />
       </g>
 
       <g

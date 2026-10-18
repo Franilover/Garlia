@@ -224,10 +224,10 @@ function DiagramaEnlaceCompuesto({ replayKey, onReplay }: { replayKey: number; o
       )}
 
       <g style={{ transition: "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}>
-        <MiniElemento cx={cxA} cy={cy} radio={radio} encajando={paso === "encajando"} tono="#8a5a34" girar={{ media: "22s", externa: "34s" }} />
+        <MiniElemento cx={cxA} cy={cy} radio={radio} encajando={paso === "encajando"} tono="color-mix(in srgb, var(--primary) 50%, var(--bg-main))" girar={{ media: "22s", externa: "34s" }} />
       </g>
       <g style={{ transition: "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}>
-        <MiniElemento cx={cxB} cy={cy} radio={radio} encajando={paso === "encajando"} tono="#4e3320" girar={{ media: "26s", externa: "30s" }} />
+        <MiniElemento cx={cxB} cy={cy} radio={radio} encajando={paso === "encajando"} tono="color-mix(in srgb, var(--primary) 30%, var(--bg-main))" girar={{ media: "26s", externa: "30s" }} />
       </g>
     </svg>
   );

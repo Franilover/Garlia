@@ -20,7 +20,11 @@ import React, { useEffect, useState } from "react";
 
 const DURACIONES = [1100, 1100, 1100]; // ms por paso de acople
 
-const TONOS = ["#c9a06a", "#8a5a34", "#4e3320"];
+const TONOS = [
+  "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+  "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+];
 
 function ParticulaCuadrado({ x, y, tono, activa }: { x: number; y: number; tono: string; activa: boolean }) {
   return (

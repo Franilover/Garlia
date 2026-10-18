@@ -26,9 +26,9 @@ export function ToggleMaestroAdmin({
       title={visible ? `Ocultar toda la sección "${etiqueta}" al público` : `Mostrar toda la sección "${etiqueta}" al público`}
       className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer border"
       style={{
-        color: visible ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
-        borderColor: visible ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, #b45309 40%, transparent)",
-        background: visible ? "transparent" : "color-mix(in srgb, #b45309 8%, transparent)",
+        color: visible ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "var(--warning)",
+        borderColor: visible ? "color-mix(in srgb, var(--primary) 20%, transparent)" : "color-mix(in srgb, var(--warning) 40%, transparent)",
+        background: visible ? "transparent" : "color-mix(in srgb, var(--warning) 8%, transparent)",
       }}
     >
       {visible ? <Eye size={11} /> : <EyeOff size={11} />}

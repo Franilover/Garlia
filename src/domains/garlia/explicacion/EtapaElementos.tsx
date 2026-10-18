@@ -60,7 +60,11 @@ function AnilloCapa({
    *  capa no "desaparezca" al llegar al paso final. */
   girando: boolean;
 }) {
-  const tonos = ["#c9a06a", "#8a5a34", "#4e3320"];
+  const tonos = [
+    "color-mix(in srgb, var(--primary) 75%, var(--bg-main))",
+    "color-mix(in srgb, var(--primary) 50%, var(--bg-main))",
+    "color-mix(in srgb, var(--primary) 30%, var(--bg-main))",
+  ];
   return (
     <g
       style={{
@@ -202,7 +206,7 @@ function GaleriaElementosReales() {
                 className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full cursor-pointer"
                 style={{
                   background: "color-mix(in srgb, var(--bg-main) 85%, transparent)",
-                  color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "#b45309",
+                  color: visibleItem ? "color-mix(in srgb, var(--primary) 55%, transparent)" : "var(--warning)",
                 }}
               >
                 {visibleItem ? <Eye size={11} /> : <EyeOff size={11} />}
