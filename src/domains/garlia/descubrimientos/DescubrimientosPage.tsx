@@ -1,665 +1,541 @@
 "use client";
 
-/**
- * DescubrimientosPage.tsx — Rediseño total
- * ─────────────────────────────────────────────────────────────────────────────
- * Muestra el estado canónico del sistema de maná cargado desde Supabase:
- *   1. Tabla periódica de Garlia — 67 elementos, agrupados por familia
- *   2. Compuestos — grid compacto con símbolo y clasificación
- *   3. Oris — 10 sistemas de acoplamiento, con familia y fórmula
- *   4. IUMs — 19 unidades de manifestación
- *   5. Procesos — 79 procesos canónicos
- *
- * Usa solo var(--primary), var(--bg-main), var(--warning) y mezclas con
- * color-mix para mantenerse 100% dentro del tema dinámico.
- */
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Info, FlaskConical } from "lucide-react";
 
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/infra/supabase/supabase";
-
-// ─── tipos ───────────────────────────────────────────────────────────────────
-
+/* ─── tipos ─────────────────────────────────────────────── */
 interface Elemento {
+  id: string;
   numero_atomico: number;
-  nombre: string;
   simbolo: string;
+  nombre: string;
   familia: string;
-  es_noble: boolean;
+  es_noble?: boolean;
 }
-
+interface Particula {
+  id: string;
+  nombre: string;
+  codigo: string; // e.g. "TTT"
+  descripcion?: string;
+}
+interface Ium {
+  id: string;
+  nombre: string;
+  formula?: string;
+  descripcion?: string;
+}
+interface Ori {
+  id: string;
+  nombre: string;
+  familia?: string;
+  formula_iums?: string;
+}
 interface Compuesto {
   id: string;
   nombre: string;
-  simbolo: string | null;
-  clasificacion: string | null;
-  tipo_compuesto: string | null;
+  formula?: string;
+  clasificacion?: string;
+  propiedad?: string;
 }
-
-interface Ori {
-  id: string;
-  orden: number;
-  nombre: string;
-  familia: string;
-  formula: string;
-  dominio: string | null;
-}
-
-interface Ium {
-  id: string;
-  orden: number;
-  nombre: string;
-  detalle: string;
-  extra: string | null;
-}
-
 interface Proceso {
   id: string;
   nombre: string;
-  tipo: string | null;
-  descripcion: string | null;
+  tipo?: string;
 }
 
-// ─── colores por familia de elemento ─────────────────────────────────────────
-
-const FAMILIA_OPACITY: Record<string, string> = {
-  Inerte: "0.55",
-  Rígido: "0.75",
-  Reactivo: "0.90",
-  Intermedio: "0.70",
-  Noble: "1",
+/* ─── colores por segmento ──────────────────────────────── */
+const SEGMENT_FILL: Record<string, string> = {
+  T: "color-mix(in srgb, var(--primary) 26%, var(--bg-main))",
+  A: "color-mix(in srgb, var(--primary) 42%, var(--bg-main))",
+  S: "color-mix(in srgb, var(--primary) 14%, var(--bg-main))",
+  I: "color-mix(in srgb, var(--primary) 20%, var(--bg-main))",
+};
+const SEGMENT_STROKE: Record<string, string> = {
+  T: "color-mix(in srgb, var(--primary) 45%, var(--bg-main))",
+  A: "color-mix(in srgb, var(--primary) 60%, var(--bg-main))",
+  S: "color-mix(in srgb, var(--primary) 32%, var(--bg-main))",
+  I: "color-mix(in srgb, var(--primary) 38%, var(--bg-main))",
+};
+const SEGMENT_TEXT: Record<string, string> = {
+  T: "color-mix(in srgb, var(--foreground) 85%, var(--primary))",
+  A: "color-mix(in srgb, var(--foreground) 90%, var(--primary))",
+  S: "color-mix(in srgb, var(--foreground) 80%, var(--primary))",
+  I: "color-mix(in srgb, var(--foreground) 82%, var(--primary))",
 };
 
-const FAMILIA_BG: Record<string, string> = {
-  Inerte: "color-mix(in srgb, var(--primary) 8%, var(--bg-main))",
-  Rígido: "color-mix(in srgb, var(--primary) 13%, var(--bg-main))",
-  Reactivo: "color-mix(in srgb, var(--primary) 20%, var(--bg-main))",
-  Intermedio: "color-mix(in srgb, var(--primary) 15%, var(--bg-main))",
-  Noble: "color-mix(in srgb, var(--primary) 28%, var(--bg-main))",
-};
+/* ─── SVG partícula (3 segmentos de 120°) ──────────────── */
+function ParticleSVG({ codigo }: { codigo: string }) {
+  const r = 16;
+  const cx = 18;
+  const cy = 18;
+  const letters = (codigo ?? "").slice(0, 3).split("");
+  if (letters.length !== 3) return null;
 
-const CLASIFICACION_STYLE: Record<string, string> = {
-  estable: "color-mix(in srgb, var(--primary) 90%, transparent)",
-  metaestable: "color-mix(in srgb, var(--primary) 55%, transparent)",
-  pendiente: "color-mix(in srgb, var(--primary) 30%, transparent)",
-  inestable: "var(--warning)",
-};
+  // 3 segmentos de 120° comenzando en -90° (arriba)
+  const segments = [
+    { startDeg: -90, endDeg: 30, letter: letters[0] },
+    { startDeg: 30, endDeg: 150, letter: letters[1] },
+    { startDeg: 150, endDeg: 270, letter: letters[2] },
+  ];
 
-// ─── ORI familia colores ──────────────────────────────────────────────────────
-const ORI_FAMILIA_BG: Record<string, string> = {
-  Mecánica: "color-mix(in srgb, var(--primary) 15%, var(--bg-main))",
-  Energética: "color-mix(in srgb, var(--primary) 22%, var(--bg-main))",
-  Biológica: "color-mix(in srgb, var(--primary) 10%, var(--bg-main))",
-};
+  function polar(deg: number) {
+    const rad = (deg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+  function segPath(s: number, e: number) {
+    const p1 = polar(s);
+    const p2 = polar(e);
+    return `M ${cx} ${cy} L ${p1.x} ${p1.y} A ${r} ${r} 0 0 1 ${p2.x} ${p2.y} Z`;
+  }
+  function labelPos(s: number, e: number) {
+    const mid = (s + e) / 2;
+    const rad = (mid * Math.PI) / 180;
+    return { x: cx + r * 0.6 * Math.cos(rad), y: cy + r * 0.6 * Math.sin(rad) };
+  }
 
-// ─── hook de carga ────────────────────────────────────────────────────────────
+  return (
+    <svg viewBox="0 0 36 36" width="36" height="36" role="img">
+      {segments.map((seg, i) => {
+        const lp = labelPos(seg.startDeg, seg.endDeg);
+        return (
+          <g key={i}>
+            <path
+              d={segPath(seg.startDeg, seg.endDeg)}
+              strokeWidth="1.8"
+              style={{
+                fill: SEGMENT_FILL[seg.letter] ?? SEGMENT_FILL.T,
+                stroke: SEGMENT_STROKE[seg.letter] ?? SEGMENT_STROKE.T,
+              }}
+            />
+            <text
+              x={lp.x}
+              y={lp.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize="5.76"
+              fontWeight="900"
+              style={{ fill: SEGMENT_TEXT[seg.letter] ?? SEGMENT_TEXT.T }}
+            >
+              {seg.letter}
+            </text>
+          </g>
+        );
+      })}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        strokeWidth="1.8"
+        style={{ stroke: "var(--bg-main)" }}
+        opacity="0.001"
+      />
+    </svg>
+  );
+}
 
-function useCatalogos() {
+/* ─── SVG partícula simple (1 letra) ───────────────────── */
+function SimpleParticleSVG({ letter }: { letter: string }) {
+  const idx = ["T", "A", "S", "I"].indexOf(letter);
+  const fills = [26, 42, 14, 20];
+  const strokes = [45, 60, 32, 38];
+  const fill = idx >= 0 ? `color-mix(in srgb, var(--primary) ${fills[idx]}%, var(--bg-main))` : SEGMENT_FILL.T;
+  const stroke = idx >= 0 ? `color-mix(in srgb, var(--primary) ${strokes[idx]}%, var(--bg-main))` : SEGMENT_STROKE.T;
+  const textFill = idx >= 0 ? SEGMENT_TEXT[letter] : SEGMENT_TEXT.T;
+  return (
+    <svg viewBox="0 0 36 36" width="36" height="36" role="img">
+      <circle cx="18" cy="18" r="16" strokeWidth="1.8" style={{ fill, stroke }} />
+      <text
+        x="18"
+        y="18"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize="5.76"
+        fontWeight="900"
+        style={{ fill: textFill }}
+      >
+        {letter}
+      </text>
+    </svg>
+  );
+}
+
+/* ─── header de sección ─────────────────────────────────── */
+function SectionHeader({ label, count, info }: { label: string; count?: number; info?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
+      <div className="flex items-center gap-1">
+        <p className="text-micro font-black uppercase tracking-[0.2em]">
+          {label}{count !== undefined ? ` · ${count}` : ""}
+        </p>
+        {info && (
+          <button
+            type="button"
+            title={info}
+            className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+          >
+            <Info size={11} aria-hidden />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── pill ──────────────────────────────────────────────── */
+function Pill({ label, title }: { label: string; title?: string }) {
+  return (
+    <button
+      type="button"
+      title={title ?? label}
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
+    >
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/* ─── divisor horizontal ────────────────────────────────── */
+function Divider({ label, count }: { label: string; count?: number }) {
+  return (
+    <div className="mb-1.5 flex items-center gap-2 px-1">
+      <span aria-hidden className="h-px flex-1 bg-primary/15" />
+      <span className="flex min-w-0 max-w-[80%] items-center gap-1.5 text-micro font-black uppercase tracking-[0.2em] text-accent/70">
+        <span className="truncate">{label}</span>
+        {count !== undefined && (
+          <span className="shrink-0 tabular-nums font-bold tracking-normal opacity-60">{count}</span>
+        )}
+      </span>
+      <span aria-hidden className="h-px flex-1 bg-primary/15" />
+    </div>
+  );
+}
+
+/* ─── grid de elementos ─────────────────────────────────── */
+const FAMILIA_NOBLE = "Noble";
+function ElementoCell({ el }: { el: Elemento }) {
+  const isNoble = el.familia === FAMILIA_NOBLE;
+  return (
+    <button
+      type="button"
+      title={`${el.nombre} · Familia: ${el.familia}`}
+      className="group flex flex-col items-stretch gap-0.5 p-1.5 border-r border-b transition-colors text-left border-primary/10 hover:bg-primary/5"
+    >
+      <div className="flex items-start justify-between">
+        <span className="text-micro font-black text-primary/30 tabular-nums">#{el.numero_atomico}</span>
+        {isNoble && (
+          <span title="Noble" className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0 mt-0.5" />
+        )}
+      </div>
+      <span className="text-base font-black text-center leading-none py-0.5 text-primary">
+        {el.simbolo}
+      </span>
+      <span className="text-micro font-bold text-primary/80 truncate text-center leading-tight">
+        {el.nombre}
+      </span>
+    </button>
+  );
+}
+
+/* ─── celda de compuesto ────────────────────────────────── */
+function CompuestoCell({ c }: { c: Compuesto }) {
+  return (
+    <button
+      type="button"
+      title={c.nombre}
+      className="group flex flex-col items-stretch gap-0.5 p-1.5 border-r border-b transition-colors text-left border-primary/10 hover:bg-primary/5"
+    >
+      {c.formula && (
+        <span className="text-sm font-black text-center leading-none py-0.5 text-primary/70 truncate">
+          {c.formula}
+        </span>
+      )}
+      <span className="text-micro font-bold text-primary/80 truncate text-center leading-tight">
+        {c.nombre}
+      </span>
+    </button>
+  );
+}
+
+/* ─── constantes ────────────────────────────────────────── */
+const TASI = [
+  { letter: "T", title: "T — Movimiento" },
+  { letter: "A", title: "A — Masa y resistencia" },
+  { letter: "S", title: "S — Emisión" },
+  { letter: "I", title: "I — Recepción" },
+];
+const POLARIDADES = ["+", "-"];
+const POLARIDAD_TITLES = ["Polo emisor", "Polo receptor"];
+
+/* ═══════════════════════════════════════════════════════ */
+export default function DescubrimientosPage() {
+  const supabase = createClient();
+
+  const [particulas, setParticulas] = useState<Particula[]>([]);
+  const [iums, setIums] = useState<Ium[]>([]);
+  const [oris, setOris] = useState<Ori[]>([]);
   const [elementos, setElementos] = useState<Elemento[]>([]);
   const [compuestos, setCompuestos] = useState<Compuesto[]>([]);
-  const [oris, setOris] = useState<Ori[]>([]);
-  const [iums, setIums] = useState<Ium[]>([]);
   const [procesos, setProcesos] = useState<Proceso[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      supabase
-        .from("elementos")
-        .select("numero_atomico, nombre, simbolo, familia, es_noble")
-        .order("numero_atomico"),
-      supabase
-        .from("compuestos")
-        .select("id, nombre, simbolo, clasificacion, tipo_compuesto")
-        .order("nombre"),
-      supabase
-        .from("oris")
-        .select("id, orden, nombre, familia, formula, dominio")
-        .order("orden"),
-      supabase
-        .from("iums")
-        .select("id, orden, nombre, detalle, extra")
-        .order("orden"),
-      supabase
-        .from("procesos")
-        .select("id, nombre, tipo, descripcion")
-        .order("nombre"),
-    ]).then(([e, c, o, i, p]) => {
-      setElementos((e.data as Elemento[]) ?? []);
-      setCompuestos((c.data as Compuesto[]) ?? []);
-      setOris((o.data as Ori[]) ?? []);
-      setIums((i.data as Ium[]) ?? []);
-      setProcesos((p.data as Proceso[]) ?? []);
-      setCargando(false);
-    });
+    async function fetchAll() {
+      const [pRes, iRes, oRes, eRes, cRes, prRes] = await Promise.all([
+        supabase.from("particulas").select("*").order("nombre"),
+        supabase.from("iums").select("*").order("nombre"),
+        supabase.from("oris").select("*").order("nombre"),
+        supabase.from("elementos").select("*").order("numero_atomico"),
+        supabase.from("compuestos").select("*").order("nombre"),
+        supabase.from("procesos").select("*").order("nombre"),
+      ]);
+      if (pRes.data) setParticulas(pRes.data);
+      if (iRes.data) setIums(iRes.data);
+      if (oRes.data) setOris(oRes.data);
+      if (eRes.data) setElementos(eRes.data);
+      if (cRes.data) setCompuestos(cRes.data);
+      if (prRes.data) setProcesos(prRes.data);
+      setLoading(false);
+    }
+    fetchAll();
   }, []);
 
-  return { elementos, compuestos, oris, iums, procesos, cargando };
-}
+  /* agrupaciones */
+  const compuestosPorPropiedad = compuestos.reduce<Record<string, Compuesto[]>>((acc, c) => {
+    const key = c.propiedad ?? "Sin clasificar";
+    (acc[key] ??= []).push(c);
+    return acc;
+  }, {});
 
-// ─── componentes ─────────────────────────────────────────────────────────────
+  const procesosPorTipo = procesos.reduce<Record<string, Proceso[]>>((acc, p) => {
+    const key = p.tipo ?? "General";
+    (acc[key] ??= []).push(p);
+    return acc;
+  }, {});
 
-function Titulo({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      className="text-[11px] font-black uppercase tracking-widest mb-3 mt-8 first:mt-0"
-      style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-    >
-      {children}
-    </h2>
-  );
-}
+  const orisPorFamilia = oris.reduce<Record<string, Ori[]>>((acc, o) => {
+    const key = o.familia ?? "General";
+    (acc[key] ??= []).push(o);
+    return acc;
+  }, {});
 
-function Contador({ n, label }: { n: number; label: string }) {
-  return (
-    <span
-      className="ml-1.5 text-[10px] font-bold rounded-full px-1.5 py-0.5"
-      style={{
-        background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-        color: "color-mix(in srgb, var(--primary) 55%, transparent)",
-      }}
-    >
-      {n} {label}
-    </span>
-  );
-}
-
-// ─── Tabla Periódica ──────────────────────────────────────────────────────────
-
-const FAMILIAS = ["Inerte", "Rígido", "Reactivo", "Intermedio", "Noble"];
-
-function TablaPeriodica({ elementos }: { elementos: Elemento[] }) {
-  const porFamilia = FAMILIAS.map((f) => ({
-    familia: f,
-    items: elementos.filter((e) => e.familia === f),
-  }));
-
-  return (
-    <div>
-      {/* Leyenda */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {FAMILIAS.map((f) => (
-          <span
-            key={f}
-            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide"
-          >
-            <span
-              className="inline-block w-2.5 h-2.5 rounded-sm"
-              style={{ background: FAMILIA_BG[f] ?? "transparent", border: "1px solid color-mix(in srgb, var(--primary) 18%, transparent)" }}
-            />
-            <span style={{ color: `color-mix(in srgb, var(--primary) ${FAMILIA_OPACITY[f] ? parseFloat(FAMILIA_OPACITY[f]) * 100 : 60}%, transparent)` }}>
-              {f}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      {/* Grid general */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-1">
-        {elementos.map((el) => (
-          <div
-            key={el.numero_atomico}
-            title={`${el.nombre} · ${el.familia}${el.es_noble ? " · Noble" : ""}`}
-            className="relative flex flex-col items-center justify-center gap-0 aspect-square transition-transform hover:scale-105 cursor-default"
-            style={{
-              background: FAMILIA_BG[el.familia] ?? "color-mix(in srgb, var(--primary) 10%, var(--bg-main))",
-              borderRadius: "var(--radius-btn, 6px)",
-              border: el.es_noble
-                ? "1.5px solid color-mix(in srgb, var(--primary) 50%, transparent)"
-                : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-              boxShadow: el.es_noble
-                ? "0 0 6px color-mix(in srgb, var(--primary) 18%, transparent)"
-                : "none",
-            }}
-          >
-            <span
-              className="text-[8px] font-bold leading-none"
-              style={{ color: "color-mix(in srgb, var(--primary) 35%, transparent)" }}
-            >
-              {el.numero_atomico}
-            </span>
-            <span
-              className="text-[11px] font-black leading-tight"
-              style={{ color: `color-mix(in srgb, var(--primary) ${FAMILIA_OPACITY[el.familia] ? parseFloat(FAMILIA_OPACITY[el.familia]) * 100 : 70}%, transparent)` }}
-            >
-              {el.simbolo}
-            </span>
-            <span
-              className="text-[7px] font-medium leading-none line-clamp-1 px-0.5 text-center w-full"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              {el.nombre}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Por familia */}
-      <div className="mt-6 space-y-4">
-        {porFamilia.map(({ familia, items }) => (
-          <div key={familia}>
-            <p
-              className="text-[10px] font-black uppercase tracking-widest mb-2"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              {familia} <span className="opacity-60">— {items.length}</span>
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {items.map((el) => (
-                <span
-                  key={el.numero_atomico}
-                  title={el.nombre}
-                  className="text-[10px] font-bold px-1.5 py-0.5"
-                  style={{
-                    borderRadius: "var(--radius-btn, 6px)",
-                    background: FAMILIA_BG[familia] ?? "transparent",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--primary) 80%, transparent)",
-                  }}
-                >
-                  {el.simbolo}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Compuestos ───────────────────────────────────────────────────────────────
-
-function TablaCompuestos({ compuestos }: { compuestos: Compuesto[] }) {
-  const [filtro, setFiltro] = useState<string>("todos");
-  const clases = ["todos", "estable", "metaestable", "pendiente", "inestable"];
-  const filtrados =
-    filtro === "todos" ? compuestos : compuestos.filter((c) => c.clasificacion === filtro);
-
-  return (
-    <div>
-      {/* Filtro */}
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {clases.map((c) => {
-          const activo = filtro === c;
-          return (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setFiltro(c)}
-              className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 transition-colors"
-              style={{
-                borderRadius: "var(--radius-btn, 6px)",
-                border: activo
-                  ? "1px solid color-mix(in srgb, var(--primary) 40%, transparent)"
-                  : "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                background: activo
-                  ? "color-mix(in srgb, var(--primary) 15%, transparent)"
-                  : "transparent",
-                color: activo
-                  ? "color-mix(in srgb, var(--primary) 85%, transparent)"
-                  : "color-mix(in srgb, var(--primary) 40%, transparent)",
-              }}
-            >
-              {c === "todos" ? `todos (${compuestos.length})` : `${c} (${compuestos.filter((x) => x.clasificacion === c).length})`}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5">
-        {filtrados.map((c) => (
-          <div
-            key={c.id}
-            title={`${c.nombre} · ${c.clasificacion ?? "?"} · ${c.tipo_compuesto ?? "?"}`}
-            className="flex flex-col gap-0.5 p-2"
-            style={{
-              borderRadius: "var(--radius-btn, 6px)",
-              border: "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-              background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-            }}
-          >
-            <span
-              className="text-[11px] font-black"
-              style={{
-                color: CLASIFICACION_STYLE[c.clasificacion ?? "pendiente"] ?? "color-mix(in srgb, var(--primary) 50%, transparent)",
-              }}
-            >
-              {c.simbolo && c.simbolo !== "??" ? c.simbolo : "—"}
-            </span>
-            <span
-              className="text-[9px] font-medium leading-tight line-clamp-2"
-              style={{ color: "color-mix(in srgb, var(--primary) 65%, transparent)" }}
-            >
-              {c.nombre}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Oris ─────────────────────────────────────────────────────────────────────
-
-function TablaOris({ oris }: { oris: Ori[] }) {
-  const porFamilia: Record<string, Ori[]> = {};
-  for (const o of oris) {
-    if (!porFamilia[o.familia]) porFamilia[o.familia] = [];
-    porFamilia[o.familia].push(o);
-  }
-
-  return (
-    <div className="space-y-6">
-      {Object.entries(porFamilia).map(([familia, items]) => (
-        <div key={familia}>
-          <p
-            className="text-[10px] font-black uppercase tracking-widest mb-2"
-            style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-          >
-            {familia}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {items.map((o) => (
-              <div
-                key={o.id}
-                className="flex flex-col gap-1 p-3"
-                style={{
-                  borderRadius: "var(--radius-btn, 6px)",
-                  border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                  background: ORI_FAMILIA_BG[familia] ?? "color-mix(in srgb, var(--primary) 10%, var(--bg-main))",
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-[10px] font-black tabular-nums"
-                    style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-                  >
-                    {String(o.orden).padStart(2, "0")}
-                  </span>
-                  <span
-                    className="text-[13px] font-black"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    {o.nombre}
-                  </span>
-                </div>
-                {o.dominio && (
-                  <span
-                    className="text-[10px] font-medium"
-                    style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-                  >
-                    {o.dominio}
-                  </span>
-                )}
-                <span
-                  className="text-[9px] font-mono leading-tight mt-0.5"
-                  style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-                >
-                  {o.formula}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── IUMs ─────────────────────────────────────────────────────────────────────
-
-function TablaIums({ iums }: { iums: Ium[] }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-      {iums.map((ium) => (
-        <div
-          key={ium.id}
-          className="flex flex-col gap-1 p-3"
-          style={{
-            borderRadius: "var(--radius-btn, 6px)",
-            border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-            background: "color-mix(in srgb, var(--primary) 6%, var(--bg-main))",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[10px] font-black tabular-nums"
-              style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)" }}
-            >
-              {String(ium.orden).padStart(2, "0")}
-            </span>
-            <span
-              className="text-[13px] font-black"
-              style={{ color: "var(--primary)" }}
-            >
-              {ium.nombre}
-            </span>
-          </div>
-          <span
-            className="text-[9px] font-mono"
-            style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
-          >
-            {ium.detalle}
-          </span>
-          {ium.extra && (
-            <span
-              className="text-[9px] font-medium leading-tight"
-              style={{ color: "color-mix(in srgb, var(--primary) 55%, transparent)" }}
-            >
-              {ium.extra}
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Procesos ─────────────────────────────────────────────────────────────────
-
-function TablaProcesos({ procesos }: { procesos: Proceso[] }) {
-  const [busqueda, setBusqueda] = useState("");
-  const filtrados = procesos.filter(
-    (p) =>
-      !busqueda ||
-      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      (p.tipo ?? "").toLowerCase().includes(busqueda.toLowerCase()),
-  );
-
-  const porTipo: Record<string, Proceso[]> = {};
-  for (const p of filtrados) {
-    const key = p.tipo ?? "Sin tipo";
-    if (!porTipo[key]) porTipo[key] = [];
-    porTipo[key].push(p);
-  }
-
-  return (
-    <div>
-      <input
-        type="text"
-        placeholder="Buscar proceso…"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        className="w-full max-w-xs mb-4 px-3 py-1.5 text-[11px] font-medium outline-none"
-        style={{
-          borderRadius: "var(--radius-btn, 6px)",
-          border: "1px solid color-mix(in srgb, var(--primary) 20%, transparent)",
-          background: "color-mix(in srgb, var(--primary) 4%, var(--bg-main))",
-          color: "color-mix(in srgb, var(--primary) 80%, transparent)",
-        }}
-      />
-
-      <div className="space-y-4">
-        {Object.entries(porTipo).map(([tipo, items]) => (
-          <div key={tipo}>
-            <p
-              className="text-[10px] font-black uppercase tracking-widest mb-1.5"
-              style={{ color: "color-mix(in srgb, var(--primary) 40%, transparent)" }}
-            >
-              {tipo} <span className="opacity-50">— {items.length}</span>
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {items.map((p) => (
-                <span
-                  key={p.id}
-                  title={p.descripcion ?? p.nombre}
-                  className="text-[10px] font-bold px-2 py-0.5 cursor-default"
-                  style={{
-                    borderRadius: "var(--radius-btn, 6px)",
-                    border: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
-                    background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-                    color: "color-mix(in srgb, var(--primary) 70%, transparent)",
-                  }}
-                >
-                  {p.nombre}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Tab ──────────────────────────────────────────────────────────────────────
-
-type Tab = "elementos" | "compuestos" | "oris" | "iums" | "procesos";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "elementos", label: "Elementos" },
-  { id: "compuestos", label: "Compuestos" },
-  { id: "oris", label: "Oris" },
-  { id: "iums", label: "IUMs" },
-  { id: "procesos", label: "Procesos" },
-];
-
-// ─── Page principal ───────────────────────────────────────────────────────────
-
-export default function DescubrimientosPage() {
-  const { elementos, compuestos, oris, iums, procesos, cargando } = useCatalogos();
-  const [tab, setTab] = useState<Tab>("elementos");
-
-  if (cargando) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p
-          className="text-[11px] font-black uppercase tracking-widest"
-          style={{ color: "color-mix(in srgb, var(--primary) 25%, transparent)" }}
-        >
-          Cargando catálogos…
-        </p>
+      <div className="flex items-center justify-center h-full text-primary/30 text-micro font-black uppercase tracking-widest">
+        Cargando…
       </div>
     );
   }
 
-  const counts: Record<Tab, number> = {
-    elementos: elementos.length,
-    compuestos: compuestos.length,
-    oris: oris.length,
-    iums: iums.length,
-    procesos: procesos.length,
-  };
-
   return (
-    <div className="space-y-0">
-      {/* Tabs */}
-      <div
-        className="flex flex-wrap gap-1 mb-6 p-1"
-        style={{
-          borderRadius: "var(--radius-btn, 6px)",
-          background: "color-mix(in srgb, var(--primary) 5%, var(--bg-main))",
-          border: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-        }}
-      >
-        {TABS.map(({ id, label }) => {
-          const activo = tab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors"
-              style={{
-                borderRadius: "calc(var(--radius-btn, 6px) - 2px)",
-                background: activo
-                  ? "color-mix(in srgb, var(--primary) 20%, var(--bg-main))"
-                  : "transparent",
-                border: activo
-                  ? "1px solid color-mix(in srgb, var(--primary) 25%, transparent)"
-                  : "1px solid transparent",
-                color: activo
-                  ? "var(--primary)"
-                  : "color-mix(in srgb, var(--primary) 45%, transparent)",
-              }}
+    <div className="flex-1 min-h-0 overflow-y-auto p-4">
+      <div className="flex flex-col gap-8">
+
+        {/* ── partículas base TASI ── */}
+        <div className="flex flex-col gap-4 min-w-[180px]">
+
+          {/* polaridades */}
+          <div className="flex flex-col gap-2">
+            <SectionHeader label="Polaridades" count={POLARIDADES.length} />
+            <div className="flex flex-wrap gap-1">
+              {POLARIDADES.map((p, i) => (
+                <button
+                  key={p}
+                  type="button"
+                  title={POLARIDAD_TITLES[i]}
+                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                >
+                  <div
+                    className="flex shrink-0 items-center justify-center rounded-full border-2 font-black"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      fontSize: "14.4px",
+                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                      color: "var(--primary)",
+                    }}
+                  >
+                    {p}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* TASI */}
+          <div className="flex flex-col gap-2">
+            <SectionHeader label="TASI" count={TASI.length} />
+            <div className="flex flex-wrap gap-1">
+              {TASI.map((t) => (
+                <button
+                  key={t.letter}
+                  type="button"
+                  title={t.title}
+                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                >
+                  <SimpleParticleSVG letter={t.letter} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── partículas 3-segmentos ── */}
+        {particulas.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <SectionHeader
+              label="Partículas"
+              count={particulas.length}
+              info="Combinaciones de 3 letras TASI"
+            />
+            <div className="flex flex-wrap gap-1">
+              {particulas.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  title={p.nombre}
+                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                >
+                  <ParticleSVG codigo={p.codigo} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── IUMs ── */}
+        {iums.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <SectionHeader label="Iums" count={iums.length} />
+            <div className="flex flex-wrap gap-1">
+              {iums.map((iu) => (
+                <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Oris ── */}
+        {oris.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <SectionHeader
+              label="Oris"
+              count={oris.length}
+              info="Abrir Simulador de requerimiento de Eterium"
+            />
+            {/* si hay familias, agrupar */}
+            {Object.keys(orisPorFamilia).length > 1
+              ? Object.entries(orisPorFamilia).map(([fam, list]) => (
+                  <div key={fam} className="mb-1">
+                    <p className="text-micro font-bold uppercase tracking-[0.15em] text-primary/30 mb-1">{fam}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {list.map((o) => (
+                        <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              : (
+                <div className="flex flex-wrap gap-1">
+                  {oris.map((o) => (
+                    <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                  ))}
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* ── Elementos ── */}
+        {elementos.length > 0 && (
+          <div className="min-w-0">
+            <div className="px-1 pt-1 pb-2 text-center">
+              <button type="button" className="text-micro font-black uppercase transition-colors tracking-widest text-primary/40 hover:text-primary/70 cursor-pointer">
+                Elementos
+              </button>
+            </div>
+            <div
+              className="grid gap-0 border-t border-l border-primary/10"
+              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
             >
-              {label}
-              <span
-                className="text-[9px] font-bold tabular-nums"
-                style={{
-                  color: activo
-                    ? "color-mix(in srgb, var(--primary) 60%, transparent)"
-                    : "color-mix(in srgb, var(--primary) 30%, transparent)",
-                }}
-              >
-                {counts[id]}
-              </span>
-            </button>
-          );
-        })}
+              {elementos.map((el) => (
+                <ElementoCell key={el.id} el={el} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Compuestos ── */}
+        {compuestos.length > 0 && (
+          <div className="min-w-0">
+            <div className="mb-1.5 flex items-center gap-2 px-1">
+              <span aria-hidden className="h-px flex-1 bg-primary/15" />
+              <div className="flex items-center gap-1.5">
+                <button type="button" className="text-micro font-black uppercase tracking-[0.2em] text-primary hover:text-primary/70 cursor-pointer">
+                  Compuestos
+                </button>
+                <span className="text-micro tabular-nums font-bold text-primary/60">{compuestos.length}</span>
+              </div>
+              <span aria-hidden className="h-px flex-1 bg-primary/15" />
+            </div>
+
+            {Object.entries(compuestosPorPropiedad).map(([prop, list]) => (
+              <div key={prop} className="mb-4">
+                <Divider label={prop} count={list.length} />
+                <div
+                  className="grid gap-0 border-t border-l border-primary/10"
+                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+                >
+                  {list.map((c) => (
+                    <CompuestoCell key={c.id} c={c} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Procesos ── */}
+        {procesos.length > 0 && (
+          <div className="min-w-0">
+            <div className="mb-1.5 flex items-center gap-2 px-1">
+              <span aria-hidden className="h-px flex-1 bg-primary/15" />
+              <div className="flex items-center gap-1.5">
+                <button type="button" className="text-micro font-black uppercase tracking-[0.2em] text-primary hover:text-primary/70 cursor-pointer">
+                  Procesos
+                </button>
+                <span className="text-micro tabular-nums font-bold text-primary/60">{procesos.length}</span>
+              </div>
+              <span aria-hidden className="h-px flex-1 bg-primary/15" />
+            </div>
+
+            {Object.entries(procesosPorTipo).map(([tipo, list]) => (
+              <div key={tipo} className="mb-4">
+                <Divider label={tipo} count={list.length} />
+                <div
+                  className="grid gap-0 border-t border-l border-primary/10"
+                  style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
+                >
+                  {list.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      title={p.nombre}
+                      className="group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center border-primary/10 hover:bg-primary/5"
+                    >
+                      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
+                        {p.nombre}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
-
-      {/* Contenido */}
-      {tab === "elementos" && (
-        <div>
-          <Titulo>
-            Tabla Periódica de Garlia
-            <Contador n={elementos.length} label="elementos" />
-          </Titulo>
-          <TablaPeriodica elementos={elementos} />
-        </div>
-      )}
-
-      {tab === "compuestos" && (
-        <div>
-          <Titulo>
-            Compuestos Canónicos
-            <Contador n={compuestos.length} label="compuestos" />
-          </Titulo>
-          <TablaCompuestos compuestos={compuestos} />
-        </div>
-      )}
-
-      {tab === "oris" && (
-        <div>
-          <Titulo>
-            Oris — Sistemas de Acoplamiento
-            <Contador n={oris.length} label="oris" />
-          </Titulo>
-          <TablaOris oris={oris} />
-        </div>
-      )}
-
-      {tab === "iums" && (
-        <div>
-          <Titulo>
-            IUMs — Unidades de Manifestación
-            <Contador n={iums.length} label="iums" />
-          </Titulo>
-          <TablaIums iums={iums} />
-        </div>
-      )}
-
-      {tab === "procesos" && (
-        <div>
-          <Titulo>
-            Procesos Canónicos
-            <Contador n={procesos.length} label="procesos" />
-          </Titulo>
-          <TablaProcesos procesos={procesos} />
-        </div>
-      )}
     </div>
   );
 }
