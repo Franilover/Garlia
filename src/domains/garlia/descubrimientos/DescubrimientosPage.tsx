@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/infra/supabase/supabase";
 import { Info, FlaskConical } from "lucide-react";
 
 /* ─── tipos ─────────────────────────────────────────────── */
@@ -270,8 +270,6 @@ const POLARIDAD_TITLES = ["Polo emisor", "Polo receptor"];
 
 /* ═══════════════════════════════════════════════════════ */
 export default function DescubrimientosPage() {
-  const supabase = createClient();
-
   const [particulas, setParticulas] = useState<Particula[]>([]);
   const [iums, setIums] = useState<Ium[]>([]);
   const [oris, setOris] = useState<Ori[]>([]);
