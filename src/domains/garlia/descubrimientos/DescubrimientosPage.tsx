@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
-import { Info, FlaskConical } from "lucide-react";
+import { Info } from "lucide-react";
 
 /* ─── tipos ─────────────────────────────────────────────── */
 interface Elemento {
@@ -16,7 +16,7 @@ interface Elemento {
 interface Particula {
   id: string;
   nombre: string;
-  codigo: string; // e.g. "TTT"
+  codigo: string;
   descripcion?: string;
 }
 interface Ium {
@@ -44,7 +44,7 @@ interface Proceso {
   tipo?: string;
 }
 
-/* ─── colores por segmento ──────────────────────────────── */
+/* ─── colores por segmento TASI ──────────────────────────── */
 const SEGMENT_FILL: Record<string, string> = {
   T: "color-mix(in srgb, var(--primary) 26%, var(--bg-main))",
   A: "color-mix(in srgb, var(--primary) 42%, var(--bg-main))",
@@ -64,28 +64,22 @@ const SEGMENT_TEXT: Record<string, string> = {
   I: "color-mix(in srgb, var(--foreground) 82%, var(--primary))",
 };
 
-/* ─── SVG partícula (3 segmentos de 120°) ──────────────── */
+/* ─── SVG partícula (3 segmentos 120°) ─────────────────── */
 function ParticleSVG({ codigo }: { codigo: string }) {
-  const r = 16;
-  const cx = 18;
-  const cy = 18;
+  const r = 16, cx = 18, cy = 18;
   const letters = (codigo ?? "").slice(0, 3).split("");
   if (letters.length !== 3) return null;
-
-  // 3 segmentos de 120° comenzando en -90° (arriba)
   const segments = [
-    { startDeg: -90, endDeg: 30, letter: letters[0] },
-    { startDeg: 30, endDeg: 150, letter: letters[1] },
+    { startDeg: -90, endDeg: 30,  letter: letters[0] },
+    { startDeg: 30,  endDeg: 150, letter: letters[1] },
     { startDeg: 150, endDeg: 270, letter: letters[2] },
   ];
-
   function polar(deg: number) {
     const rad = (deg * Math.PI) / 180;
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
   }
   function segPath(s: number, e: number) {
-    const p1 = polar(s);
-    const p2 = polar(e);
+    const p1 = polar(s), p2 = polar(e);
     return `M ${cx} ${cy} L ${p1.x} ${p1.y} A ${r} ${r} 0 0 1 ${p2.x} ${p2.y} Z`;
   }
   function labelPos(s: number, e: number) {
@@ -93,7 +87,6 @@ function ParticleSVG({ codigo }: { codigo: string }) {
     const rad = (mid * Math.PI) / 180;
     return { x: cx + r * 0.6 * Math.cos(rad), y: cy + r * 0.6 * Math.sin(rad) };
   }
-
   return (
     <svg viewBox="0 0 36 36" width="36" height="36" role="img">
       {segments.map((seg, i) => {
@@ -109,12 +102,9 @@ function ParticleSVG({ codigo }: { codigo: string }) {
               }}
             />
             <text
-              x={lp.x}
-              y={lp.y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="5.76"
-              fontWeight="900"
+              x={lp.x} y={lp.y}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize="5.76" fontWeight="900"
               style={{ fill: SEGMENT_TEXT[seg.letter] ?? SEGMENT_TEXT.T }}
             >
               {seg.letter}
@@ -122,15 +112,8 @@ function ParticleSVG({ codigo }: { codigo: string }) {
           </g>
         );
       })}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={r}
-        fill="none"
-        strokeWidth="1.8"
-        style={{ stroke: "var(--bg-main)" }}
-        opacity="0.001"
-      />
+      <circle cx={cx} cy={cy} r={r} fill="none" strokeWidth="1.8"
+        style={{ stroke: "var(--bg-main)" }} opacity="0.001" />
     </svg>
   );
 }
@@ -138,42 +121,40 @@ function ParticleSVG({ codigo }: { codigo: string }) {
 /* ─── SVG partícula simple (1 letra) ───────────────────── */
 function SimpleParticleSVG({ letter }: { letter: string }) {
   const idx = ["T", "A", "S", "I"].indexOf(letter);
-  const fills = [26, 42, 14, 20];
+  const fills   = [26, 42, 14, 20];
   const strokes = [45, 60, 32, 38];
-  const fill = idx >= 0 ? `color-mix(in srgb, var(--primary) ${fills[idx]}%, var(--bg-main))` : SEGMENT_FILL.T;
-  const stroke = idx >= 0 ? `color-mix(in srgb, var(--primary) ${strokes[idx]}%, var(--bg-main))` : SEGMENT_STROKE.T;
-  const textFill = idx >= 0 ? SEGMENT_TEXT[letter] : SEGMENT_TEXT.T;
+  const fill      = idx >= 0 ? `color-mix(in srgb, var(--primary) ${fills[idx]}%, var(--bg-main))` : SEGMENT_FILL.T;
+  const stroke    = idx >= 0 ? `color-mix(in srgb, var(--primary) ${strokes[idx]}%, var(--bg-main))` : SEGMENT_STROKE.T;
+  const textFill  = idx >= 0 ? SEGMENT_TEXT[letter] : SEGMENT_TEXT.T;
   return (
     <svg viewBox="0 0 36 36" width="36" height="36" role="img">
       <circle cx="18" cy="18" r="16" strokeWidth="1.8" style={{ fill, stroke }} />
-      <text
-        x="18"
-        y="18"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize="5.76"
-        fontWeight="900"
-        style={{ fill: textFill }}
-      >
+      <text x="18" y="18" textAnchor="middle" dominantBaseline="central"
+        fontSize="5.76" fontWeight="900" style={{ fill: textFill }}>
         {letter}
       </text>
     </svg>
   );
 }
 
-/* ─── header de sección ─────────────────────────────────── */
-function SectionHeader({ label, count, info }: { label: string; count?: number; info?: string }) {
+/* ─── CabeceraSección — mismo patrón que CabeceraSeccionConMenu ─── */
+function CabeceraSeccion({ titulo, total, info }: { titulo: string; total?: number; info?: string }) {
   return (
-    <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
-      <div className="flex items-center gap-1">
-        <p className="text-micro font-black uppercase tracking-[0.2em]">
-          {label}{count !== undefined ? ` · ${count}` : ""}
-        </p>
+    <div
+      className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
+      style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+    >
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/70 truncate">
+          {titulo}
+        </span>
+        {total !== undefined && (
+          <span className="text-micro tabular-nums font-bold text-primary/30">{total}</span>
+        )}
         {info && (
           <button
-            type="button"
-            title={info}
-            className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+            type="button" title={info}
+            className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer shrink-0"
           >
             <Info size={11} aria-hidden />
           </button>
@@ -183,20 +164,7 @@ function SectionHeader({ label, count, info }: { label: string; count?: number; 
   );
 }
 
-/* ─── pill ──────────────────────────────────────────────── */
-function Pill({ label, title }: { label: string; title?: string }) {
-  return (
-    <button
-      type="button"
-      title={title ?? label}
-      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
-    >
-      <span className="truncate">{label}</span>
-    </button>
-  );
-}
-
-/* ─── divisor horizontal ────────────────────────────────── */
+/* ─── Divisor de grupo (idéntico al de ElementosPage) ──── */
 function Divider({ label, count }: { label: string; count?: number }) {
   return (
     <div className="mb-1.5 flex items-center gap-2 px-1">
@@ -212,10 +180,8 @@ function Divider({ label, count }: { label: string; count?: number }) {
   );
 }
 
-/* ─── grid de elementos ─────────────────────────────────── */
-const FAMILIA_NOBLE = "Noble";
-function ElementoCell({ el }: { el: Elemento }) {
-  const isNoble = el.familia === FAMILIA_NOBLE;
+/* ─── Casilla de Elemento (igual que ElementoCasilla en ElementosPage) ── */
+function ElementoCasilla({ el }: { el: Elemento }) {
   return (
     <button
       type="button"
@@ -223,8 +189,10 @@ function ElementoCell({ el }: { el: Elemento }) {
       className="group flex flex-col items-stretch gap-0.5 p-1.5 border-r border-b transition-colors text-left border-primary/10 hover:bg-primary/5"
     >
       <div className="flex items-start justify-between">
-        <span className="text-micro font-black text-primary/30 tabular-nums">#{el.numero_atomico}</span>
-        {isNoble && (
+        <span className="text-micro font-black text-primary/30 tabular-nums">
+          #{el.numero_atomico}
+        </span>
+        {el.es_noble && (
           <span title="Noble" className="w-1.5 h-1.5 rounded-full bg-accent/70 shrink-0 mt-0.5" />
         )}
       </div>
@@ -238,8 +206,8 @@ function ElementoCell({ el }: { el: Elemento }) {
   );
 }
 
-/* ─── celda de compuesto ────────────────────────────────── */
-function CompuestoCell({ c }: { c: Compuesto }) {
+/* ─── Casilla de Compuesto (igual que ElementoCasilla) ─── */
+function CompuestoCasilla({ c }: { c: Compuesto }) {
   return (
     <button
       type="button"
@@ -258,6 +226,19 @@ function CompuestoCell({ c }: { c: Compuesto }) {
   );
 }
 
+/* ─── Pill genérico (mismo estilo que en ElementosPage) ─── */
+function Pill({ label, title }: { label: string; title?: string }) {
+  return (
+    <button
+      type="button"
+      title={title ?? label}
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
+    >
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
 /* ─── constantes ────────────────────────────────────────── */
 const TASI = [
   { letter: "T", title: "T — Movimiento" },
@@ -271,12 +252,12 @@ const POLARIDAD_TITLES = ["Polo emisor", "Polo receptor"];
 /* ═══════════════════════════════════════════════════════ */
 export default function DescubrimientosPage() {
   const [particulas, setParticulas] = useState<Particula[]>([]);
-  const [iums, setIums] = useState<Ium[]>([]);
-  const [oris, setOris] = useState<Ori[]>([]);
-  const [elementos, setElementos] = useState<Elemento[]>([]);
+  const [iums,       setIums]       = useState<Ium[]>([]);
+  const [oris,       setOris]       = useState<Ori[]>([]);
+  const [elementos,  setElementos]  = useState<Elemento[]>([]);
   const [compuestos, setCompuestos] = useState<Compuesto[]>([]);
-  const [procesos, setProcesos] = useState<Proceso[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [procesos,   setProcesos]   = useState<Proceso[]>([]);
+  const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
@@ -288,11 +269,11 @@ export default function DescubrimientosPage() {
         supabase.from("compuestos").select("*").order("nombre"),
         supabase.from("procesos").select("*").order("nombre"),
       ]);
-      if (pRes.data) setParticulas(pRes.data);
-      if (iRes.data) setIums(iRes.data);
-      if (oRes.data) setOris(oRes.data);
-      if (eRes.data) setElementos(eRes.data);
-      if (cRes.data) setCompuestos(cRes.data);
+      if (pRes.data)  setParticulas(pRes.data);
+      if (iRes.data)  setIums(iRes.data);
+      if (oRes.data)  setOris(oRes.data);
+      if (eRes.data)  setElementos(eRes.data);
+      if (cRes.data)  setCompuestos(cRes.data);
       if (prRes.data) setProcesos(prRes.data);
       setLoading(false);
     }
@@ -327,29 +308,27 @@ export default function DescubrimientosPage() {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto p-4">
-      <div className="flex flex-col gap-8">
+    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
-        {/* ── partículas base TASI ── */}
-        <div className="flex flex-col gap-4 min-w-[180px]">
+      {/* ── Partículas base ──────────────────────────────── */}
+      <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <CabeceraSeccion titulo="Física de partículas" />
+        <div className="p-3 flex flex-col gap-4">
 
-          {/* polaridades */}
+          {/* Polaridades */}
           <div className="flex flex-col gap-2">
-            <SectionHeader label="Polaridades" count={POLARIDADES.length} />
+            <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
+              Polaridades · {POLARIDADES.length}
+            </p>
             <div className="flex flex-wrap gap-1">
               {POLARIDADES.map((p, i) => (
-                <button
-                  key={p}
-                  type="button"
-                  title={POLARIDAD_TITLES[i]}
+                <button key={p} type="button" title={POLARIDAD_TITLES[i]}
                   className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
                 >
                   <div
                     className="flex shrink-0 items-center justify-center rounded-full border-2 font-black"
                     style={{
-                      width: 36,
-                      height: 36,
-                      fontSize: "14.4px",
+                      width: 36, height: 36, fontSize: "14.4px",
                       background: "color-mix(in srgb, var(--primary) 8%, transparent)",
                       borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
                       color: "var(--primary)",
@@ -364,13 +343,12 @@ export default function DescubrimientosPage() {
 
           {/* TASI */}
           <div className="flex flex-col gap-2">
-            <SectionHeader label="TASI" count={TASI.length} />
+            <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
+              TASI · {TASI.length}
+            </p>
             <div className="flex flex-wrap gap-1">
               {TASI.map((t) => (
-                <button
-                  key={t.letter}
-                  type="button"
-                  title={t.title}
+                <button key={t.letter} type="button" title={t.title}
                   className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
                 >
                   <SimpleParticleSVG letter={t.letter} />
@@ -378,56 +356,52 @@ export default function DescubrimientosPage() {
               ))}
             </div>
           </div>
+
+          {/* Partículas 3-segmentos */}
+          {particulas.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
+                Partículas · {particulas.length}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {particulas.map((p) => (
+                  <button key={p.id} type="button" title={p.nombre}
+                    className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  >
+                    <ParticleSVG codigo={p.codigo} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* ── partículas 3-segmentos ── */}
-        {particulas.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <SectionHeader
-              label="Partículas"
-              count={particulas.length}
-              info="Combinaciones de 3 letras TASI"
-            />
-            <div className="flex flex-wrap gap-1">
-              {particulas.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  title={p.nombre}
-                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                >
-                  <ParticleSVG codigo={p.codigo} />
-                </button>
-              ))}
-            </div>
+      {/* ── IUMs ─────────────────────────────────────────── */}
+      {iums.length > 0 && (
+        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <CabeceraSeccion titulo="IUMs" total={iums.length} />
+          <div className="p-3 flex flex-wrap gap-1">
+            {iums.map((iu) => (
+              <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── IUMs ── */}
-        {iums.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <SectionHeader label="Iums" count={iums.length} />
-            <div className="flex flex-wrap gap-1">
-              {iums.map((iu) => (
-                <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Oris ── */}
-        {oris.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <SectionHeader
-              label="Oris"
-              count={oris.length}
-              info="Abrir Simulador de requerimiento de Eterium"
-            />
-            {/* si hay familias, agrupar */}
+      {/* ── Oris ─────────────────────────────────────────── */}
+      {oris.length > 0 && (
+        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <CabeceraSeccion
+            titulo="Oris"
+            total={oris.length}
+            info="Abrir Simulador de requerimiento de Eterium"
+          />
+          <div className="p-3 flex flex-col gap-3">
             {Object.keys(orisPorFamilia).length > 1
               ? Object.entries(orisPorFamilia).map(([fam, list]) => (
-                  <div key={fam} className="mb-1">
-                    <p className="text-micro font-bold uppercase tracking-[0.15em] text-primary/30 mb-1">{fam}</p>
+                  <div key={fam}>
+                    <Divider label={fam} count={list.length} />
                     <div className="flex flex-wrap gap-1">
                       {list.map((o) => (
                         <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
@@ -443,73 +417,53 @@ export default function DescubrimientosPage() {
                 </div>
               )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Elementos ── */}
-        {elementos.length > 0 && (
-          <div className="min-w-0">
-            <div className="px-1 pt-1 pb-2 text-center">
-              <button type="button" className="text-micro font-black uppercase transition-colors tracking-widest text-primary/40 hover:text-primary/70 cursor-pointer">
-                Elementos
-              </button>
-            </div>
-            <div
-              className="grid gap-0 border-t border-l border-primary/10"
-              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
-            >
-              {elementos.map((el) => (
-                <ElementoCell key={el.id} el={el} />
-              ))}
-            </div>
+      {/* ── Elementos — misma tabla periódica que Química ── */}
+      {elementos.length > 0 && (
+        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <CabeceraSeccion titulo="Elementos" total={elementos.length} />
+          <div
+            className="grid gap-0 border-t border-l border-primary/10"
+            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
+          >
+            {elementos.map((el) => (
+              <ElementoCasilla key={el.id} el={el} />
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Compuestos ── */}
-        {compuestos.length > 0 && (
-          <div className="min-w-0">
-            <div className="mb-1.5 flex items-center gap-2 px-1">
-              <span aria-hidden className="h-px flex-1 bg-primary/15" />
-              <div className="flex items-center gap-1.5">
-                <button type="button" className="text-micro font-black uppercase tracking-[0.2em] text-primary hover:text-primary/70 cursor-pointer">
-                  Compuestos
-                </button>
-                <span className="text-micro tabular-nums font-bold text-primary/60">{compuestos.length}</span>
-              </div>
-              <span aria-hidden className="h-px flex-1 bg-primary/15" />
-            </div>
-
+      {/* ── Compuestos ──────────────────────────────────── */}
+      {compuestos.length > 0 && (
+        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+          <CabeceraSeccion titulo="Compuestos" total={compuestos.length} />
+          <div className="p-3 flex flex-col gap-4">
             {Object.entries(compuestosPorPropiedad).map(([prop, list]) => (
-              <div key={prop} className="mb-4">
+              <div key={prop}>
                 <Divider label={prop} count={list.length} />
                 <div
                   className="grid gap-0 border-t border-l border-primary/10"
                   style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
                 >
                   {list.map((c) => (
-                    <CompuestoCell key={c.id} c={c} />
+                    <CompuestoCasilla key={c.id} c={c} />
                   ))}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Procesos ── */}
-        {procesos.length > 0 && (
-          <div className="min-w-0">
-            <div className="mb-1.5 flex items-center gap-2 px-1">
-              <span aria-hidden className="h-px flex-1 bg-primary/15" />
-              <div className="flex items-center gap-1.5">
-                <button type="button" className="text-micro font-black uppercase tracking-[0.2em] text-primary hover:text-primary/70 cursor-pointer">
-                  Procesos
-                </button>
-                <span className="text-micro tabular-nums font-bold text-primary/60">{procesos.length}</span>
-              </div>
-              <span aria-hidden className="h-px flex-1 bg-primary/15" />
-            </div>
-
+      {/* ── Procesos ────────────────────────────────────── */}
+      {procesos.length > 0 && (
+        <div className="flex flex-col">
+          <CabeceraSeccion titulo="Procesos" total={procesos.length} />
+          <div className="p-3 flex flex-col gap-4">
             {Object.entries(procesosPorTipo).map(([tipo, list]) => (
-              <div key={tipo} className="mb-4">
+              <div key={tipo}>
                 <Divider label={tipo} count={list.length} />
                 <div
                   className="grid gap-0 border-t border-l border-primary/10"
@@ -520,7 +474,7 @@ export default function DescubrimientosPage() {
                       key={p.id}
                       type="button"
                       title={p.nombre}
-                      className="group flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center border-primary/10 hover:bg-primary/5"
+                      className="flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center border-primary/10 hover:bg-primary/5"
                     >
                       <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
                         {p.nombre}
@@ -531,9 +485,9 @@ export default function DescubrimientosPage() {
               </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
     </div>
   );
 }
