@@ -312,58 +312,70 @@ export default function DescubrimientosPage() {
   return (
     <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
-      {/* ── Partículas base ──────────────────────────────── */}
+      {/* ── Física: Polaridades / TASI / Partículas / IUMs / Oris ── */}
       <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        <div className="p-3 flex flex-col gap-4">
+        <div className="p-2.5 flex flex-wrap gap-3 items-start">
 
-          {/* Polaridades */}
-          <div className="flex flex-col gap-2">
-            <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
-              Polaridades · {POLARIDADES.length}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {POLARIDADES.map((p, i) => (
-                <button key={p} type="button" title={POLARIDAD_TITLES[i]}
-                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                >
-                  <div
-                    className="flex shrink-0 items-center justify-center rounded-full border-2 font-black"
-                    style={{
-                      width: 36, height: 36, fontSize: "14.4px",
-                      background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-                      borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
-                      color: "var(--primary)",
-                    }}
-                  >
-                    {p}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* TASI */}
-          <div className="flex flex-col gap-2">
-            <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
-              TASI · {TASI.length}
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {TASI.map((t) => (
-                <button key={t.letter} type="button" title={t.title}
-                  className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                >
-                  <SimpleParticleSVG letter={t.letter} />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Partículas 3-segmentos */}
-          {particulas.length > 0 && (
+          {/* Polaridades + TASI — columna angosta apilada */}
+          <div className="flex flex-col gap-4 min-w-[180px]" style={{ flexGrow: 1, flexBasis: 0 }}>
+            {/* Polaridades */}
             <div className="flex flex-col gap-2">
-              <p className="text-micro font-black uppercase tracking-[0.15em] text-primary/30">
-                Partículas · {particulas.length}
-              </p>
+              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+                <p className="text-micro font-black uppercase tracking-[0.2em]">
+                  Polaridades · {POLARIDADES.length}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {POLARIDADES.map((p, i) => (
+                  <button key={p} type="button" title={POLARIDAD_TITLES[i]}
+                    className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  >
+                    <div
+                      className="flex shrink-0 items-center justify-center rounded-full border-2 font-black"
+                      style={{
+                        width: 36, height: 36, fontSize: "14.4px",
+                        background: "color-mix(in srgb, var(--primary) 8%, transparent)",
+                        borderColor: "color-mix(in srgb, var(--primary) 35%, transparent)",
+                        color: "var(--primary)",
+                      }}
+                    >
+                      {p}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* TASI */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+                <p className="text-micro font-black uppercase tracking-[0.2em]">
+                  TASI · {TASI.length}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {TASI.map((t) => (
+                  <button key={t.letter} type="button" title={t.title}
+                    className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                  >
+                    <SimpleParticleSVG letter={t.letter} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Partículas */}
+          {particulas.length > 0 && (
+            <div
+              className="flex flex-col gap-2 min-w-[180px]"
+              style={{ flexGrow: Math.max(particulas.length, 1), flexBasis: 0 }}
+            >
+              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+                <p className="text-micro font-black uppercase tracking-[0.2em]">
+                  Partículas · {particulas.length}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-1">
                 {particulas.map((p) => (
                   <button key={p.id} type="button" title={p.nombre}
@@ -375,51 +387,67 @@ export default function DescubrimientosPage() {
               </div>
             </div>
           )}
+
+          {/* IUMs */}
+          {iums.length > 0 && (
+            <div
+              className="flex flex-col gap-2 min-w-[180px]"
+              style={{ flexGrow: Math.max(iums.length, 1), flexBasis: 0 }}
+            >
+              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+                <p className="text-micro font-black uppercase tracking-[0.2em]">
+                  IUMs · {iums.length}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {iums.map((iu) => (
+                  <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Oris */}
+          {oris.length > 0 && (
+            <div
+              className="flex flex-col gap-2 min-w-[180px]"
+              style={{ flexGrow: Math.max(oris.length, 1), flexBasis: 0 }}
+            >
+              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+                <p className="text-micro font-black uppercase tracking-[0.2em]">
+                  Oris · {oris.length}
+                </p>
+                <button
+                  type="button"
+                  title="Abrir Simulador de requerimiento de Eterium"
+                  className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                >
+                  <Info size={11} aria-hidden />
+                </button>
+              </div>
+              {Object.keys(orisPorFamilia).length > 1
+                ? Object.entries(orisPorFamilia).map(([fam, list]) => (
+                    <div key={fam} className="mb-1">
+                      <p className="text-micro font-bold uppercase tracking-[0.15em] text-primary/30 mb-1">{fam}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {list.map((o) => (
+                          <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                : (
+                  <div className="flex flex-wrap gap-1">
+                    {oris.map((o) => (
+                      <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                    ))}
+                  </div>
+                )}
+            </div>
+          )}
+
         </div>
       </div>
-
-      {/* ── IUMs ─────────────────────────────────────────── */}
-      {iums.length > 0 && (
-        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <CabeceraSeccion titulo="IUMs" total={iums.length} />
-          <div className="p-3 flex flex-wrap gap-1">
-            {iums.map((iu) => (
-              <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Oris ─────────────────────────────────────────── */}
-      {oris.length > 0 && (
-        <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <CabeceraSeccion
-            titulo="Oris"
-            total={oris.length}
-            info="Abrir Simulador de requerimiento de Eterium"
-          />
-          <div className="p-3 flex flex-col gap-3">
-            {Object.keys(orisPorFamilia).length > 1
-              ? Object.entries(orisPorFamilia).map(([fam, list]) => (
-                  <div key={fam}>
-                    <Divider label={fam} count={list.length} />
-                    <div className="flex flex-wrap gap-1">
-                      {list.map((o) => (
-                        <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              : (
-                <div className="flex flex-wrap gap-1">
-                  {oris.map((o) => (
-                    <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
-                  ))}
-                </div>
-              )}
-          </div>
-        </div>
-      )}
 
       {/* ── Elementos — misma tabla periódica que Química ── */}
       {elementos.length > 0 && (
