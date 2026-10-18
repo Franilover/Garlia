@@ -244,21 +244,21 @@ export function useOrganismoSistemas(organismoId: string | null) {
   }, [organismoId]);
 
   const items = useMemo<SistemaDeOrganismo[]>(() => {
-    return vinculos
-      .map((v) => {
-        const sistema = sistemas[v.sistema_id];
-        if (!sistema) return null;
-        return {
-          vinculo_id: v.id,
-          organismo_id: v.organismo_id,
-          sistema_id: v.sistema_id,
-          proporcion: v.proporcion,
-          fuente: (v as any).fuente,
-          origen: (v as any).origen,
-          sistema,
-        };
-      })
-      .filter((s): s is SistemaDeOrganismo => s !== null);
+    const result: SistemaDeOrganismo[] = [];
+    for (const v of vinculos) {
+      const sistema = sistemas[v.sistema_id];
+      if (!sistema) continue;
+      result.push({
+        vinculo_id: v.id,
+        organismo_id: v.organismo_id,
+        sistema_id: v.sistema_id,
+        proporcion: v.proporcion,
+        fuente: (v as any).fuente,
+        origen: (v as any).origen,
+        sistema,
+      });
+    }
+    return result;
   }, [vinculos, sistemas]);
 
   /** Vincular un Sistema directo a este Organismo (escribe en tabla base,
