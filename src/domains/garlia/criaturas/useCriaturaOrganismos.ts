@@ -179,10 +179,13 @@ export function useCriaturaOrganismos(criaturaId: string | null) {
       return;
     }
     const vinculosResueltos = vinculoData as unknown as CriaturaOrganismo[];
-    setVinculosLocal(vinculosResueltos);
 
+    // IMPORTANTE: NO setear vinculos aquí sin organismos — causaría un
+    // render intermedio donde items=[] y organismoPrincipalId=null,
+    // reseteando en cascada todos los hooks de sistemas/órganos hijos.
     const organismoIds = [...new Set(vinculosResueltos.map((v) => v.organismo_id))];
     if (organismoIds.length === 0) {
+      setVinculosLocal(vinculosResueltos);
       setOrganismosLocal({});
       setOrganismosEnStore(criaturaId, vinculosResueltos, {});
       setLoading(false);
@@ -195,14 +198,14 @@ export function useCriaturaOrganismos(criaturaId: string | null) {
       .select(CONFIG_ORGANISMOS.select)
       .in("id", organismoIds);
     if (organismoError) {
-      // No se corta el flujo (vinculos ya quedaron seteados arriba), pero
-      // se loguea siempre — antes un error acá (ej. columna inexistente en
-      // el select) quedaba invisible: `items` salía vacío como si no
-      // hubiera vínculos, aunque `criatura_organismos` sí tuviera filas.
       console.error("[useCriaturaOrganismos] error cargando organismos:", organismoError);
     }
     const organismosPorId: Record<string, Organismo> = {};
     for (const o of (organismoData ?? []) as unknown as Organismo[]) organismosPorId[o.id] = o;
+
+    // Setear vinculos Y organismos juntos — un solo re-render con items completos,
+    // así organismoPrincipalId nunca cae a null entre medio.
+    setVinculosLocal(vinculosResueltos);
     setOrganismosLocal(organismosPorId);
     setOrganismosEnStore(criaturaId, vinculosResueltos, organismosPorId);
     setLoading(false);
