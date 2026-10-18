@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
-import { Info } from "lucide-react";
+import { Eye, EyeOff, Info } from "lucide-react";
 import EstructurasPage from "@/domains/garlia/elementos/EstructurasPage";
 import { MaterialesPage } from "@/domains/garlia/materiales/MaterialesPage";
+
+import { useAuth } from "@/providers/AuthProvider";
+import { useVisibilidadDescubrimientos } from "./useVisibilidadDescubrimientos";
 
 /* ─── tipos ─────────────────────────────────────────────── */
 interface Elemento {
@@ -139,7 +142,7 @@ function SimpleParticleSVG({ letter }: { letter: string }) {
   );
 }
 
-/* ─── CabeceraSección — mismo patrón que CabeceraSeccionConMenu ─── */
+/* ─── CabeceraSección ───────────────────────────────────── */
 function CabeceraSeccion({ titulo, total, info }: { titulo: string; total?: number; info?: string }) {
   return (
     <div
@@ -166,7 +169,7 @@ function CabeceraSeccion({ titulo, total, info }: { titulo: string; total?: numb
   );
 }
 
-/* ─── Divisor de grupo (idéntico al de ElementosPage) ──── */
+/* ─── Divisor de grupo ──────────────────────────────────── */
 function Divider({ label, count }: { label: string; count?: number }) {
   return (
     <div className="mb-1.5 flex items-center gap-2 px-1">
@@ -182,7 +185,7 @@ function Divider({ label, count }: { label: string; count?: number }) {
   );
 }
 
-/* ─── Casilla de Elemento (igual que ElementoCasilla en ElementosPage) ── */
+/* ─── Casilla de Elemento ───────────────────────────────── */
 function ElementoCasilla({ el }: { el: Elemento }) {
   return (
     <button
@@ -208,7 +211,7 @@ function ElementoCasilla({ el }: { el: Elemento }) {
   );
 }
 
-/* ─── Casilla de Compuesto (igual que ElementoCasilla) ─── */
+/* ─── Casilla de Compuesto ──────────────────────────────── */
 function CompuestoCasilla({ c }: { c: Compuesto }) {
   return (
     <button
@@ -228,7 +231,7 @@ function CompuestoCasilla({ c }: { c: Compuesto }) {
   );
 }
 
-/* ─── Pill genérico (mismo estilo que en ElementosPage) ─── */
+/* ─── Pill genérico ─────────────────────────────────────── */
 function Pill({ label, title }: { label: string; title?: string }) {
   return (
     <button
@@ -237,6 +240,77 @@ function Pill({ label, title }: { label: string; title?: string }) {
       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-micro font-bold tracking-wide transition-colors truncate max-w-full hover:bg-primary/10 text-primary/70 border border-primary/15"
     >
       <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/* ─── Toggle individual admin (Eye/EyeOff sobre un ítem) ── */
+function ToggleItemAdmin({
+  visible,
+  onToggle,
+  title,
+}: {
+  visible: boolean;
+  onToggle: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      title={visible ? `Ocultar "${title}" al público` : `Mostrar "${title}" al público`}
+      className="absolute top-0.5 right-0.5 z-10 flex items-center justify-center w-5 h-5 rounded-full border transition-all opacity-0 group-hover:opacity-100"
+      style={{
+        color: visible
+          ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+          : "var(--warning)",
+        borderColor: visible
+          ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+          : "color-mix(in srgb, var(--warning) 40%, transparent)",
+        background: visible
+          ? "var(--bg-main)"
+          : "color-mix(in srgb, var(--warning) 8%, var(--bg-main))",
+      }}
+    >
+      {visible ? <Eye size={10} /> : <EyeOff size={10} />}
+    </button>
+  );
+}
+
+/* ─── Toggle maestro admin (para cabeceras de sección) ─── */
+function ToggleMaestroAdmin({
+  visible,
+  onToggle,
+  etiqueta,
+}: {
+  visible: boolean;
+  onToggle: () => void;
+  etiqueta: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={
+        visible
+          ? `Ocultar toda la sección "${etiqueta}" al público`
+          : `Mostrar toda la sección "${etiqueta}" al público`
+      }
+      className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-colors cursor-pointer border"
+      style={{
+        color: visible
+          ? "color-mix(in srgb, var(--primary) 55%, transparent)"
+          : "var(--warning)",
+        borderColor: visible
+          ? "color-mix(in srgb, var(--primary) 20%, transparent)"
+          : "color-mix(in srgb, var(--warning) 40%, transparent)",
+        background: visible
+          ? "transparent"
+          : "color-mix(in srgb, var(--warning) 8%, transparent)",
+      }}
+    >
+      {visible ? <Eye size={11} /> : <EyeOff size={11} />}
+      {visible ? "Visible" : "Oculta"}
     </button>
   );
 }
@@ -253,6 +327,9 @@ const POLARIDAD_TITLES = ["Polo emisor", "Polo receptor"];
 
 /* ═══════════════════════════════════════════════════════ */
 export default function DescubrimientosPage() {
+  const { perfil } = useAuth();
+  const esAdmin = perfil?.rol === "admin";
+
   const [particulas, setParticulas] = useState<Particula[]>([]);
   const [iums,       setIums]       = useState<Ium[]>([]);
   const [oris,       setOris]       = useState<Ori[]>([]);
@@ -260,6 +337,14 @@ export default function DescubrimientosPage() {
   const [compuestos, setCompuestos] = useState<Compuesto[]>([]);
   const [procesos,   setProcesos]   = useState<Proceso[]>([]);
   const [loading,    setLoading]    = useState(true);
+
+  /* hooks de visibilidad por tipo */
+  const visParticula = useVisibilidadDescubrimientos("particula");
+  const visIum       = useVisibilidadDescubrimientos("ium");
+  const visOri       = useVisibilidadDescubrimientos("ori");
+  const visElemento  = useVisibilidadDescubrimientos("elemento");
+  const visCompuesto = useVisibilidadDescubrimientos("compuesto");
+  const visProceso   = useVisibilidadDescubrimientos("proceso");
 
   useEffect(() => {
     async function fetchAll() {
@@ -301,6 +386,32 @@ export default function DescubrimientosPage() {
     return acc;
   }, {});
 
+  /* items filtrados para vista pública */
+  const particulasVisibles  = esAdmin ? particulas  : visParticula.filtrarVisibles(particulas);
+  const iumsVisibles        = esAdmin ? iums        : visIum.filtrarVisibles(iums);
+  const orisVisibles        = esAdmin ? oris        : visOri.filtrarVisibles(oris);
+  const elementosVisibles   = esAdmin ? elementos   : visElemento.filtrarVisibles(elementos);
+  const compuestosVisibles  = esAdmin ? compuestos  : visCompuesto.filtrarVisibles(compuestos);
+  const procesosVisibles    = esAdmin ? procesos    : visProceso.filtrarVisibles(procesos);
+
+  const compuestosVisiPorPropiedad = compuestosVisibles.reduce<Record<string, Compuesto[]>>((acc, c) => {
+    const key = c.propiedad ?? "Sin clasificar";
+    (acc[key] ??= []).push(c);
+    return acc;
+  }, {});
+
+  const procesosVisiPorTipo = procesosVisibles.reduce<Record<string, Proceso[]>>((acc, p) => {
+    const key = p.tipo ?? "General";
+    (acc[key] ??= []).push(p);
+    return acc;
+  }, {});
+
+  const orisVisiPorFamilia = orisVisibles.reduce<Record<string, Ori[]>>((acc, o) => {
+    const key = o.familia ?? "General";
+    (acc[key] ??= []).push(o);
+    return acc;
+  }, {});
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-primary/30 text-micro font-black uppercase tracking-widest">
@@ -316,7 +427,7 @@ export default function DescubrimientosPage() {
       <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <div className="p-2.5 flex flex-wrap gap-3 items-start">
 
-          {/* Polaridades + TASI — columna angosta apilada */}
+          {/* Polaridades + TASI — columna angosta apilada (sin toggle: son constantes del sistema) */}
           <div className="flex flex-col gap-4 min-w-[180px]" style={{ flexGrow: 1, flexBasis: 0 }}>
             {/* Polaridades */}
             <div className="flex flex-col gap-2">
@@ -366,119 +477,285 @@ export default function DescubrimientosPage() {
           </div>
 
           {/* Partículas */}
-          {particulas.length > 0 && (
+          {(esAdmin || visParticula.maestroVisible) && (
             <div
               className="flex flex-col gap-2 min-w-[180px]"
               style={{ flexGrow: Math.max(particulas.length, 1), flexBasis: 0 }}
             >
-              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+              <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
                 <p className="text-micro font-black uppercase tracking-[0.2em]">
-                  Partículas · {particulas.length}
+                  Partículas · {esAdmin ? particulas.length : particulasVisibles.length}
                 </p>
+                {esAdmin && (
+                  <ToggleMaestroAdmin
+                    visible={visParticula.maestroVisible}
+                    onToggle={visParticula.toggleMaestro}
+                    etiqueta="Partículas"
+                  />
+                )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {particulas.map((p) => (
-                  <button key={p.id} type="button" title={p.nombre}
-                    className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
-                  >
-                    <ParticleSVG codigo={p.codigo} />
-                  </button>
-                ))}
+                {(esAdmin ? particulas : particulasVisibles).map((p) => {
+                  const vis = visParticula.esVisible(p.id);
+                  return (
+                    <div key={p.id} className="relative group">
+                      <button
+                        type="button" title={p.nombre}
+                        className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                        style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}
+                      >
+                        <ParticleSVG codigo={p.codigo} />
+                      </button>
+                      {esAdmin && (
+                        <ToggleItemAdmin
+                          visible={vis}
+                          onToggle={() => visParticula.toggleIndividual(p.id)}
+                          title={p.nombre}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              {esAdmin && !visParticula.maestroVisible && (
+                <p className="text-[10px] mt-0.5" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+                  Oculta al público · hover para gestionar excepciones
+                </p>
+              )}
             </div>
           )}
 
           {/* IUMs */}
-          {iums.length > 0 && (
+          {(esAdmin || visIum.maestroVisible) && iums.length > 0 && (
             <div
               className="flex flex-col gap-2 min-w-[180px]"
               style={{ flexGrow: Math.max(iums.length, 1), flexBasis: 0 }}
             >
-              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
+              <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
                 <p className="text-micro font-black uppercase tracking-[0.2em]">
-                  IUMs · {iums.length}
+                  IUMs · {esAdmin ? iums.length : iumsVisibles.length}
                 </p>
+                {esAdmin && (
+                  <ToggleMaestroAdmin
+                    visible={visIum.maestroVisible}
+                    onToggle={visIum.toggleMaestro}
+                    etiqueta="IUMs"
+                  />
+                )}
               </div>
               <div className="flex flex-wrap gap-1">
-                {iums.map((iu) => (
-                  <Pill key={iu.id} label={iu.nombre} title={iu.formula ?? iu.nombre} />
-                ))}
+                {(esAdmin ? iums : iumsVisibles).map((iu) => {
+                  const vis = visIum.esVisible(iu.id);
+                  return (
+                    <div key={iu.id} className="relative group">
+                      <span style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                        <Pill label={iu.nombre} title={iu.formula ?? iu.nombre} />
+                      </span>
+                      {esAdmin && (
+                        <ToggleItemAdmin
+                          visible={vis}
+                          onToggle={() => visIum.toggleIndividual(iu.id)}
+                          title={iu.nombre}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              {esAdmin && !visIum.maestroVisible && (
+                <p className="text-[10px] mt-0.5" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+                  Oculta al público · hover para gestionar excepciones
+                </p>
+              )}
             </div>
           )}
 
           {/* Oris */}
-          {oris.length > 0 && (
+          {(esAdmin || visOri.maestroVisible) && oris.length > 0 && (
             <div
               className="flex flex-col gap-2 min-w-[180px]"
               style={{ flexGrow: Math.max(oris.length, 1), flexBasis: 0 }}
             >
-              <div className="flex items-center gap-1.5 text-primary/50 pb-1.5">
-                <p className="text-micro font-black uppercase tracking-[0.2em]">
-                  Oris · {oris.length}
-                </p>
-                <button
-                  type="button"
-                  title="Abrir Simulador de requerimiento de Eterium"
-                  className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                >
-                  <Info size={11} aria-hidden />
-                </button>
+              <div className="flex items-center justify-between gap-1.5 text-primary/50 pb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-micro font-black uppercase tracking-[0.2em]">
+                    Oris · {esAdmin ? oris.length : orisVisibles.length}
+                  </p>
+                  <button
+                    type="button"
+                    title="Abrir Simulador de requerimiento de Eterium"
+                    className="flex items-center justify-center w-4 h-4 rounded-full text-primary/30 hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                  >
+                    <Info size={11} aria-hidden />
+                  </button>
+                </div>
+                {esAdmin && (
+                  <ToggleMaestroAdmin
+                    visible={visOri.maestroVisible}
+                    onToggle={visOri.toggleMaestro}
+                    etiqueta="Oris"
+                  />
+                )}
               </div>
-              {Object.keys(orisPorFamilia).length > 1
-                ? Object.entries(orisPorFamilia).map(([fam, list]) => (
+              {Object.keys(esAdmin ? orisPorFamilia : orisVisiPorFamilia).length > 1
+                ? Object.entries(esAdmin ? orisPorFamilia : orisVisiPorFamilia).map(([fam, list]) => (
                     <div key={fam} className="mb-1">
                       <p className="text-micro font-bold uppercase tracking-[0.15em] text-primary/30 mb-1">{fam}</p>
                       <div className="flex flex-wrap gap-1">
-                        {list.map((o) => (
-                          <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
-                        ))}
+                        {list.map((o) => {
+                          const vis = visOri.esVisible(o.id);
+                          return (
+                            <div key={o.id} className="relative group">
+                              <span style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                                <Pill label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                              </span>
+                              {esAdmin && (
+                                <ToggleItemAdmin
+                                  visible={vis}
+                                  onToggle={() => visOri.toggleIndividual(o.id)}
+                                  title={o.nombre}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))
                 : (
                   <div className="flex flex-wrap gap-1">
-                    {oris.map((o) => (
-                      <Pill key={o.id} label={o.nombre} title={o.formula_iums ?? o.nombre} />
-                    ))}
+                    {(esAdmin ? oris : orisVisibles).map((o) => {
+                      const vis = visOri.esVisible(o.id);
+                      return (
+                        <div key={o.id} className="relative group">
+                          <span style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                            <Pill label={o.nombre} title={o.formula_iums ?? o.nombre} />
+                          </span>
+                          {esAdmin && (
+                            <ToggleItemAdmin
+                              visible={vis}
+                              onToggle={() => visOri.toggleIndividual(o.id)}
+                              title={o.nombre}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
+              {esAdmin && !visOri.maestroVisible && (
+                <p className="text-[10px] mt-0.5" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+                  Oculta al público · hover para gestionar excepciones
+                </p>
+              )}
             </div>
           )}
 
         </div>
       </div>
 
-      {/* ── Elementos — misma tabla periódica que Química ── */}
-      {elementos.length > 0 && (
+      {/* ── Elementos ── */}
+      {(esAdmin || visElemento.maestroVisible) && elementos.length > 0 && (
         <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <CabeceraSeccion titulo="Elementos" total={elementos.length} />
+          <div
+            className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/70">
+                Elementos
+              </span>
+              <span className="text-micro tabular-nums font-bold text-primary/30">
+                {esAdmin ? elementos.length : elementosVisibles.length}
+              </span>
+            </div>
+            {esAdmin && (
+              <ToggleMaestroAdmin
+                visible={visElemento.maestroVisible}
+                onToggle={visElemento.toggleMaestro}
+                etiqueta="Elementos"
+              />
+            )}
+          </div>
+          {esAdmin && !visElemento.maestroVisible && (
+            <p className="text-[10px] px-3 py-1" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+              Oculta al público · hover sobre cada casilla para gestionar excepciones
+            </p>
+          )}
           <div
             className="grid gap-0 border-t border-l border-primary/10"
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
           >
-            {elementos.map((el) => (
-              <ElementoCasilla key={el.id} el={el} />
-            ))}
+            {(esAdmin ? elementos : elementosVisibles).map((el) => {
+              const vis = visElemento.esVisible(el.id);
+              return (
+                <div key={el.id} className="relative group" style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                  <ElementoCasilla el={el} />
+                  {esAdmin && (
+                    <ToggleItemAdmin
+                      visible={vis}
+                      onToggle={() => visElemento.toggleIndividual(el.id)}
+                      title={el.nombre}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* ── Compuestos ──────────────────────────────────── */}
-      {compuestos.length > 0 && (
+      {/* ── Compuestos ── */}
+      {(esAdmin || visCompuesto.maestroVisible) && compuestos.length > 0 && (
         <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-          <CabeceraSeccion titulo="Compuestos" total={compuestos.length} />
+          <div
+            className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/70">
+                Compuestos
+              </span>
+              <span className="text-micro tabular-nums font-bold text-primary/30">
+                {esAdmin ? compuestos.length : compuestosVisibles.length}
+              </span>
+            </div>
+            {esAdmin && (
+              <ToggleMaestroAdmin
+                visible={visCompuesto.maestroVisible}
+                onToggle={visCompuesto.toggleMaestro}
+                etiqueta="Compuestos"
+              />
+            )}
+          </div>
+          {esAdmin && !visCompuesto.maestroVisible && (
+            <p className="text-[10px] px-3 py-1" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+              Oculta al público · hover para gestionar excepciones
+            </p>
+          )}
           <div className="p-3 flex flex-col gap-4">
-            {Object.entries(compuestosPorPropiedad).map(([prop, list]) => (
+            {Object.entries(esAdmin ? compuestosPorPropiedad : compuestosVisiPorPropiedad).map(([prop, list]) => (
               <div key={prop}>
                 <Divider label={prop} count={list.length} />
                 <div
                   className="grid gap-0 border-t border-l border-primary/10"
                   style={{ gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))" }}
                 >
-                  {list.map((c) => (
-                    <CompuestoCasilla key={c.id} c={c} />
-                  ))}
+                  {list.map((c) => {
+                    const vis = visCompuesto.esVisible(c.id);
+                    return (
+                      <div key={c.id} className="relative group" style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                        <CompuestoCasilla c={c} />
+                        {esAdmin && (
+                          <ToggleItemAdmin
+                            visible={vis}
+                            onToggle={() => visCompuesto.toggleIndividual(c.id)}
+                            title={c.nombre}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -486,30 +763,65 @@ export default function DescubrimientosPage() {
         </div>
       )}
 
-      {/* ── Procesos ────────────────────────────────────── */}
-      {procesos.length > 0 && (
+      {/* ── Procesos ── */}
+      {(esAdmin || visProceso.maestroVisible) && procesos.length > 0 && (
         <div className="flex flex-col">
-          <CabeceraSeccion titulo="Procesos" total={procesos.length} />
+          <div
+            className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b"
+            style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
+          >
+            <div className="flex items-center gap-1.5">
+              <span className="text-micro font-black uppercase tracking-[0.15em] text-primary/70">
+                Procesos
+              </span>
+              <span className="text-micro tabular-nums font-bold text-primary/30">
+                {esAdmin ? procesos.length : procesosVisibles.length}
+              </span>
+            </div>
+            {esAdmin && (
+              <ToggleMaestroAdmin
+                visible={visProceso.maestroVisible}
+                onToggle={visProceso.toggleMaestro}
+                etiqueta="Procesos"
+              />
+            )}
+          </div>
+          {esAdmin && !visProceso.maestroVisible && (
+            <p className="text-[10px] px-3 py-1" style={{ color: "color-mix(in srgb, var(--warning) 60%, transparent)" }}>
+              Oculta al público · hover para gestionar excepciones
+            </p>
+          )}
           <div className="p-3 flex flex-col gap-4">
-            {Object.entries(procesosPorTipo).map(([tipo, list]) => (
+            {Object.entries(esAdmin ? procesosPorTipo : procesosVisiPorTipo).map(([tipo, list]) => (
               <div key={tipo}>
                 <Divider label={tipo} count={list.length} />
                 <div
                   className="grid gap-0 border-t border-l border-primary/10"
                   style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}
                 >
-                  {list.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      title={p.nombre}
-                      className="flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center border-primary/10 hover:bg-primary/5"
-                    >
-                      <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
-                        {p.nombre}
-                      </span>
-                    </button>
-                  ))}
+                  {list.map((p) => {
+                    const vis = visProceso.esVisible(p.id);
+                    return (
+                      <div key={p.id} className="relative group" style={{ opacity: esAdmin && !vis ? 0.35 : 1 }}>
+                        <button
+                          type="button"
+                          title={p.nombre}
+                          className="w-full flex flex-col items-center justify-center gap-0.5 p-1.5 border-r border-b transition-colors text-center border-primary/10 hover:bg-primary/5"
+                        >
+                          <span className="text-sm font-black leading-tight text-primary/70 line-clamp-3">
+                            {p.nombre}
+                          </span>
+                        </button>
+                        {esAdmin && (
+                          <ToggleItemAdmin
+                            visible={vis}
+                            onToggle={() => visProceso.toggleIndividual(p.id)}
+                            title={p.nombre}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -517,18 +829,17 @@ export default function DescubrimientosPage() {
         </div>
       )}
 
-      {/* ── Estructuras ─────────────────────────────────── */}
+      {/* ── Estructuras ── */}
       <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <CabeceraSeccion titulo="Estructuras" />
         <EstructurasPage />
       </div>
 
-      {/* ── Materiales ──────────────────────────────────── */}
+      {/* ── Materiales ── */}
       <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
         <CabeceraSeccion titulo="Materiales" />
         <MaterialesPage />
       </div>
-
 
     </div>
   );
