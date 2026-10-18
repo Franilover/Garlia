@@ -63,26 +63,32 @@ export function useOrganismoOrganos(organismoId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organismoId]);
 
+  // Refs para leer siempre los valores más frescos sin capturarlos en closures
+  const organosRef = useRef(organos);
+  const vinculosRef = useRef(vinculos);
+  useEffect(() => { organosRef.current = organos; }, [organos]);
+  useEffect(() => { vinculosRef.current = vinculos; }, [vinculos]);
+
   const setVinculos = useCallback(
     (updater: OrganismoOrgano[] | ((prev: OrganismoOrgano[]) => OrganismoOrgano[])) => {
       setVinculosLocal((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        if (organismoId) setOrganosEnStore(organismoId, next, organos);
+        if (organismoId) setOrganosEnStore(organismoId, next, organosRef.current);
         return next;
       });
     },
-    [organismoId, organos, setOrganosEnStore],
+    [organismoId, setOrganosEnStore],
   );
 
   const setOrganos = useCallback(
     (updater: Record<string, Organo> | ((prev: Record<string, Organo>) => Record<string, Organo>)) => {
       setOrganosLocal((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        if (organismoId) setOrganosEnStore(organismoId, vinculos, next);
+        if (organismoId) setOrganosEnStore(organismoId, vinculosRef.current, next);
         return next;
       });
     },
-    [organismoId, vinculos, setOrganosEnStore],
+    [organismoId, setOrganosEnStore],
   );
 
   const load = useCallback(async () => {

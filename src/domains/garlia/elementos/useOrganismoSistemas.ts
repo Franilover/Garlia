@@ -105,15 +105,21 @@ export function useOrganismoSistemas(organismoId: string | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organismoId]);
 
+  // Ref para leer siempre los valores más frescos sin capturarlos en closures
+  const sistemasRef = useRef(sistemas);
+  const vinculosRef = useRef(vinculos);
+  useEffect(() => { sistemasRef.current = sistemas; }, [sistemas]);
+  useEffect(() => { vinculosRef.current = vinculos; }, [vinculos]);
+
   const setVinculos = useCallback(
     (updater: OrganismoSistema[] | ((prev: OrganismoSistema[]) => OrganismoSistema[])) => {
       setVinculosLocal((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        if (organismoId) setSistemasEnStore(organismoId, next, sistemas);
+        if (organismoId) setSistemasEnStore(organismoId, next, sistemasRef.current);
         return next;
       });
     },
-    [organismoId, sistemas, setSistemasEnStore],
+    [organismoId, setSistemasEnStore],
   );
 
   const setSistemas = useCallback(
@@ -124,11 +130,11 @@ export function useOrganismoSistemas(organismoId: string | null) {
     ) => {
       setSistemasLocal((prev) => {
         const next = typeof updater === "function" ? (updater as any)(prev) : updater;
-        if (organismoId) setSistemasEnStore(organismoId, vinculos, next);
+        if (organismoId) setSistemasEnStore(organismoId, vinculosRef.current, next);
         return next;
       });
     },
-    [organismoId, vinculos, setSistemasEnStore],
+    [organismoId, setSistemasEnStore],
   );
 
   const load = useCallback(async () => {
