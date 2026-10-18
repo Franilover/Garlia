@@ -283,18 +283,18 @@ function PanelBuscadorFlotante({ tipo, posicion, onSeleccionar, onCerrar }: Pane
 /** Nodo base para texto libre — sin preview fetch */
 function NodoTexto({
   nodo, selected, isConnectSource, connecting,
-  onSelect, onDragStart, onConnectClick, onDelete, onEdit,
+  onSelect, onDragStart, onConnectClick,
 }: NodoProps) {
   const accent = TIPO_ENTIDAD_CONFIG.texto.accentVar;
   return (
     <g
-      style={{ cursor: connecting ? "crosshair" : "grab" }}
+      style={{ cursor: connecting ? "crosshair" : "default" }}
       transform={`translate(${nodo.x},${nodo.y})`}
       onMouseDown={(e) => {
-        if (connecting) { onConnectClick(nodo.id); return; }
-        onDragStart(nodo.id, e);
-        onSelect(nodo.id, e);
+        if (e.button === 2) { e.preventDefault(); e.stopPropagation(); onConnectClick(nodo.id); return; }
+        if (e.button === 0) { e.stopPropagation(); onDragStart(nodo.id, e); onSelect(nodo.id, e); }
       }}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
       <rect rx={8} width={nodo.width} height={nodo.height} fill="rgba(0,0,0,0.10)" transform="translate(2,3)" />
       <rect
@@ -311,7 +311,6 @@ function NodoTexto({
           {nodo.label ?? "Texto..."}
         </div>
       </foreignObject>
-      {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} />}
     </g>
   );
 }
@@ -319,7 +318,7 @@ function NodoTexto({
 /** Card rica para entidades con datos de preview */
 function NodoEntidad({
   nodo, selected, isConnectSource, connecting,
-  onSelect, onDragStart, onConnectClick, onDelete, onEdit,
+  onSelect, onDragStart, onConnectClick,
 }: NodoProps) {
   const cfg = TIPO_ENTIDAD_CONFIG[nodo.tipo_entidad as TipoEntidadPizarron] ?? TIPO_ENTIDAD_CONFIG.texto;
   const accent = cfg.accentVar;
@@ -396,13 +395,13 @@ function NodoEntidad({
 
   return (
     <g
-      style={{ cursor: connecting ? "crosshair" : "grab" }}
+      style={{ cursor: connecting ? "crosshair" : "default" }}
       transform={`translate(${nodo.x},${nodo.y})`}
       onMouseDown={(e) => {
-        if (connecting) { onConnectClick(nodo.id); return; }
-        onDragStart(nodo.id, e);
-        onSelect(nodo.id, e);
+        if (e.button === 2) { e.preventDefault(); e.stopPropagation(); onConnectClick(nodo.id); return; }
+        if (e.button === 0) { e.stopPropagation(); onDragStart(nodo.id, e); onSelect(nodo.id, e); }
       }}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
     >
       {/* Sombra */}
       <rect rx={IMG_RADIUS} width={nodo.width} height={cardH} fill="rgba(0,0,0,0.12)" transform="translate(2,3)" />
@@ -521,36 +520,7 @@ function NodoEntidad({
         </div>
       </foreignObject>
 
-      {selected && !connecting && <NodoBotones nodo={nodo} accent={accent} onEdit={onEdit} onConnectClick={onConnectClick} onDelete={onDelete} cardH={cardH} />}
     </g>
-  );
-}
-
-/** Botones flotantes reutilizables */
-function NodoBotones({ nodo, accent, onEdit, onConnectClick, onDelete, cardH = 0 }: {
-  nodo: PizarronNodo; accent: string; cardH?: number;
-  onEdit: (n: PizarronNodo) => void;
-  onConnectClick: (id: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const btns = [
-    { title: "Editar", icon: <Edit2 size={8} />, dx: -52, color: accent, onClick: (e: React.MouseEvent) => { e.stopPropagation(); onEdit(nodo); } },
-    { title: "Conectar", icon: <LinkIcon size={8} />, dx: -28, color: accent, onClick: (e: React.MouseEvent) => { e.stopPropagation(); onConnectClick(nodo.id); } },
-    { title: "Eliminar", icon: <X size={8} />, dx: -4, color: "color-mix(in srgb, var(--primary) 50%, transparent)", onClick: (e: React.MouseEvent) => { e.stopPropagation(); onDelete(nodo.id); } },
-  ];
-  return (
-    <>
-      {btns.map((b) => (
-        <g key={b.title} style={{ cursor: "pointer" }} transform={`translate(${nodo.width + b.dx},${-13})`} onClick={b.onClick}>
-          <circle r={9} fill="var(--bg-main)" stroke={b.color} strokeWidth={1} />
-          <foreignObject x={-6} y={-6} width={12} height={12}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", width:"100%", height:"100%", color: b.color }}>
-              {b.icon}
-            </div>
-          </foreignObject>
-        </g>
-      ))}
-    </>
   );
 }
 
@@ -562,6 +532,7 @@ interface NodoProps {
   onSelect: (id: string, e: React.MouseEvent) => void;
   onDragStart: (id: string, e: React.MouseEvent) => void;
   onConnectClick: (id: string) => void;
+  // onDelete y onEdit se manejan ahora desde el canvas (menú contextual / modal)
   onDelete: (id: string) => void;
   onEdit: (nodo: PizarronNodo) => void;
 }
@@ -1268,11 +1239,33 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
     });
   }, [svgToWorld, handleAgregarDesdePanel]);
 
+  // ── Lógica click corto vs arrastre ──────────────────────────────────────
+  // Guardamos el estado pendiente del mousedown en un nodo para decidir
+  // en el mouseup si fue click (abrir editor) o drag (mover).
+  const pendingNodeRef = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    ox: number;
+    oy: number;
+    moved: boolean;
+  } | null>(null);
+
+  const DRAG_THRESHOLD = 5; // px — menos de esto es "click"
+
   const handleDragStart = useCallback((id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+    // No iniciamos el drag inmediatamente — lo guardamos como pendiente.
+    // El mousemove lo activará si supera el umbral.
     const nodo = nodos.find((n) => n.id === id);
     if (!nodo) return;
-    setDragging({ id, ox: e.clientX / zoom - nodo.x, oy: e.clientY / zoom - nodo.y });
+    pendingNodeRef.current = {
+      id,
+      startX: e.clientX,
+      startY: e.clientY,
+      ox: e.clientX / zoom - nodo.x,
+      oy: e.clientY / zoom - nodo.y,
+      moved: false,
+    };
   }, [nodos, zoom]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1281,8 +1274,20 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
     const cx = e.clientX - rect.left;
     const cy = e.clientY - rect.top;
 
+    // Si hay un nodo pendiente, comprobar si superó el umbral de drag
+    if (pendingNodeRef.current && !pendingNodeRef.current.moved) {
+      const dx = Math.abs(e.clientX - pendingNodeRef.current.startX);
+      const dy = Math.abs(e.clientY - pendingNodeRef.current.startY);
+      if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        pendingNodeRef.current.moved = true;
+        setDragging({ id: pendingNodeRef.current.id, ox: pendingNodeRef.current.ox, oy: pendingNodeRef.current.oy });
+      }
+    }
+
     if (dragging) {
       moverNodo(dragging.id, e.clientX / zoom - dragging.ox, e.clientY / zoom - dragging.oy);
+    } else if (pendingNodeRef.current?.moved) {
+      // dragging acaba de activarse; moverNodo en el próximo frame
     } else if (isPanning && panStart.current) {
       setPan({ x: panStart.current.px + (cx - panStart.current.mx), y: panStart.current.py + (cy - panStart.current.my) });
     } else if (connecting && connectSource) {
@@ -1295,23 +1300,43 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
     }
   }, [dragging, isPanning, connecting, connectSource, nodos, moverNodo, zoom, svgToWorld]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    // Si había un nodo pendiente y NO se movió → fue un click corto → abrir editor
+    if (pendingNodeRef.current && !pendingNodeRef.current.moved) {
+      const nodo = nodos.find((n) => n.id === pendingNodeRef.current!.id);
+      if (nodo && !connecting) {
+        setEditingNodo(nodo);
+      }
+    }
+    pendingNodeRef.current = null;
     setDragging(null);
     setIsPanning(false);
     panStart.current = null;
-  }, []);
+  }, [nodos, connecting]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.button === 1 || e.button === 2) {
+    // Click izquierdo en canvas vacío → pan
+    if (e.button === 0) {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // Solo pan si el click fue directo sobre el SVG (no un nodo)
+      if ((e.target as SVGElement).tagName === "rect" || (e.target as SVGElement).tagName === "svg") {
+        setIsPanning(true);
+        panStart.current = { mx: e.clientX - rect.left, my: e.clientY - rect.top, px: pan.x, py: pan.y };
+      }
+      setSelectedId(null);
+      if (connecting && !connectSource) setConnecting(false);
+      return;
+    }
+    // Click medio → pan también
+    if (e.button === 1) {
       e.preventDefault();
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
       setIsPanning(true);
       panStart.current = { mx: e.clientX - rect.left, my: e.clientY - rect.top, px: pan.x, py: pan.y };
-      return;
     }
-    setSelectedId(null);
-    if (connecting && !connectSource) setConnecting(false);
+    // Click derecho en canvas vacío → ignorar (los nodos lo manejan ellos mismos)
   }, [pan, connecting, connectSource]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -1424,7 +1449,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
             }}
           >
             <LinkIcon size={11} />
-            Selecciona el nodo destino · ESC para cancelar
+            Click derecho en el nodo destino para conectar · ESC para cancelar
           </div>
         )}
 
@@ -1432,7 +1457,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
         <svg
           ref={svgRef}
           className="w-full h-full"
-          style={{ cursor: isPanning ? "grabbing" : connecting ? "crosshair" : "default" }}
+          style={{ cursor: isPanning ? "grabbing" : dragging ? "grabbing" : connecting ? "crosshair" : "default" }}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseDown={handleMouseDown}
@@ -1521,7 +1546,7 @@ function CanvasPizarron({ lienzoId }: { lienzoId: string }) {
             <Settings2 size={28} strokeWidth={1} />
             <p className="text-sm font-medium">Lienzo vacío</p>
             <p className="text-xs" style={{ color: "color-mix(in srgb, var(--primary) 14%, transparent)" }}>
-              Haz clic en un tipo o arrástralo aquí
+              Haz clic en un tipo o arrástralo aquí · Click izquierdo mantenido mueve · Click derecho enlaza
             </p>
           </div>
         )}
