@@ -3,26 +3,28 @@
 /**
  * useOrganismoSistemas.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Resuelve los Sistemas vinculados a UN Organismo — tabla puente
- * `organismo_sistemas` (M:N, Fase 5). A diferencia de sistema_organos, esta
- * tabla SÍ tiene `proporcion` libre en texto, mismo patrón que
- * organo_tejidos (ej. "1", "2" — peso relativo del Sistema en el Organismo).
+ * Resuelve los Sistemas vinculados a UN Organismo — lee desde la vista
+ * `v_organismos_sistemas_efectivos_v4` que resuelve herencia por clado.
+ * La tabla base `organismo_sistemas` solo contiene vínculos directos
+ * (proporcion libre), pero los sistemas heredados del clado viven
+ * únicamente en la vista; usar la tabla base devuelve 0 filas para
+ * organismos que solo tienen sistemas heredados.
+ *
+ * Columnas de la vista: organismo_id, sistema_id, proporcion, fuente, origen.
+ * No tiene `id` propio — se usa `sistema_id` como clave de vínculo.
  *
  * Techo de la cadena: Célula → Tejido → Órgano → Sistema → Organismo.
  * Un mismo Sistema puede reutilizarse en varios Organismos.
  *
  * Fase 8: cache-first vía Dexie, mismo patrón que useOrganoTejidos.ts /
- * useSistemaOrganos.ts (organismo_sistemas y sistemas ya están en
- * DEXIE_TABLES desde v35). Además espeja el resultado en
- * useOrganismoBiologiaStore (Zustand) para que otra instancia del hook
- * pidiendo el mismo organismoId (ej. EditorCriatura + PanelEditorOrganismo
- * abiertos a la vez) adopte el resultado ya resuelto sin refetchear.
+ * useSistemaOrganos.ts (sistemas ya están en DEXIE_TABLES desde v35).
+ * Además espeja el resultado en useOrganismoBiologiaStore (Zustand) para
+ * que otra instancia del hook pidiendo el mismo organismoId adopte el
+ * resultado ya resuelto sin refetchear.
  *
  * Fix race condition (oct-2026): se usa una ref local `abortId` para
  * descartar resultados de fetches que lleguen tarde (cuando organismoId
- * cambió mientras el fetch estaba en vuelo). Esto reemplaza el join
- * embebido que fallaba silenciosamente cuando Supabase no podía inferir
- * la FK de forma automática.
+ * cambió mientras el fetch estaba en vuelo).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -38,17 +40,13 @@ import {
 import { useOrganismoBiologiaStore } from "@/domains/garlia/elementos/useOrganismoBiologiaStore";
 
 // ── Cache-first: leer/escribir Dexie ───────────────────────────────────────
-async function leerVinculosDeDexie(organismoId: string): Promise<OrganismoSistema[]> {
-  try {
-    if (!db) return [];
-    const rows = await db.organismo_sistemas
-      .where("organismo_id")
-      .equals(organismoId)
-      .toArray();
-    return rows as unknown as OrganismoSistema[];
-  } catch {
-    return [];
-  }
+// Los vínculos ahora vienen de la vista v_organismos_sistemas_efectivos_v4
+// (que incluye sistemas heredados del clado). La vista no tiene una tabla
+// Dexie propia, así que los vínculos siempre se revalidan desde Supabase.
+// Solo cacheamos los sistemas en sí (catálogo estable).
+async function leerVinculosDeDexie(_organismoId: string): Promise<OrganismoSistema[]> {
+  // Sin cache de vínculos: la vista resuelve herencia dinámica
+  return [];
 }
 
 async function leerSistemasDeDexie(ids: string[]): Promise<Record<string, Sistema>> {
@@ -61,10 +59,11 @@ async function leerSistemasDeDexie(ids: string[]): Promise<Record<string, Sistem
   return out;
 }
 
-async function guardarEnDexie(vinculos: OrganismoSistema[], sistemas: Sistema[]) {
+async function guardarEnDexie(_vinculos: OrganismoSistema[], sistemas: Sistema[]) {
   try {
     if (!db) return;
-    if (vinculos.length) await db.organismo_sistemas.bulkPut(vinculos as any[]);
+    // Los vínculos vienen de una vista (no de una tabla base), no se cachean.
+    // Solo cacheamos los datos de los Sistemas (catálogo estable).
     if (sistemas.length) await db.sistemas.bulkPut(sistemas as any[]);
   } catch (e) {
     console.warn("[useOrganismoSistemas] no se pudo guardar en Dexie:", e);
@@ -77,6 +76,10 @@ export interface SistemaDeOrganismo {
   organismo_id: string;
   sistema_id: string;
   proporcion: string | null;
+  /** 'directo' = vínculo en tabla base / 'clado' = heredado del clado. */
+  fuente?: string;
+  /** 'propio' | 'heredado' según la vista efectivos. */
+  origen?: string;
   sistema: Sistema;
 }
 
@@ -167,13 +170,16 @@ export function useOrganismoSistemas(organismoId: string | null) {
       }
     }
 
-    // ── Paso 2: revalidar contra Supabase (dos queries, sin join) ─────────
+    // ── Paso 2: revalidar contra Supabase desde la vista efectivos ────────
+    // Usamos v_organismos_sistemas_efectivos_v4 en lugar de la tabla base
+    // organismo_sistemas porque resuelve herencia por clado. La vista tiene
+    // columnas: organismo_id, sistema_id, proporcion, fuente, origen.
+    // No tiene `id` propio — fabricamos uno sintético desde sistema_id.
     console.log(`[DEBUG useOrganismoSistemas] fetch START organismoId=${organismoId} fetchId=${myFetchId}`);
     const { data: vinculoData, error: vinculoError } = await supabase
-      .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
-      .select(CONFIG_ORGANISMO_SISTEMAS.select)
-      .eq("organismo_id", organismoId)
-      .order("created_at", { ascending: true });
+      .from("v_organismos_sistemas_efectivos_v4")
+      .select("organismo_id, sistema_id, proporcion, fuente, origen")
+      .eq("organismo_id", organismoId);
 
     if (myFetchId !== fetchIdRef.current) {
       console.log(`[DEBUG useOrganismoSistemas] DESCARTADO (llegó tarde) fetchId=${myFetchId} actual=${fetchIdRef.current}`);
@@ -184,7 +190,16 @@ export function useOrganismoSistemas(organismoId: string | null) {
       setLoading(false);
       return;
     }
-    const vinculosResueltos = vinculoData as unknown as OrganismoSistema[];
+
+    // Normalizar filas de la vista al shape OrganismoSistema esperado por la UI.
+    // `id` sintético = sistema_id (único por organismo en la vista).
+    const vinculosResueltos: OrganismoSistema[] = (vinculoData as any[]).map((row) => ({
+      id: row.sistema_id,
+      organismo_id: row.organismo_id,
+      sistema_id: row.sistema_id,
+      proporcion: row.proporcion ?? null,
+      created_at: "",
+    }));
     console.log(`[DEBUG useOrganismoSistemas] vínculos OK count=${vinculosResueltos.length}`, vinculosResueltos.map(v => v.sistema_id));
 
     const sistemaIds = [...new Set(vinculosResueltos.map((v) => v.sistema_id))];
@@ -238,13 +253,16 @@ export function useOrganismoSistemas(organismoId: string | null) {
           organismo_id: v.organismo_id,
           sistema_id: v.sistema_id,
           proporcion: v.proporcion,
+          fuente: (v as any).fuente,
+          origen: (v as any).origen,
           sistema,
         };
       })
       .filter((s): s is SistemaDeOrganismo => s !== null);
   }, [vinculos, sistemas]);
 
-  /** Vincular un Sistema ya existente del catálogo a este Organismo. */
+  /** Vincular un Sistema directo a este Organismo (escribe en tabla base,
+   *  la vista lo reflejará en el próximo reload). */
   const vincularExistente = useCallback(
     async (sistemaId: string) => {
       if (!organismoId) return null;
@@ -275,7 +293,8 @@ export function useOrganismoSistemas(organismoId: string | null) {
     [organismoId, sistemas, setSistemas, setVinculos],
   );
 
-  /** Editar la proporción de una fila. */
+  /** Editar la proporción de un vínculo directo (solo aplica a filas
+   *  con fuente='directo'; los heredados del clado son read-only). */
   const actualizarProporcion = useCallback(
     async (vinculoId: string, proporcion: string) => {
       setVinculos((prev) => {
@@ -284,26 +303,34 @@ export function useOrganismoSistemas(organismoId: string | null) {
         if (actualizado) void guardarEnDexie([actualizado], []);
         return next;
       });
+      // vinculoId = sistema_id (id sintético de la vista) — en la tabla base
+      // el PK también es el id de fila, pero para vínculos directos
+      // podemos filtrar por organismo_id + sistema_id con seguridad.
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
         .update({ proporcion })
-        .eq("id", vinculoId);
+        .eq("organismo_id", organismoId!)
+        .eq("sistema_id", vinculoId);
       if (error) console.error("[useOrganismoSistemas] error actualizando proporción:", error);
     },
     [setVinculos],
   );
 
-  /** Quitar el vínculo (el Sistema queda en su catálogo, no se borra). */
+  /** Quitar un vínculo directo (el Sistema queda en su catálogo, no se borra).
+   *  Los sistemas heredados del clado no pueden quitarse desde aquí. */
   const quitar = useCallback(
     async (vinculoId: string) => {
+      // vinculoId = sistema_id (id sintético). Filtramos optimistamente en UI
+      // y luego borramos en tabla base usando organismo_id + sistema_id.
       setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
       try {
-        if (db) await db.organismo_sistemas.delete(vinculoId);
+        // No borramos de Dexie (ya no cacheamos vínculos de la vista)
       } catch {}
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
         .delete()
-        .eq("id", vinculoId);
+        .eq("organismo_id", organismoId!)
+        .eq("sistema_id", vinculoId);
       if (error) console.error("[useOrganismoSistemas] error quitando vínculo:", error);
     },
     [setVinculos],
