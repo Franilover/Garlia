@@ -141,7 +141,7 @@ export function useSistemasYOrganismosDeOrganos(organoIds: string[]) {
     setSistemas(sistemasPorId);
 
     const { data: osData } = await supabase
-      .from("organismo_sistemas")
+      .from("v_organismos_sistemas_efectivos_v4")
       .select("organismo_id")
       .in("sistema_id", sistemaIds);
     const organismoIds = Array.from(

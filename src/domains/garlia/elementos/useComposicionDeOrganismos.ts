@@ -84,7 +84,7 @@ export function useComposicionDeOrganismos(organismoIds: string[]) {
 
     // Organismo → Sistema
     const { data: osData, error: osError } = await supabase
-      .from("organismo_sistemas")
+      .from("v_organismos_sistemas_efectivos_v4")
       .select("sistema_id")
       .in("organismo_id", organismoIds);
 

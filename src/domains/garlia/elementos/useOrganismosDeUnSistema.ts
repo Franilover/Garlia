@@ -27,7 +27,7 @@ import {
 } from "@/domains/garlia/elementos/types";
 
 interface VinculoOrganismoSistema {
-  id: string;
+  id: string;        // sintético: organismo_id (la vista no tiene id propio)
   organismo_id: string;
   sistema_id: string;
 }
@@ -97,13 +97,14 @@ export function useOrganismosDeUnSistema(sistemaId: string | null) {
     }
 
     // ── Paso 2: revalidar contra Supabase en segundo plano ────────────────
-    const { data: vinculoData, error: vinculoError } = await supabase
-      .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
-      .select("id, organismo_id, sistema_id")
-      .eq("sistema_id", sistemaId)
-      .order("created_at", { ascending: true });
+    // La vista v_organismos_sistemas_efectivos_v4 no tiene `id` propio ni
+    // `created_at`; generamos un id sintético = organismo_id (único por sistema).
+    const { data: rawData, error: vinculoError } = await supabase
+      .from("v_organismos_sistemas_efectivos_v4")
+      .select("organismo_id, sistema_id")
+      .eq("sistema_id", sistemaId);
 
-    if (vinculoError || !vinculoData) {
+    if (vinculoError || !rawData) {
       if (vinculosLocales.length === 0) {
         setVinculos([]);
         setOrganismos({});
@@ -111,15 +112,16 @@ export function useOrganismosDeUnSistema(sistemaId: string | null) {
       setLoading(false);
       return;
     }
-    setVinculos(vinculoData as unknown as VinculoOrganismoSistema[]);
+    const vinculoData: VinculoOrganismoSistema[] = (
+      rawData as unknown as { organismo_id: string; sistema_id: string }[]
+    ).map((r) => ({ id: r.organismo_id, organismo_id: r.organismo_id, sistema_id: r.sistema_id }));
+    setVinculos(vinculoData);
 
-    const organismoIds = (vinculoData as unknown as VinculoOrganismoSistema[]).map(
-      (v) => v.organismo_id,
-    );
+    const organismoIds = vinculoData.map((v) => v.organismo_id);
     if (organismoIds.length === 0) {
       setOrganismos({});
       setLoading(false);
-      void guardarEnDexie(vinculoData as unknown as VinculoOrganismoSistema[], []);
+      void guardarEnDexie(vinculoData, []);
       return;
     }
 
@@ -132,10 +134,7 @@ export function useOrganismosDeUnSistema(sistemaId: string | null) {
     for (const o of (organismoData ?? []) as unknown as Organismo[]) organismosPorId[o.id] = o;
     setOrganismos(organismosPorId);
     setLoading(false);
-    void guardarEnDexie(
-      vinculoData as unknown as VinculoOrganismoSistema[],
-      Object.values(organismosPorId),
-    );
+    void guardarEnDexie(vinculoData, Object.values(organismosPorId));
   }, [sistemaId]);
 
   useEffect(() => {
