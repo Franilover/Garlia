@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/infra/supabase/supabase";
 import { Info } from "lucide-react";
+import EstructurasPage from "@/domains/garlia/elementos/EstructurasPage";
+import { MaterialesPage } from "@/domains/garlia/materiales/MaterialesPage";
 
 /* ─── tipos ─────────────────────────────────────────────── */
 interface Elemento {
@@ -312,7 +314,6 @@ export default function DescubrimientosPage() {
 
       {/* ── Partículas base ──────────────────────────────── */}
       <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
-        <CabeceraSeccion titulo="Física de partículas" />
         <div className="p-3 flex flex-col gap-4">
 
           {/* Polaridades */}
@@ -487,6 +488,19 @@ export default function DescubrimientosPage() {
           </div>
         </div>
       )}
+
+      {/* ── Estructuras ─────────────────────────────────── */}
+      <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <CabeceraSeccion titulo="Estructuras" />
+        <EstructurasPage />
+      </div>
+
+      {/* ── Materiales ──────────────────────────────────── */}
+      <div className="flex flex-col border-b" style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}>
+        <CabeceraSeccion titulo="Materiales" />
+        <MaterialesPage />
+      </div>
+
 
     </div>
   );
