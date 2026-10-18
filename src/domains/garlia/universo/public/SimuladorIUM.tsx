@@ -457,14 +457,31 @@ function useConfiguracionesAdmin(esAdmin: boolean) {
   useEffect(() => {
     if (!esAdmin) return;
     setLoading(true);
-    supabase
-      .from("v_simulador_configs_admin_v1")
-      .select("configuracion_id, conjuracion_id, conjuracion, oris_id, oris, nivel_dominio, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
-      .order("conjuracion")
-      .then(({ data }) => {
-        setConfigs((data ?? []) as ConfigAdmin[]);
-        setLoading(false);
-      });
+
+    async function cargar() {
+      // 1. Obtener IDs de conjuraciones publicadas
+      const { data: conjPublicadas } = await supabase
+        .from("conjuraciones")
+        .select("id")
+        .eq("publicado", true);
+
+      const idsPublicados = new Set((conjPublicadas ?? []).map((c: { id: string }) => c.id));
+
+      // 2. Cargar todas las configs y filtrar solo las con conjuración publicada
+      const { data } = await supabase
+        .from("v_simulador_configs_admin_v1")
+        .select("configuracion_id, conjuracion_id, conjuracion, oris_id, oris, nivel_dominio, proceso_id, proceso, configuracion, topologia_id, topologia, n_iums, estado, descripcion")
+        .order("conjuracion");
+
+      const filtradas = (data ?? []).filter(
+        (cfg: ConfigAdmin) => cfg.conjuracion_id && idsPublicados.has(cfg.conjuracion_id),
+      );
+
+      setConfigs(filtradas as ConfigAdmin[]);
+      setLoading(false);
+    }
+
+    cargar();
   }, [esAdmin]);
 
   return { configs, loading };
