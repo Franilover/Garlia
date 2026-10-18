@@ -174,8 +174,38 @@ export function EditorCriatura({
   }, [organismosCriatura.items]);
   const organismoPrincipalId = organismoPrincipalVinculo?.organismo_id ?? null;
 
+  // ── DEBUG ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    console.log("[DEBUG EditorCriatura] organismosCriatura →", {
+      loading: organismosCriatura.loading,
+      itemsCount: organismosCriatura.items.length,
+      items: organismosCriatura.items.map(i => ({ id: i.organismo_id, nombre: i.organismo?.nombre, es_principal: i.es_principal })),
+    });
+  }, [organismosCriatura.loading, organismosCriatura.items]);
+
+  useEffect(() => {
+    console.log("[DEBUG EditorCriatura] organismoPrincipalId →", organismoPrincipalId);
+  }, [organismoPrincipalId]);
+
   const sistemasOrganismo = useOrganismoSistemas(organismoPrincipalId ?? "");
   const organosDirectosOrganismo = useOrganismoOrganos(organismoPrincipalId ?? "");
+
+  useEffect(() => {
+    console.log("[DEBUG EditorCriatura] sistemasOrganismo →", {
+      loading: sistemasOrganismo.loading,
+      itemsCount: sistemasOrganismo.items.length,
+      items: sistemasOrganismo.items.map(s => s.sistema?.nombre),
+    });
+  }, [sistemasOrganismo.loading, sistemasOrganismo.items]);
+
+  useEffect(() => {
+    console.log("[DEBUG EditorCriatura] organosDirectosOrganismo →", {
+      loading: organosDirectosOrganismo.loading,
+      itemsCount: organosDirectosOrganismo.items.length,
+      items: organosDirectosOrganismo.items.map(o => o.organo?.nombre),
+    });
+  }, [organosDirectosOrganismo.loading, organosDirectosOrganismo.items]);
+  // ── FIN DEBUG ──────────────────────────────────────────────────────────
 
   const [editandoSistemaOrganismoId, setEditandoSistemaOrganismoId] = useState<string | null>(null);
   const [editandoOrganoDirectoOrganismoId, setEditandoOrganoDirectoOrganismoId] = useState<string | null>(null);

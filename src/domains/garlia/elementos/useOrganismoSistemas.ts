@@ -148,6 +148,7 @@ export function useOrganismoSistemas(organismoId: string | null) {
     // Token único para este fetch — si organismoId cambia antes de que
     // llegue la respuesta, el fetch viejo descarta su resultado.
     const myFetchId = ++fetchIdRef.current;
+    console.log(`[DEBUG useOrganismoSistemas] load() organismoId=${organismoId} fetchId=${myFetchId} cacheEntry=${!!cacheEntry}`);
 
     // ── Paso 1: pintar de inmediato con lo que ya haya en Dexie ──────────
     if (!cacheEntry) {
@@ -167,18 +168,24 @@ export function useOrganismoSistemas(organismoId: string | null) {
     }
 
     // ── Paso 2: revalidar contra Supabase (dos queries, sin join) ─────────
+    console.log(`[DEBUG useOrganismoSistemas] fetch START organismoId=${organismoId} fetchId=${myFetchId}`);
     const { data: vinculoData, error: vinculoError } = await supabase
       .from(CONFIG_ORGANISMO_SISTEMAS.tabla)
       .select(CONFIG_ORGANISMO_SISTEMAS.select)
       .eq("organismo_id", organismoId)
       .order("created_at", { ascending: true });
 
-    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (myFetchId !== fetchIdRef.current) {
+      console.log(`[DEBUG useOrganismoSistemas] DESCARTADO (llegó tarde) fetchId=${myFetchId} actual=${fetchIdRef.current}`);
+      return;
+    }
     if (vinculoError || !vinculoData) {
+      console.error("[DEBUG useOrganismoSistemas] error vínculos:", vinculoError);
       setLoading(false);
       return;
     }
     const vinculosResueltos = vinculoData as unknown as OrganismoSistema[];
+    console.log(`[DEBUG useOrganismoSistemas] vínculos OK count=${vinculosResueltos.length}`, vinculosResueltos.map(v => v.sistema_id));
 
     const sistemaIds = [...new Set(vinculosResueltos.map((v) => v.sistema_id))];
     if (sistemaIds.length === 0) {
@@ -195,19 +202,24 @@ export function useOrganismoSistemas(organismoId: string | null) {
       .select(CONFIG_SISTEMAS.select)
       .in("id", sistemaIds);
 
-    if (myFetchId !== fetchIdRef.current) return; // llegó tarde
+    if (myFetchId !== fetchIdRef.current) {
+      console.log(`[DEBUG useOrganismoSistemas] DESCARTADO query2 fetchId=${myFetchId} actual=${fetchIdRef.current}`);
+      return;
+    }
     if (sistemaError) {
-      console.error("[useOrganismoSistemas] error cargando sistemas:", sistemaError);
+      console.error("[DEBUG useOrganismoSistemas] error sistemas:", sistemaError);
     }
 
     const sistemasPorId: Record<string, Sistema> = {};
     for (const s of (sistemaData ?? []) as unknown as Sistema[]) sistemasPorId[s.id] = s;
+    console.log(`[DEBUG useOrganismoSistemas] sistemas OK count=${Object.keys(sistemasPorId).length}`, Object.values(sistemasPorId).map(s => s.nombre));
 
     // Setear todo junto — vinculos Y sistemas en el mismo ciclo de render
     setVinculosLocal(vinculosResueltos);
     setSistemasLocal(sistemasPorId);
     setSistemasEnStore(organismoId, vinculosResueltos, sistemasPorId);
     setLoading(false);
+    console.log(`[DEBUG useOrganismoSistemas] SETEADO OK organismoId=${organismoId}`);
     void guardarEnDexie(vinculosResueltos, Object.values(sistemasPorId));
   }, [organismoId, cacheEntry, setSistemasEnStore]);
 
