@@ -27,10 +27,16 @@
  * Genérico y sin conocimiento de Supabase: recibe los items ya resueltos
  * (o un loader) por nivel vía props, así que el mismo componente sirve para
  * el espejo en Física (Grano > Veta > Formación) pasando otros labels/data.
+ *
+ * FIX: PopoverNivel se renderiza via createPortal al document.body con
+ * position:fixed para escapar del overflow:hidden de los paneles padre.
+ * Sin esto los popovers de Tejido/Célula/Organismo quedaban clippeados
+ * dentro del marco del editor en vez de flotar sobre todo.
  */
 
 import { ChevronRight } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface NivelBreadcrumb {
   /** Label del nivel, ej. "Célula" / "Tejido" / "Órgano". */
@@ -57,6 +63,7 @@ interface Props {
 
 export function BreadcrumbJerarquia({ niveles }: Props) {
   const [abiertoIdx, setAbiertoIdx] = useState<number | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,10 +71,14 @@ export function BreadcrumbJerarquia({ niveles }: Props) {
     function onClickFuera(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setAbiertoIdx(null);
+        setAnchorRect(null);
       }
     }
     function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") setAbiertoIdx(null);
+      if (e.key === "Escape") {
+        setAbiertoIdx(null);
+        setAnchorRect(null);
+      }
     }
     document.addEventListener("mousedown", onClickFuera);
     document.addEventListener("keydown", onEsc);
@@ -76,6 +87,16 @@ export function BreadcrumbJerarquia({ niveles }: Props) {
       document.removeEventListener("keydown", onEsc);
     };
   }, [abiertoIdx]);
+
+  function handleToggle(idx: number, e: React.MouseEvent<HTMLButtonElement>) {
+    if (abiertoIdx === idx) {
+      setAbiertoIdx(null);
+      setAnchorRect(null);
+    } else {
+      setAbiertoIdx(idx);
+      setAnchorRect(e.currentTarget.getBoundingClientRect());
+    }
+  }
 
   return (
     <div ref={containerRef} className="flex items-center gap-1 flex-wrap">
@@ -86,7 +107,7 @@ export function BreadcrumbJerarquia({ niveles }: Props) {
             <button
               type="button"
               disabled={nivel.activo}
-              onClick={() => setAbiertoIdx((prev) => (prev === idx ? null : idx))}
+              onClick={(e) => handleToggle(idx, e)}
               className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-black uppercase tracking-widest transition-colors ${
                 nivel.activo
                   ? "text-primary cursor-default"
@@ -97,43 +118,71 @@ export function BreadcrumbJerarquia({ niveles }: Props) {
               {nivel.icono}
               {nivel.label}
             </button>
-
-            {abiertoIdx === idx && !nivel.activo && (
-              <PopoverNivel
-                nivel={nivel}
-                onElegir={(id) => {
-                  setAbiertoIdx(null);
-                  nivel.onNavegar?.(id);
-                }}
-                onClose={() => setAbiertoIdx(null)}
-              />
-            )}
           </div>
         </React.Fragment>
       ))}
+
+      {/* Portal: renderiza el popover directamente en document.body con
+          position:fixed para escapar del overflow:hidden del panel padre.
+          Sin esto los popovers de Tejido/Célula/Organismo quedaban
+          clippeados adentro del marco del editor flotante. */}
+      {abiertoIdx !== null &&
+        anchorRect !== null &&
+        !niveles[abiertoIdx].activo &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <PopoverNivel
+            nivel={niveles[abiertoIdx]}
+            anchorRect={anchorRect}
+            onElegir={(id) => {
+              setAbiertoIdx(null);
+              setAnchorRect(null);
+              niveles[abiertoIdx].onNavegar?.(id);
+            }}
+            onClose={() => {
+              setAbiertoIdx(null);
+              setAnchorRect(null);
+            }}
+          />,
+          document.body,
+        )}
     </div>
   );
 }
 
 function PopoverNivel({
   nivel,
+  anchorRect,
   onElegir,
   onClose,
 }: {
   nivel: NivelBreadcrumb;
+  /** Bounding rect del botón que disparó el popover — usado para posicionarlo. */
+  anchorRect: DOMRect;
   onElegir: (id: string) => void;
   onClose: () => void;
 }) {
   const items = nivel.items ?? [];
 
+  // Posición fija bajo el botón anchor, escapando del overflow:hidden del padre.
+  const style: React.CSSProperties = {
+    position: "fixed",
+    top: anchorRect.bottom + 4,
+    left: anchorRect.left,
+    minWidth: "11rem",
+    maxWidth: "16rem",
+    maxHeight: "14rem",
+    overflowY: "auto",
+    zIndex: 99999,
+    background: "var(--bg-main)",
+    borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
+    animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+  };
+
   return (
     <div
-      className="absolute z-30 mt-1 left-0 min-w-[11rem] max-w-[16rem] max-h-56 overflow-y-auto rounded-lg border shadow-xl py-1"
-      style={{
-        background: "var(--bg-main)",
-        borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
-        animation: "popIn 120ms cubic-bezier(0.34, 1.56, 0.64, 1)",
-      }}
+      className="rounded-lg border shadow-xl py-1"
+      style={style}
       onMouseDown={(e) => e.stopPropagation()}
     >
       <p className="px-2.5 pb-1 text-[0.6rem] font-black uppercase tracking-[0.2em] text-primary/30 border-b border-primary/8 mb-1">
