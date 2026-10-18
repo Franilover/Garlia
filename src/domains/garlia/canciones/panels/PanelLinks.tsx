@@ -1,19 +1,19 @@
 "use client";
 
-import {
-  Link2,
-  ChevronDown,
-  ExternalLink,
-  Pencil,
-  Trash2,
-  Loader2,
-  Check,
-} from "lucide-react";
+/**
+ * PanelLinks.tsx
+ * ───────────────────────────────────────────────────────────────────────────
+ * Panel colapsable de enlaces de una canción. Migrado a PanelColapsable —
+ * lógica de apertura/cierre y animación de altura unificadas.
+ */
+
+import { Check, ExternalLink, Link2, Loader2, Pencil, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 
 import { useConfirm } from "@/ui/ConfirmModal";
 import type { CancionLink } from "@/domains/garlia/canciones/types";
 import { supabase } from "@/infra/supabase/supabase";
+import { PanelColapsable } from "@/domains/garlia/_shared/PanelColapsable";
 
 export const PanelLinks = ({
   cancionId,
@@ -24,7 +24,6 @@ export const PanelLinks = ({
   links: CancionLink[];
   onLinksChange: (links: CancionLink[]) => void;
 }) => {
-  const [open, setOpen] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -63,7 +62,6 @@ export const PanelLinks = ({
     setTitulo(links[i].titulo);
     setUrl(links[i].url);
     setEditIdx(i);
-    setOpen(true);
   };
 
   const handleDelete = async (i: number) => {
@@ -83,24 +81,11 @@ export const PanelLinks = ({
 
   return (
     <div className="border-t border-primary/8 px-8 py-3">
-      <button
-        className="flex items-center gap-2 text-micro font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors w-full"
-        onClick={() => setOpen((o) => !o)}
+      <PanelColapsable
+        titulo="Enlaces"
+        icono={<Link2 size={12} />}
+        count={links.length}
       >
-        <Link2 size={12} />
-        Enlaces
-        {links.length > 0 && (
-          <span className="bg-primary/10 text-primary/60 rounded-full px-2 py-0.5 text-micro">
-            {links.length}
-          </span>
-        )}
-        <ChevronDown
-          className={`ml-auto transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          size={11}
-        />
-      </button>
-
-      {open && (
         <div className="mt-3 space-y-3">
           {links.length > 0 && (
             <div className="space-y-1.5">
@@ -153,11 +138,7 @@ export const PanelLinks = ({
                 disabled={!titulo.trim() || !url.trim() || saving}
                 type="submit"
               >
-                {saving ? (
-                  <Loader2 className="animate-spin" size={11} />
-                ) : (
-                  <Check size={11} />
-                )}
+                {saving ? <Loader2 className="animate-spin" size={11} /> : <Check size={11} />}
                 {editIdx !== null ? "Guardar" : "Añadir"}
               </button>
               {editIdx !== null && (
@@ -172,7 +153,7 @@ export const PanelLinks = ({
             </div>
           </form>
         </div>
-      )}
+      </PanelColapsable>
       <ConfirmModal />
     </div>
   );

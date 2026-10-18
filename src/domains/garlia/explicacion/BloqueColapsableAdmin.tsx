@@ -4,15 +4,16 @@
  * BloqueColapsableAdmin.tsx
  * ───────────────────────────────────────────────────────────────────────────
  * Envuelve el header (título + ToggleMaestroAdmin) y el contenido de una
- * galería admin. Cuando el maestro está OCULTO, arranca colapsado como un
- * dropdown cerrado — el admin ve solo la barra de título y debe hacer click
- * para desplegarlo y gestionar las excepciones individuales. Cuando el
- * maestro está VISIBLE, siempre queda expandido (no tiene sentido
- * colapsar algo que el público ya está viendo).
+ * galería admin. Cuando el maestro está OCULTO, arranca colapsado. Cuando
+ * está VISIBLE, siempre queda expandido.
+ *
+ * Migrado a PanelColapsable (modo controlado con headerNode) —
+ * sincronización y animación de altura unificadas.
  */
 
-import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import React from "react";
+
+import { PanelColapsable } from "@/domains/garlia/_shared/PanelColapsable";
 
 export function BloqueColapsableAdmin({
   maestroVisible,
@@ -23,37 +24,20 @@ export function BloqueColapsableAdmin({
   header: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const [expandido, setExpandido] = useState(maestroVisible);
-
-  // Si el maestro cambia de estado (toggle en vivo), sincroniza: al
-  // apagarlo se colapsa solo; al encenderlo se expande solo.
-  useEffect(() => {
-    setExpandido(maestroVisible);
-  }, [maestroVisible]);
-
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => setExpandido((e) => !e)}
-          className="flex items-center gap-1 cursor-pointer"
-          title={expandido ? "Colapsar" : "Expandir para ver y gestionar"}
+    <PanelColapsable
+      headerNode={header}
+      open={maestroVisible}
+    >
+      {children}
+      {!maestroVisible && (
+        <p
+          className="text-[10px] mt-1"
+          style={{ color: "color-mix(in srgb, #b45309 60%, transparent)" }}
         >
-          <ChevronRight
-            size={12}
-            className="opacity-40 transition-transform"
-            style={{ transform: expandido ? "rotate(90deg)" : "rotate(0deg)" }}
-          />
-          {header}
-        </button>
-      </div>
-      {expandido && children}
-      {!expandido && (
-        <p className="text-[10px]" style={{ color: "color-mix(in srgb, #b45309 60%, transparent)" }}>
           Oculta al público · click para ver y gestionar excepciones
         </p>
       )}
-    </div>
+    </PanelColapsable>
   );
 }

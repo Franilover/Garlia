@@ -6,22 +6,42 @@
  * `BloqueGrupoCategoria` — selector de un grupo por subtipo (Hábitat, Inteligencia…)
  * `BloqueGruposCriatura` — chips + dropdown de grupos generales
  *
- * Ambos reciben sus datos por props: no fetchean ni tienen lógica de dominio.
- *
- * Ruta destino:
- *   src/features/editorGarlia/components/criaturas/BloqueGruposCriatura.tsx
+ * Migrado: los useEffect + ref de click-outside reemplazados por useDropdown
+ * (hook interno de PanelColapsable) — misma lógica, sin duplicación.
  */
 
 import { ChevronDown, Layers, Pencil, Plus, Search, X } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { type GrupoMin } from "@/domains/garlia/grupos/useMembresiaGruposCriatura";
 
-// ─── Tipo extendido (GrupoMin + subtipo) ──────────────────────────────────────
 export type GrupoMinExt = GrupoMin & { subtipo?: string | null };
 
+// ─── Hook interno compartido (mismo patrón que MenuDropdown) ─────────────────
+
+function useDropdownOutside(
+  open: boolean,
+  ref: React.RefObject<HTMLElement | null>,
+  onClose: () => void,
+) {
+  useLayoutEffect(() => {
+    if (!open) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, ref, onClose]);
+}
+
 // ─── BloqueGrupoCategoria ─────────────────────────────────────────────────────
-// Selector de un único grupo dentro de un subtipo (Hábitat, Inteligencia, etc.)
 
 export function BloqueGrupoCategoria({
   label,
@@ -46,35 +66,19 @@ export function BloqueGrupoCategoria({
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const close = useCallback(() => { setOpen(false); setSearch(""); }, []);
+  useDropdownOutside(open, containerRef, close);
+
   const gruposDeCat = todosGrupos.filter((g) => g.subtipo === subtipo);
-  const actual = gruposActuales.filter((g) =>
-    gruposDeCat.some((c) => c.id === g.id),
-  );
+  const actual = gruposActuales.filter((g) => gruposDeCat.some((c) => c.id === g.id));
   const disponibles = gruposDeCat.filter(
     (g) =>
       !gruposActuales.some((a) => a.id === g.id) &&
       g.nombre.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const border =
-    "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
-  const borderFocus =
-    "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
+  const border = "1px solid color-mix(in srgb, var(--primary) 15%, transparent)";
+  const borderFocus = "1px solid color-mix(in srgb, var(--primary) 35%, transparent)";
 
   return (
     <div ref={containerRef} className="space-y-1.5">
@@ -84,11 +88,7 @@ export function BloqueGrupoCategoria({
             <div
               key={g.id}
               className="w-full flex items-center rounded-[var(--radius-btn)] overflow-hidden transition-all"
-              style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 5%, transparent)",
-                border,
-              }}
+              style={{ background: "color-mix(in srgb, var(--primary) 5%, transparent)", border }}
             >
               <button
                 className="flex-1 flex items-center gap-2 px-3 py-2 text-micro font-black uppercase truncate transition-all hover:bg-primary/5 min-w-0"
@@ -102,16 +102,12 @@ export function BloqueGrupoCategoria({
               <button
                 className="shrink-0 flex items-center justify-center px-2.5 py-2 transition-all hover:bg-primary/10"
                 style={{
-                  borderLeft:
-                    "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
+                  borderLeft: "1px solid color-mix(in srgb, var(--primary) 12%, transparent)",
                   color: "color-mix(in srgb, var(--primary) 35%, transparent)",
                 }}
                 title="Cambiar"
                 type="button"
-                onClick={() => {
-                  setOpen((o) => !o);
-                  setSearch("");
-                }}
+                onClick={() => { setOpen((o) => !o); setSearch(""); }}
               >
                 <Pencil size={10} />
               </button>
@@ -131,9 +127,7 @@ export function BloqueGrupoCategoria({
           type="button"
           onClick={() => setOpen((o) => !o)}
         >
-          <span className="font-black uppercase text-micro tracking-wide">
-            Sin asignar
-          </span>
+          <span className="font-black uppercase text-micro tracking-wide">Sin asignar</span>
           <ChevronDown
             className={`shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             size={12}
@@ -148,24 +142,14 @@ export function BloqueGrupoCategoria({
           style={{
             border,
             background: "var(--bg-main)",
-            boxShadow:
-              "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
+            boxShadow: "0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent)",
           }}
         >
           <div
             className="flex items-center gap-2 px-3 py-2"
-            style={{
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
+            style={{ borderBottom: "1px solid color-mix(in srgb, var(--primary) 8%, transparent)" }}
           >
-            <Search
-              size={11}
-              style={{
-                color: "color-mix(in srgb, var(--primary) 30%, transparent)",
-                flexShrink: 0,
-              }}
-            />
+            <Search size={11} style={{ color: "color-mix(in srgb, var(--primary) 30%, transparent)", flexShrink: 0 }} />
             <input
               autoFocus
               className="flex-1 bg-transparent outline-none text-micro font-bold uppercase tracking-wide placeholder:normal-case placeholder:font-medium placeholder:tracking-normal"
@@ -174,16 +158,10 @@ export function BloqueGrupoCategoria({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) =>
-                e.key === "Escape" && (setOpen(false), setSearch(""))
-              }
+              onKeyDown={(e) => e.key === "Escape" && close()}
             />
             {search && (
-              <button
-                className="opacity-30 hover:opacity-70 transition-opacity"
-                type="button"
-                onClick={() => setSearch("")}
-              >
+              <button className="opacity-30 hover:opacity-70 transition-opacity" type="button" onClick={() => setSearch("")}>
                 <X size={10} style={{ color: "var(--primary)" }} />
               </button>
             )}
@@ -193,15 +171,9 @@ export function BloqueGrupoCategoria({
             {actual.length > 0 && (
               <button
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/5"
-                style={{
-                  color: "color-mix(in srgb, var(--primary) 45%, transparent)",
-                }}
+                style={{ color: "color-mix(in srgb, var(--primary) 45%, transparent)" }}
                 type="button"
-                onMouseDown={() => {
-                  actual.forEach((g) => onRemove(g.id));
-                  setOpen(false);
-                  setSearch("");
-                }}
+                onMouseDown={() => { actual.forEach((g) => onRemove(g.id)); close(); }}
               >
                 <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
                   <X className="opacity-50" size={9} />
@@ -223,16 +195,9 @@ export function BloqueGrupoCategoria({
                 <button
                   key={g.id}
                   className="w-full flex items-center justify-between px-4 py-2.5 text-micro font-bold uppercase transition-all hover:bg-primary/6"
-                  style={{
-                    color:
-                      "color-mix(in srgb, var(--primary) 50%, transparent)",
-                  }}
+                  style={{ color: "color-mix(in srgb, var(--primary) 50%, transparent)" }}
                   type="button"
-                  onMouseDown={() => {
-                    onAdd(g.id);
-                    setOpen(false);
-                    setSearch("");
-                  }}
+                  onMouseDown={() => { onAdd(g.id); close(); }}
                 >
                   <span className="truncate">{g.nombre}</span>
                 </button>
@@ -246,7 +211,6 @@ export function BloqueGrupoCategoria({
 }
 
 // ─── BloqueGruposCriatura ─────────────────────────────────────────────────────
-// Chips de grupos generales + dropdown para añadir/quitar.
 
 export function BloqueGruposCriatura({
   gruposActuales,
@@ -263,6 +227,10 @@ export function BloqueGruposCriatura({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => { setOpen(false); setSearch(""); }, []);
+  useDropdownOutside(open, containerRef, close);
 
   const disponibles = useMemo(
     () =>
@@ -289,10 +257,8 @@ export function BloqueGruposCriatura({
               key={g.id}
               className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-lg border text-micro font-bold"
               style={{
-                background:
-                  "color-mix(in srgb, var(--primary) 6%, transparent)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 15%, transparent)",
+                background: "color-mix(in srgb, var(--primary) 6%, transparent)",
+                borderColor: "color-mix(in srgb, var(--primary) 15%, transparent)",
                 color: "var(--primary)",
               }}
             >
@@ -316,7 +282,7 @@ export function BloqueGruposCriatura({
         </div>
       )}
 
-      <div className="relative">
+      <div ref={containerRef} className="relative">
         <button
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed text-micro font-black uppercase tracking-widest transition-all cursor-pointer"
           style={{
@@ -330,61 +296,45 @@ export function BloqueGruposCriatura({
         </button>
 
         {open && (
-          <>
+          <div
+            className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
+            style={{
+              background: "var(--bg-main)",
+              borderColor: "color-mix(in srgb, var(--primary) 12%, transparent)",
+            }}
+          >
             <div
-              className="fixed inset-0 z-40"
-              onClick={() => {
-                setOpen(false);
-                setSearch("");
-              }}
-            />
-            <div
-              className="absolute z-50 top-full left-0 mt-1 w-52 rounded-xl border shadow-xl overflow-hidden"
-              style={{
-                background: "var(--bg-main)",
-                borderColor:
-                  "color-mix(in srgb, var(--primary) 12%, transparent)",
-              }}
+              className="p-1.5 border-b"
+              style={{ borderColor: "color-mix(in srgb, var(--primary) 8%, transparent)" }}
             >
-              <div
-                className="p-1.5 border-b"
-                style={{
-                  borderColor:
-                    "color-mix(in srgb, var(--primary) 8%, transparent)",
-                }}
-              >
-                <input
-                  autoFocus
-                  className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
-                  placeholder="Buscar grupo…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="max-h-44 overflow-y-auto p-1">
-                {disponibles.length === 0 ? (
-                  <p className="text-micro text-primary/25 italic text-center py-3">
-                    {search ? "Sin resultados" : "Ya está en todos los grupos"}
-                  </p>
-                ) : (
-                  disponibles.map((g) => (
-                    <button
-                      key={g.id}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-micro font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
-                      type="button"
-                      onMouseDown={() => {
-                        onAdd(g.id);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                    >
-                      {g.nombre}
-                    </button>
-                  ))
-                )}
-              </div>
+              <input
+                autoFocus
+                className="w-full bg-transparent text-micro text-primary outline-none placeholder:text-primary/30 px-1.5 py-0.5"
+                placeholder="Buscar grupo…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Escape" && close()}
+              />
             </div>
-          </>
+            <div className="max-h-44 overflow-y-auto p-1">
+              {disponibles.length === 0 ? (
+                <p className="text-micro text-primary/25 italic text-center py-3">
+                  {search ? "Sin resultados" : "Ya está en todos los grupos"}
+                </p>
+              ) : (
+                disponibles.map((g) => (
+                  <button
+                    key={g.id}
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-micro font-medium text-primary/75 hover:bg-primary/6 hover:text-primary transition-colors truncate cursor-pointer"
+                    type="button"
+                    onMouseDown={() => { onAdd(g.id); close(); }}
+                  >
+                    {g.nombre}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
