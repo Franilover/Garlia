@@ -28,6 +28,7 @@ import type { Sistema } from "@/domains/garlia/elementos/types";
 export function SistemaPanelFlotante({
   sistema,
   onCerrar,
+  sinPortalPropio,
   onAbrirOrganoExterno,
   onAbrirSistemaExterno,
   onAbrirOrganismoExterno,
@@ -37,6 +38,12 @@ export function SistemaPanelFlotante({
 }: {
   sistema: Sistema;
   onCerrar: () => void;
+  /**
+   * true cuando un shell externo (ej. ShellPortalFlotante en EditorCriatura)
+   * ya provee el portal + backdrop. En ese caso este componente devuelve
+   * solo el contenido, sin montar su propio createPortal ni su fondo.
+   */
+  sinPortalPropio?: boolean;
   /**
    * Reemplaza TODA la pila (cierra este panel y cualquier ancestro) y abre
    * el editor completo del Órgano elegido desde el breadcrumb interno de
@@ -71,6 +78,7 @@ export function SistemaPanelFlotante({
   const [editandoOrganoId, setEditandoOrganoId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (sinPortalPropio) return; // el shell externo maneja Escape + scroll lock
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCerrar();
     };
@@ -81,21 +89,10 @@ export function SistemaPanelFlotante({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onCerrar]);
+  }, [onCerrar, sinPortalPropio]);
 
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
-      style={{
-        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
-        backdropFilter: "blur(8px)",
-      }}
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
-    >
+  // ── Contenido interno (caja + panel anidado de órgano) ───────────────────
+  const cajaInterna = (
       <div
         className="w-full h-full max-w-6xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         style={{
@@ -164,30 +161,59 @@ export function SistemaPanelFlotante({
           )}
         </div>
       </div>
+  );
 
-      {editandoOrganoId &&
-        (() => {
-          const organoActivo = catalogoOrganos.find((o) => o.id === editandoOrganoId);
-          if (!organoActivo) return null;
-          return (
-            <GrupoCompuestoPanelFlotante
-              grupo={organoActivo}
-              compuestos={compuestosOrganos}
-              onCerrar={() => setEditandoOrganoId(null)}
-              onActualizar={(id, cambios) =>
-                setCatalogoOrganos((prev) =>
-                  prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
-                )
-              }
-              onAbrirOrganoExterno={onAbrirOrganoExterno}
-              onAbrirSistemaExterno={onAbrirSistemaExterno}
-              onAbrirOrganismoExterno={onAbrirOrganismoExterno}
-              onAbrirCriaturaExterno={onAbrirCriaturaExterno}
-              onAbrirCelulaExterno={onAbrirCelulaExterno}
-              onAbrirTejidoExterno={onAbrirTejidoExterno}
-            />
-          );
-        })()}
+  const editoresAnidados = editandoOrganoId
+    ? (() => {
+        const organoActivo = catalogoOrganos.find((o) => o.id === editandoOrganoId);
+        if (!organoActivo) return null;
+        return (
+          <GrupoCompuestoPanelFlotante
+            sinPortalPropio={sinPortalPropio}
+            grupo={organoActivo}
+            compuestos={compuestosOrganos}
+            onCerrar={() => setEditandoOrganoId(null)}
+            onActualizar={(id, cambios) =>
+              setCatalogoOrganos((prev) =>
+                prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)),
+              )
+            }
+            onAbrirOrganoExterno={onAbrirOrganoExterno}
+            onAbrirSistemaExterno={onAbrirSistemaExterno}
+            onAbrirOrganismoExterno={onAbrirOrganismoExterno}
+            onAbrirCriaturaExterno={onAbrirCriaturaExterno}
+            onAbrirCelulaExterno={onAbrirCelulaExterno}
+            onAbrirTejidoExterno={onAbrirTejidoExterno}
+          />
+        );
+      })()
+    : null;
+
+  // Cuando el shell externo ya provee portal+backdrop, devolver solo el contenido.
+  if (sinPortalPropio) {
+    return (
+      <>
+        {cajaInterna}
+        {editoresAnidados}
+      </>
+    );
+  }
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCerrar();
+      }}
+    >
+      {cajaInterna}
+      {editoresAnidados}
     </div>,
     document.body,
   );

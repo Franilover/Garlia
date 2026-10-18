@@ -638,6 +638,7 @@ export function EditorCriatura({
       {editandoGrupoId && typeof document !== "undefined" && createPortal(
         <ShellPortalFlotante onCerrar={() => setEditandoGrupoId(null)}>
           <GrupoCompuestoPanelFlotante
+            sinPortalPropio
             grupo={catalogoOrganos.find((g) => g.id === editandoGrupoId)!}
             compuestos={compuestosOrganos}
             onCerrar={() => setEditandoGrupoId(null)}
@@ -690,6 +691,7 @@ export function EditorCriatura({
           return createPortal(
             <ShellPortalFlotante onCerrar={() => setEditandoSistemaOrganismoId(null)}>
               <SistemaPanelFlotante
+                sinPortalPropio
                 sistema={sistemaActivo}
                 onCerrar={() => setEditandoSistemaOrganismoId(null)}
                 onAbrirOrganoExterno={saltarAOrgano}
@@ -711,6 +713,7 @@ export function EditorCriatura({
           return createPortal(
             <ShellPortalFlotante onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}>
               <GrupoCompuestoPanelFlotante
+                sinPortalPropio
                 grupo={organoActivo}
                 compuestos={compuestosOrganos}
                 onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}
