@@ -350,6 +350,35 @@ function useConocimientoIums(perfilId: string | null) {
   return { conocimiento, setConocimiento, recargar: cargar };
 }
 
+// ─── Hook: procesos/conjuraciones descubiertos (persiste en Supabase) ─────────
+
+function useProcesosDescubiertos(perfilId: string | null) {
+  const [procesos, setProcesos] = useState<Set<string>>(new Set());
+
+  const cargar = useCallback(async () => {
+    if (!perfilId) return;
+    // Leer del log los intentos exitosos con conjuracion_id, join a conjuraciones para obtener el nombre
+    const { data } = await supabase
+      .from("simulador_intentos_log")
+      .select("conjuracion_id, conjuraciones(nombre)")
+      .eq("perfil_id", perfilId)
+      .eq("resultado_tipo", "proceso_exitoso")
+      .not("conjuracion_id", "is", null);
+    if (data) {
+      const nombres = new Set<string>();
+      for (const fila of data) {
+        const nombre = (fila.conjuraciones as { nombre?: string } | null)?.nombre;
+        if (nombre) nombres.add(nombre);
+      }
+      setProcesos(nombres);
+    }
+  }, [perfilId]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  return { procesos, setProcesos, recargar: cargar };
+}
+
 // ─── Hook: saldo de Eterium del jugador ────────────────────────────────────
 
 function useEteriumJugador(perfilId: string | null) {
@@ -1115,9 +1144,6 @@ function ResultadoPanel({ resultado, nombreIum }: { resultado: ResultadoSimulado
     }}>
       {tipo === "exito" && (
         <>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: 0, color: `color-mix(in srgb, ${color} 80%, var(--foreground))` }}>
-            ¡Algo ocurre!
-          </p>
           <p style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.15 }}>{resultado.conjuracion_principal ?? resultado.proceso_principal}</p>
           {!!oris.length && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 2 }}>
@@ -1207,7 +1233,7 @@ export default function SimuladorIUM() {
 
   // Panel de descubrimientos
   const [descubrimientosAbierto, setDescubrimientosAbierto] = useState(false);
-  const [procesosDescubiertos, setProcesosDescubiertos] = useState<Set<string>>(new Set());
+  const { procesos: procesosDescubiertos, setProcesos: setProcesosDescubiertos, recargar: recargarProcesos } = useProcesosDescubiertos(perfilId);
 
   // Drag de nodo
   const dragging = useRef<{
@@ -1805,14 +1831,8 @@ export default function SimuladorIUM() {
           setRevelaciones(reveladosInfo);
         }
 
-        // Acumular conjuración/proceso descubierto en sesión
-        const nombreDescubierto = res.conjuracion_principal ?? res.proceso_principal;
-        if (nombreDescubierto) {
-          setProcesosDescubiertos((prev) => new Set([...prev, nombreDescubierto as string]));
-        }
-
-        // Recargar estado de Eterium y conocimiento
-        await Promise.all([recargarEterium(), recargarConocimiento()]);
+        // Recargar estado de Eterium, conocimiento y procesos descubiertos desde Supabase
+        await Promise.all([recargarEterium(), recargarConocimiento(), recargarProcesos()]);
       }
 
     } catch (e) {
@@ -1821,7 +1841,7 @@ export default function SimuladorIUM() {
     } finally {
       setSimulando(false);
     }
-  }, [componentes, enlaces, perfilId, clasificarResultado, iumMap, salidas, recargarEterium, recargarConocimiento]);
+  }, [componentes, enlaces, perfilId, clasificarResultado, iumMap, salidas, recargarEterium, recargarConocimiento, recargarProcesos]);
 
   // ── Scale actual ───────────────────────────────────────────────────────────
 
