@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   useMobileAsidePanel,
@@ -627,44 +628,56 @@ export function EditorCriatura({
         )}
       </div>
 
-      {/* ── Paneles flotantes (sin cambios) ──────────────────────────────────── */}
-      {editandoGrupoId && (
-        <GrupoCompuestoPanelFlotante
-          grupo={catalogoOrganos.find((g) => g.id === editandoGrupoId)!}
-          compuestos={compuestosOrganos}
-          onCerrar={() => setEditandoGrupoId(null)}
-          onActualizar={persistirOrgano}
-          onAbrirCompuesto={setEditandoCompuestoId}
-          onAbrirOrganoExterno={saltarAOrgano}
-          onAbrirSistemaExterno={saltarASistema}
-          onAbrirOrganismoExterno={saltarAOrganismo}
-          onAbrirCriaturaExterno={onSelectCriatura}
-          onAbrirCelulaExterno={saltarACelula}
-          onAbrirTejidoExterno={saltarATejido}
-        />
+      {/* ── Paneles flotantes ────────────────────────────────────────────────
+           Cada panel se monta via createPortal en document.body con su
+           propio backdrop, escapando del overflow:hidden / z-index del
+           EditorCriatura y del shell padre (CriaturaEditor). Sin esto
+           los paneles de Tejido/Célula/Organismo aparecían renderizados
+           DENTRO del panel de Criatura en vez de flotar por encima. */}
+
+      {editandoGrupoId && typeof document !== "undefined" && createPortal(
+        <ShellPortalFlotante onCerrar={() => setEditandoGrupoId(null)}>
+          <GrupoCompuestoPanelFlotante
+            grupo={catalogoOrganos.find((g) => g.id === editandoGrupoId)!}
+            compuestos={compuestosOrganos}
+            onCerrar={() => setEditandoGrupoId(null)}
+            onActualizar={persistirOrgano}
+            onAbrirCompuesto={setEditandoCompuestoId}
+            onAbrirOrganoExterno={saltarAOrgano}
+            onAbrirSistemaExterno={saltarASistema}
+            onAbrirOrganismoExterno={saltarAOrganismo}
+            onAbrirCriaturaExterno={onSelectCriatura}
+            onAbrirCelulaExterno={saltarACelula}
+            onAbrirTejidoExterno={saltarATejido}
+          />
+        </ShellPortalFlotante>,
+        document.body,
       )}
 
       {editandoOrganismoId &&
         (() => {
           const organismoActivo = catalogoOrganismos.find((o) => o.id === editandoOrganismoId);
-          if (!organismoActivo) return null;
-          return (
-            <PanelEditorOrganismo
-              item={organismoActivo}
-              sistemas={catalogoSistemas}
-              onCerrar={() => setEditandoOrganismoId(null)}
-              onActualizar={actualizarOrganismo}
-              onEliminar={async (id) => {
-                const res = await eliminarOrganismo(id);
-                if (res.ok) setEditandoOrganismoId(null);
-                return res;
-              }}
-              onAbrirSistema={saltarASistema}
-              onAbrirCelula={saltarACelula}
-              onAbrirTejido={saltarATejido}
-              onAbrirOrgano={saltarAOrgano}
-              onAbrirCriatura={onSelectCriatura}
-            />
+          if (!organismoActivo || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoOrganismoId(null)}>
+              <PanelEditorOrganismo
+                item={organismoActivo}
+                sistemas={catalogoSistemas}
+                onCerrar={() => setEditandoOrganismoId(null)}
+                onActualizar={actualizarOrganismo}
+                onEliminar={async (id) => {
+                  const res = await eliminarOrganismo(id);
+                  if (res.ok) setEditandoOrganismoId(null);
+                  return res;
+                }}
+                onAbrirSistema={saltarASistema}
+                onAbrirCelula={saltarACelula}
+                onAbrirTejido={saltarATejido}
+                onAbrirOrgano={saltarAOrgano}
+                onAbrirCriatura={onSelectCriatura}
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
 
@@ -673,103 +686,158 @@ export function EditorCriatura({
           const sistemaActivo =
             sistemasOrganismo.items.find((s) => s.sistema_id === editandoSistemaOrganismoId)?.sistema ??
             catalogoSistemas.find((s) => s.id === editandoSistemaOrganismoId);
-          if (!sistemaActivo) return null;
-          return (
-            <SistemaPanelFlotante
-              sistema={sistemaActivo}
-              onCerrar={() => setEditandoSistemaOrganismoId(null)}
-              onAbrirOrganoExterno={saltarAOrgano}
-              onAbrirSistemaExterno={saltarASistema}
-              onAbrirOrganismoExterno={saltarAOrganismo}
-              onAbrirCriaturaExterno={onSelectCriatura}
-              onAbrirCelulaExterno={saltarACelula}
-              onAbrirTejidoExterno={saltarATejido}
-            />
+          if (!sistemaActivo || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoSistemaOrganismoId(null)}>
+              <SistemaPanelFlotante
+                sistema={sistemaActivo}
+                onCerrar={() => setEditandoSistemaOrganismoId(null)}
+                onAbrirOrganoExterno={saltarAOrgano}
+                onAbrirSistemaExterno={saltarASistema}
+                onAbrirOrganismoExterno={saltarAOrganismo}
+                onAbrirCriaturaExterno={onSelectCriatura}
+                onAbrirCelulaExterno={saltarACelula}
+                onAbrirTejidoExterno={saltarATejido}
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
 
       {editandoOrganoDirectoOrganismoId &&
         (() => {
           const organoActivo = catalogoOrganos.find((o) => o.id === editandoOrganoDirectoOrganismoId);
-          if (!organoActivo) return null;
-          return (
-            <GrupoCompuestoPanelFlotante
-              grupo={organoActivo}
-              compuestos={compuestosOrganos}
-              onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}
-              onActualizar={(id, cambios) =>
-                setCatalogoOrganos((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)))
-              }
-              onAbrirOrganoExterno={saltarAOrgano}
-              onAbrirSistemaExterno={saltarASistema}
-              onAbrirOrganismoExterno={saltarAOrganismo}
-              onAbrirCriaturaExterno={onSelectCriatura}
-              onAbrirCelulaExterno={saltarACelula}
-              onAbrirTejidoExterno={saltarATejido}
-            />
+          if (!organoActivo || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}>
+              <GrupoCompuestoPanelFlotante
+                grupo={organoActivo}
+                compuestos={compuestosOrganos}
+                onCerrar={() => setEditandoOrganoDirectoOrganismoId(null)}
+                onActualizar={(id, cambios) =>
+                  setCatalogoOrganos((prev) => prev.map((o) => (o.id === id ? { ...o, ...cambios } : o)))
+                }
+                onAbrirOrganoExterno={saltarAOrgano}
+                onAbrirSistemaExterno={saltarASistema}
+                onAbrirOrganismoExterno={saltarAOrganismo}
+                onAbrirCriaturaExterno={onSelectCriatura}
+                onAbrirCelulaExterno={saltarACelula}
+                onAbrirTejidoExterno={saltarATejido}
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
 
       {editandoCelulaId &&
         (() => {
           const celulaActiva = celulasCatalogo.items.find((c) => c.id === editandoCelulaId);
-          if (!celulaActiva) return null;
-          return (
-            <PanelEditorCelula
-              item={celulaActiva}
-              compuestos={compuestosOrganos}
-              onCerrar={() => setEditandoCelulaId(null)}
-              onActualizar={celulasCatalogo.actualizar}
-              onEliminar={celulasCatalogo.eliminar}
-              onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirTejido={saltarATejido}
-              onAbrirOrgano={saltarAOrgano}
-              onAbrirSistema={saltarASistema}
-              onAbrirOrganismo={saltarAOrganismo}
-              onAbrirCriatura={onSelectCriatura}
-            />
+          if (!celulaActiva || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoCelulaId(null)}>
+              <PanelEditorCelula
+                item={celulaActiva}
+                compuestos={compuestosOrganos}
+                onCerrar={() => setEditandoCelulaId(null)}
+                onActualizar={celulasCatalogo.actualizar}
+                onEliminar={celulasCatalogo.eliminar}
+                onAbrirCompuesto={setEditandoCompuestoId}
+                onAbrirTejido={saltarATejido}
+                onAbrirOrgano={saltarAOrgano}
+                onAbrirSistema={saltarASistema}
+                onAbrirOrganismo={saltarAOrganismo}
+                onAbrirCriatura={onSelectCriatura}
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
 
       {editandoTejidoId &&
         (() => {
           const tejidoActivo = tejidosCatalogo.items.find((t) => t.id === editandoTejidoId);
-          if (!tejidoActivo) return null;
-          return (
-            <PanelEditorTejido
-              item={tejidoActivo}
-              celulas={celulasCatalogo.items}
-              loadingCelulas={celulasCatalogo.loading}
-              compuestos={compuestosOrganos}
-              onCerrar={() => setEditandoTejidoId(null)}
-              onActualizar={tejidosCatalogo.actualizar}
-              onEliminar={tejidosCatalogo.eliminar}
-              onAbrirCompuesto={setEditandoCompuestoId}
-              onAbrirCelula={saltarACelula}
-              onAbrirOrgano={saltarAOrgano}
-              onAbrirSistema={saltarASistema}
-              onAbrirOrganismo={saltarAOrganismo}
-              onAbrirCriatura={onSelectCriatura}
-            />
+          if (!tejidoActivo || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoTejidoId(null)}>
+              <PanelEditorTejido
+                item={tejidoActivo}
+                celulas={celulasCatalogo.items}
+                loadingCelulas={celulasCatalogo.loading}
+                compuestos={compuestosOrganos}
+                onCerrar={() => setEditandoTejidoId(null)}
+                onActualizar={tejidosCatalogo.actualizar}
+                onEliminar={tejidosCatalogo.eliminar}
+                onAbrirCompuesto={setEditandoCompuestoId}
+                onAbrirCelula={saltarACelula}
+                onAbrirOrgano={saltarAOrgano}
+                onAbrirSistema={saltarASistema}
+                onAbrirOrganismo={saltarAOrganismo}
+                onAbrirCriatura={onSelectCriatura}
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
 
       {editandoCompuestoId &&
         (() => {
           const compuesto = compuestosOrganos.find((c) => c.id === editandoCompuestoId);
-          if (!compuesto) return null;
-          return (
-            <CompuestoPanelFlotante
-              compuesto={compuesto}
-              elementos={elementosPerfil}
-              todosLosCompuestos={compuestosOrganos}
-              onCerrar={() => setEditandoCompuestoId(null)}
-              onActualizar={(id, cambios) =>
-                setCompuestosOrganos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
-              }
-            />
+          if (!compuesto || typeof document === "undefined") return null;
+          return createPortal(
+            <ShellPortalFlotante onCerrar={() => setEditandoCompuestoId(null)}>
+              <CompuestoPanelFlotante
+                compuesto={compuesto}
+                elementos={elementosPerfil}
+                todosLosCompuestos={compuestosOrganos}
+                onCerrar={() => setEditandoCompuestoId(null)}
+                onActualizar={(id, cambios) =>
+                  setCompuestosOrganos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)))
+                }
+              />
+            </ShellPortalFlotante>,
+            document.body,
           );
         })()}
+    </div>
+  );
+}
+
+// ─── ShellPortalFlotante ─────────────────────────────────────────────────────
+// Backdrop + centrado para los sub-paneles que se abren desde EditorCriatura
+// (Organismo, Tejido, Célula, Sistema, Órgano, Compuesto). El portal en sí
+// lo monta el caller con createPortal(…, document.body); este componente solo
+// provee el fondo difuminado y el flex de centrado, igual al shell que usa
+// BiologiaPage para los mismos paneles cuando se abren desde allí.
+function ShellPortalFlotante({
+  children,
+  onCerrar,
+}: {
+  children: React.ReactNode;
+  onCerrar: () => void;
+}) {
+  // Cerrar con Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCerrar();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCerrar]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6"
+      style={{
+        background: "color-mix(in srgb, var(--primary) 35%, transparent)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+      }}
+      onMouseDown={onCerrar}
+    >
+      {/* stopPropagation para que el click dentro del panel no cierre el backdrop */}
+      <div className="w-full h-full max-w-6xl" onMouseDown={(e) => e.stopPropagation()}>
+        {children}
+      </div>
     </div>
   );
 }
