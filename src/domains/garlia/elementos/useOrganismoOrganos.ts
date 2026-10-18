@@ -3,18 +3,21 @@
 /**
  * useOrganismoOrganos.ts
  * ───────────────────────────────────────────────────────────────────────────
- * Resuelve los Órganos vinculados DIRECTO a un Organismo — tabla puente
- * `organismo_organos` (M:N, con rol y cantidad). Distinto de
- * organismo_sistemas→sistema_organos (que llega al Órgano pasando por un
- * Sistema intermedio): esta tabla expresa "este Organismo posee este Órgano,
- * con esta cantidad y este rol" sin necesidad de que el Órgano cuelgue de
- * ningún Sistema catalogado.
+ * Resuelve los Órganos vinculados a un Organismo — lee desde la vista
+ * `v_organismos_organos_efectivos_v4` que resuelve herencia por clado.
+ * La tabla base `organismo_organos` solo contiene vínculos directos,
+ * pero los órganos heredados del clado viven únicamente en la vista;
+ * usar la tabla base devuelve 0 filas para organismos que solo tienen
+ * órganos heredados.
+ *
+ * Columnas de la vista: organismo_id, organo_id, rol, cantidad, fuente, origen.
+ * No tiene `id` propio — se usa `organo_id` como clave de vínculo.
+ *
+ * Las mutaciones (vincularExistente, actualizarVinculo, quitar) siguen
+ * escribiendo en la tabla base `organismo_organos` para vínculos directos.
  *
  * Fix race condition (oct-2026): se usa una ref local `fetchIdRef` para
- * descartar resultados de fetches que lleguen tarde (cuando organismoId
- * cambió mientras el fetch estaba en vuelo). Esto reemplaza el join
- * embebido que fallaba silenciosamente cuando Supabase no podía inferir
- * la FK de forma automática (devolvía 200 con `organo: null`).
+ * descartar resultados de fetches que lleguen tarde.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +38,10 @@ export interface OrganoDeOrganismo {
   organo_id: string;
   rol: string | null;
   cantidad: number;
+  /** 'directo' = vínculo en tabla base / 'clado' = heredado del clado. */
+  fuente?: string;
+  /** 'propio' | 'heredado' según la vista efectivos. */
+  origen?: string;
   organo: Organo;
 }
 
@@ -105,12 +112,15 @@ export function useOrganismoOrganos(organismoId: string | null) {
 
     if (!cacheEntry) setLoading(true);
 
-    // ── Query 1: vínculos ─────────────────────────────────────────────────
+    // ── Query 1: vínculos desde la vista efectivos ────────────────────────
+    // Usamos v_organismos_organos_efectivos_v4 en lugar de la tabla base
+    // organismo_organos porque resuelve herencia por clado.
+    // Columnas: organismo_id, organo_id, rol, cantidad, fuente, origen.
+    // No tiene `id` propio — fabricamos uno sintético desde organo_id.
     const { data: vinculoData, error: vinculoError } = await supabase
-      .from(CONFIG_ORGANISMO_ORGANOS.tabla)
-      .select(CONFIG_ORGANISMO_ORGANOS.select)
-      .eq("organismo_id", organismoId)
-      .order("created_at", { ascending: true });
+      .from("v_organismos_organos_efectivos_v4")
+      .select("organismo_id, organo_id, rol, cantidad, fuente, origen")
+      .eq("organismo_id", organismoId);
 
     if (myFetchId !== fetchIdRef.current) return; // llegó tarde
     if (vinculoError || !vinculoData) {
@@ -118,7 +128,18 @@ export function useOrganismoOrganos(organismoId: string | null) {
       setLoading(false);
       return;
     }
-    const vinculosResueltos = vinculoData as unknown as OrganismoOrgano[];
+
+    // Normalizar al shape OrganismoOrgano — id sintético = organo_id
+    const vinculosResueltos: OrganismoOrgano[] = (vinculoData as any[]).map((row) => ({
+      id: row.organo_id,
+      organismo_id: row.organismo_id,
+      organo_id: row.organo_id,
+      rol: row.rol ?? null,
+      cantidad: row.cantidad ?? 1,
+      fuente: row.fuente,
+      origen: row.origen,
+      created_at: "",
+    }));
 
     const organoIds = [...new Set(vinculosResueltos.map((v) => v.organo_id))];
     if (organoIds.length === 0) {
@@ -156,20 +177,22 @@ export function useOrganismoOrganos(organismoId: string | null) {
   }, [organismoId]);
 
   const items = useMemo<OrganoDeOrganismo[]>(() => {
-    return vinculos
-      .map((v) => {
-        const organo = organos[v.organo_id];
-        if (!organo) return null;
-        return {
-          vinculo_id: v.id,
-          organismo_id: v.organismo_id,
-          organo_id: v.organo_id,
-          rol: v.rol,
-          cantidad: v.cantidad,
-          organo,
-        };
-      })
-      .filter((o): o is OrganoDeOrganismo => o !== null);
+    const result: OrganoDeOrganismo[] = [];
+    for (const v of vinculos) {
+      const organo = organos[v.organo_id];
+      if (!organo) continue;
+      result.push({
+        vinculo_id: v.id,
+        organismo_id: v.organismo_id,
+        organo_id: v.organo_id,
+        rol: v.rol,
+        cantidad: v.cantidad,
+        fuente: (v as any).fuente,
+        origen: (v as any).origen,
+        organo,
+      });
+    }
+    return result;
   }, [vinculos, organos]);
 
   /** Vincular un Órgano ya existente del catálogo directo a este Organismo. */
@@ -205,30 +228,34 @@ export function useOrganismoOrganos(organismoId: string | null) {
     [organismoId, organos, setOrganos, setVinculos],
   );
 
-  /** Editar rol y/o cantidad de una fila. */
+  /** Editar rol y/o cantidad de un vínculo directo (heredados del clado
+   *  son read-only). vinculoId = organo_id (id sintético de la vista). */
   const actualizarVinculo = useCallback(
     async (vinculoId: string, cambios: Partial<Pick<OrganismoOrgano, "rol" | "cantidad">>) => {
       setVinculos((prev) => prev.map((v) => (v.id === vinculoId ? { ...v, ...cambios } : v)));
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_ORGANOS.tabla)
         .update(cambios)
-        .eq("id", vinculoId);
+        .eq("organismo_id", organismoId!)
+        .eq("organo_id", vinculoId);
       if (error) console.error("[useOrganismoOrganos] error actualizando vínculo:", error);
     },
-    [setVinculos],
+    [organismoId, setVinculos],
   );
 
-  /** Quitar el vínculo (el Órgano queda en su catálogo, no se borra). */
+  /** Quitar un vínculo directo (el Órgano queda en su catálogo, no se borra).
+   *  vinculoId = organo_id (id sintético de la vista). */
   const quitar = useCallback(
     async (vinculoId: string) => {
       setVinculos((prev) => prev.filter((v) => v.id !== vinculoId));
       const { error } = await supabase
         .from(CONFIG_ORGANISMO_ORGANOS.tabla)
         .delete()
-        .eq("id", vinculoId);
+        .eq("organismo_id", organismoId!)
+        .eq("organo_id", vinculoId);
       if (error) console.error("[useOrganismoOrganos] error quitando vínculo:", error);
     },
-    [setVinculos],
+    [organismoId, setVinculos],
   );
 
   return { items, loading, vincularExistente, actualizarVinculo, quitar, load };
