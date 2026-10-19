@@ -50,6 +50,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Loader2, RefreshCw } from "lu
 import React, { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/infra/supabase/supabase";
+import { EfectoVisualIUMs } from "@/universo/public/EfectoVisualIUMs";
 
 import type { Oris } from "./types";
 
@@ -833,6 +834,13 @@ export function SimuladorEterium({ orisInicial }: Props) {
       {/* Resultado */}
       {resultado.estado === "bloqueado" && (
         <ContratoFaltante contrato={resultado.contrato} motivo={resultado.motivo} />
+      )}
+
+      {resultado.estado === "ok" && iumsDeOris.estado === "ok" && iumsDeOris.datos.length > 0 && (
+        <EfectoVisualIUMs
+          iumIds={iumsDeOris.datos.map((i) => i.ium_id)}
+          activo={true}
+        />
       )}
 
       {resultado.estado === "ok" && (
