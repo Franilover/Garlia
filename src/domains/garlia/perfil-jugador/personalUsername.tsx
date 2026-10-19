@@ -3,7 +3,6 @@
 import { AnimatePresence } from "framer-motion";
 import {
   User,
-  Sword,
   Cat,
   X,
   Loader2,
@@ -1657,55 +1656,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     initial={{ opacity: 0, y: 6 }}
                     transition={{ duration: 0.16 }}
                   >
-                    {tab === "items" && (
-                      <>
-                        {inventario.map((item, i) => (
-                          <EntidadCard
-                            key={`inv-${i}`}
-                            icono={<Sword size={20} />}
-                            imagen={item.items.imagen_url}
-                            nombre={item.items.nombre}
-                            sub={item.items.categoria}
-                            onClick={() =>
-                              setModalD({ tipo: "item_inv", data: item })
-                            }
-                          />
-                        ))}
-                        {misItemsDesc.map((d, i) => (
-                          <EntidadCard
-                            key={`desc-${i}`}
-                            icono={<Sword size={20} />}
-                            imagen={d.imagen_url}
-                            nombre={d.nombre ?? "Objeto"}
-                            sub={d.categoria ?? "Item"}
-                            onClick={() => setModalD({ tipo: "item", data: d })}
-                          />
-                        ))}
-                        {inventario.length === 0 &&
-                          misItemsDesc.length === 0 && (
-                            <EmptyTab label="Sin items registrados aún" />
-                          )}
-                      </>
-                    )}
-
-                    {tab === "criaturas" &&
-                      (misCriaturas.length > 0 ? (
-                        misCriaturas.map((d, i) => (
-                          <EntidadCard
-                            key={i}
-                            icono={<Cat size={20} />}
-                            imagen={d.imagen_url}
-                            nombre={d.nombre ?? "Criatura"}
-                            sub={d.habitat}
-                            onClick={() =>
-                              setModalD({ tipo: "criatura", data: d })
-                            }
-                          />
-                        ))
-                      ) : (
-                        <EmptyTab label="Sin criaturas descubiertas" />
-                      ))}
-
                     {tab === "personajes" &&
                       (misPersonajes.length > 0 ? (
                         misPersonajes.map((d, i) => {
