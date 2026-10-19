@@ -1059,29 +1059,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
           </div>
         </div>
 
-        {/* Separador decorativo */}
-        <div className="px-6 md:px-10 flex items-center gap-3 mb-4">
-          <div
-            className="flex-1 h-px"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          />
-          <span
-            className="text-base"
-            style={{
-              color: "color-mix(in srgb, var(--primary) 14%, transparent)",
-            }}
-          >
-            ⚝
-          </span>
-          <div
-            className="flex-1 h-px"
-            style={{
-              background: "color-mix(in srgb, var(--primary) 8%, transparent)",
-            }}
-          />
-        </div>
+
       </div>
 
       {/* ═══════════════════════
