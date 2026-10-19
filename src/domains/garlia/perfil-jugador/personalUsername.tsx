@@ -1603,36 +1603,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     );
                   })}
                 </div>
-                <div
-                  className="flex items-center gap-1.5 px-3 py-1.5"
-                  style={{
-                    border:
-                      "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
-                    borderRadius: "2px",
-                    background:
-                      "color-mix(in srgb, var(--primary) 3%, transparent)",
-                  }}
-                >
-                  <Star
-                    size={8}
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 30%, transparent)",
-                    }}
-                  />
-                  <span
-                    className="text-micro font-black uppercase tracking-[0.22em] tabular-nums"
-                    style={{
-                      color:
-                        "color-mix(in srgb, var(--primary) 38%, transparent)",
-                    }}
-                  >
-                    {tab === "reinos"
-                      ? reinos.length
-                      : misPersonajes.length}{" "}
-                    entradas
-                  </span>
-                </div>
+
               </div>
 
               {/* Panel colección */}
