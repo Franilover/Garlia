@@ -3,9 +3,12 @@
 import { AnimatePresence } from "framer-motion";
 import {
   User,
+  Sword,
+  Cat,
   X,
   Loader2,
   Music2,
+  ChevronRight,
   Star,
   MapPin,
   Users,
