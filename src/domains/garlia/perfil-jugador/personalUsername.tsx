@@ -3,12 +3,9 @@
 import { AnimatePresence } from "framer-motion";
 import {
   User,
-  Sword,
-  Cat,
   X,
   Loader2,
   Music2,
-  ChevronRight,
   Star,
   MapPin,
   Users,
@@ -77,9 +74,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [otrosPerfiles, setOtrosPerfiles] = useState<PerfilResumen[]>([]);
   const [cargando, setCargando] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<
-    "items" | "criaturas" | "personajes" | "reinos"
-  >("personajes");
+  const [tab, setTab] = useState<"personajes" | "reinos">("personajes");
   const [modalD, setModalD] = useState<EntidadModal | null>(null);
   const [modalPersonaje, setModalPersonaje] = useState<Descubrimiento | null>(
     null,
@@ -89,6 +84,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
   const [reinos, setReinos] = useState<ReinoDesbloqueado[]>([]);
   const [ciudades, setCiudades] = useState<CiudadDesbloqueada[]>([]);
   const [ciudadesReino, setCiudadesReino] = useState<CiudadDesbloqueada[]>([]);
+  // IDs de personajes que el visitante tiene desbloqueados en su propia cuenta
+  const [misPersonajesIds, setMisPersonajesIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!username) return;
@@ -149,6 +146,27 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
       setPerfil(perfilData);
       const uid = perfilData.id;
 
+      // ── Carga paralela: descubrimientos del visitante (para ocultar personajes no desbloqueados) ──
+      try {
+        const { data: { user: visitorUser } } = await supabase.auth.getUser();
+        if (visitorUser && visitorUser.id !== uid) {
+          // Solo si el visitante es distinto al dueño del perfil
+          const visitorDescs = await loadDescubrimientos(visitorUser.id, () => {});
+          const ids = new Set(
+            visitorDescs
+              .filter((d: any) => d.tipo === "personaje" && d.entidad_id)
+              .map((d: any) => d.entidad_id as string)
+          );
+          setMisPersonajesIds(ids);
+        } else {
+          // Si es el propio perfil del visitante, ve todo
+          setMisPersonajesIds(new Set("__all__"));
+        }
+      } catch {
+        // Si falla, mostramos todo (safe fallback)
+        setMisPersonajesIds(new Set("__all__"));
+      }
+
       // ── Paso 2: todo el contenido en paralelo con caché Dexie ────────────
       // Las mismas funciones que usa personal.tsx → si el usuario vio su
       // propio perfil antes, los datos ya están en caché y llegan al instante.
@@ -205,8 +223,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
 
   const tabs = [
     { id: "personajes", label: "Agenda", icon: User },
-    { id: "criaturas", label: "Bestiario", icon: Cat },
-    { id: "items", label: "Inventario", icon: Sword },
     { id: "reinos", label: "Mapa", icon: MapPin },
   ] as const;
 
@@ -1083,10 +1099,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
               color: "color-mix(in srgb, var(--primary) 28%, transparent)",
             }}
           >
-            {inventario.length +
-              misItemsDesc.length +
-              misCriaturas.length +
-              misPersonajes.length}{" "}
+            {misPersonajes.length + reinos.length}{" "}
             descubrimientos
           </span>
           <div
@@ -1143,18 +1156,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                       label: "Amigos",
                       count: misPersonajes.length,
                       max: 20,
-                    },
-                    {
-                      icon: <Cat size={10} />,
-                      label: "Criaturas",
-                      count: misCriaturas.length,
-                      max: 30,
-                    },
-                    {
-                      icon: <Sword size={10} />,
-                      label: "Objetos",
-                      count: inventario.length + misItemsDesc.length,
-                      max: 50,
                     },
                     {
                       icon: <MapPin size={10} />,
@@ -1624,13 +1625,9 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                         "color-mix(in srgb, var(--primary) 38%, transparent)",
                     }}
                   >
-                    {tab === "items"
-                      ? inventario.length + misItemsDesc.length
-                      : tab === "criaturas"
-                        ? misCriaturas.length
-                        : tab === "reinos"
-                          ? reinos.length
-                          : misPersonajes.length}{" "}
+                    {tab === "reinos"
+                      ? reinos.length
+                      : misPersonajes.length}{" "}
                     entradas
                   </span>
                 </div>
@@ -1643,12 +1640,7 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                     "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
                   borderTop: "none",
                   borderRadius: "0 0 var(--radius-card) var(--radius-card)",
-                  background:
-                    tab === "items"
-                      ? "color-mix(in srgb, var(--primary) 3%, var(--bg-main))"
-                      : tab === "criaturas"
-                        ? "color-mix(in srgb, var(--primary) 4%, var(--bg-main))"
-                        : "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
+                  background: "color-mix(in srgb, var(--primary) 2%, var(--bg-main))",
                   transition: "background 0.25s ease",
                   padding: "16px",
                 }}
@@ -1713,7 +1705,76 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
 
                     {tab === "personajes" &&
                       (misPersonajes.length > 0 ? (
-                        misPersonajes.map((d, i) => (
+                        misPersonajes.map((d, i) => {
+                          // Un personaje está desbloqueado si: el visitante es el dueño (__all__),
+                          // o si el entidad_id está en los descubrimientos del visitante.
+                          const desbloqueado =
+                            misPersonajesIds.has("__all__") ||
+                            (d.entidad_id != null && misPersonajesIds.has(d.entidad_id));
+
+                          // Tarjeta de misterio para personajes no desbloqueados
+                          if (!desbloqueado) {
+                            return (
+                              <div
+                                key={i}
+                                className="relative flex flex-col overflow-hidden"
+                                style={{
+                                  background:
+                                    "color-mix(in srgb, var(--primary) 5%, var(--white-custom))",
+                                  border:
+                                    "1px solid color-mix(in srgb, var(--primary) 10%, transparent)",
+                                  borderRadius: "var(--radius-btn)",
+                                  aspectRatio: "3/4",
+                                }}
+                              >
+                                <div className="flex-1 flex items-center justify-center">
+                                  <div
+                                    style={{
+                                      width: "36px",
+                                      height: "36px",
+                                      borderRadius: "50%",
+                                      background:
+                                        "color-mix(in srgb, var(--primary) 8%, transparent)",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontSize: "1.1rem",
+                                        color:
+                                          "color-mix(in srgb, var(--primary) 22%, transparent)",
+                                      }}
+                                    >
+                                      ?
+                                    </span>
+                                  </div>
+                                </div>
+                                <div
+                                  className="px-1.5 py-1"
+                                  style={{
+                                    borderTop:
+                                      "1px solid color-mix(in srgb, var(--primary) 8%, transparent)",
+                                    background:
+                                      "color-mix(in srgb, var(--primary) 4%, transparent)",
+                                  }}
+                                >
+                                  <p
+                                    className="font-serif italic text-micro leading-tight text-center truncate"
+                                    style={{
+                                      color:
+                                        "color-mix(in srgb, var(--primary) 18%, transparent)",
+                                    }}
+                                  >
+                                    ???
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
                           <button
                             key={i}
                             className="group relative flex flex-col overflow-hidden transition-all duration-200 hover:shadow-md"
@@ -1786,7 +1847,8 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                               </p>
                             </div>
                           </button>
-                        ))
+                          );
+                        })
                       ) : (
                         <EmptyTab label="Sin registros en la agenda" />
                       ))}
@@ -2001,8 +2063,6 @@ export default function PersonalUsername({ username }: PersonalUsernameProps) {
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {[
-                              { icon: <Sword size={6} />, n: p.items_count },
-                              { icon: <Cat size={6} />, n: p.criaturas_count },
                               {
                                 icon: <User size={6} />,
                                 n: p.personajes_count,
